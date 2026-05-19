@@ -88,6 +88,18 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
     try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
   }
 
+  // Track last error per surface so we can show inline Retry buttons (P1 polish — graceful errors).
+  const [lastErr, setLastErr] = useState<{ tab: Tab; msg: string } | null>(null)
+  const retry = () => {
+    if (!lastErr) return
+    setLastErr(null)
+    if (lastErr.tab === 'research') runResearch()
+    else if (lastErr.tab === 'analyze') runAnalyze()
+    else if (lastErr.tab === 'script') runScript()
+    else if (lastErr.tab === 'flow') runFlow()
+    else if (lastErr.tab === 'yt') runYt()
+  }
+
   const callAI = async (body: any) => {
     const res = await fetch('/api/ai/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const d = await res.json()
@@ -99,7 +111,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
     if (!topic.trim()) { toast.error('Enter a topic'); return }
     setRLoading(true); setResearch(null)
     try { const d = await callAI({ mode: 'deep_research', context: { topic, niche, audience, language, platform: 'youtube' } }); setResearch(d.output) }
-    catch (e:any) { toast.error(e?.message || 'Research failed') }
+    catch (e:any) { const msg = e?.message || 'Research failed'; setLastErr({ tab: 'research', msg }); toast.error(msg) }
     finally { setRLoading(false) }
   }
 
@@ -107,13 +119,13 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
     if (!refText.trim()) { toast.error('Paste a reference script'); return }
     setALoading(true); setRefResult(null)
     try { const d = await callAI({ mode: 'reference_analysis', context: { reference_script: refText, niche, audience, language, platform: 'youtube' } }); setRefResult(d.output) }
-    catch (e:any) { toast.error(e?.message || 'Analysis failed') }
+    catch (e:any) { const msg = e?.message || 'Analysis failed'; setLastErr({ tab: 'analyze', msg }); toast.error(msg) }
     finally { setALoading(false) }
   }
 
   const runScript = async () => {
     if (!scriptTitle.trim()) { toast.error('Enter a title or topic'); return }
-    setSLoading(true); setScriptOut(''); setScriptModel(''); setSavedScriptId(null)
+    setSLoading(true); setScriptOut(''); setScriptModel(''); setSavedScriptId(null); setLastErr(null)
     try {
       const d = await callAI({ mode: scriptFlavor, context: { title: scriptTitle, niche, audience, language, platform: 'youtube', duration_seconds: scriptDur } })
       const out = d.output || ''
@@ -135,7 +147,11 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
         finally { setAutoSaving(false) }
       }
     }
-    catch (e:any) { toast.error(e?.message || 'Script generation failed') }
+    catch (e:any) {
+      const msg = e?.message || 'Script generation failed'
+      setLastErr({ tab: 'script', msg })
+      toast.error(msg)
+    }
     finally { setSLoading(false) }
   }
 
@@ -144,7 +160,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
     if (!src) { toast.error('Generate or paste a script first'); return }
     setFLoading(true); setFlowOut(null)
     try { const d = await callAI({ mode: 'flow_prompts', context: { script_input: src, niche, audience, language, platform: 'youtube' } }); setFlowOut(d.output) }
-    catch (e:any) { toast.error(e?.message || 'Flow prompts failed') }
+    catch (e:any) { const msg = e?.message || 'Flow prompts failed'; setLastErr({ tab: 'flow', msg }); toast.error(msg) }
     finally { setFLoading(false) }
   }
 
@@ -170,7 +186,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
         } catch { /* non-fatal */ }
       }
     }
-    catch (e:any) { toast.error(e?.message || 'Intelligence call failed') }
+    catch (e:any) { const msg = e?.message || 'Intelligence call failed'; setLastErr({ tab: 'yt', msg }); toast.error(msg) }
     finally { setYLoading(false) }
   }
 
@@ -239,6 +255,23 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
             </Select>
           </div>
         </div>
+
+        {/* P1 polish — inline graceful error with one-click Retry */}
+        {lastErr && (
+          <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-red-500/[0.08] border border-red-500/30">
+            <span className="text-red-300 mt-0.5">⚠</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-medium text-red-200">Something didn't work</div>
+              <div className="text-[11px] text-red-200/80 mt-0.5 truncate">{lastErr.msg}</div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button onClick={retry} className="h-7 px-2.5 text-[11px] bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5">
+                <Loader2 className="w-3 h-3" /> Retry
+              </Button>
+              <button onClick={() => setLastErr(null)} className="p-1 text-muted-foreground hover:text-foreground" aria-label="Dismiss"><Check className="w-3 h-3" /></button>
+            </div>
+          </div>
+        )}
 
         {/* YOUTUBE INTELLIGENCE */}
         {tab === 'yt' && (

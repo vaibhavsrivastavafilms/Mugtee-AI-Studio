@@ -206,7 +206,19 @@ function NewCardDialog({ status, onClose, onCreate }: { status: ContentStatus | 
 
 function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: ContentPiece[]; onAdd: () => void; index: number }) {
   const { setNodeRef, isOver } = useDroppable({ id })
+  const { loading } = useStore()
   const meta = STATUS_META[id]
+  const isInitial = loading.initial && items.length === 0
+  // Phase 1 polish — per-status onboarding nudge instead of generic "Drop cards here"
+  const EMPTY_NUDGE: Record<ContentStatus, { title: string; sub: string }> = {
+    idea:      { title: 'No ideas yet',      sub: 'Generate viral hooks in AI Studio or click + to add one' },
+    scripting: { title: 'Nothing in scripting', sub: 'Drag a card here when you start writing the script' },
+    shooting:  { title: 'Nothing shooting',  sub: 'Move cards here on the day of the shoot' },
+    editing:   { title: 'Nothing in edit',   sub: 'Drag cards here while your video is in post' },
+    scheduled: { title: 'Nothing scheduled', sub: 'Schedule a card and it lands here automatically' },
+    published: { title: 'Nothing published', sub: 'Published posts appear here with their links' },
+  } as any
+  const empty = EMPTY_NUDGE[id] || { title: 'Empty', sub: 'Drop cards here' }
   return (
     <motion.div
       initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:index*0.05}}
@@ -219,16 +231,32 @@ function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: C
             <span className="text-xs tracking-[0.2em] uppercase font-medium">{meta.label}</span>
             <span className="text-xs text-muted-foreground tabular-nums">{items.length}</span>
           </div>
-          <button onClick={onAdd} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300">
+          <button onClick={onAdd} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300" aria-label={`Add to ${meta.label}`}>
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
         <div ref={setNodeRef} className="flex-1 px-3 pb-3 space-y-2 min-h-[200px] max-h-[calc(100vh-260px)] overflow-y-auto scrollbar-luxe">
-          <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-            {items.map(i => <SortableCard key={i.id} item={i} />)}
-          </SortableContext>
-          {items.length === 0 && (
-            <div className="text-center text-xs text-muted-foreground py-8 border border-dashed border-white/[0.05] rounded-xl">Drop cards here</div>
+          {isInitial ? (
+            <>
+              <div className="h-[68px] rounded-xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
+              <div className="h-[68px] rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: '120ms' }} />
+              <div className="h-[68px] rounded-xl bg-white/[0.015] border border-white/[0.04] animate-pulse" style={{ animationDelay: '240ms' }} />
+            </>
+          ) : (
+            <>
+              <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                {items.map(i => <SortableCard key={i.id} item={i} />)}
+              </SortableContext>
+              {items.length === 0 && (
+                <div className="text-center py-8 border border-dashed border-white/[0.06] rounded-xl">
+                  <div className="text-xs text-luxe/80">{empty.title}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1 px-3 leading-relaxed">{empty.sub}</div>
+                  <button onClick={onAdd} className="mt-3 inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-gold-300/80 hover:text-gold-200 transition">
+                    <Plus className="w-3 h-3" /> Add card
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
