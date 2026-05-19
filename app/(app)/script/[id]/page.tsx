@@ -1,22 +1,67 @@
 'use client'
-// Phase 13F — Dedicated script workspace. Reads from the existing content_pieces store (no new table).
-// Persistent because content_pieces is already authed/Supabase-backed/realtime-synced.
+// Phase 13F — Dedicated script workspace.
+// Reads from the existing content_pieces store (no new table).
+// Bugfix P11.1: cold-tab race — if the store hasn't hydrated the just-saved row yet,
+// fall back to a direct Supabase lookup by id before showing "no longer exists".
 
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { toast } from 'sonner'
+import type { ContentPiece } from '@/lib/types'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
   const router = useRouter()
   const { content, updateContent, loading } = useStore()
-  const piece = useMemo(() => content.find(c => c.id === params.id), [content, params.id])
+  const storePiece = useMemo(() => content.find(c => c.id === params.id), [content, params.id])
+
+  // Direct-lookup fallback row (only populated if the store doesn't contain the id)
+  const [directPiece, setDirectPiece] = useState<ContentPiece | null>(null)
+  const [directState, setDirectState] = useState<'idle' | 'fetching' | 'done'>('idle')
+
+  // The effective piece used to render. Prefer the store row (always fresh via realtime).
+  const piece: ContentPiece | null = (storePiece as any) || directPiece
+
+  // Phase P11.1 — When the store finishes loading and still doesn't have the id,
+  // do an explicit Supabase fetch for that id. This survives read-after-write race
+  // and realtime sync lag in a freshly-opened tab.
+  useEffect(() => {
+    if (loading.initial) return            // wait for the bulk fetch to finish
+    if (storePiece) return                  // store already has it — nothing to do
+    if (directState !== 'idle') return     // already attempted
+
+    setDirectState('fetching')
+    let cancelled = false
+    const supabase = createSupabaseBrowserClient()
+
+    const tryFetch = async (attempt: number): Promise<void> => {
+      const { data, error } = await supabase
+        .from('content_pieces')
+        .select('*')
+        .eq('id', params.id)
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (cancelled) return
+      if (data) { setDirectPiece(data as any); setDirectState('done'); return }
+      if (error) { console.warn('[workspace] direct fetch error', error) }
+      // brief retry once in case the INSERT is still propagating across replicas
+      if (attempt < 1) {
+        await new Promise(r => setTimeout(r, 700))
+        if (!cancelled) return tryFetch(attempt + 1)
+      }
+      if (!cancelled) setDirectState('done')
+    }
+    tryFetch(0)
+
+    return () => { cancelled = true }
+  }, [loading.initial, storePiece, params.id, directState])
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -28,10 +73,12 @@ export default function ScriptWorkspace() {
     try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
   }
 
-  const beginEdit = () => { setDraft(piece?.script || piece?.description || ''); setEditing(true) }
+  const beginEdit = () => { setDraft((piece as any)?.script || piece?.description || ''); setEditing(true) }
   const saveEdit = async () => {
     if (!piece) return
     await updateContent(piece.id, { script: draft } as any)
+    // also reflect locally for direct-fetch piece (store will sync via realtime)
+    setDirectPiece(p => p ? ({ ...p, script: draft } as any) : p)
     setEditing(false)
     toast.success('Script saved')
   }
@@ -57,9 +104,17 @@ export default function ScriptWorkspace() {
     finally { setFlowLoading(false) }
   }
 
-  if (loading.initial) {
-    return <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground text-sm"><Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading workspace…</div>
+  // ---- Loading / not-found states ----
+  // Show loading while either the bulk store fetch OR the direct id-fetch is in flight.
+  if (loading.initial || (!piece && directState !== 'done')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-5 h-5 animate-spin text-gold-300" />
+        <div className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Loading workspace…</div>
+      </div>
+    )
   }
+
   if (!piece) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
