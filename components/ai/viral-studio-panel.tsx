@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/state'
 import { PLATFORM_META } from '@/lib/dummy-data'
 import { useStore } from '@/lib/store'
+import { useUsage, UpgradeModal } from '@/lib/usage'
 import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/types'
 
@@ -90,6 +91,7 @@ export function useViralIdeas() {
   const generate = useCallback(async () => {
     const t = topic.trim()
     if (!t) { toast.error('Add a topic first'); return }
+    if (!guard('ai')) return
     setLoading(true); setIdeas([]); setAddedIds({}); setScripts({})
     try {
       const res = await fetch('/api/ai/generate', {
@@ -105,12 +107,13 @@ export function useViralIdeas() {
         .map((x: any) => ({ title: String(x.title || ''), hook: String(x.hook || ''), angle: String(x.angle || '') }))
       setIdeas(cleaned)
       if (cleaned.length === 0) toast.error('No ideas parsed — try regenerating')
+      else bump('ai')
     } catch (e: any) {
       toast.error(e?.message || 'Generation failed')
     } finally {
       setLoading(false)
     }
-  }, [topic, platform, tone, niche, audience])
+  }, [topic, platform, tone, niche, audience, guard, bump])
 
   const addToPipeline = useCallback(async (idea: Idea, index: number, statusOverride?: 'idea' | 'scripting'): Promise<string | undefined> => {
     if (addedIds[index] || adding === index) return addedIds[index]
@@ -135,6 +138,7 @@ export function useViralIdeas() {
 
   const promoteToScript = useCallback(async (idea: Idea, index: number) => {
     if (scriptBusy === index) return
+    if (!guard('scripts')) return
     setScriptBusy(index)
     try {
       const res = await fetch('/api/ai/generate', {
@@ -160,18 +164,20 @@ export function useViralIdeas() {
 
       await updateContent(contentId, { script: scriptText, status: 'scripting' } as any)
       setScripts(prev => ({ ...prev, [index]: scriptText }))
+      bump('scripts')
     } catch (e: any) {
       toast.error(e?.message || 'Script generation failed')
     } finally {
       setScriptBusy(null)
     }
-  }, [scriptBusy, platform, tone, niche, audience, addedIds, addToPipeline, updateContent])
+  }, [scriptBusy, platform, tone, niche, audience, addedIds, addToPipeline, updateContent, guard, bump])
 
   return {
     topic, setTopic, platform, setPlatform, tone, setTone,
     niche, setNiche, audience, setAudience,
     loading, ideas, addedIds, adding, scriptBusy, scripts,
     generate, addToPipeline, promoteToScript,
+    upgradeOpen, setUpgradeOpen, upgradeReason,
   }
 }
 
@@ -184,6 +190,8 @@ export function ViralStudioPanel() {
 
   return (
     <>
+      {/* Phase P2/P7 — upgrade + rewarded sponsor on cap-hit */}
+      <UpgradeModal open={v.upgradeOpen} onOpenChange={v.setUpgradeOpen} reason={v.upgradeReason} />
       <AnimatePresence>
         {!open && (
           <motion.button

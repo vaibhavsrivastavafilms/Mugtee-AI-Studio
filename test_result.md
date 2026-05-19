@@ -101,3 +101,47 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Wire P2 monetization UX + P7 rewarded credits + P6 analytics light. Free users hit AI cap → UpgradeModal opens → Watch Sponsor → +3 credits → resume AI. Live UsageGauge on dashboard. Real Supabase aggregates on /analytics."
+
+frontend:
+  - task: "P2/P7 — AI usage gating + UsageGauge + Rewarded Credits wiring"
+    implemented: true
+    working: "NA"
+    file: "components/ai/viral-studio-panel.tsx, components/dashboard/viral-quick-start.tsx, app/(app)/dashboard/page.tsx, lib/usage.tsx, components/ai/faceless-studio-dialog.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Completed wiring: (1) Added missing `useUsage`/`UpgradeModal` import in viral-studio-panel.tsx and wrapped `generate()` with `guard('ai')` + `bump('ai')`, `promoteToScript()` with `guard('scripts')` + `bump('scripts')`. Forwarded upgrade state through the `useViralIdeas` hook return. (2) Mounted `<UpgradeModal>` in both `ViralStudioPanel` (pipeline) and `viral-quick-start.tsx` (dashboard hero). (3) Mounted `<UsageGauge />` on dashboard between QuickStart and StatCards with motion intro. (4) Added monthly reset countdown helper `nextMonthResetIn()` to `UsageGauge` (will surface as footer). (5) Fixed pre-existing JSX-comment parse error in faceless-studio-dialog.tsx. Faceless dialog (5 AI flows) and weekly-planner dialog already had guard+bump+UpgradeModal wired from prior session. Free plan caps: AI=25, scripts=5, planner=2 per month; bonus credits=+3 per sponsor watch, daily reset. Visual screenshot of /login confirmed cinematic UI intact and compile is clean."
+  - task: "P6 — Analytics Light: real Supabase aggregates"
+    implemented: true
+    working: "NA"
+    file: "app/(app)/analytics/page.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Replaced mock VIEWS/ENGAGEMENT arrays with real aggregates from useStore() + useUsage(). Stat cards: Total Content (with 7d-vs-prev-7d % delta), Scheduled, Published MTD (all-time too), AI Generations (used/cap or unlimited). 14-day Workflow Velocity area chart from content.created_at. Platform Mix bar chart from content.platform. Pipeline Funnel showing all 6 ContentStatus stages with animated bars. Recent Activity list from team_activity store. Empty-state CTA when no content. No new API/migrations."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.2"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "P2/P7 — AI usage gating + UsageGauge + Rewarded Credits wiring"
+    - "P6 — Analytics Light: real Supabase aggregates"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Completed P2+P7 monetization UX wiring AND P6 Analytics Light in one tight deploy. AI-cap → UpgradeModal → Rewarded Sponsor (+3 credits) → resume AI loop is complete across 3 AI surfaces (Viral Ideas panel, Faceless Studio, Weekly Planner). UsageGauge mounted on dashboard. Analytics page now reads real data from store. No backend/migrations. App compiles cleanly. Needs visual frontend verification: (1) dashboard renders UsageGauge with live counters, (2) cap-hit triggers UpgradeModal with sponsor CTA, (3) sponsor reward grants +3 credits and gauge updates, (4) analytics page shows real numbers, charts populate. Requires Google OAuth login — credentials not stored in test_credentials.md (OAuth-only)."

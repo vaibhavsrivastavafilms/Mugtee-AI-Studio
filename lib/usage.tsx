@@ -283,9 +283,21 @@ export function RewardedSponsorModal({ open, onOpenChange, onReward }: { open: b
   )
 }
 
+// Helper — readable countdown to the next monthly reset
+function nextMonthResetIn(): string {
+  const now = new Date()
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const diffMs = next.getTime() - now.getTime()
+  const days = Math.floor(diffMs / 86400000)
+  if (days >= 2) return `Resets in ${days} days`
+  if (days === 1) return 'Resets tomorrow'
+  const hours = Math.max(1, Math.floor(diffMs / 3600000))
+  return `Resets in ${hours}h`
+}
+
 // Dashboard usage gauge widget
 export function UsageGauge() {
-  const { plan, usage, limit } = useUsage()
+  const { plan, usage, limit, remaining } = useUsage()
   if (plan !== 'free') {
     return (
       <div className="rounded-xl glass border border-gold-500/30 p-4 sm:p-5">
@@ -296,7 +308,7 @@ export function UsageGauge() {
           </div>
           <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Unlimited</span>
         </div>
-        <div className="text-sm text-luxe mt-2">All AI generations, scripts & planner runs are unlimited.</div>
+        <div className="text-sm text-luxe mt-2">All AI generations, scripts &amp; planner runs are unlimited.</div>
       </div>
     )
   }
@@ -330,11 +342,16 @@ export function UsageGauge() {
         <Row label="Cinematic scripts" used={usage.scripts} max={limit.scripts} pct={scriptsPct} />
         <Row label="Weekly plans"   used={usage.planner} max={limit.planner} pct={plannerPct} />
       </div>
-      {(aiPct >= 80 || scriptsPct >= 80 || plannerPct >= 80) && (
-        <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center gap-2 text-[11px] text-amber-200/90">
-          <Lock className="w-3 h-3 text-amber-300" /> Running low — Creator plan removes all caps for ₹245/month.
+      <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center justify-between gap-2">
+        <div className="text-[10px] text-muted-foreground tracking-wider">
+          {nextMonthResetIn()}{remaining.bonus > 0 && <span className="text-gold-300/80"> · +{remaining.bonus} bonus credits</span>}
         </div>
-      )}
+        {(aiPct >= 80 || scriptsPct >= 80 || plannerPct >= 80) && (
+          <div className="flex items-center gap-1.5 text-[10px] text-amber-200/90">
+            <Lock className="w-3 h-3 text-amber-300" /> Running low
+          </div>
+        )}
+      </div>
     </div>
   )
 }

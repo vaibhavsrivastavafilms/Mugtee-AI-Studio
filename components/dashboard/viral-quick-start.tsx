@@ -9,6 +9,7 @@ import { PLATFORM_META } from '@/lib/dummy-data'
 import { useViralIdeas, IdeaCard, TONES } from '@/components/ai/viral-studio-panel'
 import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
 import { FacelessStudioDialog } from '@/components/ai/faceless-studio-dialog'
+import { UpgradeModal } from '@/lib/usage'
 import type { Platform } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -209,6 +210,8 @@ export function ViralQuickStart() {
       <WeeklyPlannerDialog open={plannerOpen} onOpenChange={setPlannerOpen} />
       {/* Phase 13D — Faceless AI Studio */}
       <FacelessStudioDialog open={facelessOpen} onOpenChange={setFacelessOpen} />
+      {/* Phase P2/P7 — usage cap upgrade + rewarded sponsor modal */}
+      <UpgradeModal open={v.upgradeOpen} onOpenChange={v.setUpgradeOpen} reason={v.upgradeReason} />
     </>
   )
 }

@@ -514,7 +514,6 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
         )}
       </DialogContent>
     </Dialog>
-    {/* Phase P2/P7 - upgrade + rewarded sponsor */}
     <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} reason={upgradeReason} />
     </>
   )

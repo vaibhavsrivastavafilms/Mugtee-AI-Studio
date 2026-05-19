@@ -8,6 +8,7 @@ import { PostingCalendar } from '@/components/dashboard/posting-calendar'
 import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
 import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
 import { OnboardingOverlay } from '@/components/onboarding/onboarding-overlay'
+import { UsageGauge } from '@/lib/usage'
 import { format } from 'date-fns'
 
 export default function DashboardPage() {
@@ -31,6 +32,11 @@ export default function DashboardPage() {
 
       {/* ViralForge Quick Start hero */}
       <ViralQuickStart />
+
+      {/* Phase P2/P7 — Live AI usage gauge (free plan caps, rewarded credits, upgrade nudge) */}
+      <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.5, delay:0.05}}>
+        <UsageGauge />
+      </motion.div>
 
       {/* Stat cards */}
       <StatCards />
