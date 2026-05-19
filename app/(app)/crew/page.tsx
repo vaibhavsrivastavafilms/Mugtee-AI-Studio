@@ -2,7 +2,7 @@
 import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Mail, MoreHorizontal, Plus, Trash2, Edit3, Users2 } from 'lucide-react'
+import { Mail, MoreHorizontal, Plus, Trash2, Edit3, Users2, Archive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
@@ -15,7 +15,7 @@ import { useState } from 'react'
 import type { CrewMember, CrewStatus } from '@/lib/types'
 
 export default function CrewPage() {
-  const { crew, loading, addCrew, updateCrew, removeCrew } = useStore()
+  const { crew, loading, addCrew, updateCrew, removeCrew, archiveCrew } = useStore()
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<CrewMember | null>(null)
@@ -71,7 +71,8 @@ export default function CrewPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="glass-strong">
                     <DropdownMenuItem onClick={() => setEditing(c)}><Edit3 className="w-3.5 h-3.5 mr-2" />Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Remove ${c.name}?`, description: 'They will be removed from your studio. This cannot be undone.', destructive: true })) removeCrew(c.id) }} className="text-red-300 focus:text-red-200"><Trash2 className="w-3.5 h-3.5 mr-2" />Remove</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => archiveCrew(c.id)}><Archive className="w-3.5 h-3.5 mr-2" />Archive</DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Remove ${c.name}?`, description: 'They will be moved to trash and can be restored from Settings.', destructive: true })) removeCrew(c.id) }} className="text-red-300 focus:text-red-200"><Trash2 className="w-3.5 h-3.5 mr-2" />Move to trash</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

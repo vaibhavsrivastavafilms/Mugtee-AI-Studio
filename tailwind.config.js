@@ -29,16 +29,16 @@ module.exports = {
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
         gold: {
-          50:  '#FFF9E5',
-          100: '#FBEFC1',
-          200: '#F5DE85',
-          300: '#F0CD55',
-          400: '#E6BC32',
-          500: '#D4AF37',
-          600: '#B8912B',
-          700: '#8A6A1F',
-          800: '#5C4615',
-          900: '#2E230A'
+          50:  'hsl(var(--accent-h) var(--accent-s) 95%)',
+          100: 'hsl(var(--accent-h) var(--accent-s) 85%)',
+          200: 'hsl(var(--accent-h) var(--accent-s) 75%)',
+          300: 'hsl(var(--accent-h) var(--accent-s) 65%)',
+          400: 'hsl(var(--accent-h) var(--accent-s) 55%)',
+          500: 'hsl(var(--accent-h) var(--accent-s) 50%)',
+          600: 'hsl(var(--accent-h) var(--accent-s) 42%)',
+          700: 'hsl(var(--accent-h) var(--accent-s) 33%)',
+          800: 'hsl(var(--accent-h) var(--accent-s) 25%)',
+          900: 'hsl(var(--accent-h) var(--accent-s) 15%)'
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
@@ -62,23 +62,23 @@ module.exports = {
         mono: ['JetBrains Mono', 'ui-monospace']
       },
       backgroundImage: {
-        'gold-gradient': 'linear-gradient(135deg, #F5D061 0%, #D4AF37 45%, #8A6A1F 100%)',
-        'gold-soft': 'linear-gradient(135deg, rgba(245,208,97,0.18) 0%, rgba(212,175,55,0.08) 50%, rgba(0,0,0,0) 100%)',
+        'gold-gradient': 'linear-gradient(135deg, hsl(var(--accent-h) var(--accent-s) 70%) 0%, hsl(var(--accent-h) var(--accent-s) 52%) 45%, hsl(var(--accent-h) var(--accent-s) 33%) 100%)',
+        'gold-soft': 'linear-gradient(135deg, var(--accent-soft) 0%, transparent 100%)',
         'noir-radial': 'radial-gradient(ellipse at top, #1a1410 0%, #0a0807 50%, #050403 100%)',
         'glass': 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'
       },
       boxShadow: {
-        'gold-glow': '0 0 40px rgba(212,175,55,0.25), 0 0 80px rgba(212,175,55,0.1)',
-        'gold-glow-lg': '0 0 60px rgba(212,175,55,0.35), 0 0 120px rgba(212,175,55,0.15)',
-        'inner-gold': 'inset 0 1px 0 0 rgba(245,208,97,0.15)',
-        'cinema': '0 20px 60px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)'
+        'gold-glow':    '0 0 40px var(--card-glow), 0 0 80px color-mix(in srgb, var(--card-glow) 50%, transparent)',
+        'gold-glow-lg': '0 0 60px var(--card-glow), 0 0 120px var(--card-glow)',
+        'inner-gold':   'inset 0 1px 0 0 color-mix(in srgb, var(--card-glow) 40%, transparent)',
+        'cinema':       '0 20px 60px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)'
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
         'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
         'shimmer': { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
         'float': { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-6px)' } },
-        'pulse-gold': { '0%,100%': { boxShadow: '0 0 0 0 rgba(212,175,55,0.4)' }, '50%': { boxShadow: '0 0 0 12px rgba(212,175,55,0)' } }
+        'pulse-gold': { '0%,100%': { boxShadow: '0 0 0 0 var(--card-glow)' }, '50%': { boxShadow: '0 0 0 12px transparent' } }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',

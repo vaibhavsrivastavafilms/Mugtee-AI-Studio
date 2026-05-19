@@ -1,6 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
-import { Clapperboard, MapPin, Clock, Users, Plus, Trash2, Edit3, MoreHorizontal } from 'lucide-react'
+import { Clapperboard, MapPin, Clock, Users, Plus, Trash2, Edit3, MoreHorizontal, Archive } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
@@ -14,7 +14,7 @@ import type { Shoot, ShootStatus } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
 
 export default function ShootsPage() {
-  const { shoots, loading, addShoot, updateShoot, removeShoot } = useStore()
+  const { shoots, loading, addShoot, updateShoot, removeShoot, archiveShoot } = useStore()
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Shoot | null>(null)
@@ -64,7 +64,8 @@ export default function ShootsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-strong">
                             <DropdownMenuItem onClick={() => setEditing(s)}><Edit3 className="w-3.5 h-3.5 mr-2" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Cancel "${s.title}"?`, description: 'This shoot will be removed from your schedule.', destructive: true, confirmText: 'Cancel shoot' })) removeShoot(s.id) }} className="text-red-300"><Trash2 className="w-3.5 h-3.5 mr-2" />Cancel</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => archiveShoot(s.id)}><Archive className="w-3.5 h-3.5 mr-2" />Archive</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Cancel "${s.title}"?`, description: 'This shoot will be moved to trash and can be restored from Settings.', destructive: true, confirmText: 'Move to trash' })) removeShoot(s.id) }} className="text-red-300"><Trash2 className="w-3.5 h-3.5 mr-2" />Move to trash</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

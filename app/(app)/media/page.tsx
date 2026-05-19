@@ -1,6 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
-import { Play, FileVideo, Image as ImgIcon, Music, Plus, Trash2, ImagePlus } from 'lucide-react'
+import { Play, FileVideo, Image as ImgIcon, Music, Plus, Trash2, ImagePlus, Archive } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -20,7 +20,7 @@ function formatBytes(n?: number | null) {
 }
 
 export default function MediaPage() {
-  const { media, loading, removeMedia } = useStore()
+  const { media, loading, removeMedia, archiveMedia } = useStore()
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
 
@@ -73,7 +73,10 @@ export default function MediaPage() {
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur text-[10px] tracking-wider uppercase flex items-center gap-1">
                     <Icon className="w-3 h-3 text-gold-300" /> {m.type}
                   </div>
-                  <button onClick={async () => { if (await confirm({ title: `Delete ${m.title}?`, description: 'This file will be removed from your library.', destructive: true })) removeMedia(m.id) }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition">
+                  <button onClick={() => archiveMedia(m.id)} className="absolute top-2 right-10 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-gold-500/40 transition" aria-label="Archive">
+                    <Archive className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={async () => { if (await confirm({ title: `Delete ${m.title}?`, description: 'This file will be moved to trash and can be restored from Settings.', destructive: true })) removeMedia(m.id) }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
