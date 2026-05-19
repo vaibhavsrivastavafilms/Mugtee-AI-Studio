@@ -16,6 +16,7 @@ export interface ContentPiece {
   due_date?: string | null
   assignee?: string | null
   tags?: string[] | null
+  script?: string | null
   created_at?: string
   updated_at?: string
 }

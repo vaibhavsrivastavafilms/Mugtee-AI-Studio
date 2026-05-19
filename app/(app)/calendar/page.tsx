@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
 import type { ContentPiece, Platform } from '@/lib/types'
+import { AiButton } from '@/components/ai/ai-button'
 
 export default function CalendarPage() {
   const { content, addContent, updateContent, removeContent } = useStore()
@@ -158,6 +159,9 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
       <DialogFooter>
         {onDelete && (
           <Button variant="ghost" onClick={onDelete} className="text-red-300 hover:text-red-200 hover:bg-red-500/10 mr-auto">Delete</Button>
+        )}
+        {initial?.id && (
+          <AiButton content={initial as ContentPiece} variant="pill" className="mr-2" />
         )}
         <Button onClick={() => onSubmit({
           id: (initial?.id as string) || 'p'+Date.now(),
