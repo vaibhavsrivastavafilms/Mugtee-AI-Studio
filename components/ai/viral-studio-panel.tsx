@@ -189,10 +189,10 @@ export function ViralStudioPanel() {
             initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:20}}
             onClick={() => setOpen(true)}
             className="sticky top-24 self-start shrink-0 ml-auto group flex flex-col items-center gap-3 px-2 py-4 rounded-l-2xl glass border border-r-0 border-gold-soft hover:border-gold-500/40 transition-colors"
-            aria-label="Open TT VIRAL Studio"
+            aria-label="Open ViralForge Studio"
           >
             <Sparkles className="w-4 h-4 text-gold-400" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 [writing-mode:vertical-rl] rotate-180">TT Viral</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 [writing-mode:vertical-rl] rotate-180">ViralForge</span>
             <ChevronLeft className="w-3.5 h-3.5 text-gold-300/60 group-hover:text-gold-300" />
           </motion.button>
         )}
@@ -209,7 +209,7 @@ export function ViralStudioPanel() {
             <div className="flex items-start justify-between gap-3 p-4 border-b border-white/[0.05]">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-                  <Sparkles className="w-3 h-3" /> TT Viral
+                  <Sparkles className="w-3 h-3" /> ViralForge
                 </div>
                 <h3 className="font-display text-xl mt-1 text-gold-gradient truncate">Studio</h3>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Generate viral idea seeds for the pipeline.</p>

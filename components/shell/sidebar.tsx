@@ -55,7 +55,7 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
           </div>
           <div className="min-w-0">
             <div className="font-display text-lg leading-none truncate">{workspace.name || 'My Studio'}</div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-gold-400/80 mt-1">Production OS</div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-gold-400/80 mt-1">ViralForge AI</div>
           </div>
         </Link>
         {showClose && (<button onClick={onClose} className="lg:hidden p-2 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>)}
@@ -79,10 +79,10 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
         })}
       </nav>
 
-      <div className="mt-6 p-4 rounded-xl glass-gold">
+      <div className="mt-6 p-4 rounded-xl glass-gold relative z-20">
         <div className="flex items-center gap-2 mb-2"><Sparkles className="w-4 h-4 text-gold-300" /><span className="font-display text-sm">Studio Pro</span></div>
         <p className="text-xs text-luxe/70 leading-relaxed mb-3">Unlock unlimited shoots, realtime crew sync & priority rendering.</p>
-        <button className="w-full text-xs font-medium py-2 rounded-lg bg-gold-gradient text-black hover:opacity-90 transition">Upgrade</button>
+        <Link href="/pricing" onClick={onItemClick} className="block w-full text-center text-xs font-medium py-2 rounded-lg bg-gold-gradient text-black hover:opacity-90 transition cursor-pointer relative z-30">Upgrade</Link>
       </div>
     </div>
   )

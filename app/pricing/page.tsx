@@ -91,7 +91,7 @@ export default function PricingPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between mb-12">
           <Link href="/" className="inline-flex items-center gap-2 text-xs tracking-[0.3em] uppercase text-gold-400/80 hover:text-gold-300 transition">
-            <ChevronLeft className="w-3.5 h-3.5" /> Table Tales Studio
+            <ChevronLeft className="w-3.5 h-3.5" /> ViralForge Studio
           </Link>
           <Link href="/login" className="inline-flex items-center gap-1 text-xs tracking-wider text-luxe/70 hover:text-gold-300 transition">
             Sign in <ArrowRight className="w-3 h-3" />

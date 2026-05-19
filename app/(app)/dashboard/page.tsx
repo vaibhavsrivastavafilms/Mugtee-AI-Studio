@@ -28,7 +28,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* TT Viral Quick Start hero */}
+      {/* ViralForge Quick Start hero */}
       <ViralQuickStart />
 
       {/* Stat cards */}

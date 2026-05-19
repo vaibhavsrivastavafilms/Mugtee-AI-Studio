@@ -37,9 +37,9 @@ export function ViralQuickStart() {
             initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} exit={{opacity:0, y:8}}
             onClick={() => setOpen(true)}
             className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gold-gradient text-black text-xs font-semibold tracking-wide shadow-gold-glow hover:opacity-90 transition"
-            aria-label="Open TT Viral quick start"
+            aria-label="Open ViralForge quick start"
           >
-            <Sparkles className="w-4 h-4" /> TT Viral
+            <Sparkles className="w-4 h-4" /> ViralForge
           </motion.button>
         )}
       </AnimatePresence>
@@ -64,7 +64,7 @@ export function ViralQuickStart() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-                    TT Viral · Quick Start
+                    ViralForge · Quick Start
                   </div>
                   <h2 className="font-display text-xl sm:text-2xl mt-0.5">
                     <span className="text-gold-gradient">Studio</span>

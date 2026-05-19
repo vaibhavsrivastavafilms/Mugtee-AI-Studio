@@ -220,7 +220,7 @@ export default function SettingsPage() {
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Creator Profile</div>
         </div>
         <h2 className="font-display text-2xl mb-1">AI scripting voice</h2>
-        <p className="text-luxe/70 text-sm mb-5">TT Viral adapts hooks, scripts, and ideas to your niche and audience automatically. Change anytime.</p>
+        <p className="text-luxe/70 text-sm mb-5">ViralForge AI adapts hooks, scripts, and ideas to your niche and audience automatically. Change anytime.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -242,7 +242,7 @@ export default function SettingsPage() {
             </Select>
           </div>
         </div>
-        <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-4">Saved on this device · synced into every TT Viral generation</p>
+        <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-4">Saved on this device · synced into every ViralForge generation</p>
       </motion.div>
 
       {/* Theme ================================================================= */}

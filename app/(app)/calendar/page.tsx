@@ -20,6 +20,20 @@ export default function CalendarPage() {
   const [cursor, setCursor] = useState(new Date())
   const [creating, setCreating] = useState<{date: Date | null, open: boolean}>({date:null, open:false})
   const [editing, setEditing] = useState<ContentPiece | null>(null)
+  // Phase 7C — drag-to-reschedule (native HTML5, no deps). Preserves time-of-day, just shifts the date part.
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null)
+  const handleDropOnDay = (day: Date) => {
+    if (!dragId) return
+    const item = content.find(c => c.id === dragId)
+    setDragId(null); setDragOverKey(null)
+    if (!item?.scheduled_at) return
+    const existing = parseISO(item.scheduled_at)
+    if (isSameDay(existing, day)) return
+    const next = new Date(day)
+    next.setHours(existing.getHours(), existing.getMinutes(), existing.getSeconds(), 0)
+    updateContent(item.id, { scheduled_at: next.toISOString() })
+  }
 
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
   const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 })
@@ -78,12 +92,18 @@ export default function CalendarPage() {
             const items = scheduled.filter(c => isSameDay(parseISO(c.scheduled_at!), day))
             const inMonth = isSameMonth(day, cursor)
             const today = isSameDay(day, new Date())
+            const dayKey = day.toISOString()
+            const isDragOver = dragOverKey === dayKey && !!dragId
             return (
-              <div key={day.toISOString()}
+              <div key={dayKey}
+                onDragOver={(e) => { if (dragId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverKey !== dayKey) setDragOverKey(dayKey) } }}
+                onDragLeave={(e) => { if (dragOverKey === dayKey) setDragOverKey(null) }}
+                onDrop={(e) => { e.preventDefault(); handleDropOnDay(day) }}
                 className={cn(
                   'group relative min-h-[110px] sm:min-h-[140px] rounded-xl p-2 sm:p-2.5 transition-all cursor-pointer hover:bg-white/[0.04]',
                   inMonth ? 'bg-white/[0.02] border border-white/[0.05]' : 'bg-transparent border border-transparent opacity-40',
-                  today && 'ring-1 ring-gold-500/60 bg-gold-500/[0.06]'
+                  today && 'ring-1 ring-gold-500/60 bg-gold-500/[0.06]',
+                  isDragOver && 'ring-2 ring-gold-400/80 bg-gold-500/[0.12] scale-[1.01]'
                 )}
                 onClick={() => { setCreating({date: day, open: true}) }}
               >
@@ -93,8 +113,15 @@ export default function CalendarPage() {
                 </div>
                 <div className="space-y-1">
                   {items.map(i => (
-                    <button key={i.id} onClick={(e) => { e.stopPropagation(); setEditing(i) }}
-                      className="w-full text-left px-2 py-1.5 rounded-md bg-gradient-to-r from-gold-500/15 to-transparent border border-gold-500/25 hover:border-gold-500/50 transition"
+                    <button key={i.id}
+                      draggable
+                      onDragStart={(e) => { setDragId(i.id); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', i.id) } catch {} }}
+                      onDragEnd={() => { setDragId(null); setDragOverKey(null) }}
+                      onClick={(e) => { e.stopPropagation(); setEditing(i) }}
+                      className={cn(
+                        'w-full text-left px-2 py-1.5 rounded-md bg-gradient-to-r from-gold-500/15 to-transparent border border-gold-500/25 hover:border-gold-500/50 transition active:cursor-grabbing cursor-grab',
+                        dragId === i.id && 'opacity-40'
+                      )}
                     >
                       <div className="text-[10px] truncate font-medium">{i.title}</div>
                       <div className="flex items-center gap-2 mt-0.5">

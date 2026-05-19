@@ -54,7 +54,7 @@ export default function LoginPage() {
             className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass border-gold-soft"
           >
             <Sparkles className="w-4 h-4 text-gold-400" />
-            <span className="text-xs tracking-[0.2em] uppercase text-luxe">Table Tales Studio</span>
+            <span className="text-xs tracking-[0.2em] uppercase text-luxe">ViralForge Studio</span>
           </motion.div>
 
           <h1 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
@@ -133,7 +133,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-xs text-center text-muted-foreground leading-relaxed">
-              By continuing you accept Table Tales' terms.
+              By continuing you accept ViralForgeAI's terms.
               <br/>Your session is encrypted via Supabase PKCE.
             </p>
           </div>

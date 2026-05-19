@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {
-  title: 'Table Tales · Production OS',
-  description: 'Cinematic production management for modern content studios.',
+  title: 'ViralForgeAI · AI Production OS for Creators',
+  description: 'AI-powered cinematic production OS for creators, agencies, and brands.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
