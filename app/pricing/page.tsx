@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Sparkles, Check, ArrowRight, Crown, Users, Building2, Lightbulb, FileText, Camera, Scissors, CalendarCheck, Send, BarChart3, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
 
 const WORKFLOW = [
   { icon: Lightbulb,      label: 'Plan' },
@@ -195,6 +196,15 @@ export default function PricingPage() {
                     {p.cta} <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
+                {(p.key === 'creator' || p.key === 'agency') && (
+                  <div className="mt-3">
+                    <RazorpayCheckoutButton
+                      plan={p.key as 'creator' | 'agency'}
+                      variant={p.featured ? 'gold' : 'soft'}
+                      label={`Subscribe · ₹${p.price}/mo`}
+                    />
+                  </div>
+                )}
               </motion.div>
             )
           })}
