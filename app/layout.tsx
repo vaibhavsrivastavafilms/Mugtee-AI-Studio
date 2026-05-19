@@ -84,7 +84,7 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-528222368326023'
   return (
     <html lang="en" className="dark">
       <head>
