@@ -1,14 +1,17 @@
 'use client'
-import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon } from 'lucide-react'
+import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon, Check, X as XIcon, Trash2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/lib/store'
+import { useAutomations } from '@/lib/automations-store'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PLATFORM_META } from '@/lib/dummy-data'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 export function Topbar({ user, onMenu }: { user: { email?: string | null; user_metadata?: any }; onMenu: () => void }) {
   const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Producer'
@@ -16,15 +19,18 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
   const initials = (name as string).split(' ').map((p: string) => p[0]).slice(0,2).join('').toUpperCase()
 
   const { content, crew, shoots, media } = useStore()
+  const { notifications, unreadCount, markAsRead, markAllRead, deleteNotification } = useAutomations()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
   const router = useRouter()
   const wrapRef = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
@@ -44,69 +50,46 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
 
   const totalResults = results ? results.content.length + results.crew.length + results.shoots.length + results.media.length : 0
 
-  const goto = (path: string) => {
-    setQuery('')
-    setOpen(false)
-    router.push(path)
+  const goto = (path: string) => { setQuery(''); setOpen(false); router.push(path) }
+
+  const onNotifClick = (n: any) => {
+    if (!n.read) markAsRead(n.id)
+    if (n.link) { setBellOpen(false); router.push(n.link) }
   }
 
   return (
     <header className="sticky top-0 z-30 glass border-b border-gold-soft">
       <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-8 h-16">
-        <button onClick={onMenu} className="lg:hidden p-2 rounded-lg hover:bg-white/5">
-          <Menu className="w-5 h-5" />
-        </button>
+        <button onClick={onMenu} className="lg:hidden p-2 rounded-lg hover:bg-white/5"><Menu className="w-5 h-5" /></button>
 
         <div ref={wrapRef} className="relative flex-1 max-w-xl">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
-            onFocus={() => setOpen(true)}
+          <Input value={query} onChange={(e) => { setQuery(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)}
             onKeyDown={(e) => { if (e.key === 'Escape') { setQuery(''); setOpen(false) } }}
             placeholder="Search content, crew, shoots, media…"
-            className="pl-10 h-10 bg-white/[0.03] border-white/[0.06] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40"
-          />
-
+            className="pl-10 h-10 bg-white/[0.03] border-white/[0.06] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40" />
           <AnimatePresence>
             {open && query && (
-              <motion.div
-                initial={{opacity:0, y:-4}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-4}}
+              <motion.div initial={{opacity:0, y:-4}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-4}}
                 className="absolute top-full left-0 right-0 mt-2 glass-strong rounded-xl p-2 z-50 max-h-[60vh] overflow-y-auto scrollbar-luxe shadow-cinema"
               >
                 {totalResults === 0 ? (
-                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No results for "<span className="text-luxe">{query}</span>"
-                  </div>
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">No results for "<span className="text-luxe">{query}</span>"</div>
                 ) : (
                   <>
                     {results!.content.length > 0 && (
                       <ResultGroup label="Content" icon={Film}>
-                        {results!.content.map(c => (
-                          <ResultRow key={c.id} title={c.title} sub={`${PLATFORM_META[c.platform]?.label || c.platform} · ${c.status}`} onClick={() => goto(`/pipeline?status=${c.status}`)} />
-                        ))}
+                        {results!.content.map(c => <ResultRow key={c.id} title={c.title} sub={`${PLATFORM_META[c.platform]?.label || c.platform} · ${c.status}`} onClick={() => goto(`/pipeline?status=${c.status}`)} />)}
                       </ResultGroup>
                     )}
                     {results!.crew.length > 0 && (
-                      <ResultGroup label="Crew" icon={Users2}>
-                        {results!.crew.map(c => (
-                          <ResultRow key={c.id} title={c.name} sub={c.role || ''} onClick={() => goto('/crew')} />
-                        ))}
-                      </ResultGroup>
+                      <ResultGroup label="Crew" icon={Users2}>{results!.crew.map(c => <ResultRow key={c.id} title={c.name} sub={c.role || ''} onClick={() => goto('/crew')} />)}</ResultGroup>
                     )}
                     {results!.shoots.length > 0 && (
-                      <ResultGroup label="Shoots" icon={Clapperboard}>
-                        {results!.shoots.map(s => (
-                          <ResultRow key={s.id} title={s.title} sub={[s.date, s.location].filter(Boolean).join(' · ')} onClick={() => goto('/shoots')} />
-                        ))}
-                      </ResultGroup>
+                      <ResultGroup label="Shoots" icon={Clapperboard}>{results!.shoots.map(s => <ResultRow key={s.id} title={s.title} sub={[s.date, s.location].filter(Boolean).join(' · ')} onClick={() => goto('/shoots')} />)}</ResultGroup>
                     )}
                     {results!.media.length > 0 && (
-                      <ResultGroup label="Media" icon={ImageIcon}>
-                        {results!.media.map(m => (
-                          <ResultRow key={m.id} title={m.title} sub={m.type || ''} onClick={() => goto('/media')} />
-                        ))}
-                      </ResultGroup>
+                      <ResultGroup label="Media" icon={ImageIcon}>{results!.media.map(m => <ResultRow key={m.id} title={m.title} sub={m.type || ''} onClick={() => goto('/media')} />)}</ResultGroup>
                     )}
                   </>
                 )}
@@ -120,10 +103,54 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
             <Plus className="w-4 h-4" /> New Content
           </Button>
 
-          <button className="relative p-2.5 rounded-xl hover:bg-white/5 transition">
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse-gold" />
-          </button>
+          {/* Notification bell */}
+          <div ref={bellRef} className="relative">
+            <button onClick={() => setBellOpen(v => !v)} className="relative p-2.5 rounded-xl hover:bg-white/5 transition">
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-gold-gradient text-black text-[10px] font-bold flex items-center justify-center shadow-gold-glow">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+            <AnimatePresence>
+              {bellOpen && (
+                <motion.div initial={{opacity:0, y:-4}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-4}}
+                  className="absolute top-full right-0 mt-2 w-[360px] max-w-[92vw] glass-strong rounded-xl z-50 shadow-cinema overflow-hidden"
+                >
+                  <div className="flex items-center justify-between p-3 border-b border-white/[0.06]">
+                    <div className="text-sm font-medium">Notifications</div>
+                    {unreadCount > 0 && (
+                      <button onClick={() => markAllRead()} className="text-[11px] text-gold-300 hover:text-gold-200 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[70vh] overflow-y-auto scrollbar-luxe">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-muted-foreground">All caught up.</div>
+                    ) : notifications.slice(0, 30).map(n => (
+                      <div key={n.id} className={cn('group flex items-start gap-2 px-3 py-2.5 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.03] transition',
+                        !n.read && 'bg-gold-500/[0.04]')}
+                        onClick={() => onNotifClick(n)}
+                      >
+                        <div className={cn('mt-1 w-1.5 h-1.5 rounded-full shrink-0', n.read ? 'bg-transparent' : 'bg-gold-400 shadow-gold-glow')} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{n.title}</div>
+                          {n.message && <div className="text-xs text-muted-foreground truncate">{n.message}</div>}
+                          <div className="text-[10px] text-muted-foreground/80 mt-0.5">{formatDistanceToNow(parseISO(n.created_at), { addSuffix: true })}</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id) }}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-red-300">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -142,10 +169,9 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
               <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/settings')}>Studio Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/automations')}>Automations</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a href="/auth/signout" className="text-red-300 focus:text-red-200">Sign out</a>
-              </DropdownMenuItem>
+              <DropdownMenuItem asChild><a href="/auth/signout" className="text-red-300 focus:text-red-200">Sign out</a></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -157,9 +183,7 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
 function ResultGroup({ label, icon: Icon, children }: { label: string; icon: any; children: React.ReactNode }) {
   return (
     <div className="mb-1 last:mb-0">
-      <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] tracking-[0.25em] uppercase text-gold-400/80">
-        <Icon className="w-3 h-3" /> {label}
-      </div>
+      <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] tracking-[0.25em] uppercase text-gold-400/80"><Icon className="w-3 h-3" /> {label}</div>
       {children}
     </div>
   )
@@ -167,10 +191,7 @@ function ResultGroup({ label, icon: Icon, children }: { label: string; icon: any
 
 function ResultRow({ title, sub, onClick }: { title: string; sub?: string; onClick: () => void }) {
   return (
-    <button
-      onMouseDown={(e) => { e.preventDefault(); onClick() }}
-      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition group"
-    >
+    <button onMouseDown={(e) => { e.preventDefault(); onClick() }} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition group">
       <div className="text-sm font-medium truncate group-hover:text-gold-200">{title}</div>
       {sub && <div className="text-[11px] text-muted-foreground truncate">{sub}</div>}
     </button>
