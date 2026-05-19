@@ -21,6 +21,10 @@ export interface ContentPiece {
   shoot_date?: string | null
   edit_due_date?: string | null
   media_url?: string | null
+  // Phase P4 — YouTube publishing
+  youtube_video_id?: string | null
+  youtube_status?: 'uploading' | 'published' | 'failed' | null
+  youtube_error?: string | null
   created_at?: string
 }
 

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { AiButton } from '@/components/ai/ai-button'
 import { ViralStudioPanel } from '@/components/ai/viral-studio-panel'
+import { YoutubePublishButton, YoutubeStatusBadge } from '@/components/youtube/publish-button'
 import { useAutomations } from '@/lib/automations-store'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
@@ -318,6 +319,8 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
       {!dragging && (
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-10">
           <AiButton content={item} variant="icon" />
+          {/* Phase P4 — YouTube publish action (only for YouTube-platform pieces) */}
+          {item.platform === 'youtube' && <YoutubePublishButton item={item} />}
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onSchedule(item) }}
@@ -380,6 +383,7 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
       <div className="flex items-center justify-between mt-3">
         <span className={cn('text-[10px] tracking-[0.15em] uppercase font-medium', platform.color)}>{platform.label}</span>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <YoutubeStatusBadge item={item} />
           {item.assignee && (<span className="flex items-center gap-1"><User className="w-3 h-3" />{item.assignee.split(' ')[0]}</span>)}
           {item.due_date && (<span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(item.due_date), 'MMM d')}</span>)}
         </div>
