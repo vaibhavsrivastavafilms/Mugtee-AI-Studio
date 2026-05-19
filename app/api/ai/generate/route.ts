@@ -22,6 +22,14 @@ type Mode =
   | 'ideas'                         // viral idea seeds — 3-5 structured ideas (title + hook + angle), used by the Pipeline side panel
   | 'weekly_plan'                   // Phase 12 — generate an N-day strategic content plan (default 7)
   | 'regen_day'                     // Phase 12 — regenerate a single day given context (day_index, existing pillars, requested field)
+  // Phase 13D — Faceless AI Engine
+  | 'deep_research'                 // research breakdown for documentary/faceless topic (prompt-only)
+  | 'reference_analysis'            // analyze pasted reference script for retention mechanics
+  | 'flow_prompts'                  // cinematic image/B-roll prompts derived from a script
+  | 'faceless_script'               // routed to Claude
+  | 'documentary_script'            // routed to Claude
+  | 'cinematic_story'               // routed to Claude
+  | 'retention_script'              // routed to Claude
 
 interface AIRequest {
   mode: Mode
@@ -47,6 +55,11 @@ interface AIRequest {
     day_label?: string | null         // for regen_day — e.g. 'Monday'
     used_pillars?: string[] | null    // for regen_day — pillars already used elsewhere in the week
     regen_field?: 'all' | 'hook' | 'cta' | null  // for regen_day — what to regenerate
+    // Phase 13D — Faceless engine
+    topic?: string | null            // deep_research topic
+    reference_script?: string | null // reference_analysis paste-in
+    script_input?: string | null     // flow_prompts source script
+    duration_seconds?: number | null // cinematic script length
   }
 }
 
@@ -534,6 +547,136 @@ OUTPUT SHAPE — exactly this JSON (single day object):
       }
     }
 
+    case 'deep_research': {
+      const topic = ctx?.topic || ctx?.title || ctx?.description || '(no topic provided)'
+      return {
+        wantsJson: true,
+        user: `Perform a deep documentary-style research breakdown for a faceless YouTube creator. Output STRICT JSON, no markdown.
+
+TOPIC: ${topic}
+
+CONTEXT:
+${block}
+
+Cover ALL of the following with cinematic, viewer-first framing:
+
+OUTPUT SHAPE:
+{
+  "thesis": "<one-sentence emotional thesis viewers will feel by the end>",
+  "research_breakdown": ["<key fact / insight>", "<...>", "<5-7 items, dense, specific>"],
+  "rare_facts": ["<surprising fact most people don't know>", "<...>", "<3-5 items>"],
+  "emotional_angles": ["<storytelling angle — what feeling drives the viewer>", "<...>", "<3-5 items>"],
+  "viral_hooks": ["<first-3-seconds hook, max 14 words>", "<...>", "<5 hooks>"],
+  "thumbnail_psychology": ["<what visual/emotion the thumbnail should trigger>", "<...>", "<3 items>"],
+  "documentary_structure": ["<beat 1 — what happens emotionally>", "<beat 2>", "<beat 3>", "<beat 4>", "<beat 5 — payoff>"],
+  "comparisons_metaphors": ["<analogy that makes the topic visceral>", "<...>", "<3 items>"],
+  "controversies_or_future": ["<a debate, controversy, or future implication that keeps the topic alive>", "<...>", "<2-3 items>"]
+}
+
+Be specific, never generic. Reward viewers with insight they can't easily Google.`,
+      }
+    }
+
+    case 'reference_analysis': {
+      const ref = ctx?.reference_script || ctx?.reference || ctx?.existing_script || ctx?.description || '(no script provided)'
+      return {
+        wantsJson: true,
+        user: `Analyze the following reference script through a viral-retention-psychology lens. Treat the script as a teaching artefact — extract MECHANICS, not content. Output STRICT JSON, no markdown.
+
+REFERENCE SCRIPT:
+${ref}
+
+CONTEXT:
+${block}
+
+OUTPUT SHAPE:
+{
+  "hook_structure": "<one sentence describing how the opening earns attention>",
+  "pacing": ["<observation about cuts/beat length>", "<...>", "<3 items>"],
+  "retention_psychology": ["<why viewers keep watching past 15s>", "<past 60s>", "<past midpoint>"],
+  "emotional_rhythm": ["<beat 1 emotion>", "<beat 2 emotion>", "<beat 3 emotion>", "<...>"],
+  "sentence_style": ["<observation about sentence length / rhythm>", "<observation about word choice>", "<...>"],
+  "curiosity_loops": ["<open loop opened at HH:MM idea, closed at HH:MM idea>", "<...>", "<2-3 loops>"],
+  "cliffhangers": ["<a moment where the script teases without paying off>", "<...>", "<2 items>"],
+  "storytelling_mechanics": ["<universal technique to steal>", "<...>", "<3-4 items>"],
+  "verdict": "<one cinematic sentence — what makes this script tick>"
+}
+
+Each array item under 18 words. Be brutally honest. No flattery.`,
+      }
+    }
+
+    case 'flow_prompts': {
+      const src = ctx?.script_input || ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'
+      return {
+        wantsJson: true,
+        user: `Generate cinematic visual prompts for a faceless documentary based on the script below. These prompts will be pasted into Flow / Midjourney / Sora to generate B-roll. Output STRICT JSON, no markdown.
+
+SCRIPT / CONCEPT:
+${src}
+
+CONTEXT:
+${block}
+
+RULES:
+- 8-12 prompts total, sequenced as they would appear in the video.
+- Each prompt is a single line, comma-separated descriptors, cinematic, no camera-jargon overkill.
+- Mix: hero shot, B-roll, atmosphere, transition, payoff.
+- Lean into specificity (lens feel, lighting, mood), avoid generic adjectives.
+
+OUTPUT SHAPE:
+{
+  "scene_prompts": [
+    { "type": "hero",       "prompt": "<single-line cinematic prompt>" },
+    { "type": "b_roll",     "prompt": "<...>" },
+    { "type": "atmosphere", "prompt": "<...>" },
+    { "type": "transition", "prompt": "<...>" },
+    { "type": "payoff",     "prompt": "<...>" }
+  ],
+  "style_summary": "<one-line overall visual identity for the piece>"
+}
+
+Use at least 4 distinct types across the prompt list.`,
+      }
+    }
+
+    case 'faceless_script':
+    case 'documentary_script':
+    case 'cinematic_story':
+    case 'retention_script': {
+      const duration = Math.max(30, Math.min(600, Number(ctx?.duration_seconds) || 180))
+      const flavor =
+        mode === 'documentary_script' ? 'long-form documentary narration, calm authoritative voice, dense with insight'
+        : mode === 'cinematic_story'  ? 'cinematic short-story narration, emotional arc, payoff-driven'
+        : mode === 'retention_script' ? 'retention-engineered narration — open loop within 8 seconds, escalate every 20s, payoff in final third'
+        : 'faceless YouTube narration — voiceover-first, no on-camera presence assumed, B-roll friendly'
+      return {
+        wantsJson: false,
+        user: `Write a ${duration}-second ${flavor} script. The script is for a faceless YouTube creator — purely voiceover, B-roll-driven, no host on camera.
+
+CONTEXT:
+${block}
+
+STRUCTURE:
+- COLD OPEN (0-8s) — pattern-interrupt hook OR a single arresting question / image cue.
+- ACT I (≈25% of duration) — set the world / stakes / question.
+- ACT II (≈50% of duration) — escalate through 3-5 specific beats. Each beat opens or closes a curiosity loop.
+- ACT III (≈25% of duration) — payoff that lands the emotional thesis. A closing line that lingers.
+
+FORMAT each beat as:
+[VISUAL: <one-line B-roll cue>] | <VOICEOVER line — short, conversational, in the audience's natural register>
+
+RULES:
+- Voiceover lines are short. The way someone speaks, not how someone writes.
+- Specificity over abstraction. Concrete images over vague claims.
+- No host gestures, no "today we'll discuss" — start in the middle of the moment.
+- Match language and tone from CONTEXT.
+- No filler. Every line earns its place.
+
+Output the script directly. No meta-commentary, no markdown headers.`,
+      }
+    }
+
     case 'analyze': {
       const target = ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'
       return {
@@ -576,25 +719,38 @@ export async function POST(req: NextRequest) {
     }
     const { user, wantsJson } = promptFor(body.mode, body.context || {})
 
-    const payload: any = {
-      model: MODEL,
-      messages: [
-        { role: 'system', content: buildSystemPrompt(body.context) },
-        { role: 'user', content: user },
-      ],
-      temperature: body.mode === 'analyze' ? 0.35 : 0.9,
-      max_tokens: body.mode === 'weekly_plan' ? 2200 : body.mode === 'analyze' ? 600 : 900,
-    }
-    if (wantsJson) payload.response_format = { type: 'json_object' }
+    // Phase 13D — provider routing. Long-form cinematic scripts → Claude 3.5 Sonnet via the same Emergent universal endpoint.
+    // Everything else stays on GPT-4o-mini (cheaper + faster for ideas/hooks/captions/planner).
+    const CLAUDE_MODES: Mode[] = ['faceless_script', 'documentary_script', 'cinematic_story', 'retention_script']
+    const useClaude = CLAUDE_MODES.includes(body.mode)
+    const isLong = useClaude || body.mode === 'weekly_plan' || body.mode === 'deep_research' || body.mode === 'reference_analysis' || body.mode === 'flow_prompts'
 
-    const upstream = await fetch(EMERGENT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${EMERGENT_LLM_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    })
+    const callLLM = async (model: string) => {
+      const payload: any = {
+        model,
+        messages: [
+          { role: 'system', content: buildSystemPrompt(body.context) },
+          { role: 'user', content: user },
+        ],
+        temperature: body.mode === 'analyze' || body.mode === 'reference_analysis' ? 0.35 : 0.9,
+        max_tokens: body.mode === 'weekly_plan' ? 2200 : useClaude ? 2400 : body.mode === 'analyze' ? 600 : isLong ? 1600 : 900,
+      }
+      if (wantsJson) payload.response_format = { type: 'json_object' }
+      return fetch(EMERGENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${EMERGENT_LLM_KEY}` },
+        body: JSON.stringify(payload),
+      })
+    }
+
+    let upstream = await callLLM(useClaude ? 'claude-3-5-sonnet-20241022' : MODEL)
+    let usedModel = useClaude ? 'claude-3-5-sonnet-20241022' : MODEL
+    // Graceful fallback — if Claude isn't available on this key, retry with GPT so the user still gets a script.
+    if (!upstream.ok && useClaude) {
+      console.warn('Claude route failed, falling back to gpt-4o-mini for mode', body.mode)
+      upstream = await callLLM(MODEL)
+      usedModel = MODEL + ' (fallback)'
+    }
 
     if (!upstream.ok) {
       const errText = await upstream.text()
@@ -608,12 +764,12 @@ export async function POST(req: NextRequest) {
     if (wantsJson) {
       try {
         const parsed = JSON.parse(raw)
-        return NextResponse.json({ mode: body.mode, output: parsed, raw })
+        return NextResponse.json({ mode: body.mode, model: usedModel, output: parsed, raw })
       } catch {
-        return NextResponse.json({ mode: body.mode, output: { verdict: raw }, raw })
+        return NextResponse.json({ mode: body.mode, model: usedModel, output: { verdict: raw }, raw })
       }
     }
-    return NextResponse.json({ mode: body.mode, output: raw, raw })
+    return NextResponse.json({ mode: body.mode, model: usedModel, output: raw, raw })
   } catch (e: any) {
     console.error('ai/generate error', e)
     return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })

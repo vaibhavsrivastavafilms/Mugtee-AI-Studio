@@ -7,6 +7,7 @@ import { TeamActivity } from '@/components/dashboard/team-activity'
 import { PostingCalendar } from '@/components/dashboard/posting-calendar'
 import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
 import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
+import { OnboardingOverlay } from '@/components/onboarding/onboarding-overlay'
 import { format } from 'date-fns'
 
 export default function DashboardPage() {
@@ -45,6 +46,9 @@ export default function DashboardPage() {
           <UpcomingShoots />
         </div>
       </div>
+
+      {/* P6 — First-login onboarding overlay (one-time, localStorage-gated) */}
+      <OnboardingOverlay />
     </div>
   )
 }

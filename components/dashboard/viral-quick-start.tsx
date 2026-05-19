@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X, CalendarCheck } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PLATFORM_META } from '@/lib/dummy-data'
 import { useViralIdeas, IdeaCard, TONES } from '@/components/ai/viral-studio-panel'
 import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
+import { FacelessStudioDialog } from '@/components/ai/faceless-studio-dialog'
 import type { Platform } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ export function ViralQuickStart() {
   const [open, setOpen] = useState(true)
   const [scrolled, setScrolled] = useState(false)
   const [plannerOpen, setPlannerOpen] = useState(false)
+  const [facelessOpen, setFacelessOpen] = useState(false)
 
   // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
   useEffect(() => {
@@ -75,6 +77,21 @@ export function ViralQuickStart() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setFacelessOpen(true)}
+                  className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
+                  aria-label="Open Faceless AI Studio"
+                  title="Faceless YouTube research, scripting & visual prompts"
+                >
+                  <Brain className="w-3.5 h-3.5" /> Faceless AI
+                </button>
+                <button
+                  onClick={() => setFacelessOpen(true)}
+                  className="md:hidden p-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 text-gold-300 hover:bg-gold-500/20 transition"
+                  aria-label="Open Faceless AI Studio"
+                >
+                  <Brain className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => setPlannerOpen(true)}
                   className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
@@ -190,6 +207,8 @@ export function ViralQuickStart() {
 
       {/* Phase 12 — Weekly AI Content Planner */}
       <WeeklyPlannerDialog open={plannerOpen} onOpenChange={setPlannerOpen} />
+      {/* Phase 13D — Faceless AI Studio */}
+      <FacelessStudioDialog open={facelessOpen} onOpenChange={setFacelessOpen} />
     </>
   )
 }

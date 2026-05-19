@@ -1,0 +1,310 @@
+'use client'
+// Phase 13D — Faceless AI Engine (deep research · reference analyzer · cinematic script · flow prompts)
+// Reuses /api/ai/generate + existing store.addContent for pipeline insertion. No new infra.
+
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
+import type { ContentPiece, Platform } from '@/lib/types'
+
+type Tab = 'research' | 'analyze' | 'script' | 'flow'
+const TABS: { id: Tab; label: string; icon: any }[] = [
+  { id: 'research', label: 'Deep Research',    icon: Brain },
+  { id: 'analyze',  label: 'Reference Analyzer', icon: Eye },
+  { id: 'script',   label: 'Cinematic Script', icon: FileText },
+  { id: 'flow',     label: 'Flow Prompts',     icon: Wand2 },
+]
+
+const SCRIPT_FLAVORS: { id: string; label: string }[] = [
+  { id: 'faceless_script',    label: 'Faceless YouTube' },
+  { id: 'documentary_script', label: 'Documentary' },
+  { id: 'cinematic_story',    label: 'Cinematic Story' },
+  { id: 'retention_script',   label: 'Retention-Engineered' },
+]
+
+function readCreatorProfile() {
+  if (typeof window === 'undefined') return { niche: 'education', audience: 'creators' }
+  try {
+    return {
+      niche:    localStorage.getItem('tt:creator:niche')    || 'education',
+      audience: localStorage.getItem('tt:creator:audience') || 'creators',
+    }
+  } catch { return { niche: 'education', audience: 'creators' } }
+}
+
+export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { addContent } = useStore()
+  const seed = readCreatorProfile()
+  const [tab, setTab] = useState<Tab>('research')
+
+  // Shared
+  const [niche, setNiche]       = useState(seed.niche)
+  const [audience, setAudience] = useState(seed.audience)
+  const [language, setLanguage] = useState('english')
+
+  // Research
+  const [topic, setTopic]       = useState('')
+  const [research, setResearch] = useState<any | null>(null)
+  const [rLoading, setRLoading] = useState(false)
+
+  // Reference analyzer
+  const [refText, setRefText]   = useState('')
+  const [refResult, setRefResult] = useState<any | null>(null)
+  const [aLoading, setALoading] = useState(false)
+
+  // Script
+  const [scriptTitle, setScriptTitle] = useState('')
+  const [scriptFlavor, setScriptFlavor] = useState('faceless_script')
+  const [scriptDur, setScriptDur]   = useState(180)
+  const [scriptOut, setScriptOut]   = useState<string>('')
+  const [scriptModel, setScriptModel] = useState<string>('')
+  const [sLoading, setSLoading] = useState(false)
+
+  // Flow prompts
+  const [flowSrc, setFlowSrc]   = useState('')
+  const [flowOut, setFlowOut]   = useState<any | null>(null)
+  const [fLoading, setFLoading] = useState(false)
+
+  const [copied, setCopied] = useState<string | null>(null)
+  const copy = async (key: string, text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
+  }
+
+  const callAI = async (body: any) => {
+    const res = await fetch('/api/ai/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const d = await res.json()
+    if (!res.ok || d.error) throw new Error(d.error || 'AI call failed')
+    return d
+  }
+
+  const runResearch = async () => {
+    if (!topic.trim()) { toast.error('Enter a topic'); return }
+    setRLoading(true); setResearch(null)
+    try { const d = await callAI({ mode: 'deep_research', context: { topic, niche, audience, language, platform: 'youtube' } }); setResearch(d.output) }
+    catch (e:any) { toast.error(e?.message || 'Research failed') }
+    finally { setRLoading(false) }
+  }
+
+  const runAnalyze = async () => {
+    if (!refText.trim()) { toast.error('Paste a reference script'); return }
+    setALoading(true); setRefResult(null)
+    try { const d = await callAI({ mode: 'reference_analysis', context: { reference_script: refText, niche, audience, language, platform: 'youtube' } }); setRefResult(d.output) }
+    catch (e:any) { toast.error(e?.message || 'Analysis failed') }
+    finally { setALoading(false) }
+  }
+
+  const runScript = async () => {
+    if (!scriptTitle.trim()) { toast.error('Enter a title or topic'); return }
+    setSLoading(true); setScriptOut(''); setScriptModel('')
+    try { const d = await callAI({ mode: scriptFlavor, context: { title: scriptTitle, niche, audience, language, platform: 'youtube', duration_seconds: scriptDur } }); setScriptOut(d.output || ''); setScriptModel(d.model || '') }
+    catch (e:any) { toast.error(e?.message || 'Script generation failed') }
+    finally { setSLoading(false) }
+  }
+
+  const runFlow = async () => {
+    const src = flowSrc.trim() || scriptOut
+    if (!src) { toast.error('Generate or paste a script first'); return }
+    setFLoading(true); setFlowOut(null)
+    try { const d = await callAI({ mode: 'flow_prompts', context: { script_input: src, niche, audience, language, platform: 'youtube' } }); setFlowOut(d.output) }
+    catch (e:any) { toast.error(e?.message || 'Flow prompts failed') }
+    finally { setFLoading(false) }
+  }
+
+  const addToPipeline = async (title: string, description: string, tags: string[]) => {
+    try {
+      await addContent({ title, description, platform: 'youtube' as Platform, status: 'idea', tags } as Partial<ContentPiece>)
+      toast.success('Added to pipeline')
+    } catch (e:any) { toast.error(e?.message || 'Could not add') }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-strong sm:max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
+            <Brain className="w-3 h-3" /> Faceless Intelligence Engine
+          </div>
+          <DialogTitle className="font-display text-2xl sm:text-3xl">
+            <span className="text-gold-gradient">Faceless</span> AI Studio
+          </DialogTitle>
+          <p className="text-[11px] text-muted-foreground">Research · Analyze · Script · Visualize — built for storytelling intelligence, not cloning.</p>
+        </DialogHeader>
+
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-1.5 mt-1 -mb-1">
+          {TABS.map(t => {
+            const TIcon = t.icon
+            const active = tab === t.id
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] tracking-wide transition-colors duration-200',
+                  active ? 'bg-gold-500/15 border border-gold-500/40 text-gold-200' : 'bg-white/[0.02] border border-white/[0.06] text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <TIcon className="w-3.5 h-3.5" /> {t.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Shared mini context strip */}
+        <div className="grid grid-cols-3 gap-2 pt-2">
+          <div><label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Niche</label><Input value={niche} onChange={e => setNiche(e.target.value)} className="bg-white/[0.03] h-8 text-xs mt-1" /></div>
+          <div><label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Audience</label><Input value={audience} onChange={e => setAudience(e.target.value)} className="bg-white/[0.03] h-8 text-xs mt-1" /></div>
+          <div>
+            <label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Language</label>
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="bg-white/[0.03] h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['english','hinglish','gujarati','guj_hindi','auto'].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* DEEP RESEARCH */}
+        {tab === 'research' && (
+          <div className="space-y-3 pt-3">
+            <div className="flex gap-2">
+              <Input value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. how the Antikythera mechanism worked" className="bg-white/[0.03] flex-1" />
+              <Button onClick={runResearch} disabled={rLoading} className="bg-gold-gradient text-black gap-2 shrink-0">
+                {rLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}{rLoading ? 'Researching…' : 'Research'}
+              </Button>
+            </div>
+            {research && (
+              <div className="rounded-xl glass border border-gold-soft p-4 space-y-3">
+                <div><div className="text-[10px] tracking-[0.25em] uppercase text-gold-300 mb-1">Thesis</div><div className="text-sm text-luxe leading-snug italic">{research.thesis}</div></div>
+                <ResearchSection title="Research Breakdown" items={research.research_breakdown} />
+                <ResearchSection title="Rare Facts"          items={research.rare_facts} />
+                <ResearchSection title="Emotional Angles"    items={research.emotional_angles} />
+                <ResearchSection title="Viral Hooks"         items={research.viral_hooks} />
+                <ResearchSection title="Thumbnail Psychology" items={research.thumbnail_psychology} />
+                <ResearchSection title="Documentary Structure" items={research.documentary_structure} ordered />
+                <ResearchSection title="Comparisons & Metaphors" items={research.comparisons_metaphors} />
+                <ResearchSection title="Controversies / Future" items={research.controversies_or_future} />
+                <div className="flex gap-2 pt-2 border-t border-white/[0.05]">
+                  <Button onClick={() => addToPipeline(topic, `Thesis: ${research.thesis}\n\nViral Hooks:\n- ${(research.viral_hooks||[]).join('\n- ')}\n\nDocumentary Structure:\n- ${(research.documentary_structure||[]).join('\n- ')}`, ['research','faceless','documentary'])} className="bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 h-8 gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5" /> Add Research to Pipeline
+                  </Button>
+                  <Button onClick={() => { setScriptTitle(topic); setTab('script') }} variant="ghost" className="h-8 text-xs text-muted-foreground hover:text-gold-300">→ Build script from this</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* REFERENCE ANALYZER */}
+        {tab === 'analyze' && (
+          <div className="space-y-3 pt-3">
+            <Textarea value={refText} onChange={e => setRefText(e.target.value)} rows={6} placeholder="Paste a reference script here — we'll extract the mechanics, never copy the content." className="bg-white/[0.03] text-xs font-mono" />
+            <div className="flex justify-end">
+              <Button onClick={runAnalyze} disabled={aLoading} className="bg-gold-gradient text-black gap-2">
+                {aLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}{aLoading ? 'Analyzing…' : 'Analyze'}
+              </Button>
+            </div>
+            {refResult && (
+              <div className="rounded-xl glass border border-gold-soft p-4 space-y-3">
+                <div><div className="text-[10px] tracking-[0.25em] uppercase text-gold-300 mb-1">Verdict</div><div className="text-sm text-luxe italic">{refResult.verdict}</div></div>
+                <div><div className="text-[10px] tracking-[0.25em] uppercase text-gold-300/80 mb-1">Hook Structure</div><div className="text-[12px] text-luxe/85">{refResult.hook_structure}</div></div>
+                <ResearchSection title="Pacing"               items={refResult.pacing} />
+                <ResearchSection title="Retention Psychology" items={refResult.retention_psychology} />
+                <ResearchSection title="Emotional Rhythm"     items={refResult.emotional_rhythm} />
+                <ResearchSection title="Sentence Style"       items={refResult.sentence_style} />
+                <ResearchSection title="Curiosity Loops"      items={refResult.curiosity_loops} />
+                <ResearchSection title="Cliffhangers"         items={refResult.cliffhangers} />
+                <ResearchSection title="Storytelling Mechanics" items={refResult.storytelling_mechanics} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CINEMATIC SCRIPT */}
+        {tab === 'script' && (
+          <div className="space-y-3 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_120px_auto] gap-2 items-end">
+              <div><label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Title / Topic</label><Input value={scriptTitle} onChange={e => setScriptTitle(e.target.value)} placeholder="e.g. the night Alexandria burned" className="bg-white/[0.03] mt-1" /></div>
+              <div><label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Flavor</label>
+                <Select value={scriptFlavor} onValueChange={setScriptFlavor}>
+                  <SelectTrigger className="bg-white/[0.03] h-9 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{SCRIPT_FLAVORS.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><label className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Duration (s)</label><Input type="number" min={30} max={600} step={30} value={scriptDur} onChange={e => setScriptDur(Math.max(30, Math.min(600, Number(e.target.value)||180)))} className="bg-white/[0.03] mt-1 h-9 text-xs" /></div>
+              <Button onClick={runScript} disabled={sLoading} className="bg-gold-gradient text-black gap-2 h-9">{sLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}{sLoading ? 'Writing…' : 'Generate'}</Button>
+            </div>
+            {scriptOut && (
+              <div className="rounded-xl glass border border-gold-soft p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Script · {scriptModel || 'gpt-4o-mini'}</div>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => copy('script', scriptOut)} className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 inline-flex items-center gap-1">
+                      {copied === 'script' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />} Copy
+                    </button>
+                    <button onClick={() => { setFlowSrc(scriptOut); setTab('flow') }} className="text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-200">→ Visual prompts</button>
+                  </div>
+                </div>
+                <pre className="text-[12px] leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono">{scriptOut}</pre>
+                <div className="flex gap-2 pt-2 border-t border-white/[0.05]">
+                  <Button onClick={() => addToPipeline(scriptTitle, scriptOut, ['faceless', scriptFlavor])} className="bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 h-8 gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5" /> Add Script to Pipeline
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FLOW PROMPTS */}
+        {tab === 'flow' && (
+          <div className="space-y-3 pt-3">
+            <Textarea value={flowSrc} onChange={e => setFlowSrc(e.target.value)} rows={5} placeholder="Paste a script — or generate one in the Cinematic Script tab and we'll pull it here." className="bg-white/[0.03] text-xs font-mono" />
+            <div className="flex justify-end">
+              <Button onClick={runFlow} disabled={fLoading} className="bg-gold-gradient text-black gap-2"><Wand2 className="w-4 h-4" />{fLoading ? 'Visualizing…' : 'Generate Flow Prompts'}</Button>
+            </div>
+            {flowOut && (
+              <div className="rounded-xl glass border border-gold-soft p-4 space-y-2">
+                <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Style · {flowOut.style_summary}</div>
+                <div className="space-y-1.5 mt-2">
+                  {(flowOut.scene_prompts || []).map((p:any, i:number) => (
+                    <div key={i} className="group flex items-start gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                      <span className="text-[9px] tracking-widest uppercase text-gold-400/80 mt-0.5 shrink-0 w-16">{p.type}</span>
+                      <span className="text-[12px] text-luxe/85 flex-1 leading-snug">{p.prompt}</span>
+                      <button onClick={() => copy('p'+i, p.prompt)} className="opacity-0 group-hover:opacity-100 text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 inline-flex items-center gap-1 transition-opacity">
+                        {copied === 'p'+i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ResearchSection({ title, items, ordered = false }: { title: string; items?: string[]; ordered?: boolean }) {
+  if (!items || !items.length) return null
+  return (
+    <div>
+      <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300/80 mb-1.5">{title}</div>
+      <ul className="space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="text-[12px] text-luxe/85 leading-snug pl-3 relative">
+            <span className="absolute left-0 top-2 w-1 h-1 rounded-full bg-gold-400/60" />
+            {ordered ? <span className="text-gold-400/60 mr-1.5">{i + 1}.</span> : null}{it}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
