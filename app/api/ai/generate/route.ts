@@ -19,6 +19,7 @@ type Mode =
   | 'topics'                        // /topics    — propose 10 future content topics
   | 'comments'                      // /comments  — pinned + comment-bait set
   | 'clone'                         // /clone     — reverse-engineer mechanics of a reference, do NOT copy
+  | 'ideas'                         // viral idea seeds — 3-5 structured ideas (title + hook + angle), used by the Pipeline side panel
 
 interface AIRequest {
   mode: Mode
@@ -32,6 +33,7 @@ interface AIRequest {
     existing_script?: string | null
     reference?: string | null      // for /clone — text describing the reference creator/piece
     language?: 'auto' | 'english' | 'hinglish' | 'gujarati' | 'guj_hindi'
+    tone?: 'cinematic_emotional' | 'funny_relatable' | 'storytelling' | 'luxury_premium' | string | null
   }
 }
 
@@ -102,12 +104,20 @@ You are not a generic AI writer. You are a socially observant, emotionally sharp
 function ctxBlock(ctx: AIRequest['context']) {
   const platform = ctx?.platform || 'instagram'
   const lang = ctx?.language && ctx.language !== 'auto' ? `Language preference: ${ctx.language}` : `Language: auto-pick (Hinglish / Gujarati / Guj-Hindi / English) based on topic`
+  const toneMap: Record<string, string> = {
+    cinematic_emotional: 'Tone: cinematic + emotional — quiet, observational, gut-punch endings',
+    funny_relatable: 'Tone: funny + relatable — sharp roast humour, friend-group dynamics, "this is too real"',
+    storytelling: 'Tone: storytelling — slow-burn beats, character moments, payoff that lingers',
+    luxury_premium: 'Tone: luxury + premium — restrained, sensory, high-end restaurant culture, no shouting',
+  }
+  const tone = ctx?.tone && toneMap[ctx.tone] ? toneMap[ctx.tone] : (ctx?.tone ? `Tone: ${ctx.tone}` : null)
   return [
     ctx?.title && `Title: ${ctx.title}`,
     ctx?.description && `Brief: ${ctx.description}`,
     `Platform: ${platform}`,
     ctx?.status && `Stage: ${ctx.status}`,
     ctx?.tags?.length && `Tags: ${ctx.tags.join(', ')}`,
+    tone,
     lang,
   ].filter(Boolean).join('\n')
 }
@@ -324,6 +334,29 @@ ${block}
 REFERENCE PIECE TO REVERSE-ENGINEER:
 ${ctx?.reference || ctx?.existing_script || ctx?.description || '(empty — ask user for reference next time)'}`,
       }
+
+    case 'ideas': {
+      return {
+        wantsJson: true,
+        user: `Generate 5 fresh viral content ideas for Table Tales on ${platform}, rooted in the topic and tone below. Output STRICT JSON, no markdown:
+
+{
+  "ideas": [
+    {
+      "title": "<title under 10 words, scroll-stopping>",
+      "hook": "<the first 2 seconds — max 12 words, in natural Hinglish/Gujarati/English based on context>",
+      "angle": "<the emotional/psychological angle this taps — one short line>"
+    },
+    ... 4 more
+  ]
+}
+
+Mix the 5 across recognition / contrarian / nostalgia / awkward realism / gut-punch angles. No generic food content. No motivation. Restaurant + Indian + Gujarati cultural awareness when relevant.
+
+CONTEXT:
+${block}`,
+      }
+    }
 
     case 'analyze': {
       const target = ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'

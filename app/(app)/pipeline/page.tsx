@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { AiButton } from '@/components/ai/ai-button'
+import { ViralStudioPanel } from '@/components/ai/viral-studio-panel'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
 
@@ -79,13 +80,18 @@ export default function PipelinePage() {
       </motion.div>
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4">
-          {visibleColumns.map((col, i) => {
-            const items = content.filter(c => c.status === col)
-            return (
-              <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => setNewCardStatus(col)} />
-            )
-          })}
+        <div className="flex gap-4 items-start">
+          <div className="flex-1 min-w-0">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4">
+              {visibleColumns.map((col, i) => {
+                const items = content.filter(c => c.status === col)
+                return (
+                  <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => setNewCardStatus(col)} />
+                )
+              })}
+            </div>
+          </div>
+          <ViralStudioPanel />
         </div>
         <DragOverlay>
           {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
