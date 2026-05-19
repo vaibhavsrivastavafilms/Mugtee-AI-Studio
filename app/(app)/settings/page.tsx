@@ -34,6 +34,58 @@ export default function SettingsPage() {
   const [trash, setTrash] = useState<TrashItem[]>([])
   const [trashLoading, setTrashLoading] = useState(false)
 
+  // Phase 8: Instagram integration state (inline, no helper component)
+  const [igAccount, setIgAccount] = useState<any>(null)
+  const [igLoading, setIgLoading] = useState(true)
+  const [igHint, setIgHint] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const loadIg = async () => {
+    setIgLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIgAccount(null); return }
+      const { data } = await supabase.from('instagram_accounts').select('username, ig_business_id, page_id, connected_at, expires_at').eq('user_id', user.id).maybeSingle()
+      setIgAccount(data || null)
+    } catch { setIgAccount(null) }
+    finally { setIgLoading(false) }
+  }
+
+  useEffect(() => {
+    loadIg()
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      const ig = sp.get('ig'); const msg = sp.get('msg')
+      if (ig === 'connected') { setIgHint({ ok: true, msg: msg || 'Instagram connected.' }); toast.success('Instagram connected'); window.history.replaceState({}, '', '/settings') }
+      else if (ig === 'error') { setIgHint({ ok: false, msg: msg || 'Connection failed.' }); toast.error('Instagram connection failed'); window.history.replaceState({}, '', '/settings') }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    let channel: any
+    ;(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        channel = supabase.channel(`ig-acct-${user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'instagram_accounts', filter: `user_id=eq.${user.id}` }, () => loadIg()).subscribe()
+      } catch {}
+    })()
+    return () => { if (channel) supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const igConnect = () => { window.location.href = '/api/instagram/connect' }
+  const igDisconnect = async () => {
+    if (!await confirm({ title: 'Disconnect Instagram?', description: 'You will need to reconnect before scheduled posts can publish.', destructive: true })) return
+    try { await fetch('/api/instagram/disconnect') } catch {}
+    setIgAccount(null); toast.success('Instagram disconnected')
+  }
+
+  const igExpiresMs = (() => { try { return igAccount?.expires_at ? new Date(igAccount.expires_at).getTime() : null } catch { return null } })()
+  const igTokenExpiring = igExpiresMs !== null && igExpiresMs - Date.now() < 7 * 24 * 60 * 60 * 1000
+  const igTokenExpired  = igExpiresMs !== null && igExpiresMs < Date.now()
+  const igExpiresLabel  = (() => { try { return igAccount?.expires_at ? formatDistanceToNow(parseISO(igAccount.expires_at), { addSuffix: true }) : null } catch { return null } })()
+
   // Keep local form in sync with workspace updates from realtime
   useEffect(() => {
     setName(workspace.name || '')
@@ -175,7 +227,71 @@ export default function SettingsPage() {
       </motion.div>
 
       {/* Integrations ========================================================== */}
-      <IntegrationsSection />
+      <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.13}}
+        className="glass rounded-2xl p-6 sm:p-8"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Plug className="w-4 h-4 text-gold-400" />
+          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Integrations</div>
+        </div>
+        <h2 className="font-display text-2xl mb-1">Publishing platforms</h2>
+        <p className="text-luxe/70 text-sm mb-5">Connect a Professional Instagram account linked to a Facebook Page to enable real auto-publishing from the queue.</p>
+
+        {igHint && (
+          <div className={cn('mb-4 flex items-start gap-2 p-3 rounded-lg text-xs', igHint.ok ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/30' : 'bg-red-500/10 text-red-200 border border-red-500/30')}>
+            {igHint.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+            <span>{igHint.msg}</span>
+          </div>
+        )}
+
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start gap-4 flex-wrap">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500/30 via-rose-500/30 to-amber-500/30 ring-1 ring-white/[0.08] flex items-center justify-center shrink-0">
+            <Instagram className="w-6 h-6 text-rose-200" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-medium">Instagram</div>
+              {igLoading ? null : igAccount ? (
+                <span className={cn('text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full',
+                  igTokenExpired ? 'bg-red-500/15 text-red-300' :
+                  igTokenExpiring ? 'bg-amber-500/15 text-amber-300' :
+                  'bg-emerald-500/15 text-emerald-300')}>
+                  {igTokenExpired ? 'token expired' : igTokenExpiring ? 'token expiring' : 'connected'}
+                </span>
+              ) : (
+                <span className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full bg-zinc-500/15 text-zinc-300">not connected</span>
+              )}
+            </div>
+            {igAccount ? (
+              <div className="text-xs text-muted-foreground mt-1 leading-snug">
+                {igAccount.username ? <span>@{igAccount.username} · </span> : null}
+                IG ID {String(igAccount.ig_business_id || '').slice(0, 8)}…
+                {igExpiresLabel && <> · token expires {igExpiresLabel}</>}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mt-1 leading-snug">
+                Requires a Professional Instagram account linked to a Facebook Page you admin.
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {igAccount ? (
+              <>
+                <Button onClick={igConnect} variant="ghost" className="text-gold-300 hover:text-gold-200 hover:bg-gold-500/10 gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5" /> Reconnect
+                </Button>
+                <Button onClick={igDisconnect} variant="ghost" className="text-muted-foreground hover:text-red-300 hover:bg-red-500/10 gap-1.5">
+                  <Unplug className="w-3.5 h-3.5" /> Disconnect
+                </Button>
+              </>
+            ) : (
+              <Button onClick={igConnect} className="bg-gold-gradient text-black gap-1.5">
+                <Plug className="w-3.5 h-3.5" /> Connect Instagram
+              </Button>
+            )}
+          </div>
+        </div>
+      </motion.div>
 
       {/* Trash ================================================================= */}
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.15}}
@@ -238,134 +354,3 @@ export default function SettingsPage() {
   )
 }
 
-
-// =====================================================================
-// Phase 8: Instagram Integrations Section
-// =====================================================================
-function IntegrationsSection() {
-  const supabase = createSupabaseBrowserClient()
-  const confirm = useConfirm()
-  const [account, setAccount] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [showHint, setShowHint] = useState<{ ok: boolean; msg: string } | null>(null)
-
-  const load = async () => {
-    setLoading(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from('instagram_accounts').select('username, ig_business_id, page_id, connected_at, expires_at').eq('user_id', user.id).maybeSingle()
-      setAccount(data || null)
-    } finally { setLoading(false) }
-  }
-
-  useEffect(() => {
-    load()
-    // Surface the OAuth callback result if present
-    const sp = new URLSearchParams(window.location.search)
-    const ig = sp.get('ig')
-    const msg = sp.get('msg')
-    if (ig === 'connected') {
-      setShowHint({ ok: true, msg: msg || 'Instagram connected.' })
-      toast.success('Instagram connected')
-      // Strip the query so it doesn't reappear on reload
-      window.history.replaceState({}, '', '/settings')
-    } else if (ig === 'error') {
-      setShowHint({ ok: false, msg: msg || 'Connection failed.' })
-      toast.error('Instagram connection failed')
-      window.history.replaceState({}, '', '/settings')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Listen to realtime updates on instagram_accounts
-  useEffect(() => {
-    let channel: any
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      channel = supabase.channel(`ig-acct-${user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'instagram_accounts', filter: `user_id=eq.${user.id}` }, () => load()).subscribe()
-    })()
-    return () => { if (channel) supabase.removeChannel(channel) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const connect = () => { window.location.href = '/api/instagram/connect' }
-  const disconnect = async () => {
-    if (!await confirm({ title: 'Disconnect Instagram?', description: 'You will need to reconnect before scheduled posts can publish.', destructive: true })) return
-    await fetch('/api/instagram/disconnect')
-    setAccount(null)
-    toast.success('Instagram disconnected')
-  }
-
-  const tokenExpiring = account?.expires_at && new Date(account.expires_at).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000
-  const tokenExpired  = account?.expires_at && new Date(account.expires_at).getTime() < Date.now()
-
-  return (
-    <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.13}}
-      className="glass rounded-2xl p-6 sm:p-8"
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <Plug className="w-4 h-4 text-gold-400" />
-        <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Integrations</div>
-      </div>
-      <h2 className="font-display text-2xl mb-1">Publishing platforms</h2>
-      <p className="text-luxe/70 text-sm mb-5">Connect a Professional Instagram account linked to a Facebook Page to enable real auto-publishing from the queue.</p>
-
-      {showHint && (
-        <div className={cn('mb-4 flex items-start gap-2 p-3 rounded-lg text-xs', showHint.ok ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/30' : 'bg-red-500/10 text-red-200 border border-red-500/30')}>
-          {showHint.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
-          <span>{showHint.msg}</span>
-        </div>
-      )}
-
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500/30 via-rose-500/30 to-amber-500/30 ring-1 ring-white/[0.08] flex items-center justify-center shrink-0">
-          <Instagram className="w-6 h-6 text-rose-200" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="font-medium">Instagram</div>
-            {loading ? null : account ? (
-              <span className={cn('text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full',
-                tokenExpired ? 'bg-red-500/15 text-red-300' :
-                tokenExpiring ? 'bg-amber-500/15 text-amber-300' :
-                'bg-emerald-500/15 text-emerald-300')}>
-                {tokenExpired ? 'token expired' : tokenExpiring ? 'token expiring' : 'connected'}
-              </span>
-            ) : (
-              <span className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full bg-zinc-500/15 text-zinc-300">not connected</span>
-            )}
-          </div>
-          {account ? (
-            <div className="text-xs text-muted-foreground mt-1 leading-snug">
-              {account.username ? <span>@{account.username} · </span> : null}
-              IG ID {account.ig_business_id?.slice(0, 8)}…
-              {account.expires_at && <> · token expires {formatDistanceToNow(parseISO(account.expires_at), { addSuffix: true })}</>}
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground mt-1 leading-snug">
-              Requires a Professional Instagram account linked to a Facebook Page you admin.
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {account ? (
-            <>
-              <Button onClick={connect} variant="ghost" className="text-gold-300 hover:text-gold-200 hover:bg-gold-500/10 gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5" /> Reconnect
-              </Button>
-              <Button onClick={disconnect} variant="ghost" className="text-muted-foreground hover:text-red-300 hover:bg-red-500/10 gap-1.5">
-                <Unplug className="w-3.5 h-3.5" /> Disconnect
-              </Button>
-            </>
-          ) : (
-            <Button onClick={connect} className="bg-gold-gradient text-black gap-1.5">
-              <Plug className="w-3.5 h-3.5" /> Connect Instagram
-            </Button>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
