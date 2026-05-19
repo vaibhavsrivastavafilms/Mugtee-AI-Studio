@@ -8,6 +8,7 @@ import { Area, AreaChart, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tool
 import { TrendingUp, Calendar, CheckCircle2, Sparkles, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { useUsage, LIMITS } from '@/lib/usage'
+import { AdSlot } from '@/components/ads/ad-slot'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
 
 const STATUS_ORDER: ContentStatus[] = ['idea', 'scripting', 'shooting', 'editing', 'scheduled', 'published']
@@ -312,6 +313,9 @@ export default function AnalyticsPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Phase 16 — Free-tier sponsor footer slot. Auto-hides for Creator/Agency. */}
+      <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ANALYTICS || ''} format="auto" />
     </div>
   )
 }
