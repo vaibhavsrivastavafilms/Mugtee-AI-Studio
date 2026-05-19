@@ -42,7 +42,7 @@ interface Store {
   archivedMedia: MediaAsset[]
 
   // CONTENT
-  addContent: (input: Partial<ContentPiece>) => Promise<void>
+  addContent: (input: Partial<ContentPiece>) => Promise<string | undefined>
   updateContent: (id: string, patch: Partial<ContentPiece>) => Promise<void>
   removeContent: (id: string) => Promise<void>           // soft delete
   archiveContent: (id: string) => Promise<void>
@@ -293,10 +293,12 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
       platform: optimistic.platform, scheduled_at: optimistic.scheduled_at, due_date: optimistic.due_date,
       assignee: optimistic.assignee, tags: optimistic.tags,
     }).select().single()
-    if (error) { setContent(c => c.filter(x => x.id !== tempId)); handleError(error, 'Could not create content'); return }
+    if (error) { setContent(c => c.filter(x => x.id !== tempId)); handleError(error, 'Could not create content'); return undefined }
+    const newId = (data as any).id as string
     setContent(c => c.map(x => x.id === tempId ? (data as any) : x))
     logActivity('created', (data as any).title)
     notify({ title: 'New content created', message: `“${(data as any).title}” added to ${(data as any).platform}`, type: 'content', link: '/pipeline' })
+    return newId
   }, [supabase, userId, logActivity, handleError, notify])
 
   const updateContent = useCallback(async (id: string, patch: Partial<ContentPiece>) => {

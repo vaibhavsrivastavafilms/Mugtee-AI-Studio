@@ -1,7 +1,7 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check } from 'lucide-react'
+import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check, Clapperboard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,39 +22,86 @@ const TONES: { id: string; label: string }[] = [
 ]
 
 export function ViralStudioPanel() {
-  const { addContent } = useStore()
+  const { addContent, updateContent } = useStore()
   const [open, setOpen] = useState(true)
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
   const [loading, setLoading] = useState(false)
   const [ideas, setIdeas] = useState<Idea[]>([])
-  const [added, setAdded] = useState<Set<number>>(new Set())
+  const [addedIds, setAddedIds] = useState<Record<number, string>>({})       // index → content id
   const [adding, setAdding] = useState<number | null>(null)
+  const [scriptBusy, setScriptBusy] = useState<number | null>(null)
+  const [scripts, setScripts] = useState<Record<number, string>>({})           // index → generated script text
 
-  const addToPipeline = useCallback(async (idea: Idea, index: number) => {
-    if (added.has(index) || adding === index) return
+  const addToPipeline = useCallback(async (idea: Idea, index: number, statusOverride?: 'idea' | 'scripting'): Promise<string | undefined> => {
+    if (addedIds[index] || adding === index) return addedIds[index]
     setAdding(index)
     const description = [idea.hook && `Hook: ${idea.hook}`, idea.angle && `Angle: ${idea.angle}`].filter(Boolean).join('\n\n')
     try {
-      await addContent({
+      const id = await addContent({
         title: idea.title || 'Untitled idea',
         description: description || null,
         platform,
-        status: 'idea',
+        status: statusOverride || 'idea',
       })
-      setAdded(prev => { const n = new Set(prev); n.add(index); return n })
+      if (id) setAddedIds(prev => ({ ...prev, [index]: id }))
+      return id
     } catch (e: any) {
       toast.error(e?.message || 'Could not add to pipeline')
+      return undefined
     } finally {
       setAdding(null)
     }
-  }, [addContent, platform, added, adding])
+  }, [addContent, platform, addedIds, adding])
+
+  const promoteToScript = useCallback(async (idea: Idea, index: number) => {
+    if (scriptBusy === index) return
+    setScriptBusy(index)
+    try {
+      // 1) Generate cinematic script via existing /api/ai/generate
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'reel_script',
+          context: {
+            title: idea.title,
+            description: [idea.hook && `Hook: ${idea.hook}`, idea.angle && `Angle: ${idea.angle}`].filter(Boolean).join('\n'),
+            platform,
+            status: 'scripting',
+            tone,
+            existing_script: idea.hook,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data?.error || 'Script generation failed'); return }
+      const scriptText = typeof data.output === 'string' ? data.output : (data.raw || '')
+      if (!scriptText) { toast.error('Empty script returned'); return }
+
+      // 2) Find or create the content row
+      let contentId = addedIds[index]
+      if (!contentId) {
+        const created = await addToPipeline(idea, index, 'scripting')
+        contentId = created
+      }
+      if (!contentId) { toast.error('Could not attach script — card not found'); return }
+
+      // 3) Save script + advance status to 'scripting'
+      await updateContent(contentId, { script: scriptText, status: 'scripting' } as any)
+      setScripts(prev => ({ ...prev, [index]: scriptText }))
+    } catch (e: any) {
+      toast.error(e?.message || 'Script generation failed')
+    } finally {
+      setScriptBusy(null)
+    }
+  }, [scriptBusy, platform, tone, addedIds, addToPipeline, updateContent])
 
   const generate = useCallback(async () => {
     const t = topic.trim()
     if (!t) { toast.error('Add a topic first'); return }
-    setLoading(true); setIdeas([]); setAdded(new Set())
+    setLoading(true); setIdeas([]); setAddedIds({}); setScripts({})
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -171,9 +218,12 @@ export function ViralStudioPanel() {
                   {ideas.map((idea, i) => (
                     <IdeaCard
                       key={i} idea={idea} index={i}
-                      isAdded={added.has(i)}
+                      isAdded={!!addedIds[i]}
                       isAdding={adding === i}
+                      scriptBusy={scriptBusy === i}
+                      scriptText={scripts[i]}
                       onAdd={() => addToPipeline(idea, i)}
+                      onPromote={() => promoteToScript(idea, i)}
                     />
                   ))}
                 </div>
@@ -193,14 +243,25 @@ export function ViralStudioPanel() {
   )
 }
 
-function IdeaCard({ idea, index, isAdded, isAdding, onAdd }: { idea: Idea; index: number; isAdded: boolean; isAdding: boolean; onAdd: () => void }) {
+function IdeaCard({
+  idea, index, isAdded, isAdding, scriptBusy, scriptText, onAdd, onPromote,
+}: {
+  idea: Idea; index: number;
+  isAdded: boolean; isAdding: boolean;
+  scriptBusy: boolean; scriptText?: string;
+  onAdd: () => void; onPromote: () => void;
+}) {
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copied') }
+  const scriptReady = !!scriptText
+  const previewLines = scriptText ? scriptText.split('\n').filter(Boolean).slice(0, 4) : []
   return (
     <motion.div
       initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: index*0.04}}
       className={cn(
         'group rounded-xl p-3 bg-gradient-to-br from-white/[0.05] to-white/[0.01] border transition',
-        isAdded ? 'border-emerald-500/40 bg-emerald-500/[0.04]' : 'border-white/[0.06] hover:border-gold-500/40',
+        scriptReady ? 'border-violet-500/40 bg-violet-500/[0.04]' :
+        isAdded ? 'border-emerald-500/40 bg-emerald-500/[0.04]' :
+        'border-white/[0.06] hover:border-gold-500/40',
       )}
     >
       <div className="flex items-start gap-2">
@@ -224,15 +285,47 @@ function IdeaCard({ idea, index, isAdded, isAdding, onAdd }: { idea: Idea; index
           <Copy className="w-3 h-3" />
         </button>
       </div>
-      <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-end">
+
+      {/* Inline script preview */}
+      <AnimatePresence>
+        {scriptReady && (
+          <motion.div
+            initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
+            className="mt-3 pt-2.5 border-t border-violet-500/20 overflow-hidden"
+          >
+            <div className="text-[10px] tracking-[0.3em] uppercase text-violet-300/80 flex items-center gap-1.5 mb-1.5">
+              <Clapperboard className="w-3 h-3" /> Script preview
+            </div>
+            <div className="space-y-1">
+              {previewLines.map((line, i) => (
+                <div key={i} className="text-[11px] text-luxe/85 font-mono leading-snug truncate">{line}</div>
+              ))}
+              {scriptText && scriptText.split('\n').filter(Boolean).length > 4 && (
+                <div className="text-[10px] text-muted-foreground italic">…opened in pipeline card</div>
+              )}
+            </div>
+            <button
+              onClick={() => copy(scriptText!)}
+              className="mt-2 text-[10px] tracking-[0.2em] uppercase text-violet-300/80 hover:text-violet-200 inline-flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" /> Copy full script
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action footer */}
+      <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-end gap-1.5">
+        {/* Add to Pipeline */}
         <AnimatePresence mode="wait" initial={false}>
           {isAdded ? (
             <motion.div
               key="added"
               initial={{opacity:0, scale:0.9}} animate={{opacity:1, scale:1}} exit={{opacity:0}}
               className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-emerald-300"
+              title="In pipeline"
             >
-              <Check className="w-3 h-3" /> Added to pipeline
+              <Check className="w-3 h-3" /> In pipeline
             </motion.div>
           ) : (
             <motion.button
@@ -243,11 +336,49 @@ function IdeaCard({ idea, index, isAdded, isAdding, onAdd }: { idea: Idea; index
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] tracking-[0.2em] uppercase bg-gold-500/15 hover:bg-gold-500/25 text-gold-200 ring-1 ring-gold-500/30 transition disabled:opacity-50 disabled:cursor-wait"
             >
               {isAdding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-              {isAdding ? 'Adding…' : 'Add to Pipeline'}
+              {isAdding ? 'Adding…' : 'Add'}
             </motion.button>
           )}
         </AnimatePresence>
+
+        {/* Promote to Script */}
+        <button
+          onClick={onPromote}
+          disabled={scriptBusy}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] tracking-[0.2em] uppercase transition disabled:opacity-60 disabled:cursor-wait ring-1',
+            scriptReady
+              ? 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 ring-violet-500/40'
+              : 'bg-gold-gradient text-black hover:opacity-90 ring-transparent shadow-gold-glow',
+          )}
+          title="Generate cinematic script"
+        >
+          {scriptBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clapperboard className="w-3 h-3" />}
+          {scriptBusy ? 'Generating…' : scriptReady ? 'Regenerate' : 'Script'}
+        </button>
       </div>
+
+      {/* Cinematic loading caption */}
+      <AnimatePresence>
+        {scriptBusy && (
+          <motion.div
+            initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+            className="mt-2 text-[10px] tracking-[0.2em] uppercase text-gold-400/80 flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3 h-3 animate-pulse" /> Generating cinematic script…
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {scriptReady && !scriptBusy && (
+          <motion.div
+            initial={{opacity:0}} animate={{opacity:1}}
+            className="mt-2 text-[10px] tracking-[0.2em] uppercase text-violet-300 flex items-center gap-1.5"
+          >
+            <Check className="w-3 h-3" /> Script ready · saved to scripting
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
