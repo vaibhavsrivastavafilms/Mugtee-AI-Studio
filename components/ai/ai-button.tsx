@@ -210,21 +210,33 @@ function AnalyzeView({ data }: { data: any }) {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn('text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full', tierColor)}>{data?.hook_strength || tier}</span>
+            {data?.hook_pattern && <span className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full bg-white/[0.05] text-luxe/80">{String(data.hook_pattern).replace(/_/g, ' ')}</span>}
           </div>
           {data?.verdict && <p className="text-sm text-luxe/90 italic leading-snug">“{data.verdict}”</p>}
+          {data?.audience_psychology && (
+            <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+              <span className="text-gold-400/80 tracking-wider uppercase">Audience · </span>{data.audience_psychology}
+            </p>
+          )}
         </div>
       </div>
 
+      {arr(data?.emotional_structure).length > 0 && (
+        <Section title="Emotional Structure" items={arr(data.emotional_structure)} accent="text-violet-300" />
+      )}
       {arr(data?.emotional_triggers).length > 0 && (
         <Section title="Emotional Triggers" items={arr(data.emotional_triggers)} accent="text-rose-300" />
       )}
       {arr(data?.retention).length > 0 && (
-        <Section title="Retention Suggestions" items={arr(data.retention)} accent="text-sky-300" />
+        <Section title="Retention Mechanics" items={arr(data.retention)} accent="text-sky-300" />
       )}
       {arr(data?.pacing).length > 0 && (
         <Section title="Pacing" items={arr(data.pacing)} accent="text-gold-300" />
+      )}
+      {arr(data?.fixes).length > 0 && (
+        <Section title="Surgical Fixes" items={arr(data.fixes)} accent="text-emerald-300" />
       )}
     </div>
   )
