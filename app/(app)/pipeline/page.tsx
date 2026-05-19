@@ -6,16 +6,18 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
+import { useConfirm } from '@/components/ui/confirm'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
 
 export default function PipelinePage() {
-  const { content, setStatus, updateContent, addContent } = useStore()
+  const { content, setStatus, updateContent, addContent, removeContent } = useStore()
+  const confirm = useConfirm()
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -67,8 +69,7 @@ export default function PipelinePage() {
           })}
         </div>
         <DragOverlay>
-          {activeItem ? <KanbanCard item={activeItem} dragging /> : null}
-        </DragOverlay>
+          {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
       </DndContext>
     </div>
   )
@@ -118,15 +119,32 @@ function SortableCard({ item }: { item: ContentPiece }) {
 
 function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean }) {
   const platform = PLATFORM_META[item.platform]
+  const { removeContent } = useStore()
+  const confirm = useConfirm()
   return (
     <div className={cn(
-      'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all',
+      'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all relative',
       'hover:border-gold-500/40 hover:shadow-cinema cursor-grab active:cursor-grabbing',
       dragging ? 'border-gold-500/60 shadow-gold-glow-lg rotate-2 scale-105' : 'border-white/[0.06]'
     )}>
+      {!dragging && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={async (e) => {
+            e.stopPropagation()
+            if (await confirm({ title: `Delete "${item.title}"?`, description: 'This content piece will be removed from your pipeline.', destructive: true })) {
+              removeContent(item.id)
+            }
+          }}
+          className="absolute top-2 right-2 p-1 rounded-md bg-black/40 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition z-10"
+          aria-label="Delete"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
       <div className="flex items-start gap-2 mb-2">
         <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/50 group-hover:text-gold-400/60" />
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-6">
           <div className="text-sm font-medium leading-snug">{item.title}</div>
           {item.description && <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{item.description}</div>}
         </div>

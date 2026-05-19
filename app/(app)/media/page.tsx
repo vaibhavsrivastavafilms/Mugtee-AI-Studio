@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton, EmptyState } from '@/components/ui/state'
 import { UploadDropzone } from '@/components/media/upload-dropzone'
+import { useConfirm } from '@/components/ui/confirm'
 import { useState } from 'react'
 
 const ICONS: any = { video: FileVideo, image: ImgIcon, audio: Music }
@@ -20,6 +21,7 @@ function formatBytes(n?: number | null) {
 
 export default function MediaPage() {
   const { media, loading, removeMedia } = useStore()
+  const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
 
   return (
@@ -71,7 +73,7 @@ export default function MediaPage() {
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur text-[10px] tracking-wider uppercase flex items-center gap-1">
                     <Icon className="w-3 h-3 text-gold-300" /> {m.type}
                   </div>
-                  <button onClick={() => removeMedia(m.id)} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition">
+                  <button onClick={async () => { if (await confirm({ title: `Delete ${m.title}?`, description: 'This file will be removed from your library.', destructive: true })) removeMedia(m.id) }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>

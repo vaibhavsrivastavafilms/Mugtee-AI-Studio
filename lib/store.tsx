@@ -1,9 +1,14 @@
 'use client'
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef, useMemo } from 'react'
 import { createSupabaseBrowserClient } from './supabase/client'
-import { seedDemoData } from './seed'
 import { toast } from 'sonner'
 import type { ContentPiece, CrewMember, Shoot, MediaAsset, ActivityItem, ContentStatus } from './types'
+
+interface Workspace {
+  id?: string
+  name: string
+  logo_url?: string | null
+}
 
 interface Loading {
   content: boolean
@@ -17,6 +22,7 @@ interface Loading {
 interface Store {
   userId: string
   userName: string
+  workspace: Workspace
   loading: Loading
 
   content: ContentPiece[]
@@ -44,6 +50,9 @@ interface Store {
   // Media
   addMedia: (input: Partial<MediaAsset>) => Promise<void>
   removeMedia: (id: string) => Promise<void>
+
+  // Workspace
+  updateWorkspace: (patch: Partial<Workspace>) => Promise<void>
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -56,8 +65,8 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
   const [shoots, setShoots]   = useState<Shoot[]>([])
   const [media, setMedia]     = useState<MediaAsset[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [workspace, setWorkspace] = useState<Workspace>({ name: 'My Studio', logo_url: null })
   const [loading, setLoading] = useState<Loading>({ content: true, crew: true, shoots: true, media: true, activity: true, initial: true })
-  const seededRef = useRef(false)
 
   // ---------- helpers ----------
   const logActivity = useCallback(async (action: string, target: string) => {
@@ -71,42 +80,34 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     toast.error(e?.message || fallback)
   }, [])
 
-  // ---------- initial load ----------
+  // ---------- initial load (no seeding) ----------
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const [c, cr, sh, md, ac] = await Promise.all([
+        const [c, cr, sh, md, ac, ws] = await Promise.all([
           supabase.from('content_pieces').select('*').order('created_at', { ascending: false }),
           supabase.from('crew').select('*').order('created_at', { ascending: true }),
           supabase.from('shoots').select('*').order('date', { ascending: true }),
           supabase.from('media').select('*').order('created_at', { ascending: false }),
           supabase.from('team_activity').select('*').order('created_at', { ascending: false }).limit(30),
+          supabase.from('workspaces').select('*').eq('user_id', userId).maybeSingle(),
         ])
         if (cancelled) return
-        const allEmpty = !c.data?.length && !cr.data?.length && !sh.data?.length && !md.data?.length
-        if (allEmpty && !seededRef.current) {
-          seededRef.current = true
-          await seedDemoData(supabase, userId)
-          const [c2, cr2, sh2, md2, ac2] = await Promise.all([
-            supabase.from('content_pieces').select('*').order('created_at', { ascending: false }),
-            supabase.from('crew').select('*').order('created_at', { ascending: true }),
-            supabase.from('shoots').select('*').order('date', { ascending: true }),
-            supabase.from('media').select('*').order('created_at', { ascending: false }),
-            supabase.from('team_activity').select('*').order('created_at', { ascending: false }).limit(30),
-          ])
-          if (cancelled) return
-          setContent((c2.data as any) || [])
-          setCrew((cr2.data as any) || [])
-          setShoots((sh2.data as any) || [])
-          setMedia((md2.data as any) || [])
-          setActivity((ac2.data as any) || [])
+        setContent((c.data as any) || [])
+        setCrew((cr.data as any) || [])
+        setShoots((sh.data as any) || [])
+        setMedia((md.data as any) || [])
+        setActivity((ac.data as any) || [])
+
+        if (ws.data) {
+          setWorkspace(ws.data as any)
         } else {
-          setContent((c.data as any) || [])
-          setCrew((cr.data as any) || [])
-          setShoots((sh.data as any) || [])
-          setMedia((md.data as any) || [])
-          setActivity((ac.data as any) || [])
+          // Auto-create workspace row on first visit (only thing we auto-create).
+          const { data: created } = await supabase.from('workspaces').insert({
+            user_id: userId, name: 'My Studio',
+          }).select().single()
+          if (created && !cancelled) setWorkspace(created as any)
         }
       } catch (e) {
         handleError(e, 'Could not load studio data')
@@ -122,15 +123,15 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
   useEffect(() => {
     const filter = `user_id=eq.${userId}`
     const handlers = [
-      { table: 'content_pieces',  set: setContent },
+      { table: 'content_pieces', set: setContent },
       { table: 'crew',           set: setCrew },
       { table: 'shoots',         set: setShoots },
       { table: 'media',          set: setMedia },
       { table: 'team_activity',  set: setActivity },
     ] as const
 
-    const channels = handlers.map(({ table, set }) => {
-      return supabase
+    const channels = handlers.map(({ table, set }) => (
+      supabase
         .channel(`rt-${table}-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table, filter }, (payload: any) => {
           const row = (payload.new || payload.old) as any
@@ -144,8 +145,16 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
           }
         })
         .subscribe()
-    })
-    return () => { channels.forEach(c => supabase.removeChannel(c)) }
+    ))
+
+    const wsChannel = supabase
+      .channel(`rt-workspaces-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspaces', filter }, (payload: any) => {
+        if (payload.new) setWorkspace(payload.new as any)
+      })
+      .subscribe()
+
+    return () => { channels.forEach(c => supabase.removeChannel(c)); supabase.removeChannel(wsChannel) }
   }, [supabase, userId])
 
   // ---------- CONTENT crud ----------
@@ -290,13 +299,22 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     else if (item) logActivity('removed', item.title)
   }, [supabase, media, logActivity, handleError])
 
+  // ---------- WORKSPACE ----------
+  const updateWorkspace = useCallback(async (patch: Partial<Workspace>) => {
+    const before = workspace
+    setWorkspace(w => ({ ...w, ...patch }))
+    const { error } = await supabase.from('workspaces').update({ ...patch, updated_at: new Date().toISOString() }).eq('user_id', userId)
+    if (error) { setWorkspace(before); handleError(error, 'Could not update settings') }
+  }, [supabase, userId, workspace, handleError])
+
   const value: Store = {
-    userId, userName, loading,
+    userId, userName, workspace, loading,
     content, crew, shoots, media, activity,
     addContent, updateContent, removeContent, setStatus,
     addCrew, updateCrew, removeCrew,
     addShoot, updateShoot, removeShoot,
     addMedia, removeMedia,
+    updateWorkspace,
   }
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

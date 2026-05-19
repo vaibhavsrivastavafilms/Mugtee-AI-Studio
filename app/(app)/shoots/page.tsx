@@ -9,11 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton, EmptyState } from '@/components/ui/state'
+import { useConfirm } from '@/components/ui/confirm'
 import type { Shoot, ShootStatus } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
 
 export default function ShootsPage() {
   const { shoots, loading, addShoot, updateShoot, removeShoot } = useStore()
+  const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Shoot | null>(null)
 
@@ -62,7 +64,7 @@ export default function ShootsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-strong">
                             <DropdownMenuItem onClick={() => setEditing(s)}><Edit3 className="w-3.5 h-3.5 mr-2" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => removeShoot(s.id)} className="text-red-300"><Trash2 className="w-3.5 h-3.5 mr-2" />Cancel</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Cancel "${s.title}"?`, description: 'This shoot will be removed from your schedule.', destructive: true, confirmText: 'Cancel shoot' })) removeShoot(s.id) }} className="text-red-300"><Trash2 className="w-3.5 h-3.5 mr-2" />Cancel</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

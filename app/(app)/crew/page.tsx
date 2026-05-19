@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton, EmptyState } from '@/components/ui/state'
+import { useConfirm } from '@/components/ui/confirm'
 import { useState } from 'react'
 import type { CrewMember, CrewStatus } from '@/lib/types'
 
 export default function CrewPage() {
   const { crew, loading, addCrew, updateCrew, removeCrew } = useStore()
+  const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<CrewMember | null>(null)
 
@@ -69,7 +71,7 @@ export default function CrewPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="glass-strong">
                     <DropdownMenuItem onClick={() => setEditing(c)}><Edit3 className="w-3.5 h-3.5 mr-2" />Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => removeCrew(c.id)} className="text-red-300 focus:text-red-200"><Trash2 className="w-3.5 h-3.5 mr-2" />Remove</DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => { if (await confirm({ title: `Remove ${c.name}?`, description: 'They will be removed from your studio. This cannot be undone.', destructive: true })) removeCrew(c.id) }} className="text-red-300 focus:text-red-200"><Trash2 className="w-3.5 h-3.5 mr-2" />Remove</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

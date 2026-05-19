@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useConfirm } from '@/components/ui/confirm'
 import type { ContentPiece, Platform } from '@/lib/types'
 
 export default function CalendarPage() {
-  const { content, addContent, updateContent } = useStore()
+  const { content, addContent, updateContent, removeContent } = useStore()
+  const confirm = useConfirm()
   const [cursor, setCursor] = useState(new Date())
   const [creating, setCreating] = useState<{date: Date | null, open: boolean}>({date:null, open:false})
   const [editing, setEditing] = useState<ContentPiece | null>(null)
@@ -94,6 +96,12 @@ export default function CalendarPage() {
           <CreateOrEditDialog
             initial={editing}
             onSubmit={(item) => { updateContent(editing.id, item); setEditing(null) }}
+            onDelete={async () => {
+              if (await confirm({ title: `Delete "${editing.title}"?`, description: 'This scheduled post will be removed from your calendar.', destructive: true })) {
+                removeContent(editing.id)
+                setEditing(null)
+              }
+            }}
           />
         )}
       </Dialog>
@@ -101,7 +109,7 @@ export default function CalendarPage() {
   )
 }
 
-function CreateOrEditDialog({ initial, onSubmit }: { initial?: Partial<ContentPiece>; onSubmit: (item: ContentPiece) => void }) {
+function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial<ContentPiece>; onSubmit: (item: ContentPiece) => void; onDelete?: () => void }) {
   const [title, setTitle] = useState(initial?.title || '')
   const [platform, setPlatform] = useState<Platform>((initial?.platform as Platform) || 'instagram')
   const [status, setStatus] = useState((initial?.status as any) || 'scheduled')
@@ -148,6 +156,9 @@ function CreateOrEditDialog({ initial, onSubmit }: { initial?: Partial<ContentPi
         </div>
       </div>
       <DialogFooter>
+        {onDelete && (
+          <Button variant="ghost" onClick={onDelete} className="text-red-300 hover:text-red-200 hover:bg-red-500/10 mr-auto">Delete</Button>
+        )}
         <Button onClick={() => onSubmit({
           id: (initial?.id as string) || 'p'+Date.now(),
           title: title || 'Untitled',

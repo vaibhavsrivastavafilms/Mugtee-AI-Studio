@@ -4,9 +4,10 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CalendarRange, Kanban, Users2, Clapperboard,
-  Image as ImageIcon, BarChart3, X, Sparkles, Film
+  Image as ImageIcon, BarChart3, X, Sparkles, Film, Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/store'
 
 const NAV = [
   { href: '/dashboard',  label: 'Dashboard',         icon: LayoutDashboard },
@@ -16,13 +17,13 @@ const NAV = [
   { href: '/shoots',     label: 'Shoots',            icon: Clapperboard },
   { href: '/media',      label: 'Media Library',     icon: ImageIcon },
   { href: '/analytics',  label: 'Analytics',         icon: BarChart3 },
+  { href: '/settings',   label: 'Settings',          icon: Settings },
 ]
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
   const pathname = usePathname()
   return (
     <>
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -41,7 +42,6 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
         )}
       </AnimatePresence>
 
-      {/* Desktop */}
       <aside className="hidden lg:flex w-72 shrink-0 sticky top-0 h-screen">
         <SidebarInner pathname={pathname} />
       </aside>
@@ -50,15 +50,20 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
 }
 
 function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname: string; onItemClick?: () => void; showClose?: boolean; onClose?: () => void }) {
+  const { workspace } = useStore()
   return (
     <div className="flex flex-col w-full h-full glass border-r border-gold-soft px-5 py-7">
       <div className="flex items-center justify-between mb-8">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-            <Film className="w-5 h-5 text-black" />
+        <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow overflow-hidden shrink-0">
+            {workspace.logo_url ? (
+              <img src={workspace.logo_url} alt="logo" className="w-full h-full object-cover" />
+            ) : (
+              <Film className="w-5 h-5 text-black" />
+            )}
           </div>
-          <div>
-            <div className="font-display text-lg leading-none">Table Tales</div>
+          <div className="min-w-0">
+            <div className="font-display text-lg leading-none truncate">{workspace.name || 'My Studio'}</div>
             <div className="text-[10px] tracking-[0.25em] uppercase text-gold-400/80 mt-1">Production OS</div>
           </div>
         </Link>
