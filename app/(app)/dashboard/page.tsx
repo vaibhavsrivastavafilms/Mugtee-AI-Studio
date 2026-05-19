@@ -6,6 +6,7 @@ import { ProductionTracker } from '@/components/dashboard/production-tracker'
 import { TeamActivity } from '@/components/dashboard/team-activity'
 import { PostingCalendar } from '@/components/dashboard/posting-calendar'
 import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
+import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
 import { format } from 'date-fns'
 
 export default function DashboardPage() {
@@ -26,6 +27,9 @@ export default function DashboardPage() {
           <p className="text-luxe/70 mt-2 max-w-xl">{content.length} pieces in motion. Here’s the cinematic state of your production.</p>
         </div>
       </motion.div>
+
+      {/* TT Viral Quick Start hero */}
+      <ViralQuickStart />
 
       {/* Stat cards */}
       <StatCards />
