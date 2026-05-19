@@ -59,7 +59,7 @@ export function LoginSlideshow() {
       <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-            <span className="font-display text-xl text-black leading-none">V</span>
+            <span className="font-display text-xl text-black leading-none">M</span>
           </div>
           <div>
             <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80">Mugtee</div>
