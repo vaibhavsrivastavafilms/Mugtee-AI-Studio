@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Plus, Power, Trash2, Calendar, Bell, Repeat, ChevronDown } from 'lucide-react'
-import { useAutomations, type Workflow, computeNextRun } from '@/lib/automations-store'
+import { Zap, Plus, Power, Trash2, Calendar, Bell, Repeat, ChevronDown, MoreVertical } from 'lucide-react'
+import { useAutomations, type Workflow, type QueueItem, computeNextRun } from '@/lib/automations-store'
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Skeleton, EmptyState } from '@/components/ui/state'
 import { useConfirm } from '@/components/ui/confirm'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export default function AutomationsPage() {
-  const { workflows, queue, notifications, loading, addWorkflow, updateWorkflow, removeWorkflow, toggleWorkflow } = useAutomations()
+  const { workflows, queue, notifications, loading, addWorkflow, updateWorkflow, removeWorkflow, toggleWorkflow, setQueueStatus, removeQueueItem } = useAutomations()
   const { content, shoots } = useStore()
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
@@ -98,22 +99,53 @@ export default function AutomationsPage() {
         <h2 className="font-display text-2xl mb-1">Scheduled to publish</h2>
         <p className="text-luxe/70 text-sm mb-5">Foundation only — platform publishing connects in a future phase.</p>
         {queue.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-6 text-center">Queue is empty.</div>
+          <div className="text-sm text-muted-foreground py-6 text-center">Queue is empty. Set content status to “scheduled” with a date and it auto-enqueues.</div>
         ) : (
           <div className="space-y-2">
-            {queue.map(q => (
-              <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{q.platform || 'unknown'} · {q.content_id?.slice(0,8)}…</div>
-                  <div className="text-[11px] text-muted-foreground">{q.scheduled_for ? format(parseISO(q.scheduled_for), 'EEE, MMM d · HH:mm') : 'No schedule'}</div>
+            {queue.map(q => {
+              const title = (q.content_id ? content.find(c => c.id === q.content_id)?.title : null) || q.platform || 'Untitled'
+              const NEXT: Record<QueueItem['status'], QueueItem['status'] | null> = {
+                draft: 'queued', queued: 'publishing', publishing: 'published', published: null, failed: 'queued',
+              }
+              const next = NEXT[q.status]
+              return (
+                <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{title} <span className="text-muted-foreground">· {q.platform || 'unknown'}</span></div>
+                    <div className="text-[11px] text-muted-foreground">{q.scheduled_for ? format(parseISO(q.scheduled_for), 'EEE, MMM d · HH:mm') : 'No schedule'}{q.error ? ` · ${q.error}` : ''}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className={cn('text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full transition hover:opacity-80',
+                          q.status === 'published' ? 'bg-emerald-500/15 text-emerald-300' :
+                          q.status === 'failed' ? 'bg-red-500/15 text-red-300' :
+                          q.status === 'publishing' ? 'bg-gold-500/15 text-gold-300 animate-pulse' :
+                          q.status === 'queued' ? 'bg-sky-500/15 text-sky-300' :
+                          'bg-zinc-500/15 text-zinc-300')}>
+                          {q.status}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="glass-strong">
+                        <DropdownMenuLabel className="text-[10px] tracking-widest uppercase text-muted-foreground">Set status</DropdownMenuLabel>
+                        {(['draft','queued','publishing','published','failed'] as QueueItem['status'][]).map(s => (
+                          <DropdownMenuItem key={s} disabled={s === q.status} onClick={() => setQueueStatus(q.id, s)} className="capitalize">{s}</DropdownMenuItem>
+                        ))}
+                        {next && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setQueueStatus(q.id, next)} className="text-gold-300 focus:text-gold-200 capitalize">→ Advance to {next}</DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button size="sm" variant="ghost" onClick={() => removeQueueItem(q.id)} className="text-muted-foreground hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <span className={cn('text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full',
-                  q.status === 'published' ? 'bg-emerald-500/15 text-emerald-300' :
-                  q.status === 'failed' ? 'bg-red-500/15 text-red-300' :
-                  q.status === 'publishing' ? 'bg-gold-500/15 text-gold-300 animate-pulse' :
-                  'bg-zinc-500/15 text-zinc-300')}>{q.status}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </motion.div>

@@ -117,6 +117,19 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     catch (e) { console.error('logActivity', e) }
   }, [supabase, userId, userName])
 
+  // Phase 5B: lightweight notification helper. Inline insert; never blocks UI.
+  const notify = useCallback(async (payload: { title: string; message?: string | null; type?: string; link?: string | null }) => {
+    try {
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: payload.title,
+        message: payload.message ?? null,
+        type: payload.type ?? 'info',
+        link: payload.link ?? null,
+      })
+    } catch (e) { console.error('notify', e) }
+  }, [supabase, userId])
+
   const handleError = useCallback((e: any, fallback: string) => {
     console.error(e); toast.error(e?.message || fallback)
   }, [])
@@ -283,7 +296,8 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     if (error) { setContent(c => c.filter(x => x.id !== tempId)); handleError(error, 'Could not create content'); return }
     setContent(c => c.map(x => x.id === tempId ? (data as any) : x))
     logActivity('created', (data as any).title)
-  }, [supabase, userId, logActivity, handleError])
+    notify({ title: 'New content created', message: `“${(data as any).title}” added to ${(data as any).platform}`, type: 'content', link: '/pipeline' })
+  }, [supabase, userId, logActivity, handleError, notify])
 
   const updateContent = useCallback(async (id: string, patch: Partial<ContentPiece>) => {
     const before = content
@@ -299,7 +313,11 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     if (item) logActivity('moved to trash', item.title)
   }, [content, archivedContent, softDelete, logActivity])
 
-  const archiveContent = useCallback(async (id: string) => { await archive('content_pieces', id, content, setContent, setArchivedContent) }, [archive, content])
+  const archiveContent = useCallback(async (id: string) => {
+    const item = content.find(x => x.id === id)
+    await archive('content_pieces', id, content, setContent, setArchivedContent)
+    if (item) notify({ title: 'Content archived', message: `“${item.title}” moved to archive`, type: 'content', link: '/pipeline' })
+  }, [archive, content, notify])
   const restoreContent = useCallback(async (id: string) => { await restoreArchived('content_pieces', id, archivedContent, setContent, setArchivedContent) }, [restoreArchived, archivedContent])
 
   const setStatus = useCallback(async (id: string, status: ContentStatus) => {
@@ -309,8 +327,11 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     setContent(c => c.map(x => x.id === id ? { ...x, status } : x))
     const { error } = await supabase.from('content_pieces').update({ status }).eq('id', id)
     if (error) { setContent(before); handleError(error, 'Could not move card') }
-    else logActivity('moved', `${item.title} → ${status}`)
-  }, [supabase, content, logActivity, handleError])
+    else {
+      logActivity('moved', `${item.title} → ${status}`)
+      notify({ title: 'Status updated', message: `“${item.title}” is now ${status}`, type: 'content', link: '/pipeline?status=' + status })
+    }
+  }, [supabase, content, logActivity, handleError, notify])
 
   // ---------- CREW ----------
   const addCrew = useCallback(async (input: Partial<CrewMember>) => {
@@ -348,7 +369,8 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     if (error) { setShoots(s => s.filter(x => x.id !== tempId)); handleError(error, 'Could not create shoot'); return }
     setShoots(s => s.map(x => x.id === tempId ? (data as any) : x))
     logActivity('scheduled', (data as any).title)
-  }, [supabase, userId, logActivity, handleError])
+    notify({ title: 'Shoot scheduled', message: `“${(data as any).title}”${(data as any).date ? ` on ${(data as any).date}` : ''}`, type: 'shoot', link: '/shoots' })
+  }, [supabase, userId, logActivity, handleError, notify])
 
   const updateShoot = useCallback(async (id: string, patch: Partial<Shoot>) => {
     const before = shoots
