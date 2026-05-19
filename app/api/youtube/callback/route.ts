@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createYoutubeOAuthClient, fetchMyChannel } from '@/lib/youtube'
+import { safeRelative } from '@/lib/url'
 
 export const runtime = 'nodejs'
 
@@ -17,7 +18,9 @@ export async function GET(req: Request) {
   try {
     if (state) {
       const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'))
-      if (typeof decoded?.redirectTo === 'string') redirectTo = decoded.redirectTo
+      if (typeof decoded?.redirectTo === 'string') {
+        redirectTo = safeRelative(decoded.redirectTo, '/settings')
+      }
     }
   } catch {}
 

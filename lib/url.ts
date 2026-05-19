@@ -16,3 +16,16 @@ export function getBaseUrl(request?: NextRequest): string {
   }
   return 'https://mugtee.in'
 }
+
+/**
+ * Returns a safe relative path for `Location` headers / NextResponse.redirect targets.
+ * Strips schemes, protocol-relative URLs, and falsy values — prevents open-redirect
+ * vulnerabilities via crafted `?next=` or OAuth `state.redirectTo` params.
+ */
+export function safeRelative(input: unknown, fallback = '/dashboard'): string {
+  if (typeof input !== 'string' || !input.length) return fallback
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(input)) return fallback   // 'http://', 'javascript:', 'data:'
+  if (input.startsWith('//')) return fallback                 // protocol-relative -> external
+  const normalized = input.startsWith('/') ? input : '/' + input
+  return normalized.replace(/^\/+/, '/')                       // collapse '//' / '///'
+}
