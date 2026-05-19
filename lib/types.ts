@@ -20,7 +20,19 @@ export interface ContentPiece {
   script_due_date?: string | null
   shoot_date?: string | null
   edit_due_date?: string | null
+  media_url?: string | null
   created_at?: string
+}
+
+export interface InstagramAccount {
+  id: string
+  user_id: string
+  ig_business_id: string
+  page_id: string
+  page_access_token?: string
+  username?: string | null
+  connected_at?: string
+  expires_at?: string | null
   updated_at?: string
 }
 

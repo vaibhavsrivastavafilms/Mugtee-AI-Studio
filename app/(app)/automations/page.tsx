@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Plus, Power, Trash2, Calendar, Bell, Repeat, ChevronDown, MoreVertical } from 'lucide-react'
+import { Zap, Plus, Power, Trash2, Calendar, Bell, Repeat, ChevronDown, MoreVertical, Play, ExternalLink } from 'lucide-react'
 import { useAutomations, type Workflow, type QueueItem, computeNextRun } from '@/lib/automations-store'
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,28 @@ function formatCountdown(ms: number): string {
 export default function AutomationsPage() {
   const { workflows, queue, notifications, loading, addWorkflow, updateWorkflow, removeWorkflow, toggleWorkflow, setQueueStatus, removeQueueItem } = useAutomations()
   const { content, shoots } = useStore()
+
+  const publishNow = async (queueId: string) => {
+    try {
+      const res = await fetch('/api/instagram/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queue_id: queueId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const { toast } = await import('sonner')
+        toast.error(data?.error || 'Publish failed')
+      } else if (data?.post_url) {
+        const { toast } = await import('sonner')
+        toast.success('Published — opening Instagram')
+        window.open(data.post_url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (e: any) {
+      const { toast } = await import('sonner')
+      toast.error(e?.message || 'Publish failed')
+    }
+  }
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
 
@@ -129,15 +151,31 @@ export default function AutomationsPage() {
                   isOverdue ? 'border-red-500/40 bg-red-500/[0.04]' : 'border-white/[0.05]',
                 )}>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{title} <span className="text-muted-foreground">· {q.platform || 'unknown'}</span></div>
+                    <div className="text-sm font-medium truncate flex items-center gap-2">
+                      <span className="truncate">{title}</span>
+                      <span className="text-muted-foreground">· {q.platform || 'unknown'}</span>
+                      {(q as any).post_url && (
+                        <a href={(q as any).post_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase text-emerald-300 hover:text-emerald-200 shrink-0" title="View on Instagram">
+                          <ExternalLink className="w-3 h-3" /> Live
+                        </a>
+                      )}
+                    </div>
                     <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
                       <span>{q.scheduled_for ? format(parseISO(q.scheduled_for), 'EEE, MMM d · HH:mm') : 'No schedule'}</span>
                       {countdown && <span className="text-gold-300">· in {countdown}</span>}
                       {isOverdue && <span className="text-red-300 font-medium">· OVERDUE</span>}
-                      {q.error && <span>· {q.error}</span>}
+                      {(q as any).published_at && q.status === 'published' && <span className="text-emerald-300">· published {format(parseISO((q as any).published_at), 'MMM d · HH:mm')}</span>}
+                      {q.error && <span className="text-red-300 truncate max-w-[260px]" title={q.error}>· {q.error}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    {(q.status === 'queued' || q.status === 'failed' || q.status === 'draft') && (
+                      <Button size="sm" variant="ghost" onClick={() => publishNow(q.id)}
+                        className="text-gold-300 hover:text-gold-200 hover:bg-gold-500/10 h-8 gap-1 px-2"
+                        title="Publish to Instagram immediately">
+                        <Play className="w-3.5 h-3.5" /> <span className="text-[10px] tracking-widest uppercase hidden sm:inline">Publish now</span>
+                      </Button>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className={cn('text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full transition hover:opacity-80',

@@ -291,6 +291,9 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
   const [editDue, setEditDue]     = useState('')
   const [publishAt, setPublishAt] = useState('')
   const [autoQueue, setAutoQueue] = useState(true)
+  const [mediaUrl, setMediaUrl]   = useState('')
+  const [caption, setCaption]     = useState('')
+  const [igConnected, setIgConnected] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (item) {
@@ -298,11 +301,29 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
       setShootAt(toLocal(item.shoot_date as any))
       setEditDue(toLocal(item.edit_due_date as any))
       setPublishAt(toLocal(item.scheduled_at as any))
+      setMediaUrl(item.media_url || '')
+      setCaption(item.description || '')
       setAutoQueue(true)
     }
   }, [item])
 
+  // Check IG connection status when dialog opens (for Instagram-platform content)
+  useEffect(() => {
+    if (!item || item.platform !== 'instagram') { setIgConnected(null); return }
+    let cancelled = false
+    fetch('/api/instagram/status').then(r => r.json()).then(d => { if (!cancelled) setIgConnected(!!d?.connected) }).catch(() => { if (!cancelled) setIgConnected(false) })
+    return () => { cancelled = true }
+  }, [item])
+
   if (!item) return null
+
+  const isInstagram = item.platform === 'instagram'
+  const validMediaUrl = !mediaUrl || /^https?:\/\//i.test(mediaUrl)
+  const mediaWarning = isInstagram && publishAt && !mediaUrl ? 'Instagram requires media (mp4/mov for Reels, jpg/png for Feed).' : null
+  const captionWarning = isInstagram && publishAt && !caption.trim() ? 'Instagram requires a caption (use the Description field).' : null
+  const connectWarning = isInstagram && publishAt && igConnected === false ? 'Instagram not connected — Connect in Settings → Integrations.' : null
+  const urlWarning = mediaUrl && !validMediaUrl ? 'Media URL must start with http(s)://' : null
+  const warnings = [mediaWarning, captionWarning, connectWarning, urlWarning].filter(Boolean) as string[]
 
   const save = async () => {
     const patch: Partial<ContentPiece> = {
@@ -310,13 +331,13 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
       shoot_date:      shootAt   ? new Date(shootAt).toISOString()   : null,
       edit_due_date:   editDue   ? new Date(editDue).toISOString()   : null,
       scheduled_at:    publishAt ? new Date(publishAt).toISOString() : null,
+      media_url:       mediaUrl  || null,
+      description:     caption   || null,
     }
     await updateContent(item.id, patch)
-    // If a publish date is set, advance status to 'scheduled' (auto-enqueue tick will pick it up)
     if (publishAt && item.status !== 'scheduled' && item.status !== 'published') {
       await setStatus(item.id, 'scheduled')
     }
-    // If user wants immediate queue creation (not waiting for the 60s tick) and no queue item exists yet, enqueue now
     if (autoQueue && publishAt) {
       const exists = queue.some(q => q.content_id === item.id && q.status !== 'failed' && q.status !== 'published')
       if (!exists) {
@@ -333,7 +354,7 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
 
   return (
     <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="glass-strong sm:max-w-lg">
+      <DialogContent className="glass-strong sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
             <CalendarCheck className="w-3 h-3" /> Production Schedule
@@ -341,7 +362,7 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
           <DialogTitle className="font-display text-2xl">
             <span className="text-gold-gradient">Schedule</span> “{item.title}”
           </DialogTitle>
-          <p className="text-[11px] text-muted-foreground">Plan script, shoot, edit, and publish windows. Reminders + queue fire automatically.</p>
+          <p className="text-[11px] text-muted-foreground">Plan script, shoot, edit, and publish. Instagram items need media + caption to publish.</p>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -370,6 +391,32 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
               <Input type="datetime-local" value={publishAt} onChange={e => setPublishAt(e.target.value)} className="bg-white/[0.03]" />
             </div>
           </div>
+
+          {/* Media + caption — only relevant when publishing */}
+          {(publishAt || isInstagram) && (
+            <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+              <div className="space-y-1.5">
+                <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Media URL (public HTTPS · .mp4 / .mov / .jpg / .png)</label>
+                <Input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="https://…/reel.mp4" className="bg-white/[0.03] font-mono text-xs" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Caption</label>
+                <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Caption / description" className="bg-white/[0.03]" />
+              </div>
+            </div>
+          )}
+
+          {warnings.length > 0 && (
+            <div className="space-y-1.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              {warnings.map((w, i) => (
+                <div key={i} className="flex items-start gap-2 text-[11px] text-amber-200">
+                  <span className="text-amber-300 mt-0.5">⚠</span>
+                  <span>{w}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {publishAt && (
             <label className="flex items-center gap-2 text-[11px] text-muted-foreground select-none cursor-pointer">
               <input type="checkbox" checked={autoQueue} onChange={(e) => setAutoQueue(e.target.checked)} className="accent-gold-500" />

@@ -219,20 +219,29 @@ export function AutomationsProvider({ userId, children }: { userId: string; chil
           }
         }
 
-        // 7. QUEUE LIFECYCLE — queued whose time arrived → publishing; publishing older than 60s → published
+        // 7. QUEUE LIFECYCLE — Instagram items hit the real publish API; others fall back to the simulated lifecycle
         for (const q of queue) {
           if (q.status === 'queued' && q.scheduled_for && q.scheduled_for <= nowIso) {
-            await supabase.from('publishing_queue').update({ status: 'publishing' }).eq('id', q.id)
-            const title = content.find(c => c.id === q.content_id)?.title || q.platform || 'content'
-            await notify({ title: 'Publishing now', message: `${title} → ${q.platform || 'platform'}`, type: 'publish', link: '/automations' })
-          } else if (q.status === 'publishing') {
+            const item = content.find(c => c.id === q.content_id) as any
+            const platform = (q.platform || item?.platform || '').toLowerCase()
+            if (platform === 'instagram') {
+              fetch('/api/instagram/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ queue_id: q.id }),
+              }).catch(e => console.error('publish fetch', e))
+            } else {
+              await supabase.from('publishing_queue').update({ status: 'publishing' }).eq('id', q.id)
+              const title = item?.title || q.platform || 'content'
+              await notify({ title: 'Publishing now', message: `${title} → ${q.platform || 'platform'}`, type: 'publish', link: '/automations' })
+            }
+          } else if (q.status === 'publishing' && (q.platform || '').toLowerCase() !== 'instagram') {
             const created = new Date(q.created_at).getTime()
             const startedAt = q.scheduled_for ? Math.max(created, new Date(q.scheduled_for).getTime()) : created
             if (now.getTime() - startedAt >= 60_000) {
-              await supabase.from('publishing_queue').update({ status: 'published' }).eq('id', q.id)
+              await supabase.from('publishing_queue').update({ status: 'published', published_at: nowIso }).eq('id', q.id)
               const title = content.find(c => c.id === q.content_id)?.title || q.platform || 'content'
               await notify({ title: 'Published', message: `${title} is live on ${q.platform || 'platform'}`, type: 'publish', link: '/automations' })
-              // Also flip the content piece status to published when its queue item completes
               if (q.content_id) {
                 await supabase.from('content_pieces').update({ status: 'published' }).eq('id', q.content_id)
               }
