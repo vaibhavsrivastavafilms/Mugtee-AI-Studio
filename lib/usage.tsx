@@ -8,7 +8,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Sparkles, Crown, Check, X, Zap, ArrowRight, Lock } from 'lucide-react'
+import { Sparkles, Crown, Check, X, Zap, ArrowRight, Lock, Gift } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type Plan = 'free' | 'creator' | 'agency'
@@ -85,21 +85,23 @@ export function useUsage() {
   }, [])
 
   const limit = LIMITS[plan]
+  // Phase P7 — bonus pool effectively raises the AI cap. Scripts/planner draws from same pool conceptually:
+  // we DON'T inflate those individually; rewarded credits are positioned as "AI generations" topup.
   const remaining = {
-    ai:      Math.max(0, limit.ai - usage.ai),
+    ai:      Math.max(0, (limit.ai + (usage.bonus || 0)) - usage.ai),
     scripts: Math.max(0, limit.scripts - usage.scripts),
     planner: Math.max(0, limit.planner - usage.planner),
+    bonus:   usage.bonus || 0,
   }
 
   // Returns true if call is allowed; if not, opens upgrade modal and returns false.
-  // Also pre-increments optimistically (decremented in finally{} pattern not used — calls are cheap).
   const guard = useCallback((kind: 'ai' | 'scripts' | 'planner' = 'ai'): boolean => {
     if (plan !== 'free') return true
     const u = readUsage()
     const lim = LIMITS.free
     const hitScripts = kind === 'scripts' && u.scripts >= lim.scripts
     const hitPlanner = kind === 'planner' && u.planner >= lim.planner
-    const hitAi      = u.ai >= lim.ai
+    const hitAi      = u.ai >= (lim.ai + (u.bonus || 0))   // bonus credits raise the AI cap
     if (hitScripts || hitPlanner || hitAi) {
       setUpgradeReason(
         hitPlanner ? 'Weekly Planner runs'
@@ -123,12 +125,25 @@ export function useUsage() {
     setUsage(next)
   }, [plan])
 
-  return { plan, usage, limit, remaining, guard, bump, upgradeOpen, setUpgradeOpen, upgradeReason }
+  // Phase P7 — grant N bonus AI credits (today only; resets at midnight via dayKey check on read).
+  const addBonus = useCallback((n = 3) => {
+    const u = readUsage()
+    const next: UsageRow = { ...u, bonus: (u.bonus || 0) + n, bonusDay: dayKey() }
+    writeUsage(next)
+    setUsage(next)
+  }, [])
+
+  return { plan, usage, limit, remaining, guard, bump, addBonus, upgradeOpen, setUpgradeOpen, upgradeReason }
 }
 
 // Standalone modal — drop anywhere; controlled via useUsage().upgradeOpen.
+// Phase P7 — Free users get an inline "Watch sponsor → +3 credits" CTA that opens a lightweight rewarded experience.
 export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; onOpenChange: (v: boolean) => void; reason?: string }) {
+  const { plan, addBonus } = useUsage()
+  const [rewardedOpen, setRewardedOpen] = useState(false)
+  const showRewarded = plan === 'free'
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong sm:max-w-lg border border-gold-soft">
         <DialogHeader>
@@ -139,7 +154,7 @@ export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; on
             You've hit the <span className="text-gold-gradient">free monthly cap</span>
           </DialogTitle>
           <p className="text-[11px] text-muted-foreground">
-            {reason ? `Out of ${reason} this month. ` : ''}Unlock unlimited AI + scripts + planner with Creator.
+            {reason ? `Out of ${reason} this month. ` : ''}Unlock unlimited AI + scripts + planner with Creator — or watch a sponsor for 3 free credits.
           </p>
         </DialogHeader>
 
@@ -170,7 +185,98 @@ export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; on
           <Link href="/pricing" onClick={() => onOpenChange(false)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-gradient text-black text-sm font-semibold tracking-wide shadow-gold-glow hover:opacity-90 transition">
             <Crown className="w-4 h-4" /> Upgrade now <ArrowRight className="w-3.5 h-3.5" />
           </Link>
+          {showRewarded && (
+            <button onClick={() => setRewardedOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-gold-500/30 hover:bg-gold-500/[0.08] hover:border-gold-500/50 text-luxe text-xs tracking-wide transition">
+              <Gift className="w-3.5 h-3.5 text-gold-300" /> Watch sponsor · +3 credits
+            </button>
+          )}
           <button onClick={() => onOpenChange(false)} className="px-3 py-2 text-[11px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition">Maybe later</button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    <RewardedSponsorModal
+      open={rewardedOpen}
+      onOpenChange={setRewardedOpen}
+      onReward={(n) => { addBonus(n); onOpenChange(false) }}
+    />
+    </>
+  )
+}
+
+// Phase P7 — Rewarded sponsor experience. Lightweight, no ad SDK, no autoplay audio.
+// Shows a sponsor card with a 5-second engagement timer → grants +3 AI credits.
+const SPONSORS: { name: string; tagline: string; href: string; category: string }[] = [
+  { name: 'CapCut',     tagline: 'Free pro-grade video editor for creators on every device.',                            href: 'https://www.capcut.com',     category: 'Editing' },
+  { name: 'ElevenLabs', tagline: 'Hyper-realistic AI voices in 30+ languages — narrate any faceless script.',           href: 'https://elevenlabs.io',      category: 'Voice AI' },
+  { name: 'Descript',   tagline: 'Edit video by editing the transcript. Remove filler words in one click.',             href: 'https://www.descript.com',   category: 'Editing' },
+  { name: 'Notion AI',  tagline: 'Organize ideas, outlines and creator notes in one calm workspace.',                   href: 'https://www.notion.so',      category: 'Workspace' },
+  { name: 'Adobe Express', tagline: 'Thumbnail design + social graphics in seconds. Free templates included.',          href: 'https://www.adobe.com/express/', category: 'Design' },
+]
+
+export function RewardedSponsorModal({ open, onOpenChange, onReward }: { open: boolean; onOpenChange: (v: boolean) => void; onReward: (n: number) => void }) {
+  const [sponsor] = useState(() => SPONSORS[Math.floor(Math.random() * SPONSORS.length)])
+  const [seconds, setSeconds] = useState(5)
+  const [claimed, setClaimed] = useState(false)
+
+  useEffect(() => {
+    if (!open) { setSeconds(5); setClaimed(false); return }
+    if (claimed) return
+    if (seconds <= 0) return
+    const t = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [open, seconds, claimed])
+
+  const ready = seconds <= 0
+  const claim = () => {
+    if (!ready || claimed) return
+    setClaimed(true)
+    onReward(3)
+    setTimeout(() => onOpenChange(false), 900)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-strong sm:max-w-md border border-gold-soft">
+        <DialogHeader>
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
+            <Gift className="w-3 h-3" /> Sponsored · earn +3 AI credits
+          </div>
+          <DialogTitle className="font-display text-xl sm:text-2xl">
+            Discover <span className="text-gold-gradient">{sponsor.name}</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <a href={sponsor.href} target="_blank" rel="noopener noreferrer sponsored"
+          className="block rounded-xl p-4 bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.08] hover:border-gold-500/30 transition group">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground">{sponsor.category}</span>
+            <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:text-gold-300 transition" />
+          </div>
+          <div className="font-display text-lg mb-1">{sponsor.name}</div>
+          <p className="text-[12px] text-luxe/80 leading-relaxed">{sponsor.tagline}</p>
+          <div className="mt-3 text-[10px] tracking-[0.25em] uppercase text-gold-300/70 group-hover:text-gold-300 transition inline-flex items-center gap-1">Visit {sponsor.name} <ArrowRight className="w-3 h-3" /></div>
+        </a>
+
+        <div className="mt-3 pt-3 border-t border-white/[0.05]">
+          {!claimed ? (
+            <button
+              onClick={claim}
+              disabled={!ready}
+              className={cn(
+                'w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition min-h-[44px]',
+                ready
+                  ? 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
+                  : 'bg-white/[0.04] text-muted-foreground cursor-not-allowed'
+              )}
+            >
+              {ready ? <><Gift className="w-4 h-4" /> Claim +3 AI credits</> : <><span className="tabular-nums">Unlocks in {seconds}s</span></>}
+            </button>
+          ) : (
+            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 min-h-[44px]">
+              <Check className="w-4 h-4" /> +3 credits added · enjoy creating!
+            </div>
+          )}
+          <div className="text-[10px] text-center text-muted-foreground mt-2">Lightweight sponsor placement · no autoplay audio · resets daily.</div>
         </div>
       </DialogContent>
     </Dialog>

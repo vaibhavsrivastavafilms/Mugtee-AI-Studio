@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { NICHES, AUDIENCES, TONES } from '@/components/ai/viral-studio-panel'
 import { PLATFORM_META } from '@/lib/dummy-data'
 import { useStore } from '@/lib/store'
+import { useUsage, UpgradeModal } from '@/lib/usage'
 import type { Platform, ContentPiece } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
@@ -72,6 +73,7 @@ function readCreatorProfile(): { niche: string; audience: string } {
 
 export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { addContent } = useStore()
+  const { guard, bump, upgradeOpen, setUpgradeOpen, upgradeReason } = useUsage()
   const seed = readCreatorProfile()
   const [niche, setNiche]       = useState(seed.niche)
   const [audience, setAudience] = useState(seed.audience)
@@ -98,6 +100,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
   }, [open])
 
   const generate = async () => {
+    if (!guard('planner')) return
     setLoading(true); setPlan([]); setStrategy(''); setSelected(new Set())
     try {
       const res = await fetch('/api/ai/generate', {
@@ -116,6 +119,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
       setStrategy(out.strategy_summary || '')
       setPlan(arr)
       setSelected(new Set(arr.map((_, i) => i))) // all selected by default
+      bump('planner')
     } catch (e: any) {
       toast.error(e?.message || 'Network error')
     } finally {
@@ -198,6 +202,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong sm:max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
@@ -332,6 +337,8 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
         )}
       </DialogContent>
     </Dialog>
+    <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} reason={upgradeReason} />
+    </>
   )
 }
 

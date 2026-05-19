@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check, ExternalLink, History, Clock, Youtube, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
+import { useUsage, UpgradeModal } from '@/lib/usage'
 import { toast } from 'sonner'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import type { ContentPiece, Platform } from '@/lib/types'
@@ -44,6 +45,7 @@ function readCreatorProfile() {
 
 export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { addContent, content } = useStore()
+  const { guard, bump, upgradeOpen, setUpgradeOpen, upgradeReason } = useUsage()
   const seed = readCreatorProfile()
   const [tab, setTab] = useState<Tab>('yt')
 
@@ -109,27 +111,31 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
 
   const runResearch = async () => {
     if (!topic.trim()) { toast.error('Enter a topic'); return }
+    if (!guard('ai')) return
     setRLoading(true); setResearch(null)
-    try { const d = await callAI({ mode: 'deep_research', context: { topic, niche, audience, language, platform: 'youtube' } }); setResearch(d.output) }
+    try { const d = await callAI({ mode: 'deep_research', context: { topic, niche, audience, language, platform: 'youtube' } }); setResearch(d.output); bump('ai') }
     catch (e:any) { const msg = e?.message || 'Research failed'; setLastErr({ tab: 'research', msg }); toast.error(msg) }
     finally { setRLoading(false) }
   }
 
   const runAnalyze = async () => {
     if (!refText.trim()) { toast.error('Paste a reference script'); return }
+    if (!guard('ai')) return
     setALoading(true); setRefResult(null)
-    try { const d = await callAI({ mode: 'reference_analysis', context: { reference_script: refText, niche, audience, language, platform: 'youtube' } }); setRefResult(d.output) }
+    try { const d = await callAI({ mode: 'reference_analysis', context: { reference_script: refText, niche, audience, language, platform: 'youtube' } }); setRefResult(d.output); bump('ai') }
     catch (e:any) { const msg = e?.message || 'Analysis failed'; setLastErr({ tab: 'analyze', msg }); toast.error(msg) }
     finally { setALoading(false) }
   }
 
   const runScript = async () => {
     if (!scriptTitle.trim()) { toast.error('Enter a title or topic'); return }
+    if (!guard('scripts')) return
     setSLoading(true); setScriptOut(''); setScriptModel(''); setSavedScriptId(null); setLastErr(null)
     try {
       const d = await callAI({ mode: scriptFlavor, context: { title: scriptTitle, niche, audience, language, platform: 'youtube', duration_seconds: scriptDur } })
       const out = d.output || ''
       setScriptOut(out); setScriptModel(d.model || '')
+      bump('scripts')
       // Phase 13F — auto-persist as a content_pieces row so it survives logout/refresh and shows in Recent AI Sessions + Pipeline.
       if (out) {
         setAutoSaving(true)
@@ -158,8 +164,9 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
   const runFlow = async () => {
     const src = flowSrc.trim() || scriptOut
     if (!src) { toast.error('Generate or paste a script first'); return }
+    if (!guard('ai')) return
     setFLoading(true); setFlowOut(null)
-    try { const d = await callAI({ mode: 'flow_prompts', context: { script_input: src, niche, audience, language, platform: 'youtube' } }); setFlowOut(d.output) }
+    try { const d = await callAI({ mode: 'flow_prompts', context: { script_input: src, niche, audience, language, platform: 'youtube' } }); setFlowOut(d.output); bump('ai') }
     catch (e:any) { const msg = e?.message || 'Flow prompts failed'; setLastErr({ tab: 'flow', msg }); toast.error(msg) }
     finally { setFLoading(false) }
   }
@@ -167,11 +174,13 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
   const runYt = async () => {
     const c = channel.trim()
     if (!c) { toast.error('Enter a channel name or URL'); return }
+    if (!guard('ai')) return
     setYLoading(true); setYtOut(null)
     try {
       const d = await callAI({ mode: 'youtube_intelligence', context: { channel: c, niche, audience, language, platform: 'youtube' } })
       const out = d.output
       setYtOut(out)
+      bump('ai')
       // Phase 14 — auto-persist YT intel as a content row so it appears in Recent AI Sessions + survives logout.
       if (out && out.channel_name) {
         try {
@@ -211,6 +220,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong sm:max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
@@ -504,6 +514,9 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
         )}
       </DialogContent>
     </Dialog>
+    {/* Phase P2/P7 - upgrade + rewarded sponsor */}
+    <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} reason={upgradeReason} />
+    </>
   )
 }
 

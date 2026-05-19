@@ -70,6 +70,7 @@ export { readCreatorProfile, writeCreatorProfile }
 // =====================================================================
 export function useViralIdeas() {
   const { addContent, updateContent } = useStore()
+  const { guard, bump, upgradeOpen, setUpgradeOpen, upgradeReason } = useUsage()
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
