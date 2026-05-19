@@ -4,7 +4,7 @@ import { ShieldCheck, Lock, Database, Mail, Eye, FileWarning, Youtube, Instagram
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'How ViralForgeAI collects, uses, and protects creator data — OAuth tokens, AI-generated content, billing, and YouTube/Instagram permissions.',
+  description: 'How Mugtee collects, uses, and protects creator data — OAuth tokens, AI-generated content, billing, and YouTube/Instagram permissions.',
 }
 
 function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-2">Effective {updated}</div>
         <h1 className="font-display text-4xl sm:text-5xl mb-3"><span className="text-gold-gradient">Privacy</span> Policy</h1>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-          Your creator workflow lives inside ViralForgeAI. This policy explains exactly what we collect, why, where it lives, and how to revoke or delete it.
+          Your creator workflow lives inside Mugtee. This policy explains exactly what we collect, why, where it lives, and how to revoke or delete it.
         </p>
       </div>
 
@@ -48,12 +48,12 @@ export default function PrivacyPage() {
       </Section>
 
       <Section icon={Sparkles} title="AI-generated content disclaimer">
-        <p>Scripts, captions, hooks, and other content produced by ViralForgeAI's AI engines (OpenAI GPT-4o-mini, Anthropic Claude 3.5 Sonnet via Emergent's universal key) are <strong className="text-luxe">generated suggestions</strong>, not verified facts. You are responsible for reviewing, editing, and verifying any AI output before publishing it to your audience. ViralForgeAI does not guarantee accuracy, originality, or fitness for any particular use.</p>
+        <p>Scripts, captions, hooks, and other content produced by Mugtee's AI engines (OpenAI GPT-4o-mini, Anthropic Claude 3.5 Sonnet via Emergent's universal key) are <strong className="text-luxe">generated suggestions</strong>, not verified facts. You are responsible for reviewing, editing, and verifying any AI output before publishing it to your audience. Mugtee does not guarantee accuracy, originality, or fitness for any particular use.</p>
         <p>Your prompts and inputs are sent to the underlying model providers under their respective privacy policies. We pass them through; we do not retain them for training.</p>
       </Section>
 
       <Section icon={Youtube} title="YouTube data — limited-use disclosure">
-        <p>When you connect YouTube via Google OAuth, ViralForgeAI requests two scopes only:</p>
+        <p>When you connect YouTube via Google OAuth, Mugtee requests two scopes only:</p>
         <ul className="list-disc pl-5 space-y-1.5">
           <li><code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">youtube.upload</code> — upload videos to your channel</li>
           <li><code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">youtube.readonly</code> — read your channel ID and title (to confirm the right account)</li>

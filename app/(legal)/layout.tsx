@@ -39,7 +39,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           <Link href="/about"   className="hover:text-gold-300 transition">About</Link>
           <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>
         </div>
-        © {new Date().getFullYear()} ViralForgeAI · An AI Production OS for creators
+        © {new Date().getFullYear()} Mugtee · An AI Production OS for creators
       </footer>
     </div>
   )

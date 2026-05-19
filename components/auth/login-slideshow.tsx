@@ -62,7 +62,7 @@ export function LoginSlideshow() {
             <span className="font-display text-xl text-black leading-none">V</span>
           </div>
           <div>
-            <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80">ViralForgeAI</div>
+            <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80">Mugtee</div>
             <div className="text-[10px] tracking-[0.25em] uppercase text-luxe/70">AI Production OS</div>
           </div>
         </div>

@@ -50,7 +50,7 @@ export async function seedDemoData(supabase: any, userId: string) {
   // Welcome activity entry
   await supabase.from('team_activity').insert({
     user_id: userId,
-    actor: 'ViralForge',
+    actor: 'Mugtee',
     action: 'initialised',
     target: 'your studio with cinematic demo data',
   })

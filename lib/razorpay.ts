@@ -47,10 +47,10 @@ export async function getOrCreatePlanId(key: PlanKey): Promise<string> {
     period: spec.period,
     interval: spec.interval,
     item: {
-      name: `Virlo ${spec.label}`,
+      name: `Mugtee ${spec.label}`,
       amount: spec.amountPaise,
       currency: 'INR',
-      description: `Virlo ${spec.label} plan — monthly (test mode)`,
+      description: `Mugtee ${spec.label} plan — monthly (test mode)`,
     },
   } as any)
   const planId = (created as any).id as string

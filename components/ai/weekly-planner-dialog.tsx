@@ -207,7 +207,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
       <DialogContent className="glass-strong sm:max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-            <Sparkles className="w-3 h-3" /> ViralForge AI Engine
+            <Sparkles className="w-3 h-3" /> Mugtee AI Engine
           </div>
           <DialogTitle className="font-display text-2xl sm:text-3xl">
             <span className="text-gold-gradient">Weekly</span> content planner
