@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og'
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-// Cinematic black + gold-gradient "V" mark for ViralForgeAI.
+// Cinematic black + gold-gradient "V" mark for Mugtee.
 export default function Icon() {
   return new ImageResponse(
     (

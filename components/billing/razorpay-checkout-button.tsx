@@ -65,7 +65,7 @@ export function RazorpayCheckoutButton({
       const rzp = new window.Razorpay({
         key: data.keyId,
         subscription_id: data.subscriptionId,
-        name: 'ViralForgeAI',
+        name: 'Mugtee',
         description: plan === 'creator' ? 'Creator plan \u00B7 \u20B9245 / month' : 'Agency plan \u00B7 \u20B9999 / month',
         prefill: { email: data.email || '' },
         theme: { color: '#D4AF37', backdrop_color: 'rgba(10,8,7,0.92)' },

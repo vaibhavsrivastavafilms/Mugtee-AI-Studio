@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'ViralForgeAI — AI Production OS for Creators',
-    short_name: 'ViralForgeAI',
+    name: 'Mugtee — AI Production OS for Creators',
+    short_name: 'Mugtee',
     description: 'Plan, script, schedule, and ship viral content. A cinematic AI workspace for creators, agencies, and brands.',
     start_url: '/dashboard',
     scope: '/',

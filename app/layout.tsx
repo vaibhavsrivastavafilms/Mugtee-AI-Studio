@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
-const SITE_NAME = 'ViralForgeAI'
+const SITE_NAME = 'Mugtee'
 const SITE_TAGLINE = 'AI Production OS for Creators'
 const SITE_DESCRIPTION = 'Cinematic AI workspace for creators, agencies, and brands. Plan, script, schedule, and ship viral content — all in one premium production hub.'
 
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${SITE_NAME} \u00b7 ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
-    creator: '@viralforgeai',
+    creator: '@mugtee',
   },
   robots: {
     index: true,
@@ -56,15 +56,15 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'ViralForgeAI',
+    title: 'Mugtee',
     statusBarStyle: 'black-translucent',
   },
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'ViralForgeAI',
-    'application-name': 'ViralForgeAI',
+    'apple-mobile-web-app-title': 'Mugtee',
+    'application-name': 'Mugtee',
     'msapplication-TileColor': '#0a0807',
     'format-detection': 'telephone=no',
   },

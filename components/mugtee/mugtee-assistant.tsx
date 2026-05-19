@@ -225,7 +225,7 @@ export function MugteeAssistant() {
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/70 inline-flex items-center gap-1"><Crown className="w-2.5 h-2.5 text-gold-400/80" /> AI by ViralForge</span>
+                <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/70 inline-flex items-center gap-1"><Crown className="w-2.5 h-2.5 text-gold-400/80" /> AI by Mugtee</span>
                 <button
                   onClick={() => { setMsgs([GREETING]); try { localStorage.removeItem(LS_HISTORY) } catch {} }}
                   className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 transition"

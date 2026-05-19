@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'ViralForgeAI \u00b7 AI Production OS for Creators'
+export const alt = 'Mugtee \u00b7 AI Production OS for Creators'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const runtime = 'edge'
@@ -28,7 +28,7 @@ export default function OG() {
             <div style={{ fontSize: 40, fontWeight: 900, color: '#0a0807', display: 'flex' }}>V</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ fontSize: 16, letterSpacing: 8, color: 'rgba(245,208,97,0.7)', textTransform: 'uppercase', display: 'flex' }}>ViralForgeAI</div>
+            <div style={{ fontSize: 16, letterSpacing: 8, color: 'rgba(245,208,97,0.7)', textTransform: 'uppercase', display: 'flex' }}>Mugtee</div>
             <div style={{ fontSize: 13, letterSpacing: 4, color: 'rgba(232,217,168,0.5)', textTransform: 'uppercase', display: 'flex' }}>est. 2025</div>
           </div>
         </div>

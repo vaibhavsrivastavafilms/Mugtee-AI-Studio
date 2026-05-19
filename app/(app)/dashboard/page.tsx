@@ -31,7 +31,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* ViralForge Quick Start hero */}
+      {/* Mugtee Quick Start hero */}
       <ViralQuickStart />
 
       {/* Phase P2/P7 — Live AI usage gauge (free plan caps, rewarded credits, upgrade nudge) */}

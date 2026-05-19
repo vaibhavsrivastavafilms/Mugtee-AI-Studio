@@ -64,7 +64,7 @@ export default function LoginPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gold-gradient shadow-gold-glow mb-4">
                 <Film className="w-7 h-7 sm:w-8 sm:h-8 text-black" />
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl mb-1.5">Start Creating with <span className="text-gold-gradient">Virlo AI</span></h2>
+              <h2 className="font-display text-2xl sm:text-3xl mb-1.5">Start Creating with <span className="text-gold-gradient">Mugtee AI</span></h2>
               <p className="text-xs sm:text-sm text-muted-foreground">Sign in with Google to enter your production hub.</p>
             </div>
 
@@ -93,7 +93,7 @@ export default function LoginPage() {
             </Link>
 
             <p className="text-[10px] sm:text-xs text-center text-muted-foreground leading-relaxed mt-5">
-              By continuing you accept ViralForgeAI's terms.
+              By continuing you accept Mugtee's terms.
               <br className="hidden sm:block" />Your session is encrypted via Supabase PKCE.
             </p>
           </div>

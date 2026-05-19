@@ -4,7 +4,7 @@ import { Sparkles, Brain, Film, Layers, Zap, Crown, ArrowRight, Heart } from 'lu
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'ViralForgeAI is the cinematic AI production OS built for the next generation of creators, agencies, and faceless brands.',
+  description: 'Mugtee is the cinematic AI production OS built for the next generation of creators, agencies, and faceless brands.',
 }
 
 export default function AboutPage() {
@@ -13,7 +13,7 @@ export default function AboutPage() {
       <div className="mb-10">
         <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-2">Made for creators</div>
         <h1 className="font-display text-4xl sm:text-5xl mb-4">
-          About <span className="text-gold-gradient">ViralForgeAI</span>
+          About <span className="text-gold-gradient">Mugtee</span>
         </h1>
         <p className="text-base text-luxe/85 leading-relaxed max-w-xl">
           We build the production hub we wished we had — cinematic, fast, and quietly powerful. One workspace where ideas become scripts, scripts become schedules, schedules become published content.
@@ -29,7 +29,7 @@ export default function AboutPage() {
           Most creators waste 70% of their time on workflow — not creating. Tab-hopping between docs, spreadsheets, calendars, and uploaders. We thought it was crazy that a $250B creator economy still ran on duct tape.
         </p>
         <p className="text-sm text-luxe/90 leading-relaxed">
-          ViralForgeAI is one cinematic workspace where every part of your production pipeline lives — from the first viral idea to the final published video.
+          Mugtee is one cinematic workspace where every part of your production pipeline lives — from the first viral idea to the final published video.
         </p>
       </section>
 
