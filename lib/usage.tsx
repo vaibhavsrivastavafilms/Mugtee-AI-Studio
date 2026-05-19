@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Sparkles, Crown, Check, X, Zap, ArrowRight, Lock, Gift } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
 
 export type Plan = 'free' | 'creator' | 'agency'
 
@@ -75,6 +76,17 @@ export function useUsage() {
   useEffect(() => {
     setPlan(readPlan())
     setUsage(readUsage())
+    // Phase P2 — server-truth bootstrap: read /api/billing/me and reconcile localStorage.
+    // Cookie-authenticated; harmless on logout (returns 'free'). Runs once per mount.
+    fetch('/api/billing/me', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: any) => {
+        if (!d) return
+        const serverPlan = (d.plan === 'creator' || d.plan === 'agency') ? d.plan as Plan : 'free'
+        try { localStorage.setItem(PLAN_KEY, serverPlan) } catch {}
+        setPlan(serverPlan)
+      })
+      .catch(() => {})
     // cross-tab sync
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setUsage(readUsage())
@@ -181,16 +193,19 @@ export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; on
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-3 mt-1 border-t border-white/[0.05]">
-          <Link href="/pricing" onClick={() => onOpenChange(false)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-gradient text-black text-sm font-semibold tracking-wide shadow-gold-glow hover:opacity-90 transition">
-            <Crown className="w-4 h-4" /> Upgrade now <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-          {showRewarded && (
-            <button onClick={() => setRewardedOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-gold-500/30 hover:bg-gold-500/[0.08] hover:border-gold-500/50 text-luxe text-xs tracking-wide transition">
-              <Gift className="w-3.5 h-3.5 text-gold-300" /> Watch sponsor · +3 credits
-            </button>
-          )}
-          <button onClick={() => onOpenChange(false)} className="px-3 py-2 text-[11px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition">Maybe later</button>
+        <div className="flex flex-col gap-2.5 pt-3 mt-1 border-t border-white/[0.05]">
+          <RazorpayCheckoutButton plan="creator" label="Upgrade to Creator · ₹245/mo" onSuccess={() => onOpenChange(false)} />
+          <div className="flex flex-wrap items-center gap-2">
+            {showRewarded && (
+              <button onClick={() => setRewardedOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-gold-500/30 hover:bg-gold-500/[0.08] hover:border-gold-500/50 text-luxe text-xs tracking-wide transition">
+                <Gift className="w-3.5 h-3.5 text-gold-300" /> Watch sponsor · +3 credits
+              </button>
+            )}
+            <Link href="/pricing" onClick={() => onOpenChange(false)} className="text-[11px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 transition">
+              See all plans →
+            </Link>
+            <button onClick={() => onOpenChange(false)} className="ml-auto px-3 py-2 text-[11px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition">Maybe later</button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
