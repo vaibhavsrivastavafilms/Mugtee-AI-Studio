@@ -2,8 +2,8 @@
 import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { STATUS_META } from '@/lib/dummy-data'
-import { Progress } from '@/components/ui/progress'
 import { Film } from 'lucide-react'
+import Link from 'next/link'
 
 const STAGES = ['idea', 'scripting', 'shooting', 'editing', 'scheduled', 'published'] as const
 
@@ -27,15 +27,16 @@ export function ProductionTracker() {
         </div>
       </div>
 
-      {/* Stage bars */}
       <div className="space-y-3.5">
         {counts.map(({ stage, n }, i) => {
           const pct = (n / max) * 100
           const meta = STATUS_META[stage]
           return (
-            <div key={stage}>
+            <Link key={stage} href={`/pipeline?status=${stage}`}
+              className="block group cursor-pointer -mx-2 px-2 py-1 rounded-md hover:bg-white/[0.025] transition"
+            >
               <div className="flex items-center justify-between mb-1.5 text-xs">
-                <span className="tracking-wide">{meta.label}</span>
+                <span className="tracking-wide group-hover:text-gold-300 transition">{meta.label}</span>
                 <span className="text-muted-foreground tabular-nums">{n}</span>
               </div>
               <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden">
@@ -44,7 +45,7 @@ export function ProductionTracker() {
                   className="h-full bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 shadow-gold-glow"
                 />
               </div>
-            </div>
+            </Link>
           )
         })}
       </div>

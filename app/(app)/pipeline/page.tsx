@@ -4,9 +4,10 @@ import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2 } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
@@ -23,6 +24,17 @@ export default function PipelinePage() {
   const { content, setStatus, updateContent, addContent, removeContent } = useStore()
   const confirm = useConfirm()
   const [newCardStatus, setNewCardStatus] = useState<ContentStatus | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const statusParam = searchParams.get('status')
+
+  const visibleColumns = useMemo(() => {
+    if (statusParam === 'production') return ['scripting','shooting','editing'] as ContentStatus[]
+    if (statusParam && (COLUMNS as readonly string[]).includes(statusParam)) return [statusParam as ContentStatus]
+    return COLUMNS
+  }, [statusParam])
+
+  const filterLabel = statusParam === 'production' ? 'In Production' : (statusParam ? STATUS_META[statusParam]?.label : null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -54,12 +66,20 @@ export default function PipelinePage() {
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Kanban Pipeline</div>
           <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Production</span> flow</h1>
           <p className="text-luxe/70 mt-2">Drag cards across stages to move the story forward.</p>
+          {filterLabel && (
+            <button onClick={() => router.push('/pipeline')}
+              className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-gold text-xs tracking-wide hover:bg-gold-500/20 transition"
+            >
+              <span className="text-gold-200">Filtered by: <span className="font-semibold text-gold-100">{filterLabel}</span></span>
+              <X className="w-3 h-3 text-gold-300" />
+            </button>
+          )}
         </div>
       </motion.div>
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4">
-          {COLUMNS.map((col, i) => {
+          {visibleColumns.map((col, i) => {
             const items = content.filter(c => c.status === col)
             return (
               <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => setNewCardStatus(col)} />
