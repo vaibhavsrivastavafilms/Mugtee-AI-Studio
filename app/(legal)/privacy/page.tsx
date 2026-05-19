@@ -79,7 +79,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section icon={Mail} title="Contact">
-        <p>Privacy questions, deletion requests, data exports: <a href="mailto:privacy@viralforge.ai" className="text-gold-300 hover:underline">privacy@viralforge.ai</a></p>
+        <p>Privacy questions, deletion requests, data exports: <a href="mailto:privacy@mugtee.in" className="text-gold-300 hover:underline">privacy@mugtee.in</a></p>
       </Section>
 
       <p className="text-[11px] text-muted-foreground/80 leading-relaxed mt-8">

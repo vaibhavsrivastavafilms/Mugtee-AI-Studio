@@ -11,7 +11,7 @@
 //
 import type { CapacitorConfig } from '@capacitor/cli'
 
-const PROD_URL = 'https://crew-dashboard-17.emergent.host'
+const PROD_URL = 'https://mugtee.in'
 
 const config: CapacitorConfig = {
   appId: 'ai.viralforge.app',

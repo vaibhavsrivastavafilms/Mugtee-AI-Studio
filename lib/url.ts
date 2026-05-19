@@ -14,5 +14,5 @@ export function getBaseUrl(request?: NextRequest): string {
     const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
     if (host) return `${proto}://${host}`.replace(/\/$/, '')
   }
-  return 'http://localhost:3000'
+  return 'https://mugtee.in'
 }
