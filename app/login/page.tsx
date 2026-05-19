@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Film, Camera, Mic2, Star, Lightbulb, FileText, Scissors, CalendarCheck, Send, BarChart3, ArrowRight } from 'lucide-react'
+import { Sparkles, Film, Camera, Mic2, Star, Lightbulb, FileText, Scissors, CalendarCheck, Send, BarChart3, ArrowRight, Wand2, Brain, TrendingUp, Zap, Eye, Layers, PenLine } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -48,55 +48,108 @@ export default function LoginPage() {
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="grid lg:grid-cols-2 gap-10 max-w-6xl w-full items-center"
       >
-        {/* Left — brand */}
-        <div className="space-y-8">
-          <motion.div initial={{opacity:0, x:-20}} animate={{opacity:1, x:0}} transition={{delay:0.1, duration:0.8}}
-            className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass border-gold-soft"
+        {/* Left — Virlo AI Studio hero card */}
+        <div className="space-y-6">
+          <motion.div initial={{opacity:0, x:-20}} animate={{opacity:1, x:0}} transition={{delay:0.1, duration:0.6}}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass border-gold-soft"
           >
-            <Sparkles className="w-4 h-4 text-gold-400" />
-            <span className="text-xs tracking-[0.2em] uppercase text-luxe">ViralForge Studio</span>
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gold-400" />
+            </span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">AI Production OS for Creators</span>
           </motion.div>
 
-          <h1 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
-            <span className="text-foreground">The </span>
-            <span className="text-gold-gradient">AI Production OS</span>
-            <br />
-            <span className="text-foreground">for creators.</span>
-          </h1>
+          {/* DOMINANT hover card — Virlo AI Studio centerpiece */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.6, ease: [0.22,1,0.36,1] }}
+            whileHover={{ y: -4 }}
+            className="relative glass-strong rounded-3xl p-6 sm:p-7 border border-gold-soft hover:border-gold-500/40 transition-colors duration-300 max-w-xl group"
+          >
+            {/* subtle gold edge glow — uses existing CSS, no new blur layer */}
+            <div className="pointer-events-none absolute -inset-px rounded-3xl bg-gold-gradient opacity-0 group-hover:opacity-20 transition-opacity duration-300" style={{filter:'blur(8px)', zIndex:-1}} />
 
-          <p className="text-luxe/80 text-lg max-w-md leading-relaxed">
-            Plan, script, shoot, edit, schedule, publish, and track — from one cinematic workspace.
-            Built for storytellers who refuse to settle for ordinary.
-          </p>
-
-          {/* Workflow strip */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 max-w-md">
-            {[
-              { icon: Lightbulb,     label: 'Plan' },
-              { icon: FileText,      label: 'Script' },
-              { icon: Camera,        label: 'Shoot' },
-              { icon: Scissors,      label: 'Edit' },
-              { icon: CalendarCheck, label: 'Schedule' },
-              { icon: Send,          label: 'Publish' },
-              { icon: BarChart3,     label: 'Track' },
-            ].map((f, i, arr) => (
-              <div key={f.label} className="contents">
-                <motion.div
-                  initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{delay:0.3 + i*0.05}}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md glass text-[11px] tracking-wide text-luxe"
-                >
-                  <f.icon className="w-3 h-3 text-gold-400" />{f.label}
-                </motion.div>
-                {i < arr.length - 1 && <span className="text-gold-400/40 text-xs">→</span>}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow shrink-0">
+                <Sparkles className="w-5 h-5 text-black" />
               </div>
-            ))}
+              <div className="min-w-0">
+                <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80">Virlo</div>
+                <h1 className="font-display text-3xl sm:text-4xl leading-none mt-0.5">
+                  <span className="text-gold-gradient">AI Studio</span>
+                </h1>
+              </div>
+            </div>
+
+            <p className="text-luxe/85 text-base sm:text-lg leading-relaxed mb-5">
+              Generate viral content systems for creators.
+            </p>
+
+            {/* Six stacked capabilities */}
+            <div className="space-y-1.5 mb-5">
+              {[
+                { icon: Wand2,        label: 'Viral Idea Engine',           hint: 'niche-native hooks in seconds' },
+                { icon: PenLine,      label: 'AI Script Studio',            hint: 'cinematic shot-by-shot scripts' },
+                { icon: CalendarCheck,label: 'Weekly Content Planner',      hint: 'a balanced 7-day strategy, one click' },
+                { icon: TrendingUp,   label: 'Viral Pattern Analysis',      hint: 'score hook, pacing, retention' },
+                { icon: Brain,        label: 'Faceless Intelligence Engine',hint: 'storytelling DNA of viral formats', highlight: true },
+                { icon: Zap,          label: 'Workflow Automation',         hint: 'pipeline + scheduling + publishing' },
+              ].map((f) => (
+                <div key={f.label}
+                  className={
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ' +
+                    (f.highlight
+                      ? 'bg-gold-500/[0.08] border border-gold-500/25 hover:bg-gold-500/[0.12]'
+                      : 'hover:bg-white/[0.04]')
+                  }
+                >
+                  <f.icon className={'w-4 h-4 shrink-0 ' + (f.highlight ? 'text-gold-300' : 'text-gold-400/80')} />
+                  <span className={'text-sm font-medium ' + (f.highlight ? 'text-luxe' : 'text-foreground')}>{f.label}</span>
+                  <span className="text-[10px] text-muted-foreground/80 hidden sm:inline truncate ml-auto">{f.hint}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Faceless Intelligence sub-feature chips — surfaces the brain feature without rebuilding the card */}
+            <div className="pt-4 border-t border-gold-500/15">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Brain className="w-3.5 h-3.5 text-gold-300" />
+                <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Faceless Intelligence — what it does</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { icon: Eye,        label: 'Viral format analysis' },
+                  { icon: PenLine,    label: 'Faceless script generation' },
+                  { icon: Sparkles,   label: 'Hook psychology' },
+                  { icon: Film,       label: 'Story pacing breakdown' },
+                  { icon: TrendingUp, label: 'Retention structure' },
+                  { icon: Wand2,      label: 'Original script writing' },
+                ].map((c) => (
+                  <span key={c.label} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] tracking-wide text-luxe/85 bg-white/[0.03] border border-white/[0.06] hover:border-gold-500/30 hover:text-luxe transition-colors duration-200">
+                    <c.icon className="w-2.5 h-2.5 text-gold-400/80" /> {c.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* CTAs */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              onClick={handleGoogle}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-gradient text-black text-sm font-semibold tracking-wide shadow-gold-glow hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 disabled:opacity-60"
+            >
+              <Sparkles className="w-4 h-4" /> {loading ? 'Starting…' : 'Start Creating'}
+            </button>
+            <Link href="/pricing" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg glass border-gold-soft hover:border-gold-500/40 text-luxe text-sm tracking-wide transition-colors duration-200">
+              Explore AI Studio <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 pt-3">
-            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-xs tracking-[0.2em] uppercase text-gold-300 hover:text-gold-200 transition">
-              View pricing <ArrowRight className="w-3 h-3" />
-            </Link>
-            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">From ₹245/month · 7-day free trial soon</span>
+          <div className="text-[10px] tracking-[0.35em] uppercase text-gold-400/70">
+            Plan. Script. Schedule. Scale.
           </div>
         </div>
 
