@@ -2,11 +2,13 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight } from 'lucide-react'
+import { NICHES, AUDIENCES, readCreatorProfile, writeCreatorProfile } from '@/components/ai/viral-studio-panel'
+import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles } from 'lucide-react'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -86,6 +88,16 @@ export default function SettingsPage() {
   const igTokenExpiring = igExpiresMs !== null && igExpiresMs - Date.now() < 7 * 24 * 60 * 60 * 1000
   const igTokenExpired  = igExpiresMs !== null && igExpiresMs < Date.now()
   const igExpiresLabel  = (() => { try { return igAccount?.expires_at ? formatDistanceToNow(parseISO(igAccount.expires_at), { addSuffix: true }) : null } catch { return null } })()
+
+  // Phase 6F: Creator profile (niche + audience) — default AI context for TT Viral. Stored in localStorage.
+  const [profile, setProfile] = useState<{ niche: string; audience: string }>({ niche: 'restaurant', audience: 'mass' })
+  useEffect(() => { setProfile(readCreatorProfile()) }, [])
+  const updateProfile = (patch: { niche?: string; audience?: string }) => {
+    const next = { ...profile, ...patch }
+    setProfile(next)
+    writeCreatorProfile(patch)
+    toast.success('Creator profile updated')
+  }
 
   // Keep local form in sync with workspace updates from realtime
   useEffect(() => {
@@ -197,6 +209,40 @@ export default function SettingsPage() {
             <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
+      </motion.div>
+
+      {/* Creator Profile (Phase 6F) ====================================== */}
+      <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.09}}
+        className="glass rounded-2xl p-6 sm:p-8"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="w-4 h-4 text-gold-400" />
+          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Creator Profile</div>
+        </div>
+        <h2 className="font-display text-2xl mb-1">AI scripting voice</h2>
+        <p className="text-luxe/70 text-sm mb-5">TT Viral adapts hooks, scripts, and ideas to your niche and audience automatically. Change anytime.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Niche</label>
+            <Select value={profile.niche} onValueChange={(v) => updateProfile({ niche: v })}>
+              <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Audience</label>
+            <Select value={profile.audience} onValueChange={(v) => updateProfile({ audience: v })}>
+              <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AUDIENCES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-4">Saved on this device · synced into every TT Viral generation</p>
       </motion.div>
 
       {/* Theme ================================================================= */}

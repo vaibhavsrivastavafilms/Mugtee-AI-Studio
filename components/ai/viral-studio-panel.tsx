@@ -21,6 +21,50 @@ export const TONES: { id: string; label: string }[] = [
   { id: 'luxury_premium',     label: 'Luxury Premium' },
 ]
 
+export const NICHES: { id: string; label: string }[] = [
+  { id: 'restaurant', label: 'Restaurant / Food' },
+  { id: 'fitness',    label: 'Fitness / Wellness' },
+  { id: 'fashion',    label: 'Fashion' },
+  { id: 'travel',     label: 'Travel' },
+  { id: 'filmmaker',  label: 'Filmmaker' },
+  { id: 'coach',      label: 'Coach / Mentor' },
+  { id: 'education',  label: 'Education' },
+  { id: 'luxury',     label: 'Luxury Brand' },
+  { id: 'podcast',    label: 'Podcast' },
+  { id: 'comedy',     label: 'Comedy / Meme' },
+  { id: 'agency',     label: 'Agency / Studio' },
+  { id: 'business',   label: 'Business / Founder' },
+]
+
+export const AUDIENCES: { id: string; label: string }[] = [
+  { id: 'gen_z',         label: 'Gen Z' },
+  { id: 'millennials',   label: 'Millennials' },
+  { id: 'professionals', label: 'Professionals' },
+  { id: 'luxury',        label: 'Luxury Audience' },
+  { id: 'mass',          label: 'Mass Audience' },
+  { id: 'students',      label: 'Students' },
+  { id: 'creators',      label: 'Creators' },
+]
+
+// Tiny localStorage helpers — no abstractions, just inline access for the creator profile defaults
+function readCreatorProfile(): { niche: string; audience: string } {
+  if (typeof window === 'undefined') return { niche: 'restaurant', audience: 'mass' }
+  try {
+    return {
+      niche:    localStorage.getItem('tt:creator:niche')    || 'restaurant',
+      audience: localStorage.getItem('tt:creator:audience') || 'mass',
+    }
+  } catch { return { niche: 'restaurant', audience: 'mass' } }
+}
+function writeCreatorProfile(p: { niche?: string; audience?: string }) {
+  if (typeof window === 'undefined') return
+  try {
+    if (p.niche)    localStorage.setItem('tt:creator:niche', p.niche)
+    if (p.audience) localStorage.setItem('tt:creator:audience', p.audience)
+  } catch {}
+}
+export { readCreatorProfile, writeCreatorProfile }
+
 // =====================================================================
 // SHARED HOOK — used by ViralStudioPanel (pipeline) + ViralQuickStart (dashboard)
 // =====================================================================
@@ -29,6 +73,12 @@ export function useViralIdeas() {
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
+  // Niche + audience seed from localStorage so the creator's profile is the default everywhere
+  const seed = typeof window !== 'undefined' ? readCreatorProfile() : { niche: 'restaurant', audience: 'mass' }
+  const [niche, setNicheInternal] = useState<string>(seed.niche)
+  const [audience, setAudienceInternal] = useState<string>(seed.audience)
+  const setNiche    = (n: string) => { setNicheInternal(n);    writeCreatorProfile({ niche: n }) }
+  const setAudience = (a: string) => { setAudienceInternal(a); writeCreatorProfile({ audience: a }) }
   const [loading, setLoading] = useState(false)
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [addedIds, setAddedIds] = useState<Record<number, string>>({})
@@ -44,7 +94,7 @@ export function useViralIdeas() {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'ideas', context: { description: t, platform, tone } }),
+        body: JSON.stringify({ mode: 'ideas', context: { description: t, platform, tone, niche, audience } }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data?.error || 'Generation failed'); return }
@@ -59,7 +109,7 @@ export function useViralIdeas() {
     } finally {
       setLoading(false)
     }
-  }, [topic, platform, tone])
+  }, [topic, platform, tone, niche, audience])
 
   const addToPipeline = useCallback(async (idea: Idea, index: number, statusOverride?: 'idea' | 'scripting'): Promise<string | undefined> => {
     if (addedIds[index] || adding === index) return addedIds[index]
@@ -94,7 +144,7 @@ export function useViralIdeas() {
           context: {
             title: idea.title,
             description: [idea.hook && `Hook: ${idea.hook}`, idea.angle && `Angle: ${idea.angle}`].filter(Boolean).join('\n'),
-            platform, status: 'scripting', tone, existing_script: idea.hook,
+            platform, status: 'scripting', tone, niche, audience, existing_script: idea.hook,
           },
         }),
       })
@@ -114,10 +164,11 @@ export function useViralIdeas() {
     } finally {
       setScriptBusy(null)
     }
-  }, [scriptBusy, platform, tone, addedIds, addToPipeline, updateContent])
+  }, [scriptBusy, platform, tone, niche, audience, addedIds, addToPipeline, updateContent])
 
   return {
     topic, setTopic, platform, setPlatform, tone, setTone,
+    niche, setNiche, audience, setAudience,
     loading, ideas, addedIds, adding, scriptBusy, scripts,
     generate, addToPipeline, promoteToScript,
   }
@@ -178,6 +229,27 @@ export function ViralStudioPanel() {
                   placeholder="e.g. late-night chai with friends"
                   className="bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Niche</label>
+                  <Select value={v.niche} onValueChange={v.setNiche}>
+                    <SelectTrigger className="bg-white/[0.03] h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Audience</label>
+                  <Select value={v.audience} onValueChange={v.setAudience}>
+                    <SelectTrigger className="bg-white/[0.03] h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {AUDIENCES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

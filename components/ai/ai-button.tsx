@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useStore } from '@/lib/store'
+import { readCreatorProfile } from '@/components/ai/viral-studio-panel'
 import { cn } from '@/lib/utils'
 import type { ContentPiece } from '@/lib/types'
 
@@ -61,6 +62,7 @@ function AiDialog({ content, onClose }: { content: ContentPiece; onClose: () => 
 
   const generate = useCallback(async () => {
     setLoading(true); setOutput(''); setAnalyze(null)
+    const profile = readCreatorProfile()
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -74,6 +76,8 @@ function AiDialog({ content, onClose }: { content: ContentPiece; onClose: () => 
             status: content.status,
             scheduled_at: content.scheduled_at,
             tags: content.tags,
+            niche: profile.niche,
+            audience: profile.audience,
             existing_script: (content as any).script || content.description,
           },
         }),
