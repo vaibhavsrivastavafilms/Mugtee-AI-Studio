@@ -87,7 +87,7 @@ export default function PipelinePage() {
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-4 items-start">
           <div className="flex-1 min-w-0">
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4 snap-x snap-mandatory sm:snap-none">
               {visibleColumns.map((col, i) => {
                 const items = content.filter(c => c.status === col)
                 return (
@@ -96,7 +96,8 @@ export default function PipelinePage() {
               })}
             </div>
           </div>
-          <ViralStudioPanel />
+          {/* Side panel hidden on mobile to give the Kanban full width */}
+          <div className="hidden lg:block"><ViralStudioPanel /></div>
         </div>
         <DragOverlay>
           {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
@@ -172,7 +173,7 @@ function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: C
   return (
     <motion.div
       initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:index*0.05}}
-      className="w-[300px] sm:w-[320px] shrink-0"
+      className="w-[88vw] max-w-[320px] sm:w-[320px] shrink-0 snap-start"
     >
       <div className={cn('rounded-2xl glass border transition-colors h-full flex flex-col', isOver ? 'border-gold-500/50 bg-gold-500/[0.04]' : 'border-white/[0.06]')}>
         <div className="flex items-center justify-between p-4 pb-3">

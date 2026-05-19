@@ -30,6 +30,8 @@ type Mode =
   | 'documentary_script'            // routed to Claude
   | 'cinematic_story'               // routed to Claude
   | 'retention_script'              // routed to Claude
+  // Phase 14 — YouTube Intelligence (AI-only analysis, no scraping)
+  | 'youtube_intelligence'
 
 interface AIRequest {
   mode: Mode
@@ -60,6 +62,8 @@ interface AIRequest {
     reference_script?: string | null // reference_analysis paste-in
     script_input?: string | null     // flow_prompts source script
     duration_seconds?: number | null // cinematic script length
+    // Phase 14 — YouTube Intelligence
+    channel?: string | null          // user-supplied channel name or URL
   }
 }
 
@@ -677,6 +681,65 @@ Output the script directly. No meta-commentary, no markdown headers.`,
       }
     }
 
+    case 'youtube_intelligence': {
+      const channel = (ctx?.channel || ctx?.topic || '').toString().trim() || '(unspecified)'
+      return {
+        wantsJson: true,
+        user: `Analyze the YouTube channel below and produce a creator-strategy intelligence report. Output STRICT JSON, no markdown.
+
+CHANNEL: ${channel}
+
+CONTEXT:
+${block}
+
+RULES:
+- Base your analysis on widely-known public knowledge about this creator / channel name / niche pattern.
+- If exact numbers aren't verifiable, give an HONEST tier estimate ("likely 100K-500K subs", "uploads weekly", etc.) and clearly mark inferred fields with a trailing "(est)".
+- Be brutally specific about WHY it works. No flattery. No filler.
+- All advice is for a faceless creator entering this niche — what to copy mechanically, never content.
+
+OUTPUT SHAPE — exactly this JSON:
+{
+  "channel_name":      "<canonical channel name>",
+  "subscriber_count":  "<e.g. 2.4M or 100K-500K (est)>",
+  "upload_frequency":  "<e.g. 2-3 videos / week (est)>",
+  "avg_video_length":  "<e.g. 8-12 min (est)>",
+  "niche":             "<one-line niche / category>",
+  "growth_momentum":   "<accelerating | steady | plateauing | declining (est)>  — one sentence why>",
+  "viral_patterns": [
+    "<specific recurring mechanic — what makes their thumbnails clickable>",
+    "<recurring hook structure — first 3-5 seconds>",
+    "<retention trick used mid-video>",
+    "<3-5 items total, each under 22 words, MECHANICS only>"
+  ],
+  "faceless_opportunities": [
+    "<a faceless format adjacent to this channel that's currently underserved>",
+    "<another underserved angle>",
+    "<3-4 items, name-drop format + why>"
+  ],
+  "title_psychology": [
+    "<recurring title pattern they exploit, e.g. number + curiosity gap>",
+    "<another pattern>",
+    "<3 items>"
+  ],
+  "thumbnail_psychology": [
+    "<facial / color / contrast pattern observed>",
+    "<text overlay or visual metaphor pattern>",
+    "<3 items>"
+  ],
+  "why_it_works":           "<one tight paragraph — under 60 words — diagnosing the EMOTIONAL contract this channel makes with viewers>",
+  "viral_story_structure":  ["<beat 1 — hook lever>", "<beat 2 — promise>", "<beat 3 — escalation>", "<beat 4 — twist or proof>", "<beat 5 — payoff>"],
+  "recommended_formats": [
+    { "format": "<format name>", "why": "<why this fits the channel's audience>", "example_title": "<one example title in the channel's voice>" },
+    { "format": "<format name>", "why": "<why>", "example_title": "<title>" },
+    { "format": "<format name>", "why": "<why>", "example_title": "<title>" }
+  ]
+}
+
+Be a creator strategist, not a press release writer.`,
+      }
+    }
+
     case 'analyze': {
       const target = ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'
       return {
@@ -723,7 +786,7 @@ export async function POST(req: NextRequest) {
     // Everything else stays on GPT-4o-mini (cheaper + faster for ideas/hooks/captions/planner).
     const CLAUDE_MODES: Mode[] = ['faceless_script', 'documentary_script', 'cinematic_story', 'retention_script']
     const useClaude = CLAUDE_MODES.includes(body.mode)
-    const isLong = useClaude || body.mode === 'weekly_plan' || body.mode === 'deep_research' || body.mode === 'reference_analysis' || body.mode === 'flow_prompts'
+    const isLong = useClaude || body.mode === 'weekly_plan' || body.mode === 'deep_research' || body.mode === 'reference_analysis' || body.mode === 'flow_prompts' || body.mode === 'youtube_intelligence'
 
     const callLLM = async (model: string) => {
       const payload: any = {

@@ -9,15 +9,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check, ExternalLink, History, Clock } from 'lucide-react'
+import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check, ExternalLink, History, Clock, Youtube, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import type { ContentPiece, Platform } from '@/lib/types'
 
-type Tab = 'research' | 'analyze' | 'script' | 'flow'
+type Tab = 'research' | 'analyze' | 'script' | 'flow' | 'yt'
 const TABS: { id: Tab; label: string; icon: any }[] = [
+  { id: 'yt',       label: 'YouTube Intel',    icon: Youtube },
   { id: 'research', label: 'Deep Research',    icon: Brain },
   { id: 'analyze',  label: 'Reference Analyzer', icon: Eye },
   { id: 'script',   label: 'Cinematic Script', icon: FileText },
@@ -44,7 +45,7 @@ function readCreatorProfile() {
 export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { addContent, content } = useStore()
   const seed = readCreatorProfile()
-  const [tab, setTab] = useState<Tab>('research')
+  const [tab, setTab] = useState<Tab>('yt')
 
   // Shared
   const [niche, setNiche]       = useState(seed.niche)
@@ -76,6 +77,11 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
   const [flowSrc, setFlowSrc]   = useState('')
   const [flowOut, setFlowOut]   = useState<any | null>(null)
   const [fLoading, setFLoading] = useState(false)
+
+  // Phase 14 — YouTube Intelligence
+  const [channel, setChannel]   = useState('')
+  const [ytOut, setYtOut]       = useState<any | null>(null)
+  const [yLoading, setYLoading] = useState(false)
 
   const [copied, setCopied] = useState<string | null>(null)
   const copy = async (key: string, text: string) => {
@@ -142,6 +148,32 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
     finally { setFLoading(false) }
   }
 
+  const runYt = async () => {
+    const c = channel.trim()
+    if (!c) { toast.error('Enter a channel name or URL'); return }
+    setYLoading(true); setYtOut(null)
+    try {
+      const d = await callAI({ mode: 'youtube_intelligence', context: { channel: c, niche, audience, language, platform: 'youtube' } })
+      const out = d.output
+      setYtOut(out)
+      // Phase 14 — auto-persist YT intel as a content row so it appears in Recent AI Sessions + survives logout.
+      if (out && out.channel_name) {
+        try {
+          await addContent({
+            title: `YT Intel · ${out.channel_name}`,
+            description: `[youtube_intelligence] ${out.why_it_works || ''}`.slice(0, 800),
+            platform: 'youtube' as Platform,
+            status: 'idea',
+            tags: ['ai_session', 'youtube_intelligence', 'faceless'],
+            script: JSON.stringify(out, null, 2),
+          } as Partial<ContentPiece> as any)
+        } catch { /* non-fatal */ }
+      }
+    }
+    catch (e:any) { toast.error(e?.message || 'Intelligence call failed') }
+    finally { setYLoading(false) }
+  }
+
   const addToPipeline = async (title: string, description: string, tags: string[]) => {
     try {
       await addContent({ title, description, platform: 'youtube' as Platform, status: 'idea', tags } as Partial<ContentPiece>)
@@ -176,14 +208,14 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-1.5 mt-1 -mb-1">
+        <div className="flex flex-nowrap gap-1.5 mt-1 -mb-1 overflow-x-auto scrollbar-luxe pb-1 -mx-1 px-1">
           {TABS.map(t => {
             const TIcon = t.icon
             const active = tab === t.id
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] tracking-wide transition-colors duration-200',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] tracking-wide transition-colors duration-200 shrink-0',
                   active ? 'bg-gold-500/15 border border-gold-500/40 text-gold-200' : 'bg-white/[0.02] border border-white/[0.06] text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -207,6 +239,79 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
             </Select>
           </div>
         </div>
+
+        {/* YOUTUBE INTELLIGENCE */}
+        {tab === 'yt' && (
+          <div className="space-y-3 pt-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input value={channel} onChange={e => setChannel(e.target.value)} placeholder="@MrBeast · Veritasium · or paste a channel URL" className="bg-white/[0.03] flex-1" />
+              <Button onClick={runYt} disabled={yLoading} className="bg-gold-gradient text-black gap-2 shrink-0 sm:w-auto w-full">
+                {yLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Youtube className="w-4 h-4" />}{yLoading ? 'Analyzing…' : 'Analyze channel'}
+              </Button>
+            </div>
+            <div className="flex items-start gap-2 text-[10px] text-muted-foreground p-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
+              <BarChart3 className="w-3 h-3 mt-0.5 text-gold-400/70 shrink-0" />
+              <span>AI-only analysis based on public knowledge. Stats marked "(est)" are inferred. No scraping. Auto-saved to Recent AI Sessions.</span>
+            </div>
+
+            {ytOut && (
+              <div className="rounded-xl glass border border-gold-soft p-4 space-y-3">
+                <div>
+                  <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80 mb-1">{ytOut.niche}</div>
+                  <h3 className="font-display text-2xl leading-tight">{ytOut.channel_name}</h3>
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Stat label="Subscribers" value={ytOut.subscriber_count} />
+                  <Stat label="Upload freq" value={ytOut.upload_frequency} />
+                  <Stat label="Avg length"  value={ytOut.avg_video_length} />
+                  <Stat label="Momentum"    value={(ytOut.growth_momentum || '').split('—')[0]?.trim() || ytOut.growth_momentum} />
+                </div>
+
+                {/* Why it works */}
+                {ytOut.why_it_works && (
+                  <div className="p-3 rounded-lg bg-gold-500/[0.06] border border-gold-500/20">
+                    <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300 mb-1.5">Why it works</div>
+                    <div className="text-[12px] text-luxe/90 leading-relaxed">{ytOut.why_it_works}</div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <ResearchSection title="Viral Patterns" items={ytOut.viral_patterns} />
+                  <ResearchSection title="Faceless Opportunities" items={ytOut.faceless_opportunities} />
+                  <ResearchSection title="Title Psychology"     items={ytOut.title_psychology} />
+                  <ResearchSection title="Thumbnail Psychology" items={ytOut.thumbnail_psychology} />
+                </div>
+
+                <ResearchSection title="Viral Story Structure" items={ytOut.viral_story_structure} ordered />
+
+                {/* Recommended formats */}
+                {Array.isArray(ytOut.recommended_formats) && ytOut.recommended_formats.length > 0 && (
+                  <div>
+                    <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300/80 mb-1.5">Recommended Formats</div>
+                    <div className="space-y-1.5">
+                      {ytOut.recommended_formats.map((f:any, i:number) => (
+                        <button key={i}
+                          onClick={() => { setScriptTitle(f.example_title || f.format); setTab('script') }}
+                          title="Build a script from this format"
+                          className="w-full text-left p-2.5 rounded-lg bg-white/[0.025] hover:bg-white/[0.05] border border-white/[0.06] hover:border-gold-500/30 transition-colors group"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-[12px] font-medium text-luxe">{f.format}</span>
+                            <span className="text-[9px] tracking-widest uppercase text-gold-300 opacity-0 group-hover:opacity-100 transition-opacity">→ Build script</span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground leading-snug">{f.why}</div>
+                          {f.example_title && <div className="text-[11px] text-gold-300/80 italic mt-1 truncate">e.g. "{f.example_title}"</div>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* DEEP RESEARCH */}
         {tab === 'research' && (
@@ -382,6 +487,15 @@ function ResearchSection({ title, items, ordered = false }: { title: string; ite
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+      <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground">{label}</div>
+      <div className="text-sm font-medium text-luxe mt-0.5 truncate">{value || '—'}</div>
     </div>
   )
 }
