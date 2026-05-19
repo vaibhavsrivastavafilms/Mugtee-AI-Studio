@@ -106,4 +106,30 @@
   .text-balance { text-wrap: balance; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Phase P10 — PWA / Capacitor safe-area handling (notch, status bar, gesture bar) */
+  .safe-area-pad {
+    padding-top:    max(env(safe-area-inset-top),    0px);
+    padding-right:  max(env(safe-area-inset-right),  0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-left:   max(env(safe-area-inset-left),   0px);
+  }
+  .safe-area-top    { padding-top:    max(env(safe-area-inset-top),    0px); }
+  .safe-area-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+
+  /* Mobile touch tuning — disable iOS tap highlight + improve responsiveness */
+  @media (pointer: coarse) {
+    button, a, [role="button"] { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  }
+}
+
+/* Phase P10 — Cinematic Ken Burns zoom for login slideshow.
+   Slow scale + slight pan to give photos quiet motion without video infrastructure. */
+@keyframes kenburns {
+  0%   { transform: scale(1.02) translate3d(0, 0, 0); }
+  100% { transform: scale(1.14) translate3d(-1.5%, -1%, 0); }
+}
+.animate-kenburns {
+  animation: kenburns 8s ease-out forwards;
+  will-change: transform;
 }

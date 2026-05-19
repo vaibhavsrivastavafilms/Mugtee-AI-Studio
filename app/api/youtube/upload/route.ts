@@ -22,13 +22,14 @@ export async function POST(req: Request) {
     const contentPieceId = body.contentPieceId
     const privacyStatus  = body.privacyStatus || 'unlisted'
     if (!contentPieceId) return NextResponse.json({ error: 'missing_content_piece' }, { status: 400 })
-    if (!['private','unlisted','public'].includes(privacyStatus)) {
-      return NextResponse.json({ error: 'invalid_privacy' }, { status: 400 })
-    }
 
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+    if (!['private','unlisted','public'].includes(privacyStatus)) {
+      return NextResponse.json({ error: 'invalid_privacy' }, { status: 400 })
+    }
 
     // 1) Load piece + linked video (if videoUrl not provided)
     const { data: piece, error: pErr } = await supabase

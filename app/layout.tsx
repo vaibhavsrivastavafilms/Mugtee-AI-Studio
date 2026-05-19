@@ -52,6 +52,22 @@ export const metadata: Metadata = {
     },
   },
   category: 'technology',
+  // Phase P10 — PWA / Capacitor mobile metadata
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'ViralForgeAI',
+    statusBarStyle: 'black-translucent',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'ViralForgeAI',
+    'application-name': 'ViralForgeAI',
+    'msapplication-TileColor': '#0a0807',
+    'format-detection': 'telephone=no',
+  },
 }
 
 export const viewport: Viewport = {
@@ -63,6 +79,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  // Phase P10 — let the WebView extend under the status bar so safe-area-pad can manage padding
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
