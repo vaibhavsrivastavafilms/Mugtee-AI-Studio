@@ -77,19 +77,19 @@ export default function ScriptWorkspace() {
   const tags = piece.tags || []
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="max-w-5xl mx-auto space-y-5 pb-12">
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="max-w-5xl mx-auto space-y-4 sm:space-y-5 pb-24 sm:pb-12 px-1 sm:px-0">
+      {/* Top bar — sticky on mobile so actions stay reachable while reading long scripts */}
+      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-2 sm:py-0 sm:static bg-background/85 backdrop-blur sm:bg-transparent sm:backdrop-blur-0 sm:rounded-none flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-gold-300 transition">
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button onClick={() => copy('script', scriptText)} variant="ghost" className="h-8 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+          <Button onClick={() => copy('script', scriptText)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0">
             {copied === 'script' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} Copy
           </Button>
-          <Button onClick={beginEdit} variant="ghost" className="h-8 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5"><Pencil className="w-3.5 h-3.5" /> Continue editing</Button>
-          <Button onClick={exportTxt} variant="ghost" className="h-8 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5"><Download className="w-3.5 h-3.5" /> Export</Button>
-          <Button onClick={() => router.push('/pipeline')} className="h-8 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5"><Plus className="w-3.5 h-3.5" /> Open in Pipeline</Button>
+          <Button onClick={beginEdit} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Pencil className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Continue editing</span><span className="sm:hidden">Edit</span></Button>
+          <Button onClick={exportTxt} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export</span></Button>
+          <Button onClick={() => router.push('/pipeline')} className="h-9 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[44px] sm:min-h-0"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Open in Pipeline</span><span className="sm:hidden">Pipeline</span></Button>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export default function ScriptWorkspace() {
             </div>
           </>
         ) : scriptText ? (
-          <pre className="text-[13px] leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono">{scriptText}</pre>
+          <pre className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words">{scriptText}</pre>
         ) : (
           <div className="text-[12px] text-muted-foreground italic">No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.</div>
         )}

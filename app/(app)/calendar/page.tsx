@@ -116,16 +116,16 @@ export default function CalendarPage() {
                 onDragLeave={(e) => { if (dragOverKey === dayKey) setDragOverKey(null) }}
                 onDrop={(e) => { e.preventDefault(); handleDropOnDay(day) }}
                 className={cn(
-                  'group relative min-h-[110px] sm:min-h-[140px] rounded-xl p-2 sm:p-2.5 transition-all cursor-pointer hover:bg-white/[0.04]',
+                  'group relative min-h-[88px] sm:min-h-[140px] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 transition-all cursor-pointer hover:bg-white/[0.04]',
                   inMonth ? 'bg-white/[0.02] border border-white/[0.05]' : 'bg-transparent border border-transparent opacity-40',
                   today && 'ring-1 ring-gold-500/60 bg-gold-500/[0.06]',
                   isDragOver && 'ring-2 ring-gold-400/80 bg-gold-500/[0.12] scale-[1.01]'
                 )}
                 onClick={() => { setCreating({date: day, open: true}) }}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className={cn('text-xs sm:text-sm font-medium', today ? 'text-gold-300' : 'text-foreground')}>{format(day, 'd')}</div>
-                  <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-70 text-gold-300" />
+                <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                  <div className={cn('text-[11px] sm:text-sm font-medium tabular-nums', today ? 'text-gold-300' : 'text-foreground')}>{format(day, 'd')}</div>
+                  <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-70 text-gold-300 hidden sm:block" />
                 </div>
                 <div className="space-y-1">
                   {items.map(i => (

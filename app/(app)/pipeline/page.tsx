@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState, useEffect, useMemo, createContext, useContext } from 'react'
+import { useState, useEffect, useMemo, useCallback, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useDroppable } from '@dnd-kit/core'
 import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check } from 'lucide-react'
@@ -24,6 +24,8 @@ import { useAutomations } from '@/lib/automations-store'
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
 
 const ScheduleCtx = createContext<(p: ContentPiece) => void>(() => {})
+// Phase P3 — bulk selection context. Each card pulls (selected, toggle) — bar reads (selected set, actions).
+const SelectionCtx = createContext<{ selected: Set<string>; toggle: (id: string) => void } | null>(null)
 
 export default function PipelinePage() {
   const { content, setStatus, updateContent, addContent, removeContent } = useStore()
@@ -33,6 +35,27 @@ export default function PipelinePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const statusParam = searchParams.get('status')
+
+  // Phase P3 — bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const toggleSelect = useCallback((id: string) => {
+    setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }, [])
+  const clearSelection = useCallback(() => setSelected(new Set()), [])
+  const selectionCtxValue = useMemo(() => ({ selected, toggle: toggleSelect }), [selected, toggleSelect])
+
+  const bulkMove = async (target: ContentStatus) => {
+    const ids = Array.from(selected)
+    for (const id of ids) { setStatus(id, target) }
+    clearSelection()
+  }
+  const bulkDelete = async () => {
+    const count = selected.size
+    if (!count) return
+    if (!(await confirm({ title: `Delete ${count} card${count>1?'s':''}?`, description: 'They will be removed from your pipeline.', destructive: true }))) return
+    for (const id of Array.from(selected)) { removeContent(id) }
+    clearSelection()
+  }
 
   const visibleColumns = useMemo(() => {
     if (statusParam === 'production') return ['scripting','shooting','editing'] as ContentStatus[]
@@ -84,6 +107,7 @@ export default function PipelinePage() {
       </motion.div>
 
       <ScheduleCtx.Provider value={setScheduling}>
+      <SelectionCtx.Provider value={selectionCtxValue}>
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-4 items-start">
           <div className="flex-1 min-w-0">
@@ -102,7 +126,20 @@ export default function PipelinePage() {
         <DragOverlay>
           {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
       </DndContext>
+      </SelectionCtx.Provider>
       </ScheduleCtx.Provider>
+
+      {/* Phase P3 — Floating bulk action bar */}
+      <BulkActionBar
+        count={selected.size}
+        onClear={clearSelection}
+        onMove={bulkMove}
+        onDelete={bulkDelete}
+        onSchedule={() => {
+          const first = content.find(c => selected.has(c.id))
+          if (first) setScheduling(first)
+        }}
+      />
 
       <NewCardDialog
         status={newCardStatus}
@@ -214,6 +251,9 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
   const { removeContent } = useStore()
   const confirm = useConfirm()
   const onSchedule = useContext(ScheduleCtx)
+  const sel = useContext(SelectionCtx)
+  const selected = !!sel?.selected.has(item.id)
+  const anySelected = !!sel && sel.selected.size > 0
   const stages: { key: keyof ContentPiece; label: string; dot: string }[] = [
     { key: 'script_due_date', label: 'S', dot: 'bg-blue-400' },
     { key: 'shoot_date',      label: 'F', dot: 'bg-orange-400' },
@@ -225,8 +265,28 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
     <div className={cn(
       'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all relative',
       'hover:border-gold-500/40 hover:shadow-cinema cursor-grab active:cursor-grabbing',
-      dragging ? 'border-gold-500/60 shadow-gold-glow-lg rotate-2 scale-105' : 'border-white/[0.06]'
+      dragging ? 'border-gold-500/60 shadow-gold-glow-lg rotate-2 scale-105' : selected ? 'border-gold-500/60 bg-gold-500/[0.08] shadow-cinema' : 'border-white/[0.06]'
     )}>
+      {/* Phase P3 — selection toggle (always rendered; subtly shown when nothing selected, prominent when in select-mode) */}
+      {!dragging && sel && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); sel.toggle(item.id) }}
+          className={cn(
+            'absolute top-2 left-2 z-10 w-5 h-5 rounded-md flex items-center justify-center transition-all',
+            selected
+              ? 'bg-gold-gradient text-black shadow-gold-glow'
+              : anySelected
+                ? 'bg-black/40 border border-gold-500/40 text-gold-300/70 hover:bg-gold-500/30'
+                : 'bg-black/30 border border-white/[0.08] text-transparent opacity-0 group-hover:opacity-100 hover:text-gold-300/80 hover:border-gold-500/40'
+          )}
+          aria-label={selected ? 'Deselect' : 'Select'}
+          title={selected ? 'Deselect' : 'Select'}
+        >
+          {selected && <Check className="w-3 h-3" />}
+          {!selected && <Check className="w-3 h-3 opacity-30" />}
+        </button>
+      )}
       {!dragging && (
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-10">
           <AiButton content={item} variant="icon" />
@@ -538,5 +598,49 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+
+// Phase P3 — floating bulk action bar
+function BulkActionBar({ count, onClear, onMove, onDelete, onSchedule }: { count: number; onClear: () => void; onMove: (s: ContentStatus) => void; onDelete: () => void; onSchedule: () => void }) {
+  if (count === 0) return null
+  return (
+    <div className="fixed left-1/2 -translate-x-1/2 bottom-4 sm:bottom-6 z-[60] w-[min(96vw,720px)] pointer-events-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="glass-strong rounded-2xl border border-gold-500/40 shadow-cinema p-2 sm:p-2.5 flex items-center gap-1.5 sm:gap-2 flex-wrap"
+      >
+        <div className="flex items-center gap-2 pl-1 pr-2">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gold-gradient text-black text-xs font-semibold tabular-nums shadow-gold-glow">{count}</span>
+          <span className="text-[11px] tracking-wider uppercase text-luxe hidden sm:inline">selected</span>
+        </div>
+
+        <div className="hidden sm:block w-px h-6 bg-white/[0.08] mx-1" />
+
+        {/* Move stage dropdown */}
+        <Select onValueChange={(v) => onMove(v as ContentStatus)}>
+          <SelectTrigger className="h-8 bg-white/[0.03] border-white/[0.08] text-xs gap-1.5 px-2.5 hover:border-gold-500/40 flex-1 sm:flex-none min-w-[120px]">
+            <SelectValue placeholder="Move stage" />
+          </SelectTrigger>
+          <SelectContent>
+            {COLUMNS.map(c => <SelectItem key={c} value={c}>{STATUS_META[c].label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Button onClick={onSchedule} variant="ghost" className="h-8 px-2.5 text-xs gap-1.5 text-luxe hover:text-gold-300 hover:bg-white/5">
+          <CalendarCheck className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Schedule</span>
+        </Button>
+
+        <Button onClick={onDelete} variant="ghost" className="h-8 px-2.5 text-xs gap-1.5 text-luxe hover:text-red-300 hover:bg-red-500/10">
+          <Trash2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Delete</span>
+        </Button>
+
+        <Button onClick={onClear} variant="ghost" className="h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground ml-auto">
+          <X className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clear</span>
+        </Button>
+      </motion.div>
+    </div>
   )
 }
