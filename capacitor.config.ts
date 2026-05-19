@@ -14,8 +14,8 @@ import type { CapacitorConfig } from '@capacitor/cli'
 const PROD_URL = 'https://mugtee.in'
 
 const config: CapacitorConfig = {
-  appId: 'ai.viralforge.app',
-  appName: 'ViralForgeAI',
+  appId: 'in.mugtee.app',
+  appName: 'Mugtee',
   // We use the live hosted Next.js app as the WebView source instead of bundling
   // static assets. This means we ship a thin wrapper APK (≈ 5 MB) and updates
   // happen instantly via web deploys — no Play Store re-submission for content changes.

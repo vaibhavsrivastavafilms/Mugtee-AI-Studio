@@ -22,7 +22,7 @@ export default function AppleIcon() {
             display: 'flex', lineHeight: 1, fontFamily: 'system-ui',
           }}
         >
-          V
+          M
         </div>
       </div>
     ),

@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og'
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-// Cinematic black + gold-gradient "V" mark for Mugtee.
+// Cinematic black + gold-gradient "M" mark for Mugtee.
 export default function Icon() {
   return new ImageResponse(
     (
@@ -23,7 +23,7 @@ export default function Icon() {
             display: 'flex', lineHeight: 1, fontFamily: 'system-ui',
           }}
         >
-          V
+          M
         </div>
       </div>
     ),

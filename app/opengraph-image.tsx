@@ -25,7 +25,7 @@ export default function OG() {
               boxShadow: '0 8px 32px rgba(212,175,55,0.35)',
             }}
           >
-            <div style={{ fontSize: 40, fontWeight: 900, color: '#0a0807', display: 'flex' }}>V</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#0a0807', display: 'flex' }}>M</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ fontSize: 16, letterSpacing: 8, color: 'rgba(245,208,97,0.7)', textTransform: 'uppercase', display: 'flex' }}>Mugtee</div>
