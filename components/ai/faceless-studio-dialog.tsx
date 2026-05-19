@@ -1,17 +1,19 @@
 'use client'
 // Phase 13D — Faceless AI Engine (deep research · reference analyzer · cinematic script · flow prompts)
+// Phase 13F — Auto-persists generated scripts as content_pieces (existing infra) + Recent AI Sessions panel.
 // Reuses /api/ai/generate + existing store.addContent for pipeline insertion. No new infra.
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check } from 'lucide-react'
+import { Brain, Sparkles, FileText, Eye, Wand2, Loader2, Plus, Film, Copy, Check, ExternalLink, History, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
+import { formatDistanceToNow, parseISO } from 'date-fns'
 import type { ContentPiece, Platform } from '@/lib/types'
 
 type Tab = 'research' | 'analyze' | 'script' | 'flow'
@@ -40,7 +42,7 @@ function readCreatorProfile() {
 }
 
 export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const { addContent } = useStore()
+  const { addContent, content } = useStore()
   const seed = readCreatorProfile()
   const [tab, setTab] = useState<Tab>('research')
 
@@ -66,6 +68,9 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
   const [scriptOut, setScriptOut]   = useState<string>('')
   const [scriptModel, setScriptModel] = useState<string>('')
   const [sLoading, setSLoading] = useState(false)
+  // Phase 13F — auto-persist + workspace link
+  const [savedScriptId, setSavedScriptId] = useState<string | null>(null)
+  const [autoSaving, setAutoSaving] = useState(false)
 
   // Flow prompts
   const [flowSrc, setFlowSrc]   = useState('')
@@ -102,8 +107,28 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
 
   const runScript = async () => {
     if (!scriptTitle.trim()) { toast.error('Enter a title or topic'); return }
-    setSLoading(true); setScriptOut(''); setScriptModel('')
-    try { const d = await callAI({ mode: scriptFlavor, context: { title: scriptTitle, niche, audience, language, platform: 'youtube', duration_seconds: scriptDur } }); setScriptOut(d.output || ''); setScriptModel(d.model || '') }
+    setSLoading(true); setScriptOut(''); setScriptModel(''); setSavedScriptId(null)
+    try {
+      const d = await callAI({ mode: scriptFlavor, context: { title: scriptTitle, niche, audience, language, platform: 'youtube', duration_seconds: scriptDur } })
+      const out = d.output || ''
+      setScriptOut(out); setScriptModel(d.model || '')
+      // Phase 13F — auto-persist as a content_pieces row so it survives logout/refresh and shows in Recent AI Sessions + Pipeline.
+      if (out) {
+        setAutoSaving(true)
+        try {
+          const id = await addContent({
+            title: scriptTitle,
+            description: `[${scriptFlavor} · ${d.model || 'gpt'} · ${scriptDur}s] ${out.slice(0, 200)}…`,
+            platform: 'youtube' as Platform,
+            status: 'idea',
+            tags: ['faceless', scriptFlavor, 'ai_session'],
+            script: out,
+          } as Partial<ContentPiece> as any)
+          if (id) setSavedScriptId(id)
+        } catch { /* non-fatal — script still visible in dialog */ }
+        finally { setAutoSaving(false) }
+      }
+    }
     catch (e:any) { toast.error(e?.message || 'Script generation failed') }
     finally { setSLoading(false) }
   }
@@ -122,6 +147,19 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
       await addContent({ title, description, platform: 'youtube' as Platform, status: 'idea', tags } as Partial<ContentPiece>)
       toast.success('Added to pipeline')
     } catch (e:any) { toast.error(e?.message || 'Could not add') }
+  }
+
+  // Phase 13F — Recent AI Sessions: filter store.content to AI-generated pieces, latest first.
+  // Realtime-safe (store already subscribes to content_pieces changes), survives logout/login automatically.
+  const recentSessions = useMemo(() => {
+    return (content || [])
+      .filter((c: any) => (c.tags || []).includes('ai_session') || ((c as any).script && (c.tags || []).includes('faceless')))
+      .slice()
+      .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''))
+      .slice(0, 8)
+  }, [content])
+  const reopenSession = (id: string) => {
+    try { window.open(`/script/${id}`, '_blank', 'noopener') } catch { window.location.href = `/script/${id}` }
   }
 
   return (
@@ -242,21 +280,32 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
             </div>
             {scriptOut && (
               <div className="rounded-xl glass border border-gold-soft p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Script · {scriptModel || 'gpt-4o-mini'}</div>
-                  <div className="flex gap-1.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-2">
+                    Script · {scriptModel || 'gpt-4o-mini'}
+                    {autoSaving && <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground"><Loader2 className="w-2.5 h-2.5 animate-spin" /> saving</span>}
+                    {savedScriptId && !autoSaving && <span className="inline-flex items-center gap-1 text-[9px] text-emerald-400/80"><Check className="w-2.5 h-2.5" /> saved</span>}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
                     <button onClick={() => copy('script', scriptOut)} className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 inline-flex items-center gap-1">
                       {copied === 'script' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />} Copy
                     </button>
+                    {savedScriptId && (
+                      <a href={`/script/${savedScriptId}`} target="_blank" rel="noopener noreferrer" className="text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-200 inline-flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> Open workspace
+                      </a>
+                    )}
                     <button onClick={() => { setFlowSrc(scriptOut); setTab('flow') }} className="text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-200">→ Visual prompts</button>
                   </div>
                 </div>
-                <pre className="text-[12px] leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono">{scriptOut}</pre>
-                <div className="flex gap-2 pt-2 border-t border-white/[0.05]">
-                  <Button onClick={() => addToPipeline(scriptTitle, scriptOut, ['faceless', scriptFlavor])} className="bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 h-8 gap-1.5 text-xs">
-                    <Plus className="w-3.5 h-3.5" /> Add Script to Pipeline
-                  </Button>
-                </div>
+                <pre className="text-[12px] leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono max-h-72 overflow-y-auto scrollbar-luxe">{scriptOut}</pre>
+                {!savedScriptId && (
+                  <div className="flex gap-2 pt-2 border-t border-white/[0.05]">
+                    <Button onClick={() => addToPipeline(scriptTitle, scriptOut, ['faceless', scriptFlavor])} className="bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 h-8 gap-1.5 text-xs">
+                      <Plus className="w-3.5 h-3.5" /> Add Script to Pipeline
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -285,6 +334,34 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Phase 13F — Recent AI Sessions (persistent, realtime-synced via store) */}
+        {recentSessions.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-white/[0.05]">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <History className="w-3.5 h-3.5 text-gold-400/80" />
+              <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Recent AI Sessions · {recentSessions.length}</span>
+              <span className="text-[10px] text-muted-foreground ml-2">saved automatically — survives logout</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {recentSessions.map((s: any) => {
+                const flavor = (s.tags || []).find((t: string) => t.endsWith('_script') || t === 'documentary_script') || 'script'
+                const created = s.created_at ? formatDistanceToNow(parseISO(s.created_at), { addSuffix: true }) : ''
+                return (
+                  <button key={s.id} onClick={() => reopenSession(s.id)}
+                    className="group text-left p-3 rounded-lg bg-white/[0.025] hover:bg-white/[0.05] border border-white/[0.06] hover:border-gold-500/30 transition-colors duration-200">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[10px] tracking-widest uppercase text-gold-400/70">{flavor.replace(/_/g, ' ')}</div>
+                      <ExternalLink className="w-3 h-3 text-muted-foreground/60 group-hover:text-gold-300 transition" />
+                    </div>
+                    <div className="text-[13px] font-medium leading-snug line-clamp-1">{s.title}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1 inline-flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {created}</div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
       </DialogContent>

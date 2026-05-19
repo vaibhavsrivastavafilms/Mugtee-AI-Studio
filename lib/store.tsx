@@ -286,13 +286,18 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
       due_date: input.due_date ?? null,
       assignee: input.assignee ?? null,
       tags: input.tags ?? [],
-    }
+      ...((input as any).script !== undefined    ? { script:    (input as any).script    } : {}),
+      ...((input as any).media_url !== undefined ? { media_url: (input as any).media_url } : {}),
+    } as any
     setContent(c => [optimistic, ...c])
-    const { data, error } = await supabase.from('content_pieces').insert({
+    const insertRow: any = {
       user_id: userId, title: optimistic.title, description: optimistic.description, status: optimistic.status,
       platform: optimistic.platform, scheduled_at: optimistic.scheduled_at, due_date: optimistic.due_date,
       assignee: optimistic.assignee, tags: optimistic.tags,
-    }).select().single()
+    }
+    if ((input as any).script    !== undefined) insertRow.script    = (input as any).script
+    if ((input as any).media_url !== undefined) insertRow.media_url = (input as any).media_url
+    const { data, error } = await supabase.from('content_pieces').insert(insertRow).select().single()
     if (error) { setContent(c => c.filter(x => x.id !== tempId)); handleError(error, 'Could not create content'); return undefined }
     const newId = (data as any).id as string
     setContent(c => c.map(x => x.id === tempId ? (data as any) : x))
