@@ -18,12 +18,9 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true)
     const supabase = createSupabaseBrowserClient()
-    // Always use the actual origin the user is on. This guarantees Supabase
-    // sends users back to the exact preview/production URL and never localhost.
-    const origin = (typeof window !== 'undefined' && window.location.origin)
-      || process.env.NEXT_PUBLIC_BASE_URL
-      || ''
-    const redirectTo = `${origin.replace(/\/$/, '')}/auth/callback?next=/dashboard`
+    // Use window.location.origin directly — guaranteed to match the actual
+    // domain the user is on (preview, production, or custom domain).
+    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } }

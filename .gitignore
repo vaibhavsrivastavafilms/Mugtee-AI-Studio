@@ -82,8 +82,9 @@ android-sdk/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.no
 node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
 -e 
 # Environment and credential files
-.env
-.env.*
+# env files must be tracked for Emergent deployment (values are auto-updated)
+# .env
+# .env.*
 *.env
 credentials.json
 *.pem
