@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://viralforge.ai'
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
 
 export default function robots(): MetadataRoute.Robots {
   return {

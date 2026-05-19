@@ -66,7 +66,7 @@ export default function OG() {
             <span style={{ display: 'flex' }}>·</span>
             <span style={{ display: 'flex' }}>YouTube Intel</span>
           </div>
-          <div style={{ fontSize: 18, color: 'rgba(245,208,97,0.9)', letterSpacing: 3, textTransform: 'uppercase', display: 'flex' }}>viralforge.ai</div>
+          <div style={{ fontSize: 18, color: 'rgba(245,208,97,0.9)', letterSpacing: 3, textTransform: 'uppercase', display: 'flex' }}>mugtee.in</div>
         </div>
       </div>
     ),

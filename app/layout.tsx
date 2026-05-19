@@ -2,7 +2,7 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://viralforge.ai'
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
 const SITE_NAME = 'ViralForgeAI'
 const SITE_TAGLINE = 'AI Production OS for Creators'
 const SITE_DESCRIPTION = 'Cinematic AI workspace for creators, agencies, and brands. Plan, script, schedule, and ship viral content — all in one premium production hub.'

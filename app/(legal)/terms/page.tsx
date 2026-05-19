@@ -69,7 +69,7 @@ export default function TermsPage() {
 
       <Section icon={Mail} title="Termination & contact">
         <p>You can delete your account any time from Settings or by emailing us. We can suspend or terminate accounts that violate these Terms, with notice where reasonable.</p>
-        <p>Questions: <a href="mailto:hello@viralforge.ai" className="text-gold-300 hover:underline">hello@viralforge.ai</a></p>
+        <p>Questions: <a href="mailto:hello@mugtee.in" className="text-gold-300 hover:underline">hello@mugtee.in</a></p>
       </Section>
     </>
   )

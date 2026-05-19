@@ -79,7 +79,7 @@ cd android
 - [ ] Full description (4000 chars max): see below
 - [ ] Category: **Productivity** (secondary: **Business**)
 - [ ] Content rating: **Everyone** (no UGC, no in-app camera, no chat)
-- [ ] Privacy policy URL: `https://viralforge.ai/privacy` *(host this page)*
+- [ ] Privacy policy URL: `https://mugtee.in/privacy`
 - [ ] App icon: 512×512 PNG (export from `/apple-icon` route at 512px)
 - [ ] Feature graphic: 1024×500 PNG (export from `/opengraph-image` route, cropped)
 - [ ] Phone screenshots: 2–8 at min 320px, max 3840px. Capture: Dashboard, Pipeline, AI Studio dialog, Script workspace, Pricing.
