@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect, useMemo, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
@@ -260,6 +260,24 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
           {item.description && <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{item.description}</div>}
         </div>
       </div>
+      {/* Phase 8B — attached media preview */}
+      {item.media_url && (() => {
+        const url = item.media_url
+        const isVid = /\.(mp4|mov)(\?|#|$)/i.test(url)
+        const filename = url.split('/').pop()?.split('?')[0] || 'media'
+        return (
+          <div className="flex items-center gap-2 mb-2 p-1.5 rounded-lg bg-white/[0.025] border border-gold-500/15 group/media relative">
+            <div className="w-9 h-9 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/20 transition-transform group-hover/media:scale-110 group-hover/media:ring-gold-500/60">
+              {isVid ? (
+                <div className="w-full h-full flex items-center justify-center text-gold-400/80"><Film className="w-4 h-4" /></div>
+              ) : (
+                <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+              )}
+            </div>
+            <span className="text-[10px] text-muted-foreground truncate flex-1">{isVid ? 'Reel · ' : ''}{filename}</span>
+          </div>
+        )
+      })()}
       {activeStages.length > 0 && (
         <div className="flex items-center gap-1 mt-1.5 mb-2">
           {activeStages.map(stg => (
@@ -283,7 +301,7 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
 
 
 function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose: () => void }) {
-  const { updateContent, setStatus } = useStore()
+  const { updateContent, setStatus, media } = useStore()
   const { enqueue, queue } = useAutomations()
   const toLocal = (iso?: string | null) => iso ? format(parseISO(iso), "yyyy-MM-dd'T'HH:mm") : ''
   const [scriptDue, setScriptDue] = useState('')
@@ -294,6 +312,7 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
   const [mediaUrl, setMediaUrl]   = useState('')
   const [caption, setCaption]     = useState('')
   const [igConnected, setIgConnected] = useState<boolean | null>(null)
+  const [showLibrary, setShowLibrary] = useState(false)
 
   useEffect(() => {
     if (item) {
@@ -304,6 +323,7 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
       setMediaUrl(item.media_url || '')
       setCaption(item.description || '')
       setAutoQueue(true)
+      setShowLibrary(false)
     }
   }, [item])
 
@@ -319,11 +339,16 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
 
   const isInstagram = item.platform === 'instagram'
   const validMediaUrl = !mediaUrl || /^https?:\/\//i.test(mediaUrl)
+  // Phase 8B — supported-format check for IG (mp4/mov/jpg/jpeg/png/webp)
+  const supportedFormat = !mediaUrl || /\.(mp4|mov|jpe?g|png|webp)(\?|#|$)/i.test(mediaUrl)
+  const selectedAsset = mediaUrl ? media.find(m => m.url === mediaUrl) : null
+  const isVideo = mediaUrl && /\.(mp4|mov)(\?|#|$)/i.test(mediaUrl)
   const mediaWarning = isInstagram && publishAt && !mediaUrl ? 'Instagram requires media (mp4/mov for Reels, jpg/png for Feed).' : null
   const captionWarning = isInstagram && publishAt && !caption.trim() ? 'Instagram requires a caption (use the Description field).' : null
   const connectWarning = isInstagram && publishAt && igConnected === false ? 'Instagram not connected — Connect in Settings → Integrations.' : null
   const urlWarning = mediaUrl && !validMediaUrl ? 'Media URL must start with http(s)://' : null
-  const warnings = [mediaWarning, captionWarning, connectWarning, urlWarning].filter(Boolean) as string[]
+  const formatWarning = mediaUrl && validMediaUrl && !supportedFormat ? 'Unsupported format. Use .mp4, .mov, .jpg, .png, or .webp.' : null
+  const warnings = [mediaWarning, captionWarning, connectWarning, urlWarning, formatWarning].filter(Boolean) as string[]
 
   const save = async () => {
     const patch: Partial<ContentPiece> = {
@@ -394,11 +419,92 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
 
           {/* Media + caption — only relevant when publishing */}
           {(publishAt || isInstagram) && (
-            <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+            <div className="space-y-2.5 pt-2 border-t border-white/[0.05]">
+              {/* Selected media preview chip */}
+              {mediaUrl && (
+                <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.03] border border-gold-500/20">
+                  <div className="relative w-14 h-14 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/30">
+                    {isVideo ? (
+                      selectedAsset?.thumbnail ? (
+                        <img src={selectedAsset.thumbnail} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gold-400"><FileVideo className="w-5 h-5" /></div>
+                      )
+                    ) : (
+                      <img src={mediaUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-medium truncate">{selectedAsset?.title || mediaUrl.split('/').pop()?.split('?')[0] || 'Attached media'}</div>
+                    <div className="text-[10px] text-muted-foreground truncate font-mono">{mediaUrl}</div>
+                  </div>
+                  <button onClick={() => setMediaUrl('')} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-red-300 transition shrink-0" aria-label="Remove media">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Media URL input + library toggle */}
               <div className="space-y-1.5">
-                <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Media URL (public HTTPS · .mp4 / .mov / .jpg / .png)</label>
-                <Input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="https://…/reel.mp4" className="bg-white/[0.03] font-mono text-xs" />
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] tracking-wider uppercase text-muted-foreground">{mediaUrl ? 'Replace media' : 'Attach media'}</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowLibrary(s => !s)}
+                    className="text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-200 transition inline-flex items-center gap-1"
+                  >
+                    <ImageIcon className="w-3 h-3" /> {showLibrary ? 'Hide library' : `From library (${media.length})`}
+                  </button>
+                </div>
+                <Input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="https://…/reel.mp4 — or pick from library →" className="bg-white/[0.03] font-mono text-xs" />
               </div>
+
+              {/* Lightweight media library picker grid */}
+              {showLibrary && (
+                <div className="rounded-lg bg-black/30 border border-white/[0.05] p-2 max-h-44 overflow-y-auto scrollbar-luxe">
+                  {media.length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground text-center py-4">No media yet · upload in <span className="text-gold-300">Media Library</span></div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {media.filter(m => !!m.url).slice(0, 24).map(m => {
+                        const selected = m.url === mediaUrl
+                        const vid = m.type === 'video'
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => { setMediaUrl(m.url || ''); setShowLibrary(false) }}
+                            title={m.title}
+                            className={cn(
+                              'group relative aspect-square rounded-md overflow-hidden bg-zinc-900 ring-1 transition-all hover:scale-105 hover:ring-gold-500/60',
+                              selected ? 'ring-2 ring-gold-400 shadow-gold-glow' : 'ring-white/[0.06]'
+                            )}
+                          >
+                            {m.thumbnail ? (
+                              <img src={m.thumbnail} alt={m.title} className="w-full h-full object-cover" />
+                            ) : vid ? (
+                              <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><FileVideo className="w-4 h-4" /></div>
+                            ) : m.type === 'audio' ? (
+                              <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><Music className="w-4 h-4" /></div>
+                            ) : (
+                              <img src={m.url || ''} alt={m.title} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                            )}
+                            {selected && (
+                              <div className="absolute inset-0 bg-gold-500/30 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-black bg-gold-400 rounded-full p-0.5" />
+                              </div>
+                            )}
+                            {vid && !selected && (
+                              <div className="absolute bottom-0.5 right-0.5 px-1 rounded text-[8px] bg-black/70 text-gold-300 tracking-widest">REEL</div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Caption</label>
                 <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Caption / description" className="bg-white/[0.03]" />
