@@ -1,7 +1,8 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight } from 'lucide-react'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -289,6 +290,41 @@ export default function SettingsPage() {
                 <Plug className="w-3.5 h-3.5" /> Connect Instagram
               </Button>
             )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Billing (placeholder) =========================================== */}
+      <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.14}}
+        className="glass rounded-2xl p-6 sm:p-8"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Crown className="w-4 h-4 text-gold-400" />
+          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Billing</div>
+        </div>
+        <h2 className="font-display text-2xl mb-1">Your plan</h2>
+        <p className="text-luxe/70 text-sm mb-5">Manage your subscription and seats.</p>
+
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start gap-4 flex-wrap">
+          <div className="w-12 h-12 rounded-xl bg-gold-gradient text-black flex items-center justify-center shrink-0 shadow-gold-glow">
+            <Crown className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-medium">Single Creator</div>
+              <span className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">active</span>
+              <span className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full bg-white/[0.04] text-luxe/70">free preview</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 leading-snug">
+              ₹245/month · 1 workspace · 2 devices · AI scripting + viral engine included
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/pricing">
+              <Button className="bg-gold-gradient text-black gap-1.5">
+                <ArrowRight className="w-3.5 h-3.5" /> Upgrade plan
+              </Button>
+            </Link>
           </div>
         </div>
       </motion.div>

@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Film, Camera, Mic2, Star } from 'lucide-react'
+import { Sparkles, Film, Camera, Mic2, Star, Lightbulb, FileText, Scissors, CalendarCheck, Send, BarChart3, ArrowRight } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
@@ -58,30 +59,44 @@ export default function LoginPage() {
 
           <h1 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
             <span className="text-foreground">The </span>
-            <span className="text-gold-gradient">Production OS</span>
+            <span className="text-gold-gradient">AI Production OS</span>
             <br />
-            <span className="text-foreground">for cinematic creators.</span>
+            <span className="text-foreground">for creators.</span>
           </h1>
 
           <p className="text-luxe/80 text-lg max-w-md leading-relaxed">
-            Plan, shoot, and ship content with the elegance of a film studio.
+            Plan, script, shoot, edit, schedule, publish, and track — from one cinematic workspace.
             Built for storytellers who refuse to settle for ordinary.
           </p>
 
-          <div className="flex flex-wrap gap-3 pt-2">
+          {/* Workflow strip */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 max-w-md">
             {[
-              { icon: Film, label: 'Pipeline' },
-              { icon: Camera, label: 'Shoots' },
-              { icon: Mic2, label: 'Crew' },
-              { icon: Star, label: 'Analytics' },
-            ].map((f, i) => (
-              <motion.div key={f.label}
-                initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{delay:0.3 + i*0.08}}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-xs tracking-wide text-luxe"
-              >
-                <f.icon className="w-3.5 h-3.5 text-gold-400" />{f.label}
-              </motion.div>
+              { icon: Lightbulb,     label: 'Plan' },
+              { icon: FileText,      label: 'Script' },
+              { icon: Camera,        label: 'Shoot' },
+              { icon: Scissors,      label: 'Edit' },
+              { icon: CalendarCheck, label: 'Schedule' },
+              { icon: Send,          label: 'Publish' },
+              { icon: BarChart3,     label: 'Track' },
+            ].map((f, i, arr) => (
+              <div key={f.label} className="contents">
+                <motion.div
+                  initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{delay:0.3 + i*0.05}}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md glass text-[11px] tracking-wide text-luxe"
+                >
+                  <f.icon className="w-3 h-3 text-gold-400" />{f.label}
+                </motion.div>
+                {i < arr.length - 1 && <span className="text-gold-400/40 text-xs">→</span>}
+              </div>
             ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 pt-3">
+            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-xs tracking-[0.2em] uppercase text-gold-300 hover:text-gold-200 transition">
+              View pricing <ArrowRight className="w-3 h-3" />
+            </Link>
+            <span className="text-[10px] tracking-widest uppercase text-muted-foreground">From ₹245/month · 7-day free trial soon</span>
           </div>
         </div>
 
