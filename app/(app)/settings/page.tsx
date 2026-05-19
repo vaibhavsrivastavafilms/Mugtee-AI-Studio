@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { NICHES, AUDIENCES, readCreatorProfile, writeCreatorProfile } from '@/components/ai/viral-studio-panel'
 import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles } from 'lucide-react'
+import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -337,6 +338,11 @@ export default function SettingsPage() {
               </Button>
             )}
           </div>
+        </div>
+
+        {/* Phase P4 — YouTube Publishing connection */}
+        <div className="mt-5">
+          <YouTubeConnect />
         </div>
       </motion.div>
 
