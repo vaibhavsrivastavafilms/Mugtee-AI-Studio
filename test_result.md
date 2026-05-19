@@ -127,10 +127,21 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Replaced mock VIEWS/ENGAGEMENT arrays with real aggregates from useStore() + useUsage(). Stat cards: Total Content (with 7d-vs-prev-7d % delta), Scheduled, Published MTD (all-time too), AI Generations (used/cap or unlimited). 14-day Workflow Velocity area chart from content.created_at. Platform Mix bar chart from content.platform. Pipeline Funnel showing all 6 ContentStatus stages with animated bars. Recent Activity list from team_activity store. Empty-state CTA when no content. No new API/migrations."
+  - task: "P9 — Soft Launch Prep (SEO, favicon, OG, robots, sitemap)"
+    implemented: true
+    working: true
+    file: "app/layout.tsx, app/icon.tsx, app/apple-icon.tsx, app/opengraph-image.tsx, app/robots.ts, app/sitemap.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Soft launch SEO + branding shipped. (1) `app/layout.tsx` upgraded with full Metadata API: title template, OG (type/locale/siteName/url), Twitter summary_large_image, robots index/follow, viewport theme-color #0a0807, canonical, keywords, metadataBase from NEXT_PUBLIC_BASE_URL. (2) `app/icon.tsx` — dynamic 32×32 PNG favicon with gold-gradient `V` mark on cinematic dark radial bg. (3) `app/apple-icon.tsx` — 180×180 matching apple touch icon. (4) `app/opengraph-image.tsx` — 1200×630 cinematic OG card (edge runtime) with brand mark, headline `AI Production OS for Creators`, feature pills (Kanban/Calendar/Faceless AI/YouTube Intel), gold accents. (5) `app/robots.ts` — allow `/`, disallow authed app routes + /api/auth callbacks, points to sitemap. (6) `app/sitemap.ts` — public marketing URLs (/, /pricing, /login) with priorities. (7) Removed stale `app/layout.js` duplicate. VERIFIED via curl: robots.txt 200, sitemap.xml 200 with 3 URLs, icon 200 (1.5KB PNG), apple-icon 200 (18.8KB PNG), opengraph-image 200 (154KB PNG), all `<meta>` tags rendering (og:image, twitter:card, theme-color, canonical, description). Visual screenshot of OG card and favicon confirmed cinematic brand alignment."
 
 metadata:
   created_by: "main_agent"
-  version: "1.2"
+  version: "1.3"
   test_sequence: 1
   run_ui: false
 
@@ -145,3 +156,5 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "Completed P2+P7 monetization UX wiring AND P6 Analytics Light in one tight deploy. AI-cap → UpgradeModal → Rewarded Sponsor (+3 credits) → resume AI loop is complete across 3 AI surfaces (Viral Ideas panel, Faceless Studio, Weekly Planner). UsageGauge mounted on dashboard. Analytics page now reads real data from store. No backend/migrations. App compiles cleanly. Needs visual frontend verification: (1) dashboard renders UsageGauge with live counters, (2) cap-hit triggers UpgradeModal with sponsor CTA, (3) sponsor reward grants +3 credits and gauge updates, (4) analytics page shows real numbers, charts populate. Requires Google OAuth login — credentials not stored in test_credentials.md (OAuth-only)."
+    - agent: "main"
+      message: "P9 Soft Launch Prep shipped. Full SEO metadata stack, dynamic favicon (32×32) + apple-icon (180×180) + OG card (1200×630) all generated at request time by next/og (no binary assets to manage). robots.txt + sitemap.xml served by Next.js MetadataRoute. All 6 endpoints verified live: robots.txt (200), sitemap.xml (200, 3 URLs), /icon (200, image/png), /apple-icon (200, image/png), /opengraph-image (200, 154KB PNG), and full <meta> tag suite on /login. Removed stale duplicate `app/layout.js`. App is share-ready for Twitter/LinkedIn/iMessage/WhatsApp/Slack previews."
