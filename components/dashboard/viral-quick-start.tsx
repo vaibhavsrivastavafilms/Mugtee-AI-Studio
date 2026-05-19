@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, X, CalendarCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PLATFORM_META } from '@/lib/dummy-data'
 import { useViralIdeas, IdeaCard, TONES } from '@/components/ai/viral-studio-panel'
+import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
 import type { Platform } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +15,7 @@ export function ViralQuickStart() {
   const v = useViralIdeas()
   const [open, setOpen] = useState(true)
   const [scrolled, setScrolled] = useState(false)
+  const [plannerOpen, setPlannerOpen] = useState(false)
 
   // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
   useEffect(() => {
@@ -72,9 +74,26 @@ export function ViralQuickStart() {
                   <p className="text-[11px] text-muted-foreground leading-snug hidden sm:block">Generate viral cinematic content ideas instantly.</p>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition shrink-0" aria-label="Close">
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setPlannerOpen(true)}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
+                  aria-label="Plan my week"
+                  title="Plan a full week of content with AI"
+                >
+                  <CalendarCheck className="w-3.5 h-3.5" /> Plan Week
+                </button>
+                <button
+                  onClick={() => setPlannerOpen(true)}
+                  className="sm:hidden p-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 text-gold-300 hover:bg-gold-500/20 transition"
+                  aria-label="Plan my week"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                </button>
+                <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition" aria-label="Close">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Compact form — hides when scrolled-collapsed (unless no results yet) */}
@@ -168,6 +187,9 @@ export function ViralQuickStart() {
           </motion.section>
         )}
       </AnimatePresence>
+
+      {/* Phase 12 — Weekly AI Content Planner */}
+      <WeeklyPlannerDialog open={plannerOpen} onOpenChange={setPlannerOpen} />
     </>
   )
 }

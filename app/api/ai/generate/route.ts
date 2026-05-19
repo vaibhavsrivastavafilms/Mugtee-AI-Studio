@@ -20,6 +20,8 @@ type Mode =
   | 'comments'                      // /comments  — pinned + comment-bait set
   | 'clone'                         // /clone     — reverse-engineer mechanics of a reference, do NOT copy
   | 'ideas'                         // viral idea seeds — 3-5 structured ideas (title + hook + angle), used by the Pipeline side panel
+  | 'weekly_plan'                   // Phase 12 — generate an N-day strategic content plan (default 7)
+  | 'regen_day'                     // Phase 12 — regenerate a single day given context (day_index, existing pillars, requested field)
 
 interface AIRequest {
   mode: Mode
@@ -36,6 +38,15 @@ interface AIRequest {
     tone?: 'cinematic_emotional' | 'funny_relatable' | 'storytelling' | 'luxury_premium' | string | null
     niche?: string | null          // restaurant / fitness / fashion / travel / filmmaker / coach / education / luxury / podcast / comedy / agency / business / ...
     audience?: string | null       // gen_z / millennials / professionals / luxury / mass / students / creators / ...
+    // Phase 12 — weekly planner fields
+    days?: number | null              // how many days to plan (default 7)
+    frequency?: string | null         // 'daily' / '3x_week' / '5x_week' / etc — free text
+    goal?: string | null              // growth / engagement / storytelling / product_awareness / personal_branding / ...
+    start_date?: string | null        // ISO date — first day of the plan
+    day_index?: number | null         // for regen_day — 0-based
+    day_label?: string | null         // for regen_day — e.g. 'Monday'
+    used_pillars?: string[] | null    // for regen_day — pillars already used elsewhere in the week
+    regen_field?: 'all' | 'hook' | 'cta' | null  // for regen_day — what to regenerate
   }
 }
 
@@ -431,6 +442,98 @@ ${block}`,
       }
     }
 
+    case 'weekly_plan': {
+      const days = Math.max(1, Math.min(14, Number(ctx?.days) || 7))
+      const goal = ctx?.goal || 'growth'
+      const frequency = ctx?.frequency || 'daily'
+      const startDate = ctx?.start_date || new Date().toISOString().slice(0, 10)
+      return {
+        wantsJson: true,
+        user: `Act as a senior content strategist for this creator. Generate a ${days}-day strategic content plan for ${platform}. Output STRICT JSON, no markdown.
+
+CONTEXT:
+${block}
+Plan length: ${days} days
+Posting frequency: ${frequency}
+Campaign goal: ${goal}
+Start date: ${startDate}
+
+STRATEGY RULES (apply carefully):
+- Balance the content mix across these PILLARS: educational, emotional, entertaining, relatable, authority, trend.
+- Use AT LEAST 4 distinct pillars across the ${days} days. No two CONSECUTIVE days share the same pillar.
+- Vary content_type across reel / post / carousel / short — at least 3 distinct types in the week.
+- Each day's hook is native to the niche + audience (see CONTEXT). No generic creator-template lines.
+- Posting_date should advance day-by-day from start_date (YYYY-MM-DD).
+- emotional_angle is the psychological lever (recognition / contrarian / curiosity / nostalgia / aspiration / gut_punch / relief / awe / FOMO).
+- CTA is conversational, not shouty — fits the platform and audience.
+- All language matches the language preference and tone in CONTEXT.
+
+OUTPUT SHAPE — exactly this JSON:
+{
+  "strategy_summary": "<one-sentence strategic thesis for this week (under 22 words)>",
+  "days": [
+    {
+      "day_index": 0,
+      "day_label": "<weekday name in plan language, e.g. Monday>",
+      "posting_date": "YYYY-MM-DD",
+      "title": "<scroll-stopping title, under 10 words>",
+      "hook": "<first 2 seconds, max 12 words, audience-native register>",
+      "content_type": "reel|post|carousel|short",
+      "description": "<2-3 short lines describing what the post delivers, in the audience's natural register>",
+      "cta": "<one short conversational CTA — no shouting>",
+      "emotional_angle": "<one of: recognition | contrarian | curiosity | nostalgia | aspiration | gut_punch | relief | awe | FOMO>",
+      "content_pillar": "<one of: educational | emotional | entertaining | relatable | authority | trend>"
+    },
+    ... ${days - 1} more
+  ]
+}
+
+Return EXACTLY ${days} day entries.`,
+      }
+    }
+
+    case 'regen_day': {
+      const dayIdx = Number(ctx?.day_index) || 0
+      const dayLabel = ctx?.day_label || ''
+      const used = (ctx?.used_pillars || []).filter(Boolean).join(', ') || 'none'
+      const field = ctx?.regen_field || 'all'
+      const focusInstruction =
+        field === 'hook' ? 'ONLY change the "hook" field — keep all other fields identical to what you would have generated.'
+        : field === 'cta' ? 'ONLY change the "cta" field — keep all other fields identical to what you would have generated.'
+        : 'Regenerate ALL fields fresh — but keep the same posting_date and day_label.'
+      return {
+        wantsJson: true,
+        user: `Regenerate a SINGLE day of the content plan for this creator on ${platform}. Output STRICT JSON, no markdown.
+
+CONTEXT:
+${block}
+Day index: ${dayIdx}
+Day label: ${dayLabel}
+Posting date: ${ctx?.start_date || ''}
+Already-used pillars elsewhere this week: ${used}
+Regeneration scope: ${focusInstruction}
+
+RULES:
+- Pick a content_pillar that is DIFFERENT from the already-used pillars when possible (educational / emotional / entertaining / relatable / authority / trend).
+- Hook is native to the niche + audience in CONTEXT — no generic templates.
+- Variety: pick a content_type (reel / post / carousel / short) that adds variety.
+
+OUTPUT SHAPE — exactly this JSON (single day object):
+{
+  "day_index": ${dayIdx},
+  "day_label": "${dayLabel}",
+  "posting_date": "${ctx?.start_date || ''}",
+  "title": "<under 10 words>",
+  "hook": "<max 12 words, audience-native>",
+  "content_type": "reel|post|carousel|short",
+  "description": "<2-3 short lines>",
+  "cta": "<one short conversational CTA>",
+  "emotional_angle": "<recognition | contrarian | curiosity | nostalgia | aspiration | gut_punch | relief | awe | FOMO>",
+  "content_pillar": "<educational | emotional | entertaining | relatable | authority | trend>"
+}`,
+      }
+    }
+
     case 'analyze': {
       const target = ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'
       return {
@@ -480,7 +583,7 @@ export async function POST(req: NextRequest) {
         { role: 'user', content: user },
       ],
       temperature: body.mode === 'analyze' ? 0.35 : 0.9,
-      max_tokens: body.mode === 'analyze' ? 600 : 900,
+      max_tokens: body.mode === 'weekly_plan' ? 2200 : body.mode === 'analyze' ? 600 : 900,
     }
     if (wantsJson) payload.response_format = { type: 'json_object' }
 

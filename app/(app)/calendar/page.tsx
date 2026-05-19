@@ -3,7 +3,7 @@ import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, format, isSameMonth, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Film, Image as ImageIcon, FileVideo, Music, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Film, Image as ImageIcon, FileVideo, Music, Check, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useConfirm } from '@/components/ui/confirm'
 import type { ContentPiece, Platform } from '@/lib/types'
 import { AiButton } from '@/components/ai/ai-button'
+import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
 
 export default function CalendarPage() {
   const { content, addContent, updateContent, removeContent } = useStore()
@@ -20,6 +21,7 @@ export default function CalendarPage() {
   const [cursor, setCursor] = useState(new Date())
   const [creating, setCreating] = useState<{date: Date | null, open: boolean}>({date:null, open:false})
   const [editing, setEditing] = useState<ContentPiece | null>(null)
+  const [plannerOpen, setPlannerOpen] = useState(false)
   // Phase 7C — drag-to-reschedule (native HTML5, no deps). Preserves time-of-day, just shifts the date part.
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverKey, setDragOverKey] = useState<string | null>(null)
@@ -68,6 +70,9 @@ export default function CalendarPage() {
             <button onClick={() => setCursor(subMonths(cursor, 1))} className="p-2 rounded-lg glass"><ChevronLeft className="w-4 h-4" /></button>
             <button onClick={() => setCursor(new Date())} className="px-3 py-2 text-xs rounded-lg glass">Today</button>
             <button onClick={() => setCursor(addMonths(cursor, 1))} className="p-2 rounded-lg glass"><ChevronRight className="w-4 h-4" /></button>
+            <Button onClick={() => setPlannerOpen(true)} variant="outline" className="ml-2 h-9 gap-2 border-gold-500/30 hover:border-gold-500/60 hover:bg-gold-500/10 text-gold-300">
+              <Sparkles className="w-4 h-4" /> Plan Week
+            </Button>
             <Dialog open={creating.open} onOpenChange={(o) => setCreating(s => ({...s, open:o}))}>
               <DialogTrigger asChild>
                 <Button className="ml-2 h-9 bg-gold-gradient text-black gap-2 shadow-gold-glow"><Plus className="w-4 h-4" /> New Post</Button>
@@ -162,6 +167,9 @@ export default function CalendarPage() {
           />
         )}
       </Dialog>
+
+      {/* Phase 12 — Weekly AI Content Planner */}
+      <WeeklyPlannerDialog open={plannerOpen} onOpenChange={setPlannerOpen} />
     </div>
   )
 }
