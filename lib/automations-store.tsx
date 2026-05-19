@@ -58,6 +58,7 @@ export function AutomationsProvider({ userId, children }: { userId: string; chil
   // Session-local dedupe sets (avoid re-notifying same overdue/auto-enqueue across ticks)
   const overdueSeen = useRef<Set<string>>(new Set())
   const enqueuedSeen = useRef<Set<string>>(new Set())
+  const productionSeen = useRef<Set<string>>(new Set())   // script/shoot/edit production-date events
 
   // ---------- Initial load ----------
   useEffect(() => {
@@ -174,6 +175,34 @@ export function AutomationsProvider({ userId, children }: { userId: string; chil
           if (overdueSeen.current.has(key)) continue
           overdueSeen.current.add(key)
           await notify({ title: 'Shoot overdue', message: `“${s.title}” was set for ${s.date}`, type: 'overdue', link: '/shoots?overdue=' + s.id })
+        }
+
+        // 5b. PRODUCTION TIMELINE EVENTS — script_due / shoot_date / edit_due per content piece
+        // Fire once-per-session per content per stage. Reminder window: within next 60 min → upcoming. After → overdue.
+        const stages: { field: 'script_due_date' | 'shoot_date' | 'edit_due_date'; label: string; terminal: (status: string) => boolean }[] = [
+          { field: 'script_due_date', label: 'Script',  terminal: (s) => ['shooting','editing','scheduled','published'].includes(s) },
+          { field: 'shoot_date',      label: 'Shoot',   terminal: (s) => ['editing','scheduled','published'].includes(s) },
+          { field: 'edit_due_date',   label: 'Edit',    terminal: (s) => ['scheduled','published'].includes(s) },
+        ]
+        for (const c of content as any[]) {
+          for (const stage of stages) {
+            const when = c[stage.field]
+            if (!when) continue
+            if (stage.terminal(c.status || '')) continue
+            const t = new Date(when).getTime()
+            const diff = t - now.getTime()
+            if (diff > 60 * 60 * 1000) continue   // not yet within the next hour
+            const overdue = diff < 0
+            const key = `prod:${stage.field}:${overdue ? 'over' : 'up'}:${c.id}`
+            if (productionSeen.current.has(key)) continue
+            productionSeen.current.add(key)
+            await notify({
+              title: overdue ? `${stage.label} overdue` : `${stage.label} due soon`,
+              message: `“${c.title}” — ${new Date(when).toLocaleString()}`,
+              type: overdue ? 'overdue' : 'reminder',
+              link: '/pipeline',
+            })
+          }
         }
 
         // 6. AUTO-ENQUEUE — content with scheduled_at + status 'scheduled' + not already queued

@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
@@ -19,13 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { AiButton } from '@/components/ai/ai-button'
 import { ViralStudioPanel } from '@/components/ai/viral-studio-panel'
+import { useAutomations } from '@/lib/automations-store'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
+
+const ScheduleCtx = createContext<(p: ContentPiece) => void>(() => {})
 
 export default function PipelinePage() {
   const { content, setStatus, updateContent, addContent, removeContent } = useStore()
   const confirm = useConfirm()
   const [newCardStatus, setNewCardStatus] = useState<ContentStatus | null>(null)
+  const [scheduling, setScheduling] = useState<ContentPiece | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const statusParam = searchParams.get('status')
@@ -79,6 +83,7 @@ export default function PipelinePage() {
         </div>
       </motion.div>
 
+      <ScheduleCtx.Provider value={setScheduling}>
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-4 items-start">
           <div className="flex-1 min-w-0">
@@ -96,11 +101,17 @@ export default function PipelinePage() {
         <DragOverlay>
           {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
       </DndContext>
+      </ScheduleCtx.Provider>
 
       <NewCardDialog
         status={newCardStatus}
         onClose={() => setNewCardStatus(null)}
         onCreate={(data) => { addContent(data); setNewCardStatus(null) }}
+      />
+
+      <ScheduleDialog
+        item={scheduling}
+        onClose={() => setScheduling(null)}
       />
     </div>
   )
@@ -201,6 +212,14 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
   const platform = PLATFORM_META[item.platform]
   const { removeContent } = useStore()
   const confirm = useConfirm()
+  const onSchedule = useContext(ScheduleCtx)
+  const stages: { key: keyof ContentPiece; label: string; dot: string }[] = [
+    { key: 'script_due_date', label: 'S', dot: 'bg-blue-400' },
+    { key: 'shoot_date',      label: 'F', dot: 'bg-orange-400' },
+    { key: 'edit_due_date',   label: 'E', dot: 'bg-purple-400' },
+    { key: 'scheduled_at',    label: 'P', dot: 'bg-gold-400' },
+  ]
+  const activeStages = stages.filter(s => !!(item as any)[s.key])
   return (
     <div className={cn(
       'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all relative',
@@ -210,6 +229,15 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
       {!dragging && (
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-10">
           <AiButton content={item} variant="icon" />
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onSchedule(item) }}
+            className="p-1.5 rounded-md bg-black/40 backdrop-blur hover:bg-gold-500/30 ring-1 ring-gold-500/30 transition"
+            aria-label="Schedule"
+            title="Schedule production timeline"
+          >
+            <CalendarCheck className="w-3 h-3" />
+          </button>
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={async (e) => {
@@ -232,6 +260,16 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
           {item.description && <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{item.description}</div>}
         </div>
       </div>
+      {activeStages.length > 0 && (
+        <div className="flex items-center gap-1 mt-1.5 mb-2">
+          {activeStages.map(stg => (
+            <span key={stg.key as string} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] tracking-widest text-muted-foreground bg-white/[0.03] border border-white/[0.05]" title={`${stg.label} timeline set`}>
+              <span className={cn('w-1.5 h-1.5 rounded-full', stg.dot)} />
+              {stg.label}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="flex items-center justify-between mt-3">
         <span className={cn('text-[10px] tracking-[0.15em] uppercase font-medium', platform.color)}>{platform.label}</span>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -240,5 +278,111 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
         </div>
       </div>
     </div>
+  )
+}
+
+
+function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose: () => void }) {
+  const { updateContent, setStatus } = useStore()
+  const { enqueue, queue } = useAutomations()
+  const toLocal = (iso?: string | null) => iso ? format(parseISO(iso), "yyyy-MM-dd'T'HH:mm") : ''
+  const [scriptDue, setScriptDue] = useState('')
+  const [shootAt, setShootAt]     = useState('')
+  const [editDue, setEditDue]     = useState('')
+  const [publishAt, setPublishAt] = useState('')
+  const [autoQueue, setAutoQueue] = useState(true)
+
+  useEffect(() => {
+    if (item) {
+      setScriptDue(toLocal(item.script_due_date as any))
+      setShootAt(toLocal(item.shoot_date as any))
+      setEditDue(toLocal(item.edit_due_date as any))
+      setPublishAt(toLocal(item.scheduled_at as any))
+      setAutoQueue(true)
+    }
+  }, [item])
+
+  if (!item) return null
+
+  const save = async () => {
+    const patch: Partial<ContentPiece> = {
+      script_due_date: scriptDue ? new Date(scriptDue).toISOString() : null,
+      shoot_date:      shootAt   ? new Date(shootAt).toISOString()   : null,
+      edit_due_date:   editDue   ? new Date(editDue).toISOString()   : null,
+      scheduled_at:    publishAt ? new Date(publishAt).toISOString() : null,
+    }
+    await updateContent(item.id, patch)
+    // If a publish date is set, advance status to 'scheduled' (auto-enqueue tick will pick it up)
+    if (publishAt && item.status !== 'scheduled' && item.status !== 'published') {
+      await setStatus(item.id, 'scheduled')
+    }
+    // If user wants immediate queue creation (not waiting for the 60s tick) and no queue item exists yet, enqueue now
+    if (autoQueue && publishAt) {
+      const exists = queue.some(q => q.content_id === item.id && q.status !== 'failed' && q.status !== 'published')
+      if (!exists) {
+        await enqueue({
+          content_id: item.id,
+          platform: item.platform,
+          scheduled_for: new Date(publishAt).toISOString(),
+          status: 'queued',
+        })
+      }
+    }
+    onClose()
+  }
+
+  return (
+    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="glass-strong sm:max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
+            <CalendarCheck className="w-3 h-3" /> Production Schedule
+          </div>
+          <DialogTitle className="font-display text-2xl">
+            <span className="text-gold-gradient">Schedule</span> “{item.title}”
+          </DialogTitle>
+          <p className="text-[11px] text-muted-foreground">Plan script, shoot, edit, and publish windows. Reminders + queue fire automatically.</p>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-blue-300/80 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Script due
+              </label>
+              <Input type="datetime-local" value={scriptDue} onChange={e => setScriptDue(e.target.value)} className="bg-white/[0.03]" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-orange-300/80 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400" /> Shoot date
+              </label>
+              <Input type="datetime-local" value={shootAt} onChange={e => setShootAt(e.target.value)} className="bg-white/[0.03]" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-purple-300/80 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" /> Edit due
+              </label>
+              <Input type="datetime-local" value={editDue} onChange={e => setEditDue(e.target.value)} className="bg-white/[0.03]" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-gold-300/80 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-400" /> Publish at
+              </label>
+              <Input type="datetime-local" value={publishAt} onChange={e => setPublishAt(e.target.value)} className="bg-white/[0.03]" />
+            </div>
+          </div>
+          {publishAt && (
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground select-none cursor-pointer">
+              <input type="checkbox" checked={autoQueue} onChange={(e) => setAutoQueue(e.target.checked)} className="accent-gold-500" />
+              <Send className="w-3 h-3 text-gold-400" />
+              Add to publishing queue immediately
+            </label>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} className="mr-auto text-muted-foreground">Cancel</Button>
+          <Button onClick={save} className="bg-gold-gradient text-black">Save schedule</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -26,6 +26,24 @@ export default function CalendarPage() {
   const days = eachDayOfInterval({ start, end })
   const scheduled = content.filter(c => c.scheduled_at)
 
+  // Production-stage events to overlay as badges
+  const stages: { field: 'script_due_date' | 'shoot_date' | 'edit_due_date'; label: string; dot: string }[] = [
+    { field: 'script_due_date', label: 'Script', dot: 'bg-blue-400' },
+    { field: 'shoot_date',      label: 'Shoot',  dot: 'bg-orange-400' },
+    { field: 'edit_due_date',   label: 'Edit',   dot: 'bg-purple-400' },
+  ]
+  const stageEventsForDay = (day: Date) => {
+    const arr: { id: string; title: string; label: string; dot: string }[] = []
+    for (const c of content as any[]) {
+      for (const stg of stages) {
+        if (c[stg.field] && isSameDay(parseISO(c[stg.field]), day)) {
+          arr.push({ id: c.id + ':' + stg.field, title: c.title, label: stg.label, dot: stg.dot })
+        }
+      }
+    }
+    return arr
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto space-y-6">
       <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}>
@@ -85,6 +103,13 @@ export default function CalendarPage() {
                       </div>
                     </button>
                   ))}
+                  {stageEventsForDay(day).slice(0, 3).map(ev => (
+                    <div key={ev.id} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] tracking-wider text-muted-foreground" title={`${ev.label} · ${ev.title}`}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', ev.dot)} />
+                      <span className="uppercase">{ev.label}</span>
+                      <span className="truncate text-luxe/70 normal-case">{ev.title}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )
@@ -116,6 +141,10 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
   const [status, setStatus] = useState((initial?.status as any) || 'scheduled')
   const [when, setWhen] = useState(initial?.scheduled_at ? format(parseISO(initial.scheduled_at), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))
   const [desc, setDesc] = useState(initial?.description || '')
+  const initLocal = (iso?: string | null) => iso ? format(parseISO(iso), "yyyy-MM-dd'T'HH:mm") : ''
+  const [scriptDue, setScriptDue] = useState(initLocal(initial?.script_due_date as any))
+  const [shootAt, setShootAt]     = useState(initLocal(initial?.shoot_date as any))
+  const [editDue, setEditDue]     = useState(initLocal(initial?.edit_due_date as any))
 
   return (
     <DialogContent className="glass-strong sm:max-w-lg">
@@ -148,8 +177,22 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">Scheduled at</label>
+          <label className="text-xs tracking-wider uppercase text-muted-foreground">Publish at</label>
           <Input type="datetime-local" value={when} onChange={e => setWhen(e.target.value)} className="bg-white/[0.03]" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-blue-300/80">Script due</label>
+            <Input type="datetime-local" value={scriptDue} onChange={e => setScriptDue(e.target.value)} className="bg-white/[0.03] h-9 text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-orange-300/80">Shoot</label>
+            <Input type="datetime-local" value={shootAt} onChange={e => setShootAt(e.target.value)} className="bg-white/[0.03] h-9 text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-purple-300/80">Edit due</label>
+            <Input type="datetime-local" value={editDue} onChange={e => setEditDue(e.target.value)} className="bg-white/[0.03] h-9 text-xs" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-xs tracking-wider uppercase text-muted-foreground">Description</label>
@@ -168,7 +211,10 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
           title: title || 'Untitled',
           platform, status,
           scheduled_at: new Date(when).toISOString(),
-          description: desc
+          description: desc,
+          script_due_date: scriptDue ? new Date(scriptDue).toISOString() : null,
+          shoot_date:      shootAt   ? new Date(shootAt).toISOString()   : null,
+          edit_due_date:   editDue   ? new Date(editDue).toISOString()   : null,
         })} className="bg-gold-gradient text-black">Save</Button>
       </DialogFooter>
     </DialogContent>

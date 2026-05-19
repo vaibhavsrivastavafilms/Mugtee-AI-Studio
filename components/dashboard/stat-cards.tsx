@@ -1,9 +1,10 @@
 'use client'
 import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
+import { useAutomations } from '@/lib/automations-store'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Check, X, TrendingUp, Calendar, Film, Users, ArrowUpRight } from 'lucide-react'
+import { Pencil, Check, X, Send, Calendar, Clapperboard, AlertTriangle, ArrowUpRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/state'
@@ -19,16 +20,40 @@ interface Stat {
 }
 
 export function StatCards() {
-  const { content, crew, loading } = useStore()
+  const { content, shoots, loading } = useStore()
+  const { queue } = useAutomations()
   const router = useRouter()
-  const scheduled = content.filter(c => c.status === 'scheduled').length
-  const inProduction = content.filter(c => ['scripting','shooting','editing'].includes(c.status as any)).length
+
+  const now = new Date()
+  const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const nowIso = now.toISOString()
+  const weekAheadIso = weekAhead.toISOString()
+  const todayDate = nowIso.slice(0, 10)
+  const weekAheadDate = weekAheadIso.slice(0, 10)
+
+  // 1) Posts scheduled this week — content with publish date in next 7 days
+  const scheduledThisWeek = content.filter((c: any) =>
+    c.scheduled_at && c.scheduled_at >= nowIso && c.scheduled_at <= weekAheadIso
+  ).length
+
+  // 2) Upcoming shoots — shoots in next 7 days OR content.shoot_date in next 7 days
+  const upcomingShootsFromTable = shoots.filter((s: any) => s.date && s.date >= todayDate && s.date <= weekAheadDate).length
+  const upcomingShootsFromContent = content.filter((c: any) => c.shoot_date && c.shoot_date >= nowIso && c.shoot_date <= weekAheadIso).length
+  const upcomingShoots = upcomingShootsFromTable + upcomingShootsFromContent
+
+  // 3) Overdue edits — content.edit_due_date in the past AND status not scheduled/published
+  const overdueEdits = content.filter((c: any) =>
+    c.edit_due_date && c.edit_due_date < nowIso && !['scheduled','published'].includes(c.status)
+  ).length
+
+  // 4) Queued content — queue items in flight (queued, publishing, draft)
+  const queuedCount = queue.filter(q => ['queued','publishing','draft'].includes(q.status)).length
 
   const computed: Stat[] = [
-    { key: 'total',        label: 'Total Content Pieces', value: String(content.length),  delta: '+12%', icon: Film,       accent: 'from-gold-500/20 to-gold-700/0',     href: '/pipeline' },
-    { key: 'scheduled',    label: 'Scheduled Posts',      value: String(scheduled),       delta: '+4',   icon: Calendar,   accent: 'from-amber-400/20 to-amber-700/0',   href: '/calendar?status=scheduled' },
-    { key: 'inproduction', label: 'In Production',        value: String(inProduction),    delta: '+2',   icon: TrendingUp, accent: 'from-rose-400/15 to-rose-700/0',     href: '/pipeline?status=production' },
-    { key: 'crew',         label: 'Active Crew',          value: String(crew.length),     delta: 'live',icon: Users,      accent: 'from-emerald-400/15 to-emerald-700/0', href: '/crew' },
+    { key: 'scheduled_week', label: 'Scheduled This Week', value: String(scheduledThisWeek), delta: '7d',  icon: Send,           accent: 'from-gold-500/20 to-gold-700/0',      href: '/calendar' },
+    { key: 'upcoming_shoots', label: 'Upcoming Shoots',    value: String(upcomingShoots),    delta: '7d',  icon: Clapperboard,   accent: 'from-amber-400/20 to-amber-700/0',    href: '/shoots' },
+    { key: 'overdue_edits',   label: 'Overdue Edits',      value: String(overdueEdits),      delta: overdueEdits > 0 ? '!' : 'ok', icon: AlertTriangle, accent: 'from-rose-400/15 to-rose-700/0', href: '/pipeline?status=editing' },
+    { key: 'queued',          label: 'Queued Content',     value: String(queuedCount),       delta: 'live', icon: Calendar,      accent: 'from-emerald-400/15 to-emerald-700/0', href: '/automations' },
   ]
 
   const [overrides, setOverrides] = useState<Record<string, string>>({})
@@ -50,18 +75,22 @@ export function StatCards() {
       {stats.map((s, i) => {
         const Icon = s.icon
         const isEditing = editing === s.key
+        const isAlert = s.key === 'overdue_edits' && parseInt(s.value, 10) > 0
         return (
           <motion.div key={s.key}
             initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:i*0.06, duration:0.5}}
             whileHover={{y:-3}}
             onClick={() => { if (!isEditing) router.push(s.href) }}
-            className="group relative rounded-2xl glass overflow-hidden p-5 hover:shadow-cinema transition-shadow cursor-pointer"
+            className={cn(
+              'group relative rounded-2xl glass overflow-hidden p-5 hover:shadow-cinema transition-shadow cursor-pointer',
+              isAlert && 'ring-1 ring-red-500/40',
+            )}
           >
             <div className={cn('absolute -top-12 -right-12 w-40 h-40 rounded-full blur-2xl bg-gradient-to-br opacity-70', s.accent)} />
             <div className="relative">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-lg glass-gold flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-gold-300" />
+                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', isAlert ? 'bg-red-500/15 ring-1 ring-red-500/30' : 'glass-gold')}>
+                  <Icon className={cn('w-4 h-4', isAlert ? 'text-red-300' : 'text-gold-300')} />
                 </div>
                 {!isLoading && (
                   <button onClick={(e) => { e.stopPropagation(); isEditing ? save() : startEdit(s) }}
@@ -85,10 +114,10 @@ export function StatCards() {
                 <div className="font-display text-3xl sm:text-4xl tracking-tight">{s.value}</div>
               )}
               <div className="flex items-center gap-1.5 mt-2 text-xs">
-                <span className="inline-flex items-center gap-0.5 text-emerald-300">
+                <span className={cn('inline-flex items-center gap-0.5', isAlert ? 'text-red-300' : 'text-emerald-300')}>
                   <ArrowUpRight className="w-3 h-3" /> {s.delta}
                 </span>
-                <span className="text-muted-foreground">vs last week</span>
+                <span className="text-muted-foreground">production timeline</span>
               </div>
             </div>
           </motion.div>

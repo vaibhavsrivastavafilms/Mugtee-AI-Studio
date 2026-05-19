@@ -15,6 +15,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 
+function formatCountdown(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ${m % 60}m`
+  const d = Math.floor(h / 24)
+  return `${d}d ${h % 24}h`
+}
+
 export default function AutomationsPage() {
   const { workflows, queue, notifications, loading, addWorkflow, updateWorkflow, removeWorkflow, toggleWorkflow, setQueueStatus, removeQueueItem } = useAutomations()
   const { content, shoots } = useStore()
@@ -108,11 +119,23 @@ export default function AutomationsPage() {
                 draft: 'queued', queued: 'publishing', publishing: 'published', published: null, failed: 'queued',
               }
               const next = NEXT[q.status]
+              const scheduledMs = q.scheduled_for ? new Date(q.scheduled_for).getTime() : null
+              const nowMs = Date.now()
+              const isOverdue = scheduledMs !== null && scheduledMs < nowMs && (q.status === 'queued' || q.status === 'draft')
+              const countdown = scheduledMs !== null && scheduledMs > nowMs ? formatCountdown(scheduledMs - nowMs) : null
               return (
-                <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <div key={q.id} className={cn(
+                  'flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border transition',
+                  isOverdue ? 'border-red-500/40 bg-red-500/[0.04]' : 'border-white/[0.05]',
+                )}>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{title} <span className="text-muted-foreground">· {q.platform || 'unknown'}</span></div>
-                    <div className="text-[11px] text-muted-foreground">{q.scheduled_for ? format(parseISO(q.scheduled_for), 'EEE, MMM d · HH:mm') : 'No schedule'}{q.error ? ` · ${q.error}` : ''}</div>
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
+                      <span>{q.scheduled_for ? format(parseISO(q.scheduled_for), 'EEE, MMM d · HH:mm') : 'No schedule'}</span>
+                      {countdown && <span className="text-gold-300">· in {countdown}</span>}
+                      {isOverdue && <span className="text-red-300 font-medium">· OVERDUE</span>}
+                      {q.error && <span>· {q.error}</span>}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <DropdownMenu>
