@@ -1,5 +1,5 @@
 export type ContentStatus = 'idea' | 'scripting' | 'shooting' | 'editing' | 'scheduled' | 'published'
-export type Platform = 'youtube' | 'instagram' | 'tiktok' | 'twitter' | 'linkedin'
+export type Platform = 'youtube' | 'instagram' | 'tiktok' | 'twitter' | 'linkedin' | 'facebook' | 'reddit'
 export type CrewStatus = 'active' | 'busy' | 'offline'
 export type ShootStatus = 'planned' | 'today' | 'wrapped'
 export type MediaType = 'image' | 'video' | 'audio'

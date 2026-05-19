@@ -4,20 +4,25 @@ import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
-import type { ContentPiece, ContentStatus } from '@/lib/types'
+import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
 import { useConfirm } from '@/components/ui/confirm'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
 
 export default function PipelinePage() {
   const { content, setStatus, updateContent, addContent, removeContent } = useStore()
   const confirm = useConfirm()
+  const [newCardStatus, setNewCardStatus] = useState<ContentStatus | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -57,21 +62,69 @@ export default function PipelinePage() {
           {COLUMNS.map((col, i) => {
             const items = content.filter(c => c.status === col)
             return (
-              <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => {
-                addContent({
-                  id: 'p'+Date.now(),
-                  title: 'New idea',
-                  status: col,
-                  platform: 'youtube',
-                })
-              }} />
+              <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => setNewCardStatus(col)} />
             )
           })}
         </div>
         <DragOverlay>
           {activeItem ? <KanbanCard item={activeItem} dragging /> : null}        </DragOverlay>
       </DndContext>
+
+      <NewCardDialog
+        status={newCardStatus}
+        onClose={() => setNewCardStatus(null)}
+        onCreate={(data) => { addContent(data); setNewCardStatus(null) }}
+      />
     </div>
+  )
+}
+
+function NewCardDialog({ status, onClose, onCreate }: { status: ContentStatus | null; onClose: () => void; onCreate: (data: Partial<ContentPiece>) => void }) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [platform, setPlatform] = useState<Platform>('youtube')
+
+  useEffect(() => {
+    if (status) { setTitle(''); setDescription(''); setPlatform('youtube') }
+  }, [status])
+
+  return (
+    <Dialog open={!!status} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="glass-strong sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl">
+            New <span className="text-gold-gradient">{status ? STATUS_META[status].label : ''}</span> idea
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className="text-xs tracking-wider uppercase text-muted-foreground">Title</label>
+            <Input autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="Working title…" className="bg-white/[0.03]" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs tracking-wider uppercase text-muted-foreground">Description</label>
+            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Hook, concept, or notes…" className="bg-white/[0.03]" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs tracking-wider uppercase text-muted-foreground">Platform</label>
+            <Select value={platform} onValueChange={(v) => setPlatform(v as Platform)}>
+              <SelectTrigger className="bg-white/[0.03]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PLATFORM_META).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => {
+            if (!status) return
+            onCreate({ title: title.trim() || 'Untitled', description: description.trim() || null, platform, status })
+          }} className="bg-gold-gradient text-black">Create card</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

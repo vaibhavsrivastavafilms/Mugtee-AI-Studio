@@ -45,6 +45,8 @@ export const PLATFORM_META: Record<string, { label: string; color: string }> = {
   youtube:   { label: 'YouTube',   color: 'text-red-400' },
   instagram: { label: 'Instagram', color: 'text-pink-400' },
   tiktok:    { label: 'TikTok',    color: 'text-cyan-300' },
-  twitter:   { label: 'Twitter',   color: 'text-sky-400' },
+  facebook:  { label: 'Facebook',  color: 'text-blue-500' },
+  reddit:    { label: 'Reddit',    color: 'text-orange-400' },
   linkedin:  { label: 'LinkedIn',  color: 'text-blue-400' },
+  twitter:   { label: 'X / Twitter', color: 'text-sky-300' },
 }
