@@ -37,8 +37,8 @@ export default function LoginPage() {
       {/* Cinematic background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-noir-radial" />
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-gold-500/10 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-[700px] h-[700px] rounded-full bg-amber-700/10 blur-3xl" />
+        <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-gold-500/[0.06] blur-2xl" />
+        <div className="absolute -bottom-32 -right-32 w-[480px] h-[480px] rounded-full bg-amber-700/[0.06] blur-2xl" />
         <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:'radial-gradient(circle at 1px 1px, rgba(245,208,97,0.5) 1px, transparent 0)', backgroundSize:'32px 32px'}} />
       </div>
 

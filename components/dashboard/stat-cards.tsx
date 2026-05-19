@@ -78,7 +78,7 @@ export function StatCards() {
         const isAlert = s.key === 'overdue_edits' && parseInt(s.value, 10) > 0
         return (
           <motion.div key={s.key}
-            initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:i*0.06, duration:0.5}}
+            initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{delay:i*0.03, duration:0.3}}
             whileHover={{y:-3}}
             onClick={() => { if (!isEditing) router.push(s.href) }}
             className={cn(

@@ -2,7 +2,7 @@
 import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, format, isSameMonth, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Film, Image as ImageIcon, FileVideo, Music, Check, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
@@ -40,25 +40,34 @@ export default function CalendarPage() {
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
   const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start, end })
-  const scheduled = content.filter(c => c.scheduled_at)
 
-  // Production-stage events to overlay as badges
+  // Phase P1 — perf: build per-day index maps ONCE per content/cursor change,
+  // instead of running filter() and a nested loop on every one of the 42 cells per render.
   const stages: { field: 'script_due_date' | 'shoot_date' | 'edit_due_date'; label: string; dot: string }[] = [
     { field: 'script_due_date', label: 'Script', dot: 'bg-blue-400' },
     { field: 'shoot_date',      label: 'Shoot',  dot: 'bg-orange-400' },
     { field: 'edit_due_date',   label: 'Edit',   dot: 'bg-purple-400' },
   ]
-  const stageEventsForDay = (day: Date) => {
-    const arr: { id: string; title: string; label: string; dot: string }[] = []
+  const { itemsByDay, stagesByDay } = useMemo(() => {
+    const im = new Map<string, ContentPiece[]>()
+    const sm = new Map<string, { id: string; title: string; label: string; dot: string }[]>()
+    const keyOf = (iso: string) => iso.slice(0, 10) // YYYY-MM-DD
     for (const c of content as any[]) {
+      if (c.scheduled_at) {
+        const k = keyOf(c.scheduled_at)
+        ;(im.get(k) || im.set(k, []).get(k))!.push(c)
+      }
       for (const stg of stages) {
-        if (c[stg.field] && isSameDay(parseISO(c[stg.field]), day)) {
-          arr.push({ id: c.id + ':' + stg.field, title: c.title, label: stg.label, dot: stg.dot })
+        const v = c[stg.field]
+        if (v) {
+          const k = keyOf(v)
+          ;(sm.get(k) || sm.set(k, []).get(k))!.push({ id: c.id + ':' + stg.field, title: c.title, label: stg.label, dot: stg.dot })
         }
       }
     }
-    return arr
-  }
+    return { itemsByDay: im, stagesByDay: sm }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content])
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6">
@@ -94,7 +103,9 @@ export default function CalendarPage() {
             <div key={d} className="text-[10px] sm:text-xs tracking-[0.2em] uppercase text-muted-foreground text-center pb-2">{d}</div>
           ))}
           {days.map(day => {
-            const items = scheduled.filter(c => isSameDay(parseISO(c.scheduled_at!), day))
+            const dayKey2 = format(day, 'yyyy-MM-dd')
+            const items = itemsByDay.get(dayKey2) || []
+            const stageEvents = stagesByDay.get(dayKey2) || []
             const inMonth = isSameMonth(day, cursor)
             const today = isSameDay(day, new Date())
             const dayKey = day.toISOString()
@@ -139,7 +150,7 @@ export default function CalendarPage() {
                       </div>
                     </button>
                   ))}
-                  {stageEventsForDay(day).slice(0, 3).map(ev => (
+                  {stageEvents.slice(0, 3).map(ev => (
                     <div key={ev.id} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] tracking-wider text-muted-foreground" title={`${ev.label} · ${ev.title}`}>
                       <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', ev.dot)} />
                       <span className="uppercase">{ev.label}</span>

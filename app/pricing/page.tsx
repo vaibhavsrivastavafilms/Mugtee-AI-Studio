@@ -83,8 +83,8 @@ export default function PricingPage() {
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Cinematic ambient backdrop */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute top-[-10%] left-[10%] w-[60vw] h-[60vw] rounded-full blur-3xl opacity-30" style={{background:'radial-gradient(circle, hsl(43 60% 50% / 0.45), transparent 65%)'}} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[55vw] h-[55vw] rounded-full blur-3xl opacity-20" style={{background:'radial-gradient(circle, hsl(43 60% 45% / 0.4), transparent 70%)'}} />
+        <div className="absolute top-[-8%] left-[8%] w-[40vw] h-[40vw] rounded-full blur-2xl opacity-20" style={{background:'radial-gradient(circle, hsl(43 60% 50% / 0.35), transparent 65%)'}} />
+        <div className="absolute bottom-[-15%] right-[-8%] w-[38vw] h-[38vw] rounded-full blur-2xl opacity-15" style={{background:'radial-gradient(circle, hsl(43 60% 45% / 0.3), transparent 70%)'}} />
       </div>
 
       <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
