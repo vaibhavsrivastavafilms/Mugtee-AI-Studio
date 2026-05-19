@@ -9,6 +9,7 @@ import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
 import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
 import { OnboardingOverlay } from '@/components/onboarding/onboarding-overlay'
 import { UsageGauge } from '@/lib/usage'
+import { AdSlot } from '@/components/ads/ad-slot'
 import { format } from 'date-fns'
 
 export default function DashboardPage() {
@@ -52,6 +53,9 @@ export default function DashboardPage() {
           <UpcomingShoots />
         </div>
       </div>
+
+      {/* Phase 16 — Free-tier sponsor slot. Auto-hides for Creator/Agency plans. */}
+      <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_DASHBOARD || ''} format="auto" />
 
       {/* P6 — First-login onboarding overlay (one-time, localStorage-gated) */}
       <OnboardingOverlay />

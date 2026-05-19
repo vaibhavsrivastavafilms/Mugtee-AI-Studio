@@ -104,6 +104,27 @@ Currently in **TEST mode**. When you flip to LIVE:
 
 ---
 
+## 5b. AdSense (lightweight monetization for free-tier users)
+
+The code is wired and graceful — it **auto-no-ops** until you set the env vars below. Steps:
+
+1. Apply for AdSense at <https://adsense.google.com> using `mugtee.in`. Google requires:
+   - Live site with crawlable content (`/about`, `/pricing`, `/privacy`, `/terms` already qualify)
+   - Privacy policy (✅ done at `/privacy`)
+   - ~2-4 weeks of organic traffic
+2. After approval, create **two display ad units** in AdSense Console:
+   - Slot 1: "Dashboard footer" — responsive display
+   - Slot 2: "Analytics footer" — responsive display
+3. Add to production env vars in Emergent dashboard:
+   ```
+   NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-XXXXXXXXXXXXXXXX
+   NEXT_PUBLIC_ADSENSE_SLOT_DASHBOARD=1234567890
+   NEXT_PUBLIC_ADSENSE_SLOT_ANALYTICS=2345678901
+   ```
+4. Re-deploy. Slots auto-activate **only for free-tier users** — Creator/Agency plans see zero ads. Slots lazy-load via IntersectionObserver (no ad request until ~200px from viewport, so no perf hit on initial paint).
+
+---
+
 ## 6. Supabase Migrations (one-time)
 
 These two SQL files must be run **once** in production's Supabase SQL editor if not already:
