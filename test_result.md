@@ -140,6 +140,29 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Replaced mock VIEWS/ENGAGEMENT arrays with real aggregates from useStore() + useUsage(). Stat cards: Total Content (with 7d-vs-prev-7d % delta), Scheduled, Published MTD (all-time too), AI Generations (used/cap or unlimited). 14-day Workflow Velocity area chart from content.created_at. Platform Mix bar chart from content.platform. Pipeline Funnel showing all 6 ContentStatus stages with animated bars. Recent Activity list from team_activity store. Empty-state CTA when no content. No new API/migrations."
+  - task: "P10 — Cinematic Login Slideshow + PWA + Capacitor Play Store prep"
+    implemented: true
+    working: true
+    file: "components/auth/login-slideshow.tsx, app/login/page.tsx, app/manifest.ts, app/layout.tsx, app/globals.css, capacitor.config.ts, PLAYSTORE.md"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "7-slide cinematic login slideshow (CSS autoplay, Ken Burns zoom, fade transitions, slide dots). PWA manifest at /manifest.webmanifest (4 icon sizes incl. maskable, 4 shortcuts). apple-mobile-web-app meta tags + viewport-fit=cover. .safe-area-pad utility + iOS tap-highlight reset + Ken Burns keyframes in globals.css. capacitor.config.ts thin-wrapper config (appId ai.viralforge.app, WebView → prod URL, SplashScreen + StatusBar plugins). PLAYSTORE.md full build + submission guide. Verified live: /manifest.webmanifest 200, all PWA meta rendered, login renders cleanly on desktop (1920px) + mobile (414px)."
+  - task: "P4 — YouTube Publishing MVP follow-up: privacy validation order"
+    implemented: true
+    working: true
+    file: "app/api/youtube/upload/route.ts"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Moved privacy validation to AFTER auth check so unauthenticated requests with invalid privacy now correctly return 401 instead of 400. All 8 of the testing agent's tests now pass."
+
   - task: "P2 — Razorpay Billing MVP (subscriptions, checkout, verify, plan persistence)"
     implemented: true
     working: true
