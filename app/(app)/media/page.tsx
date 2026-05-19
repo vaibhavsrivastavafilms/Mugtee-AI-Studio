@@ -3,12 +3,10 @@ import { motion } from 'framer-motion'
 import { Play, FileVideo, Image as ImgIcon, Music, Plus, Trash2, ImagePlus } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton, EmptyState } from '@/components/ui/state'
+import { UploadDropzone } from '@/components/media/upload-dropzone'
 import { useState } from 'react'
-import type { MediaType } from '@/lib/types'
 
 const ICONS: any = { video: FileVideo, image: ImgIcon, audio: Music }
 
@@ -21,7 +19,7 @@ function formatBytes(n?: number | null) {
 }
 
 export default function MediaPage() {
-  const { media, loading, addMedia, removeMedia } = useStore()
+  const { media, loading, removeMedia } = useStore()
   const [creating, setCreating] = useState(false)
 
   return (
@@ -33,9 +31,12 @@ export default function MediaPage() {
         </div>
         <Dialog open={creating} onOpenChange={setCreating}>
           <DialogTrigger asChild>
-            <Button className="bg-gold-gradient text-black gap-2 shadow-gold-glow"><Plus className="w-4 h-4" /> Add asset</Button>
+            <Button className="bg-gold-gradient text-black gap-2 shadow-gold-glow"><Plus className="w-4 h-4" /> Upload</Button>
           </DialogTrigger>
-          <MediaDialog onSubmit={async (d)=>{ await addMedia(d); setCreating(false) }} />
+          <DialogContent className="glass-strong sm:max-w-2xl">
+            <DialogHeader><DialogTitle className="font-display text-2xl">Upload media</DialogTitle></DialogHeader>
+            <UploadDropzone />
+          </DialogContent>
         </Dialog>
       </motion.div>
 
@@ -87,42 +88,4 @@ export default function MediaPage() {
   )
 }
 
-function MediaDialog({ onSubmit }: { onSubmit: (d: { title: string; type: MediaType; url: string; thumbnail: string; size_bytes: number }) => void | Promise<void> }) {
-  const [title, setTitle] = useState('')
-  const [type, setType] = useState<MediaType>('image')
-  const [url, setUrl] = useState('')
-  const [thumb, setThumb] = useState('')
-  return (
-    <DialogContent className="glass-strong sm:max-w-md">
-      <DialogHeader><DialogTitle className="font-display text-2xl">Add asset</DialogTitle></DialogHeader>
-      <div className="space-y-4 py-2">
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">Title</label>
-          <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="pasta_carbonara_v1.mp4" className="bg-white/[0.03]" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">Type</label>
-          <Select value={type} onValueChange={(v)=>setType(v as MediaType)}>
-            <SelectTrigger className="bg-white/[0.03]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="image">Image</SelectItem>
-              <SelectItem value="video">Video</SelectItem>
-              <SelectItem value="audio">Audio</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">URL</label>
-          <Input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" className="bg-white/[0.03]" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">Thumbnail URL</label>
-          <Input value={thumb} onChange={e=>setThumb(e.target.value)} placeholder="https://…" className="bg-white/[0.03]" />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button onClick={() => onSubmit({ title: title || 'untitled', type, url, thumbnail: thumb, size_bytes: 0 })} className="bg-gold-gradient text-black">Save</Button>
-      </DialogFooter>
-    </DialogContent>
-  )
-}
+
