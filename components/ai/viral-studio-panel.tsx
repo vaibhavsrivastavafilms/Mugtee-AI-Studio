@@ -1,13 +1,14 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame } from 'lucide-react'
+import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/state'
 import { PLATFORM_META } from '@/lib/dummy-data'
+import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/types'
 
@@ -21,17 +22,39 @@ const TONES: { id: string; label: string }[] = [
 ]
 
 export function ViralStudioPanel() {
+  const { addContent } = useStore()
   const [open, setOpen] = useState(true)
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
   const [loading, setLoading] = useState(false)
   const [ideas, setIdeas] = useState<Idea[]>([])
+  const [added, setAdded] = useState<Set<number>>(new Set())
+  const [adding, setAdding] = useState<number | null>(null)
+
+  const addToPipeline = useCallback(async (idea: Idea, index: number) => {
+    if (added.has(index) || adding === index) return
+    setAdding(index)
+    const description = [idea.hook && `Hook: ${idea.hook}`, idea.angle && `Angle: ${idea.angle}`].filter(Boolean).join('\n\n')
+    try {
+      await addContent({
+        title: idea.title || 'Untitled idea',
+        description: description || null,
+        platform,
+        status: 'idea',
+      })
+      setAdded(prev => { const n = new Set(prev); n.add(index); return n })
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not add to pipeline')
+    } finally {
+      setAdding(null)
+    }
+  }, [addContent, platform, added, adding])
 
   const generate = useCallback(async () => {
     const t = topic.trim()
     if (!t) { toast.error('Add a topic first'); return }
-    setLoading(true); setIdeas([])
+    setLoading(true); setIdeas([]); setAdded(new Set())
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -145,7 +168,14 @@ export function ViralStudioPanel() {
                   <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 flex items-center gap-1.5">
                     <Flame className="w-3 h-3" /> {ideas.length} ideas
                   </div>
-                  {ideas.map((idea, i) => <IdeaCard key={i} idea={idea} index={i} />)}
+                  {ideas.map((idea, i) => (
+                    <IdeaCard
+                      key={i} idea={idea} index={i}
+                      isAdded={added.has(i)}
+                      isAdding={adding === i}
+                      onAdd={() => addToPipeline(idea, i)}
+                    />
+                  ))}
                 </div>
               )}
 
@@ -163,12 +193,15 @@ export function ViralStudioPanel() {
   )
 }
 
-function IdeaCard({ idea, index }: { idea: Idea; index: number }) {
+function IdeaCard({ idea, index, isAdded, isAdding, onAdd }: { idea: Idea; index: number; isAdded: boolean; isAdding: boolean; onAdd: () => void }) {
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copied') }
   return (
     <motion.div
       initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: index*0.04}}
-      className="group rounded-xl p-3 bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.06] hover:border-gold-500/40 transition"
+      className={cn(
+        'group rounded-xl p-3 bg-gradient-to-br from-white/[0.05] to-white/[0.01] border transition',
+        isAdded ? 'border-emerald-500/40 bg-emerald-500/[0.04]' : 'border-white/[0.06] hover:border-gold-500/40',
+      )}
     >
       <div className="flex items-start gap-2">
         <span className="font-display text-[10px] text-gold-400/80 tracking-widest mt-0.5">{String(index+1).padStart(2,'0')}</span>
@@ -185,11 +218,35 @@ function IdeaCard({ idea, index }: { idea: Idea; index: number }) {
         </div>
         <button
           onClick={() => copy(`${idea.title}\n\nHook: ${idea.hook}\nAngle: ${idea.angle}`)}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition"
+          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition shrink-0"
           aria-label="Copy idea"
         >
           <Copy className="w-3 h-3" />
         </button>
+      </div>
+      <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-end">
+        <AnimatePresence mode="wait" initial={false}>
+          {isAdded ? (
+            <motion.div
+              key="added"
+              initial={{opacity:0, scale:0.9}} animate={{opacity:1, scale:1}} exit={{opacity:0}}
+              className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-emerald-300"
+            >
+              <Check className="w-3 h-3" /> Added to pipeline
+            </motion.div>
+          ) : (
+            <motion.button
+              key="add"
+              initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              onClick={onAdd}
+              disabled={isAdding}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] tracking-[0.2em] uppercase bg-gold-500/15 hover:bg-gold-500/25 text-gold-200 ring-1 ring-gold-500/30 transition disabled:opacity-50 disabled:cursor-wait"
+            >
+              {isAdding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              {isAdding ? 'Adding…' : 'Add to Pipeline'}
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   )
