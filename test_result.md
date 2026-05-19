@@ -140,6 +140,18 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Replaced mock VIEWS/ENGAGEMENT arrays with real aggregates from useStore() + useUsage(). Stat cards: Total Content (with 7d-vs-prev-7d % delta), Scheduled, Published MTD (all-time too), AI Generations (used/cap or unlimited). 14-day Workflow Velocity area chart from content.created_at. Platform Mix bar chart from content.platform. Pipeline Funnel showing all 6 ContentStatus stages with animated bars. Recent Activity list from team_activity store. Empty-state CTA when no content. No new API/migrations."
+  - task: "P11 — Legal pages (/privacy, /terms, /about) + reusable EmptyState + sitemap"
+    implemented: true
+    working: true
+    file: "app/(legal)/layout.tsx, app/(legal)/privacy/page.tsx, app/(legal)/terms/page.tsx, app/(legal)/about/page.tsx, components/ui/empty-state.tsx, app/sitemap.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Shipped: (1) /privacy — full SaaS-grade policy: what we collect, how we use it, AI-output disclaimer, YouTube limited-use disclosure (links to YouTube API ToS + Google Privacy), Instagram/Meta scopes, Razorpay billing, security (TLS + RLS), user rights, contact email. (2) /terms — acceptance, content ownership, AI-output responsibility, acceptable use, subscription/refund policy, liability caps, termination. (3) /about — mission, 4-card feature grid, tech stack, CTA. All 3 pages share a (legal) route group layout with sticky header (back-to-home), gold-divider footer (Privacy/Terms/About/Pricing nav), safe-area handling. Cinematic dark glass cards, gold-gradient headings, mobile responsive. (4) <EmptyState /> reusable component with icon/eyebrow/title/desc + primary+secondary CTAs, 3 sizes (sm/md/lg) — ready to drop into any empty list. (5) sitemap.ts now includes /about, /privacy, /terms with proper priorities (0.6/0.4/0.4) and yearly changefreq for legal. VERIFIED: /privacy 200, /terms 200, /about 200, /sitemap.xml 200 with all 6 URLs. Screenshot of /privacy confirms premium feel."
+
   - task: "P10 — Cinematic Login Slideshow + PWA + Capacitor Play Store prep"
     implemented: true
     working: true
