@@ -10,11 +10,12 @@ import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film } from 'lucide-react'
+import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film, Volume2, Pause, Play, Square } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { toast } from 'sonner'
 import type { ContentPiece } from '@/lib/types'
+import { useSpeechSynthesis } from '@/lib/use-voice'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -150,6 +151,8 @@ export default function ScriptWorkspace() {
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+          {/* Read Script — browser SpeechSynthesis. Stops any existing speech before starting new. */}
+          <ReadScriptButton text={scriptText} />
           <Button onClick={() => copy('script', scriptText)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0">
             {copied === 'script' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} Copy
           </Button>
@@ -234,5 +237,41 @@ export default function ScriptWorkspace() {
         </div>
       )}
     </motion.div>
+  )
+}
+
+// ---------- Read Script (TTS) sub-component ----------
+// Browser SpeechSynthesis with pause/resume/stop. Cancels any previous speech before starting new.
+// Hidden gracefully if the browser doesn't support speechSynthesis.
+function ReadScriptButton({ text }: { text: string }) {
+  const tts = useSpeechSynthesis()
+  if (!tts.supported || !text || text.length < 10) return null
+  if (tts.speaking) {
+    return (
+      <div className="inline-flex items-center gap-0.5 mr-0.5">
+        {tts.paused ? (
+          <Button onClick={tts.resume} variant="ghost" className="h-9 px-3 text-xs text-gold-300 hover:text-gold-200 hover:bg-gold-500/10 gap-1.5 min-h-[44px] sm:min-h-0">
+            <Play className="w-3.5 h-3.5" /> Resume
+          </Button>
+        ) : (
+          <Button onClick={tts.pause} variant="ghost" className="h-9 px-3 text-xs text-gold-300 hover:text-gold-200 hover:bg-gold-500/10 gap-1.5 min-h-[44px] sm:min-h-0">
+            <Pause className="w-3.5 h-3.5" /> Pause
+          </Button>
+        )}
+        <Button onClick={tts.stop} variant="ghost" className="h-9 px-3 text-xs text-muted-foreground hover:text-luxe hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0">
+          <Square className="w-3.5 h-3.5" /> Stop
+        </Button>
+      </div>
+    )
+  }
+  return (
+    <Button
+      onClick={() => tts.speak(text)}
+      variant="ghost"
+      className="h-9 px-3 text-xs text-gold-200 hover:text-gold-100 bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 gap-1.5 min-h-[44px] sm:min-h-0"
+      title="Read this script aloud — narrated by Mugtee"
+    >
+      <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Read Script</span><span className="sm:hidden">Read</span>
+    </Button>
   )
 }
