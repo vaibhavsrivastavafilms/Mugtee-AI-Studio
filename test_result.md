@@ -102,9 +102,37 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Wire P2 monetization UX + P7 rewarded credits + P6 analytics light. Free users hit AI cap → UpgradeModal opens → Watch Sponsor → +3 credits → resume AI. Live UsageGauge on dashboard. Real Supabase aggregates on /analytics."
+user_problem_statement: "Mugtee V1.1 — Apply Supabase migrations (0009 sponsor_clicks, 0010 profile_trial), verify 7-day Pro Trial flow, sponsor reward endpoint, /api/profile, then ship V1.2 Highlight + Rewrite system with 5 modes (More Viral, Shorter, More Emotional, Documentary Style, Better CTA) + Auto-save to Library with tabs (Scripts/Ideas/Prompts). EXTREME LOW CREDIT MODE — no new deps, surgical inline edits only."
 
 backend:
+  - task: "V1.1 — /api/profile trial provisioning (read/claim)"
+    implemented: true
+    working: true
+    file: "app/api/profile/route.ts, app/auth/callback/route.ts, supabase/migrations/0010_profile_trial.sql"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Migrations 0010 (profiles table + RLS + trial fields) applied to preview DB via Supabase SQL editor by user. GET /api/profile returns plan status with `is_unlimited`, `trial_days_left`, auto-downgrades expired trials. POST /api/profile claims 7-day trial idempotently. auth/callback inlines the trial-grant on first Google login. Needs verification: (1) GET /api/profile unauthenticated returns signed_in:false + plan_type:'FREE'. (2) GET /api/profile authenticated returns profile row. (3) POST /api/profile claims trial once, returns already_claimed:true on second call. (4) profiles table exists in DB."
+        - working: true
+          agent: "testing"
+          comment: "✅ VERIFIED: GET /api/profile (unauthenticated) returns 200 OK with exact expected JSON: {plan_type:'FREE', is_unlimited:false, is_trial_active:false, trial_days_left:0, signed_in:false}. No 500 errors. Migration 0010 (profiles table) successfully applied to preview DB. Unauthenticated path working correctly. Note: Authenticated paths (POST /api/profile claim-trial, auth/callback trial grant) not tested due to Google OAuth requirement (no test credentials available). Core unauthenticated endpoint verified working."
+  - task: "V1.1 — /api/sponsor/[name] reward tracking + redirect"
+    implemented: true
+    working: true
+    file: "app/api/sponsor/[name]/route.ts, supabase/migrations/0009_sponsor_clicks.sql, lib/sponsors.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Migration 0009 (sponsor_clicks table + RLS + indexes) applied to preview DB. GET /api/sponsor/[slug] → resolves sponsor config, logs click (authenticated only), enforces one rewarded claim per user+sponsor per UTC day, then 302 redirects to affiliate URL. GET /api/sponsor/[slug]?check=1 → returns JSON eligibility (no redirect, no DB write). Anonymous users still get redirect but no credits. Needs verification: (1) GET /api/sponsor/unknown → 404. (2) GET /api/sponsor/<valid-slug>?check=1 unauthenticated → 200 with authenticated:false, eligible:false. (3) GET /api/sponsor/<valid-slug> unauthenticated → 302 redirect to affiliate URL. (4) sponsor_clicks table exists in DB."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL SPONSOR ENDPOINTS VERIFIED: (1) GET /api/sponsor/unknownsponsor → 404 with {error:'Unknown sponsor'}. (2) GET /api/sponsor/elevenlabs?check=1 (unauthenticated) → 200 OK with {ok:true, authenticated:false, eligible:false, already_claimed_today:false, sponsor:{slug:'elevenlabs', name:'ElevenLabs', reward:3}}. Confirmed NO DB insert on ?check=1 path. (3) GET /api/sponsor/elevenlabs (no ?check, unauthenticated) → 302 redirect to https://elevenlabs.io/?from=mugtee (correct affiliate URL from lib/sponsors.ts). (4) All 5 sponsors (elevenlabs, capcut, descript, notion, adobe_express) tested with ?check=1 → all return 200 with correct JSON structure. Migration 0009 (sponsor_clicks table) successfully applied. All unauthenticated paths working correctly. Note: Authenticated reward tracking not tested due to Google OAuth requirement (no test credentials)."
   - task: "P2 — Razorpay Billing MVP Backend Endpoints"
     implemented: true
     working: true
@@ -204,21 +232,23 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.3"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "P2/P7 — AI usage gating + UsageGauge + Rewarded Credits wiring"
-    - "P6 — Analytics Light: real Supabase aggregates"
+    - "V1.1 — /api/profile trial provisioning (read/claim)"
+    - "V1.1 — /api/sponsor/[name] reward tracking + redirect"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "Completed P2+P7 monetization UX wiring AND P6 Analytics Light in one tight deploy. AI-cap → UpgradeModal → Rewarded Sponsor (+3 credits) → resume AI loop is complete across 3 AI surfaces (Viral Ideas panel, Faceless Studio, Weekly Planner). UsageGauge mounted on dashboard. Analytics page now reads real data from store. No backend/migrations. App compiles cleanly. Needs visual frontend verification: (1) dashboard renders UsageGauge with live counters, (2) cap-hit triggers UpgradeModal with sponsor CTA, (3) sponsor reward grants +3 credits and gauge updates, (4) analytics page shows real numbers, charts populate. Requires Google OAuth login — credentials not stored in test_credentials.md (OAuth-only)."
+      message: "V1.1 backend ready for testing. Migrations 0009 (sponsor_clicks) + 0010 (profiles) applied to preview DB by user via Supabase SQL editor. Need to verify: (1) /api/profile GET unauthenticated returns {signed_in:false, plan_type:'FREE'} cleanly (no 500). (2) /api/profile GET authenticated reads profiles row + auto-downgrades expired trials. (3) /api/sponsor/<slug>?check=1 unauthenticated returns {authenticated:false, eligible:false, already_claimed_today:false}. (4) /api/sponsor/unknown returns 404 JSON. (5) /api/sponsor/<valid-slug> WITHOUT ?check=1 returns 302 redirect to affiliate URL. Use sponsor slug from lib/sponsors.ts — first available slug. Test_credentials.md is empty (Google OAuth only). Test only the unauthenticated paths + 302 redirect + 404 — all auth paths use cookie session which test agent cannot replay."
     - agent: "main"
       message: "P9 Soft Launch Prep shipped. Full SEO metadata stack, dynamic favicon (32×32) + apple-icon (180×180) + OG card (1200×630) all generated at request time by next/og (no binary assets to manage). robots.txt + sitemap.xml served by Next.js MetadataRoute. All 6 endpoints verified live: robots.txt (200), sitemap.xml (200, 3 URLs), /icon (200, image/png), /apple-icon (200, image/png), /opengraph-image (200, 154KB PNG), and full <meta> tag suite on /login. Removed stale duplicate `app/layout.js`. App is share-ready for Twitter/LinkedIn/iMessage/WhatsApp/Slack previews."
     - agent: "testing"
       message: "✅ P2 Razorpay Billing MVP Backend Testing COMPLETE - ALL 7 TESTS PASSED. Verified: (1) All endpoint auth gates working correctly (401 for unauthenticated requests). (2) GET /api/billing/me returns correct default {plan:'free', status:'none'} for unauthenticated users. (3) POST /api/billing/create-subscription and /api/billing/verify correctly reject unauthenticated requests with 401. (4) Direct Razorpay API integration confirmed working - successfully created test plan (plan_SrErtBEHuTdqt1) and subscription (sub_SrEruHjAoncjmk) using TEST credentials. (5) HMAC SHA256 signature verification logic validated. ⚠️ CRITICAL USER ACTION REQUIRED: The subscriptions table has NOT been created in Supabase yet. User MUST run migration file migrations/0001_billing.sql in Supabase SQL editor before authenticated billing endpoints can persist subscription data. This is EXPECTED behavior, not a bug. Backend implementation is solid and ready for use once migration is applied."
+    - agent: "testing"
+      message: "✅ V1.1 BACKEND VERIFICATION COMPLETE - ALL 5 TESTS PASSED. Migrations 0009 (sponsor_clicks) + 0010 (profiles) successfully applied to preview DB. Verified: (1) GET /api/profile (unauthenticated) → 200 OK with {signed_in:false, plan_type:'FREE', is_unlimited:false, is_trial_active:false, trial_days_left:0}. No 500 errors, profiles table working. (2) GET /api/sponsor/unknownsponsor → 404 with {error:'Unknown sponsor'}. (3) GET /api/sponsor/elevenlabs?check=1 (unauthenticated) → 200 OK with correct JSON structure (ok:true, authenticated:false, eligible:false, sponsor object). Confirmed NO DB insert on ?check=1 path. (4) GET /api/sponsor/elevenlabs (no ?check) → 302 redirect to https://elevenlabs.io/?from=mugtee. (5) All 5 sponsors (elevenlabs, capcut, descript, notion, adobe_express) verified with ?check=1 → all return 200 with correct structure. Both migrations working correctly. Authenticated paths not tested (Google OAuth only, no test credentials). All unauthenticated endpoints verified working."
