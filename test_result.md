@@ -146,6 +146,18 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_REDACTED_KEY_ID) validated and working."
 
 frontend:
+  - task: "V1.2 Mobile Notification Drawer Fix"
+    implemented: true
+    working: "NA"
+    file: "components/shell/topbar.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Surgical mobile-only fix to topbar notifications. Desktop dropdown behaviour unchanged. Changes: (1) Notification panel becomes a fixed full-width drawer on <lg viewports (left-2 right-2 top-[68px], max-h-80vh, own scroll, rounded-2xl). On lg+ it reverts to the original anchored 360px dropdown. (2) NEW backdrop overlay (mobile only) with bg-black/55 + backdrop-blur-sm at z-[55] — tap to close. Drawer sits at z-[60]. (3) Body scroll lock via document.body.style.overflow when drawer opens on mobile (media query gated). (4) Touch targets: Bell (44x44), Menu (44x44), Avatar (44 min-h), close-X (36x36), delete (36x36), mark-all-read (32 min-h). (5) Lightweight motion (fade + 8px slide, 0.18s). (6) Mobile-only close X in header (lg:hidden). (7) Header gap tightened on mobile (gap-2 sm:gap-3, px-3 sm:px-6) so search field gets breathing room next to bell+avatar. (8) overscroll-contain on list so scroll doesn't propagate to body. (9) line-clamp-2 sm:truncate on notification message so multiline reads cleanly on mobile. Compile clean. No new deps, no desktop regression."
+
   - task: "V1.2 Trust Fixes — Landing page (demo placeholder, guest hook, email capture, no fake testimonials, coming soon badges, social links, agency mailto)"
     implemented: true
     working: true
