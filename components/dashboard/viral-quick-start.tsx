@@ -1,12 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PLATFORM_META } from '@/lib/dummy-data'
-import { useViralIdeas, IdeaCard, TONES } from '@/components/ai/viral-studio-panel'
+import { useViralIdeas, IdeaCard, TONES, NICHES, AUDIENCES, placeholderForNiche } from '@/components/ai/viral-studio-panel'
 import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
 import { FacelessStudioDialog } from '@/components/ai/faceless-studio-dialog'
 import { UpgradeModal } from '@/lib/usage'
@@ -19,6 +19,10 @@ export function ViralQuickStart() {
   const [scrolled, setScrolled] = useState(false)
   const [plannerOpen, setPlannerOpen] = useState(false)
   const [facelessOpen, setFacelessOpen] = useState(false)
+  // Creator DNA panel — collapsed by default to keep the hero compact, but
+  // opens when the user hits "DNA" so niche/audience/tone/platform are all
+  // first-class dashboard controls (no more buried-in-Settings).
+  const [dnaOpen, setDnaOpen] = useState(false)
 
   // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
   useEffect(() => {
@@ -69,15 +73,28 @@ export function ViralQuickStart() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-                    Mugtee · Quick Start
+                    Mugtee · Faceless AI Studio
                   </div>
                   <h2 className="font-display text-xl sm:text-2xl mt-0.5">
-                    <span className="text-gold-gradient">Studio</span>
+                    <span className="text-gold-gradient">Faceless AI Studio</span>
                   </h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug hidden sm:block">Generate viral cinematic content ideas instantly.</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug hidden sm:block">Generate viral faceless YouTube systems, scripts, hooks, and storytelling ideas.</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setDnaOpen(o => !o)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border text-[11px] tracking-wide transition",
+                    dnaOpen
+                      ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
+                      : "bg-white/[0.03] border-white/[0.08] hover:bg-gold-500/10 hover:border-gold-500/30 text-luxe/80",
+                  )}
+                  aria-label="Creator DNA"
+                  title="Niche · Audience · Tone · Platform — saved to your creator DNA"
+                >
+                  <Settings2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">DNA</span>
+                </button>
                 <button
                   onClick={() => setFacelessOpen(true)}
                   className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
@@ -128,7 +145,7 @@ export function ViralQuickStart() {
                         value={v.topic}
                         onChange={(e) => v.setTopic(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !v.loading) v.generate() }}
-                        placeholder="e.g. late-night chai with friends"
+                        placeholder={placeholderForNiche(v.niche)}
                         className="bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40 h-10"
                       />
                     </div>
@@ -156,6 +173,44 @@ export function ViralQuickStart() {
                       {v.loading ? 'Generating…' : 'Generate'}
                     </Button>
                   </div>
+
+                  {/* Creator DNA — Niche + Audience inline.
+                      Changes save instantly via setNiche/setAudience (writeCreatorProfile under the hood). */}
+                  <AnimatePresence initial={false}>
+                    {dnaOpen && (
+                      <motion.div
+                        initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
+                        className="overflow-hidden border-t border-white/[0.05]"
+                      >
+                        <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div className="space-y-1">
+                            <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground inline-flex items-center gap-1.5">
+                              <Brain className="w-3 h-3 text-gold-400/80" /> Niche
+                              <span className="text-[9px] tracking-normal text-gold-300/70 normal-case ml-1">drives AI output</span>
+                            </label>
+                            <Select value={v.niche} onValueChange={v.setNiche}>
+                              <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground inline-flex items-center gap-1.5">
+                              <Sparkles className="w-3 h-3 text-gold-400/80" /> Audience
+                              <span className="text-[9px] tracking-normal text-gold-300/70 normal-case ml-1">saved automatically</span>
+                            </label>
+                            <Select value={v.audience} onValueChange={v.setAudience}>
+                              <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {AUDIENCES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </AnimatePresence>

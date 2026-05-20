@@ -23,18 +23,23 @@ export const TONES: { id: string; label: string }[] = [
 ]
 
 export const NICHES: { id: string; label: string }[] = [
-  { id: 'restaurant', label: 'Restaurant / Food' },
-  { id: 'fitness',    label: 'Fitness / Wellness' },
-  { id: 'fashion',    label: 'Fashion' },
-  { id: 'travel',     label: 'Travel' },
-  { id: 'filmmaker',  label: 'Filmmaker' },
-  { id: 'coach',      label: 'Coach / Mentor' },
-  { id: 'education',  label: 'Education' },
-  { id: 'luxury',     label: 'Luxury Brand' },
-  { id: 'podcast',    label: 'Podcast' },
-  { id: 'comedy',     label: 'Comedy / Meme' },
-  { id: 'agency',     label: 'Agency / Studio' },
-  { id: 'business',   label: 'Business / Founder' },
+  { id: 'general',          label: 'General Creator' },
+  { id: 'child_psychology', label: 'Child Psychology / Parenting' },
+  { id: 'documentary',      label: 'Documentary / Faceless' },
+  { id: 'finance',          label: 'Finance / Money' },
+  { id: 'technology',       label: 'Technology / AI' },
+  { id: 'restaurant',       label: 'Restaurant / Food' },
+  { id: 'fitness',          label: 'Fitness / Wellness' },
+  { id: 'fashion',          label: 'Fashion' },
+  { id: 'travel',           label: 'Travel' },
+  { id: 'filmmaker',        label: 'Filmmaker' },
+  { id: 'coach',            label: 'Coach / Mentor' },
+  { id: 'education',        label: 'Education' },
+  { id: 'luxury',           label: 'Luxury Brand' },
+  { id: 'podcast',          label: 'Podcast' },
+  { id: 'comedy',           label: 'Comedy / Meme' },
+  { id: 'agency',           label: 'Agency / Studio' },
+  { id: 'business',         label: 'Business / Founder' },
 ]
 
 export const AUDIENCES: { id: string; label: string }[] = [
@@ -47,15 +52,39 @@ export const AUDIENCES: { id: string; label: string }[] = [
   { id: 'creators',      label: 'Creators' },
 ]
 
+// Dynamic placeholder per niche — used by Quick Start and Studio side panel.
+// Neutral, niche-native examples. NO restaurant/food bias.
+export function placeholderForNiche(niche: string): string {
+  switch ((niche || '').toLowerCase().trim()) {
+    case 'child_psychology': return 'e.g. why babies cry before sleeping'
+    case 'documentary':      return 'e.g. the village that disappeared overnight'
+    case 'finance':          return 'e.g. why middle class stays broke'
+    case 'fitness':          return 'e.g. why gym motivation dies after 30 days'
+    case 'technology':       return 'e.g. AI jobs nobody is talking about'
+    case 'restaurant':       return 'e.g. the dish that built this neighbourhood'
+    case 'fashion':          return 'e.g. the one detail that elevates a fit'
+    case 'travel':           return 'e.g. the hidden spot locals never share'
+    case 'filmmaker':        return 'e.g. why this shot works'
+    case 'coach':            return 'e.g. the habit that quietly fixed everything'
+    case 'education':        return 'e.g. the one concept schools never teach'
+    case 'luxury':           return 'e.g. the craft behind a single stitch'
+    case 'podcast':          return 'e.g. the answer that broke the room'
+    case 'comedy':           return 'e.g. things only late-bloomers understand'
+    case 'agency':           return 'e.g. the system we stopped using and grew faster'
+    case 'business':         return 'e.g. the bet that paid off'
+    default:                 return 'e.g. generate a viral faceless documentary idea'
+  }
+}
+
 // Tiny localStorage helpers — no abstractions, just inline access for the creator profile defaults
 function readCreatorProfile(): { niche: string; audience: string } {
-  if (typeof window === 'undefined') return { niche: 'restaurant', audience: 'mass' }
+  if (typeof window === 'undefined') return { niche: 'general', audience: 'mass' }
   try {
     return {
-      niche:    localStorage.getItem('tt:creator:niche')    || 'restaurant',
+      niche:    localStorage.getItem('tt:creator:niche')    || 'general',
       audience: localStorage.getItem('tt:creator:audience') || 'mass',
     }
-  } catch { return { niche: 'restaurant', audience: 'mass' } }
+  } catch { return { niche: 'general', audience: 'mass' } }
 }
 function writeCreatorProfile(p: { niche?: string; audience?: string }) {
   if (typeof window === 'undefined') return
@@ -76,7 +105,7 @@ export function useViralIdeas() {
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
   // Niche + audience seed from localStorage so the creator's profile is the default everywhere
-  const seed = typeof window !== 'undefined' ? readCreatorProfile() : { niche: 'restaurant', audience: 'mass' }
+  const seed = typeof window !== 'undefined' ? readCreatorProfile() : { niche: 'general', audience: 'mass' }
   const [niche, setNicheInternal] = useState<string>(seed.niche)
   const [audience, setAudienceInternal] = useState<string>(seed.audience)
   const setNiche    = (n: string) => { setNicheInternal(n);    writeCreatorProfile({ niche: n }) }
@@ -235,7 +264,7 @@ export function ViralStudioPanel() {
                   value={v.topic}
                   onChange={(e) => v.setTopic(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !v.loading) v.generate() }}
-                  placeholder="e.g. late-night chai with friends"
+                  placeholder={placeholderForNiche(v.niche)}
                   className="bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40"
                 />
               </div>

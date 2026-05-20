@@ -91,7 +91,7 @@ export default function SettingsPage() {
   const igExpiresLabel  = (() => { try { return igAccount?.expires_at ? formatDistanceToNow(parseISO(igAccount.expires_at), { addSuffix: true }) : null } catch { return null } })()
 
   // Phase 6F: Creator profile (niche + audience) — default AI context for TT Viral. Stored in localStorage.
-  const [profile, setProfile] = useState<{ niche: string; audience: string }>({ niche: 'restaurant', audience: 'mass' })
+  const [profile, setProfile] = useState<{ niche: string; audience: string }>({ niche: 'general', audience: 'mass' })
   useEffect(() => { setProfile(readCreatorProfile()) }, [])
   const updateProfile = (patch: { niche?: string; audience?: string }) => {
     const next = { ...profile, ...patch }
