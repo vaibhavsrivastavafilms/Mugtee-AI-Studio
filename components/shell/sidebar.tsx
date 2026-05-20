@@ -3,22 +3,19 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, CalendarRange, Kanban, Users2, Clapperboard,
-  Image as ImageIcon, BarChart3, X, Sparkles, Film, Settings, Zap
+  LayoutDashboard, FolderKanban, Image as ImageIcon, Sparkles, Film, Settings, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
 
+// Phase — AI-first simplification. Mugtee is a faceless AI Studio, not a production tracker.
+// Crew / Shoots / Calendar / Analytics / Automations routes still exist and remain functional,
+// they are just hidden from the sidebar to reduce cognitive load. Reachable via direct URL.
 const NAV = [
-  { href: '/dashboard',  label: 'Dashboard',         icon: LayoutDashboard },
-  { href: '/calendar',   label: 'Content Calendar',  icon: CalendarRange },
-  { href: '/pipeline',   label: 'Kanban Pipeline',   icon: Kanban },
-  { href: '/crew',       label: 'Crew',              icon: Users2 },
-  { href: '/shoots',     label: 'Shoots',            icon: Clapperboard },
-  { href: '/media',      label: 'Media Library',     icon: ImageIcon },
-  { href: '/analytics',  label: 'Analytics',         icon: BarChart3 },
-  { href: '/automations',label: 'Automations',       icon: Zap },
-  { href: '/settings',   label: 'Settings',          icon: Settings },
+  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/pipeline',   label: 'Projects',   icon: FolderKanban },
+  { href: '/media',      label: 'Library',    icon: ImageIcon },
+  { href: '/settings',   label: 'Settings',   icon: Settings },
 ]
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
@@ -81,7 +78,7 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
 
       <div className="mt-6 p-4 rounded-xl glass-gold relative z-20">
         <div className="flex items-center gap-2 mb-2"><Sparkles className="w-4 h-4 text-gold-300" /><span className="font-display text-sm">Studio Pro</span></div>
-        <p className="text-xs text-luxe/70 leading-relaxed mb-3">Unlock unlimited shoots, realtime crew sync & priority rendering.</p>
+        <p className="text-xs text-luxe/70 leading-relaxed mb-3">Unlock unlimited AI generations, longform scripts, and priority cinematic rendering.</p>
         <Link href="/pricing" onClick={onItemClick} className="block w-full text-center text-xs font-medium py-2 rounded-lg bg-gold-gradient text-black hover:opacity-90 transition cursor-pointer relative z-30">Upgrade</Link>
       </div>
     </div>
