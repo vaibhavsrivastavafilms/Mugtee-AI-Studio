@@ -136,7 +136,24 @@ export function useViralIdeas() {
         .map((x: any) => ({ title: String(x.title || ''), hook: String(x.hook || ''), angle: String(x.angle || '') }))
       setIdeas(cleaned)
       if (cleaned.length === 0) toast.error('No ideas parsed — try regenerating')
-      else bump('ai')
+      else {
+        bump('ai')
+        // Phase V1.2 — Auto-save to Library (Ideas tab). Localstorage-only; max 100 rows.
+        try {
+          const existing: any[] = JSON.parse(localStorage.getItem('mugtee:library:ideas') || '[]')
+          const now = new Date().toISOString()
+          const nextRows = cleaned.map((idea, i) => ({
+            id: `idea_${Date.now()}_${i}`,
+            title: idea.title,
+            hook: idea.hook,
+            angle: idea.angle,
+            niche, platform,
+            created_at: now,
+          }))
+          localStorage.setItem('mugtee:library:ideas', JSON.stringify([...nextRows, ...existing].slice(0, 100)))
+          toast.success('✅ Saved to Library')
+        } catch {}
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Generation failed')
     } finally {
@@ -194,6 +211,7 @@ export function useViralIdeas() {
       await updateContent(contentId, { script: scriptText, status: 'scripting' } as any)
       setScripts(prev => ({ ...prev, [index]: scriptText }))
       bump('scripts')
+      toast.success('✅ Saved to Library')
     } catch (e: any) {
       toast.error(e?.message || 'Script generation failed')
     } finally {
