@@ -20,6 +20,31 @@ export default function AboutPage() {
         </p>
       </div>
 
+      {/* Phase V1.2 — Trust Fix #8: Founder story */}
+      <section className="glass-strong rounded-2xl p-6 sm:p-8 mb-5 border border-gold-500/25">
+        <div className="flex items-start gap-5">
+          <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-gold-gradient items-center justify-center shadow-gold-glow">
+            <span className="font-display text-xl text-black font-black">V</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-gold-300" />
+              <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80">Founder · Vaibhav</div>
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl mb-3">A filmmaker, frustrated.</h2>
+            <p className="text-sm text-luxe/90 leading-relaxed mb-3">
+              I'm Vaibhav — a filmmaker, not a SaaS founder. I started Mugtee because I was tired of jumping between seven different AI tools just to get one cinematic reel out the door. Tabs for scripting, tabs for B-roll, tabs for voiceover, tabs for publishing. None of them spoke to each other. All of them charged separately.
+            </p>
+            <p className="text-sm text-luxe/90 leading-relaxed mb-3">
+              I built Mugtee as the workspace I wish had existed when I shot my first faceless documentary. One cinematic environment where the AI actually understands your niche, where every output is craftsman-grade, and where you ship — not just generate.
+            </p>
+            <p className="text-sm text-luxe/85 leading-relaxed">
+              Mugtee is creator-first because <span className="text-gold-200">it's built by a creator</span>. Every UI decision, every prompt, every shortcut — designed to make your hour count more than your last hour did.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="glass rounded-2xl p-6 sm:p-8 mb-5 border border-gold-500/15">
         <div className="flex items-center gap-2 mb-3">
           <Heart className="w-4 h-4 text-gold-300" />

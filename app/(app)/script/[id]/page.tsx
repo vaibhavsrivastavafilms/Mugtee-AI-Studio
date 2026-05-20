@@ -16,12 +16,14 @@ import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { toast } from 'sonner'
 import type { ContentPiece } from '@/lib/types'
 import { useSpeechSynthesis } from '@/lib/use-voice'
+import { useUsage } from '@/lib/usage'
 import { RewriteToolbar, type RewriteVariant } from '@/components/script/rewrite-toolbar'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
   const router = useRouter()
   const { content, updateContent, loading } = useStore()
+  const { isUnlimited } = useUsage()
   const storePiece = useMemo(() => content.find(c => c.id === params.id), [content, params.id])
 
   // Direct-lookup fallback row (only populated if the store doesn't contain the id)
@@ -152,7 +154,10 @@ export default function ScriptWorkspace() {
 
   const exportTxt = () => {
     if (!piece) return
-    const text = `# ${piece.title}\n\n${liveScript || (piece as any).script || piece.description || ''}\n`
+    const body = liveScript || (piece as any).script || piece.description || ''
+    // Phase V1.2 — Trust Fix #7: "Made with Mugtee" watermark on free-tier exports only.
+    const footer = isUnlimited ? '' : '\n\n---\nMade with Mugtee · AI Production OS for creators · https://mugtee.in\n'
+    const text = `# ${piece.title}\n\n${body}${footer}`
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `${piece.title.replace(/[^a-z0-9-_]+/gi,'-').toLowerCase()}.txt`; a.click(); URL.revokeObjectURL(url)
