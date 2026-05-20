@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import {
-  getMetaCreds, metaCredsReady,
-  validateToken, publishImage, publishReel, publishCarousel,
+  getMetaCreds, metaCredsReady, getInstagramApiBase,
+  validateToken, publishImage, publishReel, publishCarousel, getPublishingLimit,
   IGPublishError, type MetaApiError,
 } from '@/lib/instagram'
 
@@ -273,6 +273,11 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
   // 4) Mark publishing
   await supabase.from('publishing_queue').update({ status: 'publishing', error: null }).eq('id', queueId)
 
+  // Dual-host: tokens starting with "IGAA" → graph.instagram.com; otherwise → graph.facebook.com.
+  // This keeps both legacy FB-Page tokens and new IG-Login tokens working through the queue path.
+  const apiHost = getInstagramApiBase(ig.page_access_token)
+  console.log('[Instagram API Host]', apiHost, '(queue-based publish)', { queueId, ig_business_id: ig.ig_business_id })
+
   try {
     const isVideo = /\.(mp4|mov|m4v)(\?|$)/i.test(mediaUrl)
     const isImage = /\.(jpg|jpeg|png|webp)(\?|$)/i.test(mediaUrl)
@@ -289,7 +294,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
     createParams.set('caption', caption)
     createParams.set('access_token', ig.page_access_token)
 
-    const createRes = await fetch(`${GRAPH}/${ig.ig_business_id}/media`, { method: 'POST', body: createParams })
+    const createRes = await fetch(`${apiHost}/${ig.ig_business_id}/media`, { method: 'POST', body: createParams })
     const createJson = await createRes.json()
     if (!createRes.ok || !createJson.id) throw new Error(createJson?.error?.message || 'Failed to create media container')
     const creationId = createJson.id as string
@@ -298,7 +303,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
     if (isVideo) {
       for (let i = 0; i < 10; i++) {
         await new Promise(r => setTimeout(r, 2500))
-        const stRes = await fetch(`${GRAPH}/${creationId}?fields=status_code,status&access_token=${ig.page_access_token}`)
+        const stRes = await fetch(`${apiHost}/${creationId}?fields=status_code,status&access_token=${ig.page_access_token}`)
         const stJson = await stRes.json()
         if (stJson?.status_code === 'FINISHED') break
         if (stJson?.status_code === 'ERROR' || stJson?.status_code === 'EXPIRED') {
@@ -311,7 +316,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
     const pubParams = new URLSearchParams()
     pubParams.set('creation_id', creationId)
     pubParams.set('access_token', ig.page_access_token)
-    const pubRes = await fetch(`${GRAPH}/${ig.ig_business_id}/media_publish`, { method: 'POST', body: pubParams })
+    const pubRes = await fetch(`${apiHost}/${ig.ig_business_id}/media_publish`, { method: 'POST', body: pubParams })
     const pubJson = await pubRes.json()
     if (!pubRes.ok || !pubJson.id) throw new Error(pubJson?.error?.message || 'Publish failed')
     const mediaId = pubJson.id as string
@@ -319,7 +324,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
     // 8) Get permalink
     let postUrl: string | null = null
     try {
-      const plRes = await fetch(`${GRAPH}/${mediaId}?fields=permalink&access_token=${ig.page_access_token}`)
+      const plRes = await fetch(`${apiHost}/${mediaId}?fields=permalink&access_token=${ig.page_access_token}`)
       const plJson = await plRes.json()
       if (plRes.ok) postUrl = plJson.permalink || null
     } catch {}
