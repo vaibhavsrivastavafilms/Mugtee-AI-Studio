@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import {
+  getMetaCreds, metaCredsReady,
+  validateToken, publishImage, publishReel, publishCarousel,
+  IGPublishError, type MetaApiError,
+} from '@/lib/instagram'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const META_APP_ID = process.env.META_APP_ID
-const META_APP_SECRET = process.env.META_APP_SECRET
+const META_APP_ID = process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID
+const META_APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
 const GRAPH = 'https://graph.facebook.com/v20.0'
 const FB_OAUTH = 'https://www.facebook.com/v20.0/dialog/oauth'
 const SCOPES = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
@@ -131,18 +136,117 @@ export async function GET(req: NextRequest, { params }: { params: { action: stri
     return NextResponse.json({ ok: true })
   }
 
+  // -------------------------------------------------------------------
+  // validate — confirm the current user's stored IG token still works.
+  // Falls back to the INSTAGRAM_ACCESS_TOKEN env var when the user
+  // hasn't OAuth-connected yet (dev mode convenience).
+  // -------------------------------------------------------------------
+  if (action === 'validate') {
+    const { data: ig } = await supabase.from('instagram_accounts').select('*').eq('user_id', user.id).maybeSingle()
+    const creds = getMetaCreds()
+    const token = ig?.page_access_token || creds.envAccessToken
+    const source: 'user' | 'env' | 'none' = ig?.page_access_token ? 'user' : (creds.envAccessToken ? 'env' : 'none')
+
+    if (!token) {
+      return NextResponse.json({
+        valid: false,
+        source,
+        error: { message: 'No Instagram token available. Connect your Instagram from Settings.', is_token_expired: false, is_permission: false },
+      })
+    }
+
+    const result = await validateToken(token)
+    return NextResponse.json({
+      valid: result.valid,
+      source,
+      ig_business_id: ig?.ig_business_id ?? null,
+      username: ig?.username ?? result.username ?? null,
+      stored_expires_at: ig?.expires_at ?? null,
+      live_expires_at: result.expires_at ?? null,
+      scopes: result.scopes ?? null,
+      error: result.error ?? null,
+    })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 404 })
 }
 
 // =====================================================================
-// POST — handles /publish (server-side publishing call)
+// POST — handles /publish (queue-based) + /publish-image, /publish-carousel, /publish-reel (direct)
 // =====================================================================
 export async function POST(req: NextRequest, { params }: { params: { action: string } }) {
-  if (params.action !== 'publish') return NextResponse.json({ error: 'Unknown action' }, { status: 404 })
-
   const supabase = getSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
+  // -------------------------------------------------------------------
+  // Direct publish endpoints (no queue row required).
+  // Body: { caption?: string, image_url?: string, video_url?: string,
+  //         media_urls?: string[], share_to_feed?: boolean }
+  // -------------------------------------------------------------------
+  if (params.action === 'publish-image' || params.action === 'publish-carousel' || params.action === 'publish-reel') {
+    if (!metaCredsReady()) {
+      return NextResponse.json({ error: 'Meta credentials not configured on the server.' }, { status: 500 })
+    }
+    const body = await req.json().catch(() => ({}))
+    const caption: string = String(body?.caption || '').trim()
+
+    // Resolve IG account — user's stored row OR dev fallback to env access token.
+    // For the env-fallback path we still need an ig_business_id; require it in the
+    // request body OR pulled from `instagram_accounts` if any row exists.
+    const { data: ig } = await supabase.from('instagram_accounts').select('*').eq('user_id', user.id).maybeSingle()
+    const creds = getMetaCreds()
+    const igBusinessId: string | null = ig?.ig_business_id || String(body?.ig_business_id || '') || null
+    const token: string | null = ig?.page_access_token || creds.envAccessToken || null
+    if (!igBusinessId) {
+      return NextResponse.json({ error: 'No Instagram Business account on file. Connect IG in Settings, or pass ig_business_id in the body.' }, { status: 400 })
+    }
+    if (!token) {
+      return NextResponse.json({ error: 'No Instagram access token available. Connect IG in Settings, or set INSTAGRAM_ACCESS_TOKEN.' }, { status: 400 })
+    }
+
+    try {
+      let result
+      if (params.action === 'publish-image') {
+        const imageUrl: string = String(body?.image_url || body?.media_url || '').trim()
+        if (!imageUrl) return NextResponse.json({ error: 'image_url required' }, { status: 400 })
+        result = await publishImage(igBusinessId, imageUrl, caption, token)
+      } else if (params.action === 'publish-reel') {
+        const videoUrl: string = String(body?.video_url || body?.media_url || '').trim()
+        if (!videoUrl) return NextResponse.json({ error: 'video_url required' }, { status: 400 })
+        result = await publishReel(igBusinessId, videoUrl, caption, token, { share_to_feed: body?.share_to_feed !== false })
+      } else {
+        // publish-carousel
+        const urls: string[] = Array.isArray(body?.media_urls) ? body.media_urls.map((u: any) => String(u).trim()).filter(Boolean) : []
+        if (urls.length < 2 || urls.length > 10) return NextResponse.json({ error: 'media_urls must contain 2–10 entries' }, { status: 400 })
+        result = await publishCarousel(igBusinessId, urls, caption, token)
+      }
+
+      // Best-effort: log a notification so the user sees it land in the UI.
+      try {
+        await supabase.from('notifications').insert({
+          user_id: user.id,
+          title: 'Published to Instagram',
+          message: caption ? caption.slice(0, 120) : (result.permalink || result.media_id),
+          type: 'publish',
+          link: result.permalink || null,
+        })
+      } catch {}
+
+      return NextResponse.json(result)
+    } catch (e: any) {
+      const meta: MetaApiError = (e instanceof IGPublishError ? e.meta : null) || {
+        message: e?.message || 'Publish failed', is_token_expired: false, is_permission: false,
+      }
+      const status = meta.is_token_expired ? 401 : 502
+      return NextResponse.json({ error: meta.message, meta }, { status })
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // Existing queue-based publish — unchanged.
+  // -------------------------------------------------------------------
+  if (params.action !== 'publish') return NextResponse.json({ error: 'Unknown action' }, { status: 404 })
 
   const body = await req.json().catch(() => ({}))
   const queueId = String(body?.queue_id || '')
