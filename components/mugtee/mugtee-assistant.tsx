@@ -162,7 +162,7 @@ export function MugteeAssistant() {
   }
 
   // Hide on auth & legal routes to keep them clean
-  if (pathname === '/login' || pathname?.startsWith('/auth') || pathname?.startsWith('/privacy') || pathname?.startsWith('/terms') || pathname?.startsWith('/about')) {
+  if (pathname === '/' || pathname === '/login' || pathname?.startsWith('/auth') || pathname?.startsWith('/privacy') || pathname?.startsWith('/terms') || pathname?.startsWith('/about')) {
     return null
   }
 
