@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, FolderKanban, Image as ImageIcon, Sparkles, Film, Settings, X
+  LayoutDashboard, FolderKanban, Image as ImageIcon, Sparkles, Film, Settings, X, Zap, Crown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
+import { useUsage } from '@/lib/usage'
 
 // Phase — AI-first simplification. Mugtee is a faceless AI Studio, not a production tracker.
 // Crew / Shoots / Calendar / Analytics / Automations routes still exist and remain functional,
@@ -58,6 +59,9 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
         {showClose && (<button onClick={onClose} className="lg:hidden p-2 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>)}
       </div>
 
+      {/* Phase V1.1 — Plan pill: trial countdown · paid badge · or free credits remaining */}
+      <PlanPill />
+
       <nav className="flex-1 space-y-1 overflow-y-auto scrollbar-luxe">
         {NAV.map((item) => {
           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
@@ -80,6 +84,57 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
         <div className="flex items-center gap-2 mb-2"><Sparkles className="w-4 h-4 text-gold-300" /><span className="font-display text-sm">Studio Pro</span></div>
         <p className="text-xs text-luxe/70 leading-relaxed mb-3">Unlock unlimited AI generations, longform scripts, and priority cinematic rendering.</p>
         <Link href="/pricing" onClick={onItemClick} className="block w-full text-center text-xs font-medium py-2 rounded-lg bg-gold-gradient text-black hover:opacity-90 transition cursor-pointer relative z-30">Upgrade</Link>
+      </div>
+    </div>
+  )
+}
+
+// ─── PlanPill ────────────────────────────────────────────────────
+// Compact trial-countdown / credits pill above the navigation.
+// PRO_TRIAL active  → "✨ PRO TRIAL · Nd Left" gold (becomes amber under 2 days)
+// Paid              → "👑 PRO" gold
+// Free              → "⚡ N credits left" muted
+function PlanPill() {
+  const { trial, isUnlimited, plan, remaining } = useUsage()
+  const days = trial.daysLeft
+  if (isUnlimited && trial.active) {
+    const urgent = days <= 2
+    return (
+      <div className={cn(
+        'mb-5 px-3 py-2 rounded-xl border flex items-center gap-2 text-[11px]',
+        urgent
+          ? 'bg-amber-500/12 border-amber-500/40 text-amber-200 shadow-[0_0_18px_-6px_rgba(245,158,11,0.6)]'
+          : 'bg-gold-500/12 border-gold-500/40 text-gold-200 shadow-[0_0_18px_-6px_rgba(245,196,77,0.6)]',
+      )}>
+        <Sparkles className={cn('w-3.5 h-3.5', urgent ? 'text-amber-300' : 'text-gold-300')} />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium tracking-wide leading-tight">PRO TRIAL</div>
+          <div className={cn('text-[10px] leading-tight', urgent ? 'text-amber-300/80' : 'text-gold-300/80')}>
+            {days} day{days === 1 ? '' : 's'} left · <span className="font-medium">∞ Unlimited</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (plan === 'creator' || plan === 'agency') {
+    return (
+      <div className="mb-5 px-3 py-2 rounded-xl border bg-gold-500/15 border-gold-500/40 text-gold-200 flex items-center gap-2 text-[11px]">
+        <Crown className="w-3.5 h-3.5 text-gold-300" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium tracking-wide leading-tight">{plan === 'agency' ? 'AGENCY' : 'CREATOR'}</div>
+          <div className="text-[10px] text-gold-300/80 leading-tight">∞ Unlimited</div>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="mb-5 px-3 py-2 rounded-xl border bg-white/[0.03] border-white/[0.06] flex items-center gap-2 text-[11px]">
+      <Zap className="w-3.5 h-3.5 text-gold-300" />
+      <div className="flex-1 min-w-0">
+        <div className="font-medium tracking-wide leading-tight text-luxe">FREE PLAN</div>
+        <div className="text-[10px] text-muted-foreground leading-tight">
+          {Number.isFinite(remaining.ai) ? `${remaining.ai} credit${remaining.ai === 1 ? '' : 's'} left` : '∞ Unlimited'}
+        </div>
       </div>
     </div>
   )
