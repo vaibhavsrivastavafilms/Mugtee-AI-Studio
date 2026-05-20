@@ -8,8 +8,10 @@ import { motion } from 'framer-motion'
 import {
   Sparkles, Play, ArrowRight, Lightbulb, Wand2, Image as ImageIcon, Mic2, Film,
   Captions, Send, BarChart3, Volume2, Check, Crown, Zap, Brain, Loader2,
-  Instagram, Youtube, Clock, TrendingUp,
+  Instagram, Youtube, Clock, TrendingUp, Twitter, Mail, FileText,
 } from 'lucide-react'
+import { GuestHookGenerator } from '@/components/landing/guest-hook-generator'
+import { EmailCapture } from '@/components/landing/email-capture'
 
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
@@ -42,6 +44,7 @@ export default function LandingClient() {
             <a href="#workflow" className="hover:text-gold-300 transition">Workflow</a>
             <a href="#features" className="hover:text-gold-300 transition">Features</a>
             <a href="#pricing" className="hover:text-gold-300 transition">Pricing</a>
+            <Link href="/blog" className="hover:text-gold-300 transition">Blog</Link>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden sm:inline-flex text-[12px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 transition px-2 py-2">Sign in</Link>
@@ -70,7 +73,7 @@ export default function LandingClient() {
                 Start Free <ArrowRight className="w-4 h-4" />
               </Link>
               <a href="#workflow" className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-luxe hover:bg-white/[0.07] hover:border-gold-500/40 transition">
-                <Play className="w-4 h-4 text-gold-300" /> Watch Demo
+                <Play className="w-4 h-4 text-gold-300" /> Watch 60-sec Demo
               </a>
             </div>
             <div className="mt-5 text-[11px] tracking-widest uppercase text-muted-foreground/70">
@@ -136,6 +139,31 @@ export default function LandingClient() {
               ))}
             </div>
           </div>
+
+          {/* Phase V1.2 — Tasteful demo video placeholder card */}
+          <motion.div {...fadeUp} className="mt-14 sm:mt-20 max-w-3xl mx-auto">
+            <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden glass-strong border border-gold-soft aspect-video flex flex-col items-center justify-center text-center p-8">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-gold-500/[0.06] via-transparent to-amber-500/[0.04]" />
+              <div className="w-16 h-16 rounded-2xl bg-gold-gradient flex items-center justify-center shadow-gold-glow mb-4">
+                <Play className="w-7 h-7 text-black ml-1" />
+              </div>
+              <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300/90 mb-2">Coming Soon</div>
+              <h3 className="font-display text-2xl sm:text-3xl leading-tight mb-2">Demo video <span className="text-gold-gradient">coming soon</span></h3>
+              <p className="text-luxe/65 text-sm max-w-md mb-5">A 60-second walk-through of how a single idea becomes a published reel inside Mugtee.</p>
+              <button disabled className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-luxe/60 text-xs tracking-wider uppercase cursor-not-allowed">
+                <Play className="w-3.5 h-3.5 text-gold-300/70" /> Watch 60-sec Demo
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Phase V1.2 — Try Mugtee (no-signup viral hook generator) */}
+      <section className="relative px-5 sm:px-6 py-12 sm:py-16">
+        <div className="container max-w-5xl mx-auto">
+          <motion.div {...fadeUp}>
+            <GuestHookGenerator />
+          </motion.div>
         </div>
       </section>
 
@@ -155,6 +183,11 @@ export default function LandingClient() {
                 transition={{ duration: 0.5, delay: (i % 3) * 0.06, ease: 'easeOut' }}
                 className="group relative rounded-2xl p-5 sm:p-6 bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-gold-500/40 transition shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] hover:shadow-[0_0_28px_-8px_rgba(245,196,77,0.35)]"
               >
+                {f.coming && (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-[9px] tracking-[0.25em] uppercase text-amber-200">
+                    Coming Soon
+                  </span>
+                )}
                 <div className="w-10 h-10 rounded-lg bg-gold-500/[0.08] border border-gold-500/25 flex items-center justify-center mb-3 group-hover:border-gold-500/50 transition">
                   <f.icon className="w-4 h-4 text-gold-300" />
                 </div>
@@ -184,18 +217,16 @@ export default function LandingClient() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {TESTIMONIALS.map((t) => (
-              <motion.figure key={t.author} {...fadeUp} className="rounded-2xl p-6 bg-white/[0.025] border border-white/[0.05] hover:border-gold-500/30 transition">
-                <blockquote className="text-[14px] sm:text-[15px] leading-relaxed text-luxe/85 italic">&ldquo;{t.quote}&rdquo;</blockquote>
-                <figcaption className="mt-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gold-gradient flex items-center justify-center text-black font-display text-sm font-bold">{t.author[0]}</div>
-                  <div>
-                    <div className="text-[13px] text-luxe">{t.author}</div>
-                    <div className="text-[11px] text-muted-foreground">{t.role}</div>
-                  </div>
-                </figcaption>
-              </motion.figure>
-            ))}
+            {/* Phase V1.2 — Trust Fix #2: Removed fake-looking testimonials. Honest placeholder until real creator quotes are collected. */}
+            <motion.div {...fadeUp} className="rounded-2xl p-6 sm:p-7 bg-white/[0.025] border border-white/[0.05] lg:col-span-2 text-center">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/25 text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-3">
+                <Sparkles className="w-3 h-3" /> Coming soon
+              </div>
+              <h3 className="font-display text-xl sm:text-2xl leading-tight mb-2">Creator testimonials, <span className="text-gold-gradient">coming soon</span>.</h3>
+              <p className="text-luxe/65 text-sm leading-relaxed max-w-xl mx-auto">
+                We're inviting our first creators to share honest, on-the-record feedback. Want to be one of them? <a href="mailto:hello@mugtee.in" className="text-gold-300 hover:text-gold-200 transition underline-offset-4 hover:underline">Email us</a> — we'll get you on early access.
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -237,20 +268,44 @@ export default function LandingClient() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/login"
-                  className={
-                    'block text-center py-3 rounded-lg text-sm font-medium transition ' +
-                    (p.highlight
-                      ? 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
-                      : 'bg-white/[0.04] border border-white/[0.08] text-luxe hover:bg-white/[0.08] hover:border-gold-500/40')
-                  }
-                >
-                  {p.cta}
-                </Link>
+                {/* Phase V1.2 — Trust Fix #6: Agency CTA bypasses login wall */}
+                {p.ctaHref ? (
+                  <a
+                    href={p.ctaHref}
+                    className={
+                      'block text-center py-3 rounded-lg text-sm font-medium transition ' +
+                      (p.highlight
+                        ? 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
+                        : 'bg-white/[0.04] border border-white/[0.08] text-luxe hover:bg-white/[0.08] hover:border-gold-500/40')
+                    }
+                  >
+                    {p.cta}
+                  </a>
+                ) : (
+                  <Link
+                    href="/login"
+                    className={
+                      'block text-center py-3 rounded-lg text-sm font-medium transition ' +
+                      (p.highlight
+                        ? 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
+                        : 'bg-white/[0.04] border border-white/[0.08] text-luxe hover:bg-white/[0.08] hover:border-gold-500/40')
+                    }
+                  >
+                    {p.cta}
+                  </Link>
+                )}
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Phase V1.2 — Lightweight email capture */}
+      <section className="relative px-5 sm:px-6 py-8 sm:py-12">
+        <div className="container max-w-4xl mx-auto">
+          <motion.div {...fadeUp}>
+            <EmailCapture />
+          </motion.div>
         </div>
       </section>
 
@@ -275,13 +330,40 @@ export default function LandingClient() {
       </section>
 
       {/* ─── FOOTER ──────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.04] py-10 px-5 sm:px-6 text-[11px] tracking-wider uppercase text-muted-foreground/80">
-        <div className="container max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>© {new Date().getFullYear()} Mugtee · An AI Production OS for creators</span>
-          <div className="flex items-center gap-5">
-            <Link href="/privacy" className="hover:text-gold-300 transition">Privacy</Link>
-            <Link href="/terms" className="hover:text-gold-300 transition">Terms</Link>
-            <Link href="/about" className="hover:text-gold-300 transition">About</Link>
+      <footer className="border-t border-white/[0.04] py-12 px-5 sm:px-6">
+        <div className="container max-w-6xl mx-auto flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
+                <span className="font-display text-sm text-black font-black">M</span>
+              </div>
+              <span className="font-display text-base tracking-wide"><span className="text-gold-gradient">Mugtee</span></span>
+            </Link>
+            {/* Phase V1.2 — Trust Fix #9: social links */}
+            <div className="flex items-center gap-2">
+              <a href="https://instagram.com/mugteeaistudio" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-gold-500/40 hover:bg-gold-500/10 text-luxe/70 hover:text-gold-300 inline-flex items-center justify-center transition">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="https://youtube.com/@mugtee" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-gold-500/40 hover:bg-gold-500/10 text-luxe/70 hover:text-gold-300 inline-flex items-center justify-center transition">
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a href="https://x.com/mugtee" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter" className="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-gold-500/40 hover:bg-gold-500/10 text-luxe/70 hover:text-gold-300 inline-flex items-center justify-center transition">
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a href="mailto:hello@mugtee.in" aria-label="Email" className="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-gold-500/40 hover:bg-gold-500/10 text-luxe/70 hover:text-gold-300 inline-flex items-center justify-center transition">
+                <Mail className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 border-t border-white/[0.04] text-[11px] tracking-wider uppercase text-muted-foreground/80">
+            <span>© {new Date().getFullYear()} Mugtee · An AI Production OS for creators</span>
+            <div className="flex items-center gap-5 flex-wrap justify-center">
+              <Link href="/blog" className="hover:text-gold-300 transition">Blog</Link>
+              <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>
+              <Link href="/privacy" className="hover:text-gold-300 transition">Privacy</Link>
+              <Link href="/terms" className="hover:text-gold-300 transition">Terms</Link>
+              <Link href="/about" className="hover:text-gold-300 transition">About</Link>
+            </div>
           </div>
         </div>
       </footer>
@@ -394,15 +476,15 @@ const WORKFLOW_STEPS = [
   { label: 'Publish',            icon: Send },
 ]
 
-const FEATURES = [
+const FEATURES: { title: string; desc: string; icon: any; coming?: boolean }[] = [
   { title: 'AI Script Writer',     desc: 'Cinematic screenplay-grade scripts in seconds. Hooks tuned for retention.', icon: Wand2 },
-  { title: 'AI Image Generator',   desc: 'On-brand B-roll, thumbnails, and storyboard frames — generated, not stocked.', icon: ImageIcon },
-  { title: 'Voice Cloning',         desc: 'Narrator-grade voiceovers. Match your tone or pick a signature voice.', icon: Mic2 },
-  { title: 'Reel Generator',        desc: 'Beat-matched cuts, motion templates, vertical aspect — auto-assembled.', icon: Film },
-  { title: 'Auto Captions',         desc: 'Word-level timing, broll-aware emphasis, brand fonts baked in.', icon: Captions },
+  { title: 'AI Image Generator',   desc: 'On-brand B-roll, thumbnails, and storyboard frames — generated, not stocked.', icon: ImageIcon, coming: true },
+  { title: 'Voice Cloning',         desc: 'Narrator-grade voiceovers. Match your tone or pick a signature voice.', icon: Mic2, coming: true },
+  { title: 'Reel Generator',        desc: 'Beat-matched cuts, motion templates, vertical aspect — auto-assembled.', icon: Film, coming: true },
+  { title: 'Auto Captions',         desc: 'Word-level timing, broll-aware emphasis, brand fonts baked in.', icon: Captions, coming: true },
   { title: 'Instagram Publisher',   desc: 'Direct publish to feed, reels, or carousel — schedule or fire instantly.', icon: Instagram },
   { title: 'YouTube Publisher',     desc: 'Long-form and Shorts upload with metadata, chapters, and thumbnails.', icon: Youtube },
-  { title: 'Analytics Dashboard',   desc: 'Per-post performance, niche benchmarks, and what to do next — by AI.', icon: BarChart3 },
+  { title: 'Analytics Dashboard',   desc: 'Per-post performance, niche benchmarks, and what to do next — by AI.', icon: BarChart3, coming: true },
   { title: 'Voice-First Assistant', desc: 'Ask Mugtee in voice. Get scripts, plans, hooks. Hear them back instantly.', icon: Volume2 },
 ]
 
@@ -412,18 +494,7 @@ const STATS = [
   { value: '30d→1h', label: 'A month of content in one hour' },
 ]
 
-const TESTIMONIALS = [
-  {
-    quote: "I went from 2 reels a week to 14. Same person, same hours. Mugtee just removed every excuse between the idea and the post.",
-    author: 'Aarav K.', role: 'Faceless creator · 84k followers',
-  },
-  {
-    quote: "The script engine alone replaced three apps for me. The cinematic version feels like it was written by someone who actually understands my niche.",
-    author: 'Priya S.', role: 'Documentary channel · YouTube',
-  },
-]
-
-const PRICING = [
+const PRICING: { name: string; price: string; unit: string; tagline: string; features: string[]; cta: string; highlight: boolean; ctaHref?: string }[] = [
   {
     name: 'Starter', price: 'Free', unit: '', tagline: 'Try the workflow, no card needed.',
     features: ['25 AI generations / month', '5 cinematic scripts / month', 'Instagram + YouTube preview', 'Voice-first assistant'],
@@ -437,6 +508,6 @@ const PRICING = [
   {
     name: 'Agency', price: '₹999', unit: ' / mo', tagline: 'For studios shipping at volume.',
     features: ['Everything in Pro', 'Multi-brand workspaces', 'Team workflows + roles', 'White-glove onboarding'],
-    cta: 'Talk to us', highlight: false,
+    cta: 'Talk to Us', highlight: false, ctaHref: 'mailto:hello@mugtee.in?subject=Mugtee%20Agency%20Plan',
   },
 ]
