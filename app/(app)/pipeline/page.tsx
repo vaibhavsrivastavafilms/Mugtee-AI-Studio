@@ -53,7 +53,7 @@ export default function PipelinePage() {
   const bulkDelete = async () => {
     const count = selected.size
     if (!count) return
-    if (!(await confirm({ title: `Delete ${count} card${count>1?'s':''}?`, description: 'They will be removed from your pipeline.', destructive: true }))) return
+    if (!(await confirm({ title: `Delete ${count} card${count>1?'s':''}?`, description: 'They will be removed from your projects.', destructive: true }))) return
     for (const id of Array.from(selected)) { removeContent(id) }
     clearSelection()
   }
@@ -93,9 +93,9 @@ export default function PipelinePage() {
         className="flex flex-wrap items-end justify-between gap-3"
       >
         <div>
-          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Kanban Pipeline</div>
-          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Production</span> flow</h1>
-          <p className="text-luxe/70 mt-2">Drag cards across stages to move the story forward.</p>
+          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Projects</div>
+          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Your AI</span> projects</h1>
+          <p className="text-luxe/70 mt-2">Every idea, script, and faceless story you've created — all in one place.</p>
           {filterLabel && (
             <button onClick={() => router.push('/pipeline')}
               className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-gold text-xs tracking-wide hover:bg-gold-500/20 transition"

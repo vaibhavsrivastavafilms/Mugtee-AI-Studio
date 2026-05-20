@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2 } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -73,12 +73,14 @@ export function ViralQuickStart() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-                    Mugtee · Faceless AI Studio
+                    Mugtee AI Studio
                   </div>
-                  <h2 className="font-display text-xl sm:text-2xl mt-0.5">
-                    <span className="text-gold-gradient">Faceless AI Studio</span>
+                  <h2 className="font-display text-2xl sm:text-3xl lg:text-[2rem] mt-1 leading-tight">
+                    What do you want to <span className="text-gold-gradient">create</span> today?
                   </h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug hidden sm:block">Generate viral faceless YouTube systems, scripts, hooks, and storytelling ideas.</p>
+                  <p className="text-[12px] sm:text-[13px] text-luxe/70 leading-snug mt-1.5 max-w-xl">
+                    Generate faceless content, scripts, hooks, storyboards, and viral ideas instantly.
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -172,6 +174,51 @@ export function ViralQuickStart() {
                       {v.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       {v.loading ? 'Generating…' : 'Generate'}
                     </Button>
+                  </div>
+
+                  {/* Quick-action chips — ChatGPT/Canva-style AI shortcuts.
+                      Each chip is a soft preset: it nudges platform/tone toward the
+                      most-effective combo for that format, then runs the same generate flow. */}
+                  <div className="px-4 sm:px-5 pb-3 -mt-1">
+                    <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Wand2 className="w-3 h-3 text-gold-400/70" /> Quick actions
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([
+                        { label: 'Viral Reel',         icon: Flame,    platform: 'instagram',          tone: 'cinematic_emotional' },
+                        { label: 'YouTube Script',     icon: Video,    platform: 'youtube',            tone: 'storytelling' },
+                        { label: 'Faceless Video',     icon: Film,     platform: 'youtube',            tone: 'cinematic_emotional', faceless: true },
+                        { label: 'Storyboard',         icon: BookOpen, platform: v.platform,           tone: v.tone,                faceless: true },
+                        { label: 'Hook Generator',     icon: Quote,    platform: v.platform,           tone: 'funny_relatable' },
+                        { label: 'Documentary Script', icon: Mic,      platform: 'youtube',            tone: 'storytelling',        faceless: true },
+                      ] as const).map(action => {
+                        const Icon = action.icon
+                        return (
+                          <button
+                            key={action.label}
+                            onClick={() => {
+                              v.setPlatform(action.platform as Platform)
+                              v.setTone(action.tone as any)
+                              if ((action as any).faceless) {
+                                // Faceless workflows open the dedicated dialog (existing flow, not rebuilt)
+                                setFacelessOpen(true)
+                              } else if (v.topic.trim()) {
+                                // Topic already typed → fire the same generate path
+                                v.generate()
+                              } else {
+                                // No topic yet → focus the input so user can type one
+                                const el = document.querySelector('input[placeholder^="e.g."]') as HTMLInputElement | null
+                                el?.focus()
+                              }
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-gold-500/10 border border-white/[0.06] hover:border-gold-500/40 text-luxe/80 hover:text-gold-200 text-[11px] tracking-wide transition group"
+                          >
+                            <Icon className="w-3 h-3 text-gold-400/70 group-hover:text-gold-300" />
+                            {action.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {/* Creator DNA — Niche + Audience inline.
