@@ -438,7 +438,88 @@ export default function SettingsPage() {
           </div>
         )}
       </motion.div>
+
+      {/* Sponsor analytics — your own click history. RLS scopes naturally to auth.uid(). */}
+      <SponsorAnalyticsCard />
     </div>
+  )
+}
+
+// ─── Sponsor analytics (per-user) ──────────────────────────────────
+// Reads from sponsor_clicks via the browser supabase client. RLS ensures the user
+// only sees their own rows. Zero new deps, zero new API routes — uses existing client.
+function SponsorAnalyticsCard() {
+  const supabase = createSupabaseBrowserClient()
+  const [stats, setStats] = useState<{ total: number; rewards: number; credits: number; top: { sponsor: string; count: number } | null } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sponsor_clicks')
+          .select('sponsor, rewarded, credits_given')
+          .order('created_at', { ascending: false })
+          .limit(500)
+        if (cancelled) return
+        if (error) { console.warn('[Sponsor Analytics] error', error); setStats({ total: 0, rewards: 0, credits: 0, top: null }); return }
+        const rows = data || []
+        const tally: Record<string, number> = {}
+        let rewards = 0
+        let credits = 0
+        for (const r of rows) {
+          const s = String(r.sponsor || 'unknown')
+          tally[s] = (tally[s] || 0) + 1
+          if (r.rewarded) rewards += 1
+          credits += Number(r.credits_given || 0)
+        }
+        const topEntry = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]
+        const top = topEntry ? { sponsor: topEntry[0], count: topEntry[1] } : null
+        setStats({ total: rows.length, rewards, credits, top })
+      } catch (e) {
+        console.warn('[Sponsor Analytics] exception', (e as any)?.message || e)
+        if (!cancelled) setStats({ total: 0, rewards: 0, credits: 0, top: null })
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-strong rounded-2xl p-6 sm:p-7 mt-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Sparkles className="w-4 h-4 text-gold-300" />
+        <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80">Sponsor rewards</div>
+      </div>
+      <h2 className="font-display text-xl sm:text-2xl mb-1">Your <span className="text-gold-gradient">affiliate activity</span></h2>
+      <p className="text-[12px] text-luxe/65 mb-5">Clicks on Mugtee-curated sponsor offers earn you bonus AI credits. Once per sponsor per day.</p>
+
+      {loading ? (
+        <div className="text-[12px] text-muted-foreground">Loading sponsor stats…</div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
+            <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Total clicks</div>
+            <div className="font-display text-2xl sm:text-3xl text-luxe">{stats?.total ?? 0}</div>
+          </div>
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
+            <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Rewards claimed</div>
+            <div className="font-display text-2xl sm:text-3xl text-gold-gradient">{stats?.rewards ?? 0}</div>
+          </div>
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
+            <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Credits earned</div>
+            <div className="font-display text-2xl sm:text-3xl text-emerald-300">+{stats?.credits ?? 0}</div>
+          </div>
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
+            <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Top sponsor</div>
+            <div className="font-display text-base text-luxe truncate capitalize">{stats?.top?.sponsor || '—'}</div>
+            <div className="text-[10px] text-muted-foreground">{stats?.top?.count ? `${stats.top.count} clicks` : 'No clicks yet'}</div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   )
 }
 

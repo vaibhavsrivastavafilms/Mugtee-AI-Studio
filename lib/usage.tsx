@@ -8,7 +8,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Sparkles, Crown, Check, X, Zap, ArrowRight, Lock, Gift } from 'lucide-react'
+import { Sparkles, Crown, Check, X, Zap, ArrowRight, Lock, Gift, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
 
@@ -219,79 +219,96 @@ export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; on
 }
 
 // Phase P7 — Rewarded sponsor experience. Lightweight, no ad SDK, no autoplay audio.
-// Shows a sponsor card with a 5-second engagement timer → grants +3 AI credits.
-const SPONSORS: { name: string; tagline: string; href: string; category: string }[] = [
-  { name: 'CapCut',     tagline: 'Free pro-grade video editor for creators on every device.',                            href: 'https://www.capcut.com',     category: 'Editing' },
-  { name: 'ElevenLabs', tagline: 'Hyper-realistic AI voices in 30+ languages — narrate any faceless script.',           href: 'https://elevenlabs.io',      category: 'Voice AI' },
-  { name: 'Descript',   tagline: 'Edit video by editing the transcript. Remove filler words in one click.',             href: 'https://www.descript.com',   category: 'Editing' },
-  { name: 'Notion AI',  tagline: 'Organize ideas, outlines and creator notes in one calm workspace.',                   href: 'https://www.notion.so',      category: 'Workspace' },
-  { name: 'Adobe Express', tagline: 'Thumbnail design + social graphics in seconds. Free templates included.',          href: 'https://www.adobe.com/express/', category: 'Design' },
-]
+// Phase — now uses /api/sponsor/[name] for trackable redirect + server-side daily reward gate.
+// Sponsor config (with affiliate URLs) lives in /lib/sponsors.ts.
+import { SPONSOR_LIST, randomSponsor, type Sponsor } from '@/lib/sponsors'
 
 export function RewardedSponsorModal({ open, onOpenChange, onReward }: { open: boolean; onOpenChange: (v: boolean) => void; onReward: (n: number) => void }) {
-  const [sponsor] = useState(() => SPONSORS[Math.floor(Math.random() * SPONSORS.length)])
-  const [seconds, setSeconds] = useState(5)
+  const [sponsor] = useState<Sponsor>(() => randomSponsor())
+  const [busy, setBusy]       = useState(false)
   const [claimed, setClaimed] = useState(false)
+  const [alreadyToday, setAlreadyToday] = useState(false)
 
-  useEffect(() => {
-    if (!open) { setSeconds(5); setClaimed(false); return }
-    if (claimed) return
-    if (seconds <= 0) return
-    const t = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000)
-    return () => clearInterval(t)
-  }, [open, seconds, claimed])
-
-  const ready = seconds <= 0
-  const claim = () => {
-    if (!ready || claimed) return
-    setClaimed(true)
-    onReward(3)
-    setTimeout(() => onOpenChange(false), 900)
+  const visitAndClaim = async () => {
+    if (busy || claimed) return
+    setBusy(true)
+    // Pre-flight: check server eligibility WITHOUT redirecting (so we know whether to grant credits)
+    let eligible = false
+    let alreadyClaimed = false
+    try {
+      const res = await fetch(`/api/sponsor/${sponsor.slug}?check=1`, { method: 'GET' })
+      const d = await res.json()
+      eligible = !!d?.eligible
+      alreadyClaimed = !!d?.already_claimed_today
+    } catch (e) {
+      console.warn('[Sponsor Click] check failed', (e as any)?.message || e)
+    }
+    // Trigger the trackable redirect in a new tab (logs the click + sends user to affiliate URL).
+    try { window.open(`/api/sponsor/${sponsor.slug}`, '_blank', 'noopener,noreferrer') } catch {}
+    if (eligible) {
+      onReward(sponsor.reward)
+      setClaimed(true)
+      setTimeout(() => onOpenChange(false), 1100)
+    } else if (alreadyClaimed) {
+      setAlreadyToday(true)
+    } else {
+      // Anonymous user — redirect still happened, no credits granted server-side.
+      setAlreadyToday(true)
+    }
+    setBusy(false)
   }
+
+  // Reset transient state on close
+  useEffect(() => { if (!open) { setBusy(false); setClaimed(false); setAlreadyToday(false) } }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong sm:max-w-md border border-gold-soft">
         <DialogHeader>
           <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-            <Gift className="w-3 h-3" /> Sponsored · earn +3 AI credits
+            <Gift className="w-3 h-3" /> Sponsored · earn +{sponsor.reward} AI credits
           </div>
           <DialogTitle className="font-display text-xl sm:text-2xl">
             Discover <span className="text-gold-gradient">{sponsor.name}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <a href={sponsor.href} target="_blank" rel="noopener noreferrer sponsored"
-          className="block rounded-xl p-4 bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.08] hover:border-gold-500/30 transition group">
+        <div className="block rounded-xl p-4 bg-white/[0.04] border border-white/[0.08]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground">{sponsor.category}</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:text-gold-300 transition" />
+            <ArrowRight className="w-3 h-3 text-muted-foreground/60" />
           </div>
           <div className="font-display text-lg mb-1">{sponsor.name}</div>
           <p className="text-[12px] text-luxe/80 leading-relaxed">{sponsor.tagline}</p>
-          <div className="mt-3 text-[10px] tracking-[0.25em] uppercase text-gold-300/70 group-hover:text-gold-300 transition inline-flex items-center gap-1">Visit {sponsor.name} <ArrowRight className="w-3 h-3" /></div>
-        </a>
+        </div>
 
         <div className="mt-3 pt-3 border-t border-white/[0.05]">
-          {!claimed ? (
+          {claimed ? (
+            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 min-h-[44px]">
+              <Check className="w-4 h-4" /> +{sponsor.reward} Credits Claimed
+            </div>
+          ) : alreadyToday ? (
+            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-white/[0.04] border border-white/[0.08] text-luxe/70 min-h-[44px]">
+              <Check className="w-4 h-4 text-muted-foreground" /> Already claimed today · come back tomorrow
+            </div>
+          ) : (
             <button
-              onClick={claim}
-              disabled={!ready}
+              onClick={visitAndClaim}
+              disabled={busy}
               className={cn(
                 'w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition min-h-[44px]',
-                ready
-                  ? 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
-                  : 'bg-white/[0.04] text-muted-foreground cursor-not-allowed'
+                busy
+                  ? 'bg-white/[0.04] text-muted-foreground cursor-wait'
+                  : 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90',
               )}
             >
-              {ready ? <><Gift className="w-4 h-4" /> Claim +3 AI credits</> : <><span className="tabular-nums">Unlocks in {seconds}s</span></>}
+              {busy
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Opening {sponsor.name}…</>
+                : <><Gift className="w-4 h-4" /> Visit & Earn +{sponsor.reward} Credits</>
+              }
             </button>
-          ) : (
-            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 min-h-[44px]">
-              <Check className="w-4 h-4" /> +3 credits added · enjoy creating!
-            </div>
           )}
-          <div className="text-[10px] text-center text-muted-foreground mt-2">Lightweight sponsor placement · no autoplay audio · resets daily.</div>
+          <div className="text-[10px] text-center text-muted-foreground mt-2">Lightweight affiliate placement · server-tracked · resets daily.</div>
         </div>
       </DialogContent>
     </Dialog>
