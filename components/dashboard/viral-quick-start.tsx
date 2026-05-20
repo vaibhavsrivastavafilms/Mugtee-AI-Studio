@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen, MicOff, Headphones, Pause, Play, Square } from 'lucide-react'
+import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -23,6 +24,18 @@ export function ViralQuickStart() {
   // opens when the user hits "DNA" so niche/audience/tone/platform are all
   // first-class dashboard controls (no more buried-in-Settings).
   const [dnaOpen, setDnaOpen] = useState(false)
+
+  // ─── Voice-first layer ────────────────────────────────────────
+  // Mic transcribes into the topic input — user manually clicks Generate (no auto-submit).
+  // Hear Narration reads the AI ideas aloud once results render.
+  const tts = useSpeechSynthesis()
+  const stt = useSpeechRecognition({
+    onResult: (text, isFinal) => {
+      if (!text) return
+      v.setTopic(text)   // live transcript fills the topic input
+      // do NOT auto-submit — spec requires manual Generate click
+    },
+  })
 
   // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
   useEffect(() => {
@@ -142,14 +155,54 @@ export function ViralQuickStart() {
                 >
                   <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-[1fr_180px_180px_auto] gap-2.5 items-end">
                     <div className="space-y-1">
-                      <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Topic</label>
-                      <Input
-                        value={v.topic}
-                        onChange={(e) => v.setTopic(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !v.loading) v.generate() }}
-                        placeholder={placeholderForNiche(v.niche)}
-                        className="bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40 h-10"
-                      />
+                      <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-1.5">
+                        <span>Topic</span>
+                        {stt.listening && (
+                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-rose-300 normal-case">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" /> Mugtee is listening…
+                          </span>
+                        )}
+                        {!stt.listening && v.loading && (
+                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-gold-300 normal-case">
+                            <Sparkles className="w-2.5 h-2.5" /> Building your cinematic concept…
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <Input
+                          value={v.topic}
+                          onChange={(e) => v.setTopic(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && !v.loading) v.generate() }}
+                          placeholder={placeholderForNiche(v.niche)}
+                          className={
+                            'bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40 h-10 ' +
+                            (stt.supported ? 'pr-10 ' : '') +
+                            (stt.listening ? 'border-rose-500/50 ring-2 ring-rose-500/20 animate-pulse' : '')
+                          }
+                        />
+                        {/* In-input gold mic — hidden gracefully if browser unsupported */}
+                        {stt.supported && (
+                          <button
+                            type="button"
+                            onClick={stt.toggle}
+                            disabled={v.loading}
+                            aria-label={stt.listening ? 'Stop listening' : 'Speak your idea'}
+                            title={stt.listening ? 'Stop listening' : 'Tap and speak your idea'}
+                            className={
+                              'absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-md transition ' +
+                              (stt.listening
+                                ? 'bg-rose-500/20 border border-rose-500/50 text-rose-300 shadow-[0_0_14px_-2px_rgba(244,63,94,0.55)]'
+                                : 'bg-white/[0.04] border border-white/[0.06] text-gold-300 hover:bg-gold-500/15 hover:border-gold-500/40 hover:text-gold-200 hover:shadow-[0_0_14px_-2px_rgba(245,196,77,0.5)]')
+                            }
+                          >
+                            {stt.listening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                      {/* Live interim transcript hint — non-blocking, gold tint */}
+                      {stt.listening && stt.interim && (
+                        <div className="text-[10px] text-gold-300/70 italic truncate pl-1">&ldquo;{stt.interim}&rdquo;</div>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Platform</label>
@@ -269,6 +322,44 @@ export function ViralQuickStart() {
                   initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
                   className="overflow-hidden border-t border-white/[0.05]"
                 >
+                  {/* 🎧 Hear Narration — reads the 3 idea titles + hooks aloud. Hidden if TTS unsupported or still loading. */}
+                  {!v.loading && topThree.length > 0 && tts.supported && (
+                    <div className="px-4 sm:px-5 pt-3 -mb-1 flex items-center justify-between gap-2">
+                      <span className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Top 3 ideas</span>
+                      {tts.speaking ? (
+                        <div className="inline-flex items-center gap-0.5">
+                          {tts.paused ? (
+                            <button onClick={tts.resume} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] tracking-wide transition">
+                              <Play className="w-3 h-3" /> Resume
+                            </button>
+                          ) : (
+                            <button onClick={tts.pause} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] tracking-wide transition">
+                              <Pause className="w-3 h-3" /> Pause
+                            </button>
+                          )}
+                          <button onClick={tts.stop} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-muted-foreground hover:text-luxe hover:border-white/[0.18] text-[11px] tracking-wide transition">
+                            <Square className="w-3 h-3" /> Stop
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            // Narrate ideas as a single cinematic read.
+                            const script = topThree.map((idea: any, i: number) => {
+                              const title = idea?.title || idea?.headline || ''
+                              const hook  = idea?.hook  || idea?.description || ''
+                              return `Idea ${i + 1}. ${title}. ${hook}`.trim()
+                            }).filter(Boolean).join('   ')
+                            if (script) tts.speak(script)
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 hover:text-gold-200 text-[11px] tracking-wide transition shadow-[0_0_14px_-4px_rgba(245,196,77,0.4)]"
+                          title="Hear these ideas read aloud"
+                        >
+                          <Headphones className="w-3.5 h-3.5" /> Hear Narration
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-3">
                     {v.loading ? (
                       [0,1,2].map(i => (

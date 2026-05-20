@@ -85,12 +85,21 @@ function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null
   const voices = window.speechSynthesis.getVoices()
   if (!voices.length) return null
-  // Preference order: high-quality English voices known to be expressive on each platform.
+  // Preference order: smooth cinematic English voices, **male first** per spec.
+  // Browser/OS differs in availability — we fall through gracefully.
   const preferred = [
-    'Google UK English Female', 'Google US English', 'Samantha', 'Karen',
+    // Male, narrator-grade (Apple / Microsoft / Google rosters)
+    'Daniel', 'Alex', 'Aaron', 'Tom', 'Fred', 'Oliver', 'Rishi',
+    'Google UK English Male', 'Google US English Male',
+    'Microsoft Guy Online (Natural) - English (United States)',
+    'Microsoft Ryan Online (Natural) - English (United Kingdom)',
+    'Microsoft Davis Online (Natural) - English (United States)',
+    'Microsoft Tony Online (Natural) - English (United States)',
+    // Female fallbacks (still cinematic, well-supported)
+    'Samantha', 'Karen', 'Google UK English Female', 'Google US English',
     'Microsoft Aria Online (Natural) - English (United States)',
-    'Microsoft Jenny Online (Natural) - English (United States)',
     'Microsoft Sonia Online (Natural) - English (United Kingdom)',
+    'Microsoft Jenny Online (Natural) - English (United States)',
     'Microsoft Libby Online (Natural) - English (United Kingdom)',
   ]
   for (const name of preferred) {
