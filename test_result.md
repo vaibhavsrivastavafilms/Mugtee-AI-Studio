@@ -146,6 +146,29 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_SrEX2ok3vDtFa1) validated and working."
 
 frontend:
+  - task: "V1.2 — Highlight + Rewrite system (floating toolbar + 5 AI rewrite modes + version history)"
+    implemented: true
+    working: "NA"
+    file: "components/script/rewrite-toolbar.tsx, app/(app)/script/[id]/page.tsx, app/api/ai/generate/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Phase V1.2 shipped. (1) NEW component `RewriteToolbar` (~170 lines, zero new deps) — listens to window.getSelection() inside containerRef, shows fixed-position floating gold toolbar above any selection >12 chars in the script body. 5 modes: More Viral, Shorter, Emotional, Documentary, Better CTA. (2) NEW AI mode `rewrite_selection` in /api/ai/generate — accepts {selection, rewrite_variant, full_script} and returns raw replacement prose (no quotes/headers/markdown). 5 variant directives baked in. (3) Script workspace page wired: `liveScript` local state mirrors DB, `handleRewriteReplace` snapshots prev → does single-occurrence replace → persists via updateContent. Inline version history panel (last 5 in-session snapshots, with Restore button). Hint shown under script body. Toolbar mounted only when not editing. Free trial users hit Unlimited mode automatically so no usage guard added. Compile clean: /script/[id] compiled 6.4s, no errors."
+  - task: "V1.2 — Library tabs (Scripts / Ideas / Prompts / Media) + auto-save"
+    implemented: true
+    working: "NA"
+    file: "app/(app)/media/page.tsx, components/ai/viral-studio-panel.tsx, app/(app)/script/[id]/page.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Library transformed from media-only into 4-tab hub: Scripts (from content_pieces with script body, ordered by created_at, 'Continue working' CTA → /script/[id]), Ideas (localStorage `mugtee:library:ideas`, max 100), Prompts (localStorage `mugtee:library:prompts`, max 50), Media (existing grid). Auto-save toasts fire on: (1) idea-batch generation → saves array + '✅ Saved to Library', (2) promoteToScript success → '✅ Saved to Library', (3) flow_prompts generation in script workspace → saves prompt set + '✅ Saved to Library'. Cross-tab + focus listeners refresh localstorage state. Empty states for each tab with relevant CTAs. Compile clean: /media compiled 17.3s, no errors. Zero new DB tables, zero new deps."
+
   - task: "P2/P7 — AI usage gating + UsageGauge + Rewarded Credits wiring"
     implemented: true
     working: "NA"
@@ -237,15 +260,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "V1.1 — /api/profile trial provisioning (read/claim)"
-    - "V1.1 — /api/sponsor/[name] reward tracking + redirect"
+    - "V1.2 — Highlight + Rewrite system (floating toolbar + 5 AI rewrite modes + version history)"
+    - "V1.2 — Library tabs (Scripts / Ideas / Prompts / Media) + auto-save"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "V1.1 backend ready for testing. Migrations 0009 (sponsor_clicks) + 0010 (profiles) applied to preview DB by user via Supabase SQL editor. Need to verify: (1) /api/profile GET unauthenticated returns {signed_in:false, plan_type:'FREE'} cleanly (no 500). (2) /api/profile GET authenticated reads profiles row + auto-downgrades expired trials. (3) /api/sponsor/<slug>?check=1 unauthenticated returns {authenticated:false, eligible:false, already_claimed_today:false}. (4) /api/sponsor/unknown returns 404 JSON. (5) /api/sponsor/<valid-slug> WITHOUT ?check=1 returns 302 redirect to affiliate URL. Use sponsor slug from lib/sponsors.ts — first available slug. Test_credentials.md is empty (Google OAuth only). Test only the unauthenticated paths + 302 redirect + 404 — all auth paths use cookie session which test agent cannot replay."
+      message: "V1.1 backend verified all-green (5/5 tests passed). V1.2 features shipped: (A) Highlight + Rewrite — new RewriteToolbar component + rewrite_selection AI mode + inline version history in script workspace. (B) Library tabs (Scripts/Ideas/Prompts/Media) with auto-save toasts after every AI generation. Zero new deps, zero new DB tables (localstorage for ideas/prompts, content_pieces for scripts, existing media table). EXTREME LOW CREDIT MODE preserved — all surgical edits. Asking user before frontend testing per protocol."
     - agent: "main"
       message: "P9 Soft Launch Prep shipped. Full SEO metadata stack, dynamic favicon (32×32) + apple-icon (180×180) + OG card (1200×630) all generated at request time by next/og (no binary assets to manage). robots.txt + sitemap.xml served by Next.js MetadataRoute. All 6 endpoints verified live: robots.txt (200), sitemap.xml (200, 3 URLs), /icon (200, image/png), /apple-icon (200, image/png), /opengraph-image (200, 154KB PNG), and full <meta> tag suite on /login. Removed stale duplicate `app/layout.js`. App is share-ready for Twitter/LinkedIn/iMessage/WhatsApp/Slack previews."
     - agent: "testing"

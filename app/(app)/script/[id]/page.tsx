@@ -5,17 +5,18 @@
 // fall back to a direct Supabase lookup by id before showing "no longer exists".
 
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film, Volume2, Pause, Play, Square } from 'lucide-react'
+import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film, Volume2, Pause, Play, Square, History, Undo2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { toast } from 'sonner'
 import type { ContentPiece } from '@/lib/types'
 import { useSpeechSynthesis } from '@/lib/use-voice'
+import { RewriteToolbar, type RewriteVariant } from '@/components/script/rewrite-toolbar'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -91,15 +92,59 @@ export default function ScriptWorkspace() {
   const [flowOut, setFlowOut] = useState<any | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
+  // Phase V1.2 — Highlight + Rewrite local state.
+  // `liveScript` is the source-of-truth for the rendered <pre> body. It mirrors the DB
+  // value initially, but absorbs rewrite-toolbar replacements before they are persisted.
+  // `versions` is a lightweight inline history (max 5 snapshots) — survives the session
+  // but is not persisted to localStorage by default to avoid stale state across tabs.
+  const [liveScript, setLiveScript] = useState<string>('')
+  const [versions, setVersions] = useState<{ at: number; label: string; text: string }[]>([])
+  const scriptBodyRef = useRef<HTMLPreElement>(null)
+
+  // Sync liveScript whenever the underlying piece changes (initial load or realtime update).
+  useEffect(() => {
+    const src = (piece as any)?.script || piece?.description || ''
+    setLiveScript(src)
+  }, [piece?.id, (piece as any)?.script, piece?.description])
+
+  const pushVersion = (label: string, text: string) => {
+    setVersions(prev => [{ at: Date.now(), label, text }, ...prev].slice(0, 5))
+  }
+
+  const handleRewriteReplace = async (original: string, replacement: string, variant: RewriteVariant) => {
+    if (!piece) return
+    // Snapshot the current full script BEFORE replacing (so Undo works).
+    pushVersion(`Before ${variant.replace('_', ' ')}`, liveScript)
+    // Replace ONLY the first occurrence of the original selection in the live script.
+    const idx = liveScript.indexOf(original)
+    const next = idx >= 0
+      ? liveScript.slice(0, idx) + replacement + liveScript.slice(idx + original.length)
+      : liveScript + '\n\n' + replacement  // defensive — selection drifted; append instead of corrupting
+    setLiveScript(next)
+    // Persist to DB (fire-and-forget; UI already updated optimistically).
+    try { await updateContent(piece.id, { script: next } as any) } catch (e:any) { toast.error(e?.message || 'Save failed') }
+    setDirectPiece(p => p ? ({ ...p, script: next } as any) : p)
+  }
+
+  const restoreVersion = async (v: { at: number; label: string; text: string }) => {
+    if (!piece) return
+    pushVersion('Before restore', liveScript)
+    setLiveScript(v.text)
+    try { await updateContent(piece.id, { script: v.text } as any) } catch {}
+    setDirectPiece(p => p ? ({ ...p, script: v.text } as any) : p)
+    toast.success('Version restored')
+  }
+
   const copy = async (key: string, text: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
   }
 
-  const beginEdit = () => { setDraft((piece as any)?.script || piece?.description || ''); setEditing(true) }
+  const beginEdit = () => { setDraft(liveScript || (piece as any)?.script || piece?.description || ''); setEditing(true) }
   const saveEdit = async () => {
     if (!piece) return
+    pushVersion('Before manual edit', liveScript)
     await updateContent(piece.id, { script: draft } as any)
-    // also reflect locally for direct-fetch piece (store will sync via realtime)
+    setLiveScript(draft)
     setDirectPiece(p => p ? ({ ...p, script: draft } as any) : p)
     setEditing(false)
     toast.success('Script saved')
@@ -107,7 +152,7 @@ export default function ScriptWorkspace() {
 
   const exportTxt = () => {
     if (!piece) return
-    const text = `# ${piece.title}\n\n${(piece as any).script || piece.description || ''}\n`
+    const text = `# ${piece.title}\n\n${liveScript || (piece as any).script || piece.description || ''}\n`
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `${piece.title.replace(/[^a-z0-9-_]+/gi,'-').toLowerCase()}.txt`; a.click(); URL.revokeObjectURL(url)
@@ -122,6 +167,16 @@ export default function ScriptWorkspace() {
       const d = await res.json()
       if (!res.ok || d.error) { toast.error(d.error || 'Flow generation failed'); return }
       setFlowOut(d.output)
+      // Phase V1.2 — Auto-save the prompt set to Library (Prompts tab). Localstorage-only; max 50 rows.
+      try {
+        const scenePrompts = (d.output?.scene_prompts || []).map((p: any) => ({ type: String(p.type || 'scene'), prompt: String(p.prompt || '') })).filter((p: any) => p.prompt)
+        if (scenePrompts.length) {
+          const existing: any[] = JSON.parse(localStorage.getItem('mugtee:library:prompts') || '[]')
+          const next = [{ id: `prompt_${Date.now()}`, script_title: piece.title, prompts: scenePrompts, created_at: new Date().toISOString() }, ...existing].slice(0, 50)
+          localStorage.setItem('mugtee:library:prompts', JSON.stringify(next))
+          toast.success('✅ Saved to Library')
+        }
+      } catch {}
     } catch (e:any) { toast.error(e?.message || 'Network error') }
     finally { setFlowLoading(false) }
   }
@@ -162,12 +217,25 @@ export default function ScriptWorkspace() {
 
   const platformMeta = PLATFORM_META[piece.platform]
   const statusMeta   = STATUS_META[piece.status]
-  const scriptText = (piece as any).script || piece.description || ''
+  const scriptText = liveScript || (piece as any).script || piece.description || ''
   const tags = piece.tags || []
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="max-w-5xl mx-auto space-y-4 sm:space-y-5 pb-24 sm:pb-12 px-1 sm:px-0">
-      {/* Top bar — sticky on mobile so actions stay reachable while reading long scripts */}
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="max-w-5xl mx-auto space-y-4 sm:space-y-5 pb-24 sm:pb-12 px-1 sm:px-0 relative">
+      {/* Phase V1.2 — Floating Highlight + Rewrite toolbar. Listens for selections inside `scriptBodyRef`. */}
+      {!editing && (
+        <RewriteToolbar
+          containerRef={scriptBodyRef as any}
+          context={{
+            title: piece.title,
+            platform: piece.platform,
+            niche: (piece as any).niche || undefined,
+            tone:  (piece as any).tone  || undefined,
+            full_script: liveScript,
+          }}
+          onReplace={handleRewriteReplace}
+        />
+      )}      {/* Top bar — sticky on mobile so actions stay reachable while reading long scripts */}
       <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-2 sm:py-0 sm:static bg-background/85 backdrop-blur sm:bg-transparent sm:backdrop-blur-0 sm:rounded-none flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-gold-300 transition">
           <ArrowLeft className="w-3.5 h-3.5" /> Back
@@ -219,11 +287,40 @@ export default function ScriptWorkspace() {
             </div>
           </>
         ) : scriptText ? (
-          <pre className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words">{scriptText}</pre>
+          <pre ref={scriptBodyRef} className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text">{scriptText}</pre>
         ) : (
           <div className="text-[12px] text-muted-foreground italic">No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.</div>
         )}
+        {/* Phase V1.2 — Hint shown only when there is body text */}
+        {scriptText && !editing && (
+          <div className="mt-3 pt-3 border-t border-white/[0.05] text-[10px] text-muted-foreground tracking-wider flex items-center gap-1.5">
+            <Wand2 className="w-3 h-3 text-gold-400/80" /> Highlight any paragraph to rewrite it with AI · 5 styles
+          </div>
+        )}
       </div>
+
+      {/* Phase V1.2 — Inline version history (last 5 snapshots, this session) */}
+      {versions.length > 0 && (
+        <div className="rounded-2xl glass border border-gold-soft p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-1.5"><History className="w-3 h-3" /> Version history · this session</span>
+            <span className="text-[10px] text-muted-foreground">{versions.length}/5</span>
+          </div>
+          <div className="space-y-1.5">
+            {versions.map((v, i) => (
+              <div key={v.at} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] text-luxe/85 truncate">{v.label}</div>
+                  <div className="text-[9px] text-muted-foreground tracking-wider">{format(new Date(v.at), 'HH:mm:ss')} · {v.text.split(/\s+/).filter(Boolean).length} words</div>
+                </div>
+                <Button onClick={() => restoreVersion(v)} variant="ghost" className="h-7 px-2 text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-100 hover:bg-gold-500/10 gap-1">
+                  <Undo2 className="w-3 h-3" /> Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Flow prompts panel */}
       <div className="rounded-2xl glass border border-gold-soft p-5 sm:p-6">

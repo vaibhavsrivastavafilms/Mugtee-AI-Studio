@@ -32,6 +32,9 @@ type Mode =
   | 'retention_script'              // routed to Claude
   // Phase 14 — YouTube Intelligence (AI-only analysis, no scraping)
   | 'youtube_intelligence'
+  // Phase V1.2 — Highlight + Rewrite. Rewrites ONLY the user-selected text fragment.
+  // Variant controls the style ('more_viral' | 'shorter' | 'emotional' | 'documentary' | 'cta').
+  | 'rewrite_selection'
 
 interface AIRequest {
   mode: Mode
@@ -64,6 +67,10 @@ interface AIRequest {
     duration_seconds?: number | null // cinematic script length
     // Phase 14 — YouTube Intelligence
     channel?: string | null          // user-supplied channel name or URL
+    // Phase V1.2 — Highlight + Rewrite (selection-only rewrite).
+    selection?: string | null                                                                  // the paragraph/sentence the user highlighted
+    rewrite_variant?: 'more_viral' | 'shorter' | 'emotional' | 'documentary' | 'cta' | null    // which style to apply
+    full_script?: string | null                                                                // optional surrounding script for coherence
   }
 }
 
@@ -787,6 +794,36 @@ OUTPUT SHAPE — exactly this JSON:
 }
 
 Be a creator strategist, not a press release writer.`,
+      }
+    }
+
+    case 'rewrite_selection': {
+      // Phase V1.2 — Surgical, paragraph-level rewrite.
+      // Returns ONLY the rewritten replacement text (no preamble, no markdown headers, no quotes around it).
+      // The frontend swaps the user's selection in-place with this output.
+      const selection = (ctx?.selection || '').trim()
+      const fullScript = (ctx?.full_script || ctx?.existing_script || '').trim()
+      const variant = ctx?.rewrite_variant || 'more_viral'
+
+      const styleDirective: Record<string, string> = {
+        more_viral:  'Make it MORE VIRAL. Sharpen the hook of the passage, escalate the curiosity loop, add pattern interrupt or recognition. Keep the same idea but rewrite for maximum scroll-stop power and shareability.',
+        shorter:     'SHORTEN it ruthlessly. Cut filler, soften phrasing, weak verbs, and any line that doesn\'t earn its place. Same core meaning, ~40-60% of the original length. Punchier. Sharper rhythm.',
+        emotional:   'Make it MORE EMOTIONAL. Layer sensory anchors (sound/texture/silence), reveal the unspoken feeling, slow the breath. Same content but the reader should feel it in their chest. Avoid cringe sentimentality.',
+        documentary: 'Rewrite in DOCUMENTARY voice — calm, observational, authoritative narration. Use specific details, third-person grounding, factual cadence. Think faceless YouTube essay voiceover. No first-person hype.',
+        cta:         'Rewrite as a STRONGER CTA. Soft invitation, never shouty. Curiosity-driven follow-up hook ("part 2", "this is just the beginning", "tag someone who needs to see this"). One short paragraph, max 3 sentences. Match the creator\'s voice from the surrounding script.',
+      }
+
+      return {
+        wantsJson: false,
+        user: `You are rewriting ONE selected passage inside a larger script. Apply the directive below to ONLY that passage. Preserve the surrounding narrative voice. Do NOT add quotes, headers, "Here is your rewrite:", or markdown — output the rewritten passage as raw prose only, ready to be swapped in-place.
+
+DIRECTIVE: ${styleDirective[variant] || styleDirective.more_viral}
+
+CONTEXT:
+${block}
+
+${fullScript ? `FULL SURROUNDING SCRIPT (for tone/voice consistency only — do NOT rewrite this):\n${fullScript.slice(0, 2400)}\n\n` : ''}SELECTED PASSAGE TO REWRITE (return ONLY the replacement for this):
+${selection || '(empty selection)'}`,
       }
     }
 
