@@ -170,6 +170,9 @@ export default function SettingsPage() {
         <p className="text-luxe/70 mt-2">Personalize how your studio appears.</p>
       </motion.div>
 
+      {/* Phase V1.1 — Pro Trial card */}
+      <TrialCard />
+
       {/* Identity ============================================================== */}
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.05}}
         className="glass rounded-2xl p-6 sm:p-8 space-y-6"
@@ -442,6 +445,65 @@ export default function SettingsPage() {
       {/* Sponsor analytics — your own click history. RLS scopes naturally to auth.uid(). */}
       <SponsorAnalyticsCard />
     </div>
+  )
+}
+
+// ─── Trial card ───────────────────────────────────────────────────
+// Phase V1.1 — surfaces the 7-day Pro trial status with days remaining + Upgrade CTA.
+// Reads server-truth via /api/profile (which also auto-downgrades expired trials).
+function TrialCard() {
+  const [state, setState] = useState<{ planType: string; daysLeft: number; endsAt: string | null; active: boolean } | null>(null)
+  useEffect(() => {
+    fetch('/api/profile', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: any) => {
+        if (!d) return
+        setState({
+          planType: String(d.plan_type || 'FREE'),
+          daysLeft: Number(d.trial_days_left || 0),
+          endsAt:   d.trial_ends_at || null,
+          active:   !!d.is_trial_active,
+        })
+      })
+      .catch(() => {})
+  }, [])
+  if (!state) return null
+  if (!state.active && state.planType !== 'PRO_TRIAL') return null
+
+  const urgent = state.daysLeft <= 2
+  const endLabel = state.endsAt ? new Date(state.endsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+  return (
+    <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.03}} className={cn(
+      'rounded-2xl p-6 sm:p-7 border glass-strong',
+      urgent ? 'border-amber-500/50' : 'border-gold-soft',
+    )}>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+        <div className="flex-1 min-w-0">
+          <div className={cn('text-[10px] tracking-[0.3em] uppercase mb-1', urgent ? 'text-amber-300/90' : 'text-gold-400/90')}>
+            Mugtee Pro Trial
+          </div>
+          <h2 className="font-display text-2xl">
+            <span className={urgent ? 'text-amber-200' : 'text-gold-gradient'}>Unlimited access</span> enabled
+          </h2>
+          <p className="text-[12px] text-luxe/70 mt-1">
+            Days remaining: <span className="font-medium text-luxe">{state.daysLeft}</span> · Ends: <span className="font-medium text-luxe">{endLabel}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/pricing" className={cn(
+            'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium tracking-wide transition',
+            urgent
+              ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-black shadow-[0_0_18px_-6px_rgba(245,158,11,0.6)] hover:opacity-90'
+              : 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90',
+          )}>
+            <Crown className="w-3.5 h-3.5" /> Upgrade
+          </Link>
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-luxe/85 text-xs hover:bg-white/[0.07] transition">
+            Continue Free
+          </Link>
+        </div>
+      </div>
+    </motion.div>
   )
 }
 

@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect, useMemo, useCallback, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
@@ -21,6 +21,7 @@ import { AiButton } from '@/components/ai/ai-button'
 import { ViralStudioPanel } from '@/components/ai/viral-studio-panel'
 import { YoutubePublishButton, YoutubeStatusBadge } from '@/components/youtube/publish-button'
 import { useAutomations } from '@/lib/automations-store'
+import { NewProjectModal } from '@/components/projects/new-project-modal'
 
 const COLUMNS: ContentStatus[] = ['idea','scripting','shooting','editing','scheduled','published']
 
@@ -33,6 +34,7 @@ export default function PipelinePage() {
   const confirm = useConfirm()
   const [newCardStatus, setNewCardStatus] = useState<ContentStatus | null>(null)
   const [scheduling, setScheduling] = useState<ContentPiece | null>(null)
+  const [newProjectOpen, setNewProjectOpen] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
   const statusParam = searchParams.get('status')
@@ -94,8 +96,8 @@ export default function PipelinePage() {
       >
         <div>
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Projects</div>
-          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Your AI</span> projects</h1>
-          <p className="text-luxe/70 mt-2">Every idea, script, and faceless story you've created — all in one place.</p>
+          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">What are we</span> creating today?</h1>
+          <p className="text-luxe/70 mt-2">Turn one idea into a full viral production pipeline.</p>
           {filterLabel && (
             <button onClick={() => router.push('/pipeline')}
               className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-gold text-xs tracking-wide hover:bg-gold-500/20 transition"
@@ -105,7 +107,16 @@ export default function PipelinePage() {
             </button>
           )}
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setNewProjectOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition"
+          >
+            <Sparkles className="w-4 h-4" /> + New Project
+          </button>
+        </div>
       </motion.div>
+      <NewProjectModal open={newProjectOpen} onOpenChange={setNewProjectOpen} />
 
       <ScheduleCtx.Provider value={setScheduling}>
       <SelectionCtx.Provider value={selectionCtxValue}>

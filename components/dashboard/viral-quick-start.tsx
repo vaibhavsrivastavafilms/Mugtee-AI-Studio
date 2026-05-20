@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen, MicOff, Headphones, Pause, Play, Square } from 'lucide-react'
 import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
@@ -43,6 +44,26 @@ export function ViralQuickStart() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Phase V1.1 — Auto-prefill + auto-fire from query params (e.g. New Project modal → /dashboard?topic=...&autorun=1)
+  const searchParams = useSearchParams()
+  const firedRef = useRef(false)
+  useEffect(() => {
+    if (firedRef.current) return
+    const topic    = searchParams?.get('topic')
+    const niche    = searchParams?.get('niche')
+    const platform = searchParams?.get('platform')
+    const tone     = searchParams?.get('tone')
+    const autorun  = searchParams?.get('autorun') === '1'
+    if (!topic) return
+    firedRef.current = true
+    v.setTopic(topic)
+    if (niche) v.setNiche(niche)
+    if (platform) v.setPlatform(platform as Platform)
+    if (tone) v.setTone(tone)
+    setOpen(true)
+    if (autorun) setTimeout(() => v.generate(), 350)
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const collapsed = scrolled && open
   const dismissed = !open

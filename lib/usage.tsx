@@ -67,11 +67,16 @@ function readPlan(): Plan {
 
 // Hook: returns plan, usage, and a gated call helper.
 // "kind": which counter to increment. "ai" is the default; scripts/planner are subsets that ALSO bump ai.
+//
+// Phase V1.1 — PRO_TRIAL awareness: when a user is inside their 7-day trial OR on a paid plan,
+// `isUnlimited` is true. In that mode `guard()` always returns true and `bump()` is a no-op,
+// so the UI naturally shows ∞ Unlimited without rewriting any caller.
 export function useUsage() {
   const [plan, setPlan]   = useState<Plan>('free')
   const [usage, setUsage] = useState<UsageRow>({ month: monthKey(), ai: 0, scripts: 0, planner: 0 })
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [upgradeReason, setUpgradeReason] = useState<string>('')
+  const [trial, setTrial] = useState<{ active: boolean; daysLeft: number; endsAt: string | null; planType: string }>({ active: false, daysLeft: 0, endsAt: null, planType: 'FREE' })
 
   useEffect(() => {
     setPlan(readPlan())
@@ -87,6 +92,19 @@ export function useUsage() {
         setPlan(serverPlan)
       })
       .catch(() => {})
+    // Phase V1.1 — fetch trial status. Auto-downgrade happens server-side; we just read.
+    fetch('/api/profile', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: any) => {
+        if (!d) return
+        setTrial({
+          active:  !!d.is_trial_active,
+          daysLeft: Number(d.trial_days_left || 0),
+          endsAt:  d.trial_ends_at || null,
+          planType: String(d.plan_type || 'FREE'),
+        })
+      })
+      .catch(() => {})
     // cross-tab sync
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setUsage(readUsage())
@@ -97,23 +115,25 @@ export function useUsage() {
   }, [])
 
   const limit = LIMITS[plan]
-  // Phase P7 — bonus pool effectively raises the AI cap. Scripts/planner draws from same pool conceptually:
-  // we DON'T inflate those individually; rewarded credits are positioned as "AI generations" topup.
+  // Phase V1.1 — Unlimited mode: PRO trial active OR paid plan
+  const isUnlimited = trial.active || plan === 'creator' || plan === 'agency'
+  // Phase P7 — bonus pool effectively raises the AI cap.
   const remaining = {
-    ai:      Math.max(0, (limit.ai + (usage.bonus || 0)) - usage.ai),
-    scripts: Math.max(0, limit.scripts - usage.scripts),
-    planner: Math.max(0, limit.planner - usage.planner),
+    ai:      isUnlimited ? Infinity : Math.max(0, (limit.ai + (usage.bonus || 0)) - usage.ai),
+    scripts: isUnlimited ? Infinity : Math.max(0, limit.scripts - usage.scripts),
+    planner: isUnlimited ? Infinity : Math.max(0, limit.planner - usage.planner),
     bonus:   usage.bonus || 0,
   }
 
   // Returns true if call is allowed; if not, opens upgrade modal and returns false.
   const guard = useCallback((kind: 'ai' | 'scripts' | 'planner' = 'ai'): boolean => {
+    if (isUnlimited) return true                  // trial or paid → always allowed
     if (plan !== 'free') return true
     const u = readUsage()
     const lim = LIMITS.free
     const hitScripts = kind === 'scripts' && u.scripts >= lim.scripts
     const hitPlanner = kind === 'planner' && u.planner >= lim.planner
-    const hitAi      = u.ai >= (lim.ai + (u.bonus || 0))   // bonus credits raise the AI cap
+    const hitAi      = u.ai >= (lim.ai + (u.bonus || 0))
     if (hitScripts || hitPlanner || hitAi) {
       setUpgradeReason(
         hitPlanner ? 'Weekly Planner runs'
@@ -124,10 +144,11 @@ export function useUsage() {
       return false
     }
     return true
-  }, [plan])
+  }, [plan, isUnlimited])
 
   // Increment counters AFTER a successful AI call.
   const bump = useCallback((kind: 'ai' | 'scripts' | 'planner' = 'ai') => {
+    if (isUnlimited) return                       // never count usage during trial / paid
     if (plan !== 'free') return
     const u = readUsage()
     const next: UsageRow = { ...u, ai: u.ai + 1 }
@@ -135,7 +156,7 @@ export function useUsage() {
     if (kind === 'planner') next.planner = u.planner + 1
     writeUsage(next)
     setUsage(next)
-  }, [plan])
+  }, [plan, isUnlimited])
 
   // Phase P7 — grant N bonus AI credits (today only; resets at midnight via dayKey check on read).
   const addBonus = useCallback((n = 3) => {
@@ -145,7 +166,7 @@ export function useUsage() {
     setUsage(next)
   }, [])
 
-  return { plan, usage, limit, remaining, guard, bump, addBonus, upgradeOpen, setUpgradeOpen, upgradeReason }
+  return { plan, usage, limit, remaining, guard, bump, addBonus, upgradeOpen, setUpgradeOpen, upgradeReason, trial, isUnlimited }
 }
 
 // Standalone modal — drop anywhere; controlled via useUsage().upgradeOpen.
