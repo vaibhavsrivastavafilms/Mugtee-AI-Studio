@@ -33,36 +33,57 @@ export default function ScriptWorkspace() {
   // Phase P11.1 — When the store finishes loading and still doesn't have the id,
   // do an explicit Supabase fetch for that id. This survives read-after-write race
   // and realtime sync lag in a freshly-opened tab.
+  //
+  // Hardening (this pass): aborts on unmount, hard-times out after 4 s per attempt,
+  // logs both data and error for debugability, and ALWAYS terminates `directState`
+  // even on uncaught exceptions so the page can never deadlock.
   useEffect(() => {
     if (loading.initial) return            // wait for the bulk fetch to finish
     if (storePiece) return                  // store already has it — nothing to do
     if (directState !== 'idle') return     // already attempted
+    if (!params?.id) { setDirectState('done'); return }  // defensive — bad URL
 
     setDirectState('fetching')
     let cancelled = false
     const supabase = createSupabaseBrowserClient()
 
     const tryFetch = async (attempt: number): Promise<void> => {
-      const { data, error } = await supabase
-        .from('content_pieces')
-        .select('*')
-        .eq('id', params.id)
-        .is('deleted_at', null)
-        .maybeSingle()
-      if (cancelled) return
-      if (data) { setDirectPiece(data as any); setDirectState('done'); return }
-      if (error) { console.warn('[workspace] direct fetch error', error) }
-      // brief retry once in case the INSERT is still propagating across replicas
-      if (attempt < 1) {
-        await new Promise(r => setTimeout(r, 700))
-        if (!cancelled) return tryFetch(attempt + 1)
+      // 4s per-attempt timeout via AbortController — the Supabase JS client respects
+      // AbortSignal so a hung network call cannot block the page forever.
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 4000)
+      try {
+        const { data, error } = await supabase
+          .from('content_pieces')
+          .select('*')
+          .eq('id', params.id)
+          .is('deleted_at', null)
+          .abortSignal(controller.signal)
+          .maybeSingle()
+        clearTimeout(timer)
+        console.log('[Workspace Fetch]', { attempt, id: params.id, hasData: !!data })
+        if (cancelled) return
+        if (data) { setDirectPiece(data as any); setDirectState('done'); return }
+        if (error) { console.warn('[Workspace Error]', error) }
+        // brief retry once in case the INSERT is still propagating across replicas
+        if (attempt < 1) {
+          await new Promise(r => setTimeout(r, 700))
+          if (!cancelled) return tryFetch(attempt + 1)
+        }
+        if (!cancelled) setDirectState('done')
+      } catch (e: any) {
+        clearTimeout(timer)
+        console.warn('[Workspace Error]', e?.message || e)
+        if (!cancelled) setDirectState('done')   // never leave it 'fetching'
       }
-      if (!cancelled) setDirectState('done')
     }
-    tryFetch(0)
+    tryFetch(0).catch(e => {
+      console.warn('[Workspace Error] outer', e?.message || e)
+      if (!cancelled) setDirectState('done')
+    })
 
     return () => { cancelled = true }
-  }, [loading.initial, storePiece, params.id, directState])
+  }, [loading.initial, storePiece, params?.id, directState])
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -106,12 +127,13 @@ export default function ScriptWorkspace() {
   }
 
   // Bugfix: hard escape from "Loading workspace…" — if the store + direct fetch
-  // both fail to resolve within 6s (auth race, RLS lockout, supabase init issue),
-  // force the loading state to end so the user always lands on a usable page
-  // (either a piece, or the graceful "not found" state) instead of an infinite spinner.
+  // both fail to resolve within 4s (auth race, RLS lockout, supabase init issue,
+  // hung network call), force the loading state to end so the user always lands
+  // on a usable page (either a piece, or the graceful "not found" state) instead
+  // of an infinite spinner. Tightened from 6s → 4s for snappier UX.
   const [hardTimeout, setHardTimeout] = useState(false)
   useEffect(() => {
-    const t = setTimeout(() => setHardTimeout(true), 6000)
+    const t = setTimeout(() => setHardTimeout(true), 4000)
     return () => clearTimeout(t)
   }, [])
 
@@ -133,7 +155,7 @@ export default function ScriptWorkspace() {
         <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">Not found</div>
         <h1 className="font-display text-3xl mb-3">This script no longer exists</h1>
         <p className="text-luxe/70 text-sm mb-6">It may have been deleted or moved to trash.</p>
-        <Button onClick={() => router.push('/pipeline')} className="bg-gold-gradient text-black gap-2"><ArrowLeft className="w-4 h-4" /> Back to Pipeline</Button>
+        <Button onClick={() => router.push('/pipeline')} className="bg-gold-gradient text-black gap-2"><ArrowLeft className="w-4 h-4" /> Back to Projects</Button>
       </div>
     )
   }
