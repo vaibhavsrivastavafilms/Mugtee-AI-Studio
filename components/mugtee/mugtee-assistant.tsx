@@ -2,21 +2,24 @@
 // Phase 15 — Mugtee floating assistant.
 // Cinematic chat UI. Reuses existing glass-strong + gold-gradient styling.
 // Single API: POST /api/mugtee with the last 10 messages. localStorage stores conversation.
+// Voice layer added — browser-native Web Speech (mic STT) + speechSynthesis (TTS), zero credit cost.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
-import { Sparkles, X, Send, Loader2, Crown } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, Crown, Mic, MicOff, Volume2, VolumeX, Square } from 'lucide-react'
+import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 const LS_HISTORY = 'mugtee:history:v1'
 const LS_SEEN    = 'mugtee:seen:v1'
+const LS_VOICE   = 'mugtee:voice:v1'   // 'on' | 'off' — voice-response toggle
 const MAX_HISTORY = 10
 
 const GREETING: Msg = {
   role: 'assistant',
-  content: "Welcome. I'm Mugtee \u2014 your in-app strategist. I'll help you turn ideas into cinematic faceless content faster. Want me to walk you through the 5-step workflow, or jump straight to generating your first script?",
+  content: "Alright… what are we creating today? Drop the idea, niche, or vibe \u2014 voice or text \u2014 and we'll build something the algorithm can't ignore.",
 }
 
 const SUGGESTED = [
@@ -33,9 +36,28 @@ export function MugteeAssistant() {
   const [input, setInput]     = useState('')
   const [sending, setSending] = useState(false)
   const [pulse, setPulse]     = useState(false)
+  const [voiceOn, setVoiceOn] = useState(true)  // voice responses (TTS) default ON
   const scrollRef             = useRef<HTMLDivElement | null>(null)
   const inputRef              = useRef<HTMLInputElement | null>(null)
   const pathname              = usePathname()
+  const lastSpokenRef         = useRef<string | null>(null)
+  const sentRef               = useRef(false)   // guards mic auto-send
+
+  // --- Voice hooks ---
+  // STT: live transcript updates the input. On final result, auto-send if the
+  // user stopped speaking (so long "voice ideas" go straight to the AI).
+  const tts = useSpeechSynthesis()
+  const stt = useSpeechRecognition({
+    onResult: (text, isFinal) => {
+      if (!text) return
+      setInput(text)
+      if (isFinal && !sentRef.current) {
+        sentRef.current = true
+        // Slight defer to let UI settle, then auto-send the spoken idea.
+        setTimeout(() => { sentRef.current = false; send(text) }, 250)
+      }
+    },
+  })
 
   // Bootstrap: load history, pulse + auto-open on first ever visit.
   useEffect(() => {
@@ -78,6 +100,27 @@ export function MugteeAssistant() {
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 80)
   }, [open])
+
+  // Load voice-on preference once
+  useEffect(() => {
+    try { setVoiceOn(localStorage.getItem(LS_VOICE) !== 'off') } catch {}
+  }, [])
+
+  // Persist voice preference + stop any current speech when toggling off
+  useEffect(() => {
+    try { localStorage.setItem(LS_VOICE, voiceOn ? 'on' : 'off') } catch {}
+    if (!voiceOn) tts.stop()
+  }, [voiceOn]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-speak the latest assistant message (skip the static greeting unless explicitly clicked)
+  useEffect(() => {
+    if (!voiceOn || !tts.supported || sending) return
+    const last = messages[messages.length - 1]
+    if (!last || last.role !== 'assistant' || last === GREETING) return
+    if (lastSpokenRef.current === last.content) return
+    lastSpokenRef.current = last.content
+    tts.speak(last.content)
+  }, [messages, sending, voiceOn, tts])
 
   const send = async (text: string) => {
     const trimmed = text.trim()
@@ -158,25 +201,59 @@ export function MugteeAssistant() {
                   <div className="text-xs text-luxe truncate">Your in-app strategist</div>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-luxe transition p-1" aria-label="Close">
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Voice responses toggle — speaks AI replies via SpeechSynthesis */}
+                {tts.supported && (
+                  <button
+                    onClick={() => setVoiceOn(v => !v)}
+                    title={voiceOn ? 'Voice responses ON — click to mute' : 'Voice responses OFF — click to enable'}
+                    aria-label={voiceOn ? 'Mute voice responses' : 'Enable voice responses'}
+                    className={
+                      'inline-flex items-center justify-center w-7 h-7 rounded-md transition ' +
+                      (voiceOn
+                        ? 'bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25'
+                        : 'bg-white/[0.04] border border-white/[0.08] text-muted-foreground hover:text-luxe hover:border-white/[0.15]')
+                    }
+                  >
+                    {voiceOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-luxe transition p-1" aria-label="Close">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-luxe">
-              {messages.map((m, i) => (
-                <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                  <div className={
-                    'max-w-[88%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ' +
-                    (m.role === 'user'
-                      ? 'bg-gold-500/15 border border-gold-500/30 text-luxe rounded-br-md'
-                      : 'bg-white/[0.04] border border-white/[0.06] text-luxe/95 rounded-bl-md')
-                  }>
-                    {m.content}
+              {messages.map((m, i) => {
+                const isLast = i === messages.length - 1
+                const speakingThis = tts.speaking && isLast && m.role === 'assistant'
+                return (
+                  <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                    <div className="max-w-[88%]">
+                      <div className={
+                        'px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ' +
+                        (m.role === 'user'
+                          ? 'bg-gold-500/15 border border-gold-500/30 text-luxe rounded-br-md'
+                          : 'bg-white/[0.04] border border-white/[0.06] text-luxe/95 rounded-bl-md')
+                      }>
+                        {m.content}
+                      </div>
+                      {/* Per-message Read Aloud control on assistant bubbles (skip for empty greeting) */}
+                      {m.role === 'assistant' && tts.supported && m.content.length > 4 && (
+                        <button
+                          onClick={() => speakingThis ? tts.stop() : tts.speak(m.content)}
+                          className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] tracking-wide text-muted-foreground hover:text-gold-300 hover:bg-gold-500/[0.08] transition"
+                          aria-label={speakingThis ? 'Stop reading' : 'Read aloud'}
+                        >
+                          {speakingThis ? <><Square className="w-2.5 h-2.5" /> Stop</> : <><Volume2 className="w-2.5 h-2.5" /> Read aloud</>}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               {sending && (
                 <div className="flex justify-start">
                   <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-3.5 py-2.5 inline-flex items-center gap-1.5">
@@ -212,9 +289,31 @@ export function MugteeAssistant() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
                   disabled={sending}
-                  placeholder="Ask Mugtee anything…"
-                  className="flex-1 min-h-[40px] px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-sm text-luxe placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold-500/40 transition"
+                  placeholder={stt.listening ? 'Listening… speak naturally' : 'Ask Mugtee anything…'}
+                  className={
+                    'flex-1 min-h-[40px] px-3 py-2 rounded-lg bg-white/[0.03] border text-sm text-luxe placeholder:text-muted-foreground/60 focus:outline-none transition ' +
+                    (stt.listening
+                      ? 'border-gold-500/60 ring-2 ring-gold-500/30 animate-pulse'
+                      : 'border-white/[0.08] focus:border-gold-500/40')
+                  }
                 />
+                {/* Microphone — Web Speech API STT. Hidden if browser doesn't support it. */}
+                {stt.supported && (
+                  <button
+                    onClick={stt.toggle}
+                    disabled={sending}
+                    title={stt.listening ? 'Stop listening' : 'Speak your idea'}
+                    aria-label={stt.listening ? 'Stop listening' : 'Speak your idea'}
+                    className={
+                      'min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg border transition ' +
+                      (stt.listening
+                        ? 'bg-gold-500/25 border-gold-500/60 text-gold-200 shadow-[0_0_18px_-2px_rgba(245,196,77,0.55)] animate-pulse'
+                        : 'bg-white/[0.04] border-white/[0.08] text-luxe hover:bg-gold-500/10 hover:border-gold-500/40 hover:text-gold-200')
+                    }
+                  >
+                    {stt.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                )}
                 <button
                   onClick={() => send(input)}
                   disabled={sending || !input.trim()}
@@ -224,6 +323,12 @@ export function MugteeAssistant() {
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
+              {/* Live interim transcript hint */}
+              {stt.listening && stt.interim && (
+                <div className="mt-1.5 text-[10.5px] text-gold-300/70 italic pl-1 truncate">
+                  &ldquo;{stt.interim}&rdquo;
+                </div>
+              )}
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/70 inline-flex items-center gap-1"><Crown className="w-2.5 h-2.5 text-gold-400/80" /> AI by Mugtee</span>
                 <button
