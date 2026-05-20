@@ -238,18 +238,61 @@ function promptFor(rawMode: Mode, ctx: AIRequest['context']): { user: string; wa
     case 'reel_script':
       return {
         wantsJson: false,
-        user: `Write a niche-native ${platform} script for 25–40 seconds.
+        user: `Write a FULL CINEMATIC LONGFORM ${platform} script. This is a complete screenplay-style narration piece, NOT a short reel snippet. Target length: 900–1500 words. Override the SYSTEM "Compact" rule for this mode only — this output must be longform, layered, and emotionally textured. Do NOT cut early. Do NOT shorten. Write to the full length.
 
-STRUCTURE (don't label these out loud, just feel them):
-- HOOK (0:00–0:02) — pattern interrupt or "this is so true" recognition, max 8 words.
-- ESCALATION (0:02–0:15) — 3 short beats with audience-native dialogue or observation.
-- TWIST or PAYOFF (0:15–0:30) — the gut-punch, reveal, or punchline depending on niche.
-- CLOSING LINE (0:30–0:40) — one line that lingers. The line IS the CTA, no shouty CTAs.
+# REQUIRED STRUCTURE — label each section as a scene header in square brackets, in this exact order:
 
-FORMAT per line:
-[VISUAL cue] | [VOICEOVER or ON-SCREEN TEXT — language and register matched to audience]
+[HOOK — 5 to 15 seconds]
+Scene description: 1–2 lines of cinematic visual direction (frame, light, mood, motion).
+Narration:
+"<the opening line(s) — pattern interrupt, sensory, recognition, or contrarian gut-punch. 1–3 short lines>"
 
-Max ~110 words total. Conversational. Native to the niche. Make the viewer feel seen.
+[CONTEXT BUILDUP]
+Scene description: visual cutaways that set the world — place, era, character, sensory detail.
+Narration:
+"<3–6 short paragraphs that ground the viewer in WHERE and WHY this moment matters. Build atmosphere. Slow the breath.>"
+
+[EMOTIONAL CONFLICT]
+Scene description: the moment the tension lands — a beat, an object, a face, a silence.
+Narration:
+"<2–4 paragraphs revealing the internal or external conflict. What hurts. What's unspoken. What the viewer feels in their chest.>"
+
+[VISUAL STORY ARC]
+Scene description: 3–5 escalating cutaways that move time forward. Be specific — name the lens, the light, the texture.
+Narration:
+"<2–4 paragraphs layering memory, dialogue, observation. Pace accelerates here. Each beat earns its place.>"
+
+[PAYOFF MOMENT]
+Scene description: the visual climax — the bite, the goodbye, the silence after, the reveal. One image the viewer will remember.
+Narration:
+"<1–3 paragraphs — the gut-punch. Quiet, not shouty. Let the moment breathe.>"
+
+[FINAL EMOTIONAL LINE]
+Scene description: the last frame — held, lingering, no movement.
+Narration:
+"<one to three sentences. The kind of closing line that makes someone screenshot the screen.>"
+
+[CTA]
+Scene description: subtle text overlay or held frame, no jump-cut.
+Narration:
+"<one line — a soft invitation, never shouty. A question, a tag-prompt, or a 'follow for part 2'-style continuity hook. Match the creator's voice.>"
+
+# WRITING REQUIREMENTS
+- 900–1500 words MINIMUM in total. Count narration words; scene descriptions don't count.
+- Write in flowing cinematic prose, not bullet points.
+- Camera direction is SPECIFIC — frame size, lens feel, motion, light. ("Tight close-up, 50mm, golden hour spill from the left." Not "nice shot.")
+- Narration is rhythmic — vary sentence length. Short. Then longer, layered, almost like a memory unfurling. Then short again.
+- Use sensory anchors — sound, texture, smell, temperature, taste, silence.
+- Curiosity loops: hint early, pay off late. Never resolve in the hook.
+- The piece must FEEL like a documentary voice-over, a faceless cinematic YouTube essay, or an emotional Instagram long-reel — NOT a 30-second clip.
+
+# HARD RULES
+- DO NOT shorten. If you're under 900 words, keep writing.
+- DO NOT use bullet points inside narration. Prose only.
+- DO NOT add meta-commentary like "Here is your script" or "I hope this helps".
+- DO NOT use markdown headers (# or **). Use ONLY the [BRACKETED SCENE HEADERS] specified above.
+- DO NOT cut off mid-thought. Complete the [CTA] section.
+- Quotes around narration lines are REQUIRED so the creator can copy-paste cleanly.
 
 CONTEXT:
 ${block}`,
@@ -784,8 +827,10 @@ export async function POST(req: NextRequest) {
 
     // Phase 13D — provider routing. Long-form cinematic scripts → Claude 3.5 Sonnet via the same Emergent universal endpoint.
     // Everything else stays on GPT-4o-mini (cheaper + faster for ideas/hooks/captions/planner).
-    const CLAUDE_MODES: Mode[] = ['faceless_script', 'documentary_script', 'cinematic_story', 'retention_script']
+    // Phase — Longform Reel Script Upgrade: reel_script + script now route through Claude for cinematic depth.
+    const CLAUDE_MODES: Mode[] = ['faceless_script', 'documentary_script', 'cinematic_story', 'retention_script', 'reel_script', 'script']
     const useClaude = CLAUDE_MODES.includes(body.mode)
+    const isLongReel = body.mode === 'reel_script' || body.mode === 'script'
     const isLong = useClaude || body.mode === 'weekly_plan' || body.mode === 'deep_research' || body.mode === 'reference_analysis' || body.mode === 'flow_prompts' || body.mode === 'youtube_intelligence'
 
     const callLLM = async (model: string) => {
@@ -796,7 +841,8 @@ export async function POST(req: NextRequest) {
           { role: 'user', content: user },
         ],
         temperature: body.mode === 'analyze' || body.mode === 'reference_analysis' ? 0.35 : 0.9,
-        max_tokens: body.mode === 'weekly_plan' ? 2200 : useClaude ? 2400 : body.mode === 'analyze' ? 600 : isLong ? 1600 : 900,
+        // Longform reel scripts need headroom for 900–1500 words (~3500 tokens incl. scene descriptions).
+        max_tokens: isLongReel ? 3500 : body.mode === 'weekly_plan' ? 2200 : useClaude ? 2400 : body.mode === 'analyze' ? 600 : isLong ? 1600 : 900,
       }
       if (wantsJson) payload.response_format = { type: 'json_object' }
       return fetch(EMERGENT_URL, {

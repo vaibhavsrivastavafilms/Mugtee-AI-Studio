@@ -160,8 +160,12 @@ function AiDialog({ content, onClose }: { content: ContentPiece; onClose: () => 
             <Textarea
               value={output}
               onChange={(e) => setOutput(e.target.value)}
-              rows={14}
-              className="bg-white/[0.03] font-mono text-[12px] leading-relaxed min-h-[280px]"
+              rows={mode === 'reel_script' ? 26 : 14}
+              className={
+                mode === 'reel_script'
+                  ? 'bg-white/[0.03] text-[13px] leading-[1.75] min-h-[480px] sm:min-h-[560px] whitespace-pre-wrap'
+                  : 'bg-white/[0.03] font-mono text-[12px] leading-relaxed min-h-[280px]'
+              }
             />
           ) : (
             <div className="text-center py-14 text-luxe/60 text-sm">

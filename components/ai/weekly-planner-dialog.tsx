@@ -62,13 +62,13 @@ export interface PlanDay {
 }
 
 function readCreatorProfile(): { niche: string; audience: string } {
-  if (typeof window === 'undefined') return { niche: 'restaurant', audience: 'mass' }
+  if (typeof window === 'undefined') return { niche: 'general', audience: 'mass' }
   try {
     return {
-      niche:    localStorage.getItem('tt:creator:niche')    || 'restaurant',
+      niche:    localStorage.getItem('tt:creator:niche')    || 'general',
       audience: localStorage.getItem('tt:creator:audience') || 'mass',
     }
-  } catch { return { niche: 'restaurant', audience: 'mass' } }
+  } catch { return { niche: 'general', audience: 'mass' } }
 }
 
 export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {

@@ -104,9 +104,20 @@ export default function ScriptWorkspace() {
     finally { setFlowLoading(false) }
   }
 
+  // Bugfix: hard escape from "Loading workspace…" — if the store + direct fetch
+  // both fail to resolve within 6s (auth race, RLS lockout, supabase init issue),
+  // force the loading state to end so the user always lands on a usable page
+  // (either a piece, or the graceful "not found" state) instead of an infinite spinner.
+  const [hardTimeout, setHardTimeout] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setHardTimeout(true), 6000)
+    return () => clearTimeout(t)
+  }, [])
+
   // ---- Loading / not-found states ----
-  // Show loading while either the bulk store fetch OR the direct id-fetch is in flight.
-  if (loading.initial || (!piece && directState !== 'done')) {
+  // Show loading while either the bulk store fetch OR the direct id-fetch is in flight,
+  // but never longer than the hard timeout above.
+  if (!hardTimeout && (loading.initial || (!piece && directState !== 'done'))) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="w-5 h-5 animate-spin text-gold-300" />
