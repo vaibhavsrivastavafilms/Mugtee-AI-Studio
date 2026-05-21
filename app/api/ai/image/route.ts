@@ -36,6 +36,16 @@ export async function POST(req: NextRequest) {
     const projectId    = String(body?.project_id || '').trim()
     const prompt       = String(body?.prompt || '').trim()
     const aspectRatio  = (String(body?.aspect_ratio || '9:16') as '1:1' | '9:16' | '16:9')
+    // V3.6 — Visual Consistency Lock. When the storyboard pipeline calls this endpoint
+    // it passes the global `style_lock` (the project's style_summary), plus per-frame
+    // camera_direction / emotional_tone / scene_type / narration_line. They get baked
+    // into the prompt so every image in the same project shares a consistent visual identity.
+    const styleLock        = String(body?.style_lock || '').trim()
+    const cameraDirection  = String(body?.camera_direction || '').trim()
+    const emotionalTone    = String(body?.emotional_tone || '').trim()
+    const sceneType        = String(body?.scene_type || '').trim()
+    const narrationLine    = String(body?.narration_line || '').trim()
+    const sequenceIndex    = Number.isFinite(body?.sequence_index) ? Number(body.sequence_index) : null
     if (!projectId) return NextResponse.json({ error: 'project_id required' }, { status: 400 })
     if (!prompt)    return NextResponse.json({ error: 'prompt required' }, { status: 400 })
 
@@ -50,7 +60,15 @@ export async function POST(req: NextRequest) {
     // We use OpenAI-compatible chat completions with the Gemini image preview model.
     // The response may carry the image either as base64 in message.content (image_url data:),
     // or as a `b64_json` field. We try multiple shapes to be resilient.
-    const cinematic = `${prompt}\n\nStyle: cinematic, professional, high detail, ${aspectRatio === '9:16' ? 'vertical reel composition' : aspectRatio === '16:9' ? 'cinematic landscape' : 'square feed composition'}.`
+    // V3.6 — Visual Consistency Lock applied here. The style_lock is prepended to every
+    // frame in the same project so adjacent images share lighting / lens / palette / grade.
+    const cinematicBits: string[] = []
+    if (styleLock)       cinematicBits.push(`Style lock (apply consistently): ${styleLock}`)
+    if (cameraDirection) cinematicBits.push(`Camera: ${cameraDirection}`)
+    if (emotionalTone)   cinematicBits.push(`Emotional tone: ${emotionalTone}`)
+    if (sceneType)       cinematicBits.push(`Scene type: ${sceneType}`)
+    cinematicBits.push(`Composition: cinematic, professional, high detail, ${aspectRatio === '9:16' ? 'vertical reel composition' : aspectRatio === '16:9' ? 'cinematic landscape' : 'square feed composition'}.`)
+    const cinematic = `${prompt}\n\n${cinematicBits.join('\n')}`
 
     const ggRes = await fetch(EMERGENT_URL, {
       method: 'POST',
@@ -99,7 +117,17 @@ export async function POST(req: NextRequest) {
       mime_type: 'image/png',
       title: piece.title || null,
       prompt,
-      metadata: { aspect_ratio: aspectRatio },
+      // V3.6 — Persist storyboard context so the storyboard tab can reconstruct
+      // the cinematic sequence on reload (visual lock + per-frame direction).
+      metadata: {
+        aspect_ratio:     aspectRatio,
+        style_lock:       styleLock || null,
+        camera_direction: cameraDirection || null,
+        emotional_tone:   emotionalTone || null,
+        scene_type:       sceneType || null,
+        narration_line:   narrationLine || null,
+        sequence_index:   sequenceIndex,
+      },
     }).select('id, url, kind, prompt, metadata, created_at').single()
 
     if (rowErr) {

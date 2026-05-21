@@ -26,6 +26,7 @@ import { rememberWorkspace, readLastWorkspace } from '@/lib/last-workspace'
 import { extractNarration } from '@/lib/extract-narration'
 import { logEvent } from '@/lib/log-event'
 import { ProjectActivityTimeline } from '@/components/project/activity-timeline'
+import { StoryboardPanel } from '@/components/script/storyboard-panel'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -205,7 +206,23 @@ export default function ScriptWorkspace() {
     setFlowLoading(true); setFlowOut(null)
     try {
       const src = (piece as any).script || piece.description || piece.title
-      const res = await fetch('/api/ai/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'flow_prompts', context: { script_input: src, platform: piece.platform, language: 'english' } }) })
+      // V3.6 — Send pre-extracted narration so the AI anchors each visual prompt to
+      // a real narration beat (Cinematic Sequence Director mode). Falls back gracefully
+      // when the script has no extractable narration structure.
+      const narrn = src ? extractNarration(src, { keepQuotes: false }) : ''
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'flow_prompts',
+          context: {
+            script_input: src,
+            narration_text: narrn || undefined,
+            platform: piece.platform,
+            language: 'english',
+          },
+        }),
+      })
       const d = await res.json()
       if (!res.ok || d.error) { toast.error(d.error || 'Flow generation failed'); return }
       setFlowOut(d.output)
@@ -406,19 +423,20 @@ export default function ScriptWorkspace() {
         </div>
       )}
 
-      {/* Flow prompts panel */}
+      {/* Flow prompts panel — V3.6 Cinematic Sequence Director cards */}
       <div className="rounded-2xl glass border border-gold-soft p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-1.5"><Wand2 className="w-3 h-3" /> Flow / B-roll prompts</span>
+          <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-1.5"><Wand2 className="w-3 h-3" /> Cinematic sequence \u00B7 directed by Mugtee</span>
           <div className="flex items-center gap-1.5">
             <Button onClick={genFlow} disabled={flowLoading} className="h-7 px-3 text-[11px] bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[36px]">
               {flowLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} {flowLoading ? 'Generating…' : flowOut ? 'Regenerate' : 'Generate'}
             </Button>
-            {/* V2.1 — Generate cinematic images from the storyboard prompts */}
+            {/* V3.6 — Image generation now carries Visual Consistency Lock + per-frame direction */}
             {flowOut?.scene_prompts?.length > 0 && (
               <GenerateImagesButton
                 projectId={piece.id}
                 prompts={flowOut.scene_prompts}
+                styleLock={flowOut?.style_summary}
                 aspectRatio={piece.platform === 'youtube' ? '16:9' : '9:16'}
                 onComplete={bumpAssets}
               />
@@ -426,20 +444,50 @@ export default function ScriptWorkspace() {
           </div>
         </div>
         {flowOut ? (
-          <div className="space-y-2">
-            {flowOut.style_summary && <div className="text-[11px] italic text-luxe/70 mb-2">Style · {flowOut.style_summary}</div>}
-            {(flowOut.scene_prompts || []).map((p:any, i:number) => (
-              <div key={i} className="group flex items-start gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                <span className="text-[9px] tracking-widest uppercase text-gold-400/80 mt-0.5 shrink-0 w-16">{p.type}</span>
-                <span className="text-[12px] text-luxe/85 flex-1 leading-snug">{p.prompt}</span>
-                <button onClick={() => copy('p'+i, p.prompt)} className="opacity-0 group-hover:opacity-100 text-[10px] uppercase text-muted-foreground hover:text-gold-300 inline-flex items-center gap-1 transition-opacity">
-                  {copied === 'p'+i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                </button>
+          <div className="space-y-2.5">
+            {flowOut.style_summary && (
+              <div className="text-[11px] text-luxe/75 italic flex items-start gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/[0.05] border border-gold-500/20">
+                <Wand2 className="w-3 h-3 text-gold-400/80 mt-0.5 shrink-0" />
+                <span><span className="text-gold-300 not-italic tracking-wider text-[9.5px] uppercase mr-1">Style lock \u00B7</span>{flowOut.style_summary}</span>
               </div>
-            ))}
+            )}
+            {(flowOut.scene_prompts || []).map((p:any, i:number) => {
+              const seq    = p.sequence_index || i + 1
+              const tone   = p.emotional_tone || null
+              const cam    = p.camera_direction || null
+              const dur    = p.duration_seconds || null
+              const narrn  = p.narration_line || null
+              return (
+                <div key={i} className="group relative rounded-xl bg-white/[0.025] border border-white/[0.06] hover:border-gold-500/35 transition p-3">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="text-[9px] tracking-[0.22em] uppercase text-gold-200 bg-gold-500/[0.1] border border-gold-500/25 rounded px-1.5 py-0.5">
+                      {String(seq).padStart(2, '0')} \u00B7 {p.type || 'scene'}
+                    </span>
+                    {tone && (
+                      <span className="text-[9px] tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-luxe/70">{tone}</span>
+                    )}
+                    {dur && (
+                      <span className="text-[9.5px] text-muted-foreground inline-flex items-center gap-0.5"><Loader2 className="w-2.5 h-2.5 hidden" />{dur}s</span>
+                    )}
+                  </div>
+                  {narrn && (
+                    <p className="text-[12px] text-luxe/85 italic leading-snug mb-1.5">\u201C{narrn}\u201D</p>
+                  )}
+                  <p className="text-[12.5px] text-luxe/90 leading-snug">{p.prompt}</p>
+                  {cam && (
+                    <div className="mt-1.5 text-[10.5px] text-muted-foreground inline-flex items-center gap-1">
+                      <span className="text-gold-400/70 tracking-wider text-[9.5px] uppercase">Camera</span> \u00B7 {cam}
+                    </div>
+                  )}
+                  <button onClick={() => copy('p'+i, p.prompt)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 inline-flex items-center gap-1 transition-opacity">
+                    {copied === 'p'+i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />} Copy
+                  </button>
+                </div>
+              )
+            })}
           </div>
         ) : (
-          <div className="text-[12px] text-muted-foreground italic">Click Generate to produce 8-12 cinematic image/B-roll prompts derived from this script.</div>
+          <div className="text-[12px] text-muted-foreground italic">Click Generate to assemble 8\u201312 narration-anchored cinematic prompts \u2014 each one mapped to a beat in your script, with camera direction, duration and emotional tone.</div>
         )}
       </div>
 
@@ -453,6 +501,10 @@ export default function ScriptWorkspace() {
 
       {/* V2.1 — Project assets rail (Images / Voiceovers / Music / Videos / Prompts / Exports) */}
       <ProjectAssetsRail projectId={piece.id} refreshKey={assetsRefresh} />
+
+      {/* V3.6 — Storyboard \u2014 cinematic horizontal timeline of generated images.
+          Reads back from project_assets so it survives refresh / session restart. */}
+      <StoryboardPanel projectId={piece.id} refreshKey={assetsRefresh} />
 
       {/* V3.5 — Creator Memory: cinematic per-project activity timeline. */}
       <ProjectActivityTimeline projectId={piece.id} />

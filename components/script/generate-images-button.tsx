@@ -18,12 +18,15 @@ export function GenerateImagesButton({
   projectId,
   prompts,
   aspectRatio = '9:16',
+  /** V3.6 — Visual Consistency Lock. Style summary applied to every frame. */
+  styleLock,
   onComplete,
   className,
 }: {
   projectId: string
-  prompts: { type?: string; prompt: string }[]
+  prompts: { type?: string; prompt: string; narration_line?: string; camera_direction?: string; emotional_tone?: string; duration_seconds?: number; sequence_index?: number }[]
   aspectRatio?: '9:16' | '1:1' | '16:9'
+  styleLock?: string
   onComplete?: () => void
   className?: string
 }) {
@@ -31,18 +34,30 @@ export function GenerateImagesButton({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
 
   const run = async () => {
-    const list = (prompts || []).map(p => String(p?.prompt || '').trim()).filter(Boolean).slice(0, 8)
+    const list = (prompts || []).filter(p => String(p?.prompt || '').trim()).slice(0, 8)
     if (!list.length) { toast.error('Generate B-roll prompts first.'); return }
     if (busy) return
     setBusy(true); setProgress({ done: 0, total: list.length })
     let okCount = 0
     let firstError: string | null = null
     for (let i = 0; i < list.length; i++) {
+      const p = list[i]
       try {
         const r = await fetch('/api/ai/image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ project_id: projectId, prompt: list[i], aspect_ratio: aspectRatio }),
+          body: JSON.stringify({
+            project_id:       projectId,
+            prompt:           String(p.prompt).trim(),
+            aspect_ratio:     aspectRatio,
+            // V3.6 — Visual Consistency Lock + per-frame direction.
+            style_lock:       styleLock || undefined,
+            scene_type:       p.type || undefined,
+            camera_direction: p.camera_direction || undefined,
+            emotional_tone:   p.emotional_tone || undefined,
+            narration_line:   p.narration_line || undefined,
+            sequence_index:   typeof p.sequence_index === 'number' ? p.sequence_index : i + 1,
+          }),
         })
         const d = await r.json()
         if (r.ok && d?.asset) {
