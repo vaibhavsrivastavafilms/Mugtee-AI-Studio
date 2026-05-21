@@ -5,6 +5,8 @@ import { Sparkles, Check, ArrowRight, Crown, Users, Building2, Lightbulb, FileTe
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
+import { BookDemoButton } from '@/components/billing/book-demo-button'
+import { PricingFaq } from '@/components/billing/pricing-faq'
 
 const WORKFLOW = [
   { icon: Lightbulb,      label: 'Plan' },
@@ -105,17 +107,17 @@ export default function PricingPage() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-5">
             <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">Pricing</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">Mugtee AI Studio Pricing</span>
           </div>
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight">
-            <span className="text-foreground">The </span>
-            <span className="text-gold-gradient">AI Production OS</span>
-            <br />
-            <span className="text-foreground">for creators.</span>
+          {/* V3.9 — Clear page heading visible immediately on entry.
+              Critical for users arriving from /about \u00B7 /blog \u00B7 footer "See pricing"
+              so they never feel like they\u2019ve landed on the homepage. */}
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl leading-[1.1] tracking-tight">
+            <span className="text-gold-gradient">Mugtee AI Studio</span>
+            <span className="block text-foreground mt-1">Pricing</span>
           </h1>
-          <p className="text-luxe/80 mt-5 text-base sm:text-lg leading-relaxed">
-            Plan, script, shoot, edit, schedule, publish, and track — all from one cinematic workspace.
-            Built for storytellers who refuse to settle for ordinary.
+          <p className="text-luxe/80 mt-4 text-sm sm:text-base leading-relaxed">
+            {'The AI Production OS for creators \u2014 plan, script, shoot, edit, schedule, publish, and track from one cinematic workspace.'}
           </p>
 
           {/* Workflow strip */}
@@ -187,11 +189,17 @@ export default function PricingPage() {
                 </ul>
 
                 {/* V3.7 — Single CTA per pricing card.
-                    • Paid plans (creator / agency) show ONLY the Razorpay checkout button.
-                    • Free plan shows the original Link CTA (no Razorpay needed). */}
-                {(p.key === 'creator' || p.key === 'agency') ? (
+                    V3.9 — Agency plan now routes to a real conversation (Book Demo \u2192
+                    WhatsApp / email) instead of Razorpay. Custom-onboarding + custom pricing
+                    converts massively better than auto-subscribe for team plans. */}
+                {p.key === 'agency' ? (
+                  <BookDemoButton
+                    variant={p.featured ? 'gold' : 'soft'}
+                    label={`Book Demo \u00B7 \u20B9${p.price}/mo`}
+                  />
+                ) : p.key === 'creator' ? (
                   <RazorpayCheckoutButton
-                    plan={p.key as 'creator' | 'agency'}
+                    plan="creator"
                     variant={p.featured ? 'gold' : 'soft'}
                     label={`Subscribe \u00B7 \u20B9${p.price}/mo`}
                   />
@@ -211,6 +219,9 @@ export default function PricingPage() {
             )
           })}
         </div>
+
+        {/* V3.9 — Compact FAQ accordion. Pure CSS, zero JS state, mobile-first. */}
+        <PricingFaq />
 
         {/* Footnote */}
         <div className="text-center mt-12 text-[11px] tracking-widest uppercase text-muted-foreground">
