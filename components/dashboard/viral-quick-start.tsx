@@ -118,6 +118,22 @@ export function ViralQuickStart() {
   // ─── Auto-prefill from query params (New Project → ?topic=…&autorun=1) ─
   const searchParams = useSearchParams()
   const firedRef = useRef(false)
+  const welcomeFiredRef = useRef(false)
+  useEffect(() => {
+    // V4.1 — signup_completed fires when the auth callback redirects with ?welcome=1.
+    // Strip the param after firing so a manual reload doesn't double-count.
+    if (welcomeFiredRef.current) return
+    if (searchParams?.get('welcome') === '1') {
+      welcomeFiredRef.current = true
+      // Lazy import to avoid SSR pull-in
+      import('@/lib/posthog').then(m => m.track('signup_completed', { provider: 'google' })).catch(() => {})
+      try {
+        const u = new URL(window.location.href)
+        u.searchParams.delete('welcome')
+        window.history.replaceState({}, '', u.toString())
+      } catch {}
+    }
+  }, [searchParams])
   useEffect(() => {
     if (firedRef.current) return
     const topic    = searchParams?.get('topic')

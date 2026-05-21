@@ -49,6 +49,14 @@ export async function GET(req: Request) {
     const langCounts: Record<string, number> = {}
     const workflowCounts: Record<string, number> = {}
     const visitorSessions = new Set<string>()
+    // V4.1 — extra aggregates for Top Events table + 7-day trend chart + funnel card.
+    const lastTriggered: Record<string, string> = {}  // event_type → ISO created_at
+    // Daily buckets: keyed YYYY-MM-DD → event_type → count.
+    const dailyBuckets: Record<string, Record<string, number>> = {}
+    // Split events into current half (most recent 50%) and prior half (older 50%) to compute growth %.
+    const cutoff = new Date(Date.now() - (days * 24 * 60 * 60 * 1000) / 2).toISOString()
+    const currentHalf: Record<string, number> = {}
+    const priorHalf:   Record<string, number> = {}
 
     for (const ev of list) {
       counts[ev.event_type] = (counts[ev.event_type] || 0) + 1
@@ -60,6 +68,45 @@ export async function GET(req: Request) {
         const wf = String(m.workflow || m.mode || (m.cinematic ? 'cinematic' : 'viral_reel')).toLowerCase()
         workflowCounts[wf] = (workflowCounts[wf] || 0) + 1
       }
+      // last triggered: events come back ordered DESC by created_at would be ideal but
+      // we asked for default order — track the most recent timestamp explicitly.
+      const ts = ev.created_at || ''
+      if (!lastTriggered[ev.event_type] || ts > lastTriggered[ev.event_type]) {
+        lastTriggered[ev.event_type] = ts
+      }
+      // Daily bucket for the trend chart (only last 7 days).
+      const day = ts.slice(0, 10)  // YYYY-MM-DD
+      if (day) {
+        if (!dailyBuckets[day]) dailyBuckets[day] = {}
+        dailyBuckets[day][ev.event_type] = (dailyBuckets[day][ev.event_type] || 0) + 1
+      }
+      // Growth split.
+      if (ts >= cutoff) currentHalf[ev.event_type] = (currentHalf[ev.event_type] || 0) + 1
+      else              priorHalf[ev.event_type]   = (priorHalf[ev.event_type]   || 0) + 1
+    }
+
+    // Build 7-day series (always 7 buckets, even if some days are empty).
+    const seriesDays: { date: string; visitors: number; scripts: number; exports: number; published: number }[] = []
+    const dayMs = 24 * 60 * 60 * 1000
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * dayMs).toISOString().slice(0, 10)
+      const bucket = dailyBuckets[d] || {}
+      seriesDays.push({
+        date: d,
+        visitors:  bucket['visitor_opened_site'] || 0,
+        scripts:   bucket['script_generated']    || 0,
+        exports:   (bucket['export_downloaded']  || 0) + (bucket['export_created'] || 0),
+        published: bucket['published']           || 0,
+      })
+    }
+
+    // Growth % per event: ((current - prior) / max(prior, 1)) * 100, capped at +/-999.
+    const growthByEvent: Record<string, number> = {}
+    for (const ev of Object.keys(counts)) {
+      const c = currentHalf[ev] || 0
+      const p = priorHalf[ev]   || 0
+      if (p === 0) growthByEvent[ev] = c > 0 ? 999 : 0
+      else         growthByEvent[ev] = Math.round(((c - p) / p) * 100)
     }
 
     // ---- 2. Unique users (auth-only events with a user_id) ----
@@ -89,6 +136,18 @@ export async function GET(req: Request) {
       events_by_type: counts,
       languages: langCounts,
       workflows: workflowCounts,
+      // V4.1 — extra surfaces for Top Events table + Trend chart + Funnel card.
+      last_triggered: lastTriggered,
+      growth_by_event: growthByEvent,
+      series_7d: seriesDays,
+      funnel: {
+        visitors:          totals.visitors,
+        signup_started:    counts['signup_started']    || 0,
+        signup_completed:  counts['signup_completed']  || 0,
+        scripts_generated: totals.scripts,
+        exports:           totals.exports,
+        published:         totals.published,
+      },
     }, { status: 200 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 200 })

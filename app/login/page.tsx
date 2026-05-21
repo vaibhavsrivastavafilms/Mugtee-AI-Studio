@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { LoginSlideshow } from '@/components/auth/login-slideshow'
+import { track } from '@/lib/posthog'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -19,8 +20,11 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setLoading(true)
+    // V4.1 — Funnel: signup_started fires the moment a visitor commits to OAuth.
+    // It is the first conversion step after visitor_opened_site.
+    track('signup_started', { provider: 'google', source: 'login_page' })
     const supabase = createSupabaseBrowserClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`
+    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard&welcome=1`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } }
