@@ -9,6 +9,7 @@ import { TrendingUp, Calendar, CheckCircle2, Sparkles, ArrowUpRight, ArrowDownRi
 import { useStore } from '@/lib/store'
 import { useUsage, LIMITS } from '@/lib/usage'
 import { AdSlot } from '@/components/ads/ad-slot'
+import { MugteeAnalyticsPanel } from '@/components/analytics/mugtee-analytics-panel'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
 
 const STATUS_ORDER: ContentStatus[] = ['idea', 'scripting', 'shooting', 'editing', 'scheduled', 'published']
@@ -158,6 +159,10 @@ export default function AnalyticsPage() {
           </p>
         </motion.div>
       ) : null}
+
+      {/* V4.0 — Mugtee Analytics panel (PostHog-powered cards + 3 pie charts).
+          Mounted at the very top so it\u2019s the first thing creators / admins see. */}
+      <MugteeAnalyticsPanel />
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

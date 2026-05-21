@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/types'
 import { logEvent } from '@/lib/log-event'
 import { rememberWorkspace } from '@/lib/last-workspace'
+import { track } from '@/lib/posthog'
 
 export interface Idea { title: string; hook: string; angle: string }
 
@@ -231,6 +232,13 @@ export function useViralIdeas() {
         },
       })
       rememberWorkspace(contentId, idea.title, { stage: 'scripting', last_event: 'script_generated' })
+      // V4.0 — Product analytics dual-write (PostHog + first-party).
+      track('script_generated', {
+        mode: 'reel_script',
+        platform, tone, niche, language: 'english',
+        word_count: scriptText.split(/\s+/).filter(Boolean).length,
+        cinematic: ['cinematic_emotional', 'storytelling', 'documentary'].includes(String(tone)),
+      })
     } catch (e: any) {
       toast.error(e?.message || 'Script generation failed')
     } finally {

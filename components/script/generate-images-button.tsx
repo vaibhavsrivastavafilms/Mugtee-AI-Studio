@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { logEvent } from '@/lib/log-event'
 import { rememberWorkspace } from '@/lib/last-workspace'
+import { track } from '@/lib/posthog'
 
 export function GenerateImagesButton({
   projectId,
@@ -84,6 +85,8 @@ export function GenerateImagesButton({
         metadata: { count: okCount, total_requested: list.length, aspect_ratio: aspectRatio },
       })
       rememberWorkspace(projectId, undefined, { stage: 'visuals', last_event: 'image_generated' })
+      // V4.0 — Product analytics dual-write.
+      track('image_generated', { count: okCount, total_requested: list.length, aspect_ratio: aspectRatio })
     }
   }
 

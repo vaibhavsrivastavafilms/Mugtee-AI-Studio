@@ -1,6 +1,7 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
+import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
 const SITE_NAME = 'Mugtee'
@@ -99,6 +100,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased scrollbar-luxe">
+        {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
+        <AnalyticsBoot />
         {children}
         <Toaster theme="dark" position="top-right" toastOptions={{ style: { background: 'rgba(20,16,12,0.95)', border: '1px solid rgba(212,175,55,0.25)', color: '#E8D9A8' } }} />
       </body>
