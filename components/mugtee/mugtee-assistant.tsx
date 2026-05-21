@@ -123,6 +123,27 @@ export function MugteeAssistant() {
     tts.speak(last.content)
   }, [messages, sending, voiceOn, tts])
 
+  // V3.8 — Continuous conversation loop. When the assistant FINISHES speaking,
+  // auto-resume the microphone so the creator can reply hands-free (Alexa/Siri
+  // style). Only kicks in when the panel is open + voice is on + we just spoke.
+  // Closes cleanly when user toggles voiceOn off or closes the panel.
+  useEffect(() => {
+    if (!open || !voiceOn || !tts.supported || !stt.supported) return
+    if (tts.speaking || sending || stt.listening) return
+    // Only re-arm if the last message was assistant (we just spoke or there's a
+    // greeting waiting). Skip if user is mid-typing.
+    const last = messages[messages.length - 1]
+    if (!last || last.role !== 'assistant') return
+    if (input.trim().length > 0) return
+    // Small debounce so we don't immediately re-listen after TTS cleanup.
+    const t = setTimeout(() => {
+      if (!stt.listening && !tts.speaking && !sending) {
+        try { stt.start?.() } catch {}
+      }
+    }, 700)
+    return () => clearTimeout(t)
+  }, [open, voiceOn, tts.speaking, sending, stt.listening, messages, input, stt, tts.supported, stt.supported])
+
   const send = async (text: string) => {
     const trimmed = text.trim()
     if (!trimmed || sending) return

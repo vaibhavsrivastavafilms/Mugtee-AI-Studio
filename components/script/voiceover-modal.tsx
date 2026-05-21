@@ -13,11 +13,12 @@
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Loader2, Mic2, Volume2, Wand2, Pause } from 'lucide-react'
-import { useSpeechSynthesis } from '@/lib/use-voice'
+import { Loader2, Mic2, Volume2, Wand2, Pause, Play } from 'lucide-react'
+import { useSpeechSynthesis, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/use-voice'
 import { toast } from 'sonner'
 import { logEvent } from '@/lib/log-event'
 import { rememberWorkspace } from '@/lib/last-workspace'
+import { cn } from '@/lib/utils'
 
 export function VoiceoverModal({
   open,
@@ -137,6 +138,41 @@ export function VoiceoverModal({
             <span>{wordCount} words · <span className={overLimit ? 'text-rose-300' : ''}>{charCount}/4500 chars</span></span>
             <span>Tip: line break = pause</span>
           </div>
+
+          {/* V3.8 — Voice profile picker (browser-native multi-speaker). Pure CSS pills,
+              zero new deps. Each profile maps to a curated voice candidate list inside
+              lib/use-voice. Preview button uses the selected profile. */}
+          {tts.supported && (
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[10px] tracking-[0.3em] uppercase text-gold-300 inline-flex items-center gap-1.5">
+                  <Mic2 className="w-3 h-3" /> Speaker
+                </span>
+                <span className="text-[9.5px] tracking-wider text-muted-foreground">{VOICE_PROFILE_META[tts.profile]?.description}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.keys(VOICE_PROFILE_META) as VoiceProfile[]).map(key => {
+                  const m = VOICE_PROFILE_META[key]
+                  const active = tts.profile === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => tts.setProfile(key)}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-full text-[11px] tracking-wide border transition',
+                        active
+                          ? 'bg-gold-500/15 border-gold-500/45 text-gold-200'
+                          : 'bg-white/[0.03] border-white/[0.06] text-luxe/80 hover:border-gold-500/35 hover:text-gold-200'
+                      )}
+                      title={`${m.label} \u00B7 ${m.lang}`}
+                    >
+                      {m.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-white/[0.05]">

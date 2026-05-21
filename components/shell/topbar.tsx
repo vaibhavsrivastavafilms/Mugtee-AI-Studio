@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useStore } from '@/lib/store'
 import { useUsage } from '@/lib/usage'
 import { useAutomations } from '@/lib/automations-store'
+import { WatchAdBanner } from '@/components/usage/watch-ad-banner'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -216,6 +217,9 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
               )}
             </AnimatePresence>
           </div>
+
+          {/* V3.8 — Watch-Ad inline banner (auto-hides on paid/unlimited or when > 5 credits) */}
+          <WatchAdBanner compact />
 
           {/* V3.7 — Credits Remaining pill. Replaces static "Showrunner" subtitle, shows live
               credits + opens /pricing on click (Recharge entry point). Hidden when unlimited
