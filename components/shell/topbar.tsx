@@ -113,8 +113,8 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" onClick={() => router.push('/pipeline')} className="hidden sm:inline-flex h-9 gap-2 bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow">
-            <Plus className="w-4 h-4" /> New Content
+          <Button size="sm" onClick={() => router.push('/pipeline')} className="hidden sm:inline-flex h-9 gap-2 bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow" title="Start a new cinematic production">
+            <Plus className="w-4 h-4" /> New Project
           </Button>
 
           {/* Notification bell */}

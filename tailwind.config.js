@@ -78,14 +78,23 @@ module.exports = {
         'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
         'shimmer': { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
         'float': { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-6px)' } },
-        'pulse-gold': { '0%,100%': { boxShadow: '0 0 0 0 var(--card-glow)' }, '50%': { boxShadow: '0 0 0 12px transparent' } }
+        'pulse-gold': { '0%,100%': { boxShadow: '0 0 0 0 var(--card-glow)' }, '50%': { boxShadow: '0 0 0 12px transparent' } },
+        // MUGTEE ORB — cinematic states (pure CSS, no JS animation lib).
+        'orb-breathe':  { '0%,100%': { transform: 'scale(1)',   opacity: '0.92' }, '50%': { transform: 'scale(1.06)', opacity: '1' } },
+        'orb-ripple':   { '0%': { transform: 'scale(0.9)', opacity: '0.6' }, '70%': { transform: 'scale(1.6)', opacity: '0' }, '100%': { transform: 'scale(1.6)', opacity: '0' } },
+        'orb-spin':     { 'to': { transform: 'rotate(360deg)' } },
+        'orb-bar':      { '0%,100%': { transform: 'scaleY(0.35)' }, '50%': { transform: 'scaleY(1)' } }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shimmer': 'shimmer 3s linear infinite',
         'float': 'float 4s ease-in-out infinite',
-        'pulse-gold': 'pulse-gold 2s ease-out infinite'
+        'pulse-gold': 'pulse-gold 2s ease-out infinite',
+        'orb-breathe': 'orb-breathe 3.6s ease-in-out infinite',
+        'orb-ripple':  'orb-ripple 1.8s ease-out infinite',
+        'orb-spin':    'orb-spin 2.4s linear infinite',
+        'orb-bar':     'orb-bar 0.8s ease-in-out infinite'
       }
     }
   },
