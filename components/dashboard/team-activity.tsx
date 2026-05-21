@@ -26,6 +26,10 @@ type FeedItem = {
   actor?: string | null
   action?: string | null
   target?: string | null
+  // V3.5 — typed event taxonomy + optional metadata (lets us render production-aware icons)
+  event_type?: string | null
+  metadata?: Record<string, any> | null
+  project_id?: string | null
   title?: string | null
   message?: string | null
   type?: string | null
@@ -41,6 +45,22 @@ const TYPE_ICON: Record<string, any> = {
   content: Sparkles,
   shoot: Sparkles,
   info: Bell,
+}
+
+// V3.5 — Mapping event_type → cinematic verb. Drives the Live Pulse narrative so it
+// reads like a production log ("Generated cinematic narration") instead of a flat verb.
+const EVENT_VERB: Record<string, string> = {
+  project_opened:         'opened',
+  script_generated:       'generated cinematic script for',
+  rewrite_applied:        'rewrote a section of',
+  narration_extracted:    'extracted narration for',
+  flow_prompts_generated: 'created visual storyboard for',
+  image_generated:        'generated storyboard images for',
+  voiceover_generated:    'generated voiceover for',
+  export_created:         'exported',
+  regeneration_used:      'regenerated',
+  content_created:        'created',
+  content_updated:        'updated',
 }
 
 // Heuristic — translate the action verb to the most relevant project workspace
@@ -71,7 +91,8 @@ export function TeamActivity() {
 
   const feed: FeedItem[] = useMemo(() => {
     const a: FeedItem[] = (activity || []).map((x: any) => ({
-      id: 'a-' + x.id, kind: 'activity', actor: x.actor, action: x.action, target: x.target, created_at: x.created_at,
+      id: 'a-' + x.id, kind: 'activity', actor: x.actor, action: x.action, target: x.target,
+      event_type: x.event_type, metadata: x.metadata, project_id: x.project_id, created_at: x.created_at,
     }))
     const n: FeedItem[] = (notifications || []).slice(0, 30).map((x: any) => ({
       id: 'n-' + x.id, kind: 'system', title: x.title, message: x.message, type: x.type, link: x.link, created_at: x.created_at,
@@ -80,6 +101,11 @@ export function TeamActivity() {
   }, [activity, notifications])
 
   const resolveActivityLink = (item: FeedItem): string => {
+    // V3.5 — Prefer the explicit project_id (set by new typed events) — way more
+    // reliable than the legacy fuzzy title match.
+    if (item.project_id && content?.some((c: any) => c.id === item.project_id)) {
+      return `/script/${item.project_id}${deriveHash(item.action, item.target)}`
+    }
     const targetKey = (item.target || '').toLowerCase().trim()
     if (targetKey && titleToId.has(targetKey)) {
       return `/script/${titleToId.get(targetKey)}${deriveHash(item.action, item.target)}`
@@ -124,6 +150,9 @@ export function TeamActivity() {
             const when = item.created_at ? formatDistanceToNow(parseISO(item.created_at), { addSuffix: true }) : ''
             if (item.kind === 'activity') {
               const initials = (item.actor || '?').split(' ').map(x=>x[0]).join('').slice(0,2)
+              // V3.5 — Prefer cinematic verb derived from event_type. Falls back to
+              // the raw `action` string for legacy events without a typed event_type.
+              const verb = (item.event_type && EVENT_VERB[item.event_type]) || item.action || ''
               return (
                 <button
                   key={item.id}
@@ -136,7 +165,7 @@ export function TeamActivity() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm leading-snug">
                       <span className="font-medium">{item.actor}</span>{' '}
-                      <span className="text-muted-foreground">{item.action}</span>{' '}
+                      <span className="text-muted-foreground">{verb}</span>{' '}
                       <span className="text-gold-300">{item.target}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">{when}</div>

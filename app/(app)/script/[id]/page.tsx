@@ -24,6 +24,8 @@ import { VoiceoverModal } from '@/components/script/voiceover-modal'
 import { ProjectAssetsRail } from '@/components/script/project-assets-rail'
 import { rememberWorkspace, readLastWorkspace } from '@/lib/last-workspace'
 import { extractNarration } from '@/lib/extract-narration'
+import { logEvent } from '@/lib/log-event'
+import { ProjectActivityTimeline } from '@/components/project/activity-timeline'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -139,6 +141,14 @@ export default function ScriptWorkspace() {
     // Persist to DB (fire-and-forget; UI already updated optimistically).
     try { await updateContent(piece.id, { script: next } as any) } catch (e:any) { toast.error(e?.message || 'Save failed') }
     setDirectPiece(p => p ? ({ ...p, script: next } as any) : p)
+    // V3.5 — Creator Memory: log the rewrite for the timeline + Live Pulse.
+    logEvent({
+      event_type: 'rewrite_applied',
+      project_id: piece.id,
+      target: piece.title,
+      metadata: { variant: variant.replace('_', ' '), original_length: original.length, replacement_length: replacement.length },
+    })
+    rememberWorkspace(piece.id, piece.title, { stage: 'scripting', last_event: 'rewrite_applied' })
   }
 
   const restoreVersion = async (v: { at: number; label: string; text: string }) => {
@@ -174,6 +184,9 @@ export default function ScriptWorkspace() {
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `${piece.title.replace(/[^a-z0-9-_]+/gi,'-').toLowerCase()}.txt`; a.click(); URL.revokeObjectURL(url)
+    // V3.5 — Creator Memory: track exports for the timeline.
+    logEvent({ event_type: 'export_created', project_id: piece.id, target: piece.title, metadata: { format: 'txt' } })
+    rememberWorkspace(piece.id, piece.title, { stage: 'exporting', last_event: 'export_created' })
   }
 
   // Phase V1.5 — DOCX export (Word/Pages-compatible via HTML→.doc trick, no library).
@@ -182,6 +195,9 @@ export default function ScriptWorkspace() {
     const body = liveScript || (piece as any).script || piece.description || ''
     exportScriptAsDoc({ title: piece.title, body, isUnlimited })
     toast.success('📄 Exported as Word doc')
+    // V3.5 — Creator Memory.
+    logEvent({ event_type: 'export_created', project_id: piece.id, target: piece.title, metadata: { format: 'docx' } })
+    rememberWorkspace(piece.id, piece.title, { stage: 'exporting', last_event: 'export_created' })
   }
 
   const genFlow = async () => {
@@ -193,6 +209,15 @@ export default function ScriptWorkspace() {
       const d = await res.json()
       if (!res.ok || d.error) { toast.error(d.error || 'Flow generation failed'); return }
       setFlowOut(d.output)
+      // V3.5 — Creator Memory: log visual-prompt generation for timeline + Live Pulse.
+      const sceneCount = (d.output?.scene_prompts || []).length
+      logEvent({
+        event_type: 'flow_prompts_generated',
+        project_id: piece.id,
+        target: piece.title,
+        metadata: { count: sceneCount, style: d.output?.style_summary || null },
+      })
+      rememberWorkspace(piece.id, piece.title, { stage: 'visuals', last_event: 'flow_prompts_generated' })
       // Phase V1.2 — Auto-save the prompt set to Library (Prompts tab). Localstorage-only; max 50 rows.
       try {
         const scenePrompts = (d.output?.scene_prompts || []).map((p: any) => ({ type: String(p.type || 'scene'), prompt: String(p.prompt || '') })).filter((p: any) => p.prompt)
@@ -235,10 +260,20 @@ export default function ScriptWorkspace() {
   }
 
   // V3.2 — Remember this workspace so a refresh / new session can recover it.
-  // Fires once whenever the resolved piece id changes.
-  // (We can't useEffect at top-level past early returns — inline call is safe
-  //  because rememberWorkspace short-circuits when window is undefined.)
-  if (piece?.id) rememberWorkspace(piece.id, piece.title)
+  // V3.5 — Also log a project_opened event ONCE per project per session so the
+  // activity timeline + Live Pulse stay accurate without spamming on every re-render.
+  if (piece?.id) {
+    rememberWorkspace(piece.id, piece.title)
+    if (typeof window !== 'undefined') {
+      const key = `mugtee:opened:v1:${piece.id}`
+      try {
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1')
+          logEvent({ event_type: 'project_opened', project_id: piece.id, target: piece.title })
+        }
+      } catch {}
+    }
+  }
 
   const platformMeta = PLATFORM_META[piece.platform]
   const statusMeta   = STATUS_META[piece.status]
@@ -418,6 +453,9 @@ export default function ScriptWorkspace() {
 
       {/* V2.1 — Project assets rail (Images / Voiceovers / Music / Videos / Prompts / Exports) */}
       <ProjectAssetsRail projectId={piece.id} refreshKey={assetsRefresh} />
+
+      {/* V3.5 — Creator Memory: cinematic per-project activity timeline. */}
+      <ProjectActivityTimeline projectId={piece.id} />
 
       {/* V2.1 — Voiceover Script Document modal */}
       <VoiceoverModal

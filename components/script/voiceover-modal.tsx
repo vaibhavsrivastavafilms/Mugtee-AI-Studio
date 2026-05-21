@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Mic2, Volume2, Wand2, Pause } from 'lucide-react'
 import { useSpeechSynthesis } from '@/lib/use-voice'
 import { toast } from 'sonner'
+import { logEvent } from '@/lib/log-event'
+import { rememberWorkspace } from '@/lib/last-workspace'
 
 export function VoiceoverModal({
   open,
@@ -83,6 +85,14 @@ export function VoiceoverModal({
       } else {
         toast.success('✨ MP3 voiceover saved')
       }
+      // V3.5 — Creator Memory: log voiceover generation for the project timeline.
+      logEvent({
+        event_type: 'voiceover_generated',
+        project_id: projectId,
+        target: scriptTitle,
+        metadata: { engine: d?.fallback || 'elevenlabs', word_count: text.split(/\s+/).filter(Boolean).length },
+      })
+      rememberWorkspace(projectId, scriptTitle, { stage: 'voiceover', last_event: 'voiceover_generated' })
       onCreated?.()
       onOpenChange(false)
     } catch (e: any) { toast.error(e?.message || 'Network error') }

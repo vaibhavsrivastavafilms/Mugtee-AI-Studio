@@ -10,13 +10,27 @@ const KEY = 'mugtee:last-workspace:v1'
 export type LastWorkspace = {
   project_id: string
   title?: string
+  /** V3.5 \u2014 last derived stage so Continue Creating can render a memory line. */
+  stage?: string
+  /** V3.5 \u2014 last event_type so we can phrase emotionally-intelligent recall copy. */
+  last_event?: string
   at: number   // timestamp ms
 }
 
-export function rememberWorkspace(project_id: string, title?: string) {
+export function rememberWorkspace(project_id: string, title?: string, extra?: { stage?: string; last_event?: string }) {
   if (typeof window === 'undefined') return
   try {
-    const row: LastWorkspace = { project_id, title, at: Date.now() }
+    // V3.5 \u2014 merge with prior memory so partial updates (e.g. stage-only) don't
+    // wipe the title/event already remembered.
+    let prior: Partial<LastWorkspace> = {}
+    try { const raw = localStorage.getItem(KEY); if (raw) prior = JSON.parse(raw) || {} } catch {}
+    const row: LastWorkspace = {
+      project_id,
+      title: title || prior.title,
+      stage: extra?.stage ?? prior.stage,
+      last_event: extra?.last_event ?? prior.last_event,
+      at: Date.now(),
+    }
     localStorage.setItem(KEY, JSON.stringify(row))
   } catch {}
 }
