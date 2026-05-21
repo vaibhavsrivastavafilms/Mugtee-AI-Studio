@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
+import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
 const SITE_NAME = 'Mugtee'
@@ -53,12 +54,23 @@ export const metadata: Metadata = {
     },
   },
   category: 'technology',
-  // Phase P10 — PWA / Capacitor mobile metadata
-  manifest: '/manifest.webmanifest',
+  // Phase P10 — PWA / Capacitor mobile metadata (static manifest under /public)
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: [{ url: '/icons/favicon-32.png', type: 'image/png' }],
+  },
   appleWebApp: {
     capable: true,
     title: 'Mugtee',
     statusBarStyle: 'black-translucent',
+    startupImage: ['/icons/apple-touch-icon.png'],
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -66,15 +78,16 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'Mugtee',
     'application-name': 'Mugtee',
-    'msapplication-TileColor': '#0a0807',
+    'msapplication-TileColor': '#0B0B0B',
+    'msapplication-TileImage': '/icons/icon-192.png',
     'format-detection': 'telephone=no',
   },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#0a0807' },
-    { media: '(prefers-color-scheme: light)', color: '#0a0807' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0B0B' },
+    { media: '(prefers-color-scheme: light)', color: '#0B0B0B' },
   ],
   colorScheme: 'dark',
   width: 'device-width',
@@ -102,6 +115,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-background text-foreground antialiased scrollbar-luxe">
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
+        {/* PWA — Service worker registration (production-only, idle-deferred). */}
+        <ServiceWorkerRegister />
         {children}
         <Toaster theme="dark" position="top-right" toastOptions={{ style: { background: 'rgba(20,16,12,0.95)', border: '1px solid rgba(212,175,55,0.25)', color: '#E8D9A8' } }} />
       </body>
