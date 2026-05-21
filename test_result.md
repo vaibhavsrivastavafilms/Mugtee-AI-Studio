@@ -146,6 +146,18 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_REDACTED_KEY_ID) validated and working."
 
 frontend:
+  - task: "V3.1 — Unified Creator Home (split hero + Recent Projects grid)"
+    implemented: true
+    working: "NA"
+    file: "app/(app)/dashboard/page.tsx, app/api/projects/recent/route.ts, components/dashboard/recent-projects-grid.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "V3.1 dashboard restructured to Photoshop/Figma-style unified creator home. (1) NEW GET /api/projects/recent — returns user's last 12 content_pieces with: kind heuristic (Documentary/Reel/YouTube Essay/etc), asset_count aggregated from project_assets, first image thumbnail, has_script flag, status, niche, updated_at. Fails open if project_assets table missing. (2) NEW RecentProjectsGrid component — cinematic 2/3/4-col card grid with thumbnail-on-top + status pill + platform glyph + niche + last-edited + script/asset count icons. Empty state shows tasteful 'Your studio is empty' card with starter blog post CTAs (no dead empty feel). (3) DASHBOARD REWRITTEN as split layout: lg+ shows 2-column grid (LEFT: 'What are we creating today?' heading + cinematic subtext + piece-count + ContinueCreating chips + RecentProjectsGrid; RIGHT: ViralQuickStart pinned as sticky studio panel — native to hero, not floating). Mobile: stacks vertically (RecentProjectsGrid above, then studio panel — natural reading order). Pipeline kanban (ProductionTracker) moved BELOW hero in single column, reduced visual dominance. UsageGauge between hero and pipeline. Stats / calendar / team activity / upcoming shoots pushed deeper. AdSlot kept for free-tier. All existing V1.2-V2.1 systems untouched: personality engine, AudioSpectrumLogo, voice copilot, project_assets rail, image gen, voiceover, trust fixes, blog, sponsor, trial, IG publishing, mobile notification drawer, DOCX export. Compile clean. /api/projects/recent returns 200 unauthenticated with {projects:[], signed_in:false}."
+
   - task: "V2.1 — Project Asset System (Images via Gemini + Voiceovers via ElevenLabs/browser + Project Assets Rail + DOCX export)"
     implemented: true
     working: "NA"
