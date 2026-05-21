@@ -10,7 +10,8 @@ import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film, Volume2, Pause, Play, Square, History, Undo2 } from 'lucide-react'
+import { Sparkles, ArrowLeft, Copy, Check, Plus, Pencil, CalendarCheck, Wand2, Download, Loader2, Brain, Film, Volume2, Pause, Play, Square, History, Undo2, MoreHorizontal, Share2, FileText, FileType2 } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { format, parseISO } from 'date-fns'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
 import { toast } from 'sonner'
@@ -339,17 +340,62 @@ export default function ScriptWorkspace() {
               ><Volume2 className="w-3 h-3" /> Narration</button>
             </div>
           )}
-          <Button onClick={() => copy('script', scriptText)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0">
-            {copied === 'script' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} Copy
+          {/* V3.8 — Workspace toolbar consolidated. Generate Voiceover stays primary
+              (single click for the most common cinematic step). Edit / TXT / DOC / Copy /
+              Pipeline / Share with Crew live under a 3-dot overflow so the toolbar stays
+              breathable on mobile. */}
+          <Button onClick={() => setVoiceoverOpen(true)} className="h-9 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[44px] sm:min-h-0" title="Generate voiceover from this script">
+            <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Generate Voiceover</span><span className="sm:hidden">Voiceover</span>
           </Button>
-          <Button onClick={beginEdit} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Pencil className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Continue editing</span><span className="sm:hidden">Edit</span></Button>
-          <Button onClick={exportTxt} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .txt</span><span className="sm:hidden">TXT</span></Button>
-          <Button onClick={exportDocx} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0" title="Export as Word document (.doc)"><Film className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .doc</span><span className="sm:hidden">DOC</span></Button>
-          {/* V2.1 — Voiceover Script Document */}
-          <Button onClick={() => setVoiceoverOpen(true)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0" title="Generate voiceover from this script">
-            <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Generate Voiceover</span><span className="sm:hidden">Voice</span>
-          </Button>
-          <Button onClick={() => router.push('/pipeline')} className="h-9 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[44px] sm:min-h-0"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Open in Pipeline</span><span className="sm:hidden">Pipeline</span></Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                aria-label="More actions"
+                title="More actions"
+                className="h-9 w-9 sm:w-auto sm:px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"
+              >
+                <MoreHorizontal className="w-4 h-4" /><span className="hidden sm:inline">More</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 glass-strong">
+              <DropdownMenuItem onClick={beginEdit}>
+                <Pencil className="w-3.5 h-3.5 mr-2" /> Continue editing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => copy('script', scriptText)}>
+                {copied === 'script' ? <Check className="w-3.5 h-3.5 mr-2 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 mr-2" />} Copy script
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportTxt}>
+                <FileText className="w-3.5 h-3.5 mr-2" /> Export .txt
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportDocx}>
+                <FileType2 className="w-3.5 h-3.5 mr-2" /> Export .doc
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={async () => {
+                if (!piece) return
+                // V3.8 — "Share with Crew" lightweight: copies the workspace URL with a
+                // tracking param so future share-token infrastructure can map view-only
+                // access later. No backend, no token table yet — just a clean shareable URL.
+                const url = `${window.location.origin}/script/${piece.id}?ref=crew-share`
+                try {
+                  await navigator.clipboard.writeText(url)
+                  toast.success('Crew share link copied')
+                } catch {
+                  // Fallback for older browsers — prompt with the URL so the creator can copy manually.
+                  // (Better than failing silently.)
+                  window.prompt('Copy this crew share link:', url)
+                }
+              }}>
+                <Share2 className="w-3.5 h-3.5 mr-2" /> Share with Crew
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/pipeline')} className="text-gold-300 focus:text-gold-200">
+                <Plus className="w-3.5 h-3.5 mr-2" /> Open in Pipeline
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
