@@ -146,6 +146,18 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_REDACTED_KEY_ID) validated and working."
 
 frontend:
+  - task: "V3.2 — Project Continuity (Recovery Flow + Clickable Live Pulse + Last-Workspace memory)"
+    implemented: true
+    working: "NA"
+    file: "lib/last-workspace.ts, app/(app)/script/[id]/page.tsx, components/dashboard/team-activity.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "V3.2 continuity pass shipped. 3 files. (1) NEW lib/last-workspace.ts — tiny localStorage helper (rememberWorkspace / readLastWorkspace / clearLastWorkspace, 14-day TTL). (2) /script/[id]/page.tsx — KILLED dead-end 'This script no longer exists'. Replaced with RecoveryFlow component: shows 'Recovering latest workspace…' spinner, then sequentially attempts (a) localStorage last_workspace project → verify still exists in Supabase, (b) user's most recent content_piece via order updated_at desc. If found → router.replace(/script/{id}) + 'Recovered \"Title\"' toast. Only if account TRULY has zero projects → shows tasteful 'Your studio is ready' CTA → /dashboard. Workspace also calls rememberWorkspace() on every successful resolve so refresh + cross-session recovery works. (3) team-activity.tsx REWRITTEN to make every Live Pulse item clickable: activity items resolve target string → content_pieces.title lookup → /script/{id} + smart hash (#assets for image/voiceover/storyboard/export actions). Notifications use their existing `link` field directly. Hover glow (gold-500/[0.06] bg + gold-500/30 border), cursor pointer, active state, ArrowRight chevron, min-h-[56px] touch targets, overdue items keep red theme. Header now reads 'Production Command Center' instead of generic 'Team & Automation Activity'. Empty state copy upgraded: 'No activity yet — your first generation will show up here, live.' All compile clean, no new deps, zero new endpoints, zero migrations. Existing systems (V1.2 trust fixes / V1.5 voice / V2.1 assets / V3.1 unified hero) — all untouched."
+
   - task: "V3.1 — Unified Creator Home (split hero + Recent Projects grid)"
     implemented: true
     working: "NA"
