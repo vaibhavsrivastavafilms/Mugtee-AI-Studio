@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import { Sparkles, X, Send, Loader2, Crown, Mic, MicOff, Volume2, VolumeX, Square } from 'lucide-react'
+import { MugteeOrb, type OrbState } from '@/components/mugtee/mugtee-orb'
 import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -166,19 +167,33 @@ export function MugteeAssistant() {
     return null
   }
 
+  // V3.7 — Auto-hide the floating assistant on the unified creator homepage
+  // (the studio there already owns the orb + central conversational input).
+  // Avoids duplication and keeps the dashboard hero clean.
+  const hideOnRoute = pathname === '/dashboard'
+  if (hideOnRoute) return null
+
+  // Derive cinematic orb state — idle / listening / thinking / speaking.
+  const orbState: OrbState =
+    stt.listening ? 'listening' :
+    sending       ? 'thinking'  :
+    tts.speaking  ? 'speaking'  : 'idle'
+
   return (
     <>
-      {/* Floating launcher — bottom-right, safe-area aware */}
+      {/* V3.7 — Floating launcher uses the cinematic Mugtee Orb (4 states) instead
+          of a static Sparkles icon. Subtle pulse ring is preserved as a "proactive
+          help" cue. Bottom-right, safe-area aware, mobile-safe, non-blocking. */}
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label="Open Mugtee"
+        aria-label={open ? 'Close Mugtee' : 'Open Mugtee assistant'}
         className={
-          'fixed z-40 right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gold-gradient text-black shadow-gold-glow flex items-center justify-center transition-transform active:scale-95 hover:scale-105' +
-          (pulse ? ' animate-pulse ring-2 ring-amber-400/40' : '')
+          'fixed z-40 right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/40 backdrop-blur-md border border-gold-500/40 shadow-gold-glow flex items-center justify-center transition-transform active:scale-95 hover:scale-105' +
+          (pulse && !open ? ' ring-2 ring-amber-300/50 animate-pulse-gold' : '')
         }
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {open ? <X className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+        {open ? <X className="w-5 h-5 text-gold-200" /> : <MugteeOrb state={orbState} size={40} />}
       </button>
 
       <AnimatePresence>

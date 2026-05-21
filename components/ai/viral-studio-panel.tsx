@@ -264,7 +264,7 @@ export function ViralStudioPanel() {
             initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:20}}
             onClick={() => setOpen(true)}
             className="sticky top-24 self-start shrink-0 ml-auto group flex flex-col items-center gap-3 px-2 py-4 rounded-l-2xl glass border border-r-0 border-gold-soft hover:border-gold-500/40 transition-colors"
-            aria-label="Open Mugtee Studio"
+            aria-label="Open Mugtee AI Studio"
           >
             <Sparkles className="w-4 h-4 text-gold-400" />
             <span className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 [writing-mode:vertical-rl] rotate-180">Mugtee</span>

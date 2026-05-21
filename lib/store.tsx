@@ -99,7 +99,7 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
   const [archivedCrew, setArchivedCrew] = useState<CrewMember[]>([])
   const [archivedShoots, setArchivedShoots] = useState<Shoot[]>([])
   const [archivedMedia, setArchivedMedia] = useState<MediaAsset[]>([])
-  const [workspace, setWorkspace] = useState<Workspace>({ name: 'My Studio', logo_url: null, theme: 'gold' })
+  const [workspace, setWorkspace] = useState<Workspace>({ name: 'Mugtee AI Studio', logo_url: null, theme: 'gold' })
   const [loading, setLoading] = useState<Loading>({ content: true, crew: true, shoots: true, media: true, activity: true, initial: true })
 
   // Apply theme attribute on html element whenever workspace.theme changes
@@ -167,7 +167,7 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
 
         if (ws.data) setWorkspace(ws.data as any)
         else {
-          const { data: created } = await supabase.from('workspaces').insert({ user_id: userId, name: 'My Studio', theme: 'gold' }).select().single()
+          const { data: created } = await supabase.from('workspaces').insert({ user_id: userId, name: 'Mugtee AI Studio', theme: 'gold' }).select().single()
           if (created && !cancelled) setWorkspace(created as any)
         }
       } catch (e) {
@@ -424,7 +424,7 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
   }, [supabase, userId, workspace, handleError])
 
   const restoreDefaults = useCallback(async () => {
-    await updateWorkspace({ name: 'My Studio', logo_url: null, theme: 'gold' })
+    await updateWorkspace({ name: 'Mugtee AI Studio', logo_url: null, theme: 'gold' })
   }, [updateWorkspace])
 
   // ---------- TRASH ----------
