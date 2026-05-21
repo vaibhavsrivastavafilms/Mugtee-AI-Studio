@@ -11,6 +11,8 @@ import { useState } from 'react'
 import { ImagePlus, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { logEvent } from '@/lib/log-event'
+import { rememberWorkspace } from '@/lib/last-workspace'
 
 export function GenerateImagesButton({
   projectId,
@@ -59,6 +61,15 @@ export function GenerateImagesButton({
     if (okCount === 0) toast.error(firstError || 'No images generated')
     else if (okCount < list.length) toast.success(`Generated ${okCount}/${list.length} images`)
     else toast.success(`✨ Generated ${okCount} images`)
+    // V3.5 — Creator Memory: log image generation summary for the project timeline.
+    if (okCount > 0) {
+      logEvent({
+        event_type: 'image_generated',
+        project_id: projectId,
+        metadata: { count: okCount, total_requested: list.length, aspect_ratio: aspectRatio },
+      })
+      rememberWorkspace(projectId, undefined, { stage: 'visuals', last_event: 'image_generated' })
+    }
   }
 
   return (

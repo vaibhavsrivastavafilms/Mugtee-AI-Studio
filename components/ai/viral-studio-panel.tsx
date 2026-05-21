@@ -13,6 +13,8 @@ import { useStore } from '@/lib/store'
 import { useUsage, UpgradeModal } from '@/lib/usage'
 import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/types'
+import { logEvent } from '@/lib/log-event'
+import { rememberWorkspace } from '@/lib/last-workspace'
 
 export interface Idea { title: string; hook: string; angle: string }
 
@@ -216,6 +218,19 @@ export function useViralIdeas() {
       setScripts(prev => ({ ...prev, [index]: scriptText }))
       bump('scripts')
       toast.success('✅ Saved to Library')
+      // V3.5 — Creator Memory: log script generation for the timeline + Live Pulse.
+      logEvent({
+        event_type: 'script_generated',
+        project_id: contentId,
+        target: idea.title,
+        metadata: {
+          mode: 'reel_script',
+          platform, tone, niche,
+          word_count: scriptText.split(/\s+/).filter(Boolean).length,
+          cinematic: ['cinematic_emotional', 'storytelling', 'documentary'].includes(String(tone)),
+        },
+      })
+      rememberWorkspace(contentId, idea.title, { stage: 'scripting', last_event: 'script_generated' })
     } catch (e: any) {
       toast.error(e?.message || 'Script generation failed')
     } finally {
