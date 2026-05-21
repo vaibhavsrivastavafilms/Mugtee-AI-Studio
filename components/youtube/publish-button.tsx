@@ -5,6 +5,7 @@ import { Youtube, Loader2, Check, X, Globe2, Lock, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { ContentPiece } from '@/lib/types'
+import { track } from '@/lib/posthog'
 
 type Privacy = 'private' | 'unlisted' | 'public'
 const OPTIONS: { value: Privacy; label: string; icon: any; desc: string }[] = [
@@ -48,6 +49,8 @@ export function YoutubePublishButton({ item }: { item: ContentPiece }) {
         return
       }
       toast.success('Published to YouTube', { id: t, description: d.watchUrl, action: { label: 'Open', onClick: () => window.open(d.watchUrl, '_blank') } })
+      // V4.1 — Funnel: published event for the analytics dashboard.
+      track('published', { platform: 'youtube', privacy, project_id: item.id, project_title: item.title })
     } catch (e: any) {
       toast.error(e?.message || 'Upload failed', { id: t })
     } finally {
