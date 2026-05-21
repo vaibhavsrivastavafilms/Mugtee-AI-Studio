@@ -18,6 +18,7 @@ import type { ContentPiece } from '@/lib/types'
 import { useSpeechSynthesis } from '@/lib/use-voice'
 import { useUsage } from '@/lib/usage'
 import { RewriteToolbar, type RewriteVariant } from '@/components/script/rewrite-toolbar'
+import { exportScriptAsDoc } from '@/lib/export-docx'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -163,6 +164,14 @@ export default function ScriptWorkspace() {
     const a = document.createElement('a'); a.href = url; a.download = `${piece.title.replace(/[^a-z0-9-_]+/gi,'-').toLowerCase()}.txt`; a.click(); URL.revokeObjectURL(url)
   }
 
+  // Phase V1.5 — DOCX export (Word/Pages-compatible via HTML→.doc trick, no library).
+  const exportDocx = () => {
+    if (!piece) return
+    const body = liveScript || (piece as any).script || piece.description || ''
+    exportScriptAsDoc({ title: piece.title, body, isUnlimited })
+    toast.success('📄 Exported as Word doc')
+  }
+
   const genFlow = async () => {
     if (!piece) return
     setFlowLoading(true); setFlowOut(null)
@@ -252,7 +261,8 @@ export default function ScriptWorkspace() {
             {copied === 'script' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} Copy
           </Button>
           <Button onClick={beginEdit} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Pencil className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Continue editing</span><span className="sm:hidden">Edit</span></Button>
-          <Button onClick={exportTxt} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export</span></Button>
+          <Button onClick={exportTxt} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .txt</span><span className="sm:hidden">TXT</span></Button>
+          <Button onClick={exportDocx} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0" title="Export as Word document (.doc)"><Film className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .doc</span><span className="sm:hidden">DOC</span></Button>
           <Button onClick={() => router.push('/pipeline')} className="h-9 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[44px] sm:min-h-0"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Open in Pipeline</span><span className="sm:hidden">Pipeline</span></Button>
         </div>
       </div>

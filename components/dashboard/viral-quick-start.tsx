@@ -1,9 +1,12 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen, MicOff, Headphones, Pause, Play, Square } from 'lucide-react'
 import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
+import { matchIntent } from '@/lib/voice-intents'
+import { MUGTEE_LOADING_LINES, MUGTEE_SPEAK_LINES, pick } from '@/lib/mugtee-copy'
+import { AudioSpectrumLogo } from '@/components/mugtee/audio-spectrum-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -27,16 +30,66 @@ export function ViralQuickStart() {
   const [dnaOpen, setDnaOpen] = useState(false)
 
   // ─── Voice-first layer ────────────────────────────────────────
-  // Mic transcribes into the topic input — user manually clicks Generate (no auto-submit).
-  // Hear Narration reads the AI ideas aloud once results render.
+  // Mic transcribes into the topic input. When a FINAL transcript arrives we run
+  // a tiny intent matcher (lib/voice-intents) — if it's a clear command we route
+  // immediately + speak a cinematic ack. Otherwise we still drop the text into the
+  // input and let the user click Generate manually (existing behaviour).
   const tts = useSpeechSynthesis()
+  const router = useRouter()
   const stt = useSpeechRecognition({
     onResult: (text, isFinal) => {
       if (!text) return
-      v.setTopic(text)   // live transcript fills the topic input
-      // do NOT auto-submit — spec requires manual Generate click
+      v.setTopic(text)
+      if (!isFinal) return
+      const intent = matchIntent(text)
+      switch (intent.kind) {
+        case 'stop_speaking':
+          tts.stop()
+          return
+        case 'open_latest':
+          tts.speak(pick(MUGTEE_SPEAK_LINES.openingProject))
+          router.push('/media')
+          return
+        case 'generate_hooks':
+          if (intent.topic) v.setTopic(intent.topic)
+          tts.speak(pick(MUGTEE_SPEAK_LINES.generatingScript))
+          setTimeout(() => v.generate(), 250)
+          return
+        case 'generate_script':
+          if (intent.topic) v.setTopic(intent.topic)
+          tts.speak(pick(MUGTEE_SPEAK_LINES.generatingScript))
+          setTimeout(() => v.generate(), 250)
+          return
+        // The rewrite / storyboard / export / read_aloud intents only make sense
+        // inside the script workspace, not on the dashboard hero. We acknowledge
+        // them politely so the user knows the command was understood.
+        case 'rewrite':
+        case 'storyboard':
+        case 'export':
+        case 'read_aloud':
+          tts.speak('Open a script first — then say it again.')
+          return
+        case 'unknown':
+        default:
+          // Don't auto-fire on unknown — let the user click Generate manually.
+          return
+      }
     },
   })
+
+  // ─── Cinematic rotating loading copy ──────────────────────────
+  // While `v.loading` is true we rotate the personality lines every 2.4s.
+  const [loadingLine, setLoadingLine] = useState(MUGTEE_LOADING_LINES[0])
+  useEffect(() => {
+    if (!v.loading) return
+    let i = 0
+    setLoadingLine(MUGTEE_LOADING_LINES[Math.floor(Math.random() * MUGTEE_LOADING_LINES.length)])
+    const id = setInterval(() => {
+      i = (i + 1) % MUGTEE_LOADING_LINES.length
+      setLoadingLine(MUGTEE_LOADING_LINES[i])
+    }, 2400)
+    return () => clearInterval(id)
+  }, [v.loading])
 
   // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
   useEffect(() => {
@@ -102,9 +155,7 @@ export function ViralQuickStart() {
             {/* Header */}
             <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-white/[0.05]">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shrink-0 shadow-gold-glow">
-                  <Sparkles className="w-5 h-5 text-black" />
-                </div>
+                <AudioSpectrumLogo size={42} showLabel={false} href="/dashboard" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
                     Mugtee AI Studio
@@ -184,8 +235,8 @@ export function ViralQuickStart() {
                           </span>
                         )}
                         {!stt.listening && v.loading && (
-                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-gold-300 normal-case">
-                            <Sparkles className="w-2.5 h-2.5" /> Building your cinematic concept…
+                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-gold-300 normal-case animate-in fade-in">
+                            <Sparkles className="w-2.5 h-2.5" /> {loadingLine}
                           </span>
                         )}
                       </label>
