@@ -71,6 +71,10 @@ interface AIRequest {
     selection?: string | null                                                                  // the paragraph/sentence the user highlighted
     rewrite_variant?: 'more_viral' | 'shorter' | 'emotional' | 'documentary' | 'cta' | null    // which style to apply
     full_script?: string | null                                                                // optional surrounding script for coherence
+    // V3.3 — Cinematic Script signature mode. When true, the reel_script prompt layers in
+    // documentary pacing + Netflix-doc directives. Set by the studio panel when tone is
+    // narrative (cinematic_emotional / storytelling / documentary).
+    cinematic?: boolean | null
   }
 }
 
@@ -252,7 +256,7 @@ function promptFor(rawMode: Mode, ctx: AIRequest['context']): { user: string; wa
     case 'reel_script':
       return {
         wantsJson: false,
-        user: `Write a FULL CINEMATIC LONGFORM ${platform} script. This is a complete screenplay-style narration piece, NOT a short reel snippet. Target length: 900–1500 words. Override the SYSTEM "Compact" rule for this mode only — this output must be longform, layered, and emotionally textured. Do NOT cut early. Do NOT shorten. Write to the full length.
+        user: `${ctx?.cinematic ? `## SIGNATURE MUGTEE CINEMATIC MODE\nThis script must read like a Netflix-doc voiceover — observational, restrained, layered. Documentary pacing: hook → ground → tension → escalation → payoff → quiet final line. Each scene earns its place. No on-screen-text gimmicks. No "you won't believe…" filler. Anchor every paragraph in a specific sensory image. Curiosity loops compound; the payoff arrives 80% in, not at the end. Final line should feel like a still frame.\n\n` : ''}Write a FULL CINEMATIC LONGFORM ${platform} script. This is a complete screenplay-style narration piece, NOT a short reel snippet. Target length: 900–1500 words. Override the SYSTEM "Compact" rule for this mode only — this output must be longform, layered, and emotionally textured. Do NOT cut early. Do NOT shorten. Write to the full length.
 
 # REQUIRED STRUCTURE — label each section as a scene header in square brackets, in this exact order:
 
