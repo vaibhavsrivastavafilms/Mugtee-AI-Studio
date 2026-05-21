@@ -19,6 +19,9 @@ import { useSpeechSynthesis } from '@/lib/use-voice'
 import { useUsage } from '@/lib/usage'
 import { RewriteToolbar, type RewriteVariant } from '@/components/script/rewrite-toolbar'
 import { exportScriptAsDoc } from '@/lib/export-docx'
+import { GenerateImagesButton } from '@/components/script/generate-images-button'
+import { VoiceoverModal } from '@/components/script/voiceover-modal'
+import { ProjectAssetsRail } from '@/components/script/project-assets-rail'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -94,6 +97,10 @@ export default function ScriptWorkspace() {
   const [flowLoading, setFlowLoading] = useState(false)
   const [flowOut, setFlowOut] = useState<any | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  // V2.1 — Voiceover modal + assets rail refresh signal
+  const [voiceoverOpen, setVoiceoverOpen] = useState(false)
+  const [assetsRefresh, setAssetsRefresh] = useState(0)
+  const bumpAssets = () => setAssetsRefresh(k => k + 1)
 
   // Phase V1.2 — Highlight + Rewrite local state.
   // `liveScript` is the source-of-truth for the rendered <pre> body. It mirrors the DB
@@ -263,6 +270,10 @@ export default function ScriptWorkspace() {
           <Button onClick={beginEdit} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Pencil className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Continue editing</span><span className="sm:hidden">Edit</span></Button>
           <Button onClick={exportTxt} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0"><Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .txt</span><span className="sm:hidden">TXT</span></Button>
           <Button onClick={exportDocx} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0" title="Export as Word document (.doc)"><Film className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export .doc</span><span className="sm:hidden">DOC</span></Button>
+          {/* V2.1 — Voiceover Script Document */}
+          <Button onClick={() => setVoiceoverOpen(true)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0" title="Generate voiceover from this script">
+            <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Generate Voiceover</span><span className="sm:hidden">Voice</span>
+          </Button>
           <Button onClick={() => router.push('/pipeline')} className="h-9 px-3 text-xs bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[44px] sm:min-h-0"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Open in Pipeline</span><span className="sm:hidden">Pipeline</span></Button>
         </div>
       </div>
@@ -339,11 +350,22 @@ export default function ScriptWorkspace() {
 
       {/* Flow prompts panel */}
       <div className="rounded-2xl glass border border-gold-soft p-5 sm:p-6">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-1.5"><Wand2 className="w-3 h-3" /> Flow / B-roll prompts</span>
-          <Button onClick={genFlow} disabled={flowLoading} className="h-7 px-3 text-[11px] bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5">
-            {flowLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} {flowLoading ? 'Generating…' : flowOut ? 'Regenerate' : 'Generate'}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button onClick={genFlow} disabled={flowLoading} className="h-7 px-3 text-[11px] bg-gold-500/15 border border-gold-500/30 text-gold-200 hover:bg-gold-500/25 gap-1.5 min-h-[36px]">
+              {flowLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} {flowLoading ? 'Generating…' : flowOut ? 'Regenerate' : 'Generate'}
+            </Button>
+            {/* V2.1 — Generate cinematic images from the storyboard prompts */}
+            {flowOut?.scene_prompts?.length > 0 && (
+              <GenerateImagesButton
+                projectId={piece.id}
+                prompts={flowOut.scene_prompts}
+                aspectRatio={piece.platform === 'youtube' ? '16:9' : '9:16'}
+                onComplete={bumpAssets}
+              />
+            )}
+          </div>
         </div>
         {flowOut ? (
           <div className="space-y-2">
@@ -370,6 +392,19 @@ export default function ScriptWorkspace() {
           <div className="text-[11px] text-luxe/70 font-mono break-all mt-1">{piece.media_url}</div>
         </div>
       )}
+
+      {/* V2.1 — Project assets rail (Images / Voiceovers / Music / Videos / Prompts / Exports) */}
+      <ProjectAssetsRail projectId={piece.id} refreshKey={assetsRefresh} />
+
+      {/* V2.1 — Voiceover Script Document modal */}
+      <VoiceoverModal
+        open={voiceoverOpen}
+        onOpenChange={setVoiceoverOpen}
+        projectId={piece.id}
+        scriptSource={liveScript || (piece as any).script || piece.description || ''}
+        scriptTitle={piece.title}
+        onCreated={bumpAssets}
+      />
     </motion.div>
   )
 }
