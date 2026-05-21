@@ -1,10 +1,11 @@
 'use client'
-import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon, Check, X as XIcon, Trash2 } from 'lucide-react'
+import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon, Check, X as XIcon, Trash2, Zap, Sparkles } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/lib/store'
+import { useUsage } from '@/lib/usage'
 import { useAutomations } from '@/lib/automations-store'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -20,6 +21,12 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
 
   const { content, crew, shoots, media } = useStore()
   const { notifications, unreadCount, markAsRead, markAllRead, deleteNotification } = useAutomations()
+  // V3.7 — Credits Remaining replaces the static "Showrunner" subtitle.
+  const { remaining, isUnlimited, plan } = useUsage()
+  const creditsLabel = isUnlimited
+    ? '\u221E Unlimited'
+    : `${Number.isFinite(remaining.ai) ? remaining.ai : '\u2014'} credits left`
+  const creditsLow = !isUnlimited && Number.isFinite(remaining.ai) && (remaining.ai as number) <= 5
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
@@ -210,6 +217,28 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
             </AnimatePresence>
           </div>
 
+          {/* V3.7 — Credits Remaining pill. Replaces static "Showrunner" subtitle, shows live
+              credits + opens /pricing on click (Recharge entry point). Hidden when unlimited
+              & on very narrow screens to keep the topbar uncluttered. */}
+          <button
+            onClick={() => router.push('/pricing')}
+            title={isUnlimited ? 'Unlimited plan' : `${creditsLabel} \u00B7 Recharge from \u20B910`}
+            className={cn(
+              'hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border transition-colors text-[11px] tracking-wide whitespace-nowrap',
+              isUnlimited
+                ? 'bg-gold-500/10 border-gold-500/30 text-gold-200 hover:bg-gold-500/20'
+                : creditsLow
+                  ? 'bg-amber-500/12 border-amber-500/40 text-amber-200 hover:bg-amber-500/20 shadow-[0_0_18px_-6px_rgba(245,158,11,0.55)]'
+                  : 'bg-white/[0.04] border-white/[0.08] hover:border-gold-500/40 text-luxe/85 hover:text-gold-200'
+            )}
+          >
+            {isUnlimited ? <Sparkles className="w-3.5 h-3.5 text-gold-300" /> : <Zap className={cn('w-3.5 h-3.5', creditsLow ? 'text-amber-300' : 'text-gold-400/80')} />}
+            <span className="font-medium">{creditsLabel}</span>
+            {!isUnlimited && (
+              <span className="ml-1 text-[10px] tracking-wider uppercase text-gold-300/85 hidden md:inline">{creditsLow ? 'Recharge' : '+ Recharge'}</span>
+            )}
+          </button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Account menu" className="flex items-center gap-2.5 pl-1.5 pr-2 sm:pr-3 py-1.5 rounded-xl hover:bg-white/5 transition min-h-[44px]">
@@ -219,7 +248,8 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
                 </Avatar>
                 <div className="hidden sm:block text-left">
                   <div className="text-xs font-medium leading-tight">{name}</div>
-                  <div className="text-[10px] text-muted-foreground leading-tight">Showrunner</div>
+                  {/* V3.7 — Plan label replaces static "Showrunner". */}
+                  <div className="text-[10px] text-muted-foreground leading-tight capitalize">{isUnlimited ? (plan === 'agency' ? 'Agency' : plan === 'creator' ? 'Creator' : 'Free Trial') : 'Free Plan'}</div>
                 </div>
               </button>
             </DropdownMenuTrigger>
@@ -228,6 +258,9 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/settings')}>Studio Settings</DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/automations')}>Automations</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/pricing')} className="text-gold-300 focus:text-gold-200">
+                <Zap className="w-3.5 h-3.5 mr-2" /> Recharge Credits
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><a href="/auth/signout" className="text-red-300 focus:text-red-200">Sign out</a></DropdownMenuItem>
             </DropdownMenuContent>

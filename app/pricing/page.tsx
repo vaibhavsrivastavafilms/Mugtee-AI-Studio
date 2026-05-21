@@ -92,7 +92,7 @@ export default function PricingPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between mb-12">
           <Link href="/" className="inline-flex items-center gap-2 text-xs tracking-[0.3em] uppercase text-gold-400/80 hover:text-gold-300 transition">
-            <ChevronLeft className="w-3.5 h-3.5" /> Mugtee Studio
+            <ChevronLeft className="w-3.5 h-3.5" /> Mugtee AI Studio
           </Link>
           <Link href="/login" className="inline-flex items-center gap-1 text-xs tracking-wider text-luxe/70 hover:text-gold-300 transition">
             Sign in <ArrowRight className="w-3 h-3" />
@@ -186,24 +186,26 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link href={p.href} className="block">
-                  <Button className={cn(
-                    'w-full h-11 gap-2',
-                    p.featured
-                      ? 'bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow'
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-foreground border border-gold-500/30 hover:border-gold-500/60',
-                  )}>
-                    {p.cta} <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-                {(p.key === 'creator' || p.key === 'agency') && (
-                  <div className="mt-3">
-                    <RazorpayCheckoutButton
-                      plan={p.key as 'creator' | 'agency'}
-                      variant={p.featured ? 'gold' : 'soft'}
-                      label={`Subscribe · ₹${p.price}/mo`}
-                    />
-                  </div>
+                {/* V3.7 — Single CTA per pricing card.
+                    • Paid plans (creator / agency) show ONLY the Razorpay checkout button.
+                    • Free plan shows the original Link CTA (no Razorpay needed). */}
+                {(p.key === 'creator' || p.key === 'agency') ? (
+                  <RazorpayCheckoutButton
+                    plan={p.key as 'creator' | 'agency'}
+                    variant={p.featured ? 'gold' : 'soft'}
+                    label={`Subscribe \u00B7 \u20B9${p.price}/mo`}
+                  />
+                ) : (
+                  <Link href={p.href} className="block">
+                    <Button className={cn(
+                      'w-full h-11 gap-2',
+                      p.featured
+                        ? 'bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow'
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] text-foreground border border-gold-500/30 hover:border-gold-500/60',
+                    )}>
+                      {p.cta} <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
                 )}
               </motion.div>
             )

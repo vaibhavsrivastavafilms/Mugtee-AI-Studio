@@ -52,7 +52,7 @@ function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname:
             {workspace.logo_url ? <img src={workspace.logo_url} alt="logo" className="w-full h-full object-cover" /> : <Film className="w-5 h-5 text-black" />}
           </div>
           <div className="min-w-0">
-            <div className="font-display text-lg leading-none truncate">{workspace.name || 'My Studio'}</div>
+            <div className="font-display text-lg leading-none truncate">{workspace.name || 'Mugtee AI Studio'}</div>
             <div className="text-[10px] tracking-[0.25em] uppercase text-gold-400/80 mt-1">Mugtee AI</div>
           </div>
         </Link>
@@ -108,7 +108,7 @@ function PlanPill() {
       )}>
         <Sparkles className={cn('w-3.5 h-3.5', urgent ? 'text-amber-300' : 'text-gold-300')} />
         <div className="flex-1 min-w-0">
-          <div className="font-medium tracking-wide leading-tight">PRO TRIAL</div>
+          <div className="font-medium tracking-wide leading-tight">FREE TRIAL</div>
           <div className={cn('text-[10px] leading-tight', urgent ? 'text-amber-300/80' : 'text-gold-300/80')}>
             {days} day{days === 1 ? '' : 's'} left · <span className="font-medium">∞ Unlimited</span>
           </div>

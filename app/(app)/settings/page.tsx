@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true)
-    await updateWorkspace({ name: name.trim() || 'My Studio', logo_url: logoUrl || null, theme })
+    await updateWorkspace({ name: name.trim() || 'Mugtee AI Studio', logo_url: logoUrl || null, theme })
     setSaving(false)
     toast.success('Studio settings saved')
   }
@@ -170,7 +170,7 @@ export default function SettingsPage() {
         <p className="text-luxe/70 mt-2">Personalize how your studio appears.</p>
       </motion.div>
 
-      {/* Phase V1.1 — Pro Trial card */}
+      {/* Phase V1.1 — Free Trial card */}
       <TrialCard />
 
       {/* Identity ============================================================== */}
@@ -179,7 +179,7 @@ export default function SettingsPage() {
       >
         <div className="space-y-2">
           <label className="text-xs tracking-wider uppercase text-muted-foreground">Studio name</label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="My Studio" className="bg-white/[0.03] h-12 text-lg font-display" />
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Mugtee AI Studio" className="bg-white/[0.03] h-12 text-lg font-display" />
           <p className="text-xs text-muted-foreground">Shown in the sidebar and across your studio.</p>
         </div>
 
@@ -480,7 +480,7 @@ function TrialCard() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
         <div className="flex-1 min-w-0">
           <div className={cn('text-[10px] tracking-[0.3em] uppercase mb-1', urgent ? 'text-amber-300/90' : 'text-gold-400/90')}>
-            Mugtee Pro Trial
+            Mugtee Free Trial
           </div>
           <h2 className="font-display text-2xl">
             <span className={urgent ? 'text-amber-200' : 'text-gold-gradient'}>Unlimited access</span> enabled

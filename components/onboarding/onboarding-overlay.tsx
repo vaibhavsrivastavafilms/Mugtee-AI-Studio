@@ -64,7 +64,7 @@ const SLIDES: Slide[] = [
     sub: 'Mugtee helps creators stay consistent, automate workflows and scale faceless channels.',
     chips: ['Daily output', 'Auto-publish', 'Scale faceless channels'],
     image: 'https://images.unsplash.com/photo-1542744173-05336fcc7ad4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxjcmVhdG9yJTIwc3VjY2VzcyUyMGFuYWx5dGljc3xlbnwwfHx8fDE3NzkxOTMxNTl8MA&ixlib=rb-4.1.0&q=85',
-    cta: { label: 'Launch Mugtee Studio', href: '/dashboard' },
+    cta: { label: 'Launch Mugtee AI Studio', href: '/dashboard' },
     icon: TrendingUp,
   },
 ]
@@ -234,7 +234,7 @@ export function OnboardingOverlay() {
                     onClick={dismiss}
                     className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg bg-gold-gradient text-black text-xs sm:text-sm font-semibold tracking-wide shadow-gold-glow hover:opacity-90 transition min-h-[44px]"
                   >
-                    <Sparkles className="w-4 h-4" /> Launch Mugtee Studio
+                    <Sparkles className="w-4 h-4" /> Launch Mugtee AI Studio
                   </Link>
                 ) : (
                   <button

@@ -631,7 +631,7 @@ function RecoveryFlow({ lostId }: { lostId: string | null }) {
       <h1 className="font-display text-3xl mb-3">Your studio is ready.</h1>
       <p className="text-luxe/65 text-sm mb-6 max-w-sm mx-auto">Generate your first script from the dashboard — every production lands here automatically.</p>
       <Button onClick={() => router.push('/dashboard')} className="bg-gold-gradient text-black gap-2 shadow-gold-glow">
-        <Sparkles className="w-4 h-4" /> Open Mugtee Studio
+        <Sparkles className="w-4 h-4" /> Open Mugtee AI Studio
       </Button>
     </div>
   )

@@ -123,7 +123,7 @@ export function GuestHookGenerator() {
         </div>
       )}
       {!hooks.length && !error && (
-        <div className="mt-3 text-[11px] text-muted-foreground/80">3 free hooks per day · No login · Powered by the same AI engine inside Mugtee Studio.</div>
+        <div className="mt-3 text-[11px] text-muted-foreground/80">3 free hooks per day · No login · Powered by the same AI engine inside Mugtee AI Studio.</div>
       )}
     </div>
   )

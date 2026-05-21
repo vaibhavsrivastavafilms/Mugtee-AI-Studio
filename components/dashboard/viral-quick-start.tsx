@@ -11,6 +11,10 @@
 //   • All existing hooks (useViralIdeas, useSpeechRecognition, useSpeechSynthesis), intent
 //     matcher, Faceless/Planner dialogs and Idea rendering are REUSED — no new orchestrators.
 //
+// V3.7 — Greeting is personalised with the signed-in creator's name ("What are we
+// creating today, Aakash?"). Resolves from a lightweight /api/profile lookup with
+// localStorage cache so we never block the hero render on a network call.
+//
 // The legacy export name `ViralQuickStart` is preserved so /dashboard imports keep working.
 
 import { useState, useEffect, useRef, useMemo } from 'react'
@@ -45,6 +49,32 @@ export function ViralQuickStart() {
   const [panel,        setPanel]        = useState<InlinePanel>(null)
   const [plannerOpen,  setPlannerOpen]  = useState(false)
   const [facelessOpen, setFacelessOpen] = useState(false)
+
+  // V3.7 — Personalised greeting. Tries a fast localStorage cache first so the
+  // hero never flickers, then upgrades from /api/profile in the background.
+  // Falls back gracefully to a neutral heading when we don't know the user yet.
+  const [firstName, setFirstName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    try { return localStorage.getItem('mugtee:user-firstname:v1') } catch { return null }
+  })
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/profile', { cache: 'no-store' })
+        const d = await r.json()
+        const raw: string = d?.profile?.full_name || d?.profile?.name || d?.user?.email || ''
+        const first = (raw.includes('@') ? raw.split('@')[0] : raw.split(' ')[0]).trim()
+        if (first && !cancelled) {
+          // Title-case for the hero (e.g. "aakash" → "Aakash").
+          const tc = first.charAt(0).toUpperCase() + first.slice(1)
+          setFirstName(tc)
+          try { localStorage.setItem('mugtee:user-firstname:v1', tc) } catch {}
+        }
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // ─── Voice layer (reused, untouched) ──────────────────────────
   const stt = useSpeechRecognition({
@@ -172,7 +202,9 @@ export function ViralQuickStart() {
         {/* Heading + sub */}
         <h1 className="mt-4 text-center font-display leading-[1.05] text-[2.1rem] sm:text-[2.8rem] lg:text-[3.2rem]">
           <span className="block text-foreground">What are we</span>
-          <span className="block text-gold-gradient">creating today?</span>
+          <span className="block text-gold-gradient">
+            creating today{firstName ? <span className="text-foreground/90">, {firstName}</span> : ''}?
+          </span>
         </h1>
         <p className="mt-3 text-center text-[13px] sm:text-[14px] text-luxe/70 max-w-xl mx-auto leading-relaxed">
           Turn one idea into a cinematic production pipeline — script, storyboard, voiceover, export.
