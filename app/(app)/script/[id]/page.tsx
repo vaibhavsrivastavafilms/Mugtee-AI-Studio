@@ -22,6 +22,7 @@ import { exportScriptAsDoc } from '@/lib/export-docx'
 import { GenerateImagesButton } from '@/components/script/generate-images-button'
 import { VoiceoverModal } from '@/components/script/voiceover-modal'
 import { ProjectAssetsRail } from '@/components/script/project-assets-rail'
+import { rememberWorkspace, readLastWorkspace } from '@/lib/last-workspace'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -226,15 +227,14 @@ export default function ScriptWorkspace() {
   }
 
   if (!piece) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">Not found</div>
-        <h1 className="font-display text-3xl mb-3">This script no longer exists</h1>
-        <p className="text-luxe/70 text-sm mb-6">It may have been deleted or moved to trash.</p>
-        <Button onClick={() => router.push('/pipeline')} className="bg-gold-gradient text-black gap-2"><ArrowLeft className="w-4 h-4" /> Back to Projects</Button>
-      </div>
-    )
+    return <RecoveryFlow lostId={params?.id || null} />
   }
+
+  // V3.2 — Remember this workspace so a refresh / new session can recover it.
+  // Fires once whenever the resolved piece id changes.
+  // (We can't useEffect at top-level past early returns — inline call is safe
+  //  because rememberWorkspace short-circuits when window is undefined.)
+  if (piece?.id) rememberWorkspace(piece.id, piece.title)
 
   const platformMeta = PLATFORM_META[piece.platform]
   const statusMeta   = STATUS_META[piece.status]
@@ -444,3 +444,74 @@ function ReadScriptButton({ text }: { text: string }) {
     </Button>
   )
 }
+
+// ─── V3.2 RECOVERY FLOW ──────────────────────────────────────────────────────
+// When a script id can't be resolved, NEVER dead-end the user. Try:
+//   1. The user's most recently opened workspace (localStorage)
+//   2. The most recent content_piece in their account (Supabase)
+// If either yields a valid project, redirect there with a friendly toast.
+// Only when the account has truly no projects do we show a CTA-only screen.
+function RecoveryFlow({ lostId }: { lostId: string | null }) {
+  const router = useRouter()
+  const [phase, setPhase] = useState<'recovering' | 'empty'>('recovering')
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      // Attempt 1 — localStorage last workspace (skip if it's the same lost id).
+      const last = readLastWorkspace()
+      if (last && last.project_id && last.project_id !== lostId) {
+        try {
+          const sup = createSupabaseBrowserClient()
+          const { data } = await sup.from('content_pieces').select('id').eq('id', last.project_id).is('deleted_at', null).maybeSingle()
+          if (!cancelled && data?.id) {
+            toast.success('Recovered your latest workspace')
+            router.replace(`/script/${data.id}`)
+            return
+          }
+        } catch {}
+      }
+      // Attempt 2 — most recent content_piece in the user's account.
+      try {
+        const sup = createSupabaseBrowserClient()
+        const { data: { user } } = await sup.auth.getUser()
+        if (!user) { router.replace('/login'); return }
+        const { data } = await sup.from('content_pieces').select('id, title')
+          .eq('user_id', user.id).is('deleted_at', null)
+          .order('updated_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+        if (!cancelled && data?.id) {
+          toast.success(`Recovered "${data.title || 'latest project'}"`)
+          router.replace(`/script/${data.id}`)
+          return
+        }
+      } catch {}
+      // Attempt 3 — nothing to recover. Land safely.
+      if (!cancelled) setPhase('empty')
+    })()
+    return () => { cancelled = true }
+  }, [lostId, router])
+
+  if (phase === 'recovering') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-6">
+        <Loader2 className="w-5 h-5 animate-spin text-gold-300" />
+        <div className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Recovering latest workspace…</div>
+        <p className="text-[12px] text-luxe/55 max-w-sm">Mugtee never loses your work. Pulling your most recent project.</p>
+      </div>
+    )
+  }
+
+  // Truly empty — show creative entry CTA, not a dead-end.
+  return (
+    <div className="max-w-xl mx-auto py-16 text-center px-6">
+      <Sparkles className="w-5 h-5 text-gold-300 mx-auto mb-3" />
+      <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-2">Studio empty</div>
+      <h1 className="font-display text-3xl mb-3">Your studio is ready.</h1>
+      <p className="text-luxe/65 text-sm mb-6 max-w-sm mx-auto">Generate your first script from the dashboard — every production lands here automatically.</p>
+      <Button onClick={() => router.push('/dashboard')} className="bg-gold-gradient text-black gap-2 shadow-gold-glow">
+        <Sparkles className="w-4 h-4" /> Open Mugtee Studio
+      </Button>
+    </div>
+  )
+}
+

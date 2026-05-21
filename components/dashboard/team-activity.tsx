@@ -1,13 +1,24 @@
 'use client'
+// MUGTEE V3.2 — Live Pulse (clickable production command center).
+//
+// Activity + notification feed where EVERY item is now navigational:
+//   • Activity items resolve to a project workspace by matching `target` text
+//     against current content_pieces. If matched → /script/{id}. Otherwise → /pipeline.
+//   • Notification items use their existing `link` field directly.
+// Hover glow, cursor pointer, tap feedback. Cinematic.
+//
+// EXTREME LOW CREDIT MODE: zero new deps. Reuses existing stores.
+
+import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { useAutomations } from '@/lib/automations-store'
 import { motion } from 'framer-motion'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/state'
-import { Bell, Zap, Send, AlertTriangle, Sparkles } from 'lucide-react'
+import { Bell, Zap, Send, AlertTriangle, Sparkles, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
 
 type FeedItem = {
   id: string
@@ -18,6 +29,7 @@ type FeedItem = {
   title?: string | null
   message?: string | null
   type?: string | null
+  link?: string | null
   created_at: string
 }
 
@@ -31,19 +43,63 @@ const TYPE_ICON: Record<string, any> = {
   info: Bell,
 }
 
+// Heuristic — translate the action verb to the most relevant project workspace
+// hash so clicking a "Generated images" pulse item lands the user near the rail.
+function deriveHash(action: string | null | undefined, target?: string | null): string {
+  const t = (action || '') + ' ' + (target || '')
+  const s = t.toLowerCase()
+  if (/(image|storyboard|b-?roll|thumbnail)/.test(s)) return '#assets'
+  if (/(voiceover|narration|tts|voice)/.test(s))      return '#assets'
+  if (/(rewrite|edit|script)/.test(s))                return ''
+  if (/(export|docx|download)/.test(s))               return '#assets'
+  return ''
+}
+
 export function TeamActivity() {
-  const { activity, loading } = useStore()
+  const router = useRouter()
+  const { activity, content, loading } = useStore()
   const { notifications } = useAutomations()
+
+  // Build a lookup so we can resolve activity `target` (project title) → project id.
+  const titleToId = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of content || []) {
+      if (c?.title) m.set(c.title.toLowerCase().trim(), c.id)
+    }
+    return m
+  }, [content])
 
   const feed: FeedItem[] = useMemo(() => {
     const a: FeedItem[] = (activity || []).map((x: any) => ({
       id: 'a-' + x.id, kind: 'activity', actor: x.actor, action: x.action, target: x.target, created_at: x.created_at,
     }))
     const n: FeedItem[] = (notifications || []).slice(0, 30).map((x: any) => ({
-      id: 'n-' + x.id, kind: 'system', title: x.title, message: x.message, type: x.type, created_at: x.created_at,
+      id: 'n-' + x.id, kind: 'system', title: x.title, message: x.message, type: x.type, link: x.link, created_at: x.created_at,
     }))
     return [...a, ...n].sort((p, q) => (q.created_at || '').localeCompare(p.created_at || '')).slice(0, 40)
   }, [activity, notifications])
+
+  const resolveActivityLink = (item: FeedItem): string => {
+    const targetKey = (item.target || '').toLowerCase().trim()
+    if (targetKey && titleToId.has(targetKey)) {
+      return `/script/${titleToId.get(targetKey)}${deriveHash(item.action, item.target)}`
+    }
+    // Try a fuzzy substring match for renamed or partial targets.
+    if (targetKey) {
+      for (const [k, id] of titleToId) {
+        if (k.includes(targetKey) || targetKey.includes(k)) return `/script/${id}${deriveHash(item.action, item.target)}`
+      }
+    }
+    // Fallback: send to the pipeline so they at least see all projects.
+    return '/pipeline'
+  }
+
+  const openItem = (item: FeedItem) => {
+    const href = item.kind === 'activity'
+      ? resolveActivityLink(item)
+      : (item.link && typeof item.link === 'string' ? item.link : '/pipeline')
+    router.push(href)
+  }
 
   return (
     <motion.div initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:0.1}}
@@ -51,7 +107,7 @@ export function TeamActivity() {
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-[11px] tracking-[0.3em] uppercase text-gold-400/80">Team & Automation Activity</div>
+          <div className="text-[11px] tracking-[0.3em] uppercase text-gold-400/80">Production Command Center</div>
           <h3 className="font-display text-2xl mt-1">Live pulse</h3>
         </div>
         <span className="text-[10px] tracking-widest uppercase text-emerald-300 flex items-center gap-1.5">
@@ -61,16 +117,20 @@ export function TeamActivity() {
       {loading.activity ? (
         <div className="space-y-3">{[0,1,2,3].map(i => <Skeleton key={i} className="h-12" />)}</div>
       ) : feed.length === 0 ? (
-        <div className="text-center py-8 text-luxe/60 text-sm">No activity yet.</div>
+        <div className="text-center py-8 text-luxe/60 text-sm">No activity yet — your first generation will show up here, live.</div>
       ) : (
-        <div className="space-y-3 max-h-[340px] overflow-y-auto scrollbar-luxe pr-2">
+        <div className="space-y-2 max-h-[340px] overflow-y-auto scrollbar-luxe pr-1.5">
           {feed.map(item => {
             const when = item.created_at ? formatDistanceToNow(parseISO(item.created_at), { addSuffix: true }) : ''
             if (item.kind === 'activity') {
               const initials = (item.actor || '?').split(' ').map(x=>x[0]).join('').slice(0,2)
               return (
-                <div key={item.id} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition">
-                  <Avatar className="w-9 h-9 ring-1 ring-gold-500/30">
+                <button
+                  key={item.id}
+                  onClick={() => openItem(item)}
+                  className="group w-full text-left flex items-start gap-3 p-2.5 rounded-xl hover:bg-gold-500/[0.06] hover:border-gold-500/30 active:bg-gold-500/[0.1] border border-transparent transition cursor-pointer min-h-[56px]"
+                >
+                  <Avatar className="w-9 h-9 ring-1 ring-gold-500/30 shrink-0">
                     <AvatarFallback className="text-xs bg-gold-gradient text-black">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -81,14 +141,23 @@ export function TeamActivity() {
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">{when}</div>
                   </div>
-                </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-gold-300 group-hover:translate-x-0.5 transition shrink-0 mt-2" />
+                </button>
               )
             }
             const Icon = TYPE_ICON[item.type || 'info'] || Bell
             const overdue = item.type === 'overdue'
             return (
-              <div key={item.id} className={cn('flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition border',
-                overdue ? 'border-red-500/20 bg-red-500/[0.03]' : 'border-transparent')}>
+              <button
+                key={item.id}
+                onClick={() => openItem(item)}
+                className={cn(
+                  'group w-full text-left flex items-start gap-3 p-2.5 rounded-xl border transition cursor-pointer min-h-[56px]',
+                  overdue
+                    ? 'border-red-500/25 bg-red-500/[0.04] hover:bg-red-500/[0.08] hover:border-red-500/40 active:bg-red-500/[0.12]'
+                    : 'border-transparent hover:bg-gold-500/[0.06] hover:border-gold-500/30 active:bg-gold-500/[0.1]',
+                )}
+              >
                 <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ring-1',
                   overdue ? 'bg-red-500/15 ring-red-500/30 text-red-300' : 'glass-gold ring-gold-500/30 text-gold-300')}>
                   <Icon className="w-4 h-4" />
@@ -100,7 +169,8 @@ export function TeamActivity() {
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{when}</div>
                 </div>
-              </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-gold-300 group-hover:translate-x-0.5 transition shrink-0 mt-2" />
+              </button>
             )
           })}
         </div>
