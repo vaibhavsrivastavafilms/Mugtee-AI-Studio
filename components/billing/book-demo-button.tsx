@@ -20,7 +20,9 @@ import { track } from '@/lib/posthog'
 
 const TEAM_SIZES = ['Just me', '2-5 creators', '6-15 creators', '15+ creators']
 
-const AGENCY_WA = process.env.NEXT_PUBLIC_AGENCY_WHATSAPP || ''   // E.164 digits only
+// Defensive sanitizer: WhatsApp deep links require E.164 *digits only* (no +, spaces, dashes).
+// Strip anything non-numeric so the env var is idempotent regardless of how the user wrote it.
+const AGENCY_WA = (process.env.NEXT_PUBLIC_AGENCY_WHATSAPP || '').replace(/\D/g, '')
 const AGENCY_EMAIL = 'support@tabletales.studio'
 
 export function BookDemoButton({ variant = 'gold', label = 'Book Demo \u00B7 \u20B9999/mo' }: { variant?: 'gold' | 'soft'; label?: string }) {
