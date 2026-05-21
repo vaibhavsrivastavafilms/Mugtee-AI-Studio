@@ -1,7 +1,8 @@
 'use client'
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check, Clapperboard } from 'lucide-react'
+import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check, Clapperboard, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -196,6 +197,9 @@ export function useViralIdeas() {
             title: idea.title,
             description: [idea.hook && `Hook: ${idea.hook}`, idea.angle && `Angle: ${idea.angle}`].filter(Boolean).join('\n'),
             platform, status: 'scripting', tone, niche, audience, existing_script: idea.hook,
+            // V3.3 — Cinematic Script signature mode. Automatically applies when tone is one of the
+            // narrative tones; the AI route layers in documentary pacing + scene-anchor structure.
+            cinematic: ['cinematic_emotional', 'storytelling', 'documentary'].includes(String(tone)),
           },
         }),
       })
@@ -350,6 +354,7 @@ export function ViralStudioPanel() {
                     <IdeaCard key={i} idea={idea} index={i}
                       isAdded={!!v.addedIds[i]} isAdding={v.adding === i}
                       scriptBusy={v.scriptBusy === i} scriptText={v.scripts[i]}
+                      contentId={v.addedIds[i]}
                       onAdd={() => v.addToPipeline(idea, i)}
                       onPromote={() => v.promoteToScript(idea, i)}
                     />
@@ -375,14 +380,16 @@ export function ViralStudioPanel() {
 // IDEA CARD — exported for reuse on dashboard hero
 // =====================================================================
 export function IdeaCard({
-  idea, index, isAdded, isAdding, scriptBusy, scriptText, onAdd, onPromote, compact,
+  idea, index, isAdded, isAdding, scriptBusy, scriptText, contentId, onAdd, onPromote, compact,
 }: {
   idea: Idea; index: number;
   isAdded: boolean; isAdding: boolean;
   scriptBusy: boolean; scriptText?: string;
+  contentId?: string;
   onAdd: () => void; onPromote: () => void;
   compact?: boolean
 }) {
+  const router = useRouter()
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copied') }
   const scriptReady = !!scriptText
   const previewLines = scriptText ? scriptText.split('\n').filter(Boolean).slice(0, 4) : []
@@ -435,12 +442,25 @@ export function IdeaCard({
                 <div className="text-[10px] text-muted-foreground italic">…opened in pipeline card</div>
               )}
             </div>
-            <button
-              onClick={() => copy(scriptText!)}
-              className="mt-2 text-[10px] tracking-[0.2em] uppercase text-violet-300/80 hover:text-violet-200 inline-flex items-center gap-1"
-            >
-              <Copy className="w-3 h-3" /> Copy full script
-            </button>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => copy(scriptText!)}
+                className="text-[10px] tracking-[0.2em] uppercase text-violet-300/80 hover:text-violet-200 inline-flex items-center gap-1 min-h-[32px] px-1"
+              >
+                <Copy className="w-3 h-3" /> Copy full script
+              </button>
+              {/* V3.3 — "Open Workspace" CTA. Routes directly to the project workspace.
+                  This replaces the silent success state — every Script Ready is now actionable. */}
+              {contentId && (
+                <button
+                  onClick={() => router.push(`/script/${contentId}`)}
+                  className="text-[10px] tracking-[0.2em] uppercase text-gold-300 hover:text-gold-200 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 transition min-h-[32px] ml-auto"
+                  title="Open this script in the cinematic project workspace"
+                >
+                  Open Workspace <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

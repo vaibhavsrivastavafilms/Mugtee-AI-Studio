@@ -293,6 +293,16 @@ export function ViralQuickStart() {
                           {TONES.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                      {/* V3.3 — Cinematic Script signature mode indicator.
+                          Auto-lights when tone is one of the narrative tones. Tells the user
+                          their script will be generated in Mugtee's signature documentary mode. */}
+                      {['cinematic_emotional', 'storytelling', 'documentary'].includes(String(v.tone)) && (
+                        <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-full bg-gold-500/[0.08] border border-gold-500/30 text-[9px] tracking-[0.25em] uppercase text-gold-300">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>Cinematic mode</span>
+                          <span className="hidden sm:inline text-gold-300/60 normal-case tracking-normal">· signature storytelling</span>
+                        </div>
+                      )}
                     </div>
                     <Button onClick={v.generate} disabled={v.loading || !v.topic.trim()}
                       className="h-10 bg-gold-gradient text-black gap-2 shadow-gold-glow hover:opacity-90 px-4">

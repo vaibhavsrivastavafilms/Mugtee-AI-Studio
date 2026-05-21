@@ -23,6 +23,7 @@ import { GenerateImagesButton } from '@/components/script/generate-images-button
 import { VoiceoverModal } from '@/components/script/voiceover-modal'
 import { ProjectAssetsRail } from '@/components/script/project-assets-rail'
 import { rememberWorkspace, readLastWorkspace } from '@/lib/last-workspace'
+import { extractNarration } from '@/lib/extract-narration'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -102,6 +103,9 @@ export default function ScriptWorkspace() {
   const [voiceoverOpen, setVoiceoverOpen] = useState(false)
   const [assetsRefresh, setAssetsRefresh] = useState(0)
   const bumpAssets = () => setAssetsRefresh(k => k + 1)
+  // V3.3 — Narration view toggle. Lets the user strip scene headers / descriptions
+  // and read ONLY the spoken narration. The Voiceover modal also picks this up.
+  const [viewMode, setViewMode] = useState<'full' | 'narration'>('full')
 
   // Phase V1.2 — Highlight + Rewrite local state.
   // `liveScript` is the source-of-truth for the rendered <pre> body. It mirrors the DB
@@ -238,7 +242,10 @@ export default function ScriptWorkspace() {
 
   const platformMeta = PLATFORM_META[piece.platform]
   const statusMeta   = STATUS_META[piece.status]
-  const scriptText = liveScript || (piece as any).script || piece.description || ''
+  const fullScript   = liveScript || (piece as any).script || piece.description || ''
+  // V3.3 — Narration-only version (memo via useMemo not needed; cheap regex pass).
+  const narrationOnly = viewMode === 'narration' ? extractNarration(fullScript, { keepQuotes: false }) : ''
+  const scriptText   = viewMode === 'narration' ? (narrationOnly || fullScript) : fullScript
   const tags = piece.tags || []
 
   return (
@@ -264,6 +271,22 @@ export default function ScriptWorkspace() {
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
           {/* Read Script — browser SpeechSynthesis. Stops any existing speech before starting new. */}
           <ReadScriptButton text={scriptText} />
+          {/* V3.3 — Full ↔ Narration toggle. Strips scene headers & descriptions to spoken lines only. */}
+          {fullScript && (
+            <div className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5 h-9 min-h-[44px] sm:min-h-0" role="tablist" aria-label="Script view mode">
+              <button
+                onClick={() => setViewMode('full')}
+                aria-pressed={viewMode === 'full'}
+                className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition ${viewMode === 'full' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
+              >Full</button>
+              <button
+                onClick={() => setViewMode('narration')}
+                aria-pressed={viewMode === 'narration'}
+                className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 ${viewMode === 'narration' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
+                title="Show only the spoken narration (no scene labels)"
+              ><Volume2 className="w-3 h-3" /> Narration</button>
+            </div>
+          )}
           <Button onClick={() => copy('script', scriptText)} variant="ghost" className="h-9 px-3 text-xs text-luxe/80 hover:text-gold-300 hover:bg-white/5 gap-1.5 min-h-[44px] sm:min-h-0">
             {copied === 'script' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} Copy
           </Button>
@@ -401,7 +424,9 @@ export default function ScriptWorkspace() {
         open={voiceoverOpen}
         onOpenChange={setVoiceoverOpen}
         projectId={piece.id}
-        scriptSource={liveScript || (piece as any).script || piece.description || ''}
+        /* V3.3 — Prefer the narration-only text when the user is already viewing it,
+           else extract narration on the fly so the modal never opens with stage directions. */
+        scriptSource={viewMode === 'narration' ? (narrationOnly || fullScript) : extractNarration(fullScript, { keepQuotes: false }) || fullScript}
         scriptTitle={piece.title}
         onCreated={bumpAssets}
       />
@@ -435,7 +460,14 @@ function ReadScriptButton({ text }: { text: string }) {
   }
   return (
     <Button
-      onClick={() => tts.speak(text)}
+      onClick={() => {
+        // V3.3 — Reliability: hard-cancel any prior utterance before speaking.
+        // Browsers (Chrome especially) sometimes leak a paused/zombied queue across pages —
+        // forcing cancel() before speak() eliminates the "click does nothing" bug.
+        try { window.speechSynthesis?.cancel() } catch {}
+        // Defer one tick so cancel propagates before the new utterance is queued.
+        setTimeout(() => tts.speak(text), 30)
+      }}
       variant="ghost"
       className="h-9 px-3 text-xs text-gold-200 hover:text-gold-100 bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 gap-1.5 min-h-[44px] sm:min-h-0"
       title="Read this script aloud — narrated by Mugtee"

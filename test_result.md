@@ -146,6 +146,18 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_SrEX2ok3vDtFa1) validated and working."
 
 frontend:
+  - task: "V3.3/V3.4 — Cinematic Script signature mode + Narration tab + Read Script reliability + Open Workspace CTA"
+    implemented: true
+    working: "NA"
+    file: "lib/extract-narration.ts, app/(app)/script/[id]/page.tsx, app/api/ai/generate/route.ts, components/ai/viral-studio-panel.tsx, components/dashboard/viral-quick-start.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "V3.3/3.4 cinematic + continuity pass. 5 files. (1) NEW lib/extract-narration.ts — strips scene headers [], scene-description labels, parentheticals, markdown headings, horizontal rules, embedded direction tags. Returns narration-only text. Defensive fallback returns original if no structural markers found (better to overshare than empty). (2) script/[id]/page.tsx — Added `viewMode: 'full' | 'narration'` toggle in workspace toolbar. When narration mode is on, the <pre> body shows extracted narration only and the VoiceoverModal prefills with the cleaned text. The toolbar now has a Full|Narration segmented control with Volume2 icon. Read Script reliability fix: hard-cancel `window.speechSynthesis.cancel()` before every speak, 30ms defer so the cancel propagates. Kills Chrome's paused/zombie queue bug where the button silently does nothing. (3) /api/ai/generate route — added optional `cinematic?: boolean` to context type + layered a Signature Mugtee Cinematic Mode preamble onto reel_script when ctx.cinematic === true (Netflix-doc pacing, observational/restrained, sensory anchors, curiosity loops, payoff 80% in, final line as still frame). (4) viral-studio-panel.tsx — promoteToScript now passes `cinematic: ['cinematic_emotional','storytelling','documentary'].includes(tone)` so narrative tones auto-trigger signature mode. IdeaCard extended with a contentId prop + new 'Open Workspace →' CTA pill that routes to /script/{id} the moment a script is ready. Eliminates the silent success state — every generated script is now one click from the cinematic workspace. (5) viral-quick-start.tsx — added a tiny 'Cinematic mode · signature storytelling' pill below the Tone selector that lights up gold automatically when tone is one of the cinematic tones. Makes Mugtee's signature mode visible without adding a manual checkbox. Compile clean. Zero new deps, zero new endpoints, zero migrations. Existing V1.2-V3.2 systems untouched."
+
   - task: "V3.2 — Project Continuity (Recovery Flow + Clickable Live Pulse + Last-Workspace memory)"
     implemented: true
     working: "NA"
