@@ -673,35 +673,77 @@ Each array item under 18 words. Be brutally honest. No flattery.`,
 
     case 'flow_prompts': {
       const src = ctx?.script_input || ctx?.existing_script || ctx?.description || ctx?.title || '(no script provided)'
+      // V3.6 — Cinematic Sequence Director mode.
+      // Caller MAY pass narration_text (preferred, extracted upstream) — if not we
+      // tell the model to derive the narration arc itself. The OUTPUT shape is now
+      // a directed sequence: each prompt is anchored to a narration beat and carries
+      // camera direction + estimated duration + emotional tone for the storyboard.
+      const narration = ctx?.narration_text || null
       return {
         wantsJson: true,
-        user: `Generate cinematic visual prompts for a faceless documentary based on the script below. These prompts will be pasted into Flow / Midjourney / Sora to generate B-roll. Output STRICT JSON, no markdown.
+        user: `You are a cinematic AI sequence director. Given the script + (optional) narration below, generate a CONNECTED visual sequence — NOT a list of random AI images. Adjacent prompts must preserve continuity of lighting, mood, lens feel and emotional pacing.
 
 SCRIPT / CONCEPT:
 ${src}
 
+${narration ? `EXTRACTED NARRATION (anchor each prompt to ONE narration beat):\n${narration}\n` : ''}
 CONTEXT:
 ${block}
 
 RULES:
-- 8-12 prompts total, sequenced as they would appear in the video.
-- Each prompt is a single line, comma-separated descriptors, cinematic, no camera-jargon overkill.
-- Mix: hero shot, B-roll, atmosphere, transition, payoff.
-- Lean into specificity (lens feel, lighting, mood), avoid generic adjectives.
+- 8-12 prompts, sequenced in storytelling order (hook → setup → escalation → climax → payoff).
+- EACH prompt must reference ONE narration beat (quote it back in narration_line).
+- Cinematic prompts: comma-separated descriptors, specific lens / lighting / mood.
+- camera_direction: ONE of [slow push-in, slow pull-out, handheld drift, cinematic pan, drone reveal, rack focus, silhouette tracking, emotional static close-up, low-angle hero, overhead, dolly side-track, locked-off wide].
+- duration_seconds: 1-2 for hook, 2-3 for b_roll/transition, 3-5 for emotional / payoff scenes.
+- emotional_tone: ONE of [tense, melancholic, hopeful, urgent, intimate, triumphant, contemplative, somber, energetic].
+- VISUAL CONSISTENCY LOCK: define ONE style_summary used as the visual identity for the WHOLE sequence (lighting + palette + lens + grade). Every image we generate later will be conditioned by it.
 
-OUTPUT SHAPE:
+OUTPUT STRICT JSON, no markdown:
 {
+  "style_summary": "<one-line visual identity — palette, lens, lighting, grade. Used as Visual Consistency Lock>",
   "scene_prompts": [
-    { "type": "hero",       "prompt": "<single-line cinematic prompt>" },
-    { "type": "b_roll",     "prompt": "<...>" },
-    { "type": "atmosphere", "prompt": "<...>" },
-    { "type": "transition", "prompt": "<...>" },
-    { "type": "payoff",     "prompt": "<...>" }
-  ],
-  "style_summary": "<one-line overall visual identity for the piece>"
+    {
+      "sequence_index": 1,
+      "type": "<hook|b_roll|atmosphere|transition|emotional|payoff>",
+      "prompt": "<single-line cinematic prompt, comma-separated descriptors>",
+      "narration_line": "<the exact narration beat this frame illustrates>",
+      "camera_direction": "<one of the camera directions above>",
+      "duration_seconds": <number>,
+      "emotional_tone": "<one of the emotional tones above>"
+    }
+  ]
 }
 
-Use at least 4 distinct types across the prompt list.`,
+Use at least 4 distinct scene types. Sequence_index is 1-based and consecutive.`,
+      }
+    }
+
+    case 'shot_list': {
+      // V3.6 — Generate a clean production shot list from the script.
+      const src = ctx?.script_input || ctx?.existing_script || ctx?.description || '(no script)'
+      return {
+        wantsJson: true,
+        user: `Generate a production-ready SHOT LIST for the script below. This is what a director / DP hands to their crew on set. STRICT JSON, no markdown.
+
+SCRIPT:
+${src}
+
+OUTPUT:
+{
+  "shots": [
+    {
+      "shot_number": 1,
+      "shot_type": "<wide establishing | medium | close-up | extreme close-up | over-shoulder | insert | b-roll>",
+      "camera": "<camera direction in one short phrase>",
+      "description": "<what we see, one sentence>",
+      "duration_seconds": <number>,
+      "purpose": "<establish | emotional payoff | transition | reveal | intimacy | tension>"
+    }
+  ]
+}
+
+6-12 shots. Sequenced top-down as they appear in the script.`,
       }
     }
 

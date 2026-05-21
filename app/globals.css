@@ -133,3 +133,45 @@
   animation: kenburns 8s ease-out forwards;
   will-change: transform;
 }
+
+
+/* MUGTEE V3.6 — Storyboard PDF print stylesheet.
+   When the user clicks "Storyboard PDF", the StoryboardPanel sets a body data
+   attribute. We hide everything except the storyboard root and switch the
+   horizontal track to a printable grid so frames lay out cleanly on paper.
+   Pure CSS — no PDF library, no server roundtrip. */
+@media print {
+  body[data-storyboard-print] *:not([data-storyboard-root]):not([data-storyboard-root] *) {
+    display: none !important;
+  }
+  body[data-storyboard-print] [data-storyboard-root] {
+    position: absolute;
+    inset: 0;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 24px !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  body[data-storyboard-print] [data-storyboard-root] * {
+    color: #111 !important;
+    border-color: #ccc !important;
+    background: transparent !important;
+  }
+  body[data-storyboard-print] [data-storyboard-track] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+    overflow: visible !important;
+  }
+  body[data-storyboard-print] [data-storyboard-frame] {
+    width: 100% !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+  }
+  body[data-storyboard-print] [data-storyboard-stylelock] {
+    border: 1px solid #c4a047 !important;
+    background: #fff8e7 !important;
+  }
+}
