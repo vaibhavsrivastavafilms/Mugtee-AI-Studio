@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { getBaseUrl, safeRelative } from '@/lib/url'
+import { safeRelative } from '@/lib/url'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +8,15 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const next = safeRelative(url.searchParams.get('next'), '/dashboard')
-  const base = getBaseUrl(request)
+
+  // CRITICAL AUTH FIX (Master Execution): Use the request's ACTUAL origin for the
+  // post-OAuth redirect, NOT NEXT_PUBLIC_BASE_URL. If they diverge (preview proxy
+  // domains, custom domains, etc.) the cookies we set during exchangeCodeForSession
+  // are scoped to this origin and the redirect would cross-domain — dropping the
+  // session and forcing a second login. Always stay on the same host.
+  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '') || 'https'
+  const host  = request.headers.get('x-forwarded-host')  || request.headers.get('host') || request.nextUrl.host
+  const base  = `${proto}://${host}`.replace(/\/$/, '')
 
   if (!code) {
     return NextResponse.redirect(`${base}/login?error=missing_code`)

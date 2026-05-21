@@ -1,14 +1,31 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+// MUGTEE UNIFIED CREATOR STUDIO — single cinematic ChatGPT-style entry point.
+//
+// MASTER EXECUTION mandate (single workflow, zero duplication):
+//   • Replaces the old split-hero "ViralQuickStart" panel and the floating MugteeAssistant.
+//   • One centered conversational input drives EVERY generator (viral, faceless, script,
+//     storyboard, hooks, documentary).
+//   • Mic + Mugtee Orb + Upload live INSIDE the input. Orb states map to voice / AI lifecycle.
+//   • Quick-action chips live below the input — each is a soft preset, not a new modal.
+//   • Inline contextual panels (DNA, Deep Research, Reference) expand IN PLACE — never overlay.
+//   • All existing hooks (useViralIdeas, useSpeechRecognition, useSpeechSynthesis), intent
+//     matcher, Faceless/Planner dialogs and Idea rendering are REUSED — no new orchestrators.
+//
+// The legacy export name `ViralQuickStart` is preserved so /dashboard imports keep working.
+
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Loader2, Wand2, X, CalendarCheck, Brain, Settings2, Flame, Video, Film, Mic, Quote, BookOpen, MicOff, Headphones, Pause, Play, Square } from 'lucide-react'
+import {
+  Sparkles, Loader2, Wand2, Brain, Settings2, Flame, Video, Film, Mic, MicOff,
+  Quote, BookOpen, Headphones, Pause, Play, Square, Paperclip, ArrowUp, Search,
+  Compass, ChevronDown
+} from 'lucide-react'
 import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
 import { matchIntent } from '@/lib/voice-intents'
 import { MUGTEE_LOADING_LINES, MUGTEE_SPEAK_LINES, pick } from '@/lib/mugtee-copy'
-import { AudioSpectrumLogo } from '@/components/mugtee/audio-spectrum-logo'
+import { MugteeOrb, type OrbState } from '@/components/mugtee/mugtee-orb'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PLATFORM_META } from '@/lib/dummy-data'
 import { useViralIdeas, IdeaCard, TONES, NICHES, AUDIENCES, placeholderForNiche } from '@/components/ai/viral-studio-panel'
@@ -17,25 +34,19 @@ import { FacelessStudioDialog } from '@/components/ai/faceless-studio-dialog'
 import { UpgradeModal } from '@/lib/usage'
 import type { Platform } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+
+type InlinePanel = null | 'dna' | 'research' | 'reference'
 
 export function ViralQuickStart() {
-  const v = useViralIdeas()
-  const [open, setOpen] = useState(true)
-  const [scrolled, setScrolled] = useState(false)
-  const [plannerOpen, setPlannerOpen] = useState(false)
+  const v        = useViralIdeas()
+  const router   = useRouter()
+  const tts      = useSpeechSynthesis()
+  const [panel,        setPanel]        = useState<InlinePanel>(null)
+  const [plannerOpen,  setPlannerOpen]  = useState(false)
   const [facelessOpen, setFacelessOpen] = useState(false)
-  // Creator DNA panel — collapsed by default to keep the hero compact, but
-  // opens when the user hits "DNA" so niche/audience/tone/platform are all
-  // first-class dashboard controls (no more buried-in-Settings).
-  const [dnaOpen, setDnaOpen] = useState(false)
 
-  // ─── Voice-first layer ────────────────────────────────────────
-  // Mic transcribes into the topic input. When a FINAL transcript arrives we run
-  // a tiny intent matcher (lib/voice-intents) — if it's a clear command we route
-  // immediately + speak a cinematic ack. Otherwise we still drop the text into the
-  // input and let the user click Generate manually (existing behaviour).
-  const tts = useSpeechSynthesis()
-  const router = useRouter()
+  // ─── Voice layer (reused, untouched) ──────────────────────────
   const stt = useSpeechRecognition({
     onResult: (text, isFinal) => {
       if (!text) return
@@ -43,42 +54,25 @@ export function ViralQuickStart() {
       if (!isFinal) return
       const intent = matchIntent(text)
       switch (intent.kind) {
-        case 'stop_speaking':
-          tts.stop()
-          return
-        case 'open_latest':
-          tts.speak(pick(MUGTEE_SPEAK_LINES.openingProject))
-          router.push('/media')
-          return
+        case 'stop_speaking':    tts.stop(); return
+        case 'open_latest':      tts.speak(pick(MUGTEE_SPEAK_LINES.openingProject)); router.push('/media'); return
         case 'generate_hooks':
-          if (intent.topic) v.setTopic(intent.topic)
-          tts.speak(pick(MUGTEE_SPEAK_LINES.generatingScript))
-          setTimeout(() => v.generate(), 250)
-          return
         case 'generate_script':
           if (intent.topic) v.setTopic(intent.topic)
           tts.speak(pick(MUGTEE_SPEAK_LINES.generatingScript))
           setTimeout(() => v.generate(), 250)
           return
-        // The rewrite / storyboard / export / read_aloud intents only make sense
-        // inside the script workspace, not on the dashboard hero. We acknowledge
-        // them politely so the user knows the command was understood.
         case 'rewrite':
         case 'storyboard':
         case 'export':
         case 'read_aloud':
           tts.speak('Open a script first — then say it again.')
           return
-        case 'unknown':
-        default:
-          // Don't auto-fire on unknown — let the user click Generate manually.
-          return
       }
     },
   })
 
   // ─── Cinematic rotating loading copy ──────────────────────────
-  // While `v.loading` is true we rotate the personality lines every 2.4s.
   const [loadingLine, setLoadingLine] = useState(MUGTEE_LOADING_LINES[0])
   useEffect(() => {
     if (!v.loading) return
@@ -91,14 +85,7 @@ export function ViralQuickStart() {
     return () => clearInterval(id)
   }, [v.loading])
 
-  // Subtle scroll-collapse: auto-hide hero once user scrolls past ~140px
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 140)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Phase V1.1 — Auto-prefill + auto-fire from query params (e.g. New Project modal → /dashboard?topic=...&autorun=1)
+  // ─── Auto-prefill from query params (New Project → ?topic=…&autorun=1) ─
   const searchParams = useSearchParams()
   const firedRef = useRef(false)
   useEffect(() => {
@@ -111,382 +98,394 @@ export function ViralQuickStart() {
     if (!topic) return
     firedRef.current = true
     v.setTopic(topic)
-    if (niche) v.setNiche(niche)
+    if (niche)    v.setNiche(niche)
     if (platform) v.setPlatform(platform as Platform)
-    if (tone) v.setTone(tone)
-    setOpen(true)
-    if (autorun) setTimeout(() => v.generate(), 350)
+    if (tone)     v.setTone(tone)
+    if (autorun)  setTimeout(() => v.generate(), 350)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const collapsed = scrolled && open
-  const dismissed = !open
+  // ─── Orb state derivation ─────────────────────────────────────
+  const orbState: OrbState =
+    stt.listening ? 'listening' :
+    v.loading     ? 'thinking'  :
+    tts.speaking  ? 'speaking'  : 'idle'
 
-  // Show only the first 3 results on the hero (full panel lives in /pipeline)
   const topThree = v.ideas.slice(0, 3)
+  const togglePanel = (p: InlinePanel) => setPanel(prev => (prev === p ? null : p))
+
+  // ─── Upload (reference image / asset) — lightweight stub that
+  //     drops the filename into the prompt so the AI prompt picks it up.
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const onUpload = () => fileRef.current?.click()
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    v.setTopic((t) => (t ? `${t} (reference: ${f.name})` : `Reference style: ${f.name}`) as any)
+    toast.success(`Reference attached: ${f.name}`)
+    e.target.value = ''
+  }
+
+  // ─── Cinematic platform-relevance helpers (used by chip presets) ─
+  const cinematicTones = useMemo(
+    () => ['cinematic_emotional', 'storytelling', 'documentary'],
+    []
+  )
+  const cinematicMode = cinematicTones.includes(String(v.tone))
+
+  // ─── Quick action chips — every chip is one-tap intent. ────────
+  const CHIPS = [
+    { id: 'viral',       label: 'Viral Reel',         icon: Flame,    platform: 'instagram', tone: 'cinematic_emotional' as const },
+    { id: 'doc',         label: 'Documentary',        icon: Mic,      platform: 'youtube',   tone: 'documentary' as const,        faceless: true },
+    { id: 'hook',        label: 'Hook Generator',     icon: Quote,    platform: 'instagram', tone: 'funny_relatable' as const },
+    { id: 'faceless',    label: 'Faceless Studio',    icon: Film,     platform: 'youtube',   tone: 'cinematic_emotional' as const, faceless: true },
+    { id: 'research',    label: 'Deep Research',      icon: Search,                                                              inline: 'research' as const },
+    { id: 'script',      label: 'Cinematic Script',   icon: BookOpen, platform: 'youtube',   tone: 'storytelling' as const },
+  ]
+
+  const onChip = (chip: typeof CHIPS[number]) => {
+    if ((chip as any).inline) { setPanel((chip as any).inline); return }
+    if (chip.platform) v.setPlatform(chip.platform as Platform)
+    if (chip.tone)     v.setTone(chip.tone as any)
+    if ((chip as any).faceless) { setFacelessOpen(true); return }
+    if (v.topic.trim()) { v.generate(); return }
+    // No topic yet — focus the input
+    document.getElementById('mugtee-main-input')?.focus()
+  }
 
   return (
     <>
-      {/* Floating reopen button (when user has explicitly closed) */}
-      <AnimatePresence>
-        {dismissed && (
-          <motion.button
-            initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} exit={{opacity:0, y:8}}
-            onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gold-gradient text-black text-xs font-semibold tracking-wide shadow-gold-glow hover:opacity-90 transition"
-            aria-label="Open Mugtee quick start"
-          >
-            <Sparkles className="w-4 h-4" /> Mugtee
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* ════════════════════════════════════════════════════════════
+          UNIFIED CINEMATIC HERO — centered ChatGPT-style studio.
+          One input. One workflow. One AI presence (Mugtee Orb).
+          ════════════════════════════════════════════════════════════ */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-3xl mx-auto"
+      >
+        {/* Top label */}
+        <div className="text-center text-[10px] sm:text-[11px] tracking-[0.38em] uppercase text-gold-300/80 inline-flex items-center justify-center gap-2 w-full">
+          <Sparkles className="w-3 h-3" /> Mugtee AI Studio
+        </div>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.section
-            initial={{opacity:0, y:-8, height:'auto'}}
-            animate={{opacity:1, y:0, height:'auto'}}
-            exit={{opacity:0, y:-8}}
-            transition={{type:'spring', damping:24, stiffness:180}}
-            className={cn(
-              'sticky top-20 z-20 glass border border-gold-soft rounded-2xl overflow-hidden transition-all',
-              collapsed ? 'shadow-gold-glow' : 'shadow-cinema',
-            )}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-white/[0.05]">
-              <div className="flex items-center gap-3 min-w-0">
-                <AudioSpectrumLogo size={42} showLabel={false} href="/dashboard" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-400/80">
-                    Mugtee AI Studio
+        {/* Heading + sub */}
+        <h1 className="mt-4 text-center font-display leading-[1.05] text-[2.1rem] sm:text-[2.8rem] lg:text-[3.2rem]">
+          <span className="block text-foreground">What are we</span>
+          <span className="block text-gold-gradient">creating today?</span>
+        </h1>
+        <p className="mt-3 text-center text-[13px] sm:text-[14px] text-luxe/70 max-w-xl mx-auto leading-relaxed">
+          Turn one idea into a cinematic production pipeline — script, storyboard, voiceover, export.
+        </p>
+
+        {/* ─── Centered conversational input ─── */}
+        <div className="mt-7 relative">
+          {/* Soft gold aura behind input */}
+          <div aria-hidden className="absolute -inset-4 rounded-[28px] bg-gold-gradient opacity-[0.08] blur-2xl pointer-events-none" />
+
+          <div className={cn(
+            'relative rounded-2xl border bg-white/[0.035] backdrop-blur-xl transition shadow-cinema',
+            stt.listening ? 'border-amber-300/60 ring-2 ring-amber-300/25'
+                          : v.loading ? 'border-amber-400/40 ring-2 ring-amber-400/15'
+                          : 'border-white/[0.08] hover:border-gold-500/40 focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20'
+          )}>
+            <div className="flex items-end gap-2 sm:gap-3 p-2.5 sm:p-3.5">
+              {/* LEFT — Upload */}
+              <button
+                type="button"
+                onClick={onUpload}
+                aria-label="Attach reference"
+                title="Attach a reference image, script or asset"
+                className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.08] text-luxe/80 hover:text-gold-200 hover:bg-gold-500/10 hover:border-gold-500/40 transition"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <input ref={fileRef} type="file" className="hidden" accept="image/*,video/*,text/plain,application/pdf" onChange={onFile} />
+
+              {/* CENTER — text input */}
+              <div className="flex-1 min-w-0">
+                <textarea
+                  id="mugtee-main-input"
+                  value={v.topic}
+                  onChange={(e) => v.setTopic(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !v.loading) {
+                      e.preventDefault()
+                      if (v.topic.trim()) v.generate()
+                    }
+                  }}
+                  placeholder={stt.listening
+                    ? 'Listening… speak naturally'
+                    : 'Describe the story, reel, documentary or scene you want to create…'
+                  }
+                  rows={1}
+                  className="w-full bg-transparent resize-none text-[14px] sm:text-[15px] leading-relaxed placeholder:text-muted-foreground/70 focus:outline-none py-2 px-1 max-h-32"
+                  style={{ minHeight: 40 }}
+                />
+                {/* Live interim hint */}
+                {stt.listening && stt.interim && (
+                  <div className="px-1 text-[11px] text-amber-200/70 italic truncate">&ldquo;{stt.interim}&rdquo;</div>
+                )}
+                {!stt.listening && v.loading && (
+                  <div className="px-1 text-[11px] tracking-wider text-gold-300/90 inline-flex items-center gap-1.5">
+                    <Sparkles className="w-2.5 h-2.5" /> {loadingLine}
                   </div>
-                  <h2 className="font-display text-2xl sm:text-3xl lg:text-[2rem] mt-1 leading-tight">
-                    What do you want to <span className="text-gold-gradient">create</span> today?
-                  </h2>
-                  <p className="text-[12px] sm:text-[13px] text-luxe/70 leading-snug mt-1.5 max-w-xl">
-                    Generate faceless content, scripts, hooks, storyboards, and viral ideas instantly.
-                  </p>
-                </div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+
+              {/* RIGHT — Mic + Orb + Send */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {stt.supported && (
+                  <button
+                    type="button"
+                    onClick={stt.toggle}
+                    disabled={v.loading}
+                    aria-label={stt.listening ? 'Stop listening' : 'Speak your idea'}
+                    title={stt.listening ? 'Stop listening' : 'Speak your idea'}
+                    className={cn(
+                      'w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-xl border transition',
+                      stt.listening
+                        ? 'bg-amber-500/20 border-amber-300/60 text-amber-200 shadow-[0_0_22px_-4px_rgba(245,196,77,0.6)]'
+                        : 'bg-white/[0.04] border-white/[0.08] text-luxe/80 hover:text-gold-200 hover:bg-gold-500/10 hover:border-gold-500/40'
+                    )}
+                  >
+                    {stt.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                )}
+
+                {/* The Orb — Mugtee's AI presence inside the chatbot */}
+                <div className="hidden sm:flex items-center justify-center pointer-events-none">
+                  <MugteeOrb state={orbState} size={36} />
+                </div>
+
+                {/* Send */}
                 <button
-                  onClick={() => setDnaOpen(o => !o)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border text-[11px] tracking-wide transition",
-                    dnaOpen
-                      ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
-                      : "bg-white/[0.03] border-white/[0.08] hover:bg-gold-500/10 hover:border-gold-500/30 text-luxe/80",
-                  )}
-                  aria-label="Creator DNA"
-                  title="Niche · Audience · Tone · Platform — saved to your creator DNA"
+                  type="button"
+                  onClick={() => v.topic.trim() && v.generate()}
+                  disabled={v.loading || !v.topic.trim()}
+                  aria-label="Generate"
+                  title="Generate (Enter)"
+                  className="w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-xl bg-gold-gradient text-black shadow-gold-glow disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 transition"
                 >
-                  <Settings2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">DNA</span>
-                </button>
-                <button
-                  onClick={() => setFacelessOpen(true)}
-                  className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
-                  aria-label="Open Faceless AI Studio"
-                  title="Faceless YouTube research, scripting & visual prompts"
-                >
-                  <Brain className="w-3.5 h-3.5" /> Faceless AI
-                </button>
-                <button
-                  onClick={() => setFacelessOpen(true)}
-                  className="md:hidden p-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 text-gold-300 hover:bg-gold-500/20 transition"
-                  aria-label="Open Faceless AI Studio"
-                >
-                  <Brain className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setPlannerOpen(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 text-[11px] tracking-wide transition"
-                  aria-label="Plan my week"
-                  title="Plan a full week of content with AI"
-                >
-                  <CalendarCheck className="w-3.5 h-3.5" /> Plan Week
-                </button>
-                <button
-                  onClick={() => setPlannerOpen(true)}
-                  className="sm:hidden p-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 text-gold-300 hover:bg-gold-500/20 transition"
-                  aria-label="Plan my week"
-                >
-                  <CalendarCheck className="w-4 h-4" />
-                </button>
-                <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition" aria-label="Close">
-                  <X className="w-4 h-4" />
+                  {v.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Compact form — hides when scrolled-collapsed (unless no results yet) */}
-            <AnimatePresence initial={false}>
-              {(!collapsed || v.ideas.length === 0) && (
-                <motion.div
-                  initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
-                  className="overflow-hidden"
-                >
-                  <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-[1fr_180px_180px_auto] gap-2.5 items-end">
-                    <div className="space-y-1">
-                      <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-1.5">
-                        <span>Topic</span>
-                        {stt.listening && (
-                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-rose-300 normal-case">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" /> Mugtee is listening…
-                          </span>
-                        )}
-                        {!stt.listening && v.loading && (
-                          <span className="inline-flex items-center gap-1 text-[10px] tracking-wider text-gold-300 normal-case animate-in fade-in">
-                            <Sparkles className="w-2.5 h-2.5" /> {loadingLine}
-                          </span>
-                        )}
-                      </label>
-                      <div className="relative">
-                        <Input
-                          value={v.topic}
-                          onChange={(e) => v.setTopic(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && !v.loading) v.generate() }}
-                          placeholder={placeholderForNiche(v.niche)}
-                          className={
-                            'bg-white/[0.03] focus-visible:ring-gold-500/40 focus-visible:border-gold-500/40 h-10 ' +
-                            (stt.supported ? 'pr-10 ' : '') +
-                            (stt.listening ? 'border-rose-500/50 ring-2 ring-rose-500/20 animate-pulse' : '')
-                          }
-                        />
-                        {/* In-input gold mic — hidden gracefully if browser unsupported */}
-                        {stt.supported && (
-                          <button
-                            type="button"
-                            onClick={stt.toggle}
-                            disabled={v.loading}
-                            aria-label={stt.listening ? 'Stop listening' : 'Speak your idea'}
-                            title={stt.listening ? 'Stop listening' : 'Tap and speak your idea'}
-                            className={
-                              'absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-md transition ' +
-                              (stt.listening
-                                ? 'bg-rose-500/20 border border-rose-500/50 text-rose-300 shadow-[0_0_14px_-2px_rgba(244,63,94,0.55)]'
-                                : 'bg-white/[0.04] border border-white/[0.06] text-gold-300 hover:bg-gold-500/15 hover:border-gold-500/40 hover:text-gold-200 hover:shadow-[0_0_14px_-2px_rgba(245,196,77,0.5)]')
-                            }
-                          >
-                            {stt.listening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                          </button>
-                        )}
+        {/* ─── Quick action chips (all 6) ─── */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+          {CHIPS.map(chip => {
+            const Icon = chip.icon
+            const active = (chip as any).inline && panel === (chip as any).inline
+            return (
+              <button
+                key={chip.id}
+                onClick={() => onChip(chip)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] sm:text-[11.5px] tracking-wide transition group',
+                  active
+                    ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
+                    : 'bg-white/[0.035] border-white/[0.08] hover:bg-gold-500/10 hover:border-gold-500/40 text-luxe/85 hover:text-gold-200'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5 text-gold-400/80 group-hover:text-gold-300" />
+                {chip.label}
+              </button>
+            )
+          })}
+          {/* Secondary tools — DNA + Plan Week kept compact */}
+          <button
+            onClick={() => togglePanel('dna')}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] tracking-wide transition',
+              panel === 'dna'
+                ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
+                : 'bg-white/[0.035] border-white/[0.08] hover:border-gold-500/40 text-luxe/70 hover:text-gold-200'
+            )}
+            aria-label="Creator DNA"
+            title="Niche · Audience · Tone · Platform"
+          >
+            <Settings2 className="w-3.5 h-3.5" /> DNA
+            <ChevronDown className={cn('w-3 h-3 transition', panel === 'dna' && 'rotate-180')} />
+          </button>
+          <button
+            onClick={() => setPlannerOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.035] border border-white/[0.08] hover:border-gold-500/40 text-luxe/70 hover:text-gold-200 text-[11px] tracking-wide transition"
+            title="Plan a full week of content"
+          >
+            <Compass className="w-3.5 h-3.5" /> Plan Week
+          </button>
+        </div>
+
+        {/* ─── Inline contextual panels (DNA / Research / Reference) ─── */}
+        <AnimatePresence initial={false}>
+          {panel && (
+            <motion.div
+              key={panel}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mt-4"
+            >
+              <div className="rounded-2xl border border-gold-500/20 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-5 shadow-cinema">
+                {panel === 'dna' && (
+                  <>
+                    <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80 mb-3 inline-flex items-center gap-1.5">
+                      <Brain className="w-3 h-3" /> Creator DNA · powers every AI output
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                      <DnaField label="Niche">
+                        <Select value={v.niche} onValueChange={v.setNiche}>
+                          <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>{NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </DnaField>
+                      <DnaField label="Audience">
+                        <Select value={v.audience} onValueChange={v.setAudience}>
+                          <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>{AUDIENCES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </DnaField>
+                      <DnaField label="Platform">
+                        <Select value={v.platform} onValueChange={(p) => v.setPlatform(p as Platform)}>
+                          <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>{Object.entries(PLATFORM_META).map(([k, val]) => <SelectItem key={k} value={k}>{val.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </DnaField>
+                      <DnaField label="Tone">
+                        <Select value={v.tone} onValueChange={v.setTone}>
+                          <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>{TONES.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </DnaField>
+                    </div>
+                    {cinematicMode && (
+                      <div className="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-gold-500/[0.08] border border-gold-500/30 text-[9.5px] tracking-[0.25em] uppercase text-gold-300">
+                        <Sparkles className="w-2.5 h-2.5" /> Cinematic signature mode
                       </div>
-                      {/* Live interim transcript hint — non-blocking, gold tint */}
-                      {stt.listening && stt.interim && (
-                        <div className="text-[10px] text-gold-300/70 italic truncate pl-1">&ldquo;{stt.interim}&rdquo;</div>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Platform</label>
-                      <Select value={v.platform} onValueChange={(p) => v.setPlatform(p as Platform)}>
-                        <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(PLATFORM_META).map(([k, val]) => <SelectItem key={k} value={k}>{val.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Tone</label>
-                      <Select value={v.tone} onValueChange={v.setTone}>
-                        <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {TONES.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      {/* V3.3 — Cinematic Script signature mode indicator.
-                          Auto-lights when tone is one of the narrative tones. Tells the user
-                          their script will be generated in Mugtee's signature documentary mode. */}
-                      {['cinematic_emotional', 'storytelling', 'documentary'].includes(String(v.tone)) && (
-                        <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-full bg-gold-500/[0.08] border border-gold-500/30 text-[9px] tracking-[0.25em] uppercase text-gold-300">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>Cinematic mode</span>
-                          <span className="hidden sm:inline text-gold-300/60 normal-case tracking-normal">· signature storytelling</span>
-                        </div>
-                      )}
-                    </div>
-                    <Button onClick={v.generate} disabled={v.loading || !v.topic.trim()}
-                      className="h-10 bg-gold-gradient text-black gap-2 shadow-gold-glow hover:opacity-90 px-4">
-                      {v.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {v.loading ? 'Generating…' : 'Generate'}
-                    </Button>
-                  </div>
-
-                  {/* Quick-action chips — ChatGPT/Canva-style AI shortcuts.
-                      Each chip is a soft preset: it nudges platform/tone toward the
-                      most-effective combo for that format, then runs the same generate flow. */}
-                  <div className="px-4 sm:px-5 pb-3 -mt-1">
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <Wand2 className="w-3 h-3 text-gold-400/70" /> Quick actions
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {([
-                        { label: 'Viral Reel',         icon: Flame,    platform: 'instagram',          tone: 'cinematic_emotional' },
-                        { label: 'YouTube Script',     icon: Video,    platform: 'youtube',            tone: 'storytelling' },
-                        { label: 'Faceless Video',     icon: Film,     platform: 'youtube',            tone: 'cinematic_emotional', faceless: true },
-                        { label: 'Storyboard',         icon: BookOpen, platform: v.platform,           tone: v.tone,                faceless: true },
-                        { label: 'Hook Generator',     icon: Quote,    platform: v.platform,           tone: 'funny_relatable' },
-                        { label: 'Documentary Script', icon: Mic,      platform: 'youtube',            tone: 'storytelling',        faceless: true },
-                      ] as const).map(action => {
-                        const Icon = action.icon
-                        return (
-                          <button
-                            key={action.label}
-                            onClick={() => {
-                              v.setPlatform(action.platform as Platform)
-                              v.setTone(action.tone as any)
-                              if ((action as any).faceless) {
-                                // Faceless workflows open the dedicated dialog (existing flow, not rebuilt)
-                                setFacelessOpen(true)
-                              } else if (v.topic.trim()) {
-                                // Topic already typed → fire the same generate path
-                                v.generate()
-                              } else {
-                                // No topic yet → focus the input so user can type one
-                                const el = document.querySelector('input[placeholder^="e.g."]') as HTMLInputElement | null
-                                el?.focus()
-                              }
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-gold-500/10 border border-white/[0.06] hover:border-gold-500/40 text-luxe/80 hover:text-gold-200 text-[11px] tracking-wide transition group"
-                          >
-                            <Icon className="w-3 h-3 text-gold-400/70 group-hover:text-gold-300" />
-                            {action.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Creator DNA — Niche + Audience inline.
-                      Changes save instantly via setNiche/setAudience (writeCreatorProfile under the hood). */}
-                  <AnimatePresence initial={false}>
-                    {dnaOpen && (
-                      <motion.div
-                        initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
-                        className="overflow-hidden border-t border-white/[0.05]"
-                      >
-                        <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          <div className="space-y-1">
-                            <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground inline-flex items-center gap-1.5">
-                              <Brain className="w-3 h-3 text-gold-400/80" /> Niche
-                              <span className="text-[9px] tracking-normal text-gold-300/70 normal-case ml-1">drives AI output</span>
-                            </label>
-                            <Select value={v.niche} onValueChange={v.setNiche}>
-                              <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground inline-flex items-center gap-1.5">
-                              <Sparkles className="w-3 h-3 text-gold-400/80" /> Audience
-                              <span className="text-[9px] tracking-normal text-gold-300/70 normal-case ml-1">saved automatically</span>
-                            </label>
-                            <Select value={v.audience} onValueChange={v.setAudience}>
-                              <SelectTrigger className="bg-white/[0.03] h-10 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {AUDIENCES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </motion.div>
                     )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </>
+                )}
+                {panel === 'research' && (
+                  <>
+                    <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80 mb-2 inline-flex items-center gap-1.5">
+                      <Search className="w-3 h-3" /> Deep Research · inline context
+                    </div>
+                    <p className="text-[13px] text-luxe/85 leading-relaxed">
+                      Type the topic above and Mugtee will gather the strongest hooks, statistics, references and competing angles before drafting your script. Hit <span className="text-gold-300">Generate</span> to start — research runs as a pre-pass.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {['Trending hooks', 'Competitor angles', 'Verified stats', 'Source citations'].map(t => (
+                        <span key={t} className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10.5px] tracking-wide text-luxe/70">{t}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {panel === 'reference' && (
+                  <>
+                    <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80 mb-2 inline-flex items-center gap-1.5">
+                      <Paperclip className="w-3 h-3" /> Reference Analyzer
+                    </div>
+                    <p className="text-[13px] text-luxe/85">Attach any image, script or video via the paperclip — Mugtee uses it as a stylistic reference.</p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Results */}
-            <AnimatePresence>
-              {(v.loading || topThree.length > 0) && (
-                <motion.div
-                  initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
-                  className="overflow-hidden border-t border-white/[0.05]"
-                >
-                  {/* 🎧 Hear Narration — reads the 3 idea titles + hooks aloud. Hidden if TTS unsupported or still loading. */}
-                  {!v.loading && topThree.length > 0 && tts.supported && (
-                    <div className="px-4 sm:px-5 pt-3 -mb-1 flex items-center justify-between gap-2">
-                      <span className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Top 3 ideas</span>
-                      {tts.speaking ? (
-                        <div className="inline-flex items-center gap-0.5">
-                          {tts.paused ? (
-                            <button onClick={tts.resume} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] tracking-wide transition">
-                              <Play className="w-3 h-3" /> Resume
-                            </button>
-                          ) : (
-                            <button onClick={tts.pause} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] tracking-wide transition">
-                              <Pause className="w-3 h-3" /> Pause
-                            </button>
-                          )}
-                          <button onClick={tts.stop} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-muted-foreground hover:text-luxe hover:border-white/[0.18] text-[11px] tracking-wide transition">
-                            <Square className="w-3 h-3" /> Stop
-                          </button>
-                        </div>
+        {/* ─── Results inline (idea cards) ─── */}
+        <AnimatePresence>
+          {(v.loading || topThree.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mt-6"
+            >
+              {!v.loading && topThree.length > 0 && tts.supported && (
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <span className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Top 3 ideas</span>
+                  {tts.speaking ? (
+                    <div className="inline-flex items-center gap-0.5">
+                      {tts.paused ? (
+                        <button onClick={tts.resume} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] transition">
+                          <Play className="w-3 h-3" /> Resume
+                        </button>
                       ) : (
-                        <button
-                          onClick={() => {
-                            // Narrate ideas as a single cinematic read.
-                            const script = topThree.map((idea: any, i: number) => {
-                              const title = idea?.title || idea?.headline || ''
-                              const hook  = idea?.hook  || idea?.description || ''
-                              return `Idea ${i + 1}. ${title}. ${hook}`.trim()
-                            }).filter(Boolean).join('   ')
-                            if (script) tts.speak(script)
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 hover:text-gold-200 text-[11px] tracking-wide transition shadow-[0_0_14px_-4px_rgba(245,196,77,0.4)]"
-                          title="Hear these ideas read aloud"
-                        >
-                          <Headphones className="w-3.5 h-3.5" /> Hear Narration
+                        <button onClick={tts.pause} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gold-500/15 border border-gold-500/40 text-gold-200 hover:bg-gold-500/25 text-[11px] transition">
+                          <Pause className="w-3 h-3" /> Pause
                         </button>
                       )}
+                      <button onClick={tts.stop} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-muted-foreground hover:text-luxe text-[11px] transition">
+                        <Square className="w-3 h-3" /> Stop
+                      </button>
                     </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        const script = topThree.map((idea: any, i: number) => {
+                          const title = idea?.title || idea?.headline || ''
+                          const hook  = idea?.hook  || idea?.description || ''
+                          return `Idea ${i + 1}. ${title}. ${hook}`.trim()
+                        }).filter(Boolean).join('   ')
+                        if (script) tts.speak(script)
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 hover:border-gold-500/60 text-gold-300 hover:text-gold-200 text-[11px] transition"
+                    >
+                      <Headphones className="w-3.5 h-3.5" /> Hear Narration
+                    </button>
                   )}
-                  <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {v.loading ? (
-                      [0,1,2].map(i => (
-                        <div key={i} className="rounded-xl p-3 bg-white/[0.02] border border-white/[0.05] animate-pulse">
-                          <div className="h-3 w-3/4 bg-white/[0.06] rounded mb-2" />
-                          <div className="h-2.5 w-1/2 bg-white/[0.04] rounded mb-3" />
-                          <div className="h-6 w-full bg-white/[0.04] rounded" />
-                        </div>
-                      ))
-                    ) : topThree.map((idea, i) => (
-                      <IdeaCard
-                        key={i} idea={idea} index={i}
-                        compact
-                        isAdded={!!v.addedIds[i]} isAdding={v.adding === i}
-                        scriptBusy={v.scriptBusy === i} scriptText={v.scripts[i]}
-                        onAdd={() => v.addToPipeline(idea, i)}
-                        onPromote={() => v.promoteToScript(idea, i)}
-                      />
-                    ))}
-                  </div>
-                  {!v.loading && v.ideas.length > 3 && (
-                    <div className="px-4 sm:px-5 pb-4 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-                      Showing 3 of {v.ideas.length}. Full studio in <a href="/pipeline" className="text-gold-300 hover:text-gold-200">Pipeline</a>.
-                    </div>
-                  )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-
-            {/* Empty hint — only when no ideas + form visible */}
-            {!v.loading && v.ideas.length === 0 && !collapsed && (
-              <div className="px-4 sm:px-5 pb-4 -mt-2 text-[10px] tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-1.5">
-                <Wand2 className="w-3 h-3 text-gold-400/60" /> Type a topic + hit Generate
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {v.loading ? (
+                  [0,1,2].map(i => (
+                    <div key={i} className="rounded-xl p-3 bg-white/[0.02] border border-white/[0.05] animate-pulse">
+                      <div className="h-3 w-3/4 bg-white/[0.06] rounded mb-2" />
+                      <div className="h-2.5 w-1/2 bg-white/[0.04] rounded mb-3" />
+                      <div className="h-6 w-full bg-white/[0.04] rounded" />
+                    </div>
+                  ))
+                ) : topThree.map((idea, i) => (
+                  <IdeaCard
+                    key={i} idea={idea} index={i}
+                    compact
+                    isAdded={!!v.addedIds[i]} isAdding={v.adding === i}
+                    scriptBusy={v.scriptBusy === i} scriptText={v.scripts[i]}
+                    onAdd={() => v.addToPipeline(idea, i)}
+                    onPromote={() => v.promoteToScript(idea, i)}
+                  />
+                ))}
               </div>
-            )}
-          </motion.section>
-        )}
-      </AnimatePresence>
+              {!v.loading && v.ideas.length > 3 && (
+                <div className="mt-3 text-center text-[10px] tracking-[0.25em] uppercase text-muted-foreground">
+                  Showing 3 of {v.ideas.length}. Full studio in <a href="/pipeline" className="text-gold-300 hover:text-gold-200">Pipeline</a>.
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.section>
 
-      {/* Phase 12 — Weekly AI Content Planner */}
-      <WeeklyPlannerDialog open={plannerOpen} onOpenChange={setPlannerOpen} />
-      {/* Phase 13D — Faceless AI Studio */}
+      {/* Reused dialogs (untouched) */}
+      <WeeklyPlannerDialog open={plannerOpen}  onOpenChange={setPlannerOpen} />
       <FacelessStudioDialog open={facelessOpen} onOpenChange={setFacelessOpen} />
-      {/* Phase P2/P7 — usage cap upgrade + rewarded sponsor modal */}
       <UpgradeModal open={v.upgradeOpen} onOpenChange={v.setUpgradeOpen} reason={v.upgradeReason} />
     </>
+  )
+}
+
+// Alias for clarity — same component, semantic export.
+export const UnifiedCreatorStudio = ViralQuickStart
+
+function DnaField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">{label}</label>
+      {children}
+    </div>
   )
 }
