@@ -7,6 +7,7 @@ import { TeamActivity } from '@/components/dashboard/team-activity'
 import { PostingCalendar } from '@/components/dashboard/posting-calendar'
 import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
 import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
+import { ContinueCreating } from '@/components/dashboard/continue-creating'
 import { OnboardingOverlay } from '@/components/onboarding/onboarding-overlay'
 import { UsageGauge } from '@/lib/usage'
 import { AdSlot } from '@/components/ads/ad-slot'
@@ -33,6 +34,9 @@ export default function DashboardPage() {
 
       {/* Mugtee Quick Start hero */}
       <ViralQuickStart />
+
+      {/* V1.5 — Continue Creating: surfaces last script / idea / prompts. Hides when there's nothing recent. */}
+      <ContinueCreating />
 
       {/* Phase P2/P7 — Live AI usage gauge (free plan caps, rewarded credits, upgrade nudge) */}
       <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.5, delay:0.05}}>

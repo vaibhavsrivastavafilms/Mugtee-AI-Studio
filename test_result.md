@@ -146,6 +146,18 @@ backend:
           comment: "✅ ALL 7 BACKEND TESTS PASSED. Tested: (1) GET /api/billing/me returns {plan:'free', status:'none'} for unauthenticated (200 OK). (2) POST /api/billing/create-subscription with valid plan returns 401 Unauthorized without auth. (3) POST /api/billing/create-subscription with invalid plan returns 401 Unauthorized (auth gate before validation). (4) POST /api/billing/verify returns 401 Unauthorized without auth. (5) Direct Razorpay API plan creation successful (plan_SrErtBEHuTdqt1). (6) Direct Razorpay API subscription creation successful (sub_SrEruHjAoncjmk). (7) HMAC SHA256 signature verification logic confirmed correct. ⚠️ IMPORTANT: subscriptions table NOT created yet - migration file migrations/0001_billing.sql MUST be run by user in Supabase SQL editor before authenticated endpoints can persist data. This is EXPECTED and documented as next user action, not a backend bug. All endpoint auth gates working correctly. Razorpay TEST credentials (rzp_test_SrEX2ok3vDtFa1) validated and working."
 
 frontend:
+  - task: "V1.5 — Cinematic Voice Copilot (intent router + speak-back + AudioSpectrumLogo + rotating loading copy + Continue Creating + DOCX export)"
+    implemented: true
+    working: "NA"
+    file: "lib/mugtee-presence.ts, lib/mugtee-copy.ts, lib/voice-intents.ts, lib/export-docx.ts, components/mugtee/audio-spectrum-logo.tsx, components/dashboard/continue-creating.tsx, lib/use-voice.ts, components/dashboard/viral-quick-start.tsx, app/(app)/dashboard/page.tsx, app/(app)/script/[id]/page.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "V1.5 cinematic voice copilot shipped. 6 new files, 4 surgical edits. (1) mugtee-presence: pub/sub for global voice state (listening/speaking/intentLabel) via useSyncExternalStore. (2) mugtee-copy: personality strings (10 cinematic loading lines + speak-back lines per intent + acks). Tone: witty, intelligent, slightly sarcastic. (3) voice-intents: keyword-based intent matcher → 9 commands (generate_script, generate_hooks, rewrite x5 variants, storyboard, export, open_latest, read_aloud, stop_speaking). Falls back to topic for substantive input. (4) export-docx: dependency-free Word export via HTML→.doc trick (application/msword MIME). Preserves headings + paragraphs. Free-tier watermark inline. (5) AudioSpectrumLogo: cinematic M with 3 states (idle breathing glow, listening pulse rings, speaking 5 CSS audio bars). Reads presence via useSyncExternalStore. Scoped <style jsx global> keyframes, zero new deps. (6) ContinueCreating: surfaces last script + last idea + last prompts (max 3, hides when empty). Reads from content store + localstorage. Cross-tab focus refresh. Wiring: use-voice.ts now publishes presence on start/stop/speak/end. viral-quick-start: STT onResult final transcript → matchIntent → routes (generate_script/hooks fire v.generate(), open_latest navigates, rewrite/storyboard/export politely deferred); cinematic loading copy rotates every 2.4s via MUGTEE_LOADING_LINES; AudioSpectrumLogo replaces static Sparkles in hero. dashboard/page.tsx: ContinueCreating mounted under hero. script/[id]/page.tsx: new exportDocx() button using Film icon (Export .doc / DOC mobile). Compile clean across all touched routes. Zero new deps. Tone: cinematic, alive, intelligent. Existing voice / instagram / rewrite / trial / auth systems untouched."
+
   - task: "V1.2 Mobile Notification Drawer Fix"
     implemented: true
     working: "NA"

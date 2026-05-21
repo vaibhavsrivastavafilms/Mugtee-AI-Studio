@@ -14,6 +14,7 @@
 // =====================================================================
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { mugteePresence } from '@/lib/mugtee-presence'
 
 // ---------- Types ----------
 type AnySpeechRecognition = any
@@ -56,8 +57,8 @@ export function useSpeechRecognition(opts: { lang?: string; onResult?: (text: st
         onResultRef.current?.(interimText.trim(), false)
       }
     }
-    rec.onerror = () => { setListening(false); setInterim('') }
-    rec.onend = () => { setListening(false); setInterim('') }
+    rec.onerror = () => { setListening(false); setInterim(''); mugteePresence.set({ listening: false, intentLabel: null }) }
+    rec.onend = () => { setListening(false); setInterim(''); mugteePresence.set({ listening: false, intentLabel: null }) }
 
     recRef.current = rec
     return () => { try { rec.abort() } catch {} }
@@ -65,13 +66,14 @@ export function useSpeechRecognition(opts: { lang?: string; onResult?: (text: st
 
   const start = useCallback(() => {
     if (!recRef.current || listening) return
-    try { recRef.current.start(); setListening(true) } catch {}
+    try { recRef.current.start(); setListening(true); mugteePresence.set({ listening: true, intentLabel: 'Listening…' }) } catch {}
   }, [listening])
 
   const stop = useCallback(() => {
     if (!recRef.current) return
     try { recRef.current.stop() } catch {}
     setListening(false)
+    mugteePresence.set({ listening: false, intentLabel: null })
   }, [])
 
   const toggle = useCallback(() => { listening ? stop() : start() }, [listening, start, stop])
@@ -140,11 +142,11 @@ export function useSpeechSynthesis() {
     utter.rate = 1.05
     utter.pitch = 1.0
     utter.volume = 1.0
-    utter.onstart = () => { setSpeaking(true); setPaused(false) }
+    utter.onstart = () => { setSpeaking(true); setPaused(false); mugteePresence.set({ speaking: true }) }
     utter.onpause = () => setPaused(true)
     utter.onresume = () => setPaused(false)
-    utter.onend = () => { setSpeaking(false); setPaused(false) }
-    utter.onerror = () => { setSpeaking(false); setPaused(false) }
+    utter.onend = () => { setSpeaking(false); setPaused(false); mugteePresence.set({ speaking: false }) }
+    utter.onerror = () => { setSpeaking(false); setPaused(false); mugteePresence.set({ speaking: false }) }
 
     try { window.speechSynthesis.speak(utter) } catch {}
   }, [])
@@ -152,7 +154,7 @@ export function useSpeechSynthesis() {
   const stop = useCallback(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return
     try { window.speechSynthesis.cancel() } catch {}
-    setSpeaking(false); setPaused(false)
+    setSpeaking(false); setPaused(false); mugteePresence.set({ speaking: false })
   }, [])
 
   const pause = useCallback(() => {
