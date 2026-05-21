@@ -28,6 +28,7 @@ import { extractNarration } from '@/lib/extract-narration'
 import { logEvent } from '@/lib/log-event'
 import { ProjectActivityTimeline } from '@/components/project/activity-timeline'
 import { StoryboardPanel } from '@/components/script/storyboard-panel'
+import { track } from '@/lib/posthog'
 
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
@@ -189,6 +190,7 @@ export default function ScriptWorkspace() {
     // V3.5 — Creator Memory: track exports for the timeline.
     logEvent({ event_type: 'export_created', project_id: piece.id, target: piece.title, metadata: { format: 'txt' } })
     rememberWorkspace(piece.id, piece.title, { stage: 'exporting', last_event: 'export_created' })
+    track('export_downloaded', { format: 'txt', project_id: piece.id })
   }
 
   // Phase V1.5 — DOCX export (Word/Pages-compatible via HTML→.doc trick, no library).
@@ -200,6 +202,7 @@ export default function ScriptWorkspace() {
     // V3.5 — Creator Memory.
     logEvent({ event_type: 'export_created', project_id: piece.id, target: piece.title, metadata: { format: 'docx' } })
     rememberWorkspace(piece.id, piece.title, { stage: 'exporting', last_event: 'export_created' })
+    track('export_downloaded', { format: 'docx', project_id: piece.id })
   }
 
   const genFlow = async () => {

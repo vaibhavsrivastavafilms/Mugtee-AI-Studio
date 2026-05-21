@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Users, Send, Loader2, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { track } from '@/lib/posthog'
 
 const TEAM_SIZES = ['Just me', '2-5 creators', '6-15 creators', '15+ creators']
 
@@ -51,7 +52,7 @@ export function BookDemoButton({ variant = 'gold', label = 'Book Demo \u00B7 \u2
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); track('agency_demo_clicked', { source: 'pricing_card' }) }}
         className={cn(
           'w-full h-11 gap-2',
           variant === 'gold'

@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { Sparkles, Check, ArrowRight, Crown, Users, Building2, Lightbulb, FileText, Camera, Scissors, CalendarCheck, Send, BarChart3, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
 import { BookDemoButton } from '@/components/billing/book-demo-button'
 import { PricingFaq } from '@/components/billing/pricing-faq'
+import { track } from '@/lib/posthog'
 
 const WORKFLOW = [
   { icon: Lightbulb,      label: 'Plan' },
@@ -82,6 +84,8 @@ const PLANS = [
 ]
 
 export default function PricingPage() {
+  // V4.0 — Track pricing_opened on mount for funnel analytics.
+  useEffect(() => { track('pricing_opened', { source: 'direct' }) }, [])
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Cinematic ambient backdrop */}

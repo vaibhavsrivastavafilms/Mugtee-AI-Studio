@@ -18,6 +18,7 @@ import { useSpeechSynthesis, VOICE_PROFILE_META, type VoiceProfile } from '@/lib
 import { toast } from 'sonner'
 import { logEvent } from '@/lib/log-event'
 import { rememberWorkspace } from '@/lib/last-workspace'
+import { track } from '@/lib/posthog'
 import { cn } from '@/lib/utils'
 
 export function VoiceoverModal({
@@ -94,6 +95,12 @@ export function VoiceoverModal({
         metadata: { engine: d?.fallback || 'elevenlabs', word_count: text.split(/\s+/).filter(Boolean).length },
       })
       rememberWorkspace(projectId, scriptTitle, { stage: 'voiceover', last_event: 'voiceover_generated' })
+      // V4.0 — Product analytics.
+      track('voice_generated', {
+        engine:     d?.fallback || 'elevenlabs',
+        profile:    tts.profile,
+        word_count: text.split(/\s+/).filter(Boolean).length,
+      })
       onCreated?.()
       onOpenChange(false)
     } catch (e: any) { toast.error(e?.message || 'Network error') }
