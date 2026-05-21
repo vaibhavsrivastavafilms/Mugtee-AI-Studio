@@ -36,9 +36,17 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Skip Next.js internals, static files, and the API route.
-     * The auth callback IS matched so cookie refresh works there too.
+     * Skip Next.js internals, static assets, PWA files, and the .well-known folder.
+     * Auth-cookie refresh still runs on every real page + API route.
+     *
+     * Excluded explicitly (otherwise Supabase auth middleware can intercept them
+     * and break PWA installability / TWA asset-links verification):
+     *   • /manifest.json        — PWA manifest (Bubblewrap fetches this)
+     *   • /sw.js                — service worker
+     *   • /.well-known/*        — assetlinks.json, security.txt, etc.
+     *   • /robots.txt, /sitemap.xml
+     *   • any *.{svg,png,jpg,jpeg,gif,webp,ico,json,js,txt,xml,webmanifest,map}
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|\\.well-known|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|js|txt|xml|webmanifest|map)$).*)',
   ],
 }
