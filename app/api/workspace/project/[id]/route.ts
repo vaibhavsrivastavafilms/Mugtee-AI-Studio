@@ -1,36 +1,42 @@
 // Mugtee Workspace — load a single saved project for rehydration.
 //
 // GET /api/workspace/project/:id
-//   returns: { title, description, platform, tone, duration, output }
+//   returns: { id, title, description, platform, tone, duration, output, updated_at }
 //
 // Reads from the existing `content_pieces` table, enforces user ownership, and
 // gracefully tolerates older rows whose `script` column is plain text (not the
 // workspace JSON envelope written by /api/workspace/save).
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  isUuid, normalizeOutput, logError, EMPTY_OUTPUT,
+  coercePlatform, coerceTone, coerceDuration,
+} from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const EMPTY_OUTPUT = { hook: '', script: '', storyboard: '', captions: '', thumbnailIdea: '' }
-
 function safeParse(raw: any): any | null {
-  if (!raw || typeof raw !== 'string') return null
+  if (typeof raw !== 'string') return null
   try { return JSON.parse(raw) } catch { return null }
 }
 
-function reversePlatform(p?: string | null): string {
-  // /save maps instagram_reel → 'instagram', youtube_short/video → 'youtube'.
-  // For rehydration we prefer the original workspace key when available; otherwise
-  // pick a sensible default so the dropdown stays valid.
+function reversePlatform(p?: string | null): 'instagram_reel' | 'youtube_short' | 'youtube_video' {
   if (!p) return 'instagram_reel'
-  if (p === 'youtube') return 'youtube_short'
-  if (p === 'instagram') return 'instagram_reel'
-  return p
+  if (p === 'youtube' || p === 'youtube_short') return 'youtube_short'
+  if (p === 'youtube_video') return 'youtube_video'
+  if (p === 'instagram' || p === 'instagram_reel') return 'instagram_reel'
+  return 'instagram_reel'
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const id = params?.id
+    // Fail fast on malformed UUID — prevents Supabase from throwing 22P02.
+    if (!isUuid(id)) {
+      return NextResponse.json({ error: 'Invalid project id' }, { status: 400 })
+    }
+
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
@@ -38,33 +44,39 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const { data, error } = await supabase
       .from('content_pieces')
       .select('id, user_id, title, description, platform, script, status, created_at, updated_at')
-      .eq('id', params.id)
-      .single()
+      .eq('id', id)
+      .maybeSingle()
 
-    if (error || !data) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    if (error) {
+      logError('workspace.project.db', error, { code: (error as any).code, id })
+      return NextResponse.json({ error: 'Could not load project' }, { status: 500 })
+    }
+    if (!data) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     if (data.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const parsed = safeParse(data.script)
-    const isWorkspaceRow = parsed && parsed.workspace === true
+    const isWorkspaceRow = !!(parsed && typeof parsed === 'object' && parsed.workspace === true)
 
     // Workspace-saved rows have the structured envelope; legacy rows just have raw text in `script`.
-    const prompt = isWorkspaceRow ? parsed.prompt || {} : {}
-    const output = isWorkspaceRow
-      ? { ...EMPTY_OUTPUT, ...(parsed.output || {}) }
-      : { ...EMPTY_OUTPUT, script: typeof data.script === 'string' ? data.script : '' }
+    const prompt = isWorkspaceRow && parsed.prompt && typeof parsed.prompt === 'object' ? parsed.prompt : {}
+    const legacyScriptText = !isWorkspaceRow && typeof data.script === 'string' ? data.script : ''
+
+    const rawOutput = isWorkspaceRow ? parsed.output : { ...EMPTY_OUTPUT, script: legacyScriptText }
+    const output = normalizeOutput(rawOutput, EMPTY_OUTPUT)
 
     return NextResponse.json({
       id: data.id,
       title: data.title || 'Untitled project',
       description: prompt.topic || data.description || data.title || '',
       platform: reversePlatform(prompt.platform || data.platform),
-      tone: prompt.tone || 'cinematic',
-      duration: String(prompt.duration || 60),
+      tone: coerceTone(prompt.tone),
+      duration: String(coerceDuration(prompt.duration)),
       output,
       updated_at: data.updated_at || data.created_at,
+      legacy: !isWorkspaceRow,
     })
   } catch (e: any) {
-    console.error('workspace project load error', e)
+    logError('workspace.project.exception', e, { id: params?.id })
     return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
   }
 }
