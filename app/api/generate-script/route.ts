@@ -10,6 +10,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  OUTPUT_FIELDS, EMPTY_OUTPUT, LIMITS,
+  coerceTopic, coercePlatform, coerceTone, coerceDuration,
+  normalizeOutput, logError,
+} from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +29,7 @@ type Body = {
   duration?: number
 }
 
-const FIELDS = ['hook', 'script', 'storyboard', 'captions', 'thumbnailIdea'] as const
+const FIELDS = OUTPUT_FIELDS
 
 function mockOutput(b: Body) {
   const topic = (b.topic || 'your idea').slice(0, 140)
@@ -169,59 +174,75 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
 
-    const body = (await req.json().catch(() => ({}))) as Body
-    const topic = (body.topic || '').trim()
-    if (topic.length < 6) {
+    // Defensive body parse — empty body / malformed JSON / huge payload all land here.
+    const raw = (await req.json().catch(() => null)) as any
+    if (raw !== null && (typeof raw !== 'object' || Array.isArray(raw))) {
+      return NextResponse.json({ error: 'Body must be a JSON object' }, { status: 400 })
+    }
+    const body: Body = {
+      topic:    coerceTopic(raw?.topic),
+      platform: coercePlatform(raw?.platform),
+      tone:     coerceTone(raw?.tone),
+      duration: coerceDuration(raw?.duration),
+    }
+    if (!body.topic || body.topic.length < 6) {
       return NextResponse.json({ error: 'Please share a richer idea (min 6 characters).' }, { status: 400 })
     }
+    if (body.topic.length >= LIMITS.topic) {
+      // Topic was truncated to the cap. Allow generation but flag it.
+      logError('generate-script.topic-truncated', null, { len: body.topic.length, user: user.id })
+    }
+
+    const fallback = mockOutput(body)
 
     const key = process.env.EMERGENT_LLM_KEY
     if (!key) {
       // Graceful demo mode — keeps the workspace usable when the key is missing.
-      return NextResponse.json({ output: mockOutput(body), mock: true })
+      return NextResponse.json({ output: normalizeOutput(fallback, fallback), mock: true, reason: 'no_key' })
     }
 
     const { sys, user: userPrompt } = buildPrompt(body)
-    const upstream = await fetch(EMERGENT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user',   content: userPrompt },
-        ],
-        temperature: 0.85,
-        response_format: { type: 'json_object' },
-      }),
-    })
+    let upstream: Response
+    try {
+      upstream = await fetch(EMERGENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user',   content: userPrompt },
+          ],
+          temperature: 0.85,
+          response_format: { type: 'json_object' },
+        }),
+      })
+    } catch (netErr: any) {
+      // Network / DNS / abort — soft-fail to mock.
+      logError('generate-script.network', netErr)
+      return NextResponse.json({ output: normalizeOutput(fallback, fallback), mock: true, reason: 'network_error' })
+    }
 
     if (!upstream.ok) {
       const errText = await upstream.text().catch(() => '')
-      console.error('Emergent LLM error', upstream.status, errText.slice(0, 300))
+      logError('generate-script.upstream', null, { status: upstream.status, body: errText.slice(0, 300) })
       // Soft-fail to mock so creators are never blocked.
-      return NextResponse.json({ output: mockOutput(body), mock: true, llm_status: upstream.status })
+      return NextResponse.json({ output: normalizeOutput(fallback, fallback), mock: true, reason: 'llm_error', llm_status: upstream.status })
     }
 
-    const data = await upstream.json()
-    const raw = data?.choices?.[0]?.message?.content || ''
-    const parsed = safeParseJson(raw)
+    const data = await upstream.json().catch(() => null) as any
+    const llmRaw = data?.choices?.[0]?.message?.content || ''
+    const parsed = safeParseJson(llmRaw)
 
     if (!parsed || typeof parsed !== 'object') {
-      return NextResponse.json({ output: mockOutput(body), mock: true, parse_failed: true })
+      logError('generate-script.parse-failed', null, { sample: String(llmRaw).slice(0, 240) })
+      return NextResponse.json({ output: normalizeOutput(fallback, fallback), mock: true, reason: 'parse_failed' })
     }
 
-    // Coerce every field to a string with a mock fallback for missing/empty values.
-    const fallback = mockOutput(body)
-    const output: Record<string, string> = {}
-    for (const k of FIELDS) {
-      const v = parsed[k]
-      output[k] = typeof v === 'string' && v.trim() ? v.trim() : (fallback as any)[k]
-    }
-
-    return NextResponse.json({ output })
+    // Always return a normalized, complete 5-field WorkspaceOutput.
+    return NextResponse.json({ output: normalizeOutput(parsed, fallback) })
   } catch (e: any) {
-    console.error('generate-script error', e)
+    logError('generate-script.exception', e)
     return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
   }
 }
