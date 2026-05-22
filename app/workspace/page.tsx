@@ -43,6 +43,23 @@ const TEMPLATES = [
   { id: 'before_after', label: 'Before / After',  seed: 'A 30-second transformation reel with a strong contrast hook.' },
 ]
 
+// Starter prompts — clicking auto-fills the topic textarea (does NOT auto-generate).
+const STARTER_PROMPTS = [
+  '90s monsoon reunion',
+  'Why most creators quit',
+  'Restaurant founder journey',
+  'The table that remembers people',
+  'A father teaching filmmaking',
+]
+
+// Static showcase — purely for inspiration/proof. No data, no carousel, no animation.
+const SHOWCASE: { title: string; hook: string; platform: string }[] = [
+  { title: 'Rain That Smelled Like Home',  hook: '"Some cities don\u2019t forget who waited for you."', platform: 'Instagram Reel' },
+  { title: 'The Last Order',                hook: '"He cooked for 40 years. One plate stayed empty every Sunday."', platform: 'YouTube Short' },
+  { title: 'Mornings With Aaji',            hook: '"She poured chai like she was pouring a story."', platform: 'Instagram Reel' },
+  { title: 'The Camera That Knew My Father', hook: '"He never said he loved me. He filmed it instead."', platform: 'YouTube Short' },
+]
+
 type GenOutput = {
   hook: string
   script: string
@@ -242,6 +259,23 @@ export default function WorkspacePage() {
               ))}
             </div>
           </div>
+
+          {/* Made with Mugtee — static showcase. Pure inspiration; mobile-stacks naturally. */}
+          <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+            <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> Made with Mugtee
+            </p>
+            <div className="space-y-1.5">
+              {SHOWCASE.map((s) => (
+                <div key={s.title}
+                  className="rounded-lg px-2.5 py-2 bg-white/[0.025] border border-white/[0.05] hover:border-gold-500/25 transition">
+                  <p className="text-[12px] font-medium text-luxe leading-tight truncate">{s.title}</p>
+                  <p className="text-[11px] text-luxe/55 leading-snug mt-0.5 italic line-clamp-2">{s.hook}</p>
+                  <p className="text-[9.5px] tracking-[0.18em] uppercase text-gold-400/70 mt-1">{s.platform}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -258,9 +292,32 @@ export default function WorkspacePage() {
           </p>
         </div>
 
+        {/* Empty-state inspiration — appears until the creator has output or a draft topic. */}
+        {!output && !generating && !topic.trim() && (
+          <div className="mb-6 space-y-2.5 animate-in fade-in duration-500">
+            <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> Start with a feeling
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {STARTER_PROMPTS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => { setTopic(p); track('workspace_starter_clicked', { prompt: p }) }}
+                  className="px-3 py-1.5 rounded-full text-[12px] text-luxe/80 hover:text-gold-200 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-gold-500/40 transition"
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Card className="p-4 md:p-5 bg-black/40 backdrop-blur-xl border-white/[0.06] space-y-4">
           <div className="space-y-1.5">
             <label className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Your idea</label>
+            <p className="text-[11.5px] text-luxe/45 italic leading-snug">
+              Describe a cinematic idea, emotion, memory, or story.
+            </p>
             <Textarea
               value={topic}
               onChange={e => setTopic(e.target.value)}
