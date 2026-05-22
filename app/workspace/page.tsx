@@ -17,6 +17,7 @@ import { track } from '@/lib/posthog'
 import {
   Sparkles, Plus, Loader2, FileText, Film, Image as ImageIcon,
   Zap, MessageCircle, Save, ChevronRight, Layers,
+  Copy, Download, FileType,
 } from 'lucide-react'
 
 const PLATFORMS = [
@@ -304,14 +305,14 @@ export default function WorkspacePage() {
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
         <div className="lg:hidden mt-6">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} />
         </div>
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} />
         </div>
       </aside>
     </div>
@@ -319,7 +320,7 @@ export default function WorkspacePage() {
 }
 
 function OutputPanel({
-  output, loading, tab, setTab, onSave, saving, savedId,
+  output, loading, tab, setTab, onSave, saving, savedId, projectTitle,
 }: {
   output: GenOutput | null
   loading: boolean
@@ -328,19 +329,23 @@ function OutputPanel({
   onSave: () => void
   saving: boolean
   savedId: string | null
+  projectTitle?: string
 }) {
   return (
     <div className="space-y-3 h-full flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
           <Sparkles className="w-3 h-3" /> Mugtee Output
         </p>
         {output && (
-          <Button size="sm" variant="outline" onClick={onSave} disabled={saving || !!savedId}
-            className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200">
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            {savedId ? 'Saved' : 'Save project'}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <ExportControls output={output} projectTitle={projectTitle} />
+            <Button size="sm" variant="outline" onClick={onSave} disabled={saving || !!savedId}
+              className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200">
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+              {savedId ? 'Saved' : 'Save'}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -388,5 +393,143 @@ function OutputBody({ loading, text }: { loading: boolean; text: string }) {
     <pre className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.75] text-luxe/90 font-sans tracking-[0.005em] rounded-xl border border-white/[0.06] bg-black/20 p-5 max-h-[520px] overflow-auto scrollbar-luxe">
       {text}
     </pre>
+  )
+}
+
+
+// =====================================================================
+// EXPORT CONTROLS — Copy All / Download TXT / Download MD
+// Pure client-side. No backend, no new deps. Reuses existing Button + sonner.
+// =====================================================================
+
+const SECTIONS: { key: keyof GenOutput; label: string }[] = [
+  { key: 'hook',          label: 'Hook' },
+  { key: 'script',        label: 'Script' },
+  { key: 'storyboard',    label: 'Storyboard' },
+  { key: 'captions',      label: 'Captions' },
+  { key: 'thumbnailIdea', label: 'Thumbnail Idea' },
+]
+
+function formatAsText(out: GenOutput, title?: string): string {
+  const parts: string[] = []
+  if (title?.trim()) {
+    parts.push(title.trim())
+    parts.push('—'.repeat(Math.min(title.trim().length, 48)))
+    parts.push('')
+  }
+  for (const { key, label } of SECTIONS) {
+    parts.push(label.toUpperCase())
+    parts.push((out[key] || '').trim() || '(empty)')
+    parts.push('')
+  }
+  parts.push('—')
+  parts.push('Generated with Mugtee AI Studio · mugtee.in')
+  return parts.join('\n')
+}
+
+function formatAsMarkdown(out: GenOutput, title?: string): string {
+  const parts: string[] = []
+  if (title?.trim()) parts.push(`# ${title.trim()}`, '')
+  for (const { key, label } of SECTIONS) {
+    parts.push(`# ${label}`, '')
+    parts.push((out[key] || '').trim() || '_(empty)_', '')
+  }
+  parts.push('---')
+  parts.push('_Generated with [Mugtee AI Studio](https://mugtee.in)._')
+  return parts.join('\n')
+}
+
+function slugify(s?: string) {
+  if (!s) return 'untitled'
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'untitled'
+}
+
+function downloadBlob(text: string, filename: string, mime: string) {
+  try {
+    const blob = new Blob([text], { type: mime + ';charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    // Defer revoke so Safari has time to read the URL.
+    setTimeout(() => URL.revokeObjectURL(url), 800)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function ExportControls({ output, projectTitle }: { output: GenOutput; projectTitle?: string }) {
+  const hasContent = SECTIONS.some(s => (output[s.key] || '').trim().length > 0)
+  const stamp = () => {
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`
+  }
+  const baseName = () => `mugtee-${slugify(projectTitle)}-${stamp()}`
+
+  const copyAll = async () => {
+    try {
+      const text = formatAsText(output, projectTitle)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Legacy fallback for older Safari / non-secure contexts
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      toast.success('Copied to clipboard')
+      track('workspace_export_copy', { hasTitle: !!projectTitle })
+    } catch {
+      toast.error('Could not copy — try the Download buttons instead.')
+    }
+  }
+
+  const downloadTxt = () => {
+    const ok = downloadBlob(formatAsText(output, projectTitle), `${baseName()}.txt`, 'text/plain')
+    if (ok) { toast.success('TXT downloaded'); track('workspace_export_txt') }
+    else      toast.error('Download failed')
+  }
+
+  const downloadMd = () => {
+    const ok = downloadBlob(formatAsMarkdown(output, projectTitle), `${baseName()}.md`, 'text/markdown')
+    if (ok) { toast.success('Markdown downloaded'); track('workspace_export_md') }
+    else      toast.error('Download failed')
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        size="sm" variant="ghost" onClick={copyAll} disabled={!hasContent}
+        title="Copy all sections to clipboard"
+        className="h-8 w-8 p-0 text-luxe/70 hover:text-gold-200 hover:bg-white/[0.05] disabled:opacity-40"
+      >
+        <Copy className="w-3.5 h-3.5" />
+      </Button>
+      <Button
+        size="sm" variant="ghost" onClick={downloadTxt} disabled={!hasContent}
+        title="Download as plain text (.txt)"
+        className="h-8 w-8 p-0 text-luxe/70 hover:text-gold-200 hover:bg-white/[0.05] disabled:opacity-40"
+      >
+        <Download className="w-3.5 h-3.5" />
+      </Button>
+      <Button
+        size="sm" variant="ghost" onClick={downloadMd} disabled={!hasContent}
+        title="Download as Markdown (.md)"
+        className="h-8 w-8 p-0 text-luxe/70 hover:text-gold-200 hover:bg-white/[0.05] disabled:opacity-40"
+      >
+        <FileType className="w-3.5 h-3.5" />
+      </Button>
+    </div>
   )
 }
