@@ -2,8 +2,9 @@
 // Mugtee Workspace — cinematic 3-panel creator workspace.
 // Reuses existing shadcn/ui primitives + the Mugtee gold/luxe theme. Zero new deps.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
@@ -57,6 +58,9 @@ type RecentProject = {
 }
 
 export default function WorkspacePage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState(PLATFORMS[0].value)
   const [tone, setTone] = useState(TONES[0].value)
@@ -69,6 +73,8 @@ export default function WorkspacePage() {
   const [saving, setSaving] = useState(false)
   const [savedId, setSavedId] = useState<string | null>(null)
   const [recents, setRecents] = useState<RecentProject[]>([])
+  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
 
   // Load recent projects (reuse existing endpoint)
   useEffect(() => {
@@ -78,6 +84,44 @@ export default function WorkspacePage() {
     }).catch(() => {})
     return () => { alive = false }
   }, [savedId])
+
+  // Rehydrate a saved project into workspace state (no full page reload).
+  const loadProject = useCallback(async (id: string, opts?: { syncUrl?: boolean }) => {
+    if (!id || loadingProjectId === id) return
+    setLoadingProjectId(id)
+    setGenerating(true) // reuses skeleton state on the output panel
+    try {
+      const res = await fetch(`/api/workspace/project/${id}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Could not load project')
+      setTopic(data.description || data.title || '')
+      if (data.platform) setPlatform(data.platform)
+      if (data.tone) setTone(data.tone)
+      if (data.duration) setDuration(String(data.duration))
+      setOutput(data.output as GenOutput)
+      setSavedId(id)
+      setActiveProjectId(id)
+      setTab('hook')
+      if (opts?.syncUrl !== false) {
+        const next = new URLSearchParams(searchParams.toString())
+        next.set('project', id)
+        router.replace(`/workspace?${next.toString()}`, { scroll: false })
+      }
+      track('workspace_project_loaded', { id })
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not load project')
+    } finally {
+      setGenerating(false)
+      setLoadingProjectId(null)
+    }
+  }, [loadingProjectId, router, searchParams])
+
+  // Deep-link support: on first mount, if ?project=xyz is present, hydrate it.
+  useEffect(() => {
+    const pid = searchParams.get('project')
+    if (pid && pid !== activeProjectId) loadProject(pid, { syncUrl: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const canGenerate = useMemo(() => topic.trim().length >= 6 && !generating, [topic, generating])
 
@@ -133,7 +177,11 @@ export default function WorkspacePage() {
   }
 
   const newProject = () => {
-    setTopic(''); setOutput(null); setSavedId(null); setTab('hook')
+    setTopic(''); setOutput(null); setSavedId(null); setTab('hook'); setActiveProjectId(null)
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete('project')
+    const qs = next.toString()
+    router.replace(qs ? `/workspace?${qs}` : '/workspace', { scroll: false })
   }
 
   return (
@@ -158,14 +206,26 @@ export default function WorkspacePage() {
               {recents.length === 0 && (
                 <p className="text-[12px] text-luxe/40 leading-snug">Your saved reels will appear here.</p>
               )}
-              {recents.map(p => (
-                <button key={p.id}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] text-[12.5px] text-luxe/85 hover:text-luxe transition flex items-center gap-2 group">
-                  <Film className="w-3.5 h-3.5 text-gold-400/70 shrink-0" />
-                  <span className="truncate">{p.title}</span>
-                  <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-60 transition" />
-                </button>
-              ))}
+              {recents.map(p => {
+                const isActive = p.id === activeProjectId
+                const isLoading = p.id === loadingProjectId
+                return (
+                  <button key={p.id}
+                    onClick={() => loadProject(p.id)}
+                    disabled={isLoading}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[12.5px] transition flex items-center gap-2 group disabled:opacity-60 ${
+                      isActive
+                        ? 'bg-gold-500/10 text-gold-200 ring-1 ring-gold-500/30'
+                        : 'hover:bg-white/[0.05] text-luxe/85 hover:text-luxe'
+                    }`}>
+                    {isLoading
+                      ? <Loader2 className="w-3.5 h-3.5 text-gold-400/70 shrink-0 animate-spin" />
+                      : <Film className="w-3.5 h-3.5 text-gold-400/70 shrink-0" />}
+                    <span className="truncate">{p.title}</span>
+                    <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-60 transition" />
+                  </button>
+                )
+              })}
             </div>
           </div>
 
