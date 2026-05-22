@@ -385,7 +385,7 @@ function OutputBody({ loading, text }: { loading: boolean; text: string }) {
     )
   }
   return (
-    <pre className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-luxe/90 font-sans rounded-xl border border-white/[0.06] bg-black/20 p-4 max-h-[480px] overflow-auto scrollbar-luxe">
+    <pre className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.75] text-luxe/90 font-sans tracking-[0.005em] rounded-xl border border-white/[0.06] bg-black/20 p-5 max-h-[520px] overflow-auto scrollbar-luxe">
       {text}
     </pre>
   )

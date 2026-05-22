@@ -27,23 +27,130 @@ type Body = {
 const FIELDS = ['hook', 'script', 'storyboard', 'captions', 'thumbnailIdea'] as const
 
 function mockOutput(b: Body) {
-  const topic = (b.topic || 'your idea').slice(0, 120)
-  const dur = b.duration || 60
+  const topic = (b.topic || 'your idea').slice(0, 140)
+  const dur = Math.min(Math.max(b.duration || 60, 15), 120)
+  const beat = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
+  const scene = (n: number, t: number, visual: string, vo: string, camera: string, emotion: string) =>
+    `Scene ${n}  ·  [${beat(t)}]\nVisual:    ${visual}\nVoiceover: "${vo}"\nCamera:    ${camera}\nEmotion:   ${emotion}`
   return {
-    hook: `Stop scrolling. What if everything you knew about "${topic}" was wrong?`,
-    script: `[0:00] Open on a tight close-up. We hear a single sentence: "${topic}."\n[0:03] Cut wide. Voiceover lays out the contrarian truth.\n[0:15] First proof beat — visual evidence.\n[0:30] Second beat — emotional turn.\n[0:${Math.min(dur, 90) - 5}] Resolve with a clear, memorable line.\n[0:${Math.min(dur, 90)}] Cut to black. CTA on screen.`,
-    storyboard: `1. Cold open — silhouette, single light source.\n2. Wide environmental shot establishing scale.\n3. Tight detail — hands, object, expression.\n4. Movement shot — push-in or whip-pan.\n5. Resolution frame — hero composition, gold-hour light.\n6. End card — Mugtee watermark, CTA.`,
-    captions: `"${topic}" — the part nobody told you. \u2728\n\nSave this for the moment you need it most.\n\n#reels #${(b.platform || 'shorts').replace('_', '')} #${(b.tone || 'cinematic')} #mugtee`,
-    thumbnailIdea: `High-contrast portrait. Subject lit from one side, the other half in deep shadow. Bold serif text overlay (3-4 words) referencing "${topic}". Gold accent line under the title. 9:16 safe-zones respected.`,
+    hook: `Some ${topic.split(' ').slice(0, 2).join(' ') || 'moments'} remember us better than we remember ourselves.`,
+    script: [
+      scene(1, 0,
+        'A single warm light flickers across an empty room. Dust drifts.',
+        `It started with one quiet thought about ${topic}.`,
+        'Slow push-in, 50mm, shallow depth of field.',
+        'Hushed · intimate · curious'),
+      scene(2, Math.round(dur * 0.25),
+        'Hands hesitate over an object that matters more than it looks.',
+        'And then — everything we believed quietly shifted.',
+        'Tight handheld detail, soft natural light from window-left.',
+        'Tension · longing'),
+      scene(3, Math.round(dur * 0.55),
+        'A wider frame reveals what was hiding in plain sight.',
+        `Because the truth about ${topic} isn't what they sell you. It's what you feel.`,
+        'Slow dolly-out, 35mm, golden-hour rim light.',
+        'Revelation · stillness'),
+      scene(4, Math.max(dur - 6, Math.round(dur * 0.85)),
+        'A held look. No words. The camera doesn\'t blink either.',
+        'Maybe that\'s the part we forgot to say out loud.',
+        'Locked-off close-up, cinematic 2.39:1 bars rising in.',
+        'Resolution · ache'),
+      scene(5, dur,
+        'Fade to black. A single gold line draws under one word.',
+        'Save this — for the version of you that needs it.',
+        'Cut to black, then one frame of brand mark.',
+        'Lingering · memorable'),
+    ].join('\n\n'),
+    storyboard: [
+      `1. Cold open\n   Shot:       Extreme close-up\n   Framing:    Centered, eyes-line\n   Movement:   Static, 1.2s hold\n   Lighting:   Single practical, candle-warm 2700K\n   Transition: Hard cut to wide on first word`,
+      `2. Establish\n   Shot:       Wide environmental\n   Framing:    Subject lower-third\n   Movement:   Slow push-in, 6\u201310 ft\n   Lighting:   Window-left, fill bounced\n   Transition: Match-cut on hand reaching frame`,
+      `3. Detail beat\n   Shot:       Macro detail\n   Framing:    Object centered\n   Movement:   Handheld breath\n   Lighting:   Hard shadow, single key\n   Transition: J-cut \u2014 VO bridges into next visual`,
+      `4. Emotional turn\n   Shot:       Medium close-up\n   Framing:    Rule-of-thirds, looking screen-right\n   Movement:   Slow dolly-out\n   Lighting:   Golden hour, lens flare allowed\n   Transition: Slow dissolve to black-and-white frame`,
+      `5. Resolution\n   Shot:       Hero wide\n   Framing:    Symmetrical, horizon-locked\n   Movement:   Locked-off, slight breath\n   Lighting:   Rim-light + low ambient\n   Transition: Smash to title card`,
+      `6. End card\n   Shot:       Black frame\n   Framing:    Single line of gold serif text\n   Movement:   Type-on, 0.6s\n   Lighting:   N/A\n   Transition: Hold 1.5s, cut`,
+    ].join('\n\n'),
+    captions:
+      `Some things about ${topic} stay with you long after the scroll.\n\n` +
+      `Save this for the moment you need to remember why you started.\n\n` +
+      `\u2014\n` +
+      `What did this make you feel? \u2935\ufe0f\n\n` +
+      `#${(b.platform || 'reels').replace('_', '')} #cinematicreels #storytelling #${(b.tone || 'cinematic')} #shortfilm #mugtee #creatorlife`,
+    thumbnailIdea:
+      `Composition:   Off-center portrait, subject occupies left third, deep negative space to the right.\n` +
+      `Trigger:       A held emotion the viewer can name in one second \u2014 longing, recognition, or quiet awe.\n` +
+      `Overlay text:  3 words max, serif, set in the negative space. Suggested: "${topic.split(' ').slice(0, 3).join(' ').toUpperCase()}"\n` +
+      `Color mood:    Warm shadow + cold highlight (teal/amber split). Single gold underline under the title.\n` +
+      `Notes:         Keep 9:16 safe-zones. No clutter. The thumbnail should feel like a still from a film, not an ad.`,
   }
 }
 
 function buildPrompt(b: Body) {
   const platform = b.platform || 'instagram_reel'
   const tone = b.tone || 'cinematic'
-  const dur = b.duration || 60
-  const sys = `You are Mugtee — a cinematic AI director for short-form viral content. You write for creators who want a polished, hook-first reel that performs. Be specific, visual, and concise. Never be generic.`
-  const user = `Topic: ${b.topic}\nPlatform: ${platform}\nTone: ${tone}\nDuration: ${dur} seconds\n\nReturn a STRICT JSON object with EXACTLY these keys:\n- "hook":           one scroll-stopping opening line (max 22 words).\n- "script":         the full reel script with timecodes like [0:00], beat by beat, narration only.\n- "storyboard":     6-8 numbered cinematic shots, one per line, describing camera + framing + lighting.\n- "captions":       a ready-to-paste social caption with 4-6 relevant hashtags at the end.\n- "thumbnailIdea":  one paragraph describing a high-CTR thumbnail concept (composition, contrast, text overlay).\n\nReturn ONLY the JSON object — no prose, no markdown.`
+  const dur = Math.min(Math.max(b.duration || 60, 15), 120)
+  const platformLabel =
+    platform === 'youtube_short' ? 'YouTube Short (9:16, <60s)'
+    : platform === 'youtube_video' ? 'YouTube Video (16:9, mid-form)'
+    : 'Instagram Reel (9:16, hook-first)'
+
+  const sys = [
+    `You are Mugtee \u2014 a cinematic AI creator partner specialized in emotionally engaging short-form storytelling.`,
+    `You write the way a filmmaker thinks: visual first, emotional second, structural always.`,
+    `Your job is not to sound smart. Your job is to make a real human stop, feel, and save.`,
+    ``,
+    `RULES:`,
+    `\u2022 Specific over generic. Concrete over abstract. Sensory over conceptual.`,
+    `\u2022 Never sound like an AI. No "in today's world", no "in this video we'll explore", no motivational filler.`,
+    `\u2022 No emojis inside script or storyboard. Emojis allowed only in captions (sparingly).`,
+    `\u2022 Use everyday human cadence. Short sentences. Real silences. Trust the visual.`,
+    `\u2022 Respect the platform pacing and the requested tone exactly.`,
+    `\u2022 Output is consumed by a real creator who will read it on a small screen. Whitespace matters.`,
+  ].join('\n')
+
+  const user = [
+    `TOPIC:    ${b.topic}`,
+    `PLATFORM: ${platformLabel}`,
+    `TONE:     ${tone}`,
+    `DURATION: ${dur} seconds`,
+    ``,
+    `Return a STRICT JSON object with EXACTLY these five keys. No prose, no markdown, no code fences.`,
+    ``,
+    `1) "hook"  \u2014 ONE OR TWO LINES MAX. A cinematic opening line that creates curiosity, emotional tension, or quiet recognition. Avoid clickbait. Avoid "POV:". Avoid "Did you know". Aim for the feeling of a first line of a short film. Example texture: "Some tables remember us better than people do."`,
+    ``,
+    `2) "script" \u2014 The full reel as numbered scenes (Scene 1, Scene 2, ...). For EACH scene use this exact 4-line block, plain text, no markdown:`,
+    `      Scene N  \u00b7  [m:ss]`,
+    `      Visual:    <one vivid sensory line>`,
+    `      Voiceover: "<spoken line, in human cadence, in quotes>"`,
+    `      Camera:    <lens / movement / framing>`,
+    `      Emotion:   <2-3 emotion words separated by \u00b7>`,
+    `   Separate scenes with ONE blank line. Aim for 4\u20136 scenes within the duration. Timecodes must sum within the requested seconds.`,
+    ``,
+    `3) "storyboard" \u2014 6\u20138 numbered shots in this exact plain-text block format (no tables, no markdown):`,
+    `      N. <shot title>`,
+    `         Shot:       <type \u2014 extreme close-up / medium / wide / hero etc>`,
+    `         Framing:    <composition rule + subject placement>`,
+    `         Movement:   <push-in / dolly / locked-off / handheld / etc>`,
+    `         Lighting:   <quality, direction, color temp / mood>`,
+    `         Transition: <how it cuts to the next shot>`,
+    `   Separate shots with ONE blank line.`,
+    ``,
+    `4) "captions" \u2014 A ready-to-paste social caption block in this order, separated by blank lines:`,
+    `      Line 1: an emotional one-line caption tied to the hook.`,
+    `      Line 2: one short personal/relatable line that earns the save.`,
+    `      Line 3: a single short CTA (e.g. "Save this." / "Tell me who needs this." / "Watch till the last second.")`,
+    `      Line 4: exactly 5\u20138 lowercase hashtags on ONE line, space-separated, niche-relevant.`,
+    `   At most ONE tasteful emoji in the entire caption.`,
+    ``,
+    `5) "thumbnailIdea" \u2014 A cinematic high-CTR thumbnail concept in this exact labeled block:`,
+    `      Composition:  <where the subject sits, negative space, focal point>`,
+    `      Trigger:      <the single emotion a viewer should feel in one glance>`,
+    `      Overlay text: <max 3 words, the exact words to use, plus font feel>`,
+    `      Color mood:   <2-tone palette + lighting direction>`,
+    `      Notes:        <one line on safe-zones / what to avoid>`,
+    ``,
+    `Return ONLY the JSON object.`,
+  ].join('\n')
+
   return { sys, user }
 }
 
