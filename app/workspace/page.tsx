@@ -597,6 +597,9 @@ function OutputPanel({
 
         {(['hook','script','storyboard','captions','thumbnail'] as const).map(key => (
           <TabsContent key={key} value={key} className="flex-1 mt-3">
+            {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
+              <StoryboardTiming storyboardText={output.storyboard} />
+            )}
             <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
             {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
               <StoryboardFrames
@@ -801,6 +804,92 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
   )
 }
 
+
+// =====================================================================
+// Phase 2H — SHOT TIMING ENGINE
+// Lightweight keyword-driven pacing heuristic. Pure local function +
+// pure presentational component. No API, no LLM, no new state systems.
+// Estimates per-shot duration (2–5s) and assigns one of four cinematic
+// pacing tags: Slow Burn / Fast Cut / Emotional Pause / Climactic.
+// =====================================================================
+type PacingTag = 'Slow Burn' | 'Fast Cut' | 'Emotional Pause' | 'Climactic'
+type ShotTiming = { index: number; durationSeconds: number; tag?: PacingTag }
+
+// Parse ALL shot blocks (no 6-cap like parseShots). Frames are limited to 6
+// for credit reasons; pacing math should reflect the full storyboard.
+function parseAllShotBlocks(storyboard: string): string[] {
+  if (!storyboard) return []
+  return storyboard
+    .split(/\n\s*\n/)
+    .map(b => b.trim())
+    .filter(Boolean)
+    .filter(b => /^\s*\d+\./.test(b) || /Shot:|Framing:|Movement:|Lighting:/.test(b))
+}
+
+function estimateShotTiming(shotText: string, index: number, total: number): ShotTiming {
+  const t = shotText.toLowerCase()
+  // Climactic — last or second-last shot, OR keyword signal of a payoff moment.
+  const isFinal = index >= total - 1
+  if (/\b(climax|reveal|payoff|resolution|smash[- ]?to|final frame|hero wide|end card|hold to black|title card)\b/.test(t)
+      || (isFinal && /\b(black|silence|hold|title|brand)\b/.test(t))) {
+    return { index, durationSeconds: 5, tag: 'Climactic' }
+  }
+  // Emotional Pause — intimate close-ups, silences, held looks, breath.
+  if (/\b(close[- ]?up|stare|silence|silent|tears?|breath|hold|whisper|memory|alone|empty|tender|aching|quiet)\b/.test(t)) {
+    return { index, durationSeconds: 5, tag: 'Emotional Pause' }
+  }
+  // Fast Cut — kinetic / aggressive movement, hard cuts, smash transitions.
+  if (/\b(smash|whip|punch|shake|chase|quick|hard[- ]?cut|j[- ]?cut|cutaway|rapid|kinetic|jolt|burst|impact)\b/.test(t)) {
+    return { index, durationSeconds: 2, tag: 'Fast Cut' }
+  }
+  // Slow Burn — slow camera moves, push-ins, drifts, dolly, lingering.
+  if (/\b(slow|drift|dolly|push[- ]?in|pull[- ]?out|wait|linger|locked[- ]?off)\b/.test(t)) {
+    return { index, durationSeconds: 4, tag: 'Slow Burn' }
+  }
+  // First shot tends to be the hook — gentle slow burn feel by default.
+  if (index === 0) return { index, durationSeconds: 3, tag: 'Slow Burn' }
+  // Wide / establishing — short, breath-of-air shots.
+  if (/\b(wide|establish|environmental|horizon|landscape|exterior)\b/.test(t)) {
+    return { index, durationSeconds: 3 }
+  }
+  // Default cinematic cadence.
+  return { index, durationSeconds: 3 }
+}
+
+function StoryboardTiming({ storyboardText }: { storyboardText: string }) {
+  const timings = useMemo(() => {
+    const blocks = parseAllShotBlocks(storyboardText)
+    return blocks.map((s, i) => estimateShotTiming(s, i, blocks.length))
+  }, [storyboardText])
+  if (!timings.length) return null
+  const total = timings.reduce((sum, t) => sum + t.durationSeconds, 0)
+  return (
+    <div className="mb-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
+        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45">Pacing</span>
+        <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/85">
+          Estimated Runtime · {total}s
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {timings.map(t => (
+          <div
+            key={t.index}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/30 border border-white/[0.05] text-[10px] leading-none"
+          >
+            <span className="text-luxe/45 tracking-[0.04em] font-mono">{String(t.index + 1).padStart(2, '0')}</span>
+            <span className="text-gold-200/90 font-medium font-mono">{t.durationSeconds}s</span>
+            {t.tag && (
+              <span className="text-luxe/55 tracking-[0.04em] hidden sm:inline">
+                {t.tag}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // =====================================================================
 // STORYBOARD FRAMES — Phase 2A cinematic still generation
