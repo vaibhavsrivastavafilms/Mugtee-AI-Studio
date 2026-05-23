@@ -189,6 +189,22 @@ export async function POST(req: NextRequest) {
       console.error('[image] insert error:', rowErr)
       return NextResponse.json({ error: rowErr.message }, { status: 500 })
     }
+
+    // Phase 3I — promote pipeline status to 'editing' once a frame asset
+    // exists. Only promotes upward — never demotes published / scheduled
+    // items. Best-effort: a status-update failure must not break the
+    // image generation response.
+    try {
+      await supabase
+        .from('content_pieces')
+        .update({ status: 'editing' })
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .in('status', ['draft', 'idea', 'scripting', 'shooting'])
+    } catch (statusErr: any) {
+      console.warn('[image] status promote soft-fail:', statusErr?.message)
+    }
+
     return NextResponse.json({ ok: true, asset: row })
   } catch (e: any) {
     console.error('[image] unexpected:', e?.message)

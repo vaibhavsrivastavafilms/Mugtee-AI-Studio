@@ -60,11 +60,22 @@ export async function POST(req: NextRequest) {
     const duration = coerceDuration(raw.duration)
     const output   = normalizeOutput(raw.output, EMPTY_OUTPUT)
 
+    // Phase 3I — auto-map pipeline status from the output that's actually
+    // present on first save. Mugtee's /api/generate-script returns hook +
+    // script + storyboard in a single shot, so most creators land on
+    // 'shooting' here. The /api/ai/image route promotes to 'editing' later
+    // when frames are generated. Uses the same vocabulary the kanban
+    // pipeline already filters on (idea / scripting / shooting / editing /
+    // scheduled / published).
+    const hasStoryboard = (output.storyboard || '').trim().length > 20
+    const hasScript     = (output.script     || '').trim().length > 20
+    const derivedStatus = hasStoryboard ? 'shooting' : hasScript ? 'scripting' : 'idea'
+
     const payload = {
       user_id: user.id,
       title: topic.slice(0, LIMITS.title),
       platform: mapPlatform(platformWorkspace),
-      status: 'draft',
+      status: derivedStatus,
       description: topic,
       script: JSON.stringify({
         workspace: true,
