@@ -40,6 +40,44 @@ function formatBytes(n?: number | null) {
   return n + ' B'
 }
 
+// Phase 3R — Safe creator-facing preview for content_pieces rows.
+// `content_pieces.script` may be a JSON.stringify() of the workspace state
+// (`{"workspace":true,"prompt":{...},"output":{hook,script,...}}`). Rendering
+// that raw breaks the cinematic UX. This helper extracts the most creator-
+// friendly excerpt in priority order, with a strict plain-text fallback that
+// can NEVER expose JSON, prompt payloads, metadata, workspace flags, or
+// duration/platform config. Pure function, no side effects.
+function safeScriptPreview(raw: string | null | undefined, fallback?: string | null): string {
+  const src = (raw || '').trim()
+  const fb  = (fallback || '').trim()
+  if (!src) return fb
+  // Detect JSON-ish payloads.
+  if (src.startsWith('{') || src.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(src)
+      const out = (parsed && typeof parsed === 'object' ? parsed.output : null) || null
+      // Priority: hook → script → description → fallback.
+      const candidates: any[] = [
+        out?.hook, out?.script, out?.captions,
+        parsed?.description, parsed?.title, fb,
+      ]
+      for (const c of candidates) {
+        const v = (typeof c === 'string' ? c : '').trim()
+        if (v && !v.startsWith('{') && !v.startsWith('[')) {
+          return v.replace(/\s+/g, ' ').slice(0, 220)
+        }
+      }
+      // Last-ditch defensive: never expose the JSON itself.
+      return fb || 'Cinematic draft saved.'
+    } catch {
+      // Mid-string JSON-ish content but unparseable — fall through to fallback.
+      return fb || 'Cinematic draft saved.'
+    }
+  }
+  // Plain text — clean whitespace and truncate.
+  return src.replace(/\s+/g, ' ').slice(0, 220) || fb
+}
+
 type TabId = 'prompts' | 'ideas' | 'scripts' | 'images' | 'narrations' | 'media' | 'exports'
 const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'prompts',    label: 'Prompts',    icon: Wand2 },
@@ -314,7 +352,8 @@ function ScriptsTab({ scripts, onOpen }: { scripts: any[]; onOpen: (id: string) 
             </div>
           </div>
           <p className="text-[12px] text-luxe/70 leading-snug line-clamp-3 min-h-[3em]">
-            {(s.script || s.description || '').slice(0, 220)}
+            {/* Phase 3R — never render raw JSON to creators. */}
+            {safeScriptPreview((s as any).script, s.description)}
           </p>
           <div className="flex items-center justify-between gap-2 pt-2 mt-auto border-t border-white/[0.05]">
             <span className="text-[10px] text-muted-foreground tracking-wider inline-flex items-center gap-1">
