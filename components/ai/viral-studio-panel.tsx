@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Loader2, ChevronRight, ChevronLeft, Wand2, Copy, Flame, Plus, Check, Clapperboard, ArrowRight } from 'lucide-react'
@@ -415,13 +415,28 @@ export function IdeaCard({
   const router = useRouter()
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copied') }
   const scriptReady = !!scriptText
-  const previewLines = scriptText ? scriptText.split('\n').filter(Boolean).slice(0, 4) : []
+  // V1.8 — payoff moment: when the script flips to ready, scroll the card into view + flash focus
+  // so the creator IMMEDIATELY sees the cinematic output instead of hunting for it.
+  const revealRef = useRef<HTMLDivElement | null>(null)
+  const prevReadyRef = useRef(false)
+  useEffect(() => {
+    if (scriptReady && !prevReadyRef.current) {
+      // tiny delay so layout settles after the AnimatePresence height animation
+      const t = setTimeout(() => {
+        revealRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 120)
+      prevReadyRef.current = true
+      return () => clearTimeout(t)
+    }
+    if (!scriptReady) prevReadyRef.current = false
+  }, [scriptReady])
   return (
     <motion.div
+      ref={revealRef}
       initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: index*0.04}}
       className={cn(
         'group rounded-xl p-3 bg-gradient-to-br from-white/[0.05] to-white/[0.01] border transition',
-        scriptReady ? 'border-violet-500/40 bg-violet-500/[0.04]' :
+        scriptReady ? 'border-violet-500/40 bg-violet-500/[0.04] shadow-[0_0_0_1px_rgba(167,139,250,0.18)]' :
         isAdded ? 'border-emerald-500/40 bg-emerald-500/[0.04]' :
         'border-white/[0.06] hover:border-gold-500/40',
       )}
@@ -454,33 +469,36 @@ export function IdeaCard({
             initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}
             className="mt-3 pt-2.5 border-t border-violet-500/20 overflow-hidden"
           >
-            <div className="text-[10px] tracking-[0.3em] uppercase text-violet-300/80 flex items-center gap-1.5 mb-1.5">
-              <Clapperboard className="w-3 h-3" /> Script preview
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] tracking-[0.3em] uppercase text-violet-300/90 flex items-center gap-1.5">
+                <Clapperboard className="w-3 h-3" /> Cinematic Script
+              </div>
+              <div className="text-[9.5px] tracking-[0.22em] uppercase text-emerald-300/85 inline-flex items-center gap-1">
+                <Check className="w-3 h-3" /> Ready
+              </div>
             </div>
-            <div className="space-y-1">
-              {previewLines.map((line, i) => (
-                <div key={i} className="text-[11px] text-luxe/85 font-mono leading-snug truncate">{line}</div>
-              ))}
-              {scriptText && scriptText.split('\n').filter(Boolean).length > 4 && (
-                <div className="text-[10px] text-muted-foreground italic">…opened in pipeline card</div>
-              )}
-            </div>
+            {/* V1.8 payoff surface — full script readable inline, no extra click required.
+                whitespace-pre-wrap preserves scene block layout; max-h with scroll keeps the
+                card compact even for long generations. */}
+            <pre className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.7] text-luxe/90 font-sans tracking-[0.005em] rounded-lg border border-violet-500/15 bg-black/30 p-3 max-h-[280px] overflow-auto scrollbar-luxe">
+              {scriptText}
+            </pre>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => copy(scriptText!)}
                 className="text-[10px] tracking-[0.2em] uppercase text-violet-300/80 hover:text-violet-200 inline-flex items-center gap-1 min-h-[32px] px-1"
               >
-                <Copy className="w-3 h-3" /> Copy full script
+                <Copy className="w-3 h-3" /> Copy script
               </button>
-              {/* V3.3 — "Open Workspace" CTA. Routes directly to the project workspace.
-                  This replaces the silent success state — every Script Ready is now actionable. */}
+              {/* "Open Workspace" remains as a clear "continue working" affordance, but secondary —
+                  the cinematic payoff is already visible above this CTA. */}
               {contentId && (
                 <button
                   onClick={() => router.push(`/script/${contentId}`)}
                   className="text-[10px] tracking-[0.2em] uppercase text-gold-300 hover:text-gold-200 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 transition min-h-[32px] ml-auto"
-                  title="Open this script in the cinematic project workspace"
+                  title="Open in the cinematic workspace for storyboard, captions, thumbnail & exports"
                 >
-                  Open Workspace <ArrowRight className="w-3 h-3" />
+                  Open full workspace <ArrowRight className="w-3 h-3" />
                 </button>
               )}
             </div>

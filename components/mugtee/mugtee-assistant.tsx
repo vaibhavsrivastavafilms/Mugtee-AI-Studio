@@ -37,7 +37,7 @@ export function MugteeAssistant() {
   const [input, setInput]     = useState('')
   const [sending, setSending] = useState(false)
   const [pulse, setPulse]     = useState(false)
-  const [voiceOn, setVoiceOn] = useState(true)  // voice responses (TTS) default ON
+  const [voiceOn, setVoiceOn] = useState(false)  // V1.9 — narration OPT-IN. Auto-play disabled by default so generation never interrupts the creator.
   const scrollRef             = useRef<HTMLDivElement | null>(null)
   const inputRef              = useRef<HTMLInputElement | null>(null)
   const pathname              = usePathname()
@@ -102,9 +102,12 @@ export function MugteeAssistant() {
     if (open) setTimeout(() => inputRef.current?.focus(), 80)
   }, [open])
 
-  // Load voice-on preference once
+  // V1.9 — Voice preference is now OPT-IN. Only enable narration if the user has
+  // explicitly turned it on previously (LS_VOICE === 'on'). Anything else — including
+  // first-time users and users with no stored preference — stays muted by default
+  // so generation never auto-plays unexpectedly.
   useEffect(() => {
-    try { setVoiceOn(localStorage.getItem(LS_VOICE) !== 'off') } catch {}
+    try { setVoiceOn(localStorage.getItem(LS_VOICE) === 'on') } catch {}
   }, [])
 
   // Persist voice preference + stop any current speech when toggling off
