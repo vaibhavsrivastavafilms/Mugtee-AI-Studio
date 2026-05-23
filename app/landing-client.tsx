@@ -13,6 +13,7 @@ import {
 import { GuestHookGenerator } from '@/components/landing/guest-hook-generator'
 import { EmailCapture } from '@/components/landing/email-capture'
 import ProofSections from '@/components/landing/proof-sections'
+import HeroGoogleCta from '@/components/landing/hero-google-cta'
 
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
@@ -69,12 +70,12 @@ export default function LandingClient() {
             <p className="mt-5 sm:mt-6 text-base sm:text-lg text-luxe/70 leading-relaxed max-w-2xl mx-auto">
               Scripts, visuals, voiceovers, editing, captions and publishing — powered by AI. The operating system that turns one prompt into a week of content.
             </p>
-            <div className="mt-7 sm:mt-9 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-              <Link href="/login" className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-lg bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition">
-                Start Free <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a href="#workflow" className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-luxe hover:bg-white/[0.07] hover:border-gold-500/40 transition">
-                <Play className="w-4 h-4 text-gold-300" /> Watch 60-sec Demo
+            <div className="mt-7 sm:mt-9 flex flex-col items-center gap-3">
+              {/* V2.1 — Frictionless hero auth. Replaces the old "Start Free" → /login → Google detour
+                  with a one-tap Google CTA that lands creators straight in /workspace. */}
+              <HeroGoogleCta />
+              <a href="#workflow" className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-lg bg-white/[0.035] border border-white/[0.08] text-[12.5px] text-luxe/85 hover:bg-white/[0.07] hover:border-gold-500/40 transition">
+                <Play className="w-3.5 h-3.5 text-gold-300" /> Watch 60-sec Demo
               </a>
             </div>
             <div className="mt-5 text-[11px] tracking-widest uppercase text-muted-foreground/70">
