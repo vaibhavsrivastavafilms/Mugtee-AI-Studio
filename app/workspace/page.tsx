@@ -276,12 +276,23 @@ export default function WorkspacePage() {
         used_starter_prompt: usedStarterPromptRef.current,
         save_index: saveCountRef.current,
       })
+      return data.id as string
     } catch (e: any) {
       toast.error(e?.message || 'Could not save')
       track('workspace_save_failed', { error: String(e?.message || '').slice(0, 120) })
+      return null
     } finally {
       setSaving(false)
     }
+  }
+
+  // V1.10 (Phase 2A) — helper for any feature that needs a persisted project id
+  // (e.g. storyboard frame generation calls /api/ai/image which requires project_id).
+  // Auto-saves once if the project hasn't been saved yet, then returns the id.
+  const ensureSavedRef = useRef<() => Promise<string | null>>(async () => null)
+  ensureSavedRef.current = async () => {
+    if (savedId) return savedId
+    return await saveProject() || null
   }
 
   const applyTemplate = (seed: string) => {
@@ -461,14 +472,14 @@ export default function WorkspacePage() {
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
         <div className="lg:hidden mt-6">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} mobile />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} mobile />
         </div>
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} />
         </div>
       </aside>
     </div>
@@ -476,7 +487,7 @@ export default function WorkspacePage() {
 }
 
 function OutputPanel({
-  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile,
+  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile, ensureSaved, platform,
 }: {
   output: GenOutput | null
   loading: boolean
@@ -488,6 +499,8 @@ function OutputPanel({
   projectTitle?: string
   revealNonce?: number
   mobile?: boolean
+  ensureSaved?: () => Promise<string | null>
+  platform?: string
 }) {
   // V1.10 — Magic moment. When `revealNonce` bumps (after every successful
   // generation or project rehydration), scroll the output into view and apply a
@@ -547,6 +560,15 @@ function OutputPanel({
         {(['hook','script','storyboard','captions','thumbnail'] as const).map(key => (
           <TabsContent key={key} value={key} className="flex-1 mt-3">
             <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
+            {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
+              <StoryboardFrames
+                storyboardText={output.storyboard}
+                projectTitle={projectTitle}
+                savedId={savedId}
+                ensureSaved={ensureSaved}
+                platform={platform}
+              />
+            )}
           </TabsContent>
         ))}
       </Tabs>
@@ -737,6 +759,199 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
       >
         <FileType className="w-3.5 h-3.5" />
       </Button>
+    </div>
+  )
+}
+
+
+// =====================================================================
+// STORYBOARD FRAMES — Phase 2A cinematic still generation
+// Reuses /api/ai/image (Gemini via Emergent gateway) which already stores
+// to project_assets. Lists existing frames via /api/projects/[id]/assets.
+// Auto-saves the workspace project on first generate so /api/ai/image gets
+// a real project_id (it's a hard requirement of that endpoint).
+// =====================================================================
+
+type FrameAsset = {
+  id: string
+  url: string
+  prompt?: string
+  metadata?: Record<string, any> | null
+  created_at?: string
+}
+
+function parseShots(storyboard: string): string[] {
+  if (!storyboard) return []
+  const blocks = storyboard
+    .split(/\n\s*\n/)
+    .map(b => b.trim())
+    .filter(Boolean)
+    .filter(b => /^\s*\d+\./.test(b) || /Shot:|Framing:|Movement:|Lighting:/.test(b))
+  return blocks.slice(0, 6)
+}
+
+function frameAspectFor(platform?: string): '1:1' | '9:16' | '16:9' {
+  if (platform === 'youtube_video') return '16:9'
+  return '9:16'
+}
+
+function buildFramePrompt(shotText: string, index: number) {
+  const cinematicLayer = [
+    'Cinematic film still. Real photography aesthetic.',
+    'Shallow depth of field. 35mm grain. Natural motivated lighting.',
+    'Color grade: warm shadows, cool highlights. Subtle vignetting.',
+    'Composition follows the framing description above precisely.',
+    'No text, no captions, no watermarks, no logos in the image.',
+  ].join(' ')
+  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}`
+}
+
+function StoryboardFrames({
+  storyboardText, projectTitle, savedId, ensureSaved, platform,
+}: {
+  storyboardText: string
+  projectTitle?: string
+  savedId: string | null
+  ensureSaved?: () => Promise<string | null>
+  platform?: string
+}) {
+  const shots = useMemo(() => parseShots(storyboardText), [storyboardText])
+  const [frames, setFrames] = useState<FrameAsset[]>([])
+  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+
+  // Reset + hydrate any existing frames for this project (so refresh / project switch shows them).
+  useEffect(() => {
+    setFrames([])
+    if (!savedId) return
+    let alive = true
+    fetch(`/api/projects/${savedId}/assets?kind=image`)
+      .then(r => r.json())
+      .then(d => {
+        if (!alive) return
+        const fr: FrameAsset[] = (d?.assets || []).slice(0, 8)
+        if (fr.length) setFrames(fr)
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [savedId])
+
+  const canGenerate = shots.length >= 1 && !busy
+
+  const generate = async () => {
+    if (!canGenerate) return
+    setBusy(true)
+    setProgress({ done: 0, total: shots.length })
+    track('storyboard_frames_clicked', { shot_count: shots.length, platform })
+    try {
+      let pid = savedId
+      if (!pid && ensureSaved) pid = await ensureSaved()
+      if (!pid) {
+        toast.error('Please save the project before generating frames.')
+        return
+      }
+      const aspect = frameAspectFor(platform)
+      // Start fresh so re-generate replaces the visible set; the DB still keeps history.
+      setFrames([])
+      const collected: FrameAsset[] = []
+      for (let i = 0; i < shots.length; i++) {
+        try {
+          const res = await fetch('/api/ai/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              project_id: pid,
+              prompt: buildFramePrompt(shots[i], i),
+              aspect_ratio: aspect,
+            }),
+          })
+          const data = await res.json()
+          if (res.ok && data?.url) {
+            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata }
+            collected.push(fr)
+            setFrames(prev => [...prev, fr])
+          } else {
+            console.error('frame gen failed', data)
+          }
+        } catch (e) {
+          console.error('frame gen exception', e)
+        }
+        setProgress({ done: i + 1, total: shots.length })
+      }
+      if (collected.length === 0) {
+        toast.error('Could not generate frames. Try again in a moment.')
+        track('storyboard_frames_failed', { shot_count: shots.length })
+      } else {
+        toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} ready`)
+        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length })
+      }
+    } finally {
+      setBusy(false)
+      setProgress(null)
+    }
+  }
+
+  if (shots.length === 0) return null
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
+          <ImageIcon className="w-3 h-3" /> Cinematic Frames
+          {frames.length > 0 && (
+            <span className="ml-1 text-[9.5px] tracking-[0.18em] text-luxe/50">{'\u00b7 '}{frames.length}</span>
+          )}
+        </div>
+        <Button
+          size="sm" variant="outline" onClick={generate} disabled={!canGenerate}
+          className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200 disabled:opacity-50"
+          title={savedId ? 'Generate cinematic stills from this storyboard' : 'Saves the project and generates cinematic stills'}
+        >
+          {busy
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> {progress ? `${progress.done}/${progress.total}` : 'Working\u2026'}</>
+            : <><Sparkles className="w-3 h-3" /> {frames.length > 0 ? 'Regenerate' : 'Generate Frames'}</>
+          }
+        </Button>
+      </div>
+
+      {(frames.length > 0 || busy) && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {frames.map((f, i) => (
+            <a
+              key={f.id || i}
+              href={f.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={f.prompt?.slice(0, 240)}
+              className="group relative block aspect-[9/16] rounded-lg overflow-hidden border border-white/[0.06] bg-black/40 hover:border-gold-500/40 transition"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={f.url}
+                alt={`Frame ${i + 1}`}
+                loading="lazy"
+                className="w-full h-full object-cover transition group-hover:scale-[1.02] duration-500"
+              />
+              <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] tracking-[0.18em] uppercase text-gold-300/85 font-medium pointer-events-none">
+                {String(i + 1).padStart(2, '0')}
+              </div>
+            </a>
+          ))}
+          {busy && progress && Array.from({ length: Math.max(0, progress.total - progress.done) }).map((_, i) => (
+            <div key={`sk-${i}`} className="aspect-[9/16] rounded-lg bg-white/[0.03] border border-white/[0.04] overflow-hidden">
+              <Skeleton className="w-full h-full bg-white/[0.04]" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {frames.length === 0 && !busy && (
+        <p className="text-[11.5px] text-luxe/45 italic leading-snug">
+          {savedId
+            ? `Generate ${shots.length} cinematic still${shots.length === 1 ? '' : 's'} from this storyboard.`
+            : `We'll save your project once, then generate ${shots.length} cinematic still${shots.length === 1 ? '' : 's'}.`}
+        </p>
+      )}
     </div>
   )
 }
