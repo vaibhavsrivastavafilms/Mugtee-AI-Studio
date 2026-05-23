@@ -1009,7 +1009,7 @@ function VoiceoverPanel({
       setNarration(nextNarration)
       setAudio(nextAudio)
       track('voiceover_generated', { voice_style: style, bytes: Number(data?.bytes || 0) })
-      toast.success('Voiceover ready')
+      toast.success('Narration added to your project')
     } catch (e: any) {
       setErrorMsg(e?.message || 'Network error')
       toast.error('Network error')
@@ -1874,7 +1874,7 @@ function StoryboardFrames({
         toast.message(`${collected.length}/${targetShots.length} cinematic frames ready \u00b7 some couldn\u2019t render`)
         track('storyboard_frames_partial', { generated: collected.length, requested: targetShots.length, retries: retryCount, mood, camera_style: cameraStyle })
       } else {
-        toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} ready`)
+        toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} saved to your Library`)
         track('storyboard_frames_completed', { generated: collected.length, requested: targetShots.length, retries: retryCount, mood, camera_style: cameraStyle })
       }
     } finally {
@@ -2373,6 +2373,34 @@ function WorkspaceMascot() {
 // in REAL workspace state (tone / mood / camera style / storyboard text /
 // timing engine). No fake metrics, no fabricated scores, no charts.
 // =====================================================================
+// Phase 3P — Creator Trust rotating wisdom. Deterministic SSR (first line),
+// then rotates every 8s on the client only. Hydration-safe by construction.
+const DIRECTOR_WISDOM = [
+  'Start with emotion.',
+  'The first frame shapes the story.',
+  'Conflict creates retention.',
+  'Visual pacing matters.',
+  'Silence is part of the rhythm.',
+  'A good scene answers one feeling.',
+  'Let the camera listen, not just look.',
+]
+function RotatingDirectorWisdom() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    // Start from a random spot AFTER hydration so SSR stays deterministic.
+    setIdx(Math.floor(Math.random() * DIRECTOR_WISDOM.length))
+    const t = setInterval(() => {
+      setIdx(i => (i + 1) % DIRECTOR_WISDOM.length)
+    }, 8000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <p className="hidden sm:block text-[10.5px] tracking-[0.04em] text-luxe/30 italic leading-snug transition-opacity duration-500">
+      &ldquo;{DIRECTOR_WISDOM[idx]}&rdquo;
+    </p>
+  )
+}
+
 function AIDirectorCard({
   tone, platform, output, tab,
 }: {
@@ -2461,6 +2489,12 @@ function AIDirectorCard({
             : 'Mugtee will read your story\u2019s pacing, atmosphere and framing as it forms.'
         })()}
       </p>
+
+      {/* Phase 3P — Creator Trust. Subtle rotating cinematic wisdom below the
+          stage caption. Lightweight interval rotation (8s), pure state, no
+          animation lib, no assistant/chat behavior. Hidden on tiny screens
+          so it never crowds the mobile workspace. */}
+      <RotatingDirectorWisdom />
 
       <dl className={'space-y-1.5 transition-all ' + (hasStoryboard ? 'opacity-100 max-h-[360px]' : 'opacity-0 max-h-0 overflow-hidden')}>
         <DirectorRow label="Mood"           value={toneLabel} />
