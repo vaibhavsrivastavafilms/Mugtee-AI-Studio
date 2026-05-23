@@ -1493,7 +1493,7 @@ function relSavedLabel(ms: number | null): string {
   if (dt < 60_000) return 'Saved moments ago'
   const mins = Math.floor(dt / 60_000)
   if (mins < 60) return `Saved ${mins}m ago`
-  const hrs = Math.floor(mins / 3_600_000)
+  const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `Saved ${hrs}h ago`
   const days = Math.floor(dt / 86_400_000)
   return `Saved ${days}d ago`
