@@ -104,6 +104,16 @@ function detectInputLanguage(raw: string): DetectedLanguage {
   return 'english'
 }
 
+type CreativeStage = 'idea' | 'script' | 'storyboard' | 'frames' | 'voice'
+function deriveStage(output: GenOutput | null, tab: string): CreativeStage {
+  if (tab === 'voiceover') return 'voice'
+  if (!output) return 'idea'
+  const hasStoryboard = ((output.storyboard || '').trim()).length > 20
+  if (!hasStoryboard) return 'script'
+  if (tab === 'storyboard') return 'frames'
+  return 'storyboard'
+}
+
 export default function WorkspacePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -305,6 +315,9 @@ export default function WorkspacePage() {
   }, [lastSavedAt])
 
   const canGenerate = useMemo(() => topic.trim().length >= 6 && !generating, [topic, generating])
+
+  // Phase 3C — Workflow Clarity. Stage derived from existing state only.
+  const stage = useMemo<CreativeStage>(() => deriveStage(output, tab), [output, tab])
 
   const generate = async () => {
     if (!canGenerate) return
@@ -549,6 +562,11 @@ export default function WorkspacePage() {
           </p>
         </div>
 
+        {/* Phase 3C — Creative Journey. Lightweight stage breadcrumb. Stage
+            derives from existing state only (no extra backend, no new flags).
+            Reuses gold/luxe tokens. Subtle connectors, soft glow on active. */}
+        <CreativeJourney stage={stage} />
+
         {/* Phase 3 — quiet creative-flow guidance. Two subtle hints, no dashboards. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10.5px] text-luxe/40 tracking-[0.04em]">
           <span className="flex items-center gap-1.5">
@@ -701,7 +719,7 @@ function OutputPanel({
       }`}
     >
       {/* Phase 3 — AI Director intelligence panel. Real state only, no fake metrics. */}
-      <AIDirectorCard tone={tone || 'cinematic'} platform={platform || 'instagram_reel'} output={output} />
+      <AIDirectorCard tone={tone || 'cinematic'} platform={platform || 'instagram_reel'} output={output} tab={tab} />
 
       <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
         <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
@@ -932,8 +950,15 @@ function VoiceoverPanel({
           <Volume2 className="w-3 h-3" /> Cinematic Voiceover
         </div>
         <Button
-          size="sm" variant="outline" onClick={generate} disabled={!canGenerate}
-          className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200 disabled:opacity-50"
+          size="sm" variant={audio ? 'outline' : undefined}
+          onClick={generate} disabled={!canGenerate}
+          className={
+            'h-8 gap-1.5 text-[11.5px] disabled:opacity-50 ' +
+            (audio
+              ? 'border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200'
+              // Phase 3C — next-step emphasis: bold gold CTA before first render.
+              : 'bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow')
+          }
           title={hasScript ? 'Generate cinematic narration + audio' : 'Generate a script first to draft narration'}
         >
           {busy
@@ -1789,8 +1814,15 @@ function StoryboardFrames({
           )}
         </div>
         <Button
-          size="sm" variant="outline" onClick={generate} disabled={!canGenerate}
-          className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200 disabled:opacity-50"
+          size="sm" variant={frames.length === 0 ? undefined : 'outline'}
+          onClick={generate} disabled={!canGenerate}
+          className={
+            'h-8 gap-1.5 text-[11.5px] disabled:opacity-50 ' +
+            (frames.length === 0
+              // Phase 3C — next-step emphasis: bold gold CTA when no frames yet.
+              ? 'bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow'
+              : 'border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200')
+          }
           title={savedId ? 'Generate cinematic stills from this storyboard' : 'Saves the project and generates cinematic stills'}
         >
           {busy
@@ -2021,6 +2053,70 @@ const NAV_ICONS = {
   settings: SettingsIcon,
 } as const
 
+// =====================================================================
+// Phase 3C — Creative Journey breadcrumb
+// 5-stage stage indicator: Idea → Script → Storyboard → Frames → Voice.
+// Stage is passed in; this component is purely presentational.
+// Reuses existing gold/luxe tokens. No new deps, no new icons.
+// =====================================================================
+const JOURNEY_STEPS: { id: CreativeStage; label: string }[] = [
+  { id: 'idea',       label: 'Idea' },
+  { id: 'script',     label: 'Script' },
+  { id: 'storyboard', label: 'Storyboard' },
+  { id: 'frames',     label: 'Frames' },
+  { id: 'voice',      label: 'Voice' },
+]
+function CreativeJourney({ stage }: { stage: CreativeStage }) {
+  const currentIdx = JOURNEY_STEPS.findIndex(s => s.id === stage)
+  return (
+    <div
+      role="navigation"
+      aria-label="Creative journey"
+      className="flex items-center flex-wrap gap-y-1.5 mb-4 -mt-1"
+    >
+      {JOURNEY_STEPS.map((s, i) => {
+        const isCurrent = i === currentIdx
+        const isDone    = i < currentIdx
+        const dotCls =
+          isCurrent ? 'bg-gold-400 shadow-[0_0_10px_2px_rgba(245,196,77,0.55)]'
+          : isDone  ? 'bg-gold-400/70'
+                    : 'bg-luxe/20'
+        const textCls =
+          isCurrent ? 'text-gold-200'
+          : isDone  ? 'text-luxe/70'
+                    : 'text-luxe/35'
+        const ringCls =
+          isCurrent ? 'border-gold-500/45 bg-gold-500/[0.06]'
+          : isDone  ? 'border-gold-500/15 bg-transparent'
+                    : 'border-white/[0.05] bg-transparent'
+        return (
+          <span key={s.id} className="flex items-center">
+            <span
+              className={
+                'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10.5px] tracking-[0.06em] transition ' +
+                ringCls + ' ' + textCls
+              }
+              title={s.label}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full transition ${dotCls}`} />
+              {s.label}
+            </span>
+            {i < JOURNEY_STEPS.length - 1 && (
+              <span
+                aria-hidden
+                className={
+                  'mx-1 sm:mx-1.5 h-px w-4 sm:w-6 transition ' +
+                  (i < currentIdx ? 'bg-gold-400/35' : 'bg-luxe/10')
+                }
+              />
+            )}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 function NavLink({
   href, icon, label, active, soon,
 }: {
@@ -2094,11 +2190,12 @@ function WorkspaceMascot() {
 // timing engine). No fake metrics, no fabricated scores, no charts.
 // =====================================================================
 function AIDirectorCard({
-  tone, platform, output,
+  tone, platform, output, tab,
 }: {
   tone: string
   platform: string
   output: GenOutput | null
+  tab?: string
 }) {
   // Read mood + camera style from localStorage. Updates via custom event
   // dispatched by StoryboardFrames when the creator changes them.
@@ -2166,9 +2263,19 @@ function AIDirectorCard({
       </div>
 
       <p className="text-[11.5px] text-luxe/55 italic leading-snug">
-        {hasStoryboard
-          ? 'Detected from your current story:'
-          : 'Mugtee will read your story\u2019s pacing, atmosphere and framing as it forms.'}
+        {(() => {
+          // Phase 3C — stage-aware caption. Falls back to existing copy when
+          // tab info isn't passed in (defensive — keeps prior behavior).
+          const stage = deriveStage(output, tab || 'hook')
+          if (stage === 'idea')       return 'Start with a cinematic emotion or memory.'
+          if (stage === 'script')     return 'Mugtee is drafting your story\u2019s spine.'
+          if (stage === 'storyboard') return 'Shape the pacing and visual atmosphere.'
+          if (stage === 'frames')     return 'Turn cinematic beats into visual moments.'
+          if (stage === 'voice')      return 'Give the story an emotional voice.'
+          return hasStoryboard
+            ? 'Detected from your current story:'
+            : 'Mugtee will read your story\u2019s pacing, atmosphere and framing as it forms.'
+        })()}
       </p>
 
       <dl className="space-y-2">
