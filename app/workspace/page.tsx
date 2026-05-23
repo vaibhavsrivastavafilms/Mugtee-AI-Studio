@@ -1079,24 +1079,40 @@ function buildFramePrompt(
   moodId?: string,
   characters?: CharacterMemory[],
   cameraStyleId?: string,
+  opts?: { baselineOnly?: boolean },
 ) {
-  const cinematicLayer = [
-    'Cinematic film still. Real photography aesthetic.',
-    'Shallow depth of field. 35mm grain. Natural motivated lighting.',
-    'Color grade: warm shadows, cool highlights. Subtle vignetting.',
-    'Composition follows the framing description above precisely.',
-    'No text, no captions, no watermarks, no logos in the image.',
-  ].join(' ')
+  // Phase 2H reliability — compact baseline. Single line, ~15 words.
+  // Removes verbose enumerations that previously bloated each prompt.
+  const baseline = 'Cinematic film still, 35mm grain, shallow depth of field, motivated lighting, warm-shadow cool-highlight grade. No text, no logos.'
+
+  // Retry path uses baseline only — drops mood / continuity / camera to give
+  // Gemini the best chance of a clean generation.
+  if (opts?.baselineOnly) {
+    return `Frame ${index + 1}\n${shotText}\n${baseline}`
+  }
+
+  // Compact mood suffix — short modifier phrase only (no "Visual Mood Lock:" label).
   const moodSuffix = (moodId && MOOD_BY_ID[moodId])
-    ? `\n\nVisual Mood Lock: ${MOOD_BY_ID[moodId].suffix}.`
+    ? ` Mood: ${MOOD_BY_ID[moodId].suffix}.`
     : ''
-  const continuitySuffix = characters && characters.length
-    ? continuityLineFor(charactersInShot(shotText, characters))
+
+  // Compact continuity — single descriptor line, no leading sentence.
+  const present = characters && characters.length
+    ? charactersInShot(shotText, characters)
+    : []
+  const continuitySuffix = present.length
+    ? ' Recurring: ' + present.map(c => {
+        const descs = c.descriptors.length ? c.descriptors.join(' ') + ' ' : ''
+        return `${descs}${c.role}`.trim()
+      }).join(', ') + '.'
     : ''
+
+  // Compact camera style suffix.
   const cameraSuffix = (cameraStyleId && CAMERA_STYLE_BY_ID[cameraStyleId])
-    ? `\n\nCamera Style: ${CAMERA_STYLE_BY_ID[cameraStyleId].suffix}.`
+    ? ` Camera: ${CAMERA_STYLE_BY_ID[cameraStyleId].suffix}.`
     : ''
-  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}${continuitySuffix}${cameraSuffix}`
+
+  return `Frame ${index + 1}\n${shotText}\n${baseline}${moodSuffix}${continuitySuffix}${cameraSuffix}`
 }
 
 // =====================================================================
@@ -1188,9 +1204,15 @@ function StoryboardFrames({
 
   const generate = async () => {
     if (!canGenerate) return
+    // Phase 2H reliability — cap initial generation at 3 frames (was 6) to
+    // improve Gemini stability + latency. parseShots still returns up to 6;
+    // we just slice here so the creator can regenerate the others later.
+    const FRAME_CAP = 3
+    const targetShots = shots.slice(0, FRAME_CAP)
+
     setBusy(true)
-    setProgress({ done: 0, total: shots.length })
-    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood, camera_style: cameraStyle, characters: characters.length })
+    setProgress({ done: 0, total: targetShots.length })
+    track('storyboard_frames_clicked', { shot_count: targetShots.length, platform, mood, camera_style: cameraStyle, characters: characters.length })
     try {
       let pid = savedId
       if (!pid && ensureSaved) pid = await ensureSaved()
@@ -1202,36 +1224,66 @@ function StoryboardFrames({
       // Start fresh so re-generate replaces the visible set; the DB still keeps history.
       setFrames([])
       const collected: FrameAsset[] = []
-      for (let i = 0; i < shots.length; i++) {
-        try {
-          const res = await fetch('/api/ai/image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              project_id: pid,
-              prompt: buildFramePrompt(shots[i], i, mood, characters, cameraStyle),
-              aspect_ratio: aspect,
-            }),
-          })
-          const data = await res.json()
-          if (res.ok && data?.url) {
-            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i], mood, cameraStyle }
-            collected.push(fr)
-            setFrames(prev => [...prev, fr])
-          } else {
-            console.error('frame gen failed', data)
+      let retryCount = 0
+      for (let i = 0; i < targetShots.length; i++) {
+        // Helper: single attempt. Returns the new FrameAsset on success, or null on fail.
+        const attempt = async (baselineOnly: boolean): Promise<FrameAsset | null> => {
+          try {
+            const res = await fetch('/api/ai/image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                project_id: pid,
+                prompt: buildFramePrompt(targetShots[i], i, mood, characters, cameraStyle, { baselineOnly }),
+                aspect_ratio: aspect,
+                sequence_index: i,
+              }),
+            })
+            const data = await res.json().catch(() => ({} as any))
+            // V3.6 response shape is { ok, asset: { id, url, prompt, metadata } }.
+            const asset = data?.asset || data
+            if (res.ok && asset?.url) {
+              return {
+                id: asset.id,
+                url: asset.url,
+                prompt: asset.prompt,
+                metadata: asset.metadata,
+                shotText: targetShots[i],
+                mood,
+                cameraStyle,
+              }
+            }
+            console.error('[frames] gen failed', { index: i, status: res.status, baselineOnly, error: data?.error, detail: typeof data?.detail === 'string' ? data.detail.slice(0, 200) : undefined })
+            return null
+          } catch (e: any) {
+            console.error('[frames] gen exception', { index: i, baselineOnly, message: e?.message })
+            return null
           }
-        } catch (e) {
-          console.error('frame gen exception', e)
         }
-        setProgress({ done: i + 1, total: shots.length })
+
+        // First attempt — full cinematic stack (mood + continuity + camera).
+        let fr = await attempt(false)
+        // Phase 2H — graceful retry on baseline-only prompt if the rich stack failed.
+        if (!fr) {
+          retryCount++
+          fr = await attempt(true)
+        }
+
+        if (fr) {
+          collected.push(fr)
+          setFrames(prev => [...prev, fr!])
+        }
+        setProgress({ done: i + 1, total: targetShots.length })
       }
       if (collected.length === 0) {
-        toast.error('Could not generate frames. Try again in a moment.')
-        track('storyboard_frames_failed', { shot_count: shots.length })
+        toast.error('Some cinematic frames couldn\u2019t render. Try again in a moment.')
+        track('storyboard_frames_failed', { shot_count: targetShots.length, retries: retryCount })
+      } else if (collected.length < targetShots.length) {
+        toast.message(`${collected.length}/${targetShots.length} cinematic frames ready \u00b7 some couldn\u2019t render`)
+        track('storyboard_frames_partial', { generated: collected.length, requested: targetShots.length, retries: retryCount, mood, camera_style: cameraStyle })
       } else {
         toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} ready`)
-        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length, mood, camera_style: cameraStyle })
+        track('storyboard_frames_completed', { generated: collected.length, requested: targetShots.length, retries: retryCount, mood, camera_style: cameraStyle })
       }
     } finally {
       setBusy(false)
@@ -1353,29 +1405,42 @@ function StoryboardFrames({
                 if (!shotText) { toast.error('Original shot text not found.'); return }
                 setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: true } : x))
                 track('storyboard_frame_regenerated', { index: i, mood, camera_style: cameraStyle })
-                try {
-                  const res = await fetch('/api/ai/image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      project_id: pid,
-                      prompt: buildFramePrompt(shotText, i, mood, characters, cameraStyle),
-                      aspect_ratio: frameAspectFor(platform),
-                    }),
-                  })
-                  const data = await res.json()
-                  if (res.ok && data?.url) {
-                    setFrames(prev => prev.map((x, idx) => idx === i
-                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText, mood, cameraStyle }
-                      : x))
-                    toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
-                  } else {
-                    setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: false } : x))
-                    toast.error('Could not regenerate this frame.')
+
+                // Phase 2H reliability — same retry pattern as bulk gen.
+                const attempt = async (baselineOnly: boolean) => {
+                  try {
+                    const res = await fetch('/api/ai/image', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        project_id: pid,
+                        prompt: buildFramePrompt(shotText, i, mood, characters, cameraStyle, { baselineOnly }),
+                        aspect_ratio: frameAspectFor(platform),
+                        sequence_index: i,
+                      }),
+                    })
+                    const data = await res.json().catch(() => ({} as any))
+                    const asset = data?.asset || data
+                    if (res.ok && asset?.url) return asset
+                    console.error('[frames] regen failed', { index: i, status: res.status, baselineOnly, error: data?.error })
+                    return null
+                  } catch (e: any) {
+                    console.error('[frames] regen exception', { index: i, baselineOnly, message: e?.message })
+                    return null
                   }
-                } catch {
+                }
+
+                let asset = await attempt(false)
+                if (!asset) asset = await attempt(true)
+
+                if (asset?.url) {
+                  setFrames(prev => prev.map((x, idx) => idx === i
+                    ? { id: asset.id, url: asset.url, prompt: asset.prompt, metadata: asset.metadata, shotText, mood, cameraStyle }
+                    : x))
+                  toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
+                } else {
                   setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: false } : x))
-                  toast.error('Could not regenerate this frame.')
+                  toast.error('This frame couldn\u2019t render. Try again in a moment.')
                 }
               }}
             />
@@ -1391,8 +1456,8 @@ function StoryboardFrames({
       {frames.length === 0 && !busy && (
         <p className="text-[11.5px] text-luxe/45 italic leading-snug">
           {savedId
-            ? `Generate ${shots.length} cinematic still${shots.length === 1 ? '' : 's'} from this storyboard.`
-            : `We'll save your project once, then generate ${shots.length} cinematic still${shots.length === 1 ? '' : 's'}.`}
+            ? `Generate ${Math.min(shots.length, 3)} cinematic still${Math.min(shots.length, 3) === 1 ? '' : 's'} from this storyboard.`
+            : `We'll save your project once, then generate ${Math.min(shots.length, 3)} cinematic still${Math.min(shots.length, 3) === 1 ? '' : 's'}.`}
         </p>
       )}
     </div>
