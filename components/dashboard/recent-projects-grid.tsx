@@ -74,17 +74,20 @@ export function RecentProjectsGrid() {
   }
 
   if (!projects || projects.length === 0) {
+    // Phase 3H — calm, minimal empty state. No duplicated workflow guidance,
+    // no marketing links, no fake niches. Just one quiet invitation.
     return (
-      <div className="rounded-2xl glass border border-gold-soft p-6 sm:p-8 text-center">
-        <Sparkles className="w-5 h-5 text-gold-300 mx-auto mb-2" />
-        <h3 className="font-display text-xl mb-1">Your studio is empty.</h3>
-        <p className="text-luxe/65 text-[13px] max-w-md mx-auto mb-4">
-          Generate ideas on the right, or speak to Mugtee to launch your first production.
+      <div className="rounded-2xl border border-white/[0.05] bg-black/15 p-8 sm:p-10 text-center">
+        <Sparkles className="w-5 h-5 text-gold-400/40 mx-auto mb-3" />
+        <p className="font-display text-[15px] text-luxe/70 italic leading-snug max-w-[280px] mx-auto">
+          Your reels will appear here once you start creating.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link href="/blog/best-faceless-youtube-niches" className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[11px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 hover:border-gold-500/30 transition">9 faceless niches →</Link>
-          <Link href="/blog/ai-documentary-script-workflow" className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[11px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 hover:border-gold-500/30 transition">Documentary workflow →</Link>
-        </div>
+        <Link
+          href="/workspace?fresh=1"
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition"
+        >
+          <Sparkles className="w-3.5 h-3.5" /> Start your first project
+        </Link>
       </div>
     )
   }

@@ -251,8 +251,18 @@ export default function WorkspacePage() {
   // Deep-link support: on first mount, if ?project=xyz is present, hydrate it.
   // Phase 3A — Creator Memory: if no URL param, silently restore the last project
   // and active tab from localStorage so the workspace feels continuous after refresh.
+  // Phase 3H — `?fresh=1` deep-link from "+ New Project" forces a clean canvas
+  // (no localStorage recovery, no stale residue).
   useEffect(() => {
     const pid = searchParams.get('project')
+    const fresh = searchParams.get('fresh')
+    if (fresh) {
+      try {
+        window.localStorage.removeItem(LAST_PROJECT_KEY)
+        window.localStorage.removeItem(TAB_KEY)
+      } catch {}
+      return
+    }
     if (pid && pid !== activeProjectId) {
       let recoveredTab: string | null = null
       try { recoveredTab = window.localStorage.getItem(TAB_KEY) } catch {}
@@ -489,9 +499,6 @@ export default function WorkspacePage() {
           <div className="space-y-2">
             <p className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Recent</p>
             <div className="space-y-1">
-              {recents.length === 0 && (
-                <p className="text-[12px] text-luxe/40 leading-snug">Your saved reels will appear here.</p>
-              )}
               {recents.map(p => {
                 const isActive = p.id === activeProjectId
                 const isLoading = p.id === loadingProjectId
@@ -515,40 +522,10 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          {/* Phase 3E — sidebar progressive reveal. Templates + Showcase recede
-              into the background until the creator has actually started a story.
-              Functionality preserved; only visual weight reduced. */}
-          <div className={'space-y-5 transition-opacity ' + (output ? 'opacity-100' : 'opacity-55 hover:opacity-100')}>
-            <div className="space-y-2">
-              <p className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Templates</p>
-              <div className="space-y-1">
-                {TEMPLATES.map(t => (
-                  <button key={t.id} onClick={() => applyTemplate(t.seed)}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] text-[12.5px] text-luxe/85 hover:text-gold-200 transition flex items-center gap-2">
-                    <Layers className="w-3.5 h-3.5 text-gold-400/70" />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Made with Mugtee — static showcase. Pure inspiration; mobile-stacks naturally. */}
-            <div className="space-y-2 pt-2 border-t border-white/[0.05]">
-              <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3" /> Made with Mugtee
-              </p>
-              <div className="space-y-1.5">
-                {SHOWCASE.map((s) => (
-                  <div key={s.title}
-                    className="rounded-lg px-2.5 py-2 bg-white/[0.025] border border-white/[0.05] hover:border-gold-500/25 transition">
-                    <p className="text-[12px] font-medium text-luxe leading-tight truncate">{s.title}</p>
-                    <p className="text-[11px] text-luxe/55 leading-snug mt-0.5 italic line-clamp-2">{s.hook}</p>
-                    <p className="text-[9.5px] tracking-[0.18em] uppercase text-gold-400/70 mt-1">{s.platform}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Phase 3H — Templates + Showcase removed.
+              They duplicated workflow guidance and created cognitive noise
+              before the creator had even started. The starter prompt chips on
+              the main canvas already serve the same activation role. */}
         </div>
       </aside>
 
@@ -582,13 +559,8 @@ export default function WorkspacePage() {
           </p>
         </div>
 
-        {/* Phase 3C — Creative Journey. Lightweight stage breadcrumb. Stage
-            derives from existing state only (no extra backend, no new flags).
-            Reuses gold/luxe tokens. Subtle connectors, soft glow on active. */}
-        <CreativeJourney stage={stage} />
-
         {/* Phase 3 — quiet creative-flow guidance. Two subtle hints, no dashboards.
-            Phase 3D — further softened: the Journey row above now carries the
+            Phase 3D — further softened: the Journey row below carries the
             primary stage signal; these become a faint secondary whisper. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10px] text-luxe/30 tracking-[0.04em]">
           <span className="flex items-center gap-1.5">
@@ -681,6 +653,13 @@ export default function WorkspacePage() {
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {generating ? 'Mugtee is creating...' : (output ? 'Regenerate from new idea' : 'Generate with Mugtee')}
           </Button>
+
+          {/* Phase 3H — Creative Journey moved to BELOW the primary CTA so it
+              reads as progress feedback for the just-pressed button, not as
+              decorative chrome. Softer opacity until the first generation. */}
+          <div className={'transition-opacity ' + (output ? 'opacity-100' : 'opacity-55')}>
+            <CreativeJourney stage={stage} />
+          </div>
         </Card>
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
