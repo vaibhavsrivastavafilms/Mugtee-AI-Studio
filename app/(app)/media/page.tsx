@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Play, FileVideo, Image as ImgIcon, Music, Plus, Trash2, ImagePlus, Archive,
   FileText, Lightbulb, Wand2, ArrowRight, Sparkles, Clock, Volume2, Download, RotateCcw, ExternalLink,
@@ -76,6 +76,17 @@ export default function MediaPage() {
   const confirm = useConfirm()
   const [creating, setCreating] = useState(false)
   const [tab, setTab] = useState<TabId>('prompts')
+  // Phase 3N — accept `?tab=` deep-link from sidebar Storyboards/Voiceovers.
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (!t) return
+    const valid = ['prompts','ideas','scripts','images','narrations','media','exports'] as const
+    if ((valid as readonly string[]).includes(t) && t !== tab) {
+      setTab(t as TabId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // V3.8 — Cross-project library assets (Images / Narrations / Exports).
   // Reuses /api/library/assets which thin-queries the existing project_assets table.
@@ -446,9 +457,43 @@ function LibraryAssetsTab({
     }
   }
 
+  // Phase 3N — Group assets by project so creators see their studio
+  // organized as cinematic chapters, not a flat dump. Falls back gracefully
+  // when assets have no project_id (legacy rows). Newest project first
+  // (assets already arrive newest-first from the API).
+  type Group = { project_id: string; label: string; latest: string; items: LibraryAsset[] }
+  const groups: Group[] = (() => {
+    const map = new Map<string, Group>()
+    for (const a of assets) {
+      const key = a.project_id || '__legacy__'
+      if (!map.has(key)) {
+        map.set(key, {
+          project_id: key,
+          label: a.title || (key === '__legacy__' ? 'Older creations' : 'Untitled project'),
+          latest: a.created_at || '',
+          items: [],
+        })
+      }
+      map.get(key)!.items.push(a)
+    }
+    return Array.from(map.values())
+  })()
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      {assets.map((a, i) => {
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <section key={group.project_id} className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <h3 className="font-display text-[15px] sm:text-base text-luxe/90 tracking-tight truncate" title={group.label}>
+              {group.label}
+            </h3>
+            <span className="text-[10px] tracking-[0.18em] uppercase text-luxe/40">
+              {group.items.length} {group.items.length === 1 ? 'asset' : 'assets'}
+              {group.latest ? ' \u00b7 ' + formatDistanceToNow(parseISO(group.latest), { addSuffix: true }) : ''}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {group.items.map((a, i) => {
         const when = a.created_at ? formatDistanceToNow(parseISO(a.created_at), { addSuffix: true }) : ''
         const title = a.title || a.metadata?.scene_type || a.prompt?.slice(0, 60) || 'Asset'
         const isImage = kind === 'images' && !!a.url
@@ -514,6 +559,9 @@ function LibraryAssetsTab({
           </motion.div>
         )
       })}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }
