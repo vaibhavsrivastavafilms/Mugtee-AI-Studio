@@ -58,7 +58,10 @@ export function RecentProjectsGrid() {
         const r = await fetch('/api/projects/recent', { cache: 'no-store' })
         const d = await r.json()
         if (!alive) return
-        setProjects(Array.isArray(d?.projects) ? d.projects : [])
+        // Phase 3Q — defensive dedup-by-id (same pattern as workspace sidebar).
+        const raw: any[] = Array.isArray(d?.projects) ? d.projects : []
+        const unique = Array.from(new Map(raw.map(p => [p.id, p])).values()).slice(0, 8)
+        setProjects(unique)
       } catch { if (alive) setProjects([]) }
       finally { if (alive) setLoading(false) }
     })()
