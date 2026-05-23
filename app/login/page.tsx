@@ -24,7 +24,7 @@ export default function LoginPage() {
     // It is the first conversion step after visitor_opened_site.
     track('signup_started', { provider: 'google', source: 'login_page' })
     const supabase = createSupabaseBrowserClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard&welcome=1`
+    const redirectTo = `${window.location.origin}/auth/callback?next=/workspace&welcome=1`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } }

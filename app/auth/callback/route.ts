@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
-  const next = safeRelative(url.searchParams.get('next'), '/dashboard')
+  const next = safeRelative(url.searchParams.get('next'), '/workspace')
 
   // CRITICAL AUTH FIX (Master Execution): Use the request's ACTUAL origin for the
   // post-OAuth redirect, NOT NEXT_PUBLIC_BASE_URL. If they diverge (preview proxy
