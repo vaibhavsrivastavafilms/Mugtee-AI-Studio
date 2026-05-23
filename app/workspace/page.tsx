@@ -188,7 +188,12 @@ export default function WorkspacePage() {
     let alive = true
     fetch('/api/projects/recent').then(r => r.json()).then(d => {
       if (!alive) return
-      const list = Array.isArray(d?.projects) ? d.projects.slice(0, 8) : []
+      // Phase 3Q — Defensive dedup. The API itself returns unique rows, but
+      // re-fetches triggered by savedId / searchParams / realtime can land
+      // with overlap-tolerant payloads. Normalize strictly by `id`, keep the
+      // first occurrence (newest-first ordering preserved), then cap at 8.
+      const raw: any[] = Array.isArray(d?.projects) ? d.projects : []
+      const list = Array.from(new Map(raw.map(p => [p.id, p])).values()).slice(0, 8)
       setRecents(list)
       if (!sessionStartedRef.current) {
         sessionStartedRef.current = true
