@@ -373,25 +373,22 @@ export default function WorkspacePage() {
   // Phase 3C — Workflow Clarity. Stage derived from existing state only.
   const stage = useMemo<CreativeStage>(() => deriveStage(output, tab), [output, tab])
 
-  // Phase 3N — randomized starter slice + cinematic welcome greeting. Both
-  // resolve once per mount so the workspace feels fresh on every entry but
-  // stable while the creator is typing.
-  const starterPrompts = useMemo(() => pickStarterPrompts(), [])
-  const welcomeMessage = useMemo<string>(() => {
-    const FIRST_SESSION = [
-      'Welcome to Mugtee AI Studio.',
-      'Your first cinematic reel starts here.',
-    ]
-    const RETURNING = [
-      'Welcome back, Creator.',
-      'What story are we shaping today?',
-      'Your next cinematic reel starts here.',
-      'Pick up where the story left off.',
-    ]
-    const pool = recents.length > 0 ? RETURNING : FIRST_SESSION
-    return pool[Math.floor(Math.random() * pool.length)]
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Phase 3N — randomized starter slice + cinematic welcome greeting.
+  // Phase 3N-hf — Hydration fix. Server render MUST be deterministic, so we
+  // initialize with stable fallback values (first 5 prompts, first greeting)
+  // and randomize ONLY inside useEffect after mount. This eliminates the
+  // server/client HTML mismatch that triggered the hydration warning.
+  const FIRST_SESSION_GREETINGS = ['Welcome to Mugtee AI Studio.', 'Your first cinematic reel starts here.']
+  const RETURNING_GREETINGS = ['Welcome back, Creator.', 'What story are we shaping today?', 'Your next cinematic reel starts here.', 'Pick up where the story left off.']
+  const [starterPrompts, setStarterPrompts] = useState<string[]>(() => STARTER_PROMPTS_POOL.slice(0, 5))
+  const [welcomeMessage, setWelcomeMessage] = useState<string>(FIRST_SESSION_GREETINGS[0])
+  useEffect(() => {
+    // Randomize ONLY on the client, after the first paint matches SSR.
+    setStarterPrompts(pickStarterPrompts())
+    const pool = recents.length > 0 ? RETURNING_GREETINGS : FIRST_SESSION_GREETINGS
+    setWelcomeMessage(pool[Math.floor(Math.random() * pool.length)])
+    // Re-roll greeting when recents finish loading (returning vs first-session).
+  }, [recents.length])
 
   const generate = async () => {
     if (!canGenerate) return
