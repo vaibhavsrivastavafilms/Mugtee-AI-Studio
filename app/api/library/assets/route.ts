@@ -28,9 +28,14 @@ export async function GET(req: Request) {
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 60)))
 
     // We rely on the existing project_assets RLS (user-scoped via content_pieces FK).
+    // Phase 3O — explicit user_id filter so the endpoint works even if the
+    // project_assets SELECT policy hasn't been hardened yet. Mirrors the
+    // per-project endpoint at /api/projects/[id]/assets which already filters
+    // explicitly and is known to render frames correctly in the workspace.
     let q = supabase
       .from('project_assets')
       .select('id, project_id, kind, url, title, prompt, metadata, created_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(limit)
     if (kinds.length) q = q.in('kind', kinds)
