@@ -13,7 +13,6 @@ import {
 import { GuestHookGenerator } from '@/components/landing/guest-hook-generator'
 import { EmailCapture } from '@/components/landing/email-capture'
 import ProofSections from '@/components/landing/proof-sections'
-import HeroGoogleCta from '@/components/landing/hero-google-cta'
 import CinematicShowcase from '@/components/landing/cinematic-showcase'
 
 // Small fade-up helper — keeps animation system lightweight.
@@ -71,10 +70,18 @@ export default function LandingClient() {
             <p className="mt-5 sm:mt-6 text-base sm:text-lg text-luxe/70 leading-relaxed max-w-2xl mx-auto">
               Scripts, visuals, voiceovers, editing, captions and publishing — powered by AI. The operating system that turns one prompt into a week of content.
             </p>
-            <div className="mt-7 sm:mt-9 flex flex-col items-center gap-3">
-              {/* V2.1 — Frictionless hero auth. Replaces the old "Start Free" → /login → Google detour
-                  with a one-tap Google CTA that lands creators straight in /workspace. */}
-              <HeroGoogleCta />
+            <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+              {/* Phase 3F — Cinematic auth entry. The hero now routes to a
+                  dedicated cinematic /login surface instead of firing OAuth
+                  inline. Reuses the existing /login page + Google flow; no
+                  auth architecture changes. Demo link is preserved. */}
+              <Link
+                href="/login"
+                className="group inline-flex items-center gap-2 px-6 sm:px-7 py-3 rounded-xl bg-gold-gradient text-black text-sm sm:text-base font-medium shadow-gold-glow hover:opacity-90 transition"
+              >
+                <Sparkles className="w-4 h-4" /> Start Creating Free
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
               <a href="#workflow" className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-lg bg-white/[0.035] border border-white/[0.08] text-[12.5px] text-luxe/85 hover:bg-white/[0.07] hover:border-gold-500/40 transition">
                 <Play className="w-3.5 h-3.5 text-gold-300" /> Watch 60-sec Demo
               </a>
