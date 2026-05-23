@@ -14,6 +14,7 @@ import { GuestHookGenerator } from '@/components/landing/guest-hook-generator'
 import { EmailCapture } from '@/components/landing/email-capture'
 import ProofSections from '@/components/landing/proof-sections'
 import HeroGoogleCta from '@/components/landing/hero-google-cta'
+import CinematicShowcase from '@/components/landing/cinematic-showcase'
 
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
@@ -100,6 +101,9 @@ export default function LandingClient() {
       </section>
 
       {/* ─── PROOF: How it works · Output preview · Made for · CTA ─ */}
+      {/* V2C — Cinematic Showcase: emotional proof immediately after hero */}
+      <CinematicShowcase />
+
       <ProofSections />
 
       {/* ─── WORKFLOW ────────────────────────────────────────────── */}
