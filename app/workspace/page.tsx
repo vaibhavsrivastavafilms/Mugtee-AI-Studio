@@ -1584,10 +1584,30 @@ function StoryboardFrames({
       .then(r => r.json())
       .then(d => {
         if (!alive || busyRef.current) return
-        // API returns newest-first; we want shot-0 first so frames render in
-        // storyboard order.
-        const fr: FrameAsset[] = ((d?.assets || []) as FrameAsset[]).slice(0, 8).reverse()
-        if (fr.length) setFrames(fr)
+        // API returns ALL frames (incl. regenerated history) newest-first.
+        // Dedup by metadata.sequence_index keeping the newest per slot, then
+        // render in shot order (0,1,2…). Legacy rows lacking sequence_index
+        // fall back to creation order so old projects still display.
+        const raw = (d?.assets || []) as FrameAsset[]
+        const seen = new Set<number>()
+        const withSeq: { f: FrameAsset; seq: number }[] = []
+        const noSeq: FrameAsset[] = []
+        for (const a of raw) {
+          const seq = (a as any)?.metadata?.sequence_index
+          if (typeof seq === 'number' && seq >= 0) {
+            if (seen.has(seq)) continue   // newest-first → skip older dupes
+            seen.add(seq)
+            withSeq.push({ f: a, seq })
+          } else {
+            noSeq.push(a)
+          }
+        }
+        const ordered: FrameAsset[] = withSeq
+          .sort((a, b) => a.seq - b.seq)
+          .map(x => x.f)
+          .concat(noSeq.reverse())
+          .slice(0, 6)
+        if (ordered.length) setFrames(ordered)
       })
       .catch(() => {})
     return () => { alive = false }
