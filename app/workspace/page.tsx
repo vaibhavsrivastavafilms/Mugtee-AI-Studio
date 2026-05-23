@@ -46,13 +46,43 @@ const TEMPLATES = [
 ]
 
 // Starter prompts — clicking auto-fills the topic textarea (does NOT auto-generate).
-const STARTER_PROMPTS = [
+// Phase 3N — Expanded cinematic starter pool. A fresh slice of 5 is shuffled
+// per workspace session so creators feel a different palette of feelings
+// each time they return. Keeps existing chip UI / styling.
+const STARTER_PROMPTS_POOL = [
   '90s monsoon reunion',
   'Why most creators quit',
   'Restaurant founder journey',
   'The table that remembers people',
   'A father teaching filmmaking',
+  'A memory that never left',
+  'The quiet before change',
+  'A letter never sent',
+  'The first time he believed in himself',
+  'Two cities, one homesickness',
+  'When the music became silence',
+  'A friendship that survived distance',
+  'The night the lights came back on',
+  'A grandmother\u2019s recipe and a final visit',
+  'The chai stall that knew everyone\u2019s name',
+  'A second chance, ten years late',
+  'The phone call that changed everything',
+  'A photograph she kept hidden',
+  'The bus stop where two strangers met',
+  'A song that found him in the rain',
 ]
+function pickStarterPrompts(seed = Date.now(), count = 5): string[] {
+  const arr = [...STARTER_PROMPTS_POOL]
+  // Lightweight deterministic-ish shuffle so a single mount renders the same
+  // slice across the component tree but a new mount picks a fresh palette.
+  let s = seed
+  const next = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 }
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr.slice(0, count)
+}
 
 // Static showcase — purely for inspiration/proof. No data, no carousel, no animation.
 const SHOWCASE: { title: string; hook: string; platform: string }[] = [
@@ -343,6 +373,26 @@ export default function WorkspacePage() {
   // Phase 3C — Workflow Clarity. Stage derived from existing state only.
   const stage = useMemo<CreativeStage>(() => deriveStage(output, tab), [output, tab])
 
+  // Phase 3N — randomized starter slice + cinematic welcome greeting. Both
+  // resolve once per mount so the workspace feels fresh on every entry but
+  // stable while the creator is typing.
+  const starterPrompts = useMemo(() => pickStarterPrompts(), [])
+  const welcomeMessage = useMemo<string>(() => {
+    const FIRST_SESSION = [
+      'Welcome to Mugtee AI Studio.',
+      'Your first cinematic reel starts here.',
+    ]
+    const RETURNING = [
+      'Welcome back, Creator.',
+      'What story are we shaping today?',
+      'Your next cinematic reel starts here.',
+      'Pick up where the story left off.',
+    ]
+    const pool = recents.length > 0 ? RETURNING : FIRST_SESSION
+    return pool[Math.floor(Math.random() * pool.length)]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const generate = async () => {
     if (!canGenerate) return
     setGenerating(true)
@@ -492,8 +542,11 @@ export default function WorkspacePage() {
             <NavLink href="/workspace" icon="home" label="Home" />
             <NavLink href="/workspace" icon="create" label="Create" active />
             <NavLink href="/workspace?tab=script" icon="scripts" label="Scripts" />
-            <NavLink href="/workspace?tab=storyboard" icon="storyboards" label="Storyboards" />
-            <NavLink href="/workspace?tab=voiceover" icon="voice" label="Voiceovers" />
+            {/* Phase 3N — Storyboards / Voiceovers route to the cross-project
+                Library view so creators see EVERYTHING they've made grouped
+                across projects, not just the current canvas. */}
+            <NavLink href="/media?tab=images" icon="storyboards" label="Storyboards" />
+            <NavLink href="/media?tab=narrations" icon="voice" label="Voiceovers" />
             <NavLink href="/media" icon="library" label="Library" />
             <NavLink href="/settings" icon="settings" label="Settings" />
           </nav>
@@ -569,6 +622,12 @@ export default function WorkspacePage() {
           <h1 className="font-display text-3xl md:text-4xl tracking-tight text-luxe">
             From idea to reel — in one prompt.
           </h1>
+          {/* Phase 3N — Cinematic welcome greeting. Resolves once per mount;
+              rotates among curated phrases. First-session vs returning is
+              derived from existing `recents` state — no new flag. */}
+          <p className="text-[10.5px] tracking-[0.32em] uppercase text-gold-400/60 font-medium">
+            {welcomeMessage}
+          </p>
           <p className="text-[13.5px] text-luxe/55 leading-relaxed max-w-xl">
             Type your idea, pick a platform, and Mugtee will draft the hook, full script,
             storyboard beats, captions and a thumbnail concept.
@@ -596,7 +655,7 @@ export default function WorkspacePage() {
               <Sparkles className="w-3 h-3" /> Start with a feeling
             </p>
             <div className="flex flex-wrap gap-2">
-              {STARTER_PROMPTS.map((p) => (
+              {starterPrompts.map((p) => (
                 <button
                   key={p}
                   onClick={() => { setTopic(p); usedStarterPromptRef.current = true; track('workspace_starter_clicked', { prompt: p, recents_count_bucket: recents.length === 0 ? 'none' : recents.length < 3 ? '1-2' : '3+' }) }}
