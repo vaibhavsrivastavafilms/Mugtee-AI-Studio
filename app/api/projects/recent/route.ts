@@ -19,13 +19,42 @@ export async function GET() {
     if (!user) return NextResponse.json({ projects: [], signed_in: false })
 
     // 1) Pull the user's last 12 projects.
-    const { data: projects, error: pErr } = await supabase
-      .from('content_pieces')
-      .select('id, title, platform, status, description, script, scheduled_for, created_at, updated_at, niche')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false, nullsFirst: false })
-      .limit(12)
-    if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
+    // Phase 3J — defensive SELECT. Mugtee preview/production Supabase
+    // projects may not have the optional columns (`scheduled_for`, `niche`).
+    // Try the rich SELECT first, and on schema mismatch fall back to the
+    // guaranteed minimum so the endpoint never 500s on a legitimate row set.
+    const RICH_COLS = 'id, title, platform, status, description, script, scheduled_for, created_at, updated_at, niche'
+    const MIN_COLS  = 'id, title, platform, status, description, script, created_at, updated_at'
+    let projects: any[] | null = null
+    let pErr: any = null
+    {
+      const r = await supabase
+        .from('content_pieces')
+        .select(RICH_COLS)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(12)
+      projects = r.data as any[]
+      pErr = r.error
+    }
+    if (pErr) {
+      // Likely "column X does not exist" — retry with the safe column list.
+      console.warn('[projects.recent] rich select failed, retrying minimal:', pErr?.message)
+      const r2 = await supabase
+        .from('content_pieces')
+        .select(MIN_COLS)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(12)
+      projects = r2.data as any[]
+      pErr = r2.error
+    }
+    if (pErr) {
+      console.error('[projects.recent] both selects failed:', pErr?.message)
+      return NextResponse.json({ projects: [], signed_in: true, degraded: true })
+    }
     if (!projects?.length) return NextResponse.json({ projects: [], signed_in: true })
 
     const projectIds = projects.map(p => p.id)
