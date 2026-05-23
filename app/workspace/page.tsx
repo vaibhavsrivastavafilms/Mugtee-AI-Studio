@@ -415,9 +415,9 @@ export default function WorkspacePage() {
       if (!res.ok) throw new Error(data?.error || 'Save failed')
       setSavedId(data.id)
       setLastSavedAt(Date.now())  // Phase 3A — power the "Saved moments ago" indicator.
-      // Phase 3I — transient cinematic "Project saved" pill (~2s).
+      // Phase 3K — transient inline "Project safely saved" confirmation (~2.5s).
       setSavedFlash(true)
-      setTimeout(() => setSavedFlash(false), 2000)
+      setTimeout(() => setSavedFlash(false), 2500)
       saveCountRef.current += 1
       if (!silent) {
         toast.success('Saved to your projects')
@@ -550,7 +550,7 @@ export default function WorkspacePage() {
               {savedFlash && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-200/95 tracking-[0.02em] animate-in fade-in slide-in-from-top-1 duration-300">
                   <Check className="w-2.5 h-2.5" />
-                  Project saved
+                  Project safely saved
                 </span>
               )}
               {recovered && !savedFlash && (
@@ -1030,16 +1030,24 @@ function VoiceoverPanel({
         <div className="min-h-[160px] rounded-xl border border-dashed border-white/[0.08] bg-black/20 flex flex-col items-center justify-center text-center p-6">
           <Volume2 className="w-5 h-5 text-gold-400/50 mb-3" />
           <p className="font-display text-[15px] text-luxe/80 italic leading-snug max-w-[280px]">
-            {hasScript
-              ? 'Pick a voice. Press generate. Hear the story breathe.'
-              : 'Write a script first \u2014 then Mugtee will turn it into spoken cinema.'}
+            Generate narration to hear the emotional pacing of your story.
           </p>
+          {!hasScript && (
+            <p className="text-[10.5px] text-luxe/40 italic leading-snug mt-2">
+              Write a script first to unlock voiceover generation.
+            </p>
+          )}
         </div>
       )}
 
       {/* Busy state — small placeholder; no flashy audio UI. */}
       {busy && (
         <div className="space-y-2">
+          {/* Phase 3K — muted status text during voice synthesis. */}
+          <p className="text-[11px] tracking-[0.04em] text-gold-300/75 inline-flex items-center gap-2">
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400 animate-pulse" />
+            Crafting narration and cinematic tone{'\u2026'}
+          </p>
           <Skeleton className="h-4 w-3/4 bg-white/[0.04]" />
           <Skeleton className="h-4 w-full bg-white/[0.04]" />
           <Skeleton className="h-4 w-5/6 bg-white/[0.04]" />
@@ -1614,6 +1622,10 @@ function StoryboardFrames({
   const [frames, setFrames] = useState<FrameAsset[]>([])
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  // Phase 3K — generation-confidence signals. Purely local state.
+  const [genStartedAt, setGenStartedAt] = useState<number | null>(null)
+  const [showSlowHint, setShowSlowHint] = useState(false)
+  const [genErrorMsg, setGenErrorMsg] = useState<string>('')
 
   // Phase 2D — Visual Mood Lock. Local state, persisted to localStorage so the
   // creator's mood choice sticks across sessions without any backend changes.
@@ -1695,6 +1707,14 @@ function StoryboardFrames({
     return () => { alive = false }
   }, [savedId])
 
+  // Phase 3K — if frame generation runs longer than 8s, surface a calm
+  // reassurance line so creators don't worry the system is stuck.
+  useEffect(() => {
+    if (!genStartedAt) { setShowSlowHint(false); return }
+    const t = setTimeout(() => setShowSlowHint(true), 8000)
+    return () => clearTimeout(t)
+  }, [genStartedAt])
+
   const canGenerate = shots.length >= 1 && !busy
 
   const generate = async () => {
@@ -1707,6 +1727,10 @@ function StoryboardFrames({
 
     setBusy(true)
     setProgress({ done: 0, total: targetShots.length })
+    // Phase 3K — generation-confidence signals.
+    setGenStartedAt(Date.now())
+    setShowSlowHint(false)
+    setGenErrorMsg('')
     track('storyboard_frames_clicked', { shot_count: targetShots.length, platform, mood, camera_style: cameraStyle, characters: characters.length })
     try {
       let pid = savedId
@@ -1772,6 +1796,7 @@ function StoryboardFrames({
       }
       if (collected.length === 0) {
         toast.error('Some cinematic frames couldn\u2019t render. Try again in a moment.')
+        setGenErrorMsg('Frame generation failed. Please try again.')
         track('storyboard_frames_failed', { shot_count: targetShots.length, retries: retryCount })
       } else if (collected.length < targetShots.length) {
         toast.message(`${collected.length}/${targetShots.length} cinematic frames ready \u00b7 some couldn\u2019t render`)
@@ -1783,6 +1808,8 @@ function StoryboardFrames({
     } finally {
       setBusy(false)
       setProgress(null)
+      setGenStartedAt(null)
+      setShowSlowHint(false)
     }
   }
 
@@ -1889,6 +1916,36 @@ function StoryboardFrames({
         </Button>
       </div>
 
+      {/* Phase 3K — frame generation progress label + slow-hint + error.
+          Calm, restrained copy; reuses existing skeleton placeholders. */}
+      {busy && progress && (
+        <div className="mb-2.5 space-y-1">
+          <p className="text-[11px] tracking-[0.04em] text-gold-300/75 inline-flex items-center gap-2">
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400 animate-pulse" />
+            Generating cinematic frames{'\u2026'}
+            <span className="text-luxe/50 font-mono tabular-nums">
+              {progress.done} of {progress.total} frames ready
+            </span>
+          </p>
+          {showSlowHint && (
+            <p className="text-[10.5px] italic text-luxe/35 leading-snug">
+              High-quality cinematic renders can take a few moments.
+            </p>
+          )}
+        </div>
+      )}
+
+      {!busy && genErrorMsg && frames.length === 0 && (
+        <div className="mb-2.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.05] px-3 py-2.5">
+          <p className="text-[11.5px] text-rose-200/85 leading-snug">
+            {genErrorMsg}
+          </p>
+          <p className="text-[10.5px] text-luxe/45 italic leading-snug mt-0.5">
+            Use the regenerate button above to try again.
+          </p>
+        </div>
+      )}
+
       {(frames.length > 0 || busy) && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {frames.map((f, i) => (
@@ -1955,11 +2012,9 @@ function StoryboardFrames({
         </div>
       )}
 
-      {frames.length === 0 && !busy && (
+      {frames.length === 0 && !busy && !genErrorMsg && (
         <p className="text-[11.5px] text-luxe/45 italic leading-snug">
-          {savedId
-            ? `Generate ${Math.min(shots.length, 3)} cinematic still${Math.min(shots.length, 3) === 1 ? '' : 's'} from this storyboard.`
-            : `We'll save your project once, then generate ${Math.min(shots.length, 3)} cinematic still${Math.min(shots.length, 3) === 1 ? '' : 's'}.`}
+          Your cinematic frames will appear here.
         </p>
       )}
     </div>
