@@ -178,25 +178,11 @@ export function ViralQuickStart() {
   )
   const cinematicMode = cinematicTones.includes(String(v.tone))
 
-  // ─── Quick action chips — every chip is one-tap intent. ────────
-  const CHIPS = [
-    { id: 'viral',       label: 'Viral Reel',         icon: Flame,    platform: 'instagram', tone: 'cinematic_emotional' as const },
-    { id: 'doc',         label: 'Documentary',        icon: Mic,      platform: 'youtube',   tone: 'documentary' as const,        faceless: true },
-    { id: 'hook',        label: 'Hook Generator',     icon: Quote,    platform: 'instagram', tone: 'funny_relatable' as const },
-    { id: 'faceless',    label: 'Faceless Studio',    icon: Film,     platform: 'youtube',   tone: 'cinematic_emotional' as const, faceless: true },
-    { id: 'research',    label: 'Deep Research',      icon: Search,                                                              inline: 'research' as const },
-    { id: 'script',      label: 'Cinematic Script',   icon: BookOpen, platform: 'youtube',   tone: 'storytelling' as const },
-  ]
-
-  const onChip = (chip: typeof CHIPS[number]) => {
-    if ((chip as any).inline) { setPanel((chip as any).inline); return }
-    if (chip.platform) v.setPlatform(chip.platform as Platform)
-    if (chip.tone)     v.setTone(chip.tone as any)
-    if ((chip as any).faceless) { setFacelessOpen(true); return }
-    if (v.topic.trim()) { v.generate(); return }
-    // No topic yet — focus the input
-    document.getElementById('mugtee-main-input')?.focus()
-  }
+  // V2.0 — the old CHIPS array (Viral Reel · Documentary · Hook · Faceless · Research ·
+  // Cinematic Script · DNA · Plan Week) has been retired in favour of the InlineSuggestions
+  // component below. Underlying handlers (faceless, planner, panel, platform, tone, generate)
+  // are still wired — the suggestion strip now triggers them contextually based on what the
+  // creator is typing.
 
   return (
     <>
@@ -322,50 +308,36 @@ export function ViralQuickStart() {
           </div>
         </div>
 
-        {/* ─── Quick action chips (all 6) ─── */}
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-          {CHIPS.map(chip => {
-            const Icon = chip.icon
-            const active = (chip as any).inline && panel === (chip as any).inline
-            return (
-              <button
-                key={chip.id}
-                onClick={() => onChip(chip)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] sm:text-[11.5px] tracking-wide transition group',
-                  active
-                    ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
-                    : 'bg-white/[0.035] border-white/[0.08] hover:bg-gold-500/10 hover:border-gold-500/40 text-luxe/85 hover:text-gold-200'
-                )}
-              >
-                <Icon className="w-3.5 h-3.5 text-gold-400/80 group-hover:text-gold-300" />
-                {chip.label}
-              </button>
-            )
-          })}
-          {/* Secondary tools — DNA + Plan Week kept compact */}
-          <button
-            onClick={() => togglePanel('dna')}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] tracking-wide transition',
-              panel === 'dna'
-                ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
-                : 'bg-white/[0.035] border-white/[0.08] hover:border-gold-500/40 text-luxe/70 hover:text-gold-200'
-            )}
-            aria-label="Creator DNA"
-            title="Niche · Audience · Tone · Platform"
-          >
-            <Settings2 className="w-3.5 h-3.5" /> DNA
-            <ChevronDown className={cn('w-3 h-3 transition', panel === 'dna' && 'rotate-180')} />
-          </button>
-          <button
-            onClick={() => setPlannerOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.035] border border-white/[0.08] hover:border-gold-500/40 text-luxe/70 hover:text-gold-200 text-[11px] tracking-wide transition"
-            title="Plan a full week of content"
-          >
-            <Compass className="w-3.5 h-3.5" /> Plan Week
-          </button>
-        </div>
+        {/* ─── V2.0 — Inline AI suggestions ─────────────────────────
+            Replaces the old 8-chip floating toolbar with predictive inline pills
+            that morph between starter ideas (empty input) and keyword-matched
+            intents (typing). Underlying chip handlers are preserved 1:1 — these
+            pills are just a smarter, calmer surface over the same actions. */}
+        <InlineSuggestions
+          topic={v.topic}
+          activePanel={panel}
+          onIntent={(intent) => {
+            // 1) "Inline-panel" intents (DNA / Research) just toggle the existing panel.
+            if (intent.panel) { setPanel(intent.panel); return }
+            // 2) Faceless / Planner dialogs open in place.
+            if (intent.faceless) { setFacelessOpen(true); return }
+            if (intent.planner)  { setPlannerOpen(true);  return }
+            // 3) Workspace handoff — for storyboard/frames-driven intents we send the
+            //    creator into /workspace pre-filled. Reuses the workspace ?topic= deep-link.
+            if (intent.workspace) {
+              const url = v.topic.trim()
+                ? `/workspace?topic=${encodeURIComponent(v.topic.trim())}`
+                : '/workspace'
+              router.push(url)
+              return
+            }
+            // 4) Standard one-tap intent: set platform + tone, then generate (or focus).
+            if (intent.platform) v.setPlatform(intent.platform as Platform)
+            if (intent.tone)     v.setTone(intent.tone as any)
+            if (v.topic.trim()) { v.generate(); return }
+            document.getElementById('mugtee-main-input')?.focus()
+          }}
+        />
 
         {/* ─── Inline contextual panels (DNA / Research / Reference) ─── */}
         <AnimatePresence initial={false}>
@@ -537,3 +509,119 @@ function DnaField({ label, children }: { label: string; children: React.ReactNod
     </div>
   )
 }
+
+// =====================================================================
+// V2.0 — INLINE AI SUGGESTIONS
+// Replaces the old 8-chip floating toolbar. A single calm pill row that
+// morphs between starter intents (empty input) and keyword-matched
+// predictions (typing). Pure local matching — no API, no embeddings.
+// =====================================================================
+
+type SuggestionIntent = {
+  panel?: InlinePanel
+  faceless?: boolean
+  planner?: boolean
+  workspace?: boolean
+  platform?: string
+  tone?: string
+}
+type Suggestion = {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  keywords: string[]      // matched against the topic text (lowercased)
+  intent: SuggestionIntent
+  starter?: boolean       // shown when input is empty
+  weight?: number         // higher = preferred when multiple intents tie
+}
+
+const SUGGESTION_LIB: Suggestion[] = [
+  // Documentary / story
+  { id: 'doc',  label: 'Documentary Script', icon: Mic,      keywords: ['documentary','doc','story','biography','life','journey','real','true story','interview'], intent: { faceless: true, platform: 'youtube', tone: 'documentary' }, starter: true, weight: 2 },
+  // Viral reel
+  { id: 'viral', label: 'Viral Reel Script', icon: Flame,    keywords: ['viral','trending','fyp','scroll','stop the scroll','reach','blow up','reel','short'], intent: { platform: 'instagram', tone: 'cinematic_emotional' }, starter: true, weight: 2 },
+  // Cinematic / film
+  { id: 'cine', label: 'Cinematic Script',   icon: BookOpen, keywords: ['cinematic','film','movie','noir','frame','shot','scene','cinematography'], intent: { platform: 'youtube', tone: 'storytelling' } },
+  // Hook
+  { id: 'hook', label: 'Hook Generator',     icon: Quote,    keywords: ['hook','opening','intro','first line','attention','curiosity','scroll-stopping'], intent: { platform: 'instagram', tone: 'funny_relatable' } },
+  // Faceless
+  { id: 'face', label: 'Faceless Studio',    icon: Film,     keywords: ['faceless','voiceover','narrator','no face','no camera','b-roll','b roll','narrate'], intent: { faceless: true, platform: 'youtube', tone: 'cinematic_emotional' }, starter: true, weight: 1 },
+  // Research
+  { id: 'res',  label: 'Deep Research',      icon: Search,   keywords: ['research','study','data','facts','statistics','deep dive','sources'], intent: { panel: 'research' } },
+  // DNA
+  { id: 'dna',  label: 'Tune Creator DNA',   icon: Settings2,keywords: ['niche','audience','tone','dna','identity','persona','brand','positioning'], intent: { panel: 'dna' } },
+  // Plan Week
+  { id: 'plan', label: 'Plan This Week',     icon: Compass,  keywords: ['week','calendar','plan','schedule','batch','consistency','content calendar'], intent: { planner: true }, starter: true, weight: 1 },
+  // Workspace handoffs (Phase 2A)
+  { id: 'frame',label: 'Generate Frames',    icon: Film,     keywords: ['frame','still','image','visual','storyboard','board','shot list','reference'], intent: { workspace: true } },
+  { id: 'sb',   label: 'Build Storyboard',   icon: BookOpen, keywords: ['storyboard','board','shot','scene','sequence','beats'], intent: { workspace: true } },
+  // Caption pack
+  { id: 'cap',  label: 'Caption Pack',       icon: Quote,    keywords: ['caption','captions','hashtag','hashtags','ig','instagram caption'], intent: { platform: 'instagram', tone: 'funny_relatable' } },
+  // Emotional hook (special)
+  { id: 'emo',  label: 'Emotional Hook',     icon: Quote,    keywords: ['emotional','heartfelt','feel','feeling','loneliness','grief','nostalgia','memory'], intent: { platform: 'instagram', tone: 'cinematic_emotional' } },
+]
+
+function matchSuggestions(topic: string, limit = 4): Suggestion[] {
+  const t = topic.trim().toLowerCase()
+  if (!t) return SUGGESTION_LIB.filter(s => s.starter).slice(0, limit)
+
+  // Score each suggestion: count of distinct keyword hits + weight bonus.
+  const scored = SUGGESTION_LIB
+    .map(s => {
+      let score = 0
+      for (const kw of s.keywords) {
+        if (t.includes(kw)) score += kw.length > 6 ? 2 : 1 // longer keywords count more
+      }
+      score += s.weight || 0
+      return { s, score }
+    })
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+
+  if (scored.length === 0) {
+    // Sensible fallback when nothing matches: starter set so the surface is never empty.
+    return SUGGESTION_LIB.filter(s => s.starter).slice(0, limit)
+  }
+  return scored.slice(0, limit).map(x => x.s)
+}
+
+function InlineSuggestions({
+  topic, activePanel, onIntent,
+}: {
+  topic: string
+  activePanel: InlinePanel
+  onIntent: (intent: SuggestionIntent) => void
+}) {
+  const suggestions = useMemo(() => matchSuggestions(topic, 4), [topic])
+  if (suggestions.length === 0) return null
+  const isEmpty = !topic.trim()
+  return (
+    <div className="mt-4 flex flex-col items-center gap-2">
+      <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/55">
+        {isEmpty ? 'Try one of these' : 'Mugtee suggests'}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+        {suggestions.map(s => {
+          const Icon = s.icon
+          const active = s.intent.panel && activePanel === s.intent.panel
+          return (
+            <button
+              key={s.id}
+              onClick={() => onIntent(s.intent)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] sm:text-[11.5px] tracking-wide transition group',
+                active
+                  ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
+                  : 'bg-white/[0.025] border-white/[0.06] hover:bg-gold-500/10 hover:border-gold-500/40 text-luxe/80 hover:text-gold-200'
+              )}
+            >
+              <Icon className="w-3.5 h-3.5 text-gold-400/75 group-hover:text-gold-300" />
+              {s.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
