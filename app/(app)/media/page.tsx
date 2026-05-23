@@ -423,14 +423,16 @@ function LibraryAssetsTab({
   onOpen: (a: LibraryAsset) => void
 }) {
   const Icon = kind === 'images' ? ImgIcon : kind === 'narrations' ? Volume2 : Download
+  // Phase 3P — Creator Trust empty-state copy. Cinematic, reassuring,
+  // describes WHERE the assets live, not what's missing.
   const emptyTitle =
-    kind === 'images'     ? 'No generated images yet'
-    : kind === 'narrations' ? 'No voiceovers yet'
-    : 'No exports yet'
+    kind === 'images'     ? 'Your cinematic archive lives here'
+    : kind === 'narrations' ? 'Narrations stay connected to your story'
+    : 'Your exports will gather here'
   const emptyDesc =
-    kind === 'images'     ? 'Generate cinematic prompts from a script, then click Generate Images.'
-    : kind === 'narrations' ? 'Open a script, click Generate Voiceover, and pick a speaker.'
-    : 'Export a script as .txt or .doc \u2014 it\'ll show up here.'
+    kind === 'images'     ? 'Generated visuals will appear here, grouped by project.'
+    : kind === 'narrations' ? 'Generate a voiceover from any script and it\u2019ll live here \u2014 playable and ready to download.'
+    : 'Every time you export a script, it\u2019s safely archived in this view.'
 
   if (loading) {
     return <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">{[0,1,2,3,4,5,6,7].map(i => <Skeleton key={i} className="aspect-square" />)}</div>
