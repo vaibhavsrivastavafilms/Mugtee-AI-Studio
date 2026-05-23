@@ -824,7 +824,107 @@ const MOOD_BY_ID: Record<string, { id: MoodId; label: string; suffix: string }> 
 
 const MOOD_STORAGE_KEY = 'mugtee:workspace:mood'
 
-function buildFramePrompt(shotText: string, index: number, moodId?: string) {
+// =====================================================================
+// Phase 2E — CHARACTER CONSISTENCY (heuristic-only, in-session memory)
+// Pure local string parsing. No NLP, no embeddings, no face models,
+// no DB, no API. Detects recurring character noun phrases across the
+// storyboard and accumulates lightweight visual descriptors so that
+// every frame mentioning the same character carries the same continuity
+// line into the existing prompt builder.
+// =====================================================================
+const ROLE_NOUNS: ReadonlySet<string> = new Set([
+  // Occupations / archetypes
+  'fisherman','astronaut','detective','teacher','farmer','priest','monk','soldier','sailor',
+  'writer','filmmaker','musician','director','painter','photographer','hunter','chef','baker',
+  'driver','doctor','nurse','dancer','singer','barber','mechanic','tailor','potter','poet',
+  'pilgrim','student','mentor','widow','widower','stranger','traveller','traveler','lover',
+  // Family relations (English + common Indian terms)
+  'father','mother','son','daughter','brother','sister','grandfather','grandmother',
+  'aaji','dadi','nani','dada','nana','grandpa','grandma','dad','mom','mum','papa',
+  'uncle','aunt','husband','wife','child','boy','girl','man','woman',
+])
+
+const DESCRIPTOR_WORDS: ReadonlySet<string> = new Set([
+  // Age / state
+  'old','young','aging','elderly','tired','weary','lonely','silent','quiet','stern',
+  'gentle','kind','sad','broken','rugged','weathered','wrinkled','frail',
+  // Look
+  'bearded','grey-haired','grey-bearded','long-haired','short-haired','barefoot','blind',
+  'tall','short','slim','thin','small','tiny','little',
+])
+
+type CharacterMemory = {
+  key: string              // canonical role noun, e.g. 'fisherman'
+  role: string             // same as key
+  display: string          // 'Old Fisherman' for the chip
+  descriptors: string[]    // collected adjectives across all mentions, order-stable
+  shotIndices: number[]    // shot indices where this role was mentioned
+}
+
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Detect recurring characters from the parsed shot list.
+// A "recurring" character = role noun appearing in 2+ distinct shots.
+function detectCharacters(shots: string[]): CharacterMemory[] {
+  const map = new Map<string, CharacterMemory>()
+  shots.forEach((shotText, idx) => {
+    // Tokenize without apostrophes so possessives ("fisherman's") still match the
+    // base role noun. Hyphens preserved so "grey-bearded" stays a single token.
+    const tokens = (shotText.toLowerCase().match(/[a-z][a-z-]*/g) || [])
+    for (let i = 0; i < tokens.length; i++) {
+      const w = tokens[i]
+      if (!ROLE_NOUNS.has(w)) continue
+      const lead2 = tokens[i - 2]
+      const lead1 = tokens[i - 1]
+      const found: string[] = []
+      if (lead2 && DESCRIPTOR_WORDS.has(lead2)) found.push(lead2)
+      if (lead1 && DESCRIPTOR_WORDS.has(lead1)) found.push(lead1)
+      let entry = map.get(w)
+      if (!entry) {
+        entry = { key: w, role: w, display: titleCase(w), descriptors: [], shotIndices: [] }
+        map.set(w, entry)
+      }
+      if (!entry.shotIndices.includes(idx)) entry.shotIndices.push(idx)
+      for (const d of found) {
+        if (!entry.descriptors.includes(d)) entry.descriptors.push(d)
+      }
+    }
+  })
+  // Recurring only
+  return Array.from(map.values())
+    .filter(c => c.shotIndices.length >= 2)
+    .map(c => {
+      const lead = c.descriptors[0]
+      c.display = titleCase(lead ? `${lead} ${c.role}` : c.role)
+      return c
+    })
+}
+
+// Returns the characters that actually appear in a specific shot's text.
+function charactersInShot(shotText: string, characters: CharacterMemory[]): CharacterMemory[] {
+  if (!characters.length) return []
+  const tokens = new Set((shotText.toLowerCase().match(/[a-z][a-z-]*/g) || []))
+  return characters.filter(c => tokens.has(c.role))
+}
+
+// Build a continuity line for the prompt from an array of characters.
+function continuityLineFor(present: CharacterMemory[]): string {
+  if (!present.length) return ''
+  const phrases = present.map(c => {
+    const descs = c.descriptors.length ? c.descriptors.join(' ') + ' ' : ''
+    return `${descs}${c.role}`.trim()
+  })
+  return `\n\nMaintain visual consistency with previous frames: ${phrases.join('; ')}.`
+}
+
+function buildFramePrompt(
+  shotText: string,
+  index: number,
+  moodId?: string,
+  characters?: CharacterMemory[],
+) {
   const cinematicLayer = [
     'Cinematic film still. Real photography aesthetic.',
     'Shallow depth of field. 35mm grain. Natural motivated lighting.',
@@ -835,7 +935,10 @@ function buildFramePrompt(shotText: string, index: number, moodId?: string) {
   const moodSuffix = (moodId && MOOD_BY_ID[moodId])
     ? `\n\nVisual Mood Lock: ${MOOD_BY_ID[moodId].suffix}.`
     : ''
-  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}`
+  const continuitySuffix = characters && characters.length
+    ? continuityLineFor(charactersInShot(shotText, characters))
+    : ''
+  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}${continuitySuffix}`
 }
 
 // =====================================================================
@@ -870,6 +973,8 @@ function StoryboardFrames({
   platform?: string
 }) {
   const shots = useMemo(() => parseShots(storyboardText), [storyboardText])
+  // Phase 2E — derive recurring characters from the storyboard (in-session memory).
+  const characters = useMemo(() => detectCharacters(shots), [shots])
   const [frames, setFrames] = useState<FrameAsset[]>([])
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
@@ -912,7 +1017,7 @@ function StoryboardFrames({
     if (!canGenerate) return
     setBusy(true)
     setProgress({ done: 0, total: shots.length })
-    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood })
+    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood, characters: characters.length })
     try {
       let pid = savedId
       if (!pid && ensureSaved) pid = await ensureSaved()
@@ -931,7 +1036,7 @@ function StoryboardFrames({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               project_id: pid,
-              prompt: buildFramePrompt(shots[i], i, mood),
+              prompt: buildFramePrompt(shots[i], i, mood, characters),
               aspect_ratio: aspect,
             }),
           })
@@ -965,6 +1070,22 @@ function StoryboardFrames({
 
   return (
     <div className="mt-4 space-y-3">
+      {/* Phase 2E — Cinematic Character Continuity. Passive chips, low visual weight. */}
+      {characters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45 mr-1">Continuity</span>
+          {characters.map(c => (
+            <span
+              key={c.key}
+              title={c.descriptors.length ? `${c.descriptors.join(' ')} ${c.role} \u00b7 ${c.shotIndices.length} frames` : `${c.role} \u00b7 ${c.shotIndices.length} frames`}
+              className="px-2 py-0.5 rounded-full text-[10px] tracking-[0.04em] bg-white/[0.025] border border-white/[0.07] text-luxe/65"
+            >
+              {c.display}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Phase 2D — Visual Mood Lock pill picker. Subtle, compact, gold-active. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45 mr-1">Visual Mood</span>
@@ -1034,7 +1155,7 @@ function StoryboardFrames({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       project_id: pid,
-                      prompt: buildFramePrompt(shotText, i, mood),
+                      prompt: buildFramePrompt(shotText, i, mood, characters),
                       aspect_ratio: frameAspectFor(platform),
                     }),
                   })
