@@ -18,6 +18,7 @@ import {
   Sparkles, Plus, Loader2, FileText, Film, Image as ImageIcon,
   Zap, MessageCircle, Save, ChevronRight, Layers,
   Copy, Download, FileType, RefreshCw, MoreHorizontal,
+  Home, PenLine, BookOpen, Mic, Settings as SettingsIcon, Compass,
 } from 'lucide-react'
 
 const PLATFORMS = [
@@ -357,6 +358,17 @@ export default function WorkspacePage() {
             <span className="font-display text-base tracking-tight text-luxe group-hover:text-gold-200 transition">Mugtee</span>
           </Link>
 
+          {/* Phase 3 — quiet creator navigation. Compact muted icons. No analytics, no agents. */}
+          <nav aria-label="Mugtee navigation" className="space-y-0.5">
+            <NavLink href="/" icon="home" label="Home" />
+            <NavLink href="/workspace" icon="create" label="Create" active />
+            <NavLink href="/dashboard" icon="scripts" label="Scripts" />
+            <NavLink href="/dashboard" icon="storyboards" label="Storyboards" />
+            <NavLink href="#" icon="voice" label="Voiceovers" soon />
+            <NavLink href="/media" icon="library" label="Library" />
+            <NavLink href="/settings" icon="settings" label="Settings" />
+          </nav>
+
           <Button onClick={newProject} variant="outline"
             className="w-full h-10 gap-2 border-gold-500/30 hover:border-gold-500/60 bg-white/[0.03] text-luxe hover:text-gold-200">
             <Plus className="w-4 h-4" /> New Project
@@ -425,7 +437,7 @@ export default function WorkspacePage() {
 
       {/* CENTER PANEL */}
       <main className="flex-1 px-4 lg:px-10 py-8 lg:py-12 max-w-3xl mx-auto w-full">
-        <div className="space-y-1 mb-6">
+        <div className="space-y-1 mb-3">
           <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/80">Creator Workspace</p>
           <h1 className="font-display text-3xl md:text-4xl tracking-tight text-luxe">
             From idea to reel — in one prompt.
@@ -434,6 +446,18 @@ export default function WorkspacePage() {
             Type your idea, pick a platform, and Mugtee will draft the hook, full script,
             storyboard beats, captions and a thumbnail concept.
           </p>
+        </div>
+
+        {/* Phase 3 — quiet creative-flow guidance. Two subtle hints, no dashboards. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10.5px] text-luxe/40 tracking-[0.04em]">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/60" />
+            Mugtee detects emotional pacing
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/60" />
+            Optimized for short-form storytelling
+          </span>
         </div>
 
         {/* Empty-state inspiration — appears until the creator has output or a draft topic. */}
@@ -510,22 +534,25 @@ export default function WorkspacePage() {
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
         <div className="lg:hidden mt-6">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} mobile />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} mobile />
         </div>
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} />
         </div>
       </aside>
+
+      {/* Phase 3 — quiet cinematic mascot, low presence, subtle gold halo. */}
+      <WorkspaceMascot />
     </div>
   )
 }
 
 function OutputPanel({
-  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile, ensureSaved, platform,
+  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile, ensureSaved, platform, tone,
 }: {
   output: GenOutput | null
   loading: boolean
@@ -539,6 +566,7 @@ function OutputPanel({
   mobile?: boolean
   ensureSaved?: () => Promise<string | null>
   platform?: string
+  tone?: string
 }) {
   // V1.10 — Magic moment. When `revealNonce` bumps (after every successful
   // generation or project rehydration), scroll the output into view and apply a
@@ -570,7 +598,10 @@ function OutputPanel({
         glow ? 'ring-1 ring-gold-500/40 shadow-gold-glow' : 'ring-0 shadow-none'
       }`}
     >
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Phase 3 — AI Director intelligence panel. Real state only, no fake metrics. */}
+      <AIDirectorCard tone={tone || 'cinematic'} platform={platform || 'instagram_reel'} output={output} />
+
+      <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
         <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
           <Sparkles className="w-3 h-3" /> Mugtee Output
         </p>
@@ -631,9 +662,12 @@ function OutputBody({ loading, text }: { loading: boolean; text: string }) {
   if (!text) {
     return (
       <div className="h-full min-h-[200px] rounded-xl border border-dashed border-white/[0.08] bg-black/20 flex flex-col items-center justify-center text-center p-6">
-        <Sparkles className="w-5 h-5 text-gold-400/50 mb-2" />
-        <p className="text-[12.5px] text-luxe/45 max-w-[220px] leading-relaxed">
-          Type an idea and hit <Badge variant="outline" className="mx-1 px-1.5 py-0 text-[10px] border-gold-500/30">Generate</Badge> to see results here.
+        <Sparkles className="w-5 h-5 text-gold-400/50 mb-3" />
+        <p className="font-display text-[15px] text-luxe/80 italic leading-snug max-w-[260px]">
+          Some stories arrive like memories.
+        </p>
+        <p className="text-[11.5px] text-luxe/40 max-w-[240px] leading-relaxed mt-2">
+          Type an idea and hit <Badge variant="outline" className="mx-1 px-1.5 py-0 text-[10px] border-gold-500/30">Generate</Badge> — Mugtee will read the pacing and atmosphere from your story.
         </p>
       </div>
     )
@@ -1166,6 +1200,7 @@ function StoryboardFrames({
   const setMood = useCallback((next: MoodId) => {
     setMoodState(next)
     try { window.localStorage.setItem(MOOD_STORAGE_KEY, next) } catch {}
+    try { window.dispatchEvent(new CustomEvent('mugtee:directing-changed')) } catch {}
     track('storyboard_mood_changed', { mood: next })
   }, [])
 
@@ -1181,6 +1216,7 @@ function StoryboardFrames({
   const setCameraStyle = useCallback((next: CameraStyleId) => {
     setCameraStyleState(next)
     try { window.localStorage.setItem(CAMERA_STYLE_STORAGE_KEY, next) } catch {}
+    try { window.dispatchEvent(new CustomEvent('mugtee:directing-changed')) } catch {}
     track('camera_style_changed', { style: next, project_id: savedId || undefined })
   }, [savedId])
 
@@ -1593,4 +1629,204 @@ function FrameAction({
     </button>
   )
 }
+
+// =====================================================================
+// Phase 3 — Cinematic Creator Cockpit helpers
+// Compact muted icons, subtle hover glow, no analytics noise.
+// =====================================================================
+const NAV_ICONS = {
+  home: Home,
+  create: PenLine,
+  scripts: FileText,
+  storyboards: Film,
+  voice: Mic,
+  library: BookOpen,
+  settings: SettingsIcon,
+} as const
+
+function NavLink({
+  href, icon, label, active, soon,
+}: {
+  href: string
+  icon: keyof typeof NAV_ICONS
+  label: string
+  active?: boolean
+  soon?: boolean
+}) {
+  const Icon = NAV_ICONS[icon]
+  const cls = active
+    ? 'bg-gold-500/10 text-gold-200 ring-1 ring-gold-500/30'
+    : 'text-luxe/70 hover:text-luxe hover:bg-white/[0.04]'
+  const inner = (
+    <>
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      <span className="truncate">{label}</span>
+      {soon && (
+        <span className="ml-auto text-[8.5px] tracking-[0.18em] uppercase text-luxe/35 font-normal">
+          soon
+        </span>
+      )}
+    </>
+  )
+  if (soon) {
+    return (
+      <div
+        title="Coming soon"
+        className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] cursor-not-allowed opacity-70 ${cls}`}
+      >
+        {inner}
+      </div>
+    )
+  }
+  return (
+    <Link
+      href={href}
+      className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] transition ${cls}`}
+    >
+      {inner}
+    </Link>
+  )
+}
+
+// Floating mascot — subtle idle glow, low presence, no motion library required.
+function WorkspaceMascot() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none select-none fixed bottom-5 right-5 lg:right-[460px] xl:right-[520px] z-20 hidden md:block"
+    >
+      <div className="relative">
+        <div className="absolute inset-0 rounded-full bg-gold-500/20 blur-2xl animate-pulse" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/api/mascot"
+          alt=""
+          width={56}
+          height={56}
+          className="relative w-14 h-14 rounded-full object-cover ring-1 ring-gold-500/30 shadow-[0_0_30px_-6px_rgba(245,196,77,0.45)]"
+        />
+      </div>
+    </div>
+  )
+}
+
+// =====================================================================
+// AI DIRECTOR CARD — Phase 3
+// Lightweight cinematic intelligence panel. Everything shown is grounded
+// in REAL workspace state (tone / mood / camera style / storyboard text /
+// timing engine). No fake metrics, no fabricated scores, no charts.
+// =====================================================================
+function AIDirectorCard({
+  tone, platform, output,
+}: {
+  tone: string
+  platform: string
+  output: GenOutput | null
+}) {
+  // Read mood + camera style from localStorage. Updates via custom event
+  // dispatched by StoryboardFrames when the creator changes them.
+  const [mood, setMood] = useState<string>('emotional_indie')
+  const [cameraStyle, setCameraStyle] = useState<string>('intimate_handheld')
+
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const m = window.localStorage.getItem(MOOD_STORAGE_KEY)
+        const c = window.localStorage.getItem(CAMERA_STYLE_STORAGE_KEY)
+        if (m && MOOD_BY_ID[m]) setMood(m)
+        if (c && CAMERA_STYLE_BY_ID[c]) setCameraStyle(c)
+      } catch {}
+    }
+    sync()
+    const onChange = () => sync()
+    window.addEventListener('storage', onChange)
+    window.addEventListener('mugtee:directing-changed' as any, onChange)
+    return () => {
+      window.removeEventListener('storage', onChange)
+      window.removeEventListener('mugtee:directing-changed' as any, onChange)
+    }
+  }, [])
+
+  const storyboardText = output?.storyboard || ''
+  const hasStoryboard = storyboardText.trim().length > 20
+
+  // Story Feel — derived from tone.
+  const toneLabel = TONES.find(t => t.value === tone)?.label || 'Cinematic'
+  // Cinematic Tone — derived from current mood lock.
+  const moodLabel = MOOD_BY_ID[mood]?.label || 'Emotional Indie'
+  // Pacing Style — derived from camera style.
+  const cameraLabel = CAMERA_STYLE_BY_ID[cameraStyle]?.label || 'Intimate Handheld'
+
+  // Runtime + dominant pacing tag — both derived from the local timing engine.
+  const { runtime, dominantTag } = useMemo(() => {
+    if (!hasStoryboard) return { runtime: null as number | null, dominantTag: null as string | null }
+    const blocks = parseAllShotBlocks(storyboardText)
+    if (!blocks.length) return { runtime: null, dominantTag: null }
+    const timings = blocks.map((s, i) => estimateShotTiming(s, i, blocks.length))
+    const total = timings.reduce((sum, t) => sum + t.durationSeconds, 0)
+    const tally: Record<string, number> = {}
+    for (const t of timings) if (t.tag) tally[t.tag] = (tally[t.tag] || 0) + 1
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]
+    return { runtime: total, dominantTag: top ? top[0] : null }
+  }, [storyboardText, hasStoryboard])
+
+  // Frame readiness — derived from storyboard existence (no fake numbers).
+  const frameReadiness = !hasStoryboard
+    ? 'Awaiting storyboard'
+    : 'Ready to generate'
+
+  const platformLabel = PLATFORMS.find(p => p.value === platform)?.label || platform
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-black/30 backdrop-blur-xl p-4 space-y-3.5">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
+          <Compass className="w-3 h-3" /> AI Director
+        </p>
+        <span className="text-[9.5px] tracking-[0.18em] uppercase text-luxe/40">
+          {platformLabel}
+        </span>
+      </div>
+
+      <p className="text-[11.5px] text-luxe/55 italic leading-snug">
+        {hasStoryboard
+          ? 'Detected from your current story:'
+          : 'Mugtee will read your story\u2019s pacing, atmosphere and framing as it forms.'}
+      </p>
+
+      <dl className="space-y-2">
+        <DirectorRow label="Story Feel"        value={toneLabel} />
+        <DirectorRow label="Cinematic Tone"    value={moodLabel} />
+        <DirectorRow label="Camera Framing"    value={cameraLabel} />
+        <DirectorRow
+          label="Pacing"
+          value={hasStoryboard ? (dominantTag || 'Mixed cadence') : '\u2014'}
+          muted={!hasStoryboard}
+        />
+        <DirectorRow
+          label="Runtime"
+          value={hasStoryboard && runtime ? `\u2248 ${runtime}s` : '\u2014'}
+          muted={!hasStoryboard}
+        />
+        <DirectorRow
+          label="Frames"
+          value={frameReadiness}
+          muted={!hasStoryboard}
+        />
+      </dl>
+    </div>
+  )
+}
+
+function DirectorRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-[10px] tracking-[0.22em] uppercase text-luxe/40">{label}</dt>
+      <dd className={`text-[11.5px] tracking-[0.02em] text-right ${muted ? 'text-luxe/35' : 'text-luxe/85'}`}>
+        {value}
+      </dd>
+    </div>
+  )
+}
+
 
