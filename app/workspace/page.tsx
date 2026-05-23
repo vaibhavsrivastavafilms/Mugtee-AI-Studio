@@ -1175,6 +1175,19 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
     has_saved_project: !!savedId,
     has_title: !!projectTitle,
   }
+  // Phase 3M — notify the new /api/workspace/exports endpoint so the project
+  // is promoted to 'scheduled' in the pipeline. Best-effort, fire-and-forget;
+  // never blocks the actual export. Only runs when a saved project exists.
+  const recordExport = (format: 'copy' | 'txt' | 'md') => {
+    if (!savedId) return
+    try {
+      fetch('/api/workspace/exports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: savedId, format }),
+      }).catch(() => {})
+    } catch {}
+  }
   const stamp = () => {
     const d = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -1200,6 +1213,7 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
       toast.success('Copied to clipboard')
       track('workspace_export_copy',  { ...baseExportPayload, export_type: 'copy' })
       track('workspace_export',       { ...baseExportPayload, export_type: 'copy' })
+      recordExport('copy')
     } catch {
       toast.error('Could not copy — try the Download buttons instead.')
       track('workspace_export_failed', { ...baseExportPayload, export_type: 'copy' })
@@ -1212,6 +1226,7 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
       toast.success('TXT downloaded')
       track('workspace_export_txt', { ...baseExportPayload, export_type: 'txt' })
       track('workspace_export',     { ...baseExportPayload, export_type: 'txt' })
+      recordExport('txt')
     } else {
       toast.error('Download failed')
       track('workspace_export_failed', { ...baseExportPayload, export_type: 'txt' })
@@ -1224,6 +1239,7 @@ function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; 
       toast.success('Markdown downloaded')
       track('workspace_export_md', { ...baseExportPayload, export_type: 'md' })
       track('workspace_export',    { ...baseExportPayload, export_type: 'md' })
+      recordExport('md')
     } else {
       toast.error('Download failed')
       track('workspace_export_failed', { ...baseExportPayload, export_type: 'md' })
