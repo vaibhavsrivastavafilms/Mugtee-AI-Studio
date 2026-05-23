@@ -131,8 +131,8 @@ export function YoutubeStatusBadge({ item }: { item: ContentPiece }) {
       : Inner
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] tracking-[0.15em] uppercase bg-rose-500/15 text-rose-300 border border-rose-500/30" title={item.youtube_error || ''}>
-      <X className="w-2.5 h-2.5" /> Failed
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] tracking-[0.15em] uppercase bg-amber-500/[0.08] text-amber-200/75 border border-amber-500/20" title={item.youtube_error || ''}>
+      <X className="w-2 h-2 opacity-70" /> Generation issue
     </span>
   )
 }

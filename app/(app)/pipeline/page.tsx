@@ -130,7 +130,7 @@ export default function PipelinePage() {
           <div className="flex-1 min-w-0">
             {/* Phase 3H — desktop fits all 6 columns in a responsive grid (no
                 horizontal scroll). Mobile/tablet still uses snap-x scroll. */}
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-6 lg:gap-3 pb-4 scrollbar-luxe -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory sm:snap-none lg:snap-none">
+            <div className="flex gap-4 sm:gap-5 overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-6 lg:gap-4 pb-4 scrollbar-luxe -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory sm:snap-none lg:snap-none">
               {visibleColumns.map((col, i) => {
                 // Phase 3J — legacy hydration. Workspace projects saved
                 // before the Phase 3I status-derivation fix carry the
@@ -242,7 +242,7 @@ function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: C
     idea:      { title: 'No ideas yet',      sub: 'Generate viral hooks in AI Studio or click + to add one' },
     scripting: { title: 'Nothing in scripting', sub: 'Drag a card here when you start writing the script' },
     shooting:  { title: 'Nothing shooting',  sub: 'Move cards here on the day of the shoot' },
-    editing:   { title: 'Nothing in edit',   sub: 'Drag cards here while your video is in post' },
+    editing:   { title: 'Nothing in edit yet', sub: 'Generated scenes will appear here while your story is refined.' },
     scheduled: { title: 'Nothing scheduled', sub: 'Schedule a card and it lands here automatically' },
     published: { title: 'Nothing published', sub: 'Published posts appear here with their links' },
   } as any
@@ -263,7 +263,7 @@ function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: C
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div ref={setNodeRef} className="flex-1 px-3 pb-3 space-y-2 min-h-[200px] max-h-[calc(100vh-260px)] overflow-y-auto scrollbar-luxe">
+        <div ref={setNodeRef} className="flex-1 px-3 pb-4 pt-1 space-y-2.5 min-h-[200px] max-h-[calc(100vh-260px)] overflow-y-auto scrollbar-luxe">
           {isInitial ? (
             <>
               <div className="h-[68px] rounded-xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
@@ -320,7 +320,7 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
   return (
     <div className={cn(
       'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all relative',
-      'hover:border-gold-500/40 hover:shadow-cinema cursor-grab active:cursor-grabbing',
+      'hover:border-gold-500/40 hover:shadow-lg hover:shadow-black/30 cursor-grab active:cursor-grabbing',
       dragging ? 'border-gold-500/60 shadow-gold-glow-lg rotate-2 scale-105' : selected ? 'border-gold-500/60 bg-gold-500/[0.08] shadow-cinema' : 'border-white/[0.06]'
     )}>
       {/* Phase P3 — selection toggle (always rendered; subtly shown when nothing selected, prominent when in select-mode) */}

@@ -30,6 +30,35 @@ import { ProjectActivityTimeline } from '@/components/project/activity-timeline'
 import { StoryboardPanel } from '@/components/script/storyboard-panel'
 import { track } from '@/lib/posthog'
 
+// Phase 1.5 — Calm Cinematic UX: never render raw serialized workspace JSON
+// to the creator. `content_pieces.script` can carry a stringified workspace
+// payload (`{"workspace":true,"prompt":{...},"output":{hook,script,...}}`)
+// from older drafts. This helper detects JSON safely, parses it, and returns
+// the most creator-facing excerpt in priority order. Pure, side-effect free.
+function safeScriptText(raw: any, fallback?: string | null): string {
+  const src = typeof raw === 'string' ? raw.trim() : ''
+  const fb  = (typeof fallback === 'string' ? fallback : '').trim()
+  if (!src) return fb
+  if (src.startsWith('{') || src.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(src)
+      const out = (parsed && typeof parsed === 'object' ? parsed.output : null) || null
+      const candidates: any[] = [
+        out?.script, out?.hook, out?.captions,
+        parsed?.description, parsed?.title, fb,
+      ]
+      for (const c of candidates) {
+        const v = (typeof c === 'string' ? c : '').trim()
+        if (v && !v.startsWith('{') && !v.startsWith('[')) return v
+      }
+      return fb || ''
+    } catch {
+      return fb || ''
+    }
+  }
+  return src
+}
+
 export default function ScriptWorkspace() {
   const params = useParams() as { id: string }
   const router = useRouter()
@@ -122,9 +151,12 @@ export default function ScriptWorkspace() {
   const scriptBodyRef = useRef<HTMLPreElement>(null)
 
   // Sync liveScript whenever the underlying piece changes (initial load or realtime update).
+  // Phase 1.5 — pass through safeScriptText so a serialized workspace payload
+  // is normalized to creator-facing prose BEFORE it reaches any UI consumer
+  // (script body, exports, copy, narration extract, rewrite toolbar).
   useEffect(() => {
     const src = (piece as any)?.script || piece?.description || ''
-    setLiveScript(src)
+    setLiveScript(safeScriptText(src, piece?.description))
   }, [piece?.id, (piece as any)?.script, piece?.description])
 
   const pushVersion = (label: string, text: string) => {
@@ -167,7 +199,7 @@ export default function ScriptWorkspace() {
     try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
   }
 
-  const beginEdit = () => { setDraft(liveScript || (piece as any)?.script || piece?.description || ''); setEditing(true) }
+  const beginEdit = () => { setDraft(liveScript || safeScriptText((piece as any)?.script, piece?.description)); setEditing(true) }
   const saveEdit = async () => {
     if (!piece) return
     pushVersion('Before manual edit', liveScript)
@@ -298,7 +330,7 @@ export default function ScriptWorkspace() {
 
   const platformMeta = PLATFORM_META[piece.platform]
   const statusMeta   = STATUS_META[piece.status]
-  const fullScript   = liveScript || (piece as any).script || piece.description || ''
+  const fullScript   = liveScript || safeScriptText((piece as any).script, piece.description)
   // V3.3 — Narration-only version (memo via useMemo not needed; cheap regex pass).
   const narrationOnly = viewMode === 'narration' ? extractNarration(fullScript, { keepQuotes: false }) : ''
   const scriptText   = viewMode === 'narration' ? (narrationOnly || fullScript) : fullScript
@@ -437,7 +469,7 @@ export default function ScriptWorkspace() {
             </div>
           </>
         ) : scriptText ? (
-          <pre ref={scriptBodyRef} className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text">{scriptText}</pre>
+          <pre ref={scriptBodyRef} className="text-[13px] sm:text-[13.5px] leading-[1.95] sm:leading-[2] tracking-[0.005em] text-luxe/90 whitespace-pre-wrap font-mono break-words select-text [&>br+br]:block">{scriptText}</pre>
         ) : (
           <div className="text-[12px] text-muted-foreground italic">No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.</div>
         )}
