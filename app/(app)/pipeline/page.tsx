@@ -8,11 +8,11 @@ import { useState, useEffect, useMemo, useCallback, createContext, useContext } 
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDroppable } from '@dnd-kit/core'
-import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check, Sparkles } from 'lucide-react'
+import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check, Sparkles, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_META, PLATFORM_META } from '@/lib/dummy-data'
 import type { ContentPiece, ContentStatus, Platform } from '@/lib/types'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import { useConfirm } from '@/components/ui/confirm'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -404,6 +404,14 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
           <YoutubeStatusBadge item={item} />
           {item.assignee && (<span className="flex items-center gap-1"><User className="w-3 h-3" />{item.assignee.split(' ')[0]}</span>)}
           {item.due_date && (<span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(item.due_date), 'MMM d')}</span>)}
+          {/* Phase 3I — cinematic "updated X ago" enrichment. Reuses
+              content_pieces.updated_at; no new backend, no new fields. */}
+          {(item.updated_at || item.created_at) && (
+            <span className="flex items-center gap-1" title={item.updated_at ? new Date(item.updated_at).toLocaleString() : ''}>
+              <Clock className="w-3 h-3" />
+              {formatDistanceToNow(parseISO(item.updated_at || item.created_at), { addSuffix: false })}
+            </span>
+          )}
         </div>
       </div>
     </div>

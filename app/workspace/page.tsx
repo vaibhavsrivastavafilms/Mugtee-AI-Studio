@@ -19,7 +19,7 @@ import {
   Zap, MessageCircle, Save, ChevronRight, Layers,
   Copy, Download, FileType, RefreshCw, MoreHorizontal,
   Home, PenLine, BookOpen, Mic, Settings as SettingsIcon, Compass,
-  Play, Pause, Volume2,
+  Play, Pause, Volume2, Check,
 } from 'lucide-react'
 
 const PLATFORMS = [
@@ -134,6 +134,7 @@ export default function WorkspacePage() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   // Phase 3A — Creator Memory + Stability. Quiet trust signals.
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const [savedFlash, setSavedFlash] = useState(false)  // Phase 3I — transient "✓ Saved" pill.
   const [recovered, setRecovered] = useState(false)  // true if mount hydrated from localStorage
   // V1.10 — Payoff "magic moment": bumped on each successful generation/load so the
   // OutputPanel can scroll itself into view + apply a brief gold glow ring without
@@ -372,7 +373,10 @@ export default function WorkspacePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Generation failed')
       setOutput(data.output as GenOutput)
-      setTab('hook')
+      // Phase 3I — auto-route the creator into Script tab right after the
+      // first generation completes. Encourages the natural narrative flow:
+      // Script → Storyboard → Frames → Voice.
+      setTab('script')
       setRevealNonce(n => n + 1)
       generateCountRef.current += 1
       const outLen = (['hook','script','storyboard','captions','thumbnailIdea'] as const)
@@ -411,6 +415,9 @@ export default function WorkspacePage() {
       if (!res.ok) throw new Error(data?.error || 'Save failed')
       setSavedId(data.id)
       setLastSavedAt(Date.now())  // Phase 3A — power the "Saved moments ago" indicator.
+      // Phase 3I — transient cinematic "Project saved" pill (~2s).
+      setSavedFlash(true)
+      setTimeout(() => setSavedFlash(false), 2000)
       saveCountRef.current += 1
       if (!silent) {
         toast.success('Saved to your projects')
@@ -537,13 +544,22 @@ export default function WorkspacePage() {
             {/* Phase 3A — quiet creator trust signals: recovered + last-saved.
                 Pure derived rendering; no dashboards, no noise. */}
             <div className="flex items-center gap-2.5 text-[10.5px] text-luxe/45">
-              {recovered && (
+              {/* Phase 3I — transient cinematic save confirmation. Appears for
+                  ~2s after every save (manual or autosave) so creators trust
+                  the persistence. No toast spam. */}
+              {savedFlash && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-200/95 tracking-[0.02em] animate-in fade-in slide-in-from-top-1 duration-300">
+                  <Check className="w-2.5 h-2.5" />
+                  Project saved
+                </span>
+              )}
+              {recovered && !savedFlash && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold-500/10 border border-gold-500/25 text-gold-200/85 tracking-[0.02em]">
                   <span className="w-1 h-1 rounded-full bg-gold-400" />
                   Recovered from previous session
                 </span>
               )}
-              {lastSavedAt && (
+              {lastSavedAt && !savedFlash && (
                 <span className="tracking-[0.02em]" title={new Date(lastSavedAt).toLocaleString()}>
                   {relSavedLabel(lastSavedAt)}
                 </span>
@@ -669,7 +685,7 @@ export default function WorkspacePage() {
       </main>
 
       {/* RIGHT PANEL */}
-      <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
+      <aside className="hidden lg:flex lg:w-[360px] xl:w-[420px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
           <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} duration={duration} />
         </div>
@@ -771,12 +787,12 @@ function OutputPanel({
               'grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9 transition-opacity ' +
               (!output && !loading ? 'opacity-50' : 'opacity-100')
             }>
-          <TabsTrigger value="hook" className="text-[11.5px] gap-1"><Zap className="w-3 h-3" />Hook</TabsTrigger>
-          <TabsTrigger value="script" className="text-[11.5px] gap-1"><FileText className="w-3 h-3" />Script</TabsTrigger>
-          <TabsTrigger value="storyboard" className="text-[11.5px] gap-1"><Film className="w-3 h-3" />Beats</TabsTrigger>
-          <TabsTrigger value="voiceover" className="text-[11.5px] gap-1"><Volume2 className="w-3 h-3" />Voice</TabsTrigger>
-          <TabsTrigger value="captions" className="text-[11.5px] gap-1"><MessageCircle className="w-3 h-3" />Caps</TabsTrigger>
-          <TabsTrigger value="thumbnail" className="text-[11.5px] gap-1"><ImageIcon className="w-3 h-3" />Thumb</TabsTrigger>
+          <TabsTrigger value="hook"       className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><Zap className="w-3 h-3" />Hook</TabsTrigger>
+          <TabsTrigger value="script"     className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><FileText className="w-3 h-3" />Script</TabsTrigger>
+          <TabsTrigger value="storyboard" className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><Film className="w-3 h-3" />Beats</TabsTrigger>
+          <TabsTrigger value="voiceover"  className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><Volume2 className="w-3 h-3" />Voice</TabsTrigger>
+          <TabsTrigger value="captions"   className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><MessageCircle className="w-3 h-3" />Caps</TabsTrigger>
+          <TabsTrigger value="thumbnail"  className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><ImageIcon className="w-3 h-3" />Thumb</TabsTrigger>
         </TabsList>
 
         {(['hook','script','storyboard','voiceover','captions','thumbnail'] as const).map(key => (
@@ -2320,11 +2336,11 @@ function AIDirectorCard({
       </p>
 
       <dl className={'space-y-1.5 transition-all ' + (hasStoryboard ? 'opacity-100 max-h-[360px]' : 'opacity-0 max-h-0 overflow-hidden')}>
-        <DirectorRow label="Story Feel"        value={toneLabel} />
-        <DirectorRow label="Cinematic Tone"    value={moodLabel} />
-        <DirectorRow label="Camera Framing"    value={cameraLabel} />
+        <DirectorRow label="Mood"           value={toneLabel} />
+        <DirectorRow label="Cinematic Tone" value={moodLabel} />
+        <DirectorRow label="Visual Style"   value={cameraLabel} />
         <DirectorRow
-          label="Pacing"
+          label="Rhythm"
           value={hasStoryboard ? (dominantTag || 'Mixed cadence') : '\u2014'}
           muted={!hasStoryboard}
         />

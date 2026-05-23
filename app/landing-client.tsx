@@ -65,7 +65,7 @@ export default function LandingClient() {
               <Sparkles className="w-3 h-3" /> AI Content OS · v1.0
             </span>
             <h1 className="font-display text-[clamp(2.2rem,5.5vw,4.2rem)] leading-[1.05] tracking-tight">
-              From <span className="text-gold-gradient">Idea to Viral Reel</span><br className="hidden sm:block" /> — Automatically.
+              From <span className="text-gold-gradient">Idea to Cinematic Reel</span>.
             </h1>
             <p className="mt-5 sm:mt-6 text-base sm:text-lg text-luxe/70 leading-relaxed max-w-2xl mx-auto">
               Scripts, visuals, voiceovers, editing, captions and publishing — powered by AI. The operating system that turns one prompt into a week of content.
