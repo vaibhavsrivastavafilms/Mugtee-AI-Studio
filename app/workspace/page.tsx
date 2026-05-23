@@ -816,6 +816,7 @@ type FrameAsset = {
   prompt?: string
   shotText?: string                       // cached for single-frame regenerate
   mood?: MoodId                           // Phase 2D — visual mood lock used to generate this frame
+  cameraStyle?: CameraStyleId             // Phase 2G — camera style lock used to generate this frame
   metadata?: Record<string, any> | null
   created_at?: string
   regenerating?: boolean                  // local-only UI flag
@@ -861,6 +862,32 @@ const MOOD_BY_ID: Record<string, { id: MoodId; label: string; suffix: string }> 
   Object.fromEntries(MOODS.map(m => [m.id, m])) as any
 
 const MOOD_STORAGE_KEY = 'mugtee:workspace:mood'
+
+// =====================================================================
+// Phase 2G — CAMERA STYLE LOCK
+// Lightweight cinematic framing conditioning. One subtle suffix appended
+// to the existing frame prompt. Mood + characters + camera all coexist.
+// =====================================================================
+type CameraStyleId =
+  | 'intimate_handheld'
+  | 'cinematic_wide'
+  | 'documentary_realism'
+  | 'slow_cinema'
+  | 'static_auteur'
+  | 'dreamlike_motion'
+
+const CAMERA_STYLES: { id: CameraStyleId; label: string; suffix: string }[] = [
+  { id: 'intimate_handheld',    label: 'Intimate Handheld',    suffix: 'intimate handheld framing, close emotional composition, natural camera movement' },
+  { id: 'cinematic_wide',       label: 'Cinematic Wide',       suffix: 'epic cinematic wide framing, environmental scale, dramatic composition' },
+  { id: 'documentary_realism',  label: 'Documentary Realism',  suffix: 'grounded documentary cinematography, observational framing' },
+  { id: 'slow_cinema',          label: 'Slow Cinema',          suffix: 'restrained minimalist composition, quiet slow cinema atmosphere' },
+  { id: 'static_auteur',        label: 'Static Auteur',        suffix: 'symmetrical static composition, auteur-style framing, deliberate cinematography' },
+  { id: 'dreamlike_motion',     label: 'Dreamlike Motion',     suffix: 'soft drifting cinematic framing, poetic motion language, dreamlike composition' },
+]
+const CAMERA_STYLE_BY_ID: Record<string, { id: CameraStyleId; label: string; suffix: string }> =
+  Object.fromEntries(CAMERA_STYLES.map(c => [c.id, c])) as any
+
+const CAMERA_STYLE_STORAGE_KEY = 'mugtee:workspace:camera-style'
 
 // =====================================================================
 // Phase 2E — CHARACTER CONSISTENCY (heuristic-only, in-session memory)
@@ -962,6 +989,7 @@ function buildFramePrompt(
   index: number,
   moodId?: string,
   characters?: CharacterMemory[],
+  cameraStyleId?: string,
 ) {
   const cinematicLayer = [
     'Cinematic film still. Real photography aesthetic.',
@@ -976,7 +1004,10 @@ function buildFramePrompt(
   const continuitySuffix = characters && characters.length
     ? continuityLineFor(charactersInShot(shotText, characters))
     : ''
-  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}${continuitySuffix}`
+  const cameraSuffix = (cameraStyleId && CAMERA_STYLE_BY_ID[cameraStyleId])
+    ? `\n\nCamera Style: ${CAMERA_STYLE_BY_ID[cameraStyleId].suffix}.`
+    : ''
+  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}${continuitySuffix}${cameraSuffix}`
 }
 
 // =====================================================================
@@ -1033,6 +1064,21 @@ function StoryboardFrames({
     track('storyboard_mood_changed', { mood: next })
   }, [])
 
+  // Phase 2G — Camera Style Lock. Same pattern as Mood Lock. Persisted locally.
+  const [cameraStyle, setCameraStyleState] = useState<CameraStyleId>('intimate_handheld')
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = window.localStorage.getItem(CAMERA_STYLE_STORAGE_KEY) as CameraStyleId | null
+      if (saved && CAMERA_STYLE_BY_ID[saved]) setCameraStyleState(saved)
+    } catch {}
+  }, [])
+  const setCameraStyle = useCallback((next: CameraStyleId) => {
+    setCameraStyleState(next)
+    try { window.localStorage.setItem(CAMERA_STYLE_STORAGE_KEY, next) } catch {}
+    track('camera_style_changed', { style: next, project_id: savedId || undefined })
+  }, [savedId])
+
   // Reset + hydrate any existing frames for this project (so refresh / project switch shows them).
   useEffect(() => {
     setFrames([])
@@ -1055,7 +1101,7 @@ function StoryboardFrames({
     if (!canGenerate) return
     setBusy(true)
     setProgress({ done: 0, total: shots.length })
-    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood, characters: characters.length })
+    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood, camera_style: cameraStyle, characters: characters.length })
     try {
       let pid = savedId
       if (!pid && ensureSaved) pid = await ensureSaved()
@@ -1074,13 +1120,13 @@ function StoryboardFrames({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               project_id: pid,
-              prompt: buildFramePrompt(shots[i], i, mood, characters),
+              prompt: buildFramePrompt(shots[i], i, mood, characters, cameraStyle),
               aspect_ratio: aspect,
             }),
           })
           const data = await res.json()
           if (res.ok && data?.url) {
-            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i], mood }
+            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i], mood, cameraStyle }
             collected.push(fr)
             setFrames(prev => [...prev, fr])
           } else {
@@ -1096,7 +1142,7 @@ function StoryboardFrames({
         track('storyboard_frames_failed', { shot_count: shots.length })
       } else {
         toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} ready`)
-        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length, mood })
+        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length, mood, camera_style: cameraStyle })
       }
     } finally {
       setBusy(false)
@@ -1150,6 +1196,37 @@ function StoryboardFrames({
         })}
       </div>
 
+      {/* Phase 2G — Camera Style Lock pill picker. Same restrained aesthetic. */}
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45 mr-1">Camera Style</span>
+          {CAMERA_STYLES.map(c => {
+            const active = cameraStyle === c.id
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCameraStyle(c.id)}
+                disabled={busy}
+                title={c.suffix}
+                className={
+                  'px-2.5 py-1 rounded-full text-[10.5px] tracking-[0.04em] transition border ' +
+                  (active
+                    ? 'bg-gold-500/15 border-gold-500/55 text-gold-200 shadow-[0_0_14px_-6px_rgba(245,196,77,0.55)]'
+                    : 'bg-white/[0.025] border-white/[0.07] text-luxe/65 hover:text-gold-200 hover:border-gold-500/40') +
+                  (busy ? ' opacity-50 cursor-not-allowed' : '')
+                }
+              >
+                {c.label}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-luxe/35 italic tracking-[0.02em] pl-0.5">
+          Influences framing and cinematic composition.
+        </p>
+      </div>
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
           <ImageIcon className="w-3 h-3" /> Cinematic Frames
@@ -1186,21 +1263,21 @@ function StoryboardFrames({
                 const shotText = f.shotText || fallbackShot
                 if (!shotText) { toast.error('Original shot text not found.'); return }
                 setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: true } : x))
-                track('storyboard_frame_regenerated', { index: i, mood })
+                track('storyboard_frame_regenerated', { index: i, mood, camera_style: cameraStyle })
                 try {
                   const res = await fetch('/api/ai/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       project_id: pid,
-                      prompt: buildFramePrompt(shotText, i, mood, characters),
+                      prompt: buildFramePrompt(shotText, i, mood, characters, cameraStyle),
                       aspect_ratio: frameAspectFor(platform),
                     }),
                   })
                   const data = await res.json()
                   if (res.ok && data?.url) {
                     setFrames(prev => prev.map((x, idx) => idx === i
-                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText, mood }
+                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText, mood, cameraStyle }
                       : x))
                     toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
                   } else {
@@ -1277,8 +1354,8 @@ function FrameCard({
 
   const copyPrompt = async () => {
     const prompt = frame.prompt
-      || (frame.shotText ? buildFramePrompt(frame.shotText, index, frame.mood) : '')
-      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index, frame.mood) : '')
+      || (frame.shotText ? buildFramePrompt(frame.shotText, index, frame.mood, undefined, frame.cameraStyle) : '')
+      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index, frame.mood, undefined, frame.cameraStyle) : '')
     if (!prompt) { toast.error('Prompt not available for this frame.'); return }
     try {
       await navigator.clipboard.writeText(prompt)
