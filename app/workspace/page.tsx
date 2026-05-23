@@ -2,7 +2,7 @@
 // Mugtee Workspace — cinematic 3-panel creator workspace.
 // Reuses existing shadcn/ui primitives + the Mugtee gold/luxe theme. Zero new deps.
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -94,14 +94,62 @@ export default function WorkspacePage() {
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
 
-  // Load recent projects (reuse existing endpoint)
+  // ── Telemetry refs (avoid stale closures + unnecessary rerenders) ──
+  const sessionStartedRef       = useRef(false)
+  const sessionStartTsRef       = useRef<number>(Date.now())
+  const usedStarterPromptRef    = useRef(false)
+  const reopenedFromUrlRef      = useRef<boolean>(!!searchParams.get('project'))
+  const hasOutputRef            = useRef(false)
+  const hasUnsavedOutputRef     = useRef(false)
+  const generateCountRef        = useRef(0)
+  const saveCountRef            = useRef(0)
+  useEffect(() => { hasOutputRef.current = !!output }, [output])
+  useEffect(() => { hasUnsavedOutputRef.current = !!output && !savedId }, [output, savedId])
+
+  // Load recent projects + emit session_started exactly once on first load.
   useEffect(() => {
     let alive = true
     fetch('/api/projects/recent').then(r => r.json()).then(d => {
-      if (alive && Array.isArray(d?.projects)) setRecents(d.projects.slice(0, 8))
+      if (!alive) return
+      const list = Array.isArray(d?.projects) ? d.projects.slice(0, 8) : []
+      setRecents(list)
+      if (!sessionStartedRef.current) {
+        sessionStartedRef.current = true
+        track('workspace_session_started', {
+          authenticated: true, // route is auth-gated; if we got here we're signed in
+          has_existing_projects: list.length > 0,
+          existing_projects_count_bucket:
+            list.length === 0 ? 'none' : list.length < 3 ? '1-2' : list.length < 8 ? '3-7' : '8+',
+          source: searchParams.get('source') || undefined,
+          deep_linked_project: reopenedFromUrlRef.current,
+        })
+      }
     }).catch(() => {})
     return () => { alive = false }
-  }, [savedId])
+    // savedId in the dep array refreshes the list after save; session_started still fires once via the ref guard.
+  }, [savedId, searchParams])
+
+  // Lifecycle telemetry — capture abandonment + unsaved exits via pagehide (more reliable than beforeunload on mobile).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onLeave = () => {
+      const dwellMs = Date.now() - sessionStartTsRef.current
+      // Empty session = signed-in, never generated, idled >= 20s → useful "bounced from empty workspace" signal.
+      if (!hasOutputRef.current && generateCountRef.current === 0 && dwellMs >= 20_000) {
+        track('workspace_abandoned_empty', { dwell_ms_bucket: dwellMs < 60_000 ? '20-60s' : dwellMs < 180_000 ? '1-3m' : '3m+' })
+      }
+      // Generated but never saved — important activation signal.
+      if (hasUnsavedOutputRef.current) {
+        track('workspace_generated_without_saving', {
+          generations: generateCountRef.current,
+          saves: saveCountRef.current,
+          dwell_ms_bucket: dwellMs < 60_000 ? '<1m' : dwellMs < 180_000 ? '1-3m' : '3m+',
+        })
+      }
+    }
+    window.addEventListener('pagehide', onLeave)
+    return () => window.removeEventListener('pagehide', onLeave)
+  }, [])
 
   // Rehydrate a saved project into workspace state (no full page reload).
   const loadProject = useCallback(async (id: string, opts?: { syncUrl?: boolean }) => {
@@ -125,7 +173,20 @@ export default function WorkspacePage() {
         next.set('project', id)
         router.replace(`/workspace?${next.toString()}`, { scroll: false })
       }
-      track('workspace_project_loaded', { id })
+      // Project age (days) + legacy flag — useful for retention + churn analysis.
+      const updatedAt = data?.updated_at ? new Date(data.updated_at).getTime() : 0
+      const ageDays = updatedAt > 0 ? Math.max(0, Math.floor((Date.now() - updatedAt) / 86_400_000)) : null
+      track('workspace_project_loaded', {
+        id,
+        legacy_project: !!data?.legacy,
+        reopened_from_url: opts?.syncUrl === false, // false here means we were called from the mount-effect (URL-driven)
+        project_age_days: ageDays ?? undefined,
+        project_age_bucket:
+          ageDays == null ? 'unknown' :
+          ageDays === 0 ? 'today' :
+          ageDays < 7 ? 'this_week' :
+          ageDays < 30 ? 'this_month' : 'older',
+      })
     } catch (e: any) {
       toast.error(e?.message || 'Could not load project')
     } finally {
@@ -148,7 +209,15 @@ export default function WorkspacePage() {
     setGenerating(true)
     setOutput(null)
     setSavedId(null)
-    track('workspace_generate_clicked', { platform, tone, duration })
+    const topicLen = topic.trim().length
+    const topicLenBucket = topicLen < 30 ? 'short' : topicLen < 120 ? 'medium' : topicLen < 400 ? 'long' : 'very_long'
+    track('workspace_generate_clicked', {
+      platform, tone, duration,
+      topic_length: topicLen,
+      topic_length_bucket: topicLenBucket,
+      used_starter_prompt: usedStarterPromptRef.current,
+      from_template: usedStarterPromptRef.current, // back-compat alias
+    })
     try {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
@@ -159,10 +228,24 @@ export default function WorkspacePage() {
       if (!res.ok) throw new Error(data?.error || 'Generation failed')
       setOutput(data.output as GenOutput)
       setTab('hook')
-      track('workspace_generate_succeeded', { platform, tone, duration, mock: !!data.mock })
+      generateCountRef.current += 1
+      const outLen = (['hook','script','storyboard','captions','thumbnailIdea'] as const)
+        .reduce((acc, k) => acc + (data.output?.[k]?.length || 0), 0)
+      track('workspace_generate_succeeded', {
+        platform, tone, duration,
+        topic_length_bucket: topicLenBucket,
+        used_starter_prompt: usedStarterPromptRef.current,
+        mock: !!data.mock,
+        reason: data.reason || undefined,
+        output_length_bucket: outLen < 2000 ? 'small' : outLen < 8000 ? 'medium' : 'large',
+        generation_index: generateCountRef.current,
+      })
     } catch (e: any) {
       toast.error(e?.message || 'Something went wrong')
-      track('workspace_generate_failed', { error: String(e?.message || '').slice(0, 120) })
+      track('workspace_generate_failed', {
+        error: String(e?.message || '').slice(0, 120),
+        topic_length_bucket: topicLenBucket,
+      })
     } finally {
       setGenerating(false)
     }
@@ -180,10 +263,16 @@ export default function WorkspacePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Save failed')
       setSavedId(data.id)
+      saveCountRef.current += 1
       toast.success('Saved to your projects')
-      track('workspace_project_saved', { platform })
+      track('workspace_project_saved', {
+        platform,
+        used_starter_prompt: usedStarterPromptRef.current,
+        save_index: saveCountRef.current,
+      })
     } catch (e: any) {
       toast.error(e?.message || 'Could not save')
+      track('workspace_save_failed', { error: String(e?.message || '').slice(0, 120) })
     } finally {
       setSaving(false)
     }
@@ -191,15 +280,19 @@ export default function WorkspacePage() {
 
   const applyTemplate = (seed: string) => {
     setTopic(prev => prev ? prev : seed)
+    usedStarterPromptRef.current = true
     track('workspace_template_applied', { seed: seed.slice(0, 40) })
   }
 
   const newProject = () => {
     setTopic(''); setOutput(null); setSavedId(null); setTab('hook'); setActiveProjectId(null)
+    usedStarterPromptRef.current = false
+    reopenedFromUrlRef.current = false
     const next = new URLSearchParams(searchParams.toString())
     next.delete('project')
     const qs = next.toString()
     router.replace(qs ? `/workspace?${qs}` : '/workspace', { scroll: false })
+    track('workspace_new_project_clicked')
   }
 
   return (
@@ -302,7 +395,7 @@ export default function WorkspacePage() {
               {STARTER_PROMPTS.map((p) => (
                 <button
                   key={p}
-                  onClick={() => { setTopic(p); track('workspace_starter_clicked', { prompt: p }) }}
+                  onClick={() => { setTopic(p); usedStarterPromptRef.current = true; track('workspace_starter_clicked', { prompt: p, recents_count_bucket: recents.length === 0 ? 'none' : recents.length < 3 ? '1-2' : '3+' }) }}
                   className="px-3 py-1.5 rounded-full text-[12px] text-luxe/80 hover:text-gold-200 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-gold-500/40 transition"
                 >
                   {p}
@@ -396,7 +489,7 @@ function OutputPanel({
         </p>
         {output && (
           <div className="flex items-center gap-1.5">
-            <ExportControls output={output} projectTitle={projectTitle} />
+            <ExportControls output={output} projectTitle={projectTitle} savedId={savedId} />
             <Button size="sm" variant="outline" onClick={onSave} disabled={saving || !!savedId}
               className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200">
               {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
@@ -520,8 +613,16 @@ function downloadBlob(text: string, filename: string, mime: string) {
   }
 }
 
-function ExportControls({ output, projectTitle }: { output: GenOutput; projectTitle?: string }) {
+function ExportControls({ output, projectTitle, savedId }: { output: GenOutput; projectTitle?: string; savedId?: string | null }) {
   const hasContent = SECTIONS.some(s => (output[s.key] || '').trim().length > 0)
+  const totalLen = SECTIONS.reduce((acc, s) => acc + (output[s.key]?.length || 0), 0)
+  const lengthBucket = totalLen < 2000 ? 'small' : totalLen < 8000 ? 'medium' : 'large'
+  const baseExportPayload = {
+    export_type: '' as 'copy' | 'txt' | 'md',
+    output_length_bucket: lengthBucket,
+    has_saved_project: !!savedId,
+    has_title: !!projectTitle,
+  }
   const stamp = () => {
     const d = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -535,7 +636,6 @@ function ExportControls({ output, projectTitle }: { output: GenOutput; projectTi
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text)
       } else {
-        // Legacy fallback for older Safari / non-secure contexts
         const ta = document.createElement('textarea')
         ta.value = text
         ta.style.position = 'fixed'
@@ -546,22 +646,36 @@ function ExportControls({ output, projectTitle }: { output: GenOutput; projectTi
         document.body.removeChild(ta)
       }
       toast.success('Copied to clipboard')
-      track('workspace_export_copy', { hasTitle: !!projectTitle })
+      track('workspace_export_copy',  { ...baseExportPayload, export_type: 'copy' })
+      track('workspace_export',       { ...baseExportPayload, export_type: 'copy' })
     } catch {
       toast.error('Could not copy — try the Download buttons instead.')
+      track('workspace_export_failed', { ...baseExportPayload, export_type: 'copy' })
     }
   }
 
   const downloadTxt = () => {
     const ok = downloadBlob(formatAsText(output, projectTitle), `${baseName()}.txt`, 'text/plain')
-    if (ok) { toast.success('TXT downloaded'); track('workspace_export_txt') }
-    else      toast.error('Download failed')
+    if (ok) {
+      toast.success('TXT downloaded')
+      track('workspace_export_txt', { ...baseExportPayload, export_type: 'txt' })
+      track('workspace_export',     { ...baseExportPayload, export_type: 'txt' })
+    } else {
+      toast.error('Download failed')
+      track('workspace_export_failed', { ...baseExportPayload, export_type: 'txt' })
+    }
   }
 
   const downloadMd = () => {
     const ok = downloadBlob(formatAsMarkdown(output, projectTitle), `${baseName()}.md`, 'text/markdown')
-    if (ok) { toast.success('Markdown downloaded'); track('workspace_export_md') }
-    else      toast.error('Download failed')
+    if (ok) {
+      toast.success('Markdown downloaded')
+      track('workspace_export_md', { ...baseExportPayload, export_type: 'md' })
+      track('workspace_export',    { ...baseExportPayload, export_type: 'md' })
+    } else {
+      toast.error('Download failed')
+      track('workspace_export_failed', { ...baseExportPayload, export_type: 'md' })
+    }
   }
 
   return (
