@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { GuestHookGenerator } from '@/components/landing/guest-hook-generator'
 import { EmailCapture } from '@/components/landing/email-capture'
+import ProofSections from '@/components/landing/proof-sections'
 
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
@@ -97,13 +98,15 @@ export default function LandingClient() {
         </div>
       </section>
 
+      {/* ─── PROOF: How it works · Output preview · Made for · CTA ─ */}
+      <ProofSections />
+
       {/* ─── WORKFLOW ────────────────────────────────────────────── */}
       <section id="workflow" className="relative px-5 sm:px-6 py-20 sm:py-28">
         <div className="container max-w-6xl mx-auto">
           <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-14 sm:mb-16">
             <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">The Mugtee workflow</div>
-            <h2 className="font-display text-3xl sm:text-4xl leading-tight">One prompt. <span className="text-gold-gradient">Seven AI agents</span>. Zero editing software.</h2>
-            <p className="mt-4 text-sm sm:text-base text-luxe/65">From a single creative spark to a published reel — each step orchestrated, each transition seamless.</p>
+            <h2 className="font-display text-3xl sm:text-4xl leading-tight">One prompt. <span className="text-gold-gradient">Seven AI agents</span>. Zero editing software.</h2>            <p className="mt-4 text-sm sm:text-base text-luxe/65">From a single creative spark to a published reel — each step orchestrated, each transition seamless.</p>
           </motion.div>
 
           {/* Desktop horizontal timeline */}
