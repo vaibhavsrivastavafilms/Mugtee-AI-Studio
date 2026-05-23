@@ -1318,15 +1318,7 @@ function StoryboardFrames({
 
         if (fr) {
           collected.push(fr)
-          // BUG FIX diagnostic — temporary log to confirm state reaches React.
-          // Remove once verified live. Confirms: response shape correct +
-          // setFrames callback fires + accumulated count grows.
-          console.log('[frames] state update', { index: i, id: fr.id, url: fr.url?.slice(0, 60) + '...', accumulated: collected.length })
-          setFrames(prev => {
-            const next = [...prev, fr!]
-            console.log('[frames] setFrames done', { prevLen: prev.length, nextLen: next.length })
-            return next
-          })
+          setFrames(prev => [...prev, fr!])
         }
         setProgress({ done: i + 1, total: targetShots.length })
       }
