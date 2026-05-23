@@ -1221,15 +1221,26 @@ function StoryboardFrames({
   }, [savedId])
 
   // Reset + hydrate any existing frames for this project (so refresh / project switch shows them).
+  // BUG FIX — coordinate with generate() via busyRef so the hydration effect
+  // does NOT wipe / overwrite frames mid-generation when ensureSaved() flips
+  // savedId from null → uuid and re-triggers this effect.
+  const busyRef = useRef(false)
+  useEffect(() => { busyRef.current = busy }, [busy])
+
   useEffect(() => {
+    // If we're actively generating, leave local state alone. The generate
+    // loop is the authoritative source of truth until it completes.
+    if (busyRef.current) return
     setFrames([])
     if (!savedId) return
     let alive = true
     fetch(`/api/projects/${savedId}/assets?kind=image`)
       .then(r => r.json())
       .then(d => {
-        if (!alive) return
-        const fr: FrameAsset[] = (d?.assets || []).slice(0, 8)
+        if (!alive || busyRef.current) return
+        // API returns newest-first; we want shot-0 first so frames render in
+        // storyboard order.
+        const fr: FrameAsset[] = ((d?.assets || []) as FrameAsset[]).slice(0, 8).reverse()
         if (fr.length) setFrames(fr)
       })
       .catch(() => {})
@@ -1307,7 +1318,15 @@ function StoryboardFrames({
 
         if (fr) {
           collected.push(fr)
-          setFrames(prev => [...prev, fr!])
+          // BUG FIX diagnostic — temporary log to confirm state reaches React.
+          // Remove once verified live. Confirms: response shape correct +
+          // setFrames callback fires + accumulated count grows.
+          console.log('[frames] state update', { index: i, id: fr.id, url: fr.url?.slice(0, 60) + '...', accumulated: collected.length })
+          setFrames(prev => {
+            const next = [...prev, fr!]
+            console.log('[frames] setFrames done', { prevLen: prev.length, nextLen: next.length })
+            return next
+          })
         }
         setProgress({ done: i + 1, total: targetShots.length })
       }
