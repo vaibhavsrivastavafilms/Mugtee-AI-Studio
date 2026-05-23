@@ -449,7 +449,7 @@ export default function WorkspacePage() {
       {/* LEFT SIDEBAR */}
       <aside className="lg:w-64 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-black/40 backdrop-blur-xl">
         <div className="p-4 lg:p-5 space-y-5">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/workspace" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-black"
                  style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}>M</div>
             <span className="font-display text-base tracking-tight text-luxe group-hover:text-gold-200 transition">Mugtee</span>
@@ -457,7 +457,7 @@ export default function WorkspacePage() {
 
           {/* Phase 3 — quiet creator navigation. Compact muted icons. No analytics, no agents. */}
           <nav aria-label="Mugtee navigation" className="space-y-0.5">
-            <NavLink href="/" icon="home" label="Home" />
+            <NavLink href="/workspace" icon="home" label="Home" />
             <NavLink href="/workspace" icon="create" label="Create" active />
             <NavLink href="/dashboard" icon="scripts" label="Scripts" />
             <NavLink href="/dashboard" icon="storyboards" label="Storyboards" />
@@ -567,14 +567,16 @@ export default function WorkspacePage() {
             Reuses gold/luxe tokens. Subtle connectors, soft glow on active. */}
         <CreativeJourney stage={stage} />
 
-        {/* Phase 3 — quiet creative-flow guidance. Two subtle hints, no dashboards. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10.5px] text-luxe/40 tracking-[0.04em]">
+        {/* Phase 3 — quiet creative-flow guidance. Two subtle hints, no dashboards.
+            Phase 3D — further softened: the Journey row above now carries the
+            primary stage signal; these become a faint secondary whisper. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10px] text-luxe/30 tracking-[0.04em]">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/60" />
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/40" />
             Mugtee detects emotional pacing
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/60" />
+            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/40" />
             Optimized for short-form storytelling
           </span>
         </div>
@@ -644,10 +646,20 @@ export default function WorkspacePage() {
           <Button
             onClick={generate}
             disabled={!canGenerate}
-            className="w-full h-11 gap-2 bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow disabled:opacity-50"
+            className={
+              'w-full h-11 gap-2 disabled:opacity-50 ' +
+              // Phase 3D visual hierarchy — gold-gradient ONLY during Idea
+              // stage (before output exists) so a single primary CTA dominates
+              // the screen at any time. Once a story is drafted, this button
+              // recedes to an outline ("Regenerate from new idea") so the
+              // panel CTAs (Frames / Voiceover) can take the lead.
+              (output
+                ? 'bg-white/[0.04] border border-gold-500/25 text-luxe hover:text-gold-200 hover:border-gold-500/55 hover:bg-white/[0.06]'
+                : 'bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow')
+            }
           >
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {generating ? 'Mugtee is creating...' : 'Generate with Mugtee'}
+            {generating ? 'Mugtee is creating...' : (output ? 'Regenerate from new idea' : 'Generate with Mugtee')}
           </Button>
         </Card>
 
@@ -738,7 +750,13 @@ function OutputPanel({
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as any)} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9">
+        {/* Phase 3D — sequential tab hierarchy. Before any story exists the
+            future tabs feel quiet (low contrast) so the creator's attention
+            stays on the form. Once output arrives, full contrast returns. */}
+        <TabsList className={
+          'grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9 transition-opacity ' +
+          (!output && !loading ? 'opacity-50' : 'opacity-100')
+        }>
           <TabsTrigger value="hook" className="text-[11.5px] gap-1"><Zap className="w-3 h-3" />Hook</TabsTrigger>
           <TabsTrigger value="script" className="text-[11.5px] gap-1"><FileText className="w-3 h-3" />Script</TabsTrigger>
           <TabsTrigger value="storyboard" className="text-[11.5px] gap-1"><Film className="w-3 h-3" />Beats</TabsTrigger>
@@ -1252,10 +1270,10 @@ function StoryboardTiming({ storyboardText }: { storyboardText: string }) {
   if (!timings.length) return null
   const total = timings.reduce((sum, t) => sum + t.durationSeconds, 0)
   return (
-    <div className="mb-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+    <div className="mb-3 rounded-lg border border-white/[0.04] bg-white/[0.015] p-2.5">
       <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
-        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45">Pacing</span>
-        <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/85">
+        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/35">Pacing</span>
+        <span className="text-[9.5px] tracking-[0.18em] uppercase text-gold-300/65">
           Estimated Runtime · {total}s
         </span>
       </div>
@@ -1263,12 +1281,12 @@ function StoryboardTiming({ storyboardText }: { storyboardText: string }) {
         {timings.map(t => (
           <div
             key={t.index}
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/30 border border-white/[0.05] text-[10px] leading-none"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/20 border border-white/[0.04] text-[10px] leading-none"
           >
-            <span className="text-luxe/45 tracking-[0.04em] font-mono">{String(t.index + 1).padStart(2, '0')}</span>
-            <span className="text-gold-200/90 font-medium font-mono">{t.durationSeconds}s</span>
+            <span className="text-luxe/35 tracking-[0.04em] font-mono">{String(t.index + 1).padStart(2, '0')}</span>
+            <span className="text-gold-200/75 font-medium font-mono">{t.durationSeconds}s</span>
             {t.tag && (
-              <span className="text-luxe/55 tracking-[0.04em] hidden sm:inline">
+              <span className="text-luxe/45 tracking-[0.04em] hidden sm:inline">
                 {t.tag}
               </span>
             )}
@@ -2252,17 +2270,17 @@ function AIDirectorCard({
   const platformLabel = PLATFORMS.find(p => p.value === platform)?.label || platform
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-black/30 backdrop-blur-xl p-4 space-y-3.5">
+    <div className="rounded-2xl border border-white/[0.05] bg-black/20 backdrop-blur-xl p-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
+        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
           <Compass className="w-3 h-3" /> AI Director
         </p>
-        <span className="text-[9.5px] tracking-[0.18em] uppercase text-luxe/40">
+        <span className="text-[9.5px] tracking-[0.18em] uppercase text-luxe/35">
           {platformLabel}
         </span>
       </div>
 
-      <p className="text-[11.5px] text-luxe/55 italic leading-snug">
+      <p className="text-[11px] text-luxe/45 italic leading-snug">
         {(() => {
           // Phase 3C — stage-aware caption. Falls back to existing copy when
           // tab info isn't passed in (defensive — keeps prior behavior).
@@ -2278,7 +2296,7 @@ function AIDirectorCard({
         })()}
       </p>
 
-      <dl className="space-y-2">
+      <dl className="space-y-1.5">
         <DirectorRow label="Story Feel"        value={toneLabel} />
         <DirectorRow label="Cinematic Tone"    value={moodLabel} />
         <DirectorRow label="Camera Framing"    value={cameraLabel} />
@@ -2305,8 +2323,8 @@ function AIDirectorCard({
 function DirectorRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-[10px] tracking-[0.22em] uppercase text-luxe/40">{label}</dt>
-      <dd className={`text-[11.5px] tracking-[0.02em] text-right ${muted ? 'text-luxe/35' : 'text-luxe/85'}`}>
+      <dt className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/35">{label}</dt>
+      <dd className={`text-[11px] tracking-[0.02em] text-right ${muted ? 'text-luxe/30' : 'text-luxe/75'}`}>
         {value}
       </dd>
     </div>
