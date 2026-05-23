@@ -121,6 +121,9 @@ export default function WorkspacePage() {
   const [recents, setRecents] = useState<RecentProject[]>([])
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  // Phase 3A — Creator Memory + Stability. Quiet trust signals.
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const [recovered, setRecovered] = useState(false)  // true if mount hydrated from localStorage
   // V1.10 — Payoff "magic moment": bumped on each successful generation/load so the
   // OutputPanel can scroll itself into view + apply a brief gold glow ring without
   // owning extra state about whether it was just generated.
@@ -184,7 +187,7 @@ export default function WorkspacePage() {
   }, [])
 
   // Rehydrate a saved project into workspace state (no full page reload).
-  const loadProject = useCallback(async (id: string, opts?: { syncUrl?: boolean }) => {
+  const loadProject = useCallback(async (id: string, opts?: { syncUrl?: boolean; tab?: string }) => {
     if (!id || loadingProjectId === id) return
     setLoadingProjectId(id)
     setGenerating(true) // reuses skeleton state on the output panel
@@ -199,7 +202,13 @@ export default function WorkspacePage() {
       setOutput(data.output as GenOutput)
       setSavedId(id)
       setActiveProjectId(id)
-      setTab('hook')
+      // Phase 3A — restore active tab if caller asked, else default to hook.
+      const validTabs = ['hook','script','storyboard','captions','thumbnail'] as const
+      const requested = opts?.tab && (validTabs as readonly string[]).includes(opts.tab) ? opts.tab as any : null
+      setTab(requested || 'hook')
+      // Project loaded successfully → mark this moment as "saved" for the trust signal.
+      const updatedMs = data?.updated_at ? new Date(data.updated_at).getTime() : Date.now()
+      setLastSavedAt(updatedMs)
       setRevealNonce(n => n + 1)
       if (opts?.syncUrl !== false) {
         const next = new URLSearchParams(searchParams.toString())
@@ -229,11 +238,70 @@ export default function WorkspacePage() {
   }, [loadingProjectId, router, searchParams])
 
   // Deep-link support: on first mount, if ?project=xyz is present, hydrate it.
+  // Phase 3A — Creator Memory: if no URL param, silently restore the last project
+  // and active tab from localStorage so the workspace feels continuous after refresh.
   useEffect(() => {
     const pid = searchParams.get('project')
-    if (pid && pid !== activeProjectId) loadProject(pid, { syncUrl: false })
+    if (pid && pid !== activeProjectId) {
+      let recoveredTab: string | null = null
+      try { recoveredTab = window.localStorage.getItem(TAB_KEY) } catch {}
+      loadProject(pid, { syncUrl: false, tab: recoveredTab || undefined })
+      return
+    }
+    // Try silent recovery from localStorage.
+    try {
+      const lastId  = window.localStorage.getItem(LAST_PROJECT_KEY)
+      const lastTab = window.localStorage.getItem(TAB_KEY)
+      if (lastId) {
+        setRecovered(true)
+        loadProject(lastId, { syncUrl: true, tab: lastTab || undefined })
+        track('workspace_session_recovered', { from: 'localStorage' })
+      } else if (lastTab) {
+        const valid = (['hook','script','storyboard','captions','thumbnail'] as const)
+        if ((valid as readonly string[]).includes(lastTab)) setTab(lastTab as any)
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Phase 3A — persist active tab to localStorage so refresh restores it.
+  useEffect(() => {
+    try { window.localStorage.setItem(TAB_KEY, tab) } catch {}
+  }, [tab])
+
+  // Phase 3A — remember the most recent project id so we can recover it on next visit.
+  useEffect(() => {
+    if (!savedId) return
+    try { window.localStorage.setItem(LAST_PROJECT_KEY, savedId) } catch {}
+  }, [savedId])
+
+  // Phase 3A — quiet debounced autosave. Only fires for already-saved projects so
+  // we never auto-create a first save without a user gesture (which avoids
+  // duplicate project rows from session telemetry / accidental edits).
+  useEffect(() => {
+    if (!output) return
+    if (!savedId) return  // first save still requires explicit user action
+    if (saving) return
+    const handle = setTimeout(() => { saveProject({ silent: true }) }, 2500)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [output, topic, platform, tone, duration, savedId])
+
+  // Phase 3A — auto-fade the "Recovered from previous session" pill after a moment.
+  useEffect(() => {
+    if (!recovered) return
+    const h = setTimeout(() => setRecovered(false), 7000)
+    return () => clearTimeout(h)
+  }, [recovered])
+
+  // Phase 3A — refresh the relative "Saved moments ago" label every 30s. The
+  // formatter is pure so this just nudges React to re-render the indicator.
+  const [, setNowTick] = useState(0)
+  useEffect(() => {
+    if (!lastSavedAt) return
+    const h = setInterval(() => setNowTick(t => t + 1), 30_000)
+    return () => clearInterval(h)
+  }, [lastSavedAt])
 
   const canGenerate = useMemo(() => topic.trim().length >= 6 && !generating, [topic, generating])
 
@@ -292,9 +360,10 @@ export default function WorkspacePage() {
     }
   }
 
-  const saveProject = async () => {
+  const saveProject = async (opts?: { silent?: boolean }) => {
     if (!output || saving) return
-    setSaving(true)
+    const silent = !!opts?.silent
+    if (!silent) setSaving(true)
     try {
       const res = await fetch('/api/workspace/save', {
         method: 'POST',
@@ -304,20 +373,31 @@ export default function WorkspacePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Save failed')
       setSavedId(data.id)
+      setLastSavedAt(Date.now())  // Phase 3A — power the "Saved moments ago" indicator.
       saveCountRef.current += 1
-      toast.success('Saved to your projects')
-      track('workspace_project_saved', {
-        platform,
-        used_starter_prompt: usedStarterPromptRef.current,
-        save_index: saveCountRef.current,
-      })
+      if (!silent) {
+        toast.success('Saved to your projects')
+        track('workspace_project_saved', {
+          platform,
+          used_starter_prompt: usedStarterPromptRef.current,
+          save_index: saveCountRef.current,
+        })
+      } else {
+        track('workspace_project_autosaved', { platform, save_index: saveCountRef.current })
+      }
       return data.id as string
     } catch (e: any) {
-      toast.error(e?.message || 'Could not save')
-      track('workspace_save_failed', { error: String(e?.message || '').slice(0, 120) })
+      // Phase 3A — silent autosaves never bother the creator with toasts. They just
+      // log via telemetry so we can see autosave health without UI noise.
+      if (!silent) {
+        toast.error(e?.message || 'Could not save')
+        track('workspace_save_failed', { error: String(e?.message || '').slice(0, 120) })
+      } else {
+        track('workspace_autosave_failed', { error: String(e?.message || '').slice(0, 120) })
+      }
       return null
     } finally {
-      setSaving(false)
+      if (!silent) setSaving(false)
     }
   }
 
@@ -338,6 +418,9 @@ export default function WorkspacePage() {
 
   const newProject = () => {
     setTopic(''); setOutput(null); setSavedId(null); setTab('hook'); setActiveProjectId(null)
+    setLastSavedAt(null); setRecovered(false)
+    // Phase 3A — also clear the persistence pointer so refresh doesn't restore the old project.
+    try { window.localStorage.removeItem(LAST_PROJECT_KEY) } catch {}
     usedStarterPromptRef.current = false
     reopenedFromUrlRef.current = false
     const next = new URLSearchParams(searchParams.toString())
@@ -438,7 +521,24 @@ export default function WorkspacePage() {
       {/* CENTER PANEL */}
       <main className="flex-1 px-4 lg:px-10 py-8 lg:py-12 max-w-3xl mx-auto w-full">
         <div className="space-y-1 mb-3">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/80">Creator Workspace</p>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/80">Creator Workspace</p>
+            {/* Phase 3A — quiet creator trust signals: recovered + last-saved.
+                Pure derived rendering; no dashboards, no noise. */}
+            <div className="flex items-center gap-2.5 text-[10.5px] text-luxe/45">
+              {recovered && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold-500/10 border border-gold-500/25 text-gold-200/85 tracking-[0.02em]">
+                  <span className="w-1 h-1 rounded-full bg-gold-400" />
+                  Recovered from previous session
+                </span>
+              )}
+              {lastSavedAt && (
+                <span className="tracking-[0.02em]" title={new Date(lastSavedAt).toLocaleString()}>
+                  {relSavedLabel(lastSavedAt)}
+                </span>
+              )}
+            </div>
+          </div>
           <h1 className="font-display text-3xl md:text-4xl tracking-tight text-luxe">
             From idea to reel — in one prompt.
           </h1>
@@ -985,6 +1085,23 @@ const MOOD_BY_ID: Record<string, { id: MoodId; label: string; suffix: string }> 
   Object.fromEntries(MOODS.map(m => [m.id, m])) as any
 
 const MOOD_STORAGE_KEY = 'mugtee:workspace:mood'
+
+// Phase 3A — Creator Memory localStorage keys + helpers.
+const TAB_KEY = 'mugtee:workspace:tab'
+const LAST_PROJECT_KEY = 'mugtee:workspace:last-project'
+
+function relSavedLabel(ms: number | null): string {
+  if (!ms) return ''
+  const dt = Date.now() - ms
+  if (dt < 5_000) return 'Saved just now'
+  if (dt < 60_000) return 'Saved moments ago'
+  const mins = Math.floor(dt / 60_000)
+  if (mins < 60) return `Saved ${mins}m ago`
+  const hrs = Math.floor(mins / 3_600_000)
+  if (hrs < 24) return `Saved ${hrs}h ago`
+  const days = Math.floor(dt / 86_400_000)
+  return `Saved ${days}d ago`
+}
 
 // =====================================================================
 // Phase 2G — CAMERA STYLE LOCK
