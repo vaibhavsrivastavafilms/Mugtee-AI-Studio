@@ -777,6 +777,7 @@ type FrameAsset = {
   url: string
   prompt?: string
   shotText?: string                       // cached for single-frame regenerate
+  mood?: MoodId                           // Phase 2D — visual mood lock used to generate this frame
   metadata?: Record<string, any> | null
   created_at?: string
   regenerating?: boolean                  // local-only UI flag
@@ -797,7 +798,33 @@ function frameAspectFor(platform?: string): '1:1' | '9:16' | '16:9' {
   return '9:16'
 }
 
-function buildFramePrompt(shotText: string, index: number) {
+// =====================================================================
+// Phase 2D — VISUAL MOOD LOCK
+// Lightweight cinematic mood conditioning. Appended to the existing
+// frame prompt only. Does not change generation architecture or storage.
+// =====================================================================
+type MoodId =
+  | 'emotional_indie'
+  | 'warm_nostalgia'
+  | 'noir_documentary'
+  | 'cold_scifi'
+  | 'dreamlike_cinema'
+  | 'gritty_realism'
+
+const MOODS: { id: MoodId; label: string; suffix: string }[] = [
+  { id: 'emotional_indie',  label: 'Emotional Indie',   suffix: 'soft natural lighting, intimate handheld realism, muted cinematic tones, shallow depth of field' },
+  { id: 'warm_nostalgia',   label: 'Warm Nostalgia',    suffix: 'golden-hour warmth, Kodak-style grading, nostalgic film grain, warm cinematic shadows' },
+  { id: 'noir_documentary', label: 'Noir Documentary',  suffix: 'high contrast monochrome realism, dramatic shadows, grainy documentary photography' },
+  { id: 'cold_scifi',       label: 'Cold Sci-Fi',       suffix: 'cool blue cinematic highlights, atmospheric futuristic realism, clean contrast' },
+  { id: 'dreamlike_cinema', label: 'Dreamlike Cinema',  suffix: 'ethereal cinematic haze, soft bloom lighting, poetic atmosphere' },
+  { id: 'gritty_realism',   label: 'Gritty Realism',    suffix: 'raw documentary texture, grounded realism, natural imperfect lighting' },
+]
+const MOOD_BY_ID: Record<string, { id: MoodId; label: string; suffix: string }> =
+  Object.fromEntries(MOODS.map(m => [m.id, m])) as any
+
+const MOOD_STORAGE_KEY = 'mugtee:workspace:mood'
+
+function buildFramePrompt(shotText: string, index: number, moodId?: string) {
   const cinematicLayer = [
     'Cinematic film still. Real photography aesthetic.',
     'Shallow depth of field. 35mm grain. Natural motivated lighting.',
@@ -805,7 +832,32 @@ function buildFramePrompt(shotText: string, index: number) {
     'Composition follows the framing description above precisely.',
     'No text, no captions, no watermarks, no logos in the image.',
   ].join(' ')
-  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}`
+  const moodSuffix = (moodId && MOOD_BY_ID[moodId])
+    ? `\n\nVisual Mood Lock: ${MOOD_BY_ID[moodId].suffix}.`
+    : ''
+  return `Frame ${index + 1}\n\n${shotText}\n\n${cinematicLayer}${moodSuffix}`
+}
+
+// =====================================================================
+// Phase 2D — SMART FRAME EXPORT NAMING
+// Slugify the project title, pad the order, fall back safely.
+// Example: lonely-astronaut_s02_sh01.png  ·  fallback: mugtee_s01_sh01.png
+// =====================================================================
+function slugifyProject(s?: string): string {
+  if (!s) return 'mugtee'
+  const slug = s
+    .toLowerCase()
+    .trim()
+    .replace(/[\u2018\u2019\u201C\u201D'"`]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+  return slug || 'mugtee'
+}
+function frameFileName(projectTitle: string | undefined, index: number): string {
+  const project = slugifyProject(projectTitle)
+  const seq = String(Math.max(0, index) + 1).padStart(2, '0')
+  return `${project}_s${seq}_sh01.png`
 }
 
 function StoryboardFrames({
@@ -821,6 +873,22 @@ function StoryboardFrames({
   const [frames, setFrames] = useState<FrameAsset[]>([])
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+
+  // Phase 2D — Visual Mood Lock. Local state, persisted to localStorage so the
+  // creator's mood choice sticks across sessions without any backend changes.
+  const [mood, setMoodState] = useState<MoodId>('emotional_indie')
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = window.localStorage.getItem(MOOD_STORAGE_KEY) as MoodId | null
+      if (saved && MOOD_BY_ID[saved]) setMoodState(saved)
+    } catch {}
+  }, [])
+  const setMood = useCallback((next: MoodId) => {
+    setMoodState(next)
+    try { window.localStorage.setItem(MOOD_STORAGE_KEY, next) } catch {}
+    track('storyboard_mood_changed', { mood: next })
+  }, [])
 
   // Reset + hydrate any existing frames for this project (so refresh / project switch shows them).
   useEffect(() => {
@@ -844,7 +912,7 @@ function StoryboardFrames({
     if (!canGenerate) return
     setBusy(true)
     setProgress({ done: 0, total: shots.length })
-    track('storyboard_frames_clicked', { shot_count: shots.length, platform })
+    track('storyboard_frames_clicked', { shot_count: shots.length, platform, mood })
     try {
       let pid = savedId
       if (!pid && ensureSaved) pid = await ensureSaved()
@@ -863,13 +931,13 @@ function StoryboardFrames({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               project_id: pid,
-              prompt: buildFramePrompt(shots[i], i),
+              prompt: buildFramePrompt(shots[i], i, mood),
               aspect_ratio: aspect,
             }),
           })
           const data = await res.json()
           if (res.ok && data?.url) {
-            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i] }
+            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i], mood }
             collected.push(fr)
             setFrames(prev => [...prev, fr])
           } else {
@@ -885,7 +953,7 @@ function StoryboardFrames({
         track('storyboard_frames_failed', { shot_count: shots.length })
       } else {
         toast.success(`${collected.length} cinematic frame${collected.length === 1 ? '' : 's'} ready`)
-        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length })
+        track('storyboard_frames_completed', { generated: collected.length, requested: shots.length, mood })
       }
     } finally {
       setBusy(false)
@@ -897,6 +965,32 @@ function StoryboardFrames({
 
   return (
     <div className="mt-4 space-y-3">
+      {/* Phase 2D — Visual Mood Lock pill picker. Subtle, compact, gold-active. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45 mr-1">Visual Mood</span>
+        {MOODS.map(m => {
+          const active = mood === m.id
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setMood(m.id)}
+              disabled={busy}
+              title={m.suffix}
+              className={
+                'px-2.5 py-1 rounded-full text-[10.5px] tracking-[0.04em] transition border ' +
+                (active
+                  ? 'bg-gold-500/15 border-gold-500/55 text-gold-200 shadow-[0_0_14px_-6px_rgba(245,196,77,0.55)]'
+                  : 'bg-white/[0.025] border-white/[0.07] text-luxe/65 hover:text-gold-200 hover:border-gold-500/40') +
+                (busy ? ' opacity-50 cursor-not-allowed' : '')
+              }
+            >
+              {m.label}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
           <ImageIcon className="w-3 h-3" /> Cinematic Frames
@@ -924,6 +1018,7 @@ function StoryboardFrames({
               frame={f}
               index={i}
               storyboardText={storyboardText}
+              projectTitle={projectTitle}
               onRegenerate={async () => {
                 const pid = savedId
                 if (!pid) { toast.error('Save the project first.'); return }
@@ -932,21 +1027,21 @@ function StoryboardFrames({
                 const shotText = f.shotText || fallbackShot
                 if (!shotText) { toast.error('Original shot text not found.'); return }
                 setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: true } : x))
-                track('storyboard_frame_regenerated', { index: i })
+                track('storyboard_frame_regenerated', { index: i, mood })
                 try {
                   const res = await fetch('/api/ai/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       project_id: pid,
-                      prompt: buildFramePrompt(shotText, i),
+                      prompt: buildFramePrompt(shotText, i, mood),
                       aspect_ratio: frameAspectFor(platform),
                     }),
                   })
                   const data = await res.json()
                   if (res.ok && data?.url) {
                     setFrames(prev => prev.map((x, idx) => idx === i
-                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText }
+                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText, mood }
                       : x))
                     toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
                   } else {
@@ -985,17 +1080,20 @@ function StoryboardFrames({
 // reuses existing /api/ai/image (regen) + Blob (download) + sonner.
 // =====================================================================
 function FrameCard({
-  frame, index, storyboardText, onRegenerate,
+  frame, index, storyboardText, projectTitle, onRegenerate,
 }: {
   frame: FrameAsset
   index: number
   storyboardText: string
+  projectTitle?: string
   onRegenerate: () => void | Promise<void>
 }) {
   const label = String(index + 1).padStart(2, '0')
 
   const downloadFrame = async () => {
-    track('storyboard_frame_downloaded', { index })
+    // Phase 2D — smart export naming: <project>_s{NN}_sh01.png with safe fallback.
+    const filename = frameFileName(projectTitle, index)
+    track('storyboard_frame_downloaded', { index, filename })
     try {
       const res = await fetch(frame.url)
       if (!res.ok) throw new Error('fetch failed')
@@ -1003,13 +1101,13 @@ function FrameCard({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `mugtee-frame-${label}.png`
+      a.download = filename
       a.rel = 'noopener'
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(url), 800)
-      toast.success(`Frame ${label} downloaded`)
+      toast.success(`Saved \u00b7 ${filename}`)
     } catch {
       // Cross-origin fetch can fail; fall back to opening in a new tab so the
       // creator can right-click → save without us touching the URL.
@@ -1020,8 +1118,8 @@ function FrameCard({
 
   const copyPrompt = async () => {
     const prompt = frame.prompt
-      || (frame.shotText ? buildFramePrompt(frame.shotText, index) : '')
-      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index) : '')
+      || (frame.shotText ? buildFramePrompt(frame.shotText, index, frame.mood) : '')
+      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index, frame.mood) : '')
     if (!prompt) { toast.error('Prompt not available for this frame.'); return }
     try {
       await navigator.clipboard.writeText(prompt)
