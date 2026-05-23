@@ -110,6 +110,13 @@ function buildPrompt(b: Body) {
     `\u2022 Use everyday human cadence. Short sentences. Real silences. Trust the visual.`,
     `\u2022 Respect the platform pacing and the requested tone exactly.`,
     `\u2022 Output is consumed by a real creator who will read it on a small screen. Whitespace matters.`,
+    ``,
+    `LANGUAGE HANDLING (silent):`,
+    `\u2022 The user's TOPIC may arrive in English, Hindi (Devanagari), Gujarati, Hinglish (Roman-script Hindi/English mix), or any other language.`,
+    `\u2022 First, silently translate / normalize the topic INTERNALLY to clean cinematic English. Preserve the emotional intent, cultural references, and proper nouns.`,
+    `\u2022 Always GENERATE all five output fields in ENGLISH by default \u2014 even when the topic is non-English. This keeps the cinematic pipeline (mood lock, frame continuity, character continuity) consistent.`,
+    `\u2022 ONLY if the topic explicitly contains an output-language directive (e.g. "in Hindi", "in Gujarati", "output in Hinglish", "Hindi script", "Gujarati caption", "\u0939\u093F\u0928\u094D\u0926\u0940 \u092E\u0947\u0902 \u0932\u093F\u0916\u094B"), then write the user-facing prose (hook / script voiceover lines / captions) in that language. Even then, keep field labels (Scene, Visual, Voiceover, Camera, Emotion, Shot, Framing, Movement, Lighting, Transition, Composition, Trigger, Overlay text, Color mood, Notes) in ENGLISH. Tag lines (#hashtags) stay lowercase ASCII.`,
+    `\u2022 Never narrate the translation. Never apologise. Never explain the language choice.`,
   ].join('\n')
 
   const user = [

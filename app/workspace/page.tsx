@@ -75,6 +75,33 @@ type RecentProject = {
   updated_at: string
 }
 
+// =====================================================================
+// Phase 2F — Silent Language Normalization (client-side detection only).
+// Lightweight Unicode-block + Hinglish-marker heuristic. No API call,
+// no library. Used purely for telemetry; the LLM does the actual
+// normalization silently inside the existing /api/generate-script call.
+// =====================================================================
+type DetectedLanguage = 'english' | 'hindi' | 'gujarati' | 'hinglish' | 'other'
+// Hinglish markers — strictly Hindi-origin Romanized words. NO words that
+// commonly appear in pure English creator prompts (e.g. "cinematic", "reel",
+// "story"). We require >= 2 matches to bias away from false positives.
+const HINGLISH_MARKERS = /\b(hai|hain|nahi|nahin|kya|kyun|kyo|mujhe|tujhe|tumhe|mera|meri|tera|teri|hamara|aapka|aapko|tumhara|tumko|hum|tum|aap|woh|wo|yeh|ye|aur|bhi|toh|kuch|sab|sabko|matlab|bhai|yaar|dost|dosti|banana|banao|banaye|banaiye|karna|karein|karenge|krna|chahiye|chahta|chahti|accha|achha|acha|theek|thik|bilkul|jaldi|jaroor|zaroor|abhi|insaan|zindagi|pyar|pyaar|mohabbat|dil|maa|baap|beta|beti|bachpan|yaadein|kahani|kahaani)\b/i
+
+function detectInputLanguage(raw: string): DetectedLanguage {
+  if (!raw) return 'english'
+  const text = raw.trim()
+  if (!text) return 'english'
+  if (/[\u0900-\u097F]/.test(text)) return 'hindi'      // Devanagari
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'gujarati'   // Gujarati
+  // Non-ASCII characters that aren't covered above \u2192 'other'
+  const hasNonAscii = /[^\x00-\x7F]/.test(text)
+  if (hasNonAscii) return 'other'
+  // ASCII-only \u2192 require 2+ Hinglish markers to bias away from false positives.
+  const matches = (text.toLowerCase().match(new RegExp(HINGLISH_MARKERS, 'gi')) || []).length
+  if (matches >= 2) return 'hinglish'
+  return 'english'
+}
+
 export default function WorkspacePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -216,12 +243,19 @@ export default function WorkspacePage() {
     setSavedId(null)
     const topicLen = topic.trim().length
     const topicLenBucket = topicLen < 30 ? 'short' : topicLen < 120 ? 'medium' : topicLen < 400 ? 'long' : 'very_long'
+    // Phase 2F \u2014 silent language detection. Fire telemetry but never block the flow.
+    const detectedLanguage = detectInputLanguage(topic)
+    track('input_language_detected', {
+      detected_language: detectedLanguage,
+      normalized: detectedLanguage !== 'english',
+    })
     track('workspace_generate_clicked', {
       platform, tone, duration,
       topic_length: topicLen,
       topic_length_bucket: topicLenBucket,
       used_starter_prompt: usedStarterPromptRef.current,
       from_template: usedStarterPromptRef.current, // back-compat alias
+      detected_language: detectedLanguage,
     })
     try {
       const res = await fetch('/api/generate-script', {
@@ -434,6 +468,10 @@ export default function WorkspacePage() {
               placeholder="e.g. A 60-sec cinematic reel on why most people fail to start their dream brand..."
               className="min-h-[120px] bg-white/[0.03] border-white/[0.08] text-luxe placeholder:text-luxe/30 focus-visible:ring-gold-500/40 resize-none"
             />
+            {/* Phase 2F \u2014 silent multilingual hint. Muted, passive, no controls. */}
+            <p className="text-[10.5px] text-luxe/35 tracking-[0.04em] pt-0.5">
+              Write in any language.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
