@@ -139,12 +139,35 @@ export function StoreProvider({ userId, userName, children }: { userId: string; 
     let cancelled = false
     async function load() {
       try {
-        const baseQ = (table: string) => supabase.from(table).select('*').is('deleted_at', null)
+        // Phase 3L — defensive hydration. Some Supabase environments lack the
+        // `deleted_at` column on hydration tables. Try the soft-delete-filtered
+        // SELECT first; on a column-missing error, silently retry without the
+        // filter so creators still see their projects, crew, shoots, and media.
+        // Scope: hydration queries only (per Phase 3L spec).
+        const baseQ = async (
+          table: string,
+          orderBy: { column: string; ascending: boolean }
+        ): Promise<{ data: any[] | null; error: any }> => {
+          const primary = await supabase
+            .from(table)
+            .select('*')
+            .is('deleted_at', null)
+            .order(orderBy.column, { ascending: orderBy.ascending })
+          if (primary.error && /deleted_at/i.test(primary.error.message || '')) {
+            console.warn('[store] deleted_at column missing, retrying without soft-delete filter')
+            const fallback = await supabase
+              .from(table)
+              .select('*')
+              .order(orderBy.column, { ascending: orderBy.ascending })
+            return { data: (fallback.data as any[]) || null, error: fallback.error }
+          }
+          return { data: (primary.data as any[]) || null, error: primary.error }
+        }
         const [c, cr, sh, md, ac, ws] = await Promise.all([
-          baseQ('content_pieces').order('created_at', { ascending: false }),
-          baseQ('crew').order('created_at', { ascending: true }),
-          baseQ('shoots').order('date', { ascending: true }),
-          baseQ('media').order('created_at', { ascending: false }),
+          baseQ('content_pieces', { column: 'created_at', ascending: false }),
+          baseQ('crew',           { column: 'created_at', ascending: true  }),
+          baseQ('shoots',         { column: 'date',       ascending: true  }),
+          baseQ('media',          { column: 'created_at', ascending: false }),
           supabase.from('team_activity').select('*').order('created_at', { ascending: false }).limit(30),
           supabase.from('workspaces').select('*').eq('user_id', userId).maybeSingle(),
         ])

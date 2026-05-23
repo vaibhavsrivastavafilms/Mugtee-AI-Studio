@@ -23,36 +23,49 @@ export async function GET() {
     // projects may not have the optional columns (`scheduled_for`, `niche`).
     // Try the rich SELECT first, and on schema mismatch fall back to the
     // guaranteed minimum so the endpoint never 500s on a legitimate row set.
+    // Phase 3L — also defensive against missing `deleted_at` column. If the
+    // soft-delete filter trips a column error, retry without the filter.
     const RICH_COLS = 'id, title, platform, status, description, script, scheduled_for, created_at, updated_at, niche'
     const MIN_COLS  = 'id, title, platform, status, description, script, created_at, updated_at'
+
+    const runQuery = async (cols: string, withSoftDelete: boolean) => {
+      let q: any = supabase
+        .from('content_pieces')
+        .select(cols)
+        .eq('user_id', user.id)
+      if (withSoftDelete) q = q.is('deleted_at', null)
+      q = q.order('updated_at', { ascending: false, nullsFirst: false }).limit(12)
+      return q as Promise<{ data: any[] | null; error: any }>
+    }
+
     let projects: any[] | null = null
     let pErr: any = null
-    {
-      const r = await supabase
-        .from('content_pieces')
-        .select(RICH_COLS)
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .limit(12)
+    // 1a — rich SELECT with soft-delete filter
+    let r = await runQuery(RICH_COLS, true)
+    projects = r.data as any[]
+    pErr = r.error
+    // 1b — drop soft-delete filter if it tripped the error
+    if (pErr && /deleted_at/i.test(pErr.message || '')) {
+      console.warn('[projects.recent] deleted_at column missing, retrying without soft-delete filter')
+      r = await runQuery(RICH_COLS, false)
       projects = r.data as any[]
       pErr = r.error
     }
+    // 1c — drop optional columns if scheduled_for/niche missing
     if (pErr) {
-      // Likely "column X does not exist" — retry with the safe column list.
       console.warn('[projects.recent] rich select failed, retrying minimal:', pErr?.message)
-      const r2 = await supabase
-        .from('content_pieces')
-        .select(MIN_COLS)
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .limit(12)
-      projects = r2.data as any[]
-      pErr = r2.error
+      r = await runQuery(MIN_COLS, true)
+      projects = r.data as any[]
+      pErr = r.error
+      if (pErr && /deleted_at/i.test(pErr.message || '')) {
+        console.warn('[projects.recent] deleted_at column missing, retrying without soft-delete filter')
+        r = await runQuery(MIN_COLS, false)
+        projects = r.data as any[]
+        pErr = r.error
+      }
     }
     if (pErr) {
-      console.error('[projects.recent] both selects failed:', pErr?.message)
+      console.error('[projects.recent] all selects failed:', pErr?.message)
       return NextResponse.json({ projects: [], signed_in: true, degraded: true })
     }
     if (!projects?.length) return NextResponse.json({ projects: [], signed_in: true })
