@@ -82,7 +82,13 @@ export async function POST(req: NextRequest) {
 
     if (!ggRes.ok) {
       const errText = await ggRes.text().catch(() => '')
-      console.error('[image] Emergent gateway error:', ggRes.status, errText.slice(0, 400))
+      console.error('[image] provider error', {
+        status: ggRes.status,
+        seq: sequenceIndex,
+        promptLen: cinematic.length,
+        aspect: aspectRatio,
+        sample: errText.slice(0, 400),
+      })
       return NextResponse.json({ error: 'Image provider error', detail: errText.slice(0, 400) }, { status: 502 })
     }
     const ggJson: any = await ggRes.json().catch(() => ({}))
@@ -90,6 +96,12 @@ export async function POST(req: NextRequest) {
     // ---- Extract base64 image ----
     const b64 = extractB64(ggJson)
     if (!b64) {
+      console.error('[image] no image in response', {
+        seq: sequenceIndex,
+        promptLen: cinematic.length,
+        keys: Object.keys(ggJson || {}),
+        firstChoice: typeof ggJson?.choices?.[0]?.message?.content,
+      })
       return NextResponse.json({ error: 'No image returned by model' }, { status: 502 })
     }
     const buffer = Buffer.from(b64, 'base64')
