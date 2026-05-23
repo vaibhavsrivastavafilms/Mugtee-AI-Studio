@@ -93,6 +93,10 @@ export default function WorkspacePage() {
   const [recents, setRecents] = useState<RecentProject[]>([])
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  // V1.10 — Payoff "magic moment": bumped on each successful generation/load so the
+  // OutputPanel can scroll itself into view + apply a brief gold glow ring without
+  // owning extra state about whether it was just generated.
+  const [revealNonce, setRevealNonce] = useState(0)
 
   // ── Telemetry refs (avoid stale closures + unnecessary rerenders) ──
   const sessionStartedRef       = useRef(false)
@@ -168,6 +172,7 @@ export default function WorkspacePage() {
       setSavedId(id)
       setActiveProjectId(id)
       setTab('hook')
+      setRevealNonce(n => n + 1)
       if (opts?.syncUrl !== false) {
         const next = new URLSearchParams(searchParams.toString())
         next.set('project', id)
@@ -228,6 +233,7 @@ export default function WorkspacePage() {
       if (!res.ok) throw new Error(data?.error || 'Generation failed')
       setOutput(data.output as GenOutput)
       setTab('hook')
+      setRevealNonce(n => n + 1)
       generateCountRef.current += 1
       const outLen = (['hook','script','storyboard','captions','thumbnailIdea'] as const)
         .reduce((acc, k) => acc + (data.output?.[k]?.length || 0), 0)
@@ -455,14 +461,14 @@ export default function WorkspacePage() {
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
         <div className="lg:hidden mt-6">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} mobile />
         </div>
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} />
         </div>
       </aside>
     </div>
@@ -470,7 +476,7 @@ export default function WorkspacePage() {
 }
 
 function OutputPanel({
-  output, loading, tab, setTab, onSave, saving, savedId, projectTitle,
+  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile,
 }: {
   output: GenOutput | null
   loading: boolean
@@ -480,9 +486,39 @@ function OutputPanel({
   saving: boolean
   savedId: string | null
   projectTitle?: string
+  revealNonce?: number
+  mobile?: boolean
 }) {
+  // V1.10 — Magic moment. When `revealNonce` bumps (after every successful
+  // generation or project rehydration), scroll the output into view and apply a
+  // brief gold ring + glow. Pure CSS / existing tokens, no animation library.
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const [glow, setGlow] = useState(false)
+  useEffect(() => {
+    if (!revealNonce) return // 0 means "never generated this session"
+    // Scroll-into-view is most useful on the mobile-stacked panel (the desktop
+    // right-rail is always visible). Run on both \u2014 the desktop call is a no-op
+    // since the panel is already in viewport.
+    const id = setTimeout(() => {
+      try {
+        wrapRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: mobile ? 'start' : 'center',
+        })
+      } catch {}
+    }, mobile ? 80 : 0)
+    setGlow(true)
+    const off = setTimeout(() => setGlow(false), 1600)
+    return () => { clearTimeout(id); clearTimeout(off) }
+  }, [revealNonce, mobile])
+
   return (
-    <div className="space-y-3 h-full flex flex-col">
+    <div
+      ref={wrapRef}
+      className={`space-y-3 h-full flex flex-col scroll-mt-6 rounded-2xl transition-all duration-700 ease-out ${
+        glow ? 'ring-1 ring-gold-500/40 shadow-gold-glow' : 'ring-0 shadow-none'
+      }`}
+    >
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
           <Sparkles className="w-3 h-3" /> Mugtee Output
