@@ -102,6 +102,32 @@ export default function MediaPage() {
     return () => { cancelled = true }
   }, [tab])
 
+  // Phase 3G — counter synchronization. Independent lightweight fetch so the
+  // tab chip counts (Images / Narrations / Exports) reflect REAL persisted
+  // assets regardless of which tab is currently active. Refreshes on mount,
+  // on tab switch, and whenever the window regains focus.
+  const [assetCounts, setAssetCounts] = useState<{ image: number; voiceover: number; export: number }>({ image: 0, voiceover: 0, export: 0 })
+  useEffect(() => {
+    let cancelled = false
+    const fetchCounts = async () => {
+      try {
+        const r = await fetch('/api/library/assets?kind=image,voiceover,export&limit=100')
+        const d = await r.json()
+        if (cancelled) return
+        const arr = (d?.assets || []) as LibraryAsset[]
+        setAssetCounts({
+          image:     arr.filter(a => a.kind === 'image').length,
+          voiceover: arr.filter(a => a.kind === 'voiceover').length,
+          export:    arr.filter(a => a.kind === 'export').length,
+        })
+      } catch {}
+    }
+    fetchCounts()
+    const onFocus = () => { fetchCounts() }
+    window.addEventListener('focus', onFocus)
+    return () => { cancelled = true; window.removeEventListener('focus', onFocus) }
+  }, [tab])
+
   // Localstorage-backed collections
   const [ideas, setIdeas] = useState<LibraryIdea[]>([])
   const [prompts, setPrompts] = useState<LibraryPrompt[]>([])
@@ -125,10 +151,12 @@ export default function MediaPage() {
     prompts:    prompts.length,
     ideas:      ideas.length,
     scripts:    scripts.length,
-    images:     tab === 'images'     ? libAssets.length : 0,
-    narrations: tab === 'narrations' ? libAssets.length : 0,
+    // Phase 3G — counts come from the dedicated `assetCounts` aggregate so
+    // they reflect the REAL persisted totals, not just whatever tab is open.
+    images:     assetCounts.image,
+    narrations: assetCounts.voiceover,
     media:      media.length,
-    exports:    tab === 'exports'    ? libAssets.length : 0,
+    exports:    assetCounts.export,
   }
 
   const deleteIdea = (id: string) => { const next = ideas.filter(i => i.id !== id); setIdeas(next); writeIdeas(next); toast.success('Idea removed') }

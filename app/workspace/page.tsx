@@ -812,6 +812,7 @@ function OutputPanel({
                 duration={duration}
                 savedId={savedId}
                 loading={loading}
+                ensureSaved={ensureSaved}
               />
             ) : (
               <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
@@ -884,13 +885,14 @@ const VOICE_PRESETS: { id: 'warm_documentary'|'emotional_cinematic'|'deep_traile
 const VOICE_STYLE_KEY = 'mugtee:workspace:voice-style'
 
 function VoiceoverPanel({
-  script, platform, duration, savedId, loading,
+  script, platform, duration, savedId, loading, ensureSaved,
 }: {
   script: string
   platform?: string
   duration?: string
   savedId: string | null
   loading: boolean
+  ensureSaved?: () => Promise<string | null>
 }) {
   const [style, setStyleState] = useState<typeof VOICE_PRESETS[number]['id']>('warm_documentary')
   const [busy, setBusy] = useState(false)
@@ -919,6 +921,10 @@ function VoiceoverPanel({
     setErrorMsg('')
     try {
       track('voiceover_generate_clicked', { voice_style: style, platform, project_id: savedId || undefined })
+      // Phase 3G — auto-save the project before generation so the voiceover
+      // can be persisted to project_assets (and surface in Library).
+      let pid = savedId
+      if (!pid && ensureSaved) pid = await ensureSaved()
       const res = await fetch('/api/ai/voiceover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -927,6 +933,7 @@ function VoiceoverPanel({
           voice_style: style,
           platform: platform || 'instagram_reel',
           duration: Number(duration || 60),
+          project_id: pid || undefined,
         }),
       })
       const data = await res.json().catch(() => ({} as any))
@@ -958,7 +965,7 @@ function VoiceoverPanel({
     } finally {
       setBusy(false)
     }
-  }, [canGenerate, script, style, platform, duration, savedId])
+  }, [canGenerate, script, style, platform, duration, savedId, ensureSaved])
 
   const download = useCallback(() => {
     if (!audio) return

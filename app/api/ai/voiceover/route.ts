@@ -146,6 +146,55 @@ export async function POST(req: NextRequest) {
     }
     const audioDataUri = `data:audio/mpeg;base64,${audioBuf.toString('base64')}`
 
+    // Phase 3G — persist voiceover into project_assets so the Library tab
+    // and activity timeline reflect it. Only runs when the client passes a
+    // project_id it owns; otherwise we return the data URI as before
+    // (preview / unsaved generation still works).
+    let persistedAsset: any = null
+    const projectId = String(body?.project_id || '').trim()
+    if (projectId) {
+      try {
+        const { data: piece } = await supabase
+          .from('content_pieces').select('id, title, user_id').eq('id', projectId).single()
+        if (piece && piece.user_id === user.id) {
+          const filename = `${user.id}/${projectId}/vo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp3`
+          const { error: upErr } = await supabase.storage.from('project-assets').upload(filename, audioBuf, {
+            contentType: 'audio/mpeg',
+            upsert: false,
+          })
+          if (!upErr) {
+            const { data: pub } = supabase.storage.from('project-assets').getPublicUrl(filename)
+            const { data: row, error: rowErr } = await supabase.from('project_assets').insert({
+              project_id: projectId,
+              user_id: user.id,
+              kind: 'voiceover',
+              url: pub.publicUrl,
+              storage_path: filename,
+              mime_type: 'audio/mpeg',
+              title: piece.title || null,
+              prompt: narration.slice(0, 600),
+              metadata: {
+                voice_style: styleId,
+                voice: style.voice,
+                voice_label: style.label,
+                platform,
+                duration_target: duration,
+                mood: moodLabel || null,
+                bytes: audioBuf.length,
+              },
+            }).select('id, url, kind, metadata, created_at').single()
+            if (!rowErr) persistedAsset = row
+            else console.warn('[voiceover] db insert skipped:', rowErr.message)
+          } else {
+            console.warn('[voiceover] storage upload skipped:', upErr.message)
+          }
+        }
+      } catch (persistErr: any) {
+        // Persistence is best-effort — never block the playback response.
+        console.warn('[voiceover] persistence soft-fail:', persistErr?.message)
+      }
+    }
+
     return NextResponse.json({
       narration,
       audio: audioDataUri,
@@ -153,6 +202,7 @@ export async function POST(req: NextRequest) {
       voice_style: styleId,
       voice_label: style.label,
       bytes: audioBuf.length,
+      asset: persistedAsset, // null if unsaved generation, asset row if persisted
     })
   } catch (e: any) {
     console.error('[voiceover] unexpected error', e?.message)

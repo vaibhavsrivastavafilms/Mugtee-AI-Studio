@@ -81,6 +81,15 @@ export default function LoginPage() {
               {loading ? 'Redirecting to Google…' : 'Continue with Google'}
             </Button>
 
+            {/* Phase 3F — gentle clarifier so creators understand one button
+                handles both sign-in and new account. No extra forms, no
+                friction, no provider expansion. */}
+            <p className="text-center text-[11px] sm:text-[11.5px] text-luxe/55 mt-3 leading-relaxed">
+              <span className="text-luxe/75">New here?</span> Your studio is created automatically.
+              <br className="hidden sm:block" />
+              <span className="text-luxe/45">Returning creators sign back in with the same Google account.</span>
+            </p>
+
             <div className="flex items-center gap-3 my-5 sm:my-6">
               <div className="flex-1 gold-divider" />
               <span className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">Secure · OAuth 2.0</span>
