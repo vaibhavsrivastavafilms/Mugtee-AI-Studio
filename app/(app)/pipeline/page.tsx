@@ -132,7 +132,16 @@ export default function PipelinePage() {
                 horizontal scroll). Mobile/tablet still uses snap-x scroll. */}
             <div className="flex gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-6 lg:gap-3 pb-4 scrollbar-luxe -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory sm:snap-none lg:snap-none">
               {visibleColumns.map((col, i) => {
-                const items = content.filter(c => c.status === col)
+                // Phase 3J — legacy hydration. Workspace projects saved
+                // before the Phase 3I status-derivation fix carry the
+                // legacy `status='draft'` (or null). Bucket them into the
+                // 'idea' column so creators see their entire studio history.
+                const items = content.filter(c => {
+                  if (col === 'idea') {
+                    return c.status === 'idea' || c.status === 'draft' || !c.status
+                  }
+                  return c.status === col
+                })
                 return (
                   <KanbanColumn key={col} id={col} index={i} items={items} onAdd={() => setNewCardStatus(col)} />
                 )
