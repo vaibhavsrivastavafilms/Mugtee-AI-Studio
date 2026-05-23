@@ -19,6 +19,7 @@ import {
   Zap, MessageCircle, Save, ChevronRight, Layers,
   Copy, Download, FileType, RefreshCw, MoreHorizontal,
   Home, PenLine, BookOpen, Mic, Settings as SettingsIcon, Compass,
+  Play, Pause, Volume2,
 } from 'lucide-react'
 
 const PLATFORMS = [
@@ -114,7 +115,7 @@ export default function WorkspacePage() {
 
   const [generating, setGenerating] = useState(false)
   const [output, setOutput] = useState<GenOutput | null>(null)
-  const [tab, setTab] = useState<'hook' | 'script' | 'storyboard' | 'captions' | 'thumbnail'>('hook')
+  const [tab, setTab] = useState<'hook' | 'script' | 'storyboard' | 'voiceover' | 'captions' | 'thumbnail'>('hook')
 
   const [saving, setSaving] = useState(false)
   const [savedId, setSavedId] = useState<string | null>(null)
@@ -203,7 +204,7 @@ export default function WorkspacePage() {
       setSavedId(id)
       setActiveProjectId(id)
       // Phase 3A — restore active tab if caller asked, else default to hook.
-      const validTabs = ['hook','script','storyboard','captions','thumbnail'] as const
+      const validTabs = ['hook','script','storyboard','voiceover','captions','thumbnail'] as const
       const requested = opts?.tab && (validTabs as readonly string[]).includes(opts.tab) ? opts.tab as any : null
       setTab(requested || 'hook')
       // Project loaded successfully → mark this moment as "saved" for the trust signal.
@@ -257,7 +258,7 @@ export default function WorkspacePage() {
         loadProject(lastId, { syncUrl: true, tab: lastTab || undefined })
         track('workspace_session_recovered', { from: 'localStorage' })
       } else if (lastTab) {
-        const valid = (['hook','script','storyboard','captions','thumbnail'] as const)
+        const valid = (['hook','script','storyboard','voiceover','captions','thumbnail'] as const)
         if ((valid as readonly string[]).includes(lastTab)) setTab(lastTab as any)
       }
     } catch {}
@@ -656,7 +657,7 @@ function OutputPanel({
 }: {
   output: GenOutput | null
   loading: boolean
-  tab: 'hook' | 'script' | 'storyboard' | 'captions' | 'thumbnail'
+  tab: 'hook' | 'script' | 'storyboard' | 'voiceover' | 'captions' | 'thumbnail'
   setTab: (t: any) => void
   onSave: () => void
   saving: boolean
@@ -718,20 +719,31 @@ function OutputPanel({
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as any)} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-5 bg-white/[0.03] border border-white/[0.06] h-9">
+        <TabsList className="grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9">
           <TabsTrigger value="hook" className="text-[11.5px] gap-1"><Zap className="w-3 h-3" />Hook</TabsTrigger>
           <TabsTrigger value="script" className="text-[11.5px] gap-1"><FileText className="w-3 h-3" />Script</TabsTrigger>
           <TabsTrigger value="storyboard" className="text-[11.5px] gap-1"><Film className="w-3 h-3" />Beats</TabsTrigger>
+          <TabsTrigger value="voiceover" className="text-[11.5px] gap-1"><Volume2 className="w-3 h-3" />Voice</TabsTrigger>
           <TabsTrigger value="captions" className="text-[11.5px] gap-1"><MessageCircle className="w-3 h-3" />Caps</TabsTrigger>
           <TabsTrigger value="thumbnail" className="text-[11.5px] gap-1"><ImageIcon className="w-3 h-3" />Thumb</TabsTrigger>
         </TabsList>
 
-        {(['hook','script','storyboard','captions','thumbnail'] as const).map(key => (
+        {(['hook','script','storyboard','voiceover','captions','thumbnail'] as const).map(key => (
           <TabsContent key={key} value={key} className="flex-1 mt-3">
             {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
               <StoryboardTiming storyboardText={output.storyboard} />
             )}
-            <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
+            {key === 'voiceover' ? (
+              <VoiceoverPanel
+                script={output?.script || ''}
+                platform={platform}
+                duration={duration}
+                savedId={savedId}
+                loading={loading}
+              />
+            ) : (
+              <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
+            )}
             {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
               <StoryboardFrames
                 storyboardText={output.storyboard}
