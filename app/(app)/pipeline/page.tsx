@@ -6,6 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect, useMemo, useCallback, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useDroppable } from '@dnd-kit/core'
 import { Plus, GripVertical, User, Calendar as CalendarIcon, Trash2, X, CalendarCheck, Send, FileVideo, Image as ImageIcon, Music, Film, Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -108,12 +109,16 @@ export default function PipelinePage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setNewProjectOpen(true)}
+          {/* Phase 3H — "+ New Project" always lands creators in the cinematic
+              /workspace with a fresh canvas. No modal, no stale residue.
+              The legacy NewProjectModal is preserved below for backward compat
+              but is no longer reachable from this button. */}
+          <Link
+            href="/workspace?fresh=1"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition"
           >
             <Sparkles className="w-4 h-4" /> + New Project
-          </button>
+          </Link>
         </div>
       </motion.div>
       <NewProjectModal open={newProjectOpen} onOpenChange={setNewProjectOpen} />
@@ -123,7 +128,9 @@ export default function PipelinePage() {
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-4 items-start">
           <div className="flex-1 min-w-0">
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-luxe -mx-4 px-4 snap-x snap-mandatory sm:snap-none">
+            {/* Phase 3H — desktop fits all 6 columns in a responsive grid (no
+                horizontal scroll). Mobile/tablet still uses snap-x scroll. */}
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-6 lg:gap-3 pb-4 scrollbar-luxe -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory sm:snap-none lg:snap-none">
               {visibleColumns.map((col, i) => {
                 const items = content.filter(c => c.status === col)
                 return (
@@ -234,7 +241,7 @@ function KanbanColumn({ id, items, onAdd, index }: { id: ContentStatus; items: C
   return (
     <motion.div
       initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{delay:index*0.05}}
-      className="w-[88vw] max-w-[320px] sm:w-[320px] shrink-0 snap-start"
+      className="w-[88vw] max-w-[320px] sm:w-[320px] shrink-0 snap-start lg:w-full lg:max-w-none lg:shrink"
     >
       <div className={cn('rounded-2xl glass border transition-colors h-full flex flex-col', isOver ? 'border-gold-500/50 bg-gold-500/[0.04]' : 'border-white/[0.06]')}>
         <div className="flex items-center justify-between p-4 pb-3">
