@@ -17,7 +17,7 @@ import { track } from '@/lib/posthog'
 import {
   Sparkles, Plus, Loader2, FileText, Film, Image as ImageIcon,
   Zap, MessageCircle, Save, ChevronRight, Layers,
-  Copy, Download, FileType,
+  Copy, Download, FileType, RefreshCw, MoreHorizontal,
 } from 'lucide-react'
 
 const PLATFORMS = [
@@ -776,8 +776,10 @@ type FrameAsset = {
   id: string
   url: string
   prompt?: string
+  shotText?: string                       // cached for single-frame regenerate
   metadata?: Record<string, any> | null
   created_at?: string
+  regenerating?: boolean                  // local-only UI flag
 }
 
 function parseShots(storyboard: string): string[] {
@@ -867,7 +869,7 @@ function StoryboardFrames({
           })
           const data = await res.json()
           if (res.ok && data?.url) {
-            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata }
+            const fr: FrameAsset = { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText: shots[i] }
             collected.push(fr)
             setFrames(prev => [...prev, fr])
           } else {
@@ -917,25 +919,46 @@ function StoryboardFrames({
       {(frames.length > 0 || busy) && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {frames.map((f, i) => (
-            <a
+            <FrameCard
               key={f.id || i}
-              href={f.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={f.prompt?.slice(0, 240)}
-              className="group relative block aspect-[9/16] rounded-lg overflow-hidden border border-white/[0.06] bg-black/40 hover:border-gold-500/40 transition"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={f.url}
-                alt={`Frame ${i + 1}`}
-                loading="lazy"
-                className="w-full h-full object-cover transition group-hover:scale-[1.02] duration-500"
-              />
-              <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] tracking-[0.18em] uppercase text-gold-300/85 font-medium pointer-events-none">
-                {String(i + 1).padStart(2, '0')}
-              </div>
-            </a>
+              frame={f}
+              index={i}
+              storyboardText={storyboardText}
+              onRegenerate={async () => {
+                const pid = savedId
+                if (!pid) { toast.error('Save the project first.'); return }
+                // Re-derive the shot text if it wasn't stored (e.g. legacy DB hydration).
+                const fallbackShot = parseShots(storyboardText)[i] || f.shotText || ''
+                const shotText = f.shotText || fallbackShot
+                if (!shotText) { toast.error('Original shot text not found.'); return }
+                setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: true } : x))
+                track('storyboard_frame_regenerated', { index: i })
+                try {
+                  const res = await fetch('/api/ai/image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      project_id: pid,
+                      prompt: buildFramePrompt(shotText, i),
+                      aspect_ratio: frameAspectFor(platform),
+                    }),
+                  })
+                  const data = await res.json()
+                  if (res.ok && data?.url) {
+                    setFrames(prev => prev.map((x, idx) => idx === i
+                      ? { id: data.id, url: data.url, prompt: data.prompt, metadata: data.metadata, shotText }
+                      : x))
+                    toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
+                  } else {
+                    setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: false } : x))
+                    toast.error('Could not regenerate this frame.')
+                  }
+                } catch {
+                  setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: false } : x))
+                  toast.error('Could not regenerate this frame.')
+                }
+              }}
+            />
           ))}
           {busy && progress && Array.from({ length: Math.max(0, progress.total - progress.done) }).map((_, i) => (
             <div key={`sk-${i}`} className="aspect-[9/16] rounded-lg bg-white/[0.03] border border-white/[0.04] overflow-hidden">
@@ -955,3 +978,131 @@ function StoryboardFrames({
     </div>
   )
 }
+
+// =====================================================================
+// FRAME CARD — Phase 2B hover actions
+// Per-frame Download / Regenerate / Copy Prompt overlay. Pure client,
+// reuses existing /api/ai/image (regen) + Blob (download) + sonner.
+// =====================================================================
+function FrameCard({
+  frame, index, storyboardText, onRegenerate,
+}: {
+  frame: FrameAsset
+  index: number
+  storyboardText: string
+  onRegenerate: () => void | Promise<void>
+}) {
+  const label = String(index + 1).padStart(2, '0')
+
+  const downloadFrame = async () => {
+    track('storyboard_frame_downloaded', { index })
+    try {
+      const res = await fetch(frame.url)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `mugtee-frame-${label}.png`
+      a.rel = 'noopener'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 800)
+      toast.success(`Frame ${label} downloaded`)
+    } catch {
+      // Cross-origin fetch can fail; fall back to opening in a new tab so the
+      // creator can right-click → save without us touching the URL.
+      window.open(frame.url, '_blank', 'noopener,noreferrer')
+      toast.message('Opened in a new tab — long-press or right-click to save.')
+    }
+  }
+
+  const copyPrompt = async () => {
+    const prompt = frame.prompt
+      || (frame.shotText ? buildFramePrompt(frame.shotText, index) : '')
+      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index) : '')
+    if (!prompt) { toast.error('Prompt not available for this frame.'); return }
+    try {
+      await navigator.clipboard.writeText(prompt)
+      toast.success('Prompt copied to clipboard')
+      track('storyboard_frame_prompt_copied', { index })
+    } catch {
+      toast.error('Could not copy prompt')
+    }
+  }
+
+  const busy = !!frame.regenerating
+
+  return (
+    <div
+      title={frame.prompt?.slice(0, 240)}
+      className="group relative block aspect-[9/16] rounded-lg overflow-hidden border border-white/[0.06] bg-black/40 hover:border-gold-500/40 transition"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={frame.url}
+        alt={`Frame ${index + 1}`}
+        loading="lazy"
+        className={`w-full h-full object-cover transition duration-500 ${busy ? 'opacity-30 blur-[1px]' : 'group-hover:scale-[1.02]'}`}
+      />
+
+      {/* Frame number badge — always visible */}
+      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] tracking-[0.18em] uppercase text-gold-300/85 font-medium pointer-events-none">
+        {label}
+      </div>
+
+      {/* Regen spinner overlay (replaces hover actions while busy) */}
+      {busy && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+          <Loader2 className="w-5 h-5 animate-spin text-gold-300" />
+        </div>
+      )}
+
+      {/* Hover actions — subtle gradient + 3 icon buttons. Soft fade-in, low visual noise. */}
+      {!busy && (
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-1 pointer-events-auto">
+            <FrameAction
+              label="Download"
+              icon={Download}
+              onClick={downloadFrame}
+            />
+            <FrameAction
+              label="Regenerate"
+              icon={RefreshCw}
+              onClick={() => onRegenerate()}
+            />
+            <FrameAction
+              label="Copy prompt"
+              icon={Copy}
+              onClick={copyPrompt}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FrameAction({
+  label, icon: Icon, onClick,
+}: {
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick() }}
+      title={label}
+      aria-label={label}
+      className="w-7 h-7 rounded-md bg-black/70 backdrop-blur-sm border border-white/[0.08] hover:border-gold-500/50 text-luxe/85 hover:text-gold-200 flex items-center justify-center transition"
+    >
+      <Icon className="w-3.5 h-3.5" />
+    </button>
+  )
+}
+
