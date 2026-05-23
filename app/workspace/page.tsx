@@ -635,14 +635,14 @@ export default function WorkspacePage() {
 
         {/* OUTPUT PANEL (mobile-stacked below center / desktop in right panel) */}
         <div className="lg:hidden mt-6">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} mobile />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} duration={duration} mobile />
         </div>
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="hidden lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 border-l border-white/[0.06] bg-black/30 backdrop-blur-xl flex-col">
         <div className="p-5 flex-1">
-          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} />
+          <OutputPanel output={output} loading={generating} tab={tab} setTab={setTab} onSave={saveProject} saving={saving} savedId={savedId} projectTitle={topic} revealNonce={revealNonce} ensureSaved={ensureSavedRef.current} platform={platform} tone={tone} duration={duration} />
         </div>
       </aside>
 
@@ -653,7 +653,7 @@ export default function WorkspacePage() {
 }
 
 function OutputPanel({
-  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile, ensureSaved, platform, tone,
+  output, loading, tab, setTab, onSave, saving, savedId, projectTitle, revealNonce, mobile, ensureSaved, platform, tone, duration,
 }: {
   output: GenOutput | null
   loading: boolean
@@ -668,6 +668,7 @@ function OutputPanel({
   ensureSaved?: () => Promise<string | null>
   platform?: string
   tone?: string
+  duration?: string
 }) {
   // V1.10 — Magic moment. When `revealNonce` bumps (after every successful
   // generation or project rehydration), scroll the output into view and apply a
@@ -790,6 +791,222 @@ function OutputBody({ loading, text }: { loading: boolean; text: string }) {
     </pre>
   )
 }
+
+
+// =====================================================================
+// PHASE 3B — Cinematic Voiceover Layer (UI slice)
+// Minimal, additive, reuses existing pill + button styling. Calls the
+// already-working /api/ai/voiceover route and consumes its exact shape:
+//   { narration: string, audio: 'data:audio/mpeg;base64,...' }
+// No waveform, no storage, no autoplay, no persistence beyond the
+// localStorage voice-style pill choice (mirrors the Mood / Camera locks).
+// =====================================================================
+
+const VOICE_PRESETS: { id: 'warm_documentary'|'emotional_cinematic'|'deep_trailer'|'calm_storyteller'; label: string; hint: string }[] = [
+  { id: 'warm_documentary',   label: 'Warm Documentary',   hint: 'Calm, reflective, unhurried' },
+  { id: 'emotional_cinematic',label: 'Emotional Cinematic',hint: 'Lyrical, restrained, soft' },
+  { id: 'deep_trailer',       label: 'Deep Trailer',       hint: 'Weighty, deliberate, sparse' },
+  { id: 'calm_storyteller',   label: 'Calm Storyteller',   hint: 'Intimate, patient cadence' },
+]
+const VOICE_STYLE_KEY = 'mugtee:workspace:voice-style'
+
+function VoiceoverPanel({
+  script, platform, duration, savedId, loading,
+}: {
+  script: string
+  platform?: string
+  duration?: string
+  savedId: string | null
+  loading: boolean
+}) {
+  const [style, setStyleState] = useState<typeof VOICE_PRESETS[number]['id']>('warm_documentary')
+  const [busy, setBusy] = useState(false)
+  const [narration, setNarration] = useState<string>('')
+  const [audio, setAudio] = useState<string>('') // data URI or ''
+  const [errorMsg, setErrorMsg] = useState<string>('')
+
+  // Restore pill choice across sessions — mirrors Mood / Camera locks.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VOICE_STYLE_KEY)
+      if (raw && VOICE_PRESETS.some(v => v.id === raw)) setStyleState(raw as any)
+    } catch {}
+  }, [])
+  const setStyle = useCallback((next: typeof VOICE_PRESETS[number]['id']) => {
+    setStyleState(next)
+    try { window.localStorage.setItem(VOICE_STYLE_KEY, next) } catch {}
+  }, [])
+
+  const hasScript = (script || '').trim().length >= 20
+  const canGenerate = hasScript && !busy && !loading
+
+  const generate = useCallback(async () => {
+    if (!canGenerate) return
+    setBusy(true)
+    setErrorMsg('')
+    try {
+      track('voiceover_generate_clicked', { voice_style: style, platform, project_id: savedId || undefined })
+      const res = await fetch('/api/ai/voiceover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          script,
+          voice_style: style,
+          platform: platform || 'instagram_reel',
+          duration: Number(duration || 60),
+        }),
+      })
+      const data = await res.json().catch(() => ({} as any))
+      if (!res.ok) {
+        const msg = data?.error || 'Could not generate voiceover'
+        // Backend may return narration even when TTS fails — preserve it so
+        // the creator can still iterate on the words.
+        if (data?.narration) setNarration(String(data.narration))
+        setErrorMsg(msg)
+        toast.error(msg)
+        track('voiceover_generate_failed', { voice_style: style, code: data?.code || 'unknown' })
+        return
+      }
+      const nextNarration = String(data?.narration || '')
+      const nextAudio = String(data?.audio || '')
+      if (!nextAudio) {
+        setNarration(nextNarration)
+        setErrorMsg('Voice audio empty')
+        toast.error('Voice audio empty')
+        return
+      }
+      setNarration(nextNarration)
+      setAudio(nextAudio)
+      track('voiceover_generated', { voice_style: style, bytes: Number(data?.bytes || 0) })
+      toast.success('Voiceover ready')
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Network error')
+      toast.error('Network error')
+    } finally {
+      setBusy(false)
+    }
+  }, [canGenerate, script, style, platform, duration, savedId])
+
+  const download = useCallback(() => {
+    if (!audio) return
+    const a = document.createElement('a')
+    a.href = audio
+    a.download = `mugtee-voiceover-${style}-${Date.now()}.mp3`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    track('voiceover_downloaded', { voice_style: style })
+  }, [audio, style])
+
+  return (
+    <div className="space-y-3">
+      {/* Voice preset pills — mirrors Mood / Camera lock styling. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/45 mr-1">Voice Style</span>
+        {VOICE_PRESETS.map(v => {
+          const active = style === v.id
+          return (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => setStyle(v.id)}
+              disabled={busy}
+              title={v.hint}
+              className={
+                'px-2.5 py-1 rounded-full text-[10.5px] tracking-[0.04em] transition border ' +
+                (active
+                  ? 'bg-gold-500/15 border-gold-500/55 text-gold-200 shadow-[0_0_14px_-6px_rgba(245,196,77,0.55)]'
+                  : 'bg-white/[0.025] border-white/[0.07] text-luxe/65 hover:text-gold-200 hover:border-gold-500/40') +
+                (busy ? ' opacity-50 cursor-not-allowed' : '')
+              }
+            >
+              {v.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Header — title + generate / regenerate action. */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
+          <Volume2 className="w-3 h-3" /> Cinematic Voiceover
+        </div>
+        <Button
+          size="sm" variant="outline" onClick={generate} disabled={!canGenerate}
+          className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200 disabled:opacity-50"
+          title={hasScript ? 'Generate cinematic narration + audio' : 'Generate a script first to draft narration'}
+        >
+          {busy
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> {'Working\u2026'}</>
+            : <><Sparkles className="w-3 h-3" /> {audio ? 'Regenerate' : 'Generate Voiceover'}</>
+          }
+        </Button>
+      </div>
+
+      {/* Empty / hint state — only shown before first generation. */}
+      {!busy && !audio && !narration && (
+        <div className="min-h-[160px] rounded-xl border border-dashed border-white/[0.08] bg-black/20 flex flex-col items-center justify-center text-center p-6">
+          <Volume2 className="w-5 h-5 text-gold-400/50 mb-3" />
+          <p className="font-display text-[15px] text-luxe/80 italic leading-snug max-w-[280px]">
+            {hasScript
+              ? 'Pick a voice. Press generate. Hear the story breathe.'
+              : 'Write a script first \u2014 then Mugtee will turn it into spoken cinema.'}
+          </p>
+        </div>
+      )}
+
+      {/* Busy state — small placeholder; no flashy audio UI. */}
+      {busy && (
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-3/4 bg-white/[0.04]" />
+          <Skeleton className="h-4 w-full bg-white/[0.04]" />
+          <Skeleton className="h-4 w-5/6 bg-white/[0.04]" />
+          <Skeleton className="h-10 w-full bg-white/[0.04]" />
+        </div>
+      )}
+
+      {/* Narration text (always shown when present) + native audio + download. */}
+      {!busy && narration && (
+        <div className="space-y-3">
+          <pre className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.75] text-luxe/90 font-sans tracking-[0.005em] rounded-xl border border-white/[0.06] bg-black/20 p-5 max-h-[280px] overflow-auto scrollbar-luxe">
+            {narration}
+          </pre>
+
+          {audio && (
+            <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 space-y-2.5">
+              <audio
+                controls
+                preload="metadata"
+                src={audio}
+                className="w-full h-9"
+                aria-label="Cinematic voiceover preview"
+              />
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[10px] tracking-[0.18em] uppercase text-luxe/45">
+                  {VOICE_PRESETS.find(v => v.id === style)?.label}
+                </span>
+                <Button
+                  size="sm" variant="outline" onClick={download}
+                  className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200"
+                  title="Download narration MP3"
+                >
+                  <Download className="w-3.5 h-3.5" /> MP3
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {errorMsg && !audio && (
+            <p className="text-[11.5px] text-luxe/55 italic pl-0.5">
+              {errorMsg}{' \u2014 try again or pick a different voice.'}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 
 // =====================================================================
