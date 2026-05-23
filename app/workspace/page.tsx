@@ -280,6 +280,19 @@ export default function WorkspacePage() {
     try { window.localStorage.setItem(TAB_KEY, tab) } catch {}
   }, [tab])
 
+  // Phase 3E — react to `?tab=` deep links so sidebar nav (Scripts /
+  // Storyboards / Voiceovers) updates the workspace tab in place. Stays
+  // inside the cinematic studio instead of bouncing to disconnected pages.
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (!t) return
+    const valid = ['hook','script','storyboard','voiceover','captions','thumbnail'] as const
+    if ((valid as readonly string[]).includes(t) && t !== tab) {
+      setTab(t as any)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
   // Phase 3A — remember the most recent project id so we can recover it on next visit.
   useEffect(() => {
     if (!savedId) return
@@ -455,13 +468,15 @@ export default function WorkspacePage() {
             <span className="font-display text-base tracking-tight text-luxe group-hover:text-gold-200 transition">Mugtee</span>
           </Link>
 
-          {/* Phase 3 — quiet creator navigation. Compact muted icons. No analytics, no agents. */}
+          {/* Phase 3 — quiet creator navigation. Compact muted icons. No analytics, no agents.
+              Phase 3E — every nav target now stays inside the cinematic workspace
+              via tab deep-links so creators never bounce to a disconnected page. */}
           <nav aria-label="Mugtee navigation" className="space-y-0.5">
             <NavLink href="/workspace" icon="home" label="Home" />
             <NavLink href="/workspace" icon="create" label="Create" active />
-            <NavLink href="/dashboard" icon="scripts" label="Scripts" />
-            <NavLink href="/dashboard" icon="storyboards" label="Storyboards" />
-            <NavLink href="#" icon="voice" label="Voiceovers" soon />
+            <NavLink href="/workspace?tab=script" icon="scripts" label="Scripts" />
+            <NavLink href="/workspace?tab=storyboard" icon="storyboards" label="Storyboards" />
+            <NavLink href="/workspace?tab=voiceover" icon="voice" label="Voiceovers" />
             <NavLink href="/media" icon="library" label="Library" />
             <NavLink href="/settings" icon="settings" label="Settings" />
           </nav>
@@ -500,33 +515,38 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Templates</p>
-            <div className="space-y-1">
-              {TEMPLATES.map(t => (
-                <button key={t.id} onClick={() => applyTemplate(t.seed)}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] text-[12.5px] text-luxe/85 hover:text-gold-200 transition flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5 text-gold-400/70" />
-                  {t.label}
-                </button>
-              ))}
+          {/* Phase 3E — sidebar progressive reveal. Templates + Showcase recede
+              into the background until the creator has actually started a story.
+              Functionality preserved; only visual weight reduced. */}
+          <div className={'space-y-5 transition-opacity ' + (output ? 'opacity-100' : 'opacity-55 hover:opacity-100')}>
+            <div className="space-y-2">
+              <p className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Templates</p>
+              <div className="space-y-1">
+                {TEMPLATES.map(t => (
+                  <button key={t.id} onClick={() => applyTemplate(t.seed)}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] text-[12.5px] text-luxe/85 hover:text-gold-200 transition flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5 text-gold-400/70" />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Made with Mugtee — static showcase. Pure inspiration; mobile-stacks naturally. */}
-          <div className="space-y-2 pt-2 border-t border-white/[0.05]">
-            <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" /> Made with Mugtee
-            </p>
-            <div className="space-y-1.5">
-              {SHOWCASE.map((s) => (
-                <div key={s.title}
-                  className="rounded-lg px-2.5 py-2 bg-white/[0.025] border border-white/[0.05] hover:border-gold-500/25 transition">
-                  <p className="text-[12px] font-medium text-luxe leading-tight truncate">{s.title}</p>
-                  <p className="text-[11px] text-luxe/55 leading-snug mt-0.5 italic line-clamp-2">{s.hook}</p>
-                  <p className="text-[9.5px] tracking-[0.18em] uppercase text-gold-400/70 mt-1">{s.platform}</p>
-                </div>
-              ))}
+            {/* Made with Mugtee — static showcase. Pure inspiration; mobile-stacks naturally. */}
+            <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+              <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" /> Made with Mugtee
+              </p>
+              <div className="space-y-1.5">
+                {SHOWCASE.map((s) => (
+                  <div key={s.title}
+                    className="rounded-lg px-2.5 py-2 bg-white/[0.025] border border-white/[0.05] hover:border-gold-500/25 transition">
+                    <p className="text-[12px] font-medium text-luxe leading-tight truncate">{s.title}</p>
+                    <p className="text-[11px] text-luxe/55 leading-snug mt-0.5 italic line-clamp-2">{s.hook}</p>
+                    <p className="text-[9.5px] tracking-[0.18em] uppercase text-gold-400/70 mt-1">{s.platform}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -733,30 +753,45 @@ function OutputPanel({
       {/* Phase 3 — AI Director intelligence panel. Real state only, no fake metrics. */}
       <AIDirectorCard tone={tone || 'cinematic'} platform={platform || 'instagram_reel'} output={output} tab={tab} />
 
-      <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
-        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
-          <Sparkles className="w-3 h-3" /> Mugtee Output
-        </p>
-        {output && (
-          <div className="flex items-center gap-1.5">
-            <ExportControls output={output} projectTitle={projectTitle} savedId={savedId} />
-            <Button size="sm" variant="outline" onClick={onSave} disabled={saving || !!savedId}
-              className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200">
-              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-              {savedId ? 'Saved' : 'Save'}
-            </Button>
+      {/* Phase 3E — collapse output area before generation. Only a calm
+          cinematic placeholder is rendered until output arrives. After
+          generation, the full Tabs + Mugtee Output controls expand normally. */}
+      {!output && !loading ? (
+        <div className="flex-1 min-h-[260px] rounded-2xl border border-dashed border-white/[0.06] bg-black/15 flex flex-col items-center justify-center text-center p-6 mt-2">
+          <Sparkles className="w-5 h-5 text-gold-400/40 mb-3" />
+          <p className="font-display text-[15px] text-luxe/70 italic leading-snug max-w-[280px]">
+            Mugtee is ready to shape your story.
+          </p>
+          <p className="text-[11px] text-luxe/35 max-w-[260px] leading-relaxed mt-2">
+            Type an idea on the left and your hook, script and storyboard will appear here.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+            <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/80 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> Mugtee Output
+            </p>
+            {output && (
+              <div className="flex items-center gap-1.5">
+                <ExportControls output={output} projectTitle={projectTitle} savedId={savedId} />
+                <Button size="sm" variant="outline" onClick={onSave} disabled={saving || !!savedId}
+                  className="h-8 gap-1.5 text-[11.5px] border-gold-500/30 hover:border-gold-500/60 text-luxe hover:text-gold-200">
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  {savedId ? 'Saved' : 'Save'}
+                </Button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <Tabs value={tab} onValueChange={v => setTab(v as any)} className="flex-1 flex flex-col">
-        {/* Phase 3D — sequential tab hierarchy. Before any story exists the
-            future tabs feel quiet (low contrast) so the creator's attention
-            stays on the form. Once output arrives, full contrast returns. */}
-        <TabsList className={
-          'grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9 transition-opacity ' +
-          (!output && !loading ? 'opacity-50' : 'opacity-100')
-        }>
+          <Tabs value={tab} onValueChange={v => setTab(v as any)} className="flex-1 flex flex-col">
+            {/* Phase 3D — sequential tab hierarchy. Before any story exists the
+                future tabs feel quiet (low contrast) so the creator's attention
+                stays on the form. Once output arrives, full contrast returns. */}
+            <TabsList className={
+              'grid grid-cols-6 bg-white/[0.03] border border-white/[0.06] h-9 transition-opacity ' +
+              (!output && !loading ? 'opacity-50' : 'opacity-100')
+            }>
           <TabsTrigger value="hook" className="text-[11.5px] gap-1"><Zap className="w-3 h-3" />Hook</TabsTrigger>
           <TabsTrigger value="script" className="text-[11.5px] gap-1"><FileText className="w-3 h-3" />Script</TabsTrigger>
           <TabsTrigger value="storyboard" className="text-[11.5px] gap-1"><Film className="w-3 h-3" />Beats</TabsTrigger>
@@ -792,7 +827,9 @@ function OutputPanel({
             )}
           </TabsContent>
         ))}
-      </Tabs>
+          </Tabs>
+        </>
+      )}
     </div>
   )
 }
@@ -2296,7 +2333,7 @@ function AIDirectorCard({
         })()}
       </p>
 
-      <dl className="space-y-1.5">
+      <dl className={'space-y-1.5 transition-all ' + (hasStoryboard ? 'opacity-100 max-h-[360px]' : 'opacity-0 max-h-0 overflow-hidden')}>
         <DirectorRow label="Story Feel"        value={toneLabel} />
         <DirectorRow label="Cinematic Tone"    value={moodLabel} />
         <DirectorRow label="Camera Framing"    value={cameraLabel} />
