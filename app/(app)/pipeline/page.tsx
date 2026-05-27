@@ -38,7 +38,7 @@ export default function PipelinePage() {
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const statusParam = searchParams.get('status')
+  const statusParam = searchParams?.get('status') ?? null
 
   // Phase P3 — bulk selection
  // Phase P3 — bulk selection
@@ -107,7 +107,7 @@ const selectionCtxValue = useMemo(
     }
     // Else find target item's status
     const target = content.find(c => c.id === overId)
-    if (target) setStatus(activeId, target.status)
+    if (target) setStatus(activeId, target.status as ContentStatus)
   }
 
   const activeItem = activeId ? content.find(c => c.id === activeId) : null
@@ -340,6 +340,7 @@ const anySelected = !!sel && sel.selected.size > 0
     { key: 'scheduled_at',    label: 'P', dot: 'bg-gold-400' },
   ]
   const activeStages = stages.filter(s => !!(item as any)[s.key])
+  const lastActivityAt = item.updated_at ?? item.created_at
   return (
     <div className={cn(
       'group rounded-xl p-3.5 border bg-gradient-to-br from-white/[0.05] to-white/[0.01] transition-all relative',
@@ -438,10 +439,10 @@ const anySelected = !!sel && sel.selected.size > 0
           {item.due_date && (<span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(item.due_date), 'MMM d')}</span>)}
           {/* Phase 3I — cinematic "updated X ago" enrichment. Reuses
               content_pieces.updated_at; no new backend, no new fields. */}
-          {(item.updated_at || item.created_at) && (
-            <span className="flex items-center gap-1" title={item.updated_at ? new Date(item.updated_at).toLocaleString() : ''}>
+          {lastActivityAt && (
+            <span className="flex items-center gap-1" title={new Date(lastActivityAt).toLocaleString()}>
               <Clock className="w-3 h-3" />
-              {formatDistanceToNow(parseISO(item.updated_at || item.created_at), { addSuffix: false })}
+              {formatDistanceToNow(parseISO(lastActivityAt), { addSuffix: false })}
             </span>
           )}
         </div>

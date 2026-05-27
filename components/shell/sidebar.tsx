@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, FolderKanban, Image as ImageIcon, Sparkles, Film, Settings, X, Zap, Crown,
@@ -20,7 +21,7 @@ const NAV = [
 ]
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   return (
     <>
       <AnimatePresence>
@@ -44,12 +45,23 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
 
 function SidebarInner({ pathname, onItemClick, showClose, onClose }: { pathname: string; onItemClick?: () => void; showClose?: boolean; onClose?: () => void }) {
   const { workspace } = useStore()
+  const [logoBroken, setLogoBroken] = useState(false)
+  const logoUrl = workspace.logo_url && !logoBroken ? workspace.logo_url : null
   return (
     <div className="flex flex-col w-full h-full glass border-r border-gold-soft px-5 py-7">
       <div className="flex items-center justify-between mb-8">
         <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow overflow-hidden shrink-0">
-            {workspace.logo_url ? <img src={workspace.logo_url} alt="logo" className="w-full h-full object-cover" /> : <Film className="w-5 h-5 text-black" />}
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="logo"
+                className="w-full h-full object-cover"
+                onError={() => setLogoBroken(true)}
+              />
+            ) : (
+              <Film className="w-5 h-5 text-black" />
+            )}
           </div>
           <div className="min-w-0">
             <div className="font-display text-lg leading-none truncate">{workspace.name || 'Mugtee AI Studio'}</div>

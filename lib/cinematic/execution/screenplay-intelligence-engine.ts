@@ -1,0 +1,82 @@
+import type { CinematicNiche } from '@/lib/cinematic/niches'
+import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
+import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import {
+  analyzeCinematicRhythm,
+  formatDirectedScript,
+  rebalanceSceneDurations,
+} from '@/lib/cinematic/execution/cinematic-rhythm-analysis'
+import {
+  applyEmotionalEscalation,
+  scoreEmotionalArc,
+} from '@/lib/cinematic/execution/emotional-escalation-system'
+import { selectCinematicHook } from '@/lib/cinematic/execution/cinematic-hook-engine'
+import { alignOpeningSceneWithHook } from '@/lib/cinematic/execution/visual-hook-architecture'
+
+export type ScreenplayEnhanceContext = {
+  topic: string
+  duration: number
+  tone?: string
+  niche: CinematicNiche
+  hookVariations?: string[]
+}
+
+/**
+ * Post-process model output for film-grade pacing, hooks, and directed formatting.
+ * Runs after normalize — invisible to the creator.
+ */
+export function enhanceScreenplayOutput(
+  output: CinematicGenerationOutput,
+  context: ScreenplayEnhanceContext
+): CinematicGenerationOutput {
+  const hook = selectCinematicHook(
+    context.hookVariations ?? [],
+    context.niche,
+    output.hook
+  )
+
+  let scenes = applyEmotionalEscalation(output.scenes, context.niche)
+  scenes = alignOpeningSceneWithHook(scenes, hook)
+
+  const roles = scenes.map((_, i) =>
+    scenePacingRole(i + 1, scenes.length || 1)
+  )
+  const rhythm = analyzeCinematicRhythm(scenes, context.duration, roles)
+
+  if (rhythm.issues.includes('duration_drift')) {
+    scenes = rebalanceSceneDurations(scenes, context.duration, roles)
+  }
+
+  const directedScript =
+    output.script.trim().length > 80
+      ? output.script
+      : formatDirectedScript(
+          hook,
+          scenes.map((s) => ({ title: s.title, description: s.description }))
+        )
+
+  const arcScore = scoreEmotionalArc(scenes)
+  const summary =
+    output.summary ||
+    `A ${context.duration}s directed reel — ${context.topic.slice(0, 90)}.`
+
+  return {
+    ...output,
+    hook,
+    scenes,
+    script: directedScript,
+    summary:
+      arcScore >= 0.4
+        ? summary
+        : `${summary} Emotional arc held across ${scenes.length} beats.`,
+    niche: context.niche,
+  }
+}
+
+export function buildScreenplayIntelligenceNote(context: ScreenplayEnhanceContext): string {
+  return [
+    'Direct emotionally — avoid generic creator or viral language.',
+    `Target ${context.duration}s vertical film with cinematic beat spacing.`,
+    `Niche: ${context.niche}. Hook must feel narratively irresistible, not algorithmic.`,
+  ].join(' ')
+}

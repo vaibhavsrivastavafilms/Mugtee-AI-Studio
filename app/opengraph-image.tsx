@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'Mugtee \u00b7 AI Production OS for Creators'
+export const alt = 'Mugtee \u00b7 The cinematic storytelling operating system'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const runtime = 'edge'
@@ -29,42 +29,33 @@ export default function OG() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ fontSize: 16, letterSpacing: 8, color: 'rgba(245,208,97,0.7)', textTransform: 'uppercase', display: 'flex' }}>Mugtee</div>
-            <div style={{ fontSize: 13, letterSpacing: 4, color: 'rgba(232,217,168,0.5)', textTransform: 'uppercase', display: 'flex' }}>est. 2025</div>
+            <div style={{ fontSize: 13, letterSpacing: 4, color: 'rgba(232,217,168,0.5)', textTransform: 'uppercase', display: 'flex' }}>Storytelling operating system</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, flex: 1, justifyContent: 'center' }}>
           <div
             style={{
-              fontSize: 92, fontWeight: 700, lineHeight: 1.05, letterSpacing: -3, display: 'flex', flexWrap: 'wrap',
+              fontSize: 72, fontWeight: 700, lineHeight: 1.08, letterSpacing: -2, display: 'flex', flexWrap: 'wrap',
               color: '#fffaf0',
             }}
           >
-            AI&nbsp;Production&nbsp;OS
-          </div>
-          <div
-            style={{
-              fontSize: 92, fontWeight: 700, lineHeight: 1.05, letterSpacing: -3, display: 'flex',
-              background: 'linear-gradient(135deg, #F5D061 0%, #D4AF37 60%, #A87A1E 100%)',
-              backgroundClip: 'text', color: 'transparent',
-            }}
-          >
-            for Creators.
+            The home of cinematic storytelling worlds.
           </div>
           <div style={{ fontSize: 28, color: 'rgba(232,217,168,0.65)', marginTop: 14, display: 'flex', maxWidth: 920 }}>
-            Plan · Script · Schedule · Scale. A cinematic workspace for viral content.
+            Direct, preserve, present, and evolve emotionally immersive cinematic worlds.
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(212,175,55,0.18)', paddingTop: 24 }}>
           <div style={{ display: 'flex', gap: 24, fontSize: 18, color: 'rgba(232,217,168,0.55)', letterSpacing: 2, textTransform: 'uppercase' }}>
-            <span style={{ display: 'flex' }}>Kanban</span>
+            <span style={{ display: 'flex' }}>Imagine</span>
             <span style={{ display: 'flex' }}>·</span>
-            <span style={{ display: 'flex' }}>Calendar</span>
+            <span style={{ display: 'flex' }}>Direct</span>
             <span style={{ display: 'flex' }}>·</span>
-            <span style={{ display: 'flex' }}>Faceless AI</span>
+            <span style={{ display: 'flex' }}>Preserve</span>
             <span style={{ display: 'flex' }}>·</span>
-            <span style={{ display: 'flex' }}>YouTube Intel</span>
+            <span style={{ display: 'flex' }}>Evolve</span>
           </div>
           <div style={{ fontSize: 18, color: 'rgba(245,208,97,0.9)', letterSpacing: 3, textTransform: 'uppercase', display: 'flex' }}>mugtee.in</div>
         </div>

@@ -211,7 +211,7 @@ export function useViralIdeas() {
       const scriptText = typeof data.output === 'string' ? data.output : (data.raw || '')
       if (!scriptText) { toast.error('Empty script returned'); return }
 
-      let contentId = addedIds[index]
+      let contentId: string | undefined = addedIds[index]
       if (!contentId) contentId = await addToPipeline(idea, index, 'scripting')
       if (!contentId) { toast.error('Could not attach script'); return }
 

@@ -110,7 +110,10 @@ export default function AnalyticsPage() {
   // ---- Status funnel ----
   const statusFunnel = useMemo(() => {
     const map: Record<ContentStatus, number> = { idea: 0, scripting: 0, shooting: 0, editing: 0, scheduled: 0, published: 0 }
-    content.forEach(c => { if (map[c.status] !== undefined) map[c.status]++ })
+    content.forEach(c => {
+      const status = c.status
+      if (typeof status === 'string' && status in map) map[status as ContentStatus]++
+    })
     const max = Math.max(1, ...Object.values(map))
     return STATUS_ORDER.map(s => ({ key: s, label: STATUS_LABEL[s], value: map[s], pct: Math.round((map[s] / max) * 100) }))
   }, [content])

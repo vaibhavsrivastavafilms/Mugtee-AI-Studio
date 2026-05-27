@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Sparkles, Camera } from 'lucide-react'
+import { STORYBOARD_SHOWCASE } from '@/lib/marketing/site-copy'
 
 type Showcase = {
   topic: string
@@ -84,13 +85,14 @@ export default function CinematicShowcase() {
       <div className="container max-w-5xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
           <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">
-            Made with Mugtee
+            {STORYBOARD_SHOWCASE.eyebrow}
           </div>
           <h2 className="font-display text-3xl sm:text-4xl leading-tight">
-            Real cinematic <span className="text-gold-gradient">artifacts</span>, not stock samples.
+            {STORYBOARD_SHOWCASE.headline.split(',')[0]},{' '}
+            <span className="text-gold-gradient">{STORYBOARD_SHOWCASE.headline.split(',')[1]?.trim() ?? 'frame by frame'}</span>.
           </h2>
-          <p className="mt-4 text-sm sm:text-base text-luxe/60">
-            Each panel below is the kind of output Mugtee produces from a single prompt.
+          <p className="mt-4 text-sm sm:text-base text-luxe/60 max-w-xl mx-auto">
+            {STORYBOARD_SHOWCASE.subheadline}
           </p>
         </div>
 

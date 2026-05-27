@@ -4,19 +4,19 @@ import { Sparkles, Brain, Film, Layers, Zap, Crown, ArrowRight, Heart } from 'lu
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Mugtee is the cinematic AI production OS built for the next generation of creators, agencies, and faceless brands.',
+  description: 'Mugtee is the cinematic storytelling operating system for emotional visual storytellers.',
 }
 
 export default function AboutPage() {
   return (
     <>
       <div className="mb-10">
-        <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-2">Made for creators</div>
+        <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-2">Storytelling infrastructure</div>
         <h1 className="font-display text-4xl sm:text-5xl mb-4">
           About <span className="text-gold-gradient">Mugtee</span>
         </h1>
         <p className="text-base text-luxe/85 leading-relaxed max-w-xl">
-          We build the production hub we wished we had — cinematic, fast, and quietly powerful. One workspace where ideas become scripts, scripts become schedules, schedules become published content.
+          We build the cinematic storytelling environment we wished existed — emotionally immersive, editorially restrained, and creator-owned. One place where ideas become worlds.
         </p>
       </div>
 
@@ -33,13 +33,13 @@ export default function AboutPage() {
             </div>
             <h2 className="font-display text-2xl sm:text-3xl mb-3">A filmmaker, frustrated.</h2>
             <p className="text-sm text-luxe/90 leading-relaxed mb-3">
-              I'm Vaibhav — a filmmaker, not a SaaS founder. I started Mugtee because I was tired of jumping between seven different AI tools just to get one cinematic reel out the door. Tabs for scripting, tabs for B-roll, tabs for voiceover, tabs for publishing. None of them spoke to each other. All of them charged separately.
+              I&apos;m Vaibhav — a filmmaker. I started Mugtee because cinematic storytelling kept fragmenting across disconnected tools — scripting in one place, storyboards in another, presentation somewhere else. None of it held atmosphere together.
             </p>
             <p className="text-sm text-luxe/90 leading-relaxed mb-3">
-              I built Mugtee as the workspace I wish had existed when I shot my first faceless documentary. One cinematic environment where the AI actually understands your niche, where every output is craftsman-grade, and where you ship — not just generate.
+              I built Mugtee as the environment I wished had existed when I directed my first documentary reel — one cinematic world where emotional sequencing, visual authorship, and immersive presentation live together.
             </p>
             <p className="text-sm text-luxe/85 leading-relaxed">
-              Mugtee is creator-first because <span className="text-gold-200">it's built by a creator</span>. Every UI decision, every prompt, every shortcut — designed to make your hour count more than your last hour did.
+              Mugtee is creator-first because <span className="text-gold-200">it&apos;s built by a storyteller</span>. Every decision serves atmosphere, rhythm, and authorship — not hustle.
             </p>
           </div>
         </div>
@@ -51,19 +51,19 @@ export default function AboutPage() {
           <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80">Why we built it</div>
         </div>
         <p className="text-sm text-luxe/90 leading-relaxed mb-3">
-          Most creators waste 70% of their time on workflow — not creating. Tab-hopping between docs, spreadsheets, calendars, and uploaders. We thought it was crazy that a $250B creator economy still ran on duct tape.
+          Storytelling deserves infrastructure that feels cinematic — not scattered across tabs, dashboards, and uploaders held together with duct tape.
         </p>
         <p className="text-sm text-luxe/90 leading-relaxed">
-          Mugtee is one cinematic workspace where every part of your production pipeline lives — from the first viral idea to the final published video.
+          Mugtee is one storytelling operating system where emotional ideas become directed worlds — preserved, experienced, and evolved with atmosphere intact.
         </p>
       </section>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-5">
         {[
-          { icon: Brain,  title: 'AI that gets your niche',  desc: 'Faceless intelligence engine decodes the storytelling DNA of viral formats in your space.' },
-          { icon: Film,   title: 'Cinematic by default',     desc: 'Dark, premium UI — because creators deserve tools that feel as crafted as their content.' },
-          { icon: Layers, title: 'One pipeline, every stage',desc: 'Ideas → scripts → shoots → edits → schedule → publish — all in one Kanban + calendar.' },
-          { icon: Zap,    title: 'Built for speed',           desc: 'Optimistic UI, real-time sync, sub-second AI. No spinners. No friction.' },
+          { icon: Brain,  title: 'Storytelling that knows your voice',  desc: 'Emotional authorship held across sessions — recognizable, atmospherically yours.' },
+          { icon: Film,   title: 'Cinematic by default',     desc: 'Dark, premium, editorial — because storytellers deserve environments as crafted as their worlds.' },
+          { icon: Layers, title: 'One arc, every stage',desc: 'Imagine → Direct → Sequence → Author → Preserve → Experience → Share → Evolve.' },
+          { icon: Zap,    title: 'Calm and present',           desc: 'Restrained motion, emotional pacing, uninterrupted immersion — never dashboard noise.' },
         ].map((f) => (
           <div key={f.title} className="glass rounded-xl p-5 border border-white/[0.05] hover:border-gold-500/30 transition">
             <div className="w-9 h-9 rounded-lg glass-gold flex items-center justify-center mb-3">
