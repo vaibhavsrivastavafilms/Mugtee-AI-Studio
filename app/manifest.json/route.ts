@@ -6,9 +6,9 @@ export const dynamic = 'force-static'
 export const revalidate = false
 
 const MANIFEST = {
-  name: 'Mugtee AI Studio',
+  name: 'Mugtee — Cinematic Storytelling',
   short_name: 'Mugtee',
-  description: 'Cinematic AI production OS for creators, agencies, and brands. Plan, script, schedule, and ship viral content.',
+  description: 'The cinematic storytelling operating system for emotional visual storytellers.',
   start_url: '/',
   scope: '/',
   id: '/?source=pwa',
@@ -19,7 +19,7 @@ const MANIFEST = {
   theme_color: '#0B0B0B',
   lang: 'en',
   dir: 'ltr',
-  categories: ['productivity', 'business', 'video'],
+  categories: ['entertainment', 'video', 'lifestyle'],
   prefer_related_applications: false,
   related_applications: [
     { platform: 'play', url: 'https://play.google.com/store/apps/details?id=com.mugtee.aistudio', id: 'com.mugtee.aistudio' },
@@ -30,9 +30,8 @@ const MANIFEST = {
     { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ],
   shortcuts: [
-    { name: 'Dashboard', short_name: 'Dashboard', url: '/dashboard' },
-    { name: 'AI Studio', short_name: 'AI',        url: '/ai' },
-    { name: 'Calendar',  short_name: 'Calendar',  url: '/calendar' },
+    { name: 'Enter studio', short_name: 'Studio', url: '/cinematic/create' },
+    { name: 'Your worlds', short_name: 'Worlds', url: '/workspace' },
   ],
 }
 

@@ -1,0 +1,153 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { voiceStyleLabel } from '@/lib/cinematic/generation'
+import { useCinematicRoute } from '@/hooks/use-cinematic-route'
+import { useCinematicProjectStore } from '@/stores/cinematic-project'
+import { CreatorFeedbackPrompt } from '@/components/cinematic/creator-feedback-prompt'
+import { CreatorGuidance } from '@/components/cinematic/creator-guidance'
+import { CinematicSeparator } from '@/components/cinematic/cinematic-separator'
+import { FirstSuccessMoment } from '@/components/cinematic/first-success-moment'
+import { CinematicBalanceChip } from '@/components/cinematic/cinematic-balance-chip'
+import { DirectingGuidanceWhisper } from '@/components/cinematic/directing-guidance-whisper'
+import { HookPresenceCard } from '@/components/cinematic/hook-presence-card'
+import { HookTensionMarker } from '@/components/cinematic/hook-tension-marker'
+import { PacingBalanceIndicator } from '@/components/cinematic/pacing-balance-indicator'
+import { CinematicNoiseReducer } from '@/components/cinematic/cinematic-noise-reducer'
+import { DirectingFocusAnchor } from '@/components/cinematic/directing-focus-anchor'
+import { EmotionalFlowMarker } from '@/components/cinematic/emotional-flow-marker'
+import { PacingFlowStrip } from '@/components/cinematic/pacing-flow-strip'
+import { PacingIntelligenceStrip } from '@/components/cinematic/pacing-intelligence-strip'
+import { ProjectToneStrip } from '@/components/cinematic/project-tone-strip'
+import { WorkflowMemoryCard } from '@/components/cinematic/workflow-memory-card'
+import { OutputConfidenceStrip } from '@/components/cinematic/output-confidence-strip'
+import { ScriptPresenceLayer } from '@/components/cinematic/script-presence-layer'
+import { EmotionalSequenceReader } from '@/components/cinematic/emotional-sequence-reader'
+import { MomentumStrip } from '@/components/create/momentum-strip'
+import { CinematicViewingRoutePresence } from '@/components/cinematic/cinematic-delivery/delivery-presence-components'
+import { CinematicShowcaseRoutePresence } from '@/components/cinematic/cinematic-showcase/showcase-presence-components'
+import { StoryEvolutionRoutePresence } from '@/components/cinematic/story-evolution/story-evolution-presence-components'
+import { LiveCinematicRoutePresence } from '@/components/cinematic/live-cinematic/live-cinematic-presence-components'
+import {
+  CinematicStepNav,
+  CinematicWorkflowShell,
+} from '@/components/cinematic/workflow-shell'
+
+export function CinematicPreviewScreen() {
+  const router = useRouter()
+  const projectId = useCinematicProjectStore((s) => s.persistedId || s.id)
+  const {
+    title,
+    hook,
+    summary,
+    script,
+    style,
+    duration,
+    suggestedVoiceStyle,
+    niche,
+    prompt,
+    updateStatus,
+  } = useCinematicRoute('preview')
+
+  useEffect(() => {
+    if (!script.trim() && !prompt.trim()) {
+      router.replace('/cinematic/create')
+    }
+  }, [prompt, router, script])
+
+  return (
+    <CinematicWorkflowShell
+      title="Preview your cinematic draft"
+      subtitle="Review the hook and script before directing scenes and voice."
+    >
+      <FirstSuccessMoment projectId={projectId} />
+      <CinematicViewingRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-2" />
+      <CinematicShowcaseRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-3 hidden sm:block" />
+      <StoryEvolutionRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-4 hidden md:block" />
+      <LiveCinematicRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-4 hidden lg:block" />
+      <MomentumStrip stage="preview" style={style} />
+      <EmotionalSequenceReader stage="preview" seed={script.length % 3} className="mb-3" />
+      <ProjectToneStrip style={style} niche={niche} />
+      <WorkflowMemoryCard style={style} niche={niche} className="mb-5 max-w-md mx-auto" />
+      <PacingFlowStrip seed={script.length % 4} />
+      <div className="flex justify-center mb-4">
+        <EmotionalFlowMarker seed={style.length % 3} />
+      </div>
+      <DirectingFocusAnchor seed={hook.length % 3} className="mb-4" />
+      <PacingIntelligenceStrip style={style} niche={niche} seed={script.length % 3} />
+      <DirectingGuidanceWhisper context="preview" style={style} niche={niche} className="mb-4" />
+      <OutputConfidenceStrip
+        niche={niche}
+        style={style}
+        platform="instagram_reel"
+        rewriteMode={style}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 min-h-[72px]">
+        <MetaCard label="Title" value={title || 'Untitled project'} />
+        <MetaCard label="Duration" value={`${duration}s`} />
+        <MetaCard label="Style" value={style} />
+        <MetaCard label="Voice" value={voiceStyleLabel(suggestedVoiceStyle)} />
+      </div>
+
+      {summary ? (
+        <section className="rounded-[28px] border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 mb-5 max-w-2xl mx-auto">
+          <p className="text-[#C8A24E] uppercase tracking-[0.3em] text-[10px] mb-3">
+            Story arc
+          </p>
+          <p className="text-white/75 leading-[1.88] whitespace-pre-wrap text-[15px]">
+            {summary}
+          </p>
+        </section>
+      ) : null}
+
+      <CinematicSeparator className="mb-6 max-w-2xl mx-auto" />
+
+      <CinematicNoiseReducer focused className="max-w-2xl mx-auto">
+      <div className="space-y-6">
+        {hook ? (
+          <div className="space-y-2">
+            <div className="flex justify-center">
+              <HookTensionMarker hook={hook} />
+            </div>
+            <HookPresenceCard hook={hook} />
+          </div>
+        ) : null}
+        <ScriptPresenceLayer script={script} />
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <PacingBalanceIndicator style={style} niche={niche} />
+          <CinematicBalanceChip style={style} niche={niche} />
+        </div>
+      </div>
+      </CinematicNoiseReducer>
+
+      <CreatorGuidance step="preview" />
+
+      <CreatorFeedbackPrompt
+        context="generation"
+        question="Did this feel cinematic?"
+        secondaryQuestion="Was this workflow helpful?"
+      />
+
+      <CinematicStepNav
+        backHref="/cinematic/create"
+        nextHref="/cinematic/director"
+        onNext={() => updateStatus('director')}
+      />
+    </CinematicWorkflowShell>
+  )
+}
+
+function MetaCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-black/25 px-3 sm:px-4 py-2.5 sm:py-3">
+      <div className="text-[9px] sm:text-[10px] tracking-[0.22em] uppercase text-white/38 mb-1">
+        {label}
+      </div>
+      <div className="text-[#F4E7C1] font-medium text-xs sm:text-sm truncate" title={value}>
+        {value}
+      </div>
+    </div>
+  )
+}

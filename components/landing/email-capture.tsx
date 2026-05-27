@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Mail, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EMAIL_CAPTURE } from '@/lib/marketing/site-copy'
 
 export function EmailCapture() {
   const [email, setEmail] = useState('')
@@ -41,9 +42,9 @@ export function EmailCapture() {
     <div className="relative rounded-3xl p-6 sm:p-9 glass border border-gold-soft">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-8">
         <div className="max-w-md">
-          <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-2">Stay in the loop</div>
-          <h3 className="font-display text-xl sm:text-2xl leading-tight">Creator tips + Mugtee updates.</h3>
-          <p className="text-[12px] text-luxe/65 mt-1.5">Free workflow tactics from real creators. No spam. Unsubscribe anytime.</p>
+          <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-2">{EMAIL_CAPTURE.eyebrow}</div>
+          <h3 className="font-display text-xl sm:text-2xl leading-tight">{EMAIL_CAPTURE.headline}</h3>
+          <p className="text-[12px] text-luxe/65 mt-1.5">{EMAIL_CAPTURE.subheadline}</p>
         </div>
         <div className="w-full sm:w-auto flex-1 max-w-md">
           <div className="flex flex-col sm:flex-row gap-2">

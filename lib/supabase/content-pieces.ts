@@ -15,7 +15,7 @@ export type ContentPieceInput = {
 export async function saveContentPiece(data: ContentPieceInput): Promise<{ id: string }> {
   const supabase = createSupabaseBrowserClient()
 
-  const { data: user } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user?.id) throw new Error('User not authenticated')
 
   const payload = {

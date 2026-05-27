@@ -58,8 +58,8 @@ export const metadata: Metadata = {
   // Phase P10 — PWA / Capacitor mobile metadata (static manifest under /public)
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon.png',
-    apple: '/apple-icon.png',
+    icon: '/icons/icon.png',
+    apple: '/icons/apple-icon.png',
   },
    
   

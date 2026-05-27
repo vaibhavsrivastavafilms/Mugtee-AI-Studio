@@ -17,6 +17,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  emotionalNarrationSystemPrompt,
+  prepareCinematicVoiceover,
+} from '@/lib/cinematic/execution/cinematic-voice-engine'
+import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,13 +84,37 @@ export async function POST(req: NextRequest) {
     const platform: string = String(body?.platform || 'instagram_reel')
     const duration: number = Number(body?.duration || 60)
     const moodLabel: string = String(body?.mood || '').trim()
+    const cinematicOutput = body?.cinematic_output as CinematicGenerationOutput | undefined
+    const hasCinematicPacing = Boolean(
+      cinematicOutput?.scenes?.length && cinematicOutput.scenes.length >= 2
+    )
+
+    let sourceScript = script
+    let targetWords = Math.max(40, Math.min(220, Math.round(duration * 2.4)))
+    let pacingDirection = ''
+
+    if (hasCinematicPacing && cinematicOutput) {
+      const prepared = prepareCinematicVoiceover(
+        script,
+        cinematicOutput,
+        styleId,
+        duration
+      )
+      pacingDirection = prepared.direction
+      targetWords = Math.max(
+        40,
+        Math.min(220, Math.round((prepared.targetWpm * duration) / 60))
+      )
+    }
 
     // ----- 1. Rewrite the script into short cinematic narration -----
-    const targetWords = Math.max(40, Math.min(220, Math.round(duration * 2.4))) // ~2.4 words / sec read pace
     const sys = [
       'You are Mugtee — a cinematic voiceover writer.',
       'Convert a creator\u2019s script into a single short narration paragraph designed to be SPOKEN aloud, not read.',
       style.persona,
+      pacingDirection
+        ? emotionalNarrationSystemPrompt(styleId, pacingDirection, targetWords)
+        : '',
       'Constraints:',
       `• Length: aim for ~${targetWords} spoken words (no exact count needed). Total runtime ~${duration}s on the selected platform (${platform}).`,
       '• No emojis, no hashtags, no scene labels, no formatting marks.',
@@ -103,7 +132,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.7,
         messages: [
           { role: 'system', content: sys },
-          { role: 'user', content: `Source script:\n\n${script.slice(0, 6000)}\n\nWrite the spoken narration only.` },
+          { role: 'user', content: `Source script:\n\n${sourceScript.slice(0, 6000)}\n\nWrite the spoken narration only.` },
         ],
       }),
     })

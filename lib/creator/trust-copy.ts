@@ -1,0 +1,17 @@
+export const TRUST_COPY = {
+  restoring: 'Restoring your cinematic draft…',
+  saving: 'Saving to your cinematic workspace',
+  saved: 'Saved to your cinematic workspace',
+  scenesSynced: 'All scenes safely staged',
+  savePaused: 'Save paused · your scene remains safely staged',
+  generating: 'Visual pacing is being refined',
+  generationPaused: 'Your scene remains safely staged',
+  hydration: 'Your cinematic draft is ready to continue',
+  storyboardRefining: 'Visual pacing is being refined',
+  exportPreparing: 'Preparing your cinematic package',
+  pacingPreserved: 'Your pacing structure is preserved',
+  rhythmIntact: 'Scene rhythm remains intact',
+  structureIntact: 'Your cinematic structure remains intact',
+  pacingContinuityProtected: 'Visual pacing continuity protected',
+  selectiveBeatEvolving: 'Only the selected emotional beat is evolving',
+} as const

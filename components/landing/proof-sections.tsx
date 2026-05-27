@@ -1,37 +1,8 @@
-// Mugtee Landing — public MVP proof sections.
-//
-// Four lightweight blocks that improve clarity + trust for first-time visitors:
-//   1. How Mugtee Works   — three-step, plain-English workflow
-//   2. Real Output Preview — static mock outputs that prove the quality bar
-//   3. Made For           — audience badge row
-//   4. Final CTA          — Open Workspace + Try a Demo Prompt
-//
-// Pure server-renderable JSX. NO new dependencies. NO framer-motion (per spec).
-// Reuses existing tokens: glass-strong · text-gold-gradient · border-gold-soft ·
-// shadow-gold-glow · bg-gold-gradient · text-luxe.
+// Mugtee Landing — Phase 5 proof sections.
+// Cinematic storytelling journey — not SaaS workflow.
 import Link from 'next/link'
-import { Sparkles, FileText, Save, Film, Zap, Image as ImageIcon } from 'lucide-react'
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Describe your idea',
-    body: 'One sentence is enough. A memory, a feeling, a story \u2014 type it the way you would tell a friend.',
-    icon: Sparkles,
-  },
-  {
-    n: '02',
-    title: 'Mugtee generates cinematic outputs',
-    body: 'A hook, a full script, scene-by-scene storyboard, captions, and a thumbnail concept \u2014 in one pass.',
-    icon: Film,
-  },
-  {
-    n: '03',
-    title: 'Save, export, and create',
-    body: 'Copy to clipboard. Export as TXT or Markdown. Reopen any project, exactly where you left it.',
-    icon: Save,
-  },
-]
+import { Sparkles, FileText, Film, Zap, Image as ImageIcon } from 'lucide-react'
+import { PROOF } from '@/lib/marketing/site-copy'
 
 const PREVIEW = {
   topic: 'A father teaching filmmaking',
@@ -56,40 +27,32 @@ const PREVIEW = {
     'Color mood:   Warm shadow + cold highlight (amber / teal split).',
 }
 
-const AUDIENCES = [
-  'Filmmakers',
-  'YouTubers',
-  'Storytellers',
-  'Creative Agencies',
-  'Instagram Creators',
-]
-
 export default function ProofSections() {
   return (
     <>
-      {/* ─── 1. HOW MUGTEE WORKS ───────────────────────────────────── */}
       <section id="how-it-works" className="relative px-5 sm:px-6 py-20 sm:py-24">
         <div className="container max-w-5xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">How Mugtee Works</div>
+            <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">{PROOF.eyebrow}</div>
             <h2 className="font-display text-3xl sm:text-4xl leading-tight">
-              Three steps from <span className="text-gold-gradient">idea</span> to <span className="text-gold-gradient">reel</span>.
+              {PROOF.headline.split(' ').slice(0, 3).join(' ')}{' '}
+              <span className="text-gold-gradient">{PROOF.headline.split(' ').slice(3).join(' ')}</span>.
             </h2>
-            <p className="mt-4 text-sm sm:text-base text-luxe/65">
-              Built for creators who would rather tell stories than wrestle with software.
-            </p>
+            <p className="mt-4 text-sm sm:text-base text-luxe/65">{PROOF.subheadline}</p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
-            {STEPS.map((s) => (
+            {PROOF.steps.map((s, i) => (
               <div
-                key={s.n}
-                className="rounded-2xl glass-strong border border-gold-soft p-5 sm:p-6 hover:border-gold-500/40 transition"
+                key={s.title}
+                className="rounded-2xl glass-strong border border-gold-soft p-5 sm:p-6 hover:border-gold-500/40 transition story-experience-depth"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80">{s.n}</span>
+                  <span className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   <div className="w-9 h-9 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-                    <s.icon className="w-4 h-4 text-black" />
+                    {i === 0 ? <Sparkles className="w-4 h-4 text-black" /> : i === 1 ? <Film className="w-4 h-4 text-black" /> : <FileText className="w-4 h-4 text-black" />}
                   </div>
                 </div>
                 <h3 className="font-display text-lg sm:text-xl text-luxe leading-tight mb-2">{s.title}</h3>
@@ -100,39 +63,36 @@ export default function ProofSections() {
         </div>
       </section>
 
-      {/* ─── 2. REAL OUTPUT PREVIEW ────────────────────────────────── */}
       <section id="preview" className="relative px-5 sm:px-6 py-20 sm:py-24">
         <div className="container max-w-5xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-            <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">Real Output</div>
+            <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">{PROOF.preview.eyebrow}</div>
             <h2 className="font-display text-3xl sm:text-4xl leading-tight">
-              This is what Mugtee actually <span className="text-gold-gradient">writes</span>.
+              {PROOF.preview.headline.split(' ').slice(0, 2).join(' ')}{' '}
+              <span className="text-gold-gradient">{PROOF.preview.headline.split(' ').slice(2).join(' ')}</span>.
             </h2>
-            <p className="mt-4 text-sm sm:text-base text-luxe/65">
-              A live preview from a single prompt — no editing, no rewrites.
-            </p>
+            <p className="mt-4 text-sm sm:text-base text-luxe/65">{PROOF.preview.subheadline}</p>
           </div>
 
-          <div className="rounded-2xl glass-strong border border-gold-soft p-5 sm:p-7 max-w-3xl mx-auto">
-            <div className="text-[10px] tracking-[0.22em] uppercase text-luxe/45 mb-1">Prompt</div>
-            <p className="text-[14px] text-luxe italic mb-6">"{PREVIEW.topic}"</p>
+          <div className="rounded-2xl glass-strong border border-gold-soft p-5 sm:p-7 max-w-3xl mx-auto narrative-immersion-opacity">
+            <div className="text-[10px] tracking-[0.22em] uppercase text-luxe/45 mb-1">Emotional idea</div>
+            <p className="text-[14px] text-luxe italic mb-6">&ldquo;{PREVIEW.topic}&rdquo;</p>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <PreviewBlock icon={Zap} label="Hook" body={PREVIEW.hook} />
               <PreviewBlock icon={FileText} label="Script" body={PREVIEW.script} />
               <PreviewBlock icon={Film} label="Storyboard" body={PREVIEW.storyboard} />
-              <PreviewBlock icon={ImageIcon} label="Thumbnail" body={PREVIEW.thumbnail} />
+              <PreviewBlock icon={ImageIcon} label="Visual mood" body={PREVIEW.thumbnail} />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── 3. MADE FOR ───────────────────────────────────────────── */}
       <section className="relative px-5 sm:px-6 py-14 sm:py-16">
         <div className="container max-w-4xl mx-auto text-center">
-          <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-4">Made For</div>
+          <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-4">For storytellers who</div>
           <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
-            {AUDIENCES.map((a) => (
+            {PROOF.audiences.map((a) => (
               <span
                 key={a}
                 className="px-3.5 py-1.5 rounded-full text-[12.5px] text-luxe/85 bg-white/[0.035] border border-white/[0.08] hover:border-gold-500/35 hover:text-gold-200 transition"
@@ -144,28 +104,27 @@ export default function ProofSections() {
         </div>
       </section>
 
-      {/* ─── 4. FINAL CTA ──────────────────────────────────────────── */}
       <section className="relative px-5 sm:px-6 py-20 sm:py-24">
         <div className="container max-w-3xl mx-auto text-center">
-          <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">Start Creating</div>
+          <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">Begin directing</div>
           <h2 className="font-display text-3xl sm:text-4xl leading-tight mb-4">
-            Start creating with <span className="text-gold-gradient">Mugtee</span>.
+            Enter your <span className="text-gold-gradient">cinematic world</span>.
           </h2>
           <p className="text-sm sm:text-base text-luxe/65 max-w-xl mx-auto mb-7">
-            One prompt to a cinematic reel — hook, script, storyboard, captions, thumbnail.
+            One emotional idea — hook, storyboard, atmosphere, and immersive presentation held as one arc.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md sm:max-w-none mx-auto">
             <Link
-              href="/workspace"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-gradient text-black font-medium text-sm shadow-gold-glow hover:opacity-90 transition"
+              href="/login?next=%2Fcinematic%2Fcreate"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gold-gradient text-black font-medium text-sm shadow-gold-glow hover:opacity-90 transition"
             >
-              <Sparkles className="w-4 h-4" /> Open Workspace
+              <Sparkles className="w-4 h-4" /> Enter the cinematic studio
             </Link>
             <Link
-              href="/workspace?demo=father-teaching-filmmaking"
+              href="/cinematic/examples/psychology-attention"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] border border-gold-500/30 text-luxe hover:text-gold-200 hover:border-gold-500/60 text-sm transition"
             >
-              Try a Demo Prompt
+              Experience an authored world
             </Link>
           </div>
         </div>

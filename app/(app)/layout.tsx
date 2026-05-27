@@ -5,18 +5,24 @@ import { MugteeAssistant } from '@/components/mugtee/mugtee-assistant'
 
 export const dynamic = 'force-dynamic'
 
-export default function RootLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
   return (
-    <html lang="en">
-      <head>
-        <title>Mugtee</title>
-        <meta name="description" content="Mugtee AI Studio" />
-      </head>
-      <body>{children}</body>
-    </html>
+    <DashboardShell user={user}>
+      {children}
+      <MugteeAssistant />
+    </DashboardShell>
   )
 }

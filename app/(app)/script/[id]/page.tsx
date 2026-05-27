@@ -5,7 +5,7 @@
 // fall back to a direct Supabase lookup by id before showing "no longer exists".
 
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, type Ref, type RefObject } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -30,33 +30,72 @@ import { ProjectActivityTimeline } from '@/components/project/activity-timeline'
 import { StoryboardPanel } from '@/components/script/storyboard-panel'
 import { track } from '@/lib/posthog'
 
-// Phase 1.5 — Calm Cinematic UX: never render raw serialized workspace JSON
-// to the creator. `content_pieces.script` can carry a stringified workspace
-// payload (`{"workspace":true,"prompt":{...},"output":{hook,script,...}}`)
-// from older drafts. This helper detects JSON safely, parses it, and returns
-// the most creator-facing excerpt in priority order. Pure, side-effect free.
-function safeScriptText(raw: any, fallback?: string | null): string {
-  const src = typeof raw === 'string' ? raw.trim() : ''
-  const fb  = (typeof fallback === 'string' ? fallback : '').trim()
-  if (!src) return fb
-  if (src.startsWith('{') || src.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(src)
-      const out = (parsed && typeof parsed === 'object' ? parsed.output : null) || null
-      const candidates: any[] = [
-        out?.script, out?.hook, out?.captions,
-        parsed?.description, parsed?.title, fb,
-      ]
-      for (const c of candidates) {
-        const v = (typeof c === 'string' ? c : '').trim()
-        if (v && !v.startsWith('{') && !v.startsWith('[')) return v
-      }
-      return fb || ''
-    } catch {
-      return fb || ''
-    }
+// Workspace rows store `content_pieces.script` as JSON:
+// `{ workspace: true, prompt: {...}, output: { hook, script, ... } }`.
+type WorkspaceEnvelope = {
+  workspace?: boolean
+  prompt?: Record<string, unknown>
+  output?: {
+    hook?: string
+    script?: string
+    storyboard?: string
+    captions?: string
+    thumbnailIdea?: string
   }
-  return src
+}
+
+function parseWorkspaceScript(raw: string): {
+  envelope: WorkspaceEnvelope | null
+  hook: string
+  script: string
+  isStructured: boolean
+} {
+  const src = (raw || '').trim()
+  if (!src) return { envelope: null, hook: '', script: '', isStructured: false }
+  if (!src.startsWith('{') && !src.startsWith('[')) {
+    return { envelope: null, hook: '', script: src, isStructured: false }
+  }
+  try {
+    const parsed = JSON.parse(src) as WorkspaceEnvelope
+    const out = parsed?.output
+    if (out && typeof out === 'object') {
+      const hook = typeof out.hook === 'string' ? out.hook.trim() : ''
+      const script = typeof out.script === 'string' ? out.script.trim() : ''
+      if (parsed.workspace || hook || script) {
+        return { envelope: parsed, hook, script, isStructured: true }
+      }
+    }
+  } catch {}
+  return { envelope: null, hook: '', script: src, isStructured: false }
+}
+
+function withScriptBody(envelope: WorkspaceEnvelope | null, script: string): string {
+  if (envelope && (envelope.workspace || envelope.output)) {
+    return JSON.stringify({
+      ...envelope,
+      output: { ...(envelope.output || {}), script },
+    })
+  }
+  return script
+}
+
+function replaceInScriptBody(raw: string, original: string, replacement: string): string {
+  const p = parseWorkspaceScript(raw)
+  const body = p.isStructured ? p.script : raw
+  const idx = body.indexOf(original)
+  const nextBody = idx >= 0
+    ? body.slice(0, idx) + replacement + body.slice(idx + original.length)
+    : body + '\n\n' + replacement
+  return p.isStructured && p.envelope ? withScriptBody(p.envelope, nextBody) : nextBody
+}
+
+function formatScriptForExport(raw: string): string {
+  const p = parseWorkspaceScript(raw)
+  if (!p.isStructured) return raw
+  const parts: string[] = []
+  if (p.hook) parts.push(`Hook\n\n${p.hook}`)
+  if (p.script) parts.push(`Cinematic Script\n\n${p.script}`)
+  return parts.join('\n\n---\n\n') || raw
 }
 
 export default function ScriptWorkspace() {
@@ -151,12 +190,9 @@ export default function ScriptWorkspace() {
   const scriptBodyRef = useRef<HTMLPreElement>(null)
 
   // Sync liveScript whenever the underlying piece changes (initial load or realtime update).
-  // Phase 1.5 — pass through safeScriptText so a serialized workspace payload
-  // is normalized to creator-facing prose BEFORE it reaches any UI consumer
-  // (script body, exports, copy, narration extract, rewrite toolbar).
   useEffect(() => {
     const src = (piece as any)?.script || piece?.description || ''
-    setLiveScript(safeScriptText(src, piece?.description))
+    setLiveScript(src)
   }, [piece?.id, (piece as any)?.script, piece?.description])
 
   const pushVersion = (label: string, text: string) => {
@@ -167,11 +203,7 @@ export default function ScriptWorkspace() {
     if (!piece) return
     // Snapshot the current full script BEFORE replacing (so Undo works).
     pushVersion(`Before ${variant.replace('_', ' ')}`, liveScript)
-    // Replace ONLY the first occurrence of the original selection in the live script.
-    const idx = liveScript.indexOf(original)
-    const next = idx >= 0
-      ? liveScript.slice(0, idx) + replacement + liveScript.slice(idx + original.length)
-      : liveScript + '\n\n' + replacement  // defensive — selection drifted; append instead of corrupting
+    const next = replaceInScriptBody(liveScript, original, replacement)
     setLiveScript(next)
     // Persist to DB (fire-and-forget; UI already updated optimistically).
     try { await updateContent(piece.id, { script: next } as any) } catch (e:any) { toast.error(e?.message || 'Save failed') }
@@ -199,20 +231,27 @@ export default function ScriptWorkspace() {
     try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500) } catch {}
   }
 
-  const beginEdit = () => { setDraft(liveScript || safeScriptText((piece as any)?.script, piece?.description)); setEditing(true) }
+  const beginEdit = () => {
+    const raw = liveScript || (piece as any)?.script || piece?.description || ''
+    const p = parseWorkspaceScript(raw)
+    setDraft(p.isStructured ? p.script : raw)
+    setEditing(true)
+  }
   const saveEdit = async () => {
     if (!piece) return
     pushVersion('Before manual edit', liveScript)
-    await updateContent(piece.id, { script: draft } as any)
-    setLiveScript(draft)
-    setDirectPiece(p => p ? ({ ...p, script: draft } as any) : p)
+    const p = parseWorkspaceScript(liveScript)
+    const stored = p.isStructured && p.envelope ? withScriptBody(p.envelope, draft) : draft
+    await updateContent(piece.id, { script: stored } as any)
+    setLiveScript(stored)
+    setDirectPiece(p => p ? ({ ...p, script: stored } as any) : p)
     setEditing(false)
     toast.success('Script saved')
   }
 
   const exportTxt = () => {
     if (!piece) return
-    const body = liveScript || (piece as any).script || piece.description || ''
+    const body = formatScriptForExport(liveScript || (piece as any).script || piece.description || '')
     // Phase V1.2 — Trust Fix #7: "Made with Mugtee" watermark on free-tier exports only.
     const footer = isUnlimited ? '' : '\n\n---\nMade with Mugtee · AI Production OS for creators · https://mugtee.in\n'
     const text = `# ${piece.title}\n\n${body}${footer}`
@@ -328,12 +367,14 @@ export default function ScriptWorkspace() {
     }
   }
 
-  const platformMeta = PLATFORM_META[piece.platform]
-  const statusMeta   = STATUS_META[piece.status]
-  const fullScript   = liveScript || safeScriptText((piece as any).script, piece.description)
+  const platformMeta = piece.platform ? PLATFORM_META[piece.platform] : undefined
+  const statusMeta = piece.status ? STATUS_META[piece.status] : undefined
+  const fullScript   = liveScript || (piece as any).script || piece.description || ''
+  const parsedScript = parseWorkspaceScript(fullScript)
+  const bodyForTools = parsedScript.isStructured ? parsedScript.script : fullScript
   // V3.3 — Narration-only version (memo via useMemo not needed; cheap regex pass).
-  const narrationOnly = viewMode === 'narration' ? extractNarration(fullScript, { keepQuotes: false }) : ''
-  const scriptText   = viewMode === 'narration' ? (narrationOnly || fullScript) : fullScript
+  const narrationOnly = viewMode === 'narration' ? extractNarration(bodyForTools, { keepQuotes: false }) : ''
+  const scriptText   = viewMode === 'narration' ? (narrationOnly || bodyForTools) : bodyForTools
   const tags = piece.tags || []
 
   return (
@@ -347,7 +388,7 @@ export default function ScriptWorkspace() {
             platform: piece.platform,
             niche: (piece as any).niche || undefined,
             tone:  (piece as any).tone  || undefined,
-            full_script: liveScript,
+            full_script: bodyForTools,
           }}
           onReplace={handleRewriteReplace}
         />
@@ -442,8 +483,8 @@ export default function ScriptWorkspace() {
         </div>
         <h1 className="font-display text-3xl sm:text-4xl leading-tight mb-2">{piece.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-          <span className={`px-1.5 py-0.5 rounded uppercase tracking-wider ${platformMeta.color} bg-white/[0.03] border border-white/[0.06]`}>{platformMeta.label}</span>
-          <span className="px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/[0.03] border border-white/[0.06]">{statusMeta.label}</span>
+          <span className={`px-1.5 py-0.5 rounded uppercase tracking-wider ${platformMeta?.color ?? 'text-muted-foreground'} bg-white/[0.03] border border-white/[0.06]`}>{platformMeta?.label ?? piece.platform ?? 'Platform'}</span>
+          <span className="px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/[0.03] border border-white/[0.06]">{statusMeta?.label ?? piece.status ?? 'Draft'}</span>
           {piece.scheduled_at && <span className="inline-flex items-center gap-1"><CalendarCheck className="w-3 h-3 text-gold-400/80" /> {format(parseISO(piece.scheduled_at), 'MMM d · HH:mm')}</span>}
           {piece.created_at && <span className="opacity-60">created {format(parseISO(piece.created_at), 'MMM d, yyyy')}</span>}
         </div>
@@ -504,30 +545,6 @@ export default function ScriptWorkspace() {
           </div>
         )}
       </div>
-
-      {/* Phase V1.2 — Inline version history (last 5 snapshots, this session) */}
-      {versions.length > 0 && (
-        <div className="rounded-2xl glass border border-gold-soft p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300 inline-flex items-center gap-1.5"><History className="w-3 h-3" /> Version history · this session</span>
-            <span className="text-[10px] text-muted-foreground">{versions.length}/5</span>
-          </div>
-          <div className="space-y-1.5">
-            {versions.map((v, i) => (
-              <div key={v.at} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] text-luxe/85 truncate">{v.label}</div>
-                  <div className="text-[9px] text-muted-foreground tracking-wider">{format(new Date(v.at), 'HH:mm:ss')} · {v.text.split(/\s+/).filter(Boolean).length} words</div>
-                </div>
-                <Button onClick={() => restoreVersion(v)} variant="ghost" className="h-7 px-2 text-[10px] tracking-wider uppercase text-gold-300 hover:text-gold-100 hover:bg-gold-500/10 gap-1">
-                  <Undo2 className="w-3 h-3" /> Restore
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Flow prompts panel — V3.6 Cinematic Sequence Director cards */}
       <div className="rounded-2xl glass border border-gold-soft p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -670,6 +687,63 @@ function ReadScriptButton({ text }: { text: string }) {
       <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Read Script</span><span className="sm:hidden">Read</span>
     </Button>
   )
+}
+
+// Renders workspace JSON as Hook + Cinematic Script cards instead of raw JSON.
+function CinematicScriptBody({
+  raw,
+  scriptBodyRef,
+}: {
+  raw: string
+  scriptBodyRef: RefObject<HTMLPreElement | null>
+}) {
+  try {
+    const parsed = parseWorkspaceScript(raw)
+    if (!parsed.isStructured) {
+      return (
+        <pre
+          ref={scriptBodyRef as Ref<HTMLPreElement>}
+          className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text"
+        >
+          {raw}
+        </pre>
+      )
+    }
+      return (
+      <div className="space-y-6 text-[#E7E2D9]">
+        {parsed.hook && (
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.28em] text-[#C6A55C]">
+              Hook
+            </div>
+            <p className="text-[22px] leading-relaxed font-light">
+              {parsed.hook}
+            </p>
+          </div>
+        )}
+
+        {parsed.script && (
+          <div className="rounded-2xl border border-white/[0.06] bg-black/30 p-6">
+            <div className="mb-4 text-[11px] uppercase tracking-[0.28em] text-[#C6A55C]">
+              Cinematic Script
+            </div>
+            <pre
+              ref={scriptBodyRef as Ref<HTMLPreElement>}
+              className="whitespace-pre-wrap font-light leading-[2] text-[15px] text-[#E7E2D9] break-words select-text"
+            >
+              {parsed.script}
+            </pre>
+          </div>
+        )}
+      </div>
+    )
+  } catch {
+    return (
+      <pre className="whitespace-pre-wrap text-sm text-zinc-300 font-mono break-words">
+        {String(raw)}
+      </pre>
+    )
+  }
 }
 
 // ─── V3.2 RECOVERY FLOW ──────────────────────────────────────────────────────

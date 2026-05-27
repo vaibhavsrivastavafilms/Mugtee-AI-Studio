@@ -11,13 +11,13 @@ import { PricingFaq } from '@/components/billing/pricing-faq'
 import { track } from '@/lib/posthog'
 
 const WORKFLOW = [
-  { icon: Lightbulb,      label: 'Plan' },
-  { icon: FileText,       label: 'Script' },
-  { icon: Camera,         label: 'Shoot' },
-  { icon: Scissors,       label: 'Edit' },
-  { icon: CalendarCheck,  label: 'Schedule' },
-  { icon: Send,           label: 'Publish' },
-  { icon: BarChart3,      label: 'Track' },
+  { icon: Lightbulb,      label: 'Imagine' },
+  { icon: FileText,       label: 'Direct' },
+  { icon: Camera,         label: 'Sequence' },
+  { icon: Scissors,       label: 'Author' },
+  { icon: CalendarCheck,  label: 'Preserve' },
+  { icon: Send,           label: 'Present' },
+  { icon: BarChart3,      label: 'Evolve' },
 ]
 
 const PLANS = [
@@ -28,36 +28,34 @@ const PLANS = [
     icon: Crown,
     price: 245,
     cycle: '/month',
-    cta: 'Start Creating',
+    cta: 'Enter the studio',
     href: '/login',
     featured: false,
     features: [
-      '1 creator workspace',
-      'AI scripting',
-      'Viral idea engine',
-      'Instagram + YouTube scheduling',
-      'Realtime production pipeline',
-      'Media management',
+      '1 storytelling workspace',
+      'Cinematic script direction',
+      'Storyboard immersion',
+      'Presentation continuity',
+      'Authored example worlds',
       '2 devices max',
     ],
   },
   {
     key: 'agency',
     name: 'Agency Studio',
-    badge: 'For small teams',
+    badge: 'For small studios',
     icon: Users,
     price: 999,
     cycle: '/month',
-    cta: 'Launch Studio',
+    cta: 'Launch studio',
     href: '/login',
     featured: true,
     features: [
       'Up to 5 members',
-      'Collaborative workspace',
-      'Shared pipeline',
-      'Realtime sync',
-      'Advanced scheduling',
-      'Higher AI usage',
+      'Shared storytelling continuity',
+      'Collaborative world workspaces',
+      'Advanced presentation layers',
+      'Higher direction capacity',
       '5 devices max',
     ],
   },
@@ -98,7 +96,7 @@ export default function PricingPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between mb-12">
           <Link href="/" className="inline-flex items-center gap-2 text-xs tracking-[0.3em] uppercase text-gold-400/80 hover:text-gold-300 transition">
-            <ChevronLeft className="w-3.5 h-3.5" /> Mugtee AI Studio
+            <ChevronLeft className="w-3.5 h-3.5" /> Mugtee
           </Link>
           <Link href="/login" className="inline-flex items-center gap-1 text-xs tracking-wider text-luxe/70 hover:text-gold-300 transition">
             Sign in <ArrowRight className="w-3 h-3" />
@@ -111,17 +109,14 @@ export default function PricingPage() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-5">
             <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">Mugtee AI Studio Pricing</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">Studio access</span>
           </div>
-          {/* V3.9 — Clear page heading visible immediately on entry.
-              Critical for users arriving from /about \u00B7 /blog \u00B7 footer "See pricing"
-              so they never feel like they\u2019ve landed on the homepage. */}
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl leading-[1.1] tracking-tight">
-            <span className="text-gold-gradient">Mugtee AI Studio</span>
-            <span className="block text-foreground mt-1">Pricing</span>
+            <span className="text-gold-gradient">Calm access</span>
+            <span className="block text-foreground mt-1">to the cinematic studio.</span>
           </h1>
           <p className="text-luxe/80 mt-4 text-sm sm:text-base leading-relaxed">
-            {'The AI Production OS for creators \u2014 plan, script, shoot, edit, schedule, publish, and track from one cinematic workspace.'}
+            The cinematic storytelling operating system — imagine, direct, preserve, present, and evolve emotionally immersive worlds.
           </p>
 
           {/* Workflow strip */}

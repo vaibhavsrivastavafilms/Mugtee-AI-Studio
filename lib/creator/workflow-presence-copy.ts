@@ -1,0 +1,72 @@
+export type WorkflowPresencePhase =
+  | 'generating'
+  | 'refining'
+  | 'regenerating'
+  | 'exporting'
+  | 'restoring'
+
+const PHASE_LINES: Record<WorkflowPresencePhase, readonly string[]> = {
+  generating: [
+    'Preserving your pacing rhythm…',
+    'Shaping emotional cadence from your premise…',
+    'Aligning screenplay beats to your arc…',
+  ],
+  refining: [
+    'Preserving your pacing rhythm…',
+    'Aligning visual continuity…',
+    'Scene rhythm remains intact…',
+  ],
+  regenerating: [
+    'Narrative continuity maintained…',
+    'Your pacing structure is preserved…',
+    'Refining without disrupting your arc…',
+  ],
+  exporting: [
+    'Preparing your cinematic sequence…',
+    'Aligning hook, pacing, and frames…',
+    'Packaging your directed output…',
+  ],
+  restoring: [
+    'Restoring your cinematic draft…',
+    'Continuing where your story left off…',
+    'Your pacing rhythm is intact…',
+  ],
+}
+
+export function getWorkflowPresenceLine(
+  phase: WorkflowPresencePhase,
+  seed = 0
+): string {
+  const pool = PHASE_LINES[phase]
+  return pool[seed % pool.length]
+}
+
+export const COMPLETION_ACHIEVEMENT_LINES = [
+  'Your cinematic reel sequence is ready',
+  'Hook, pacing, and frames aligned for export',
+  'Your directed story reached completion',
+] as const
+
+export function getCompletionAchievementLine(seed = 0): string {
+  return COMPLETION_ACHIEVEMENT_LINES[seed % COMPLETION_ACHIEVEMENT_LINES.length]
+}
+
+export const EXPORT_CONTINUITY_LINES = [
+  'Opening beat aligned with your hook',
+  'Pacing continuity confirmed across scenes',
+  'Storyboard rhythm preserved in export',
+] as const
+
+export function getExportContinuityLine(seed = 0): string {
+  return EXPORT_CONTINUITY_LINES[seed % EXPORT_CONTINUITY_LINES.length]
+}
+
+export const EXPORT_PACING_REASSURANCE = [
+  'Your emotional pacing remains cohesive.',
+  'Visual rhythm finalized for cinematic delivery.',
+  'Directed sequence emotionally complete.',
+] as const
+
+export function getExportPacingPresenceLine(seed = 0): string {
+  return EXPORT_PACING_REASSURANCE[seed % EXPORT_PACING_REASSURANCE.length]
+}

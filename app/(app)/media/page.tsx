@@ -117,7 +117,7 @@ export default function MediaPage() {
   // Phase 3N — accept `?tab=` deep-link from sidebar Storyboards/Voiceovers.
   const searchParams = useSearchParams()
   useEffect(() => {
-    const t = searchParams.get('tab')
+    const t = searchParams?.get('tab')
     if (!t) return
     const valid = ['prompts','ideas','scripts','images','narrations','media','exports'] as const
     if ((valid as readonly string[]).includes(t) && t !== tab) {

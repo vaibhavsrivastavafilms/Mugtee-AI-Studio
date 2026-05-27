@@ -98,6 +98,698 @@
   .scrollbar-luxe::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-luxe::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 6px; }
   .scrollbar-luxe::-webkit-scrollbar-thumb:hover { background: var(--card-glow); }
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+  .shimmer-cinematic {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-cinematic::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(212, 175, 55, 0.06) 50%,
+      transparent 60%
+    );
+    animation: cinematic-shimmer 2.8s ease-in-out infinite;
+  }
+  @keyframes cinematic-glow-pulse {
+    0%, 100% { box-shadow: 0 0 32px rgba(212, 175, 55, 0.08); }
+    50% { box-shadow: 0 0 56px rgba(212, 175, 55, 0.16); }
+  }
+  .cinematic-success-glow {
+    animation: cinematic-glow-pulse 3.2s ease-in-out infinite;
+  }
+  .storyboard-focus-parallax {
+    transform: scale(1.008);
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .storyboard-focus-zoom {
+    animation: storyboard-subtle-zoom 8s ease-in-out infinite alternate;
+    transform-origin: center center;
+  }
+  .cinematic-route-enter {
+    animation: cinematic-route-fade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cinematic-panel-transition {
+    animation: cinematic-panel-fade 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cinematic-stage-transition {
+    animation: cinematic-stage-fade 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .hook-presence-enter {
+    animation: hook-presence-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .storyboard-focus-halo {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.14),
+      0 0 40px rgba(212, 175, 55, 0.07);
+  }
+  .storyboard-edge-fade::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 56px rgba(0, 0, 0, 0.35);
+  }
+  .storyboard-variant-inactive {
+    opacity: 0.58;
+  }
+  .visual-direction-card {
+    transition: border-color 220ms ease, background-color 220ms ease, transform 220ms ease;
+  }
+  .visual-direction-card:hover {
+    border-color: rgba(212, 175, 55, 0.18);
+    background-color: rgba(255, 255, 255, 0.025);
+  }
+  .resume-card-enter {
+    animation: resume-card-fade 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .memory-restore-enter {
+    animation: resume-card-fade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .inspiration-line-enter {
+    animation: resume-card-fade 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .keyboard-safe-bottom {
+    padding-bottom: max(7rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+  }
+  @media (min-width: 640px) {
+    .sm\:keyboard-safe-bottom-0 {
+      padding-bottom: 4rem;
+    }
+  }
+  .scene-card-enter {
+    animation: scene-card-fade 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .scroll-snap-storyboard {
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 12px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .screenplay-spacing {
+    letter-spacing: 0.01em;
+  }
+  .screenplay-spacing p {
+    margin-bottom: 0.75em;
+  }
+  .cinematic-reading-rhythm {
+    line-height: 1.95;
+    letter-spacing: 0.012em;
+  }
+  .cinematic-reading-rhythm > * + * {
+    margin-top: 0.35em;
+  }
+  .emotional-focus-ring {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.12),
+      0 0 32px rgba(212, 175, 55, 0.06);
+  }
+  .calm-opacity-transition {
+    transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cinematic-soft-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(212, 175, 55, 0.14),
+      transparent
+    );
+  }
+  .workflow-presence-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 40px rgba(212, 175, 55, 0.04);
+  }
+  .script-emphasis-pulse {
+    animation: script-emphasis-pulse 2.8s ease-in-out infinite;
+  }
+  .momentum-energy-pulse {
+    animation: momentum-energy-pulse 2.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .script-emphasis-pulse,
+    .momentum-energy-pulse,
+    .continuity-breathing-opacity,
+    .cinematic-rhythm-pulse,
+    .intelligent-guidance-opacity,
+    .cinematic-flow-opacity,
+    .emotional-rhythm-breathing,
+    .flow-state-pulse,
+    .cinematic-world-opacity,
+    .production-continuity-breathing,
+    .atmosphere-breathing-layer {
+      animation: none;
+    }
+    .emotional-sequence-opacity,
+    .cinematic-world-breathing {
+      animation: none;
+    }
+    .visual-sequence-opacity,
+    .emotional-storyboard-breathing,
+    .cinematic-composition-opacity {
+      animation: none;
+    }
+    .visual-world-opacity,
+    .emotional-sequence-atmosphere,
+    .visual-story-breathing,
+    .cinematic-environment-opacity {
+      animation: none;
+    }
+    .atmosphere-progression-opacity,
+    .emotional-flow-rhythm,
+    .sequence-continuity-breathing,
+    .editorial-guidance-opacity,
+    .directorial-rhythm-breathing,
+    .cinematic-signature-opacity,
+    .emotional-ownership-presence,
+    .authored-continuity-breathing,
+    .creator-legacy-opacity,
+    .archive-continuity-breathing,
+    .authored-world-presence,
+    .visual-memory-opacity,
+    .emotional-presence-breathing,
+    .legacy-atmosphere-opacity {
+      animation: none;
+    }
+    .visual-premiere-opacity,
+    .emotional-playback-breathing,
+    .viewing-atmosphere-opacity {
+      animation: none;
+    }
+    .visual-sharing-opacity,
+    .emotional-showcase-breathing,
+    .presentation-atmosphere-opacity,
+    .story-experience-breathing,
+    .narrative-immersion-opacity,
+    .live-motion-breathing,
+    .live-film-opacity {
+      animation: none;
+    }
+  }
+  .cinematic-identity-glow {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.1),
+      0 0 48px rgba(212, 175, 55, 0.05);
+  }
+  .atmospheric-depth-layer {
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      rgba(43, 26, 8, 0.35),
+      transparent 70%
+    );
+  }
+  .immersive-workspace-fade {
+    animation: immersive-workspace-fade 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .creator-memory-highlight {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(212, 175, 55, 0.06),
+      transparent
+    );
+  }
+  .cinematic-vignette-soft::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.45);
+  }
+  .continuity-breathing-opacity {
+    animation: continuity-breathing-opacity 3.2s ease-in-out infinite;
+  }
+  .momentum-return-glow {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.12),
+      0 0 32px rgba(212, 175, 55, 0.08);
+  }
+  .cinematic-rhythm-pulse {
+    animation: cinematic-rhythm-pulse 2.6s ease-in-out infinite;
+  }
+  .emotional-escalation-glow {
+    box-shadow: 0 0 28px rgba(212, 175, 55, 0.06);
+  }
+  .continuity-preservation-fade {
+    animation: continuity-preservation-fade 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .intelligent-guidance-opacity {
+    animation: intelligent-guidance-opacity 3s ease-in-out infinite;
+  }
+  .visual-atmosphere-layer {
+    background: radial-gradient(
+      ellipse 70% 50% at 50% 100%,
+      rgba(43, 26, 8, 0.2),
+      transparent 65%
+    );
+  }
+  .pacing-awareness-glow {
+    box-shadow: inset 0 0 36px rgba(212, 175, 55, 0.04);
+  }
+  .cinematic-flow-opacity {
+    animation: cinematic-flow-opacity 3.4s ease-in-out infinite;
+  }
+  .emotional-focus-depth {
+    box-shadow:
+      inset 0 0 48px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(212, 175, 55, 0.04);
+  }
+  .immersive-session-fade {
+    animation: immersive-session-fade 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .screenplay-flow-spacing {
+    letter-spacing: 0.014em;
+    line-height: 2;
+  }
+  .directing-focus-glow {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.08),
+      inset 0 0 32px rgba(212, 175, 55, 0.03);
+  }
+  .cinematic-attention-weight {
+    opacity: 1;
+    transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cinematic-attention-weight-muted {
+    opacity: 0.52;
+    transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .emotional-rhythm-breathing {
+    animation: emotional-rhythm-breathing 3.6s ease-in-out infinite;
+  }
+  .visual-noise-reduction {
+    opacity: 0.88;
+    filter: saturate(0.92);
+    transition: opacity 260ms ease, filter 260ms ease;
+  }
+  .flow-state-pulse {
+    animation: flow-state-pulse 3.2s ease-in-out infinite;
+  }
+  .cinematic-operating-depth {
+    box-shadow:
+      inset 0 0 64px rgba(0, 0, 0, 0.4),
+      inset 0 0 24px rgba(212, 175, 55, 0.03);
+  }
+  .emotional-production-glow {
+    box-shadow: inset 0 0 40px rgba(212, 175, 55, 0.05);
+  }
+  .immersive-environment-fade {
+    animation: immersive-environment-fade 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .directing-atmosphere-layer {
+    background: radial-gradient(
+      ellipse 100% 80% at 50% 0%,
+      rgba(43, 26, 8, 0.28),
+      transparent 62%
+    );
+  }
+  .cinematic-world-opacity {
+    animation: cinematic-world-opacity 3.8s ease-in-out infinite;
+  }
+  .production-continuity-breathing {
+    animation: production-continuity-breathing 3.5s ease-in-out infinite;
+  }
+  .visual-sequence-depth {
+    box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.06);
+  }
+  .cinematic-environment-focus {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.06),
+      inset 0 0 48px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.06);
+  }
+  .atmosphere-breathing-layer {
+    animation: atmosphere-breathing-layer 4s ease-in-out infinite;
+  }
+  .emotional-environment-glow {
+    box-shadow: 0 0 32px rgba(212, 175, 55, 0.04);
+  }
+  .cinematic-master-atmosphere {
+    background: radial-gradient(
+      ellipse 100% 70% at 50% 0%,
+      rgba(43, 26, 8, 0.22),
+      transparent 68%
+    );
+  }
+  .emotional-directing-depth {
+    box-shadow:
+      inset 0 0 56px rgba(0, 0, 0, 0.38),
+      inset 0 0 20px rgba(212, 175, 55, 0.04);
+  }
+  .cinematic-presence-glow {
+    box-shadow: inset 0 0 36px rgba(212, 175, 55, 0.05);
+  }
+  .immersive-production-fade {
+    animation: immersive-production-fade 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .screenplay-rhythm-spacing {
+    letter-spacing: 0.012em;
+  }
+  .screenplay-rhythm-spacing > * + * {
+    margin-top: 0.25em;
+  }
+  .directing-environment-focus {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.05),
+      inset 0 0 40px rgba(0, 0, 0, 0.28);
+  }
+  .emotional-sequence-opacity {
+    animation: emotional-sequence-opacity 3.6s ease-in-out infinite;
+  }
+  .cinematic-world-breathing {
+    animation: cinematic-world-breathing 4.2s ease-in-out infinite;
+  }
+  .visual-composition-weight {
+    opacity: 1;
+    transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cinematic-editorial-spacing {
+    letter-spacing: 0.014em;
+  }
+  .cinematic-visual-depth {
+    box-shadow:
+      inset 0 0 56px rgba(0, 0, 0, 0.42),
+      inset 0 0 20px rgba(212, 175, 55, 0.04);
+  }
+  .storyboard-atmosphere-layer {
+    background: radial-gradient(
+      ellipse 90% 65% at 50% 20%,
+      rgba(43, 26, 8, 0.24),
+      transparent 70%
+    );
+  }
+  .emotional-frame-glow {
+    box-shadow: inset 0 0 32px rgba(212, 175, 55, 0.06);
+  }
+  .cinematic-composition-weight {
+    opacity: 1;
+    transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .visual-sequence-opacity {
+    animation: visual-sequence-opacity 3.8s ease-in-out infinite;
+  }
+  .cinematic-lighting-presence {
+    text-shadow: 0 0 24px rgba(212, 175, 55, 0.08);
+  }
+  .production-frame-focus {
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.12),
+      inset 0 0 24px rgba(212, 175, 55, 0.04);
+  }
+  .emotional-storyboard-breathing {
+    animation: emotional-storyboard-breathing 4s ease-in-out infinite;
+  }
+  .storyboard-presence-fade {
+    animation: storyboard-presence-fade 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cinematic-composition-opacity {
+    animation: cinematic-composition-opacity 3.6s ease-in-out infinite;
+  }
+  .cinematic-storyworld-depth {
+    box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.35);
+  }
+  .emotional-atmosphere-glow {
+    box-shadow: inset 0 0 28px rgba(212, 175, 55, 0.04);
+  }
+  .visual-world-opacity {
+    animation: visual-world-opacity 4s ease-in-out infinite;
+  }
+  .storyworld-composition-weight {
+    opacity: 1;
+    transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .emotional-sequence-atmosphere {
+    animation: emotional-sequence-atmosphere 4.2s ease-in-out infinite;
+  }
+  .cinematic-frame-environment {
+    position: relative;
+  }
+  .visual-story-breathing {
+    animation: visual-story-breathing 4.4s ease-in-out infinite;
+  }
+  .emotional-environment-depth {
+    background: radial-gradient(
+      ellipse 85% 55% at 50% 30%,
+      rgba(43, 26, 8, 0.18),
+      transparent 68%
+    );
+  }
+  .cinematic-environment-opacity {
+    animation: cinematic-environment-opacity 3.8s ease-in-out infinite;
+  }
+  .visual-world-presence-fade {
+    animation: visual-world-presence-fade 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cinematic-world-composition {
+    position: relative;
+  }
+  .emotional-sequence-depth {
+    box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.28);
+  }
+  .cinematic-escalation-presence {
+    text-shadow: 0 0 16px rgba(212, 175, 55, 0.05);
+  }
+  .atmosphere-progression-opacity {
+    animation: atmosphere-progression-opacity 4s ease-in-out infinite;
+  }
+  .emotional-flow-rhythm {
+    animation: emotional-flow-rhythm 4.2s ease-in-out infinite;
+  }
+  .sequence-continuity-breathing {
+    animation: sequence-continuity-breathing 3.8s ease-in-out infinite;
+  }
+  .directorial-presence-depth {
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.22);
+  }
+  .directorial-authorship-glow {
+    text-shadow: 0 0 14px rgba(212, 175, 55, 0.06);
+  }
+  .editorial-guidance-opacity {
+    animation: editorial-guidance-opacity 4.4s ease-in-out infinite;
+  }
+  .shot-intention-presence {
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.04);
+  }
+  .directorial-rhythm-breathing {
+    animation: directorial-rhythm-breathing 4s ease-in-out infinite;
+  }
+  .authorship-immersion-depth {
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.18);
+  }
+  .authorship-identity-glow {
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.05);
+  }
+  .cinematic-signature-opacity {
+    animation: cinematic-signature-opacity 4.6s ease-in-out infinite;
+  }
+  .emotional-ownership-presence {
+    animation: emotional-ownership-presence 4.2s ease-in-out infinite;
+  }
+  .authored-continuity-breathing {
+    animation: authored-continuity-breathing 3.9s ease-in-out infinite;
+  }
+  .legacy-archive-depth {
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.14);
+  }
+  .cinematic-permanence-glow {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.04);
+  }
+  .creator-legacy-opacity {
+    animation: creator-legacy-opacity 4.8s ease-in-out infinite;
+  }
+  .archive-continuity-breathing {
+    animation: archive-continuity-breathing 4.1s ease-in-out infinite;
+  }
+  .authored-world-presence {
+    animation: authored-world-presence 4.4s ease-in-out infinite;
+  }
+  .cinematic-legacy-depth {
+    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.12);
+  }
+  .emotional-preservation-glow {
+    text-shadow: 0 0 8px rgba(212, 175, 55, 0.035);
+  }
+  .visual-memory-opacity {
+    animation: visual-memory-opacity 4.5s ease-in-out infinite;
+  }
+  .cinematic-archive-weight {
+    font-weight: 400;
+    letter-spacing: 0.18em;
+  }
+  .authored-world-focus {
+    position: relative;
+  }
+  .emotional-presence-breathing {
+    animation: emotional-presence-breathing 4s ease-in-out infinite;
+  }
+  .cinematic-preservation-layer {
+    position: relative;
+  }
+  .legacy-atmosphere-opacity {
+    animation: legacy-atmosphere-opacity 320ms ease-out both;
+  }
+  .visual-storyworld-depth {
+    position: relative;
+  }
+  .cinematic-memory-depth {
+    position: relative;
+  }
+  .cinematic-viewing-depth {
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.1);
+  }
+  .emotional-showcase-glow {
+    text-shadow: 0 0 8px rgba(212, 175, 55, 0.035);
+  }
+  .visual-premiere-opacity {
+    animation: visual-premiere-opacity 4.2s ease-in-out infinite;
+  }
+  .cinematic-presentation-weight {
+    font-weight: 400;
+    letter-spacing: 0.16em;
+  }
+  .immersive-viewing-focus {
+    position: relative;
+  }
+  .emotional-playback-breathing {
+    animation: emotional-playback-breathing 4s ease-in-out infinite;
+  }
+  .cinematic-showcase-layer {
+    position: relative;
+  }
+  .viewing-atmosphere-opacity {
+    animation: viewing-atmosphere-opacity 320ms ease-out both;
+  }
+  .visual-showcase-depth {
+    position: relative;
+  }
+  .cinematic-showcase-depth {
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.08);
+  }
+  .emotional-presentation-glow {
+    text-shadow: 0 0 7px rgba(212, 175, 55, 0.03);
+  }
+  .visual-sharing-opacity {
+    animation: visual-sharing-opacity 4.3s ease-in-out infinite;
+  }
+  .cinematic-premiere-weight {
+    font-weight: 400;
+    letter-spacing: 0.14em;
+  }
+  .immersive-showcase-focus {
+    position: relative;
+  }
+  .emotional-showcase-breathing {
+    animation: emotional-showcase-breathing 4s ease-in-out infinite;
+  }
+  .cinematic-sharing-layer {
+    position: relative;
+  }
+  .presentation-atmosphere-opacity {
+    animation: presentation-atmosphere-opacity 320ms ease-out both;
+  }
+  .cinematic-presentation-depth {
+    position: relative;
+  }
+  .story-experience-depth {
+    position: relative;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.06);
+  }
+  .story-experience-layer {
+    position: relative;
+  }
+  .story-experience-glow {
+    text-shadow: 0 0 6px rgba(212, 175, 55, 0.025);
+  }
+  .story-experience-breathing {
+    animation: story-experience-breathing 4s ease-in-out infinite;
+  }
+  .narrative-immersion-opacity {
+    animation: narrative-immersion-opacity 320ms ease-out both;
+  }
+  .immersive-narrative-focus {
+    position: relative;
+  }
+  .immersive-sequence-focus {
+    position: relative;
+  }
+  .narrative-continuity-depth {
+    position: relative;
+  }
+  .storytelling-identity-depth {
+    position: relative;
+  }
+  .cinematic-universe-layer {
+    position: relative;
+  }
+  .emotional-universe-depth {
+    position: relative;
+  }
+  .story-operating-layer {
+    position: relative;
+  }
+  .immersive-storytelling-environment {
+    position: relative;
+  }
+  .live-motion-depth {
+    position: relative;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
+  }
+  .live-motion-layer {
+    position: relative;
+  }
+  .live-motion-glow {
+    text-shadow: 0 0 6px rgba(212, 175, 55, 0.022);
+  }
+  .live-motion-breathing {
+    animation: live-motion-breathing 4.2s ease-in-out infinite;
+  }
+  .immersive-motion-focus {
+    position: relative;
+  }
+  .live-video-layer,
+  .live-video-depth {
+    position: relative;
+  }
+  .immersive-film-focus {
+    position: relative;
+  }
+  .live-audio-layer,
+  .live-audio-depth {
+    position: relative;
+  }
+  .immersive-sound-focus {
+    position: relative;
+  }
+  .live-film-experience-layer,
+  .live-film-experience-depth {
+    position: relative;
+  }
+  .live-film-opacity {
+    animation: live-film-opacity 320ms ease-out both;
+  }
+  .live-distribution-layer,
+  .live-distribution-depth {
+    position: relative;
+  }
+  .live-ecosystem-layer,
+  .live-ecosystem-depth {
+    position: relative;
+  }
+  .live-final-os-layer,
+  .live-final-os-depth {
+    position: relative;
+  }
   .gold-divider { background: linear-gradient(90deg, transparent, var(--card-glow), transparent); height: 1px; width: 100%; }
   .shimmer-text { background: linear-gradient(90deg, hsl(var(--accent-h) var(--accent-s) 30%) 0%, hsl(var(--accent-h) var(--accent-s) 65%) 50%, hsl(var(--accent-h) var(--accent-s) 30%) 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 3s linear infinite; }
 }
@@ -132,6 +824,306 @@
 .animate-kenburns {
   animation: kenburns 8s ease-out forwards;
   will-change: transform;
+}
+
+@keyframes cinematic-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes storyboard-subtle-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.035); }
+}
+
+@keyframes cinematic-route-fade {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes cinematic-panel-fade {
+  from { opacity: 0; transform: translateY(8px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes cinematic-stage-fade {
+  from { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes hook-presence-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes resume-card-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scene-card-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes script-emphasis-pulse {
+  0%, 100% { opacity: 0.92; box-shadow: 0 0 24px rgba(212, 175, 55, 0.04); }
+  50% { opacity: 1; box-shadow: 0 0 36px rgba(212, 175, 55, 0.08); }
+}
+
+@keyframes momentum-energy-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes immersive-workspace-fade {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes continuity-breathing-opacity {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes cinematic-rhythm-pulse {
+  0%, 100% { opacity: 0.5; transform: scaleX(1); }
+  50% { opacity: 0.85; transform: scaleX(1.02); }
+}
+
+@keyframes intelligent-guidance-opacity {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.72; }
+}
+
+@keyframes continuity-preservation-fade {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes cinematic-flow-opacity {
+  0%, 100% { opacity: 0.88; }
+  50% { opacity: 1; }
+}
+
+@keyframes emotional-rhythm-breathing {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.78; }
+}
+
+@keyframes immersive-session-fade {
+  from { opacity: 0; transform: translateY(5px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes flow-state-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.08); }
+}
+
+@keyframes cinematic-world-opacity {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+@keyframes production-continuity-breathing {
+  0%, 100% { opacity: 0.48; }
+  50% { opacity: 0.72; }
+}
+
+@keyframes immersive-environment-fade {
+  from { opacity: 0; transform: translateY(5px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes atmosphere-breathing-layer {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes immersive-production-fade {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes emotional-sequence-opacity {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.72; }
+}
+
+@keyframes cinematic-world-breathing {
+  0%, 100% { opacity: 0.78; }
+  50% { opacity: 1; }
+}
+
+@keyframes visual-sequence-opacity {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.78; }
+}
+
+@keyframes emotional-storyboard-breathing {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.68; }
+}
+
+@keyframes storyboard-presence-fade {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes cinematic-composition-opacity {
+  0%, 100% { opacity: 0.38; transform: scale(1); }
+  50% { opacity: 0.62; transform: scale(1.06); }
+}
+
+@keyframes visual-world-opacity {
+  0%, 100% { opacity: 0.46; }
+  50% { opacity: 0.72; }
+}
+
+@keyframes emotional-sequence-atmosphere {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.65; }
+}
+
+@keyframes visual-story-breathing {
+  0%, 100% { opacity: 0.44; }
+  50% { opacity: 0.68; }
+}
+
+@keyframes cinematic-environment-opacity {
+  0%, 100% { opacity: 0.36; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.04); }
+}
+
+@keyframes visual-world-presence-fade {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes atmosphere-progression-opacity {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.68; }
+}
+
+@keyframes emotional-flow-rhythm {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.62; }
+}
+
+@keyframes sequence-continuity-breathing {
+  0%, 100% { opacity: 0.44; }
+  50% { opacity: 0.66; }
+}
+
+@keyframes editorial-guidance-opacity {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.58; }
+}
+
+@keyframes directorial-rhythm-breathing {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes cinematic-signature-opacity {
+  0%, 100% { opacity: 0.36; }
+  50% { opacity: 0.54; }
+}
+
+@keyframes emotional-ownership-presence {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.56; }
+}
+
+@keyframes authored-continuity-breathing {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes creator-legacy-opacity {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes archive-continuity-breathing {
+  0%, 100% { opacity: 0.36; }
+  50% { opacity: 0.52; }
+}
+
+@keyframes authored-world-presence {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.54; }
+}
+
+@keyframes visual-memory-opacity {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes emotional-presence-breathing {
+  0%, 100% { opacity: 0.96; }
+  50% { opacity: 1; }
+}
+
+@keyframes legacy-atmosphere-opacity {
+  from { opacity: 0.92; }
+  to { opacity: 1; }
+}
+
+@keyframes visual-premiere-opacity {
+  0%, 100% { opacity: 0.94; }
+  50% { opacity: 1; }
+}
+
+@keyframes emotional-playback-breathing {
+  0%, 100% { opacity: 0.97; }
+  50% { opacity: 1; }
+}
+
+@keyframes viewing-atmosphere-opacity {
+  from { opacity: 0.94; }
+  to { opacity: 1; }
+}
+
+@keyframes visual-sharing-opacity {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 1; }
+}
+
+@keyframes emotional-showcase-breathing {
+  0%, 100% { opacity: 0.98; }
+  50% { opacity: 1; }
+}
+
+@keyframes story-experience-breathing {
+  0%, 100% { opacity: 0.985; }
+  50% { opacity: 1; }
+}
+
+@keyframes narrative-immersion-opacity {
+  from { opacity: 0.96; }
+  to { opacity: 1; }
+}
+
+@keyframes live-motion-breathing {
+  0%, 100% { opacity: 0.988; }
+  50% { opacity: 1; }
+}
+
+@keyframes live-film-opacity {
+  from { opacity: 0.965; }
+  to { opacity: 1; }
+}
+
+@keyframes presentation-atmosphere-opacity {
+  from { opacity: 0.95; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 
@@ -173,5 +1165,25 @@
   body[data-storyboard-print] [data-storyboard-stylelock] {
     border: 1px solid #c4a047 !important;
     background: #fff8e7 !important;
+  }
+}
+
+/* Execution mode — mobile cinematic touch flow */
+.cinematic-mobile-mode {
+  -webkit-overflow-scrolling: touch;
+}
+.cinematic-touch-flow > * {
+  scroll-margin-top: 6rem;
+}
+@media (max-width: 639px) {
+  .cinematic-touch-flow {
+    scroll-snap-type: y proximity;
+  }
+  .cinematic-touch-flow > * {
+    scroll-snap-align: start;
+  }
+  .cinematic-reduced-layers .cinematic-world-breathing,
+  .cinematic-reduced-layers .cinematic-rhythm-pulse {
+    animation: none !important;
   }
 }

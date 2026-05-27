@@ -1,10 +1,6 @@
 'use client'
-// Phase V1.2 — Trust Fix #3: Guest "Try Mugtee" experience.
-// Lets a visitor generate ONE viral hook without signing up. Uses the existing
-// /api/ai/generate endpoint (mode=viral_hook). Rate-limited via localStorage
-// (3 free guest hooks per 24h) — tasteful, not punitive.
-//
-// EXTREME LOW CREDIT MODE: zero new deps, ~140 lines.
+// Guest "Try Mugtee" — one cinematic opening hook without signing up.
+// Rate-limited via localStorage (3 free guest hooks per 24h).
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -48,16 +44,14 @@ export function GuestHookGenerator() {
     if (r.count >= MAX_PER_DAY) { setError('Daily guest limit reached. Sign up free for unlimited.'); return }
     setLoading(true); setHooks([])
     try {
-      const res = await fetch('/api/ai/generate', {
+      const res = await fetch('/api/guest-hook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'viral_hook', context: { description: t, platform: 'instagram', niche: 'general', tone: 'cinematic_emotional' } }),
+        body: JSON.stringify({ topic: t }),
       })
       const data = await res.json()
       if (!res.ok || data?.error) { setError(data?.error || 'Something went wrong'); return }
-      const raw = String(data.output || data.raw || '')
-      // Parse first 3 hook lines — looks like "1. <hook>" / "- <hook>" etc.
-      const lines = raw.split(/\n+/).map(l => l.replace(/^\s*(\d+[\.)]|[-•*])\s*/, '').trim()).filter(l => l.length > 0 && l.length < 200)
+      const lines = Array.isArray(data.hooks) ? data.hooks : []
       setHooks(lines.slice(0, 3))
       const next = { day: todayKey(), count: r.count + 1 }
       writeRate(next)
@@ -78,7 +72,7 @@ export function GuestHookGenerator() {
       <div className="flex items-center justify-between gap-2 mb-4">
         <div>
           <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-1.5">Try Mugtee · no signup</div>
-          <h3 className="font-display text-2xl sm:text-3xl leading-tight">Generate a <span className="text-gold-gradient">viral hook</span> in 5 seconds.</h3>
+          <h3 className="font-display text-2xl sm:text-3xl leading-tight">Open with a <span className="text-gold-gradient">cinematic hook</span>.</h3>
         </div>
         <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] tracking-wider uppercase text-muted-foreground border border-white/[0.06] bg-white/[0.03] rounded-full px-2.5 py-1">
           <Zap className="w-3 h-3 text-gold-300" /> {remaining}/{MAX_PER_DAY} left today
@@ -123,7 +117,7 @@ export function GuestHookGenerator() {
         </div>
       )}
       {!hooks.length && !error && (
-        <div className="mt-3 text-[11px] text-muted-foreground/80">3 free hooks per day · No login · Powered by the same AI engine inside Mugtee AI Studio.</div>
+        <div className="mt-3 text-[11px] text-muted-foreground/80">3 free hooks per day · No login · Emotionally directed openings, not viral bait.</div>
       )}
     </div>
   )

@@ -20,6 +20,7 @@ import { PostingCalendar } from '@/components/dashboard/posting-calendar'
 import { UpcomingShoots } from '@/components/dashboard/upcoming-shoots'
 import { ViralQuickStart } from '@/components/dashboard/viral-quick-start'
 import { ContinueCreating } from '@/components/dashboard/continue-creating'
+import { CreatorTrustLayer } from '@/components/dashboard/creator-trust-layer'
 import { RecentProjectsGrid } from '@/components/dashboard/recent-projects-grid'
 import { OnboardingOverlay } from '@/components/onboarding/onboarding-overlay'
 import { UsageGauge } from '@/lib/usage'
@@ -48,6 +49,7 @@ export default function DashboardPage() {
 
       {/* ─── 3. CONTINUITY LAYER — Continue + Recents ─── */}
       <section className="space-y-6">
+        <CreatorTrustLayer />
         <ContinueCreating />
         <RecentProjectsGrid />
       </section>

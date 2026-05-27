@@ -77,7 +77,7 @@ export function ContinueCreating() {
         id: recentScript.id,
         title: recentScript.title || 'Untitled script',
         href: `/script/${recentScript.id}`,
-        at: recentScript.created_at,
+        at: recentScript.created_at ?? new Date().toISOString(),
         preview: String((recentScript as any).script || recentScript.description || '').slice(0, 90),
       })
     }
