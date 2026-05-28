@@ -22,9 +22,9 @@ const PHASE_LINES: Record<WorkflowPresencePhase, readonly string[]> = {
     'Refining without disrupting your arc…',
   ],
   exporting: [
-    'Preparing your cinematic sequence…',
-    'Aligning hook, pacing, and frames…',
-    'Packaging your directed output…',
+    'Your world is becoming film…',
+    'Holding hook, pacing, and frames in rhythm…',
+    'Letting the sequence settle into form…',
   ],
   restoring: [
     'Restoring your cinematic draft…',
@@ -43,7 +43,7 @@ export function getWorkflowPresenceLine(
 
 export const COMPLETION_ACHIEVEMENT_LINES = [
   'Your cinematic reel sequence is ready',
-  'Hook, pacing, and frames aligned for export',
+  'Hook, pacing, and frames held in rhythm',
   'Your directed story reached completion',
 ] as const
 
@@ -54,7 +54,7 @@ export function getCompletionAchievementLine(seed = 0): string {
 export const EXPORT_CONTINUITY_LINES = [
   'Opening beat aligned with your hook',
   'Pacing continuity confirmed across scenes',
-  'Storyboard rhythm preserved in export',
+  'Storyboard rhythm carried into the world',
 ] as const
 
 export function getExportContinuityLine(seed = 0): string {

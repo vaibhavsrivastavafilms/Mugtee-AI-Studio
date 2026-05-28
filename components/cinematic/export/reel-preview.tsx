@@ -2,6 +2,9 @@
 
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { optimizeAtmosphereRender } from '@/lib/cinematic/execution/cinematic-performance-engine'
+import { buildCinematicPrevisualization } from '@/lib/cinematic/preview/cinematic-previsualization'
+import type { PreviewRhythmMetadata } from '@/lib/cinematic/render/preview-rhythm'
 import { CinematicFadeImage } from '@/components/cinematic/cinematic-states'
 import { CinematicExportFrame } from '@/components/cinematic/export/cinematic-export-frame'
 import { DirectedExportCover } from '@/components/cinematic/export/directed-export-cover'
@@ -22,6 +25,10 @@ export function ReelPreview({
   title,
   style,
   niche,
+  beatIntervalsMs,
+  previewFadeMs,
+  previewRhythm,
+  transitionRhythm,
 }: {
   frames: string[]
   hook: string
@@ -29,8 +36,18 @@ export function ReelPreview({
   title: string
   style?: string | null
   niche?: string | null
+  beatIntervalsMs?: number[]
+  previewFadeMs?: number
+  previewRhythm?: PreviewRhythmMetadata
+  transitionRhythm?: string
 }) {
-  const hasFrames = frames.length > 0
+  const { preferReducedLayers } = optimizeAtmosphereRender()
+  const restrainedMotion = preferReducedLayers
+
+  const previs = buildCinematicPrevisualization(
+    { hook },
+    { script: '', hook, duration, style }
+  )
 
   return (
     <CinematicPremiereEnvironment>
@@ -44,19 +61,38 @@ export function ReelPreview({
         niche={niche}
       />
 
-      <div className="p-3 sm:p-5 flex justify-center">
+      <p className="px-5 pt-3 text-[10px] tracking-[0.2em] uppercase text-white/30 text-center italic">
+        {previs.escalationLine}
+      </p>
+
+      <div className="p-3 sm:p-5 flex justify-center cinematic-touch-flow">
         <ImmersiveShowcaseLayer>
         <ImmersiveFilmEnvironment>
         <ImmersiveNarrativeViewer>
         <ImmersiveStoryViewer>
-        <ImmersiveFilmViewer frames={frames} duration={duration}>
-          {(activeFrame, activeIndex) => (
+        <ImmersiveFilmViewer
+          frames={frames}
+          duration={duration}
+          beatIntervalsMs={beatIntervalsMs}
+          previewRhythm={previewRhythm}
+          fadeMs={previewFadeMs}
+          restrainedMotion={restrainedMotion}
+        >
+          {(activeFrame, activeIndex, fading, anticipationLabel) => (
         <CinematicExportFrame>
           {activeFrame ? (
             <CinematicFadeImage
               src={activeFrame}
-              alt="Reel preview frame"
-              className="absolute inset-0 w-full h-full object-cover calm-opacity-transition"
+              alt="Film beat preview"
+              className={cn(
+                'absolute inset-0 w-full h-full object-cover calm-opacity-transition',
+                restrainedMotion ? 'duration-300' : 'duration-500',
+                fading
+                  ? restrainedMotion
+                    ? 'opacity-0'
+                    : 'opacity-0 scale-[1.02]'
+                  : 'opacity-100 scale-100'
+              )}
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-[#120D08] to-black flex items-center justify-center">
@@ -67,7 +103,8 @@ export function ReelPreview({
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 pointer-events-none" />
           <div className="absolute inset-x-0 bottom-0 p-4 space-y-2">
             <p className="text-[9px] tracking-[0.22em] uppercase text-[#C8A24E]/70">
-              Opening beat · export-ready
+              {anticipationLabel || (activeIndex === 0 ? 'Opening beat' : `Beat ${activeIndex + 1}`)}
+              {transitionRhythm ? ` · ${transitionRhythm.split('·')[0]?.trim()}` : ' · held rhythm'}
             </p>
             {hook ? (
               <p className="font-display text-[15px] leading-snug text-[#F4E7C1] italic line-clamp-3">

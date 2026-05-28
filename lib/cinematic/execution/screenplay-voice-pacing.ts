@@ -1,4 +1,6 @@
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
+import { breathingCadenceForScene } from '@/lib/cinematic/audio/emotional-breathing-engine'
+import { recallNarrationEscalation } from '@/lib/cinematic/audio/narration-escalation-memory'
 import { translateScreenplayToFilmPlan } from '@/lib/cinematic/execution/screenplay-video-translator'
 
 export function paceNarrationForFilm(
@@ -19,11 +21,39 @@ export function paceNarrationForFilm(
 
 export function voiceDirectionNote(
   voiceStyle: string,
-  duration: number
+  duration: number,
+  sceneCount = 0
 ): string {
   const pace =
     duration <= 30 ? 'tight, lyrical restraint' : duration <= 60 ? 'documentary breath' : 'unhurried cinematic cadence'
-  return `${voiceStyle.replace(/_/g, ' ')} · ${pace} · no announcer energy`
+  const escalation =
+    sceneCount > 0
+      ? recallNarrationEscalation(
+          Array.from({ length: sceneCount }, (_, i) => ({
+            id: String(i),
+            title: '',
+            description: '',
+            duration: duration / sceneCount,
+            visualPrompt: '',
+            cameraAngle: '',
+            lightingMood: '',
+            environment: '',
+            colorPalette: '',
+            movementStyle: '',
+          }))
+        ).escalationLine
+      : ''
+  const breath =
+    sceneCount > 0
+      ? breathingCadenceForScene(Math.min(2, sceneCount), sceneCount).breathLabel
+      : 'natural cinematic cadence'
+  return [
+    `${voiceStyle.replace(/_/g, ' ')} · ${pace} · no announcer energy`,
+    breath,
+    escalation,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function dialogueFlowSegments(output: CinematicGenerationOutput): string[] {

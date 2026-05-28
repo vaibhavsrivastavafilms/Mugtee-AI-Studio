@@ -56,7 +56,7 @@ export function DirectedExportCover({
     <header className={cn('px-5 py-4 border-b border-white/[0.06] cinematic-identity-glow', className)}>
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/85">
-          Directed Export · Cinematic Sequence
+          Film World · Held Sequence
         </p>
         <CinematicIdentityBadge label={identity.label} />
       </div>

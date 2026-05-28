@@ -37,7 +37,7 @@ export function FirstSuccessMoment({ projectId }: { projectId?: string | null })
         Your cinematic story is ready.
       </p>
       <p className="relative mt-2 text-sm text-white/50 max-w-md mx-auto">
-        Hook and script are shaped — refine scenes, direct visuals, or prepare your export pack.
+        Hook and script are shaped — refine scenes, direct visuals, or let your world become film.
       </p>
 
       <div className="relative mt-6 flex flex-wrap justify-center gap-2">
@@ -56,7 +56,7 @@ export function FirstSuccessMoment({ projectId }: { projectId?: string | null })
         <QuickAction
           href={withProjectQuery('/cinematic/compile', projectId)}
           icon={Package}
-          label="Export package"
+          label="Film world"
           onNavigate={dismiss}
         />
       </div>

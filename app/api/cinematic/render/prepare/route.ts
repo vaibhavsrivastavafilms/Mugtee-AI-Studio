@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { buildCompileFilmPlan } from '@/lib/cinematic/execution/compile/compile-film-plan'
-import { buildCinematicRenderBlueprint } from '@/lib/cinematic/execution/compile/cinematic-render-blueprint'
 import { orchestrateRender } from '@/lib/cinematic/execution/render/render-orchestration-engine'
-import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
+import {
+  buildCompileFilmPlan,
+  buildCinematicRenderBlueprint,
+  buildInvisibleFilmMetadata,
+  projectStateToGenerationOutput,
+} from '@/lib/cinematic/render'
 import { parseRegenContext } from '@/lib/cinematic/regen-context'
 import { logError } from '@/lib/workspace/validation'
 
@@ -36,14 +39,15 @@ export async function POST(req: NextRequest) {
     })
 
     const blueprint = buildCinematicRenderBlueprint(filmPlan)
+    const rhythm = buildInvisibleFilmMetadata(blueprint)
     const render = await orchestrateRender(blueprint)
 
     return NextResponse.json({
       ready: filmPlan.ready,
       presenceLine: render.presenceLine,
       filmRhythm: blueprint.filmRhythm,
+      rhythm,
       status: render.status,
-      provider: render.provider,
       output: projectStateToGenerationOutput({
         title: filmPlan.title,
         hook: ctx.hook,
@@ -62,7 +66,6 @@ export async function POST(req: NextRequest) {
         ready: true,
         presenceLine: 'Your cinematic world is preparing itself naturally.',
         status: 'preparing',
-        provider: 'stub',
       },
       { status: 200 }
     )

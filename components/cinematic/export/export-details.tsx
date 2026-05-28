@@ -11,9 +11,9 @@ export function ExportDetailsPanel({ snapshot }: { snapshot: ExportPackageSnapsh
     <section className="rounded-[28px] border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
       <div>
         <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/85">
-          Export Details
+          Film World Details
         </p>
-        <p className="text-sm text-white/45 mt-1">Platform-ready cinematic package</p>
+        <p className="text-sm text-white/45 mt-1">Vertical rhythm ready for the world</p>
       </div>
 
       <dl className="grid grid-cols-2 gap-3">
@@ -43,7 +43,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 function PublishReadyStatus({ snapshot }: { snapshot: ExportPackageSnapshot }) {
   const checks = [
     { label: 'Story arc locked', ok: snapshot.sceneCount > 0 },
-    { label: 'Captions packaged', ok: Boolean(snapshot.captionPrimary) },
+    { label: 'Captions held in rhythm', ok: Boolean(snapshot.captionPrimary) },
     { label: 'Storyboards aligned', ok: snapshot.hasStoryboards },
     { label: 'Voice direction set', ok: Boolean(snapshot.voiceStyle) },
   ]
@@ -51,7 +51,7 @@ function PublishReadyStatus({ snapshot }: { snapshot: ExportPackageSnapshot }) {
   return (
     <div className="pt-2 space-y-3">
       <p className="text-[10px] tracking-[0.22em] uppercase text-white/40">
-        Publish Ready Status
+        World-ready rhythm
       </p>
       <ul className="space-y-2">
         {checks.map((item) => (

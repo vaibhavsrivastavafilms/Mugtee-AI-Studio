@@ -7,12 +7,30 @@ import {
   harmonizeSceneVisuals,
 } from '@/lib/cinematic/execution/visual-continuity-system'
 import { nextShotSuggestion, buildShotMemory } from '@/lib/cinematic/execution/cinematic-shot-memory'
+import {
+  applyEscalationToScene,
+  buildShotEscalationMemory,
+} from '@/lib/cinematic/storyboard/shot-escalation-memory'
+import {
+  cameraLanguageForSceneIndex,
+  formatCameraLanguageBlock,
+} from '@/lib/cinematic/storyboard/emotional-camera-language'
 
 export function enhanceStoryboardScenes(
   scenes: GeneratedScene[],
   niche: CinematicNiche
 ): GeneratedScene[] {
-  return harmonizeSceneVisuals(scenes, niche)
+  const harmonized = harmonizeSceneVisuals(scenes, niche)
+  return harmonized.map((scene, i) => {
+    const memory = buildShotEscalationMemory(harmonized, i)
+    const withEscalation = applyEscalationToScene(scene, memory)
+    if (withEscalation.cameraAngle.trim()) return withEscalation
+    const cue = cameraLanguageForSceneIndex(i + 1, harmonized.length)
+    return {
+      ...withEscalation,
+      cameraAngle: formatCameraLanguageBlock(cue),
+    }
+  })
 }
 
 export function buildStoryboardContinuityBlock(
