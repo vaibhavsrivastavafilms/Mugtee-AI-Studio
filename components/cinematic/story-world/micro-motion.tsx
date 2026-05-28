@@ -1,14 +1,22 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 
-export function CinematicWorldBreathing({ className }: { className?: string }) {
+export function CinematicWorldBreathing({
+  className,
+  style,
+}: {
+  className?: string
+  style?: CSSProperties
+}) {
   return (
     <div
       className={cn(
         'pointer-events-none absolute inset-0 visual-story-breathing opacity-40',
         className
       )}
+      style={style}
       aria-hidden
     />
   )

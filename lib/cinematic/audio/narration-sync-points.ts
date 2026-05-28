@@ -42,10 +42,14 @@ export function buildNarrationSyncTimeline(
   let cursorMs = 0
   const syncPoints: NarrationSyncPoint[] = blueprint.shots.map((shot, i) => {
     const cadence = breathingCadenceForScene(i + 1, total)
-    const durationMs = shot.durationSec * 1000
-    const startMs = cursorMs + cadence.pauseBeforeMs
-    const endMs = startMs + durationMs - cadence.pauseBeforeMs - cadence.pauseAfterMs
-    cursorMs += durationMs
+    // Shot duration is the full timeline slot (matches cinematic-film-assembler scene segments).
+    const slotDurationMs = shot.durationSec * 1000
+    const slotStartMs = cursorMs
+    const startMs = slotStartMs + cadence.pauseBeforeMs
+    const contentDurationMs =
+      slotDurationMs - cadence.pauseBeforeMs - cadence.pauseAfterMs
+    const endMs = startMs + Math.max(0, contentDurationMs)
+    cursorMs = slotStartMs + slotDurationMs
 
     const beat = blueprint.sequence[i]
     const beatAligned =
