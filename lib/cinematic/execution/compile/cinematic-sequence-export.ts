@@ -3,7 +3,10 @@ import {
   readExportMemory,
   writeExportMemory,
   type ExportMemoryEntry,
+  type FilmRealizationSummary,
 } from '@/lib/cinematic/execution/compile/cinematic-export-memory'
+
+export type { FilmRealizationSummary } from '@/lib/cinematic/execution/compile/cinematic-export-memory'
 
 export function formatBlueprintForExport(blueprint: CinematicRenderBlueprint): string {
   const shotLines = blueprint.shots.map(
@@ -28,7 +31,8 @@ export function formatBlueprintForExport(blueprint: CinematicRenderBlueprint): s
 }
 
 export function persistExportSequence(
-  blueprint: CinematicRenderBlueprint
+  blueprint: CinematicRenderBlueprint,
+  filmRealization?: FilmRealizationSummary
 ): ExportMemoryEntry {
   const entry: ExportMemoryEntry = {
     title: blueprint.title,
@@ -36,6 +40,28 @@ export function persistExportSequence(
     niche: blueprint.continuityThread,
     filmRhythm: blueprint.filmRhythm,
     exportedAt: Date.now(),
+    filmRealization,
+  }
+  writeExportMemory(entry)
+  return entry
+}
+
+export function persistFilmRealizationSummary(
+  blueprint: CinematicRenderBlueprint,
+  summary: FilmRealizationSummary
+): ExportMemoryEntry {
+  const prev = readExportMemory().find((e) => e.title === blueprint.title)
+  const entry: ExportMemoryEntry = {
+    title: blueprint.title,
+    hook: blueprint.hook,
+    niche: blueprint.continuityThread,
+    filmRhythm: blueprint.filmRhythm,
+    exportedAt: Date.now(),
+    filmRealization: summary,
+  }
+  if (prev && !prev.filmRealization) {
+    writeExportMemory({ ...prev, filmRealization: summary })
+    return { ...prev, filmRealization: summary }
   }
   writeExportMemory(entry)
   return entry

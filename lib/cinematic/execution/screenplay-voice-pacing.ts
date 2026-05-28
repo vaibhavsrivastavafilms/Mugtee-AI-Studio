@@ -35,6 +35,7 @@ export function voiceDirectionNote(
             description: '',
             duration: duration / sceneCount,
             visualPrompt: '',
+            imagePrompt: '',
             cameraAngle: '',
             lightingMood: '',
             environment: '',

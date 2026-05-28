@@ -33,6 +33,7 @@ export function getEscalationContinuityLine(
     description: s.narration ?? '',
     duration: s.duration ?? 0,
     visualPrompt: s.visualPrompt ?? '',
+    imagePrompt: s.imagePrompt ?? '',
     cameraAngle: s.cameraAngle ?? s.camera ?? '',
     lightingMood: s.lightingMood ?? s.lighting ?? '',
     environment: s.environment ?? '',

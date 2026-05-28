@@ -326,8 +326,8 @@ export function ViralQuickStart() {
             //    creator into /workspace pre-filled. Reuses the workspace ?topic= deep-link.
             if (intent.workspace) {
               const url = v.topic.trim()
-                ? `/workspace?topic=${encodeURIComponent(v.topic.trim())}`
-                : '/workspace'
+                ? `/create?mode=quick&topic=${encodeURIComponent(v.topic.trim())}`
+                : '/create?mode=quick'
               router.push(url)
               return
             }

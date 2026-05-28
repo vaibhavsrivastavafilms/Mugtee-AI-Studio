@@ -1,7 +1,16 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { cinematicLegacyRedirectTarget } from '@/lib/create/routes'
 
-import { CinematicCompileScreen } from '@/components/cinematic/screens/compile-screen'
+export const dynamic = 'force-dynamic'
 
-export default function CinematicCompilePage() {
-  return <CinematicCompileScreen />
+type Props = { searchParams?: { project?: string } }
+
+function toSearchParams(sp?: { project?: string }) {
+  const qs = new URLSearchParams()
+  if (sp?.project) qs.set('project', sp.project)
+  return qs
+}
+
+export default function CinematicCompileRedirect({ searchParams }: Props) {
+  redirect(cinematicLegacyRedirectTarget('/cinematic/compile', toSearchParams(searchParams)))
 }

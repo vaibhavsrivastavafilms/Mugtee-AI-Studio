@@ -46,6 +46,7 @@ export interface CinematicScene {
   narration?: string
   duration?: number
   visualPrompt?: string
+  imagePrompt?: string
   cameraAngle?: string
   lightingMood?: string
   environment?: string

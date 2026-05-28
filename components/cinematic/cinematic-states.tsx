@@ -84,8 +84,8 @@ export function CinematicErrorState({
   backLabel?: string
 }) {
   return (
-    <div className="rounded-[28px] border border-rose-500/15 bg-rose-950/10 p-8 sm:p-10 text-center max-w-lg mx-auto">
-      <AlertCircle className="w-8 h-8 text-rose-300/70 mx-auto mb-4" />
+    <div className="rounded-[28px] border border-amber-500/15 bg-amber-950/10 p-8 sm:p-10 text-center max-w-lg mx-auto">
+      <AlertCircle className="w-8 h-8 text-amber-300/70 mx-auto mb-4" />
       <p className="font-display text-lg text-[#F4E7C1] italic">{title}</p>
       <p className="mt-2 text-sm text-white/50 leading-relaxed">
         {message} {TRUST_COPY.hydration}

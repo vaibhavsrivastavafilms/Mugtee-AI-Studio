@@ -1,4 +1,5 @@
 import type { CinematicProjectState } from '@/stores/cinematic-project'
+import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export function buildRegenPayload(
   state: Pick<
@@ -52,7 +53,9 @@ async function postRegen<T>(endpoint: string, body: Record<string, unknown>): Pr
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     throw new Error(
-      typeof data?.error === 'string' ? data.error : 'Refinement failed'
+      typeof data?.error === 'string'
+        ? data.error
+        : SOFT_ERROR_COPY.refinementPaused
     )
   }
   return data as T

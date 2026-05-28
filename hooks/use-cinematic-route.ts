@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useShallow } from 'zustand/react/shallow'
 import {
   useCinematicProjectStore,
@@ -14,6 +14,7 @@ import {
  */
 export function useCinematicRoute(step: CinematicProjectStatus) {
   const searchParams = useSearchParams()
+  const params = useParams()
   const hydratingRef = useRef<string | null>(null)
   const failedHydrationRef = useRef<Set<string>>(new Set())
 
@@ -56,7 +57,10 @@ export function useCinematicRoute(step: CinematicProjectStatus) {
   )
 
   useEffect(() => {
-    const projectId = searchParams?.get('project') ?? null
+    const projectId =
+      searchParams?.get('project') ??
+      (params?.projectId as string | undefined) ??
+      null
     const state = useCinematicProjectStore.getState()
 
     if (projectId) {
@@ -93,7 +97,7 @@ export function useCinematicRoute(step: CinematicProjectStatus) {
     if (state.status !== step) {
       state.updateStatus(step)
     }
-  }, [step, searchParams])
+  }, [step, searchParams, params])
 
   return store
 }

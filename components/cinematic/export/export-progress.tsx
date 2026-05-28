@@ -1,10 +1,11 @@
 'use client'
 
+import { memo } from 'react'
 import { CinematicShimmer } from '@/components/cinematic/cinematic-states'
 import { EXPORT_PROGRESS_STEPS } from '@/lib/cinematic/export-package'
 import { getWorkflowPresenceLine } from '@/lib/creator/workflow-presence-copy'
 
-export function ExportProgressPanel({
+export const ExportProgressPanel = memo(function ExportProgressPanel({
   activeStep,
   progress,
   presenceLine,
@@ -47,5 +48,5 @@ export function ExportProgressPanel({
       </ul>
     </section>
   )
-}
+})
 

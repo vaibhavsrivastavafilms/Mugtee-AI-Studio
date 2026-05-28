@@ -1,7 +1,9 @@
 export function optimizeAtmosphereRender(): { preferReducedLayers: boolean } {
   if (typeof window === 'undefined') return { preferReducedLayers: false }
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  return { preferReducedLayers: reduced }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const coarseMobile =
+    window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 640
+  return { preferReducedLayers: reducedMotion || coarseMobile }
 }
 
 const IMMERSIVE_LOADING: Record<string, readonly string[]> = {

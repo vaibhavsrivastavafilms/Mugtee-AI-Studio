@@ -128,7 +128,7 @@ export function ShowcaseExampleView({ slug }: { slug: string }) {
 
         <div className="pt-4 pb-8">
           <Link
-            href="/login?next=%2Fcinematic%2Fcreate"
+            href="/quick-cut/preview"
             className="inline-flex items-center justify-center w-full sm:w-auto px-8 h-14 rounded-2xl bg-[#D4AF37] text-black font-semibold hover:bg-[#E7C56A] transition"
           >
             Create your cinematic story

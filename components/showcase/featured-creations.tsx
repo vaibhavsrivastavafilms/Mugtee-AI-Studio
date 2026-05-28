@@ -27,7 +27,7 @@ export function FeaturedCreations() {
             </p>
           </div>
           <Link
-            href="/login?next=%2Fcinematic%2Fcreate"
+            href="/quick-cut/preview"
             className="hidden sm:inline-flex items-center gap-1 text-[10px] tracking-[0.22em] uppercase text-muted-foreground hover:text-gold-300 transition shrink-0"
           >
             Direct your world <ArrowRight className="w-3 h-3" />

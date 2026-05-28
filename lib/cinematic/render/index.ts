@@ -28,8 +28,11 @@ export {
 export {
   formatBlueprintForExport,
   persistExportSequence,
+  persistFilmRealizationSummary,
   recallLastExportRhythm,
 } from '@/lib/cinematic/render/cinematic-sequence-export'
+
+export type { FilmRealizationSummary } from '@/lib/cinematic/render/cinematic-sequence-export'
 
 export {
   buildPreviewRhythmFromBlueprint,

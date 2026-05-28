@@ -10,6 +10,7 @@ import {
   restoreWorkflowScroll,
   saveWorkflowScroll,
 } from '@/lib/creator/workflow-continuity'
+import { createProjectHref, createEntryHref } from '@/lib/create/routes'
 import { cn } from '@/lib/utils'
 import {
   relSavedLabel,
@@ -44,7 +45,7 @@ const STEPS: { status: CinematicProjectStatus; href: string; label: string }[] =
   { status: 'director', href: '/cinematic/director', label: 'Director' },
   { status: 'scenes', href: '/cinematic/scenes', label: 'Scenes' },
   { status: 'voiceover', href: '/cinematic/voiceover', label: 'Voiceover' },
-  { status: 'compile', href: '/cinematic/compile', label: 'Compile' },
+  { status: 'compile', href: '/cinematic/compile', label: 'Film' },
 ]
 
 export function CinematicWorkflowShell({
@@ -89,7 +90,10 @@ export function CinematicWorkflowShell({
 
       <header className="relative z-20 border-b border-white/5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
-          <Link href={withProjectQuery('/cinematic/create', projectId)} className="flex items-center gap-3 shrink-0">
+          <Link
+            href={projectId ? createProjectHref(projectId, 'director') : createEntryHref('director')}
+            className="flex items-center gap-3 shrink-0"
+          >
             <div className="w-11 h-11 rounded-2xl bg-[#D4AF37] text-black flex items-center justify-center font-bold text-lg">
               M
             </div>
@@ -119,7 +123,7 @@ export function CinematicWorkflowShell({
           </nav>
 
           <Link
-            href="/dashboard"
+            href="/create"
             className="text-sm text-white/60 hover:text-[#E7C56A] transition shrink-0 min-h-[44px] inline-flex items-center"
           >
             Your studio

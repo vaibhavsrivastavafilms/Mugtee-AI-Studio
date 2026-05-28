@@ -102,7 +102,7 @@ export function ContinueCreating() {
         platform: idea.platform || 'instagram',
         autorun: '1',
       })
-      router.push(`/dashboard?${qs.toString()}`)
+      router.push(`/create?mode=quick&${qs.toString()}`)
     }
   }
 

@@ -11,6 +11,12 @@ import {
 import type { StoryboardImage } from '@/stores/cinematic-project'
 import { buildStoryboardContinuityBlock } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
 import { cinematicWorldLighting } from '@/lib/cinematic/execution/cinematic-lighting-engine'
+import {
+  generateOpenAISceneImage,
+  hasImageGenerationKey,
+  persistRemoteImage,
+  uploadImageBuffer,
+} from '@/lib/ai/generate-scene-image'
 
 export const STORYBOARD_VARIANTS = [
   {
@@ -33,7 +39,6 @@ export const STORYBOARD_VARIANTS = [
 const EMERGENT_LLM_KEY = process.env.EMERGENT_LLM_KEY
 const EMERGENT_URL = 'https://integrations.emergentagent.com/llm/chat/completions'
 const IMAGE_MODEL = 'gemini/gemini-2.5-flash-image'
-const BUCKET = 'project-assets'
 
 const BANNED_PROMPT_FRAGMENTS = [
   /masterpiece/i,
@@ -124,7 +129,7 @@ export function buildStoryboardPrompt(
     'Cinematic director storyboard frame for a vertical creator reel.',
     `Scene ${input.sceneIndex} — ${role}.`,
     variant.framing,
-    `Visual beat: ${visual.visualPrompt}`,
+    `Visual beat: ${input.scene.imagePrompt || visual.visualPrompt}`,
     `Camera: ${visual.cameraAngle}.`,
     `Lighting: ${visual.lightingMood}.`,
     `Environment: ${visual.environment}.`,
@@ -142,6 +147,7 @@ export function buildStoryboardPrompt(
       description: s.narration || s.description || '',
       duration: s.duration || 4,
       visualPrompt: s.visualPrompt || '',
+      imagePrompt: s.imagePrompt || '',
       cameraAngle: s.cameraAngle || '',
       lightingMood: s.lightingMood || '',
       environment: s.environment || '',
@@ -287,15 +293,11 @@ async function generateStoryboardImageUrl(params: {
   visual: SceneVisualDirection
   variantLabel: string
 }): Promise<{ url: string; mock: boolean }> {
-  if (!EMERGENT_LLM_KEY) {
-    return {
-      url: buildPlaceholderStoryboard(
-        params.sceneIndex,
-        params.variantLabel,
-        params.visual
-      ).url,
-      mock: true,
-    }
+  const placeholder = () =>
+    buildPlaceholderStoryboard(params.sceneIndex, params.variantLabel, params.visual).url
+
+  if (!hasImageGenerationKey()) {
+    return { url: placeholder(), mock: true }
   }
 
   const cinematicBits = [
@@ -307,6 +309,29 @@ async function generateStoryboardImageUrl(params: {
   ].join('\n')
 
   const cinematic = `${params.prompt}\n\n${cinematicBits}`
+
+  // OpenAI DALL-E 3 — preferred when OPENAI_API_KEY is set
+  if (process.env.OPENAI_API_KEY?.trim()) {
+    try {
+      const remoteUrl = await generateOpenAISceneImage(cinematic)
+      if (remoteUrl) {
+        const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
+        const url = await persistRemoteImage({
+          remoteUrl,
+          userId: params.userId,
+          filename,
+        })
+        return { url, mock: false }
+      }
+    } catch {
+      /* fall through to Emergent or placeholder */
+    }
+  }
+
+  // Emergent Gemini image model — when EMERGENT_LLM_KEY is set
+  if (!EMERGENT_LLM_KEY) {
+    return { url: placeholder(), mock: true }
+  }
 
   try {
     const ggRes = await fetch(EMERGENT_URL, {
@@ -323,57 +348,25 @@ async function generateStoryboardImageUrl(params: {
     })
 
     if (!ggRes.ok) {
-      return {
-        url: buildPlaceholderStoryboard(
-          params.sceneIndex,
-          params.variantLabel,
-          params.visual
-        ).url,
-        mock: true,
-      }
+      return { url: placeholder(), mock: true }
     }
 
     const ggJson = (await ggRes.json().catch(() => ({}))) as Record<string, unknown>
     const b64 = extractB64(ggJson)
     if (!b64) {
-      return {
-        url: buildPlaceholderStoryboard(
-          params.sceneIndex,
-          params.variantLabel,
-          params.visual
-        ).url,
-        mock: true,
-      }
+      return { url: placeholder(), mock: true }
     }
 
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    const supabase = createSupabaseServerClient()
     const buffer = Buffer.from(b64, 'base64')
     const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
-
-    const { error: upErr } = await supabase.storage.from(BUCKET).upload(filename, buffer, {
-      contentType: 'image/png',
-      upsert: false,
-    })
-
-    if (upErr) {
-      return {
-        url: `data:image/png;base64,${b64}`,
-        mock: true,
-      }
+    const uploaded = await uploadImageBuffer({ buffer, filename })
+    if (uploaded) {
+      return { url: uploaded, mock: false }
     }
 
-    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(filename)
-    return { url: pub.publicUrl, mock: false }
+    return { url: `data:image/png;base64,${b64}`, mock: true }
   } catch {
-    return {
-      url: buildPlaceholderStoryboard(
-        params.sceneIndex,
-        params.variantLabel,
-        params.visual
-      ).url,
-      mock: true,
-    }
+    return { url: placeholder(), mock: true }
   }
 }
 
@@ -390,7 +383,7 @@ export async function generateSceneStoryboardImages(params: {
     params.input.totalScenes
   )
 
-  let anyMock = !EMERGENT_LLM_KEY
+  let anyMock = !hasImageGenerationKey()
   const images: StoryboardImage[] = []
 
   for (let i = 0; i < STORYBOARD_VARIANTS.length; i++) {

@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError('cinematic.storyboard', err)
-    return NextResponse.json({ error: 'Storyboard generation failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Visual frames paused — your pacing is preserved' },
+      { status: 500 }
+    )
   }
 }

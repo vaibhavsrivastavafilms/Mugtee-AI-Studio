@@ -9,6 +9,7 @@ import { useUsage } from '@/lib/usage'
 import { useAutomations } from '@/lib/automations-store'
 import { WatchAdBanner } from '@/components/usage/watch-ad-banner'
 import { useState, useMemo, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PLATFORM_META } from '@/lib/dummy-data'
@@ -121,8 +122,10 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" onClick={() => router.push('/pipeline')} className="hidden sm:inline-flex h-9 gap-2 bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow" title="Start a new cinematic production">
-            <Plus className="w-4 h-4" /> New Project
+          <Button size="sm" asChild className="hidden sm:inline-flex h-9 gap-2 bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow transition-opacity" title="Start a new cinematic production">
+            <Link href="/create?mode=quick">
+              <Plus className="w-4 h-4" /> New Project
+            </Link>
           </Button>
 
           {/* Notification bell */}

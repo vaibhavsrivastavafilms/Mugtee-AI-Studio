@@ -137,7 +137,7 @@ export function StorytellingOperatingSystemSection() {
 
         <motion.div {...fadeUp} className="mt-14 text-center">
           <Link
-            href="/login?next=%2Fcinematic%2Fcreate"
+            href="/quick-cut/preview"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition"
           >
             <Sparkles className="w-4 h-4" /> Enter the cinematic studio

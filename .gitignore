@@ -75,6 +75,9 @@ agenthub/agents/youtube/db
 # Build caches
 .cache/
 
+# Local faceless video renders (dev / unsigned uploads)
+.tmp/
+
 memory/test_credentials.md
 
 # Mobile development

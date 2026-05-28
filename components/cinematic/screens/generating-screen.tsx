@@ -21,6 +21,8 @@ import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-perfor
 import { syncCreatorMemoryFromGeneration } from '@/lib/cinematic/execution/cinematic-creator-memory'
 import { writePacingMemory } from '@/lib/cinematic/execution/screenplay-pacing-memory'
 import { trackCreatorMilestone } from '@/lib/creator/session-insights'
+import { getReturnEnergyLine } from '@/lib/creator/return-energy'
+import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import { TRUST_COPY } from '@/lib/creator/trust-copy'
 import { PacingIntelligenceStrip } from '@/components/cinematic/pacing-intelligence-strip'
 import { MomentumStrip } from '@/components/create/momentum-strip'
@@ -103,11 +105,9 @@ export function CinematicGeneratingScreen() {
         router.replace(withProjectQuery('/cinematic/preview', savedId))
       } catch (e: unknown) {
         const message =
-          e instanceof Error
-            ? e.name === 'AbortError'
-              ? 'This beat took too long. Your prompt is saved — try again.'
-              : e.message
-            : 'Something went wrong'
+          e instanceof Error && e.name === 'AbortError'
+            ? 'This beat took too long. Your prompt is saved — try again.'
+            : softenCinematicError(e, SOFT_ERROR_COPY.storyPaused)
         setError(message)
         toast.error(message)
         updateStatus('create')
@@ -125,18 +125,23 @@ export function CinematicGeneratingScreen() {
       <WorkflowEmotionalState phase="generating" visible={!error} seed={lineIndex} />
       <div className="min-h-[320px] flex items-center justify-center cinematic-stage-transition">
         {error ? (
-          <CinematicErrorState
-            title="Story paused"
-            message={`${error} ${TRUST_COPY.generationPaused}`}
-            onRetry={() => {
-              startedRef.current = false
-              setError(null)
-              setRetryKey((k) => k + 1)
-            }}
-            retryLabel="Try again"
-            backHref="/cinematic/create"
-            backLabel="Edit prompt"
-          />
+          <div className="space-y-4 text-center">
+            <CinematicErrorState
+              title="Story paused"
+              message={`${error} ${TRUST_COPY.generationPaused}`}
+              onRetry={() => {
+                startedRef.current = false
+                setError(null)
+                setRetryKey((k) => k + 1)
+              }}
+              retryLabel="Try again"
+              backHref="/cinematic/create"
+              backLabel="Edit prompt"
+            />
+            <p className="text-[10px] tracking-[0.22em] uppercase text-white/28 max-w-sm mx-auto">
+              {getReturnEnergyLine('create', retryKey)}
+            </p>
+          </div>
         ) : (
           <div className="w-full max-w-lg rounded-[32px] border border-white/10 bg-white/[0.03] p-10 sm:p-12 text-center">
             <CinematicShimmer className="w-16 h-16 rounded-full mx-auto mb-6" />

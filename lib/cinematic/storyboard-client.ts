@@ -1,4 +1,5 @@
 import { buildRegenPayload } from '@/lib/cinematic/refinement-client'
+import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 import type { StoryboardImage } from '@/stores/cinematic-project'
 
 type RegenState = Parameters<typeof buildRegenPayload>[0]
@@ -11,7 +12,11 @@ async function postStoryboard<T>(endpoint: string, body: Record<string, unknown>
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(typeof data?.error === 'string' ? data.error : 'Storyboard failed')
+    throw new Error(
+      typeof data?.error === 'string'
+        ? data.error
+        : SOFT_ERROR_COPY.storyboardLoad
+    )
   }
   return data as T
 }

@@ -4,6 +4,7 @@ VISUAL DIRECTION LAYER (filmmaker language — NOT image-gen keyword spam):
 Every scene MUST include visual direction fields. Think like a DP + director on a vertical set.
 
 For each scene return:
+- imagePrompt: 1-2 sentences describing the single 9:16 still frame for image generation (subject, composition, light) — combine the beat with visual style; not voiceover copy
 - visualPrompt: 2-3 sentences of cinematic direction (composition, atmosphere, emotional read)
 - cameraAngle: framing + lens feel (e.g. "Intimate close-up, 50mm feel")
 - lightingMood: emotional lighting (e.g. "Soft window light, gentle falloff")
@@ -21,7 +22,8 @@ Rules:
 }
 
 export function sceneVisualJsonFields(): string {
-  return `"visualPrompt": "cinematic direction paragraph",
+  return `"imagePrompt": "single-frame still for image gen",
+      "visualPrompt": "cinematic direction paragraph",
       "cameraAngle": "framing + lens feel",
       "lightingMood": "emotional lighting",
       "environment": "filmable location",

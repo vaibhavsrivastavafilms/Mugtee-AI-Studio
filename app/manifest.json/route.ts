@@ -30,8 +30,8 @@ const MANIFEST = {
     { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ],
   shortcuts: [
-    { name: 'Enter studio', short_name: 'Studio', url: '/cinematic/create' },
-    { name: 'Your worlds', short_name: 'Worlds', url: '/workspace' },
+    { name: 'Enter studio', short_name: 'Studio', url: '/create?mode=quick' },
+    { name: 'Your worlds', short_name: 'Worlds', url: '/create' },
   ],
 }
 

@@ -63,7 +63,7 @@ export default function LandingClient() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden sm:inline-flex text-[12px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 transition px-2 py-2">Sign in</Link>
-            <Link href="/login?next=%2Fcinematic%2Fcreate" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition">
+            <Link href="/quick-cut/preview" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition-opacity">
               {HERO.primaryCta} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -86,8 +86,8 @@ export default function LandingClient() {
             </p>
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-md sm:max-w-none mx-auto">
               <Link
-                href="/login?next=%2Fcinematic%2Fcreate"
-                className="group inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 rounded-xl bg-gold-gradient text-black text-sm sm:text-base font-medium shadow-gold-glow hover:opacity-90 transition"
+                href="/quick-cut/preview"
+                className="group inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 rounded-xl bg-gold-gradient text-black text-sm sm:text-base font-medium shadow-gold-glow hover:opacity-90 transition-opacity"
               >
                 <Sparkles className="w-4 h-4" /> {HERO.primaryCta}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -269,7 +269,7 @@ export default function LandingClient() {
             <p className="mt-5 text-luxe/70 max-w-lg mx-auto text-sm sm:text-base">
               {FINAL_CTA.subheadline}
             </p>
-            <Link href="/login?next=%2Fcinematic%2Fcreate" className="mt-8 inline-flex items-center gap-2 px-6 sm:px-7 py-3.5 rounded-lg bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition">
+            <Link href="/quick-cut/preview" className="mt-8 inline-flex items-center gap-2 px-6 sm:px-7 py-3.5 rounded-lg bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition-opacity">
               {FINAL_CTA.cta} <ArrowRight className="w-4 h-4" />
             </Link>
           </motion.div>

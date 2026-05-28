@@ -8,6 +8,8 @@ import {
   buildPreviewRhythmFromBlueprint,
   orchestrateEmotionalRenderForCompile,
   persistExportSequence,
+  persistFilmRealizationSummary,
+  type FilmRealizationSummary,
 } from '@/lib/cinematic/render'
 import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
 import { immersiveLoadingCopy, optimizeAtmosphereRender } from '@/lib/cinematic/execution/cinematic-performance-engine'
@@ -35,9 +37,11 @@ import { StoryEvolutionRoutePresence } from '@/components/cinematic/story-evolut
 import { LiveCinematicRoutePresence } from '@/components/cinematic/live-cinematic/live-cinematic-presence-components'
 import { WorkflowEmotionalState } from '@/components/cinematic/workflow-emotional-state'
 import { trackCreatorMilestone } from '@/lib/creator/session-insights'
+import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 import { ExportDetailsPanel } from '@/components/cinematic/export/export-details'
 import { ExportPackagePanel } from '@/components/cinematic/export/export-package-panel'
-import { ExportProgressPanel } from '@/components/cinematic/export/export-progress'
+import { CinematicRenderExperience } from '@/components/cinematic/render'
+import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import { ExportSuccessPanel } from '@/components/cinematic/export/export-success'
 import { PlatformExportCards } from '@/components/cinematic/export/platform-export-cards'
 import { ReelPreview } from '@/components/cinematic/export/reel-preview'
@@ -54,6 +58,7 @@ export function CinematicCompileScreen() {
   const [phase, setPhase] = useState<ExportPhase>('idle')
   const [activeStep, setActiveStep] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [filmRealization, setFilmRealization] = useState<FilmRealizationSummary | null>(null)
 
   const project = useCinematicRoute('compile')
   const {
@@ -176,6 +181,14 @@ export function CinematicCompileScreen() {
     ]
   )
 
+  const compilePreviewFrames = useMemo(
+    () =>
+      scenes
+        .map((scene) => scene.imageUrl || scene.storyboardImages?.[0]?.url)
+        .filter(Boolean) as string[],
+    [scenes]
+  )
+
   const platformCards = useMemo(
     () => buildPlatformExportCards(snapshot),
     [snapshot]
@@ -225,7 +238,7 @@ export function CinematicCompileScreen() {
     setActiveStep(0)
     setProgress(0)
     trackCreatorMilestone('export_used')
-    persistExportSequence(filmOrchestration.blueprint)
+    persistExportSequence(filmOrchestration.blueprint, filmRealization ?? undefined)
 
     void fetch('/api/cinematic/render/prepare', {
       method: 'POST',
@@ -244,37 +257,25 @@ export function CinematicCompileScreen() {
         style,
         tone: style,
       }),
-    }).catch(() => {
-      /* invisible — compile continues calmly */
     })
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json().catch(() => null)
+        const summary = data?.filmRealization as FilmRealizationSummary | undefined
+        if (!summary) return
+        setFilmRealization(summary)
+        persistFilmRealizationSummary(filmOrchestration.blueprint, summary)
+      })
+      .catch(() => {
+        /* invisible — compile continues calmly */
+      })
+  }, [captionLines, duration, filmOrchestration.blueprint, filmRealization, hook, id, niche, persistedId, prompt, scenes, script, style, suggestedVoiceStyle])
 
-    const start = performance.now()
-    const durationMs = 4200
-
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / durationMs, 1)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setProgress(Math.round(eased * 100))
-      setActiveStep(
-        Math.min(
-          Math.floor(eased * EXPORT_PROGRESS_STEPS.length),
-          EXPORT_PROGRESS_STEPS.length - 1
-        )
-      )
-
-      if (t < 1) {
-        exportRafRef.current = requestAnimationFrame(tick)
-      } else {
-        setTimeout(() => {
-          setPhase('success')
-          updateStatus('complete')
-          void persistProject({ silent: true })
-        }, 420)
-      }
-    }
-
-    exportRafRef.current = requestAnimationFrame(tick)
-  }, [captionLines, duration, filmOrchestration.blueprint, hook, id, niche, persistProject, persistedId, prompt, scenes, script, style, suggestedVoiceStyle, updateStatus])
+  const handleRenderComplete = useCallback(() => {
+    setPhase('success')
+    updateStatus('complete')
+    void persistProject({ silent: true })
+  }, [persistProject, updateStatus])
 
   const downloadPackage = useCallback(() => {
     const blob = new Blob([fullExportText], { type: 'text/plain' })
@@ -292,7 +293,7 @@ export function CinematicCompileScreen() {
       await navigator.clipboard.writeText(captionPackageText)
       toast.success('Caption rhythm copied')
     } catch {
-      toast.error('Could not copy captions')
+      toast.error(SOFT_ERROR_COPY.copyCaptions)
     }
   }, [captionPackageText])
 
@@ -383,10 +384,21 @@ export function CinematicCompileScreen() {
       {phase === 'exporting' && (
         <>
           <WorkflowEmotionalState phase="exporting" visible seed={activeStep} />
-          <ExportProgressPanel
-            activeStep={activeStep}
-            progress={progress}
-            presenceLine={immersiveLoadingCopy('export', activeStep)}
+          <CinematicRenderExperience
+            title={snapshot.title}
+            hook={snapshot.hook}
+            duration={snapshot.duration}
+            style={style || niche}
+            script={script}
+            voiceUrl={voice?.audioUrl ?? null}
+            projectId={persistedId || id || undefined}
+            scenes={previewScenes.length ? previewScenes : storeScenesToGenerated(scenes)}
+            previewFrames={compilePreviewFrames.length ? compilePreviewFrames : snapshot.previewFrames}
+            caption={captionLines[0] || snapshot.hook}
+            directorHref="/cinematic/director"
+            simulationOnly
+            autoStart
+            onComplete={handleRenderComplete}
           />
         </>
       )}

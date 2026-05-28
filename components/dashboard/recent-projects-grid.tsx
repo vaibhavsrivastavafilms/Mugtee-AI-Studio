@@ -134,7 +134,7 @@ export function RecentProjectsGrid() {
         <div className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-300">
           <Layers className="w-3 h-3" /> Recent productions
         </div>
-        <Link href="/cinematic/create" className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 transition inline-flex items-center gap-1">
+        <Link href="/create?tab=projects" className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 transition inline-flex items-center gap-1">
           See all <ArrowRight className="w-3 h-3" />
         </Link>
       </div>

@@ -1,36 +1,25 @@
 'use client'
-// Mugtee PWA — Service Worker registration (client-only, production-only).
-//
-// Why a dedicated client component:
-//   • SW must register *after* hydration to avoid SSR crashes
-//   • Only enabled in production (NODE_ENV) to keep dev HMR working
-//   • Registration is fire-and-forget; any failure is swallowed so it can
-//     never break the rest of the app (analytics, auth, etc).
-//
-// Renders nothing.
+// Legacy PWA service worker — registration disabled to avoid stale /_next/static chunk caches in dev.
+// On mount, unregister any existing workers so browsers stop serving old bundles.
 import { useEffect } from 'react'
 
-export function ServiceWorkerRegister() {
+export function ServiceWorkerUnregister() {
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (process.env.NODE_ENV !== 'production') return
     if (!('serviceWorker' in navigator)) return
 
-    // Defer to idle so we never block first paint / hydration.
-    const register = () => {
-      navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
-        .catch(() => { /* swallow — SW is best-effort */ })
-    }
-
-    if ('requestIdleCallback' in window) {
-      ;(window as any).requestIdleCallback(register, { timeout: 4000 })
-    } else {
-      setTimeout(register, 1500)
-    }
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
+      .catch(() => {})
   }, [])
 
   return null
 }
 
-export default ServiceWorkerRegister
+/** @deprecated Registration disabled — use ServiceWorkerUnregister */
+export function ServiceWorkerRegister() {
+  return <ServiceWorkerUnregister />
+}
+
+export default ServiceWorkerUnregister

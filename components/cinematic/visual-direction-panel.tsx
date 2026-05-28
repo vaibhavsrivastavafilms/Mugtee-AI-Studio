@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { enhanceVisualDirection } from '@/lib/cinematic/refinement-client'
 import { cinematicShotLabel } from '@/lib/creator/output-presence'
+import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import { applyVisualToScene, sceneHasVisualDirection } from '@/lib/cinematic/visual-direction'
 import { useCinematicProjectStore } from '@/stores/cinematic-project'
 import { CinematicRefineAction } from '@/components/cinematic/refine-action'
@@ -51,7 +52,7 @@ export function VisualDirectionPanel({
         description: 'Visual continuity preserved · story pacing maintained',
       })
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Visual enhancement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.visualPaused))
     } finally {
       setBusyIndex(null)
     }
@@ -80,7 +81,7 @@ export function VisualDirectionPanel({
         <div className="px-6 pb-6 space-y-4 border-t border-white/5 pt-4">
           {!hasAnyVisual ? (
             <p className="text-white/45 text-sm italic">
-              Visual direction will appear after generation or enhancement.
+              Visual direction appears once your story takes visual form.
             </p>
           ) : null}
 

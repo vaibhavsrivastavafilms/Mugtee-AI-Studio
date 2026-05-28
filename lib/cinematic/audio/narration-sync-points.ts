@@ -31,6 +31,7 @@ export function buildNarrationSyncTimeline(
       description: blueprint.sequence[i]?.narrationCue ?? '',
       duration: shot.durationSec,
       visualPrompt: shot.visualPrompt,
+      imagePrompt: shot.visualPrompt,
       cameraAngle: shot.cameraMotion,
       lightingMood: shot.lighting,
       environment: '',

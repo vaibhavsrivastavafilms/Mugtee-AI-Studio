@@ -1,6 +1,9 @@
 import { captionsFromLines } from '@/lib/cinematic/regen-context'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
-import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
+import {
+  storeScenesToGenerated,
+  type CinematicGenerationOutput,
+} from '@/lib/cinematic/generation'
 import { translateScreenplayToFilmPlan } from '@/lib/cinematic/execution/screenplay-video-translator'
 import {
   preserveVisualIdentity,
@@ -38,18 +41,7 @@ export function projectStateToGenerationOutput(
     hook: state.hook,
     summary: state.summary,
     script: state.script,
-    scenes: state.scenes.map((scene) => ({
-      id: scene.id,
-      title: scene.title || `Scene ${scene.index}`,
-      description: scene.narration || scene.title || '',
-      duration: scene.duration || 4,
-      visualPrompt: scene.visualPrompt || '',
-      cameraAngle: scene.cameraAngle || scene.camera || '',
-      lightingMood: scene.lightingMood || scene.lighting || '',
-      environment: scene.environment || '',
-      colorPalette: scene.colorPalette || '',
-      movementStyle: scene.movementStyle || '',
-    })),
+    scenes: storeScenesToGenerated(state.scenes),
     captions: state.captionLines,
     captionPack: pack,
     suggestedVoiceStyle: state.suggestedVoiceStyle,
