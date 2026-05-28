@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { getOpenAIClient } from '@/lib/ai/openai-client'
 
 type GenerateRequest = {
   idea: string
@@ -128,6 +124,7 @@ JSON format:
 }
 `
 
+    const openai = getOpenAIClient()
     const completion =
       await openai.chat.completions.create({
         model: 'gpt-4.1-mini',
