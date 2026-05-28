@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { spawn } from 'child_process'
 import type { RenderSceneInput, SubtitleSegment } from '@/lib/video/types'
-import { resolveFfmpegPath } from '@/lib/video/ffmpeg-path'
+import { resolveFfmpegPath } from '@/lib/video/ffmpeg-path.server'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
 import { segmentsToSrt } from '@/lib/video/subtitles'
 

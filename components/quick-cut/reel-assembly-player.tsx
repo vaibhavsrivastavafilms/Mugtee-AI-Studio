@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
-import { Film, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,13 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 
 import { StoryboardCrossfadeImage } from '@/components/cinematic/storyboard-crossfade-image'
+
+import { LiveStoryboardTileGrid } from '@/components/quick-cut/live-storyboard-tile-grid'
+
+import {
+  useQuickCutGenerationStore,
+  type QuickCutGenerationStep,
+} from '@/stores/quick-cut-generation-store'
 
 import { KaraokeCaptionOverlay } from '@/components/cinematic/karaoke-caption-overlay'
 
@@ -56,6 +63,8 @@ export function ReelAssemblyPlayer({
 
   mp4Compiling = false,
 
+  generationStep,
+
   className,
 
 }: {
@@ -88,6 +97,10 @@ export function ReelAssemblyPlayer({
 
   mp4Compiling?: boolean
 
+  /** Pipeline step — drives live tile grid vs crossfade preview */
+
+  generationStep?: QuickCutGenerationStep
+
   className?: string
 
 }) {
@@ -119,6 +132,31 @@ export function ReelAssemblyPlayer({
   const showWaveform = animateFrames && frames.length > 0
 
   const hasVideo = Boolean(videoUrl)
+
+  const imagesLoading = generationStep === 'images'
+  const directingSceneLabel = useQuickCutGenerationStore((s) =>
+    isLive ? s.directingSceneLabel : null
+  )
+
+  const showLiveTiles =
+
+    isLive &&
+
+    !hasVideo &&
+
+    (scenes.length === 0 ||
+
+      generationStep === 'analyzing' ||
+
+      generationStep === 'title' ||
+
+      generationStep === 'hook' ||
+
+      generationStep === 'script' ||
+
+      generationStep === 'scenes' ||
+
+      generationStep === 'images')
 
   const syncMediaRef = (hasVideo ? videoRef : audioRef) as RefObject<HTMLMediaElement | null>
 
@@ -260,7 +298,21 @@ export function ReelAssemblyPlayer({
 
           />
 
-        ) : currentFrame && scenes.length > 0 ? (
+        ) : showLiveTiles ? (
+
+          <LiveStoryboardTileGrid
+
+            scenes={scenes}
+
+            generationStep={generationStep}
+
+            imagesLoading={imagesLoading}
+
+            directingSceneLabel={directingSceneLabel}
+
+          />
+
+        ) : currentFrame && frames.length > 0 ? (
 
           <>
 
@@ -283,36 +335,6 @@ export function ReelAssemblyPlayer({
             />
 
           </>
-
-        ) : isLive ? (
-
-          <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-[#120D08] to-black flex flex-col items-center justify-center gap-3 px-6">
-
-            <Film className="w-9 h-9 text-gold-400/35" />
-
-            <div className="grid grid-cols-2 gap-2 w-full max-w-[140px]">
-
-              {Array.from({ length: 4 }).map((_, i) => (
-
-                <div
-
-                  key={i}
-
-                  className="aspect-[9/16] rounded-md border border-dashed border-gold-500/20 bg-white/[0.02] shimmer-cinematic"
-
-                />
-
-              ))}
-
-            </div>
-
-            <p className="text-[11px] text-luxe/45 italic text-center">
-
-              Building your storyboard…
-
-            </p>
-
-          </div>
 
         ) : (
 

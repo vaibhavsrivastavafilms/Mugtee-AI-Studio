@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
-import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path'
+import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

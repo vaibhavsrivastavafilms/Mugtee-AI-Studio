@@ -1,6 +1,7 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { NICHE_PROFILES } from '@/lib/cinematic/niches'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
+import { hookOverlapRatio, normalizeHookText } from '@/lib/cinematic/hook-variation'
 
 const GENERIC_HOOK_PATTERNS = [
   /^in a world where/i,
@@ -173,16 +174,30 @@ function hookNicheDrift(hook: string, niche: CinematicNiche): boolean {
 export function validateRegeneratedHook(
   hook: string,
   niche: CinematicNiche,
-  previousHook?: string
+  previousHooks?: string | string[]
 ): ValidationResult {
   const issues: string[] = []
   if (isWeakHook(hook)) issues.push('weak_or_generic_hook')
-  if (
-    previousHook &&
-    hook.trim().toLowerCase() === previousHook.trim().toLowerCase()
-  ) {
-    issues.push('unchanged_hook')
+
+  const prior = Array.isArray(previousHooks)
+    ? previousHooks
+    : previousHooks
+      ? [previousHooks]
+      : []
+
+  const normalized = normalizeHookText(hook)
+  for (const prev of prior) {
+    if (!prev.trim()) continue
+    if (normalized === normalizeHookText(prev)) {
+      issues.push('unchanged_hook')
+      break
+    }
+    if (hookOverlapRatio(hook, prev) > 0.55) {
+      issues.push('too_similar_hook')
+      break
+    }
   }
+
   if (hookNicheDrift(hook, niche)) issues.push('niche_drift')
   return { valid: issues.length === 0, issues }
 }

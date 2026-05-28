@@ -4,7 +4,7 @@ import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import type { HookCandidate } from '@/lib/virlo-engine/types'
 import type { EmotionalGoal } from '@/lib/virlo-engine/types'
 
-const HOOK_PATTERNS = [
+export const HOOK_PATTERNS = [
   'recognition-mirror',
   'counterintuitive-truth',
   'hidden-cost',
@@ -14,7 +14,7 @@ const HOOK_PATTERNS = [
   'unfinished-question',
 ] as const
 
-type HookPattern = (typeof HOOK_PATTERNS)[number]
+export type HookPattern = (typeof HOOK_PATTERNS)[number]
 
 function hashPick<T>(arr: readonly T[], seed: number): T {
   return arr[Math.abs(seed) % arr.length]
@@ -127,6 +127,52 @@ export function pickStrongestHookCandidate(candidates: HookCandidate[]): HookCan
     }
   }
   return candidates[0]
+}
+
+/** Rotate Virlo hook structure based on how many hooks were already tried this session. */
+export function rotatedHookPattern(attemptIndex: number): HookPattern {
+  const idx = Math.abs(attemptIndex) % HOOK_PATTERNS.length
+  return HOOK_PATTERNS[idx]
+}
+
+export function pickRotatedHookCandidate(
+  topic: string,
+  niche: CinematicNiche,
+  emotion: EmotionalGoal,
+  baseSeed: number,
+  attemptIndex: number,
+  isTooSimilar: (text: string) => boolean
+): HookCandidate {
+  const rotationOffset = attemptIndex + 1
+  const seed = baseSeed + rotationOffset * 7919
+
+  for (let pass = 0; pass < HOOK_PATTERNS.length; pass++) {
+    const pattern = rotatedHookPattern(attemptIndex + pass)
+    const text = buildHookText(pattern, topic, niche, emotion, seed + pass * 13)
+    if (!isTooSimilar(text)) {
+      return {
+        text,
+        pattern,
+        variant: `${pattern}-v${(seed + pass) % 9}`,
+        tensionScore: scoreHookTension(text, niche, emotion),
+      }
+    }
+  }
+
+  const fallbackPattern = rotatedHookPattern(attemptIndex)
+  const fallbackText = buildHookText(
+    fallbackPattern,
+    topic,
+    niche,
+    emotion,
+    seed + attemptIndex * 31
+  )
+  return {
+    text: fallbackText,
+    pattern: fallbackPattern,
+    variant: `${fallbackPattern}-v${(seed + attemptIndex) % 9}`,
+    tensionScore: scoreHookTension(fallbackText, niche, emotion),
+  }
 }
 
 export function generateTitleCandidates(

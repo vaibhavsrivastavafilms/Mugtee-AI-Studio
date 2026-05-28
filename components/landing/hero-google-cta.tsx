@@ -14,10 +14,11 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { track } from '@/lib/posthog'
+import { persistPostLoginRedirect } from '@/lib/create/mode-selection'
 
 export default function HeroGoogleCta({
   helper = 'Start creating cinematic stories instantly.',
-  next = '/workspace',
+  next = '/create?mode=quick',
   className = '',
   source = 'home_hero',
 }: {
@@ -33,8 +34,8 @@ export default function HeroGoogleCta({
     setLoading(true)
     track('signup_started', { provider: 'google', source })
     try {
+      persistPostLoginRedirect(next)
       const supabase = createSupabaseBrowserClient()
-      // Land directly in workspace — no interstitial.
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}&welcome=1`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

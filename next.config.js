@@ -3,6 +3,12 @@
 const nextConfig = {
   output: 'standalone',
 
+  // Keep ffmpeg-static out of webpack bundles so binary paths stay in node_modules.
+  serverExternalPackages: ['ffmpeg-static'],
+  experimental: {
+    serverComponentsExternalPackages: ['ffmpeg-static'],
+  },
+
   images: {
     unoptimized: true,
   },

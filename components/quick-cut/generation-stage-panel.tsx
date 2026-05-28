@@ -1,11 +1,12 @@
 'use client'
 
 import type { ReactNode, RefObject } from 'react'
-import { Film, ImageIcon, Loader2, Mic, Sparkles, Video } from 'lucide-react'
+import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video } from 'lucide-react'
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
 import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator'
+import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -15,9 +16,11 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 function SceneBreakdownList({
   scenes,
   loading,
+  showImages,
 }: {
   scenes: GeneratedScene[]
   loading?: boolean
+  showImages?: boolean
 }) {
   if (scenes.length === 0 && !loading) {
     return (
@@ -28,43 +31,49 @@ function SceneBreakdownList({
   }
 
   return (
-    <ul className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-luxe">
-      {scenes.map((scene, i) => (
-        <li
-          key={scene.id || i}
-          className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5"
-        >
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
-              Scene {String(i + 1).padStart(2, '0')}
-            </span>
-            <span className="text-[10px] text-luxe/40">{scene.duration ?? 4}s</span>
-          </div>
-          <p className="text-sm text-luxe/90 font-medium leading-snug">
-            {scene.title || `Beat ${i + 1}`}
-          </p>
-          {scene.description ? (
-            <p className="text-[11px] text-luxe/55 leading-relaxed mt-0.5 line-clamp-3">
-              {scene.description}
-            </p>
-          ) : null}
-          {scene.cameraAngle ? (
-            <p className="text-[10px] text-luxe/40 mt-1 tracking-wide">
-              {scene.cameraAngle} · {scene.lightingMood}
-            </p>
-          ) : null}
-          {scene.imagePrompt ? (
-            <div className="mt-2 pt-2 border-t border-white/[0.06]">
-              <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/60 mb-0.5">
-                Image prompt
-              </p>
-              <p className="text-[11px] text-luxe/65 leading-relaxed line-clamp-4">
-                {scene.imagePrompt}
-              </p>
+    <ul className="space-y-2 max-h-[min(420px,50vh)] overflow-y-auto scrollbar-luxe">
+      {scenes.map((scene, i) =>
+        showImages ? (
+          <li key={scene.id || i}>
+            <SceneVisualCard scene={scene} index={i} compact />
+          </li>
+        ) : (
+          <li
+            key={scene.id || i}
+            className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5"
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
+                SCENE {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="text-[10px] text-luxe/40">{scene.duration ?? 4}s</span>
             </div>
-          ) : null}
-        </li>
-      ))}
+            <p className="text-sm text-luxe/90 font-medium leading-snug">
+              {scene.title || `Beat ${i + 1}`}
+            </p>
+            {scene.description ? (
+              <p className="text-[11px] text-luxe/55 leading-relaxed mt-0.5 line-clamp-3">
+                {scene.description}
+              </p>
+            ) : null}
+            {scene.cameraAngle ? (
+              <p className="text-[10px] text-luxe/40 mt-1 tracking-wide">
+                {scene.cameraAngle} · {scene.lightingMood}
+              </p>
+            ) : null}
+            {scene.imagePrompt ? (
+              <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/60 mb-0.5">
+                  Image prompt
+                </p>
+                <p className="text-[11px] text-luxe/65 leading-relaxed line-clamp-4">
+                  {scene.imagePrompt}
+                </p>
+              </div>
+            ) : null}
+          </li>
+        )
+      )}
       {loading && scenes.length === 0 ? (
         <li className="flex items-center justify-center gap-2 py-8 text-luxe/45 text-[12px]">
           <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
@@ -87,6 +96,9 @@ export function GenerationStagePanel({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
+  const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
+  const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
+  const regenerateHook = useQuickCutGenerationStore((s) => s.regenerateHook)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
@@ -94,6 +106,8 @@ export function GenerationStagePanel({
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
 
   const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean) => (
     <div
@@ -136,13 +150,35 @@ export function GenerationStagePanel({
         'Opening hook',
         <Film className="w-3 h-3" />,
         hook ? (
-          <p className="font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug">
-            {hook}
-          </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
+                Hook Variant: v{hookVariantNumber}
+              </span>
+              {!isGenerating ? (
+                <button
+                  type="button"
+                  onClick={() => void regenerateHook()}
+                  disabled={isRegeneratingHook}
+                  className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
+                >
+                  {isRegeneratingHook ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  Regenerate Hook
+                </button>
+              ) : null}
+            </div>
+            <p className="font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug">
+              {hook}
+            </p>
+          </div>
         ) : (
           <p className="text-[12px] text-luxe/55 italic">Crafting hook…</p>
         ),
-        generationStep === 'hook'
+        generationStep === 'hook' || isRegeneratingHook
       )
 
     case 'script':
@@ -171,6 +207,7 @@ export function GenerationStagePanel({
         <SceneBreakdownList
           scenes={scenes}
           loading={generationStep === 'scenes'}
+          showImages={scenes.some((s) => s.imageUrl?.trim())}
         />,
         generationStep === 'scenes'
       )
@@ -196,7 +233,9 @@ export function GenerationStagePanel({
                 <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80 flex items-center gap-1">
                   <ImageIcon className="w-3 h-3" /> Thumbnail frame
                 </p>
-                <p className="text-[11px] text-luxe/50 mt-0.5">Generating first cinematic still…</p>
+                <p className="text-[11px] text-luxe/50 mt-0.5">
+                  {directingSceneLabel || 'Generating cinematic stills…'}
+                </p>
               </div>
             </div>
           ) : thumb ? (
@@ -215,6 +254,7 @@ export function GenerationStagePanel({
           <StoryboardGenerator
             scenes={scenes}
             loading={generationStep === 'images'}
+            interactive={isComplete}
           />
         </div>
       )

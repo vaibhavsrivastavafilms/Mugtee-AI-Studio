@@ -17,7 +17,7 @@ const ModeSelectionHero = nextDynamic(
   }
 )
 
-/** Root portal — choose Quick Cut or Director Cut (not marketing homepage). */
+/** Root portal — Quick Cut hero entry with Director Mode secondary. */
 export default function Index() {
   return <ModeSelectionHero />
 }

@@ -41,6 +41,7 @@ import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 import { ExportDetailsPanel } from '@/components/cinematic/export/export-details'
 import { ExportPackagePanel } from '@/components/cinematic/export/export-package-panel'
 import { CinematicRenderExperience } from '@/components/cinematic/render'
+import { directorWorkspaceHref } from '@/lib/create/routes'
 import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import { ExportSuccessPanel } from '@/components/cinematic/export/export-success'
 import { PlatformExportCards } from '@/components/cinematic/export/platform-export-cards'
@@ -395,7 +396,7 @@ export function CinematicCompileScreen() {
             scenes={previewScenes.length ? previewScenes : storeScenesToGenerated(scenes)}
             previewFrames={compilePreviewFrames.length ? compilePreviewFrames : snapshot.previewFrames}
             caption={captionLines[0] || snapshot.hook}
-            directorHref="/cinematic/director"
+            directorHref={directorWorkspaceHref(persistedId || id || undefined)}
             simulationOnly
             autoStart
             onComplete={handleRenderComplete}

@@ -6,6 +6,7 @@
 const PUBLIC_EXACT = new Set([
   '/',
   '/login',
+  '/auth/login',
   '/signin',
   '/pricing',
   '/offline',
@@ -25,6 +26,7 @@ const PUBLIC_PREFIXES = [
 const PROTECTED_PREFIXES = [
   '/dashboard',
   '/create',
+  '/studio',
   '/workspace',
   '/pipeline',
   '/calendar',
@@ -36,6 +38,7 @@ const PROTECTED_PREFIXES = [
   '/automations',
   '/script/',
   '/projects',
+  '/project/',
   '/cinematic',
   '/library',
   '/scripts',
@@ -70,12 +73,12 @@ export function isProtectedPath(pathname: string): boolean {
  * OAuth/login defaults — so unauthenticated `(app)` access never steals the
  * Quick Cut `/?resume=1` return path.
  */
-export const APP_ROUTE_LOGIN_FALLBACK = '/create'
+export const APP_ROUTE_LOGIN_FALLBACK = '/create?mode=quick'
 
 export function loginRedirectUrl(requestPath: string): string {
   const next =
-    requestPath && requestPath !== '/login'
+    requestPath && requestPath !== '/login' && requestPath !== '/auth/login'
       ? requestPath
-      : '/'
-  return `/login?next=${encodeURIComponent(next)}`
+      : APP_ROUTE_LOGIN_FALLBACK
+  return `/auth/login?next=${encodeURIComponent(next)}`
 }

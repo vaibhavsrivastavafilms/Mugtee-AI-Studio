@@ -1,4 +1,5 @@
 import { inferNicheFromBrief, type CinematicNiche } from '@/lib/cinematic/niches'
+import { coercePreviousHooks } from '@/lib/cinematic/hook-variation'
 import { coerceDuration, coerceTopic, coerceTone } from '@/lib/workspace/validation'
 
 export type RegenSceneInput = {
@@ -30,6 +31,10 @@ export type RegenProjectContext = {
   scenes: RegenSceneInput[]
   captionLines: string[]
   suggestedVoiceStyle: string
+  previousHooks: string[]
+  hookVariantIndex: number
+  strongVariation: boolean
+  emotionalGoal?: string
 }
 
 function coerceString(raw: unknown, fallback = '', max = 12_000): string {
@@ -109,6 +114,16 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     scenes: coerceScenes(raw.scenes),
     captionLines: coerceCaptionLines(raw.captionLines ?? raw.captions),
     suggestedVoiceStyle: coerceString(raw.suggestedVoiceStyle, '', 80),
+    previousHooks: coercePreviousHooks(raw.previousHooks),
+    hookVariantIndex:
+      typeof raw.hookVariantIndex === 'number' && raw.hookVariantIndex >= 0
+        ? Math.floor(raw.hookVariantIndex)
+        : coercePreviousHooks(raw.previousHooks).length,
+    strongVariation: raw.strongVariation === true,
+    emotionalGoal:
+      typeof raw.emotionalGoal === 'string' && raw.emotionalGoal.trim()
+        ? raw.emotionalGoal.trim()
+        : undefined,
   }
 }
 

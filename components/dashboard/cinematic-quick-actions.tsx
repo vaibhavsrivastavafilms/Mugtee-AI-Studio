@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Clapperboard, FolderKanban, ImageIcon, Lock, Plus, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { directorWorkspaceHref } from '@/lib/create/routes'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import {
   LockedDirectorCutTrigger,
@@ -33,7 +34,7 @@ const ACTIONS = [
     primary: false,
   },
   {
-    href: '/create?mode=director',
+    href: directorWorkspaceHref(),
     label: 'Director Cut',
     description: 'Full cinematic workflow with scene-by-scene control.',
     icon: Clapperboard,
@@ -54,7 +55,7 @@ export function CinematicQuickActions() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {ACTIONS.map((action, i) => {
           const Icon = action.icon
-          const isDirectorAction = action.href === '/create?mode=director'
+          const isDirectorAction = action.href === directorWorkspaceHref()
 
           if (isDirectorAction && isDirectorCutLocked) {
             return (

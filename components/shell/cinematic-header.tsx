@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, Plus, Search, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { quickCutStudioHref, directorWorkspaceHref } from '@/lib/create/routes'
 import { HEADER_NAV, headerNavActive } from '@/lib/shell/header-nav'
 import {
   HeaderRightActions,
@@ -172,18 +173,18 @@ function CinematicHeaderInner({
                 asChild
                 className="hidden sm:inline-flex h-9 gap-1.5 rounded-full bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow"
               >
-                <Link href="/create?mode=quick">
+                <Link href={quickCutStudioHref()}>
                   <Plus className="w-4 h-4" /> New Project
                 </Link>
               </Button>
               <Link
-                href="/login"
+                href="/auth/login"
                 className="text-xs sm:text-sm text-muted-foreground hover:text-gold-200 transition px-2 py-1.5"
               >
                 Sign in
               </Link>
               <Button size="sm" asChild className="h-9 rounded-full bg-gold-gradient text-black">
-                <Link href="/create">Open Studio</Link>
+                <Link href={directorWorkspaceHref()}>Open Studio</Link>
               </Button>
             </>
           )}

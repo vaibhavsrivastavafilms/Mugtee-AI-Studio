@@ -4,8 +4,10 @@ import {
   generateTitleCandidates,
   pickStrongestHookCandidate,
   generateHookCandidates,
+  pickRotatedHookCandidate,
   pickTitle,
 } from '@/lib/virlo-engine/hook-engine'
+import { coercePreviousHooks, isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
@@ -24,23 +26,47 @@ export async function POST(req: NextRequest) {
         ? raw.sessionSeed
         : idea
 
-    const virlo = buildVirloContext(idea, { sessionSeed })
+    const previousHooks = coercePreviousHooks(raw?.previousHooks)
+    const attemptIndex =
+      typeof raw?.hookVariantIndex === 'number' && raw.hookVariantIndex >= 0
+        ? Math.floor(raw.hookVariantIndex)
+        : previousHooks.length
+
+    const virlo = buildVirloContext(idea, {
+      sessionSeed: `${sessionSeed}-${attemptIndex}`,
+    })
     const meta = virloMetadataFromContext(virlo)
 
     const titleCandidates = generateTitleCandidates(
       idea,
       virlo.topicAnalysis.niche,
-      virlo.creativeSeed.seed
+      virlo.creativeSeed.seed + attemptIndex * 17
     )
     const hooks = generateHookCandidates(
       idea,
       virlo.topicAnalysis.niche,
       virlo.emotionalGoal,
-      virlo.creativeSeed.seed
+      virlo.creativeSeed.seed + attemptIndex * 23
     )
-    const selectedHook = pickStrongestHookCandidate(hooks)
 
-    const title = pickTitle(titleCandidates, virlo.creativeSeed.seed)
+    const avoid = previousHooks
+    const rotated = pickRotatedHookCandidate(
+      idea,
+      virlo.topicAnalysis.niche,
+      virlo.emotionalGoal,
+      virlo.creativeSeed.seed,
+      attemptIndex,
+      (text) => isHookTooSimilar(text, avoid)
+    )
+
+    const freshCandidate =
+      hooks.find((h) => !isHookTooSimilar(h.text, avoid)) ?? rotated
+    const selectedHook =
+      freshCandidate.tensionScore >= pickStrongestHookCandidate(hooks).tensionScore - 1
+        ? freshCandidate
+        : pickStrongestHookCandidate(hooks)
+
+    const title = pickTitle(titleCandidates, virlo.creativeSeed.seed + attemptIndex)
     const hook = selectedHook.text
 
     await delay(320)
@@ -51,7 +77,10 @@ export async function POST(req: NextRequest) {
       niche: virlo.topicAnalysis.niche,
       mock: false,
       source: 'virlo',
-      virlo: meta,
+      virlo: {
+        ...meta,
+        hookVariant: selectedHook.variant,
+      },
       hookVariant: selectedHook.variant,
       structureName: meta.structureName,
     })

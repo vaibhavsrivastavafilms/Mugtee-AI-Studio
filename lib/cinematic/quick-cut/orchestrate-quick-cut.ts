@@ -2,9 +2,12 @@ import { v4 as uuidv4 } from 'uuid'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import {
   ensureScenesHaveImagePrompts,
+  extractCharacterDescription,
   scenesToStore,
+  scenesWithCharacterImagePrompts,
   storeScenesToGenerated,
 } from '@/lib/cinematic/generation'
+import { generateSceneImages } from '@/lib/cinematic/generate-scene-images'
 import { prepareCinematicVoiceover } from '@/lib/cinematic/execution/cinematic-voice-engine'
 import {
   buildCompileFilmPlan,
@@ -14,26 +17,14 @@ import {
   projectStateToGenerationOutput,
 } from '@/lib/cinematic/render'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
-import type { RegenSceneInput } from '@/lib/cinematic/regen-context'
-import {
-  buildPlaceholderStoryboard,
-  generateSceneStoryboardImages,
-  sceneVisualFromInput,
-} from '@/lib/cinematic/storyboard-generator'
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
 import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-generation'
 import { synthesizeQuickCutVoice } from '@/lib/cinematic/quick-cut/synthesize-voice'
 import { orchestrateFacelessVideo } from '@/lib/video/orchestrate-faceless-video'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { coerceDuration, coerceTone } from '@/lib/workspace/validation'
-import {
-  buildPipelineStatus,
-  type QuickCutPipelineStatus,
-} from '@/lib/cinematic/quick-cut/pipeline-status'
-import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
-
-const MAX_STORYBOARD_SCENES = 3
-const STORYBOARD_TIMEOUT_MS = 45_000
+import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
+import { buildPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status.server'
 
 export type QuickCutInput = {
   prompt: string
@@ -87,115 +78,52 @@ function appendContextNotes(
   return parts.filter(Boolean).join('\n\n')
 }
 
-function toRegenScenes(scenes: CinematicScene[]): RegenSceneInput[] {
-  return scenes.map((s) => ({
-    id: s.id,
-    index: s.index,
-    title: s.title,
-    narration: s.narration,
-    description: s.narration,
-    duration: s.duration,
-    visualPrompt: s.visualPrompt,
-    imagePrompt: s.imagePrompt,
-    cameraAngle: s.cameraAngle,
-    lightingMood: s.lightingMood,
-    environment: s.environment,
-    colorPalette: s.colorPalette,
-    movementStyle: s.movementStyle,
-  }))
-}
-
-async function attachStoryboardFrames(
+async function attachSceneImages(
   scenes: CinematicScene[],
   ctx: {
+    script: string
+    hook: string
     niche: CinematicGenerationOutput['niche']
     style: string
-    prompt: string
-    hook: string
+    emotionalGoal?: string
     userId: string
-    sessionId: string
   }
 ): Promise<{ scenes: CinematicScene[]; frames: string[]; mock: boolean }> {
-  const total = scenes.length
-  const regenScenes = toRegenScenes(scenes)
-  const targetCount = Math.min(MAX_STORYBOARD_SCENES, scenes.length)
-  let hasMockFrames = false
-  const frames: string[] = []
+  const generated = storeScenesToGenerated(scenes)
+  const characterDescription = extractCharacterDescription(ctx.script, generated)
+  const withPrompts = scenesWithCharacterImagePrompts(generated, {
+    characterDescription,
+    hook: ctx.hook,
+    emotionalGoal: ctx.emotionalGoal,
+    total: generated.length,
+  })
 
-  const updated = scenes.map((scene) => ({ ...scene }))
+  const result = await generateSceneImages({
+    scenes: withPrompts,
+    characterDescription,
+    hook: ctx.hook,
+    script: ctx.script,
+    niche: ctx.niche,
+    style: ctx.style,
+    userId: ctx.userId,
+  })
 
-  for (let i = 0; i < targetCount; i++) {
-    const scene = updated[i]
-    const regen = regenScenes[i]
-    if (!scene || !regen) continue
-
-    const visual = sceneVisualFromInput(regen, ctx.niche, scene.index, total)
-    const placeholder = buildPlaceholderStoryboard(
-      scene.index,
-      'Primary frame',
-      visual
-    )
-
-    let primaryUrl = placeholder.url
-    let sceneMock = true
-    scene.storyboardImages = [placeholder]
-    scene.activeStoryboardId = placeholder.id
-
-    if (hasImageGenerationKey()) {
-      try {
-        const raced = await Promise.race([
-          generateSceneStoryboardImages({
-            input: {
-              scene: regen,
-              sceneIndex: scene.index,
-              totalScenes: total,
-              niche: ctx.niche,
-              style: ctx.style,
-              projectPrompt: ctx.prompt,
-              hook: ctx.hook,
-              allScenes: regenScenes,
-            },
-            userId: ctx.userId,
-            projectId: ctx.sessionId,
-          }),
-          new Promise<null>((resolve) =>
-            setTimeout(() => resolve(null), STORYBOARD_TIMEOUT_MS)
-          ),
-        ])
-        if (raced && raced.images[0]?.url) {
-          primaryUrl = raced.images[0].url
-          sceneMock = raced.mock
-          scene.storyboardImages = raced.images.slice(0, 1)
-          scene.activeStoryboardId = raced.images[0].id
-        }
-      } catch {
-        /* placeholder fallback — storyboardImages already set above */
-      }
+  const patchById = new Map(result.scenes.map((s) => [s.id, s]))
+  const updated = scenes.map((scene) => {
+    const patch = patchById.get(scene.id)
+    if (!patch) return scene
+    return {
+      ...scene,
+      imageUrl: patch.imageUrl ?? scene.imageUrl,
+      imagePrompt: patch.imagePrompt || scene.imagePrompt,
     }
+  })
 
-    scene.imageUrl = primaryUrl
-    frames.push(primaryUrl)
-    if (sceneMock) hasMockFrames = true
-  }
+  const frames = updated
+    .map((s) => s.imageUrl)
+    .filter((url): url is string => Boolean(url?.trim()))
 
-  for (let i = targetCount; i < updated.length; i++) {
-    const scene = updated[i]
-    const regen = regenScenes[i]
-    if (!scene || !regen) continue
-    const visual = sceneVisualFromInput(regen, ctx.niche, scene.index, total)
-    const placeholder = buildPlaceholderStoryboard(scene.index, 'Held frame', visual)
-    scene.storyboardImages = [placeholder]
-    scene.activeStoryboardId = placeholder.id
-    scene.imageUrl = placeholder.url
-    frames.push(placeholder.url)
-    hasMockFrames = true
-  }
-
-  return { scenes: updated, frames, mock: hasMockFrames }
-}
-
-function scenesToGenerated(scenes: CinematicScene[]): GeneratedScene[] {
-  return ensureScenesHaveImagePrompts(storeScenesToGenerated(scenes))
+  return { scenes: updated, frames, mock: result.mock }
 }
 
 export async function orchestrateQuickCut(
@@ -216,18 +144,15 @@ export async function orchestrateQuickCut(
   })
 
   let scenes = scenesToStore(ensureScenesHaveImagePrompts(rawOutput.scenes))
-  const { scenes: withFrames, frames, mock: frameMock } = await attachStoryboardFrames(
-    scenes,
-    {
-      niche: rawOutput.niche,
-      style,
-      prompt,
-      hook: rawOutput.hook,
-      userId,
-      sessionId,
-    }
-  )
-  scenes = withFrames
+  const { scenes: withImages, frames, mock: frameMock } = await attachSceneImages(scenes, {
+    script: rawOutput.script,
+    hook: rawOutput.hook,
+    niche: rawOutput.niche,
+    style,
+    emotionalGoal: virlo?.emotionalGoal,
+    userId,
+  })
+  scenes = withImages
 
   const voicePrep = prepareCinematicVoiceover(
     rawOutput.script,
@@ -292,7 +217,7 @@ export async function orchestrateQuickCut(
         idea: prompt,
         title: projectState.title,
         script: projectState.script,
-        scenes: scenesToGenerated(scenes),
+        scenes: storeScenesToGenerated(scenes),
         voiceAudioPath: null,
         voiceUrl: voiceSynth.audioUrl,
         subtitles: [],

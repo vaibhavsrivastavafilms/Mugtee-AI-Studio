@@ -49,6 +49,8 @@ function regenPayload() {
 
 export function CinematicDirectorScreen() {
   const [busy, setBusy] = useState<'hook' | 'caption' | 'voice' | null>(null)
+  const [previousHooks, setPreviousHooks] = useState<string[]>([])
+  const [hookVariantNumber, setHookVariantNumber] = useState(1)
   const {
     title,
     hook,
@@ -73,8 +75,20 @@ export function CinematicDirectorScreen() {
     if (busy) return
     setBusy('hook')
     try {
-      const data = await regenerateHook(regenPayload())
-      if (data.hook) updateHook(data.hook)
+      const data = await regenerateHook(regenPayload(), {
+        previousHooks,
+        hookVariantIndex: previousHooks.length,
+        hookVariantNumber,
+      })
+      if (data.hook) {
+        if (hook.trim()) {
+          setPreviousHooks((prev) =>
+            prev.some((h) => h.trim() === hook.trim()) ? prev : [...prev, hook.trim()]
+          )
+        }
+        setHookVariantNumber(data.hookVariantNumber ?? hookVariantNumber + 1)
+        updateHook(data.hook)
+      }
       await useCinematicProjectStore.getState().persistProject({ silent: true })
       toast.success('Opening beat refined', { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
@@ -82,7 +96,7 @@ export function CinematicDirectorScreen() {
     } finally {
       setBusy(null)
     }
-  }, [busy, updateHook])
+  }, [busy, hook, hookVariantNumber, previousHooks, updateHook])
 
   const onImproveCaption = useCallback(async () => {
     if (busy) return

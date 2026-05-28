@@ -3,16 +3,28 @@
 import { create } from 'zustand'
 import {
   ensureScenesHaveImagePrompts,
+  extractCharacterDescription,
+  scenesWithCharacterImagePrompts,
   type GeneratedScene,
 } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
+import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
 import { saveQuickCutPreview } from '@/lib/cinematic/quick-cut/preview-session'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import { scenesToStore } from '@/lib/cinematic/generation'
-import { archiveGeneratedProject } from '@/lib/cinematic-projects'
+import {
+  archiveGeneratedProject,
+  type ArchiveGeneratedProjectInput,
+} from '@/lib/cinematic-projects'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
+import {
+  clearHookSession,
+  loadHookSession,
+  saveHookSession,
+} from '@/lib/cinematic/quick-cut/hook-session'
+import { regenerateHook as requestHookRegen } from '@/lib/cinematic/refinement-client'
 import {
   generationStepToTab,
   type QuickCutStageTab,
@@ -68,6 +80,8 @@ export type QuickCutInput = {
   keywords?: string[]
 }
 
+export type QuickCutSaveState = 'idle' | 'saving' | 'saved' | 'error'
+
 interface QuickCutGenerationState {
   generationStep: QuickCutGenerationStep
   activeStageTab: QuickCutStageTab
@@ -75,9 +89,14 @@ interface QuickCutGenerationState {
   prompt: string
   title: string
   hook: string
+  previousHooks: string[]
+  hookVariantNumber: number
   script: string
+  characterDescription: string
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
+  regeneratingSceneIds: string[]
+  directingSceneLabel: string | null
   voiceUrl: string | null
   waveform: number[]
   progress: number
@@ -87,12 +106,16 @@ interface QuickCutGenerationState {
   renderError: string | null
   renderStatusLabel: string | null
   virlo: VirloMetadata | null
+  isRegeneratingHook: boolean
   mock: boolean
   missingKeys: string[]
   pipeline: QuickCutPipelineStatus | null
   error: string | null
   isGenerating: boolean
   isComplete: boolean
+  savedProjectId: string | null
+  saveState: QuickCutSaveState
+  lastSavedAt: number | null
 }
 
 interface QuickCutGenerationActions {
@@ -100,8 +123,13 @@ interface QuickCutGenerationActions {
   setActiveStageTab: (tab: QuickCutStageTab, pinned?: boolean) => void
   followPipelineStage: () => void
   runPipeline: (input: QuickCutInput) => Promise<void>
+  regenerateHook: () => Promise<void>
+  regenerateSceneImage: (sceneId: string) => Promise<void>
+  updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
+  generateSceneVariations: (sceneId: string) => Promise<void>
   retryVideoRender: () => Promise<void>
   resumeRenderPoll: () => Promise<void>
+  saveProject: () => Promise<string | null>
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -111,9 +139,14 @@ const INITIAL: QuickCutGenerationState = {
   prompt: '',
   title: '',
   hook: '',
+  previousHooks: [],
+  hookVariantNumber: 1,
   script: '',
   scenes: [],
   storyboard: [],
+  characterDescription: '',
+  directingSceneLabel: null,
+  regeneratingSceneIds: [],
   voiceUrl: null,
   waveform: [],
   progress: 0,
@@ -123,16 +156,252 @@ const INITIAL: QuickCutGenerationState = {
   renderError: null,
   renderStatusLabel: null,
   virlo: null,
+  isRegeneratingHook: false,
   mock: false,
   missingKeys: [],
   pipeline: null,
   error: null,
   isGenerating: false,
   isComplete: false,
+  savedProjectId: null,
+  saveState: 'idle',
+  lastSavedAt: null,
+}
+
+const SAVE_FLASH_MS = 2500
+
+function flashSavedState() {
+  setTimeout(() => {
+    const current = useQuickCutGenerationStore.getState()
+    if (current.saveState === 'saved') {
+      useQuickCutGenerationStore.setState({ saveState: 'idle' })
+    }
+  }, SAVE_FLASH_MS)
+}
+
+function buildGenerationOutput(
+  state: QuickCutGenerationState
+): CinematicGenerationOutput {
+  return {
+    title: state.title,
+    hook: state.hook,
+    summary: state.hook,
+    script: state.script,
+    scenes: state.scenes.map((s, i) => ({
+      id: s.id || `scene-${i}`,
+      title: s.title || `Scene ${i + 1}`,
+      description: s.description || '',
+      duration: s.duration ?? 4,
+      visualPrompt: s.visualPrompt || '',
+      imagePrompt: s.imagePrompt || '',
+      cameraAngle: s.cameraAngle || 'Cinematic medium',
+      lightingMood: s.lightingMood || 'Moody contrast',
+      environment: s.environment || 'Abstract cinematic',
+      colorPalette: s.colorPalette || 'Deep shadow, gold highlight',
+      movementStyle: s.movementStyle || 'Slow push-in',
+      imageUrl: s.imageUrl,
+    })),
+    captions: state.script.split('\n').filter(Boolean).slice(0, 8),
+    captionPack: {
+      primary: state.hook,
+      cta: 'Follow for more cinematic stories',
+      hashtags: ['#cinematic', '#storytelling', '#faceless'],
+    },
+    suggestedVoiceStyle: 'warm_documentary',
+    niche: 'storytelling',
+  }
+}
+
+function buildArchiveInput(
+  state: QuickCutGenerationState,
+  output: CinematicGenerationOutput
+): ArchiveGeneratedProjectInput {
+  const storedScenes = scenesToStore(output.scenes)
+  const thumbnail =
+    storedScenes[0]?.imageUrl?.trim() ??
+    storedScenes.find((s) => s.imageUrl)?.imageUrl ??
+    storedScenes[0]?.storyboardImages?.[0]?.url ??
+    null
+
+  return {
+    projectId: state.savedProjectId,
+    title: state.title || 'Untitled reel',
+    prompt: state.prompt,
+    mode: 'quick',
+    script: state.script,
+    scenes: storedScenes,
+    storyboard: storedScenes,
+    voice: state.voiceUrl
+      ? {
+          voiceName: 'Cinematic Narrator',
+          style: 'warm_documentary',
+          audioUrl: state.voiceUrl,
+          narration: state.script,
+        }
+      : null,
+    duration: 60,
+    status: state.videoUrl ? 'complete' : 'preview',
+    video_url: state.videoUrl,
+    thumbnail_url: thumbnail,
+    hook: state.hook,
+    summary: state.hook,
+    captionLines: output.captions,
+    virlo: state.virlo,
+  }
+}
+
+async function archiveQuickCutProject(
+  state: QuickCutGenerationState
+): Promise<string | null> {
+  if (!state.script && state.scenes.length < 1) return null
+  const output = buildGenerationOutput(state)
+  const row = await archiveGeneratedProject(buildArchiveInput(state, output))
+  if (!row?.id) return null
+  useQuickCutGenerationStore.setState({
+    savedProjectId: row.id,
+    saveState: 'saved',
+    lastSavedAt: Date.now(),
+  })
+  flashSavedState()
+  return row.id
+}
+
+function appendPreviousHook(previousHooks: string[], hook: string): string[] {
+  const trimmed = hook.trim()
+  if (!trimmed) return previousHooks
+  if (previousHooks.some((h) => h.trim() === trimmed)) return previousHooks
+  return [...previousHooks, trimmed]
+}
+
+function buildQuickCutRegenPayload(state: QuickCutGenerationState) {
+  return {
+    topic: state.prompt,
+    prompt: state.prompt,
+    tone: 'cinematic',
+    style: 'cinematic',
+    duration: 60,
+    niche: 'storytelling' as const,
+    hook: state.hook,
+    summary: state.hook,
+    script: state.script,
+    scenes: state.scenes.map((scene, i) => ({
+      id: scene.id || `scene-${i}`,
+      index: i + 1,
+      title: scene.title,
+      narration: scene.description,
+      duration: scene.duration,
+      visualPrompt: scene.visualPrompt,
+      cameraAngle: scene.cameraAngle,
+      lightingMood: scene.lightingMood,
+      environment: scene.environment,
+      colorPalette: scene.colorPalette,
+      movementStyle: scene.movementStyle,
+    })),
+    captionLines: state.script.split('\n').filter(Boolean).slice(0, 8),
+    suggestedVoiceStyle: 'warm_documentary',
+  }
+}
+
+async function requestHookRegeneration(
+  state: QuickCutGenerationState,
+  strongVariation = false
+): Promise<{
+  hook: string
+  hookVariantNumber?: number
+  hookFramework?: string
+  virlo?: VirloMetadata | null
+}> {
+  try {
+    return await requestHookRegen(buildQuickCutRegenPayload(state), {
+      previousHooks: state.previousHooks,
+      hookVariantIndex: state.previousHooks.length + (strongVariation ? 1 : 0),
+      hookVariantNumber: state.hookVariantNumber,
+      strongVariation,
+      emotionalGoal: state.virlo?.emotionalGoal,
+    })
+  } catch {
+    const res = await fetch('/api/generate-title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idea: state.prompt,
+        sessionSeed: `${state.prompt}-${state.previousHooks.length}-${Date.now()}`,
+        previousHooks: [...state.previousHooks, state.hook].filter(Boolean),
+        hookVariantIndex: state.previousHooks.length + (strongVariation ? 1 : 0),
+      }),
+    })
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (!res.ok) {
+      throw new Error(String(data?.error || 'Hook regeneration failed'))
+    }
+    const hook = String(data.hook ?? '')
+    if (!hook.trim()) throw new Error('Hook regeneration returned empty result')
+    return {
+      hook,
+      virlo: (data.virlo as VirloMetadata | undefined) ?? state.virlo,
+      hookVariantNumber: state.hookVariantNumber + 1,
+    }
+  }
 }
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchSceneImages(
+  state: Pick<
+    QuickCutGenerationState,
+    'scenes' | 'characterDescription' | 'virlo' | 'hook' | 'script'
+  >,
+  sceneIds?: string[],
+  variation = false
+): Promise<{
+  scenes: GeneratedScene[]
+  mock: boolean
+  characterDescription?: string
+}> {
+  const res = await fetch('/api/generate-images', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenes: state.scenes,
+      sceneIds,
+      variation,
+      characterDescription: state.characterDescription || undefined,
+      virlo: state.virlo ?? undefined,
+      hook: state.hook,
+      script: state.script,
+      niche: 'storytelling',
+    }),
+  })
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  if (!res.ok) {
+    throw new Error(String(data?.error || 'Scene image generation failed'))
+  }
+  return {
+    scenes: Array.isArray(data.scenes)
+      ? ensureScenesHaveImagePrompts(data.scenes as GeneratedScene[])
+      : state.scenes,
+    mock: data.mock === true,
+    characterDescription:
+      typeof data.characterDescription === 'string'
+        ? data.characterDescription
+        : undefined,
+  }
+}
+
+function mergeScenesById(
+  current: GeneratedScene[],
+  patch: GeneratedScene[],
+  ids?: string[]
+): GeneratedScene[] {
+  const idSet = ids?.length ? new Set(ids) : null
+  const patchMap = new Map(patch.map((s) => [s.id, s]))
+  return current.map((scene) => {
+    if (idSet && !idSet.has(scene.id)) return scene
+    const next = patchMap.get(scene.id)
+    return next ? { ...scene, ...next } : scene
+  })
 }
 
 function appendNotes(
@@ -223,35 +492,29 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
   return { renderRes, renderData }
 }
 
-function persistSession(state: QuickCutGenerationState) {
-  const output: CinematicGenerationOutput = {
-    title: state.title,
-    hook: state.hook,
-    summary: state.hook,
-    script: state.script,
-    scenes: state.scenes.map((s, i) => ({
-      id: s.id || `scene-${i}`,
-      title: s.title || `Scene ${i + 1}`,
-      description: s.description || '',
-      duration: s.duration ?? 4,
-      visualPrompt: s.visualPrompt || '',
-      imagePrompt: s.imagePrompt || '',
-      cameraAngle: s.cameraAngle || 'Cinematic medium',
-      lightingMood: s.lightingMood || 'Moody contrast',
-      environment: s.environment || 'Abstract cinematic',
-      colorPalette: s.colorPalette || 'Deep shadow, gold highlight',
-      movementStyle: s.movementStyle || 'Slow push-in',
-      imageUrl: s.imageUrl,
-    })),
-    captions: state.script.split('\n').filter(Boolean).slice(0, 8),
-    captionPack: {
-      primary: state.hook,
-      cta: 'Follow for more cinematic stories',
-      hashtags: ['#cinematic', '#storytelling', '#faceless'],
-    },
-    suggestedVoiceStyle: 'warm_documentary',
-    niche: 'storytelling',
+function persistHookSession(state: QuickCutGenerationState) {
+  saveHookSession({
+    previousHooks: state.previousHooks,
+    hookVariantNumber: state.hookVariantNumber,
+  })
+}
+
+function restoreHookSession(): Pick<
+  QuickCutGenerationState,
+  'previousHooks' | 'hookVariantNumber'
+> {
+  const session = loadHookSession()
+  if (!session) {
+    return { previousHooks: [], hookVariantNumber: 1 }
   }
+  return {
+    previousHooks: session.previousHooks,
+    hookVariantNumber: session.hookVariantNumber,
+  }
+}
+
+function persistSession(state: QuickCutGenerationState) {
+  const output = buildGenerationOutput(state)
 
   applyGenerationToStore(output)
 
@@ -311,37 +574,11 @@ function persistSession(state: QuickCutGenerationState) {
     renderError: state.renderError,
   })
 
-  const storedScenes = scenesToStore(output.scenes)
-  const thumbnail =
-    storedScenes[0]?.imageUrl?.trim() ??
-    storedScenes.find((s) => s.imageUrl)?.imageUrl ??
-    storedScenes[0]?.storyboardImages?.[0]?.url ??
-    null
-
-  void archiveGeneratedProject({
-    title: state.title || 'Untitled reel',
-    prompt: state.prompt,
-    mode: 'quick',
-    script: state.script,
-    scenes: storedScenes,
-    storyboard: storedScenes,
-    voice: state.voiceUrl
-      ? {
-          voiceName: 'Cinematic Narrator',
-          style: 'warm_documentary',
-          audioUrl: state.voiceUrl,
-          narration: state.script,
-        }
-      : null,
-    duration: 60,
-    status: state.videoUrl ? 'complete' : 'preview',
-    video_url: state.videoUrl,
-    thumbnail_url: thumbnail,
-    hook: state.hook,
-    summary: state.hook,
-    captionLines: output.captions,
-    virlo: state.virlo,
+  void archiveQuickCutProject(state).catch(() => {
+    useQuickCutGenerationStore.setState({ saveState: 'error' })
   })
+
+  persistHookSession(state)
 }
 
 export const useQuickCutGenerationStore = create<
@@ -349,7 +586,10 @@ export const useQuickCutGenerationStore = create<
 >((set, get) => ({
   ...INITIAL,
 
-  reset: () => set({ ...INITIAL }),
+  reset: () => {
+    clearHookSession()
+    set({ ...INITIAL })
+  },
 
   setActiveStageTab: (tab, pinned = true) =>
     set({ activeStageTab: tab, stageTabPinned: pinned }),
@@ -365,6 +605,7 @@ export const useQuickCutGenerationStore = create<
 
     set({
       ...INITIAL,
+      ...restoreHookSession(),
       prompt,
       isGenerating: true,
       generationStep: 'analyzing',
@@ -412,7 +653,15 @@ export const useQuickCutGenerationStore = create<
       if (titleData.mock === true) anyMock = true
 
       setStep(set, get, 'hook')
-      set({ title, hook, virlo, storyboard: [] })
+      set({
+        title,
+        hook,
+        virlo,
+        storyboard: [],
+        previousHooks: [],
+        hookVariantNumber: 1,
+      })
+      persistHookSession(get())
 
       setStep(set, get, 'script')
       const scriptRes = await fetch('/api/generate-script', {
@@ -438,10 +687,13 @@ export const useQuickCutGenerationStore = create<
         noteMissing('script')
       }
 
+      const hookHistory = scriptHook && scriptHook !== hook ? appendPreviousHook([], hook) : []
+
       set({
         script,
         title: scriptTitle,
         hook: scriptHook,
+        previousHooks: hookHistory,
         virlo: (scriptData.virlo as VirloMetadata | undefined) ?? virlo,
       })
 
@@ -461,29 +713,50 @@ export const useQuickCutGenerationStore = create<
       )
       if (scenesData.mock === true) anyMock = true
 
-      set({ scenes, storyboard: scenes })
+      const scriptVirlo = (scriptData.virlo as VirloMetadata | undefined) ?? virlo
+      const characterDescription = extractCharacterDescription(script, scenes)
+      scenes = scenesWithCharacterImagePrompts(scenes, {
+        characterDescription,
+        hook: scriptHook,
+        emotionalGoal: scriptVirlo?.emotionalGoal,
+        total: scenes.length,
+      })
+
+      set({ scenes, storyboard: scenes, characterDescription })
 
       setStep(set, get, 'images')
-      let imgMock = true
-      const imgRes = await fetch('/api/generate-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenes }),
-      })
-      const imgData = (await imgRes.json()) as Record<string, unknown>
-      if (imgRes.ok && Array.isArray(imgData.scenes)) {
-        scenes = ensureScenesHaveImagePrompts(imgData.scenes as GeneratedScene[])
-        imgMock = imgData.mock === true
-        if (imgMock) {
+      let imgMock = false
+      set({ directingSceneLabel: 'Composing visuals…' })
+
+      for (let i = 0; i < scenes.length; i++) {
+        const scene = scenes[i]
+        if (!scene?.id) continue
+
+        set({ directingSceneLabel: `Directing Scene ${i + 1}…` })
+
+        try {
+          const imgResult = await fetchSceneImages(
+            { ...get(), scenes, characterDescription, hook: scriptHook, script },
+            [scene.id]
+          )
+          scenes = mergeScenesById(scenes, imgResult.scenes, [scene.id])
+          if (imgResult.characterDescription) {
+            set({ characterDescription: imgResult.characterDescription })
+          }
+          if (imgResult.mock) {
+            imgMock = true
+            anyMock = true
+            noteMissing('images')
+          }
+          set({ scenes, storyboard: scenes })
+        } catch {
+          imgMock = true
           anyMock = true
           noteMissing('images')
         }
-        set({ scenes, storyboard: scenes })
-      } else {
-        anyMock = true
-        noteMissing('images')
-        set({ scenes, storyboard: scenes })
       }
+
+      set({ directingSceneLabel: null })
 
       setStep(set, get, 'voice')
       let voiceUrl: string | null = null
@@ -589,6 +862,123 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  regenerateSceneImage: async (sceneId) => {
+    const state = get()
+    if (!sceneId || state.isGenerating) return
+    if (!state.scenes.some((s) => s.id === sceneId)) return
+
+    set({
+      regeneratingSceneIds: [...state.regeneratingSceneIds, sceneId],
+      directingSceneLabel: 'Composing visuals…',
+    })
+
+    try {
+      const result = await fetchSceneImages(state, [sceneId])
+      const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
+      set({
+        scenes,
+        storyboard: scenes,
+        characterDescription:
+          result.characterDescription || state.characterDescription,
+      })
+      persistSession(get())
+    } catch {
+      /* silent — card shows prior frame */
+    } finally {
+      set({
+        regeneratingSceneIds: get().regeneratingSceneIds.filter((id) => id !== sceneId),
+        directingSceneLabel: null,
+      })
+    }
+  },
+
+  updateSceneImagePrompt: async (sceneId, imagePrompt) => {
+    const state = get()
+    const idx = state.scenes.findIndex((s) => s.id === sceneId)
+    if (idx < 0) return
+
+    const scenes = [...state.scenes]
+    scenes[idx] = ensureScenesHaveImagePrompts([
+      { ...scenes[idx], imagePrompt: imagePrompt.trim() },
+    ])[0]
+    set({ scenes, storyboard: scenes })
+    await get().regenerateSceneImage(sceneId)
+  },
+
+  generateSceneVariations: async (sceneId) => {
+    const state = get()
+    if (!sceneId || state.isGenerating) return
+    if (!state.scenes.some((s) => s.id === sceneId)) return
+
+    set({
+      regeneratingSceneIds: [...state.regeneratingSceneIds, sceneId],
+      directingSceneLabel: 'Composing variation…',
+    })
+
+    try {
+      const result = await fetchSceneImages(state, [sceneId], true)
+      const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
+      set({ scenes, storyboard: scenes })
+      persistSession(get())
+    } catch {
+      /* keep primary frame */
+    } finally {
+      set({
+        regeneratingSceneIds: get().regeneratingSceneIds.filter((id) => id !== sceneId),
+        directingSceneLabel: null,
+      })
+    }
+  },
+
+  regenerateHook: async () => {
+    const state = get()
+    if (!state.hook.trim() || state.isRegeneratingHook || state.isGenerating) return
+
+    set({
+      isRegeneratingHook: true,
+      activeStageTab: 'hook',
+      stageTabPinned: true,
+    })
+
+    try {
+      const priorHooks = state.previousHooks
+      const currentHook = state.hook
+      const avoid = [...priorHooks, currentHook]
+
+      let result = await requestHookRegeneration(state, false)
+
+      if (isHookTooSimilar(result.hook, avoid)) {
+        result = await requestHookRegeneration(
+          { ...state, previousHooks: priorHooks },
+          true
+        )
+      }
+
+      const nextPrevious = appendPreviousHook(priorHooks, currentHook)
+      const hookVariantNumber =
+        result.hookVariantNumber ?? state.hookVariantNumber + 1
+      const nextVirlo =
+        result.virlo && state.virlo
+          ? { ...state.virlo, ...result.virlo, hookVariant: `v${hookVariantNumber}` }
+          : state.virlo
+            ? { ...state.virlo, hookVariant: `v${hookVariantNumber}` }
+            : result.virlo ?? null
+
+      set({
+        hook: result.hook,
+        previousHooks: nextPrevious,
+        hookVariantNumber,
+        virlo: nextVirlo,
+      })
+
+      persistSession(get())
+    } catch {
+      /* hook regen is non-blocking — user keeps current hook */
+    } finally {
+      set({ isRegeneratingHook: false })
+    }
+  },
+
   retryVideoRender: async () => {
     const state = get()
     if (state.videoUrl || state.scenes.length < 1 || state.isGenerating) return
@@ -654,6 +1044,22 @@ export const useQuickCutGenerationStore = create<
       const message = err instanceof Error ? err.message : 'Video render timed out'
       set({ renderError: message, renderPollUrl: null })
       persistSession(get())
+    }
+  },
+
+  saveProject: async () => {
+    const state = get()
+    if (state.saveState === 'saving') return state.savedProjectId
+    if (!state.script && state.scenes.length < 1) return null
+
+    set({ saveState: 'saving' })
+    try {
+      const id = await archiveQuickCutProject(get())
+      if (!id) set({ saveState: 'error' })
+      return id
+    } catch {
+      set({ saveState: 'error' })
+      return null
     }
   },
 }))
