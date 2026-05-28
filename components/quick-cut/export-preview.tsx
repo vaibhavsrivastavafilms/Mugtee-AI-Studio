@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Clapperboard, Download, FolderOpen, Loader2, Lock, RefreshCw, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,12 +30,14 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const mock = useQuickCutGenerationStore((s) => s.mock)
   const missingKeys = useQuickCutGenerationStore((s) => s.missingKeys)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
   const regenerateHook = useQuickCutGenerationStore((s) => s.regenerateHook)
   const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
@@ -44,6 +46,8 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
   const [downloading, setDownloading] = useState(false)
   const [downloadingPackage, setDownloadingPackage] = useState(false)
   const [downloadingAllFrames, setDownloadingAllFrames] = useState(false)
+  const pollStartedRef = useRef(false)
+  const downloadingPackageRef = useRef(false)
 
   const mp4Compiling = videoRenderEnabled && !videoUrl && !renderError && !isGenerating
   const storyboardExportReady = !videoRenderEnabled && exportPackageReady && !isGenerating
@@ -51,6 +55,31 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
 
   const downloadName = `${(title || 'mugtee-reel').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-reel'}.mp4`
   const packageName = `${(title || 'mugtee-storyboard').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-storyboard'}-export`
+
+  useEffect(() => {
+    if (!videoRenderEnabled) {
+      pollStartedRef.current = false
+      return
+    }
+    if (videoUrl || renderError) {
+      pollStartedRef.current = false
+      return
+    }
+    if (pollStartedRef.current) return
+
+    pollStartedRef.current = true
+    const run = renderPollUrl ? resumeRenderPoll() : retryVideoRender()
+    void run.finally(() => {
+      pollStartedRef.current = false
+    })
+  }, [
+    videoRenderEnabled,
+    videoUrl,
+    renderPollUrl,
+    renderError,
+    resumeRenderPoll,
+    retryVideoRender,
+  ])
 
   const handleDownload = useCallback(async () => {
     if (!videoUrl || downloading) return
@@ -63,7 +92,8 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
   }, [videoUrl, downloadName, downloading])
 
   const handleDownloadPackage = useCallback(() => {
-    if (downloadingPackage || scenes.length < 1) return
+    if (downloadingPackageRef.current || scenes.length < 1) return
+    downloadingPackageRef.current = true
     setDownloadingPackage(true)
     try {
       downloadStoryboardPackage(
@@ -71,9 +101,10 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
         packageName
       )
     } finally {
+      downloadingPackageRef.current = false
       setDownloadingPackage(false)
     }
-  }, [downloadingPackage, scenes, title, hook, script, voiceUrl, packageName])
+  }, [scenes, title, hook, script, voiceUrl, packageName])
 
   const handleDownloadAllFrames = useCallback(async () => {
     if (downloadingAllFrames || scenes.length < 1) return
@@ -110,7 +141,7 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
           <p className="text-xs text-gold-300/60">
             Download scene stills as JPG — MP4 may still be compiling.
           </p>
-        ) : renderError && videoRenderEnabled ? (
+        ) : renderError ? (
           <div className="space-y-1" role="alert">
             <p className="text-xs text-amber-200/80">{renderError}</p>
           </div>
@@ -224,13 +255,14 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
           </button>
         ) : null}
 
-        {renderError && videoRenderEnabled && !videoUrl ? (
+        {renderError && !videoUrl ? (
           <button
             type="button"
             onClick={() => void retryVideoRender()}
             className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-luxe/70 text-[12px] tracking-[0.12em] uppercase hover:text-luxe hover:border-white/20 transition-colors w-full sm:w-auto"
           >
-            <RefreshCw className="w-4 h-4" /> Retry compile
+            <RefreshCw className="w-4 h-4" />
+            {videoRenderEnabled ? 'Retry compile' : 'Retry export'}
           </button>
         ) : null}
 

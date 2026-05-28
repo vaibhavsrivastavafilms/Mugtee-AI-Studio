@@ -1,11 +1,16 @@
+import {
+  generateGeminiSceneImageBuffer,
+  hasGeminiImageKey,
+} from '@/lib/ai/gemini-image'
+import { allowDalleImages, allowReplicateImages } from '@/lib/ai/free-tier'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { logError } from '@/lib/workspace/validation'
 
+export { hasGeminiImageKey } from '@/lib/ai/gemini-image'
+
 export function hasImageGenerationKey(): boolean {
   return Boolean(
-    process.env.OPENAI_API_KEY?.trim() ||
-      process.env.EMERGENT_LLM_KEY?.trim() ||
-      process.env.REPLICATE_API_TOKEN?.trim()
+    hasGeminiImageKey() || allowDalleImages() || allowReplicateImages()
   )
 }
 
@@ -14,12 +19,34 @@ export type SceneImageOptions = {
   size?: '1024x1792' | '1792x1024' | '1024x1024'
 }
 
-/** Generate a cinematic still via OpenAI DALL-E 3. */
+/** Generate a cinematic still via Gemini (Emergent gateway). Uploads when filename provided. */
+export async function generateGeminiSceneImage(
+  prompt: string,
+  opts: { filename?: string } = {}
+): Promise<string | null> {
+  if (!hasGeminiImageKey()) return null
+
+  const result = await generateGeminiSceneImageBuffer(prompt)
+  if (!result) return null
+
+  if (opts.filename) {
+    const uploaded = await uploadImageBuffer({
+      buffer: result.buffer,
+      filename: opts.filename,
+      contentType: 'image/png',
+    })
+    if (uploaded) return uploaded
+  }
+
+  return `data:image/png;base64,${result.b64}`
+}
+
+/** Generate a cinematic still via OpenAI DALL-E 3 (skipped in free-tier-only mode). */
 export async function generateOpenAISceneImage(
   prompt: string,
   opts: SceneImageOptions = {}
 ): Promise<string | null> {
-  if (!process.env.OPENAI_API_KEY?.trim()) return null
+  if (!allowDalleImages()) return null
   const { quality = 'standard', size = '1024x1792' } = opts
   try {
     const openai = getOpenAIClient()

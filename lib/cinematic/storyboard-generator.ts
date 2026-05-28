@@ -11,11 +11,13 @@ import {
 import type { StoryboardImage } from '@/stores/cinematic-project'
 import { buildStoryboardContinuityBlock } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
 import { cinematicWorldLighting } from '@/lib/cinematic/execution/cinematic-lighting-engine'
+import { allowDalleImages } from '@/lib/ai/free-tier'
 import {
+  generateGeminiSceneImage,
   generateOpenAISceneImage,
+  hasGeminiImageKey,
   hasImageGenerationKey,
   persistRemoteImage,
-  uploadImageBuffer,
 } from '@/lib/ai/generate-scene-image'
 
 export const STORYBOARD_VARIANTS = [
@@ -35,10 +37,6 @@ export const STORYBOARD_VARIANTS = [
       'Intimate storyboard detail — close emotional read, texture, or symbolic insert.',
   },
 ] as const
-
-const EMERGENT_LLM_KEY = process.env.EMERGENT_LLM_KEY
-const EMERGENT_URL = 'https://integrations.emergentagent.com/llm/chat/completions'
-const IMAGE_MODEL = 'gemini/gemini-2.5-flash-image'
 
 const BANNED_PROMPT_FRAGMENTS = [
   /masterpiece/i,
@@ -228,61 +226,6 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function extractB64(json: Record<string, unknown>): string | null {
-  const data = json?.data
-  if (Array.isArray(data) && (data[0] as { b64_json?: string })?.b64_json) {
-    return String((data[0] as { b64_json: string }).b64_json)
-  }
-
-  const msg = (json?.choices as Array<{ message?: Record<string, unknown> }>)?.[0]
-    ?.message
-  if (msg) {
-    const content = msg.content
-    if (Array.isArray(content)) {
-      for (const c of content) {
-        const row = c as {
-          type?: string
-          image_url?: { url?: string }
-          b64_json?: string
-        }
-        if (c?.type === 'image_url' && typeof row.image_url?.url === 'string') {
-          const m = /^data:image\/[a-z+]+;base64,(.+)$/i.exec(row.image_url.url)
-          if (m) return m[1]
-        }
-        if (typeof row.b64_json === 'string') return row.b64_json
-      }
-    }
-    if (typeof content === 'string') {
-      const m = /data:image\/[a-z+]+;base64,([A-Za-z0-9+/=]+)/.exec(content)
-      if (m) return m[1]
-    }
-
-    const images = msg.images
-    if (Array.isArray(images)) {
-      for (const img of images) {
-        const row = img as { image_url?: { url?: string }; b64_json?: string }
-        const url = row?.image_url?.url
-        if (typeof url === 'string') {
-          const m = /^data:image\/[a-z+]+;base64,(.+)$/i.exec(url)
-          if (m) return m[1]
-        }
-        if (typeof row?.b64_json === 'string') return row.b64_json
-      }
-    }
-  }
-
-  const parts =
-    (json?.candidates as Array<{ content?: { parts?: Array<Record<string, unknown>> } }>)?.[0]
-      ?.content?.parts || []
-  for (const p of parts) {
-    const inline = p?.inline_data as { data?: string } | undefined
-    if (inline?.data) return String(inline.data)
-    const inlineData = p?.inlineData as { data?: string } | undefined
-    if (inlineData?.data) return String(inlineData.data)
-  }
-  return null
-}
-
 async function generateStoryboardImageUrl(params: {
   prompt: string
   styleLock: string
@@ -309,13 +252,24 @@ async function generateStoryboardImageUrl(params: {
   ].join('\n')
 
   const cinematic = `${params.prompt}\n\n${cinematicBits}`
+  const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
 
-  // OpenAI DALL-E 3 — preferred when OPENAI_API_KEY is set
-  if (process.env.OPENAI_API_KEY?.trim()) {
+  // Primary: Gemini via Emergent gateway
+  if (hasGeminiImageKey()) {
+    const url = await generateGeminiSceneImage(cinematic, { filename })
+    if (url && !url.startsWith('data:')) {
+      return { url, mock: false }
+    }
+    if (url) {
+      return { url, mock: true }
+    }
+  }
+
+  // Fallback: OpenAI DALL-E 3 (disabled in free-tier-only mode)
+  if (allowDalleImages()) {
     try {
       const remoteUrl = await generateOpenAISceneImage(cinematic)
       if (remoteUrl) {
-        const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
         const url = await persistRemoteImage({
           remoteUrl,
           userId: params.userId,
@@ -324,50 +278,11 @@ async function generateStoryboardImageUrl(params: {
         return { url, mock: false }
       }
     } catch {
-      /* fall through to Emergent or placeholder */
+      /* fall through to placeholder */
     }
   }
 
-  // Emergent Gemini image model — when EMERGENT_LLM_KEY is set
-  if (!EMERGENT_LLM_KEY) {
-    return { url: placeholder(), mock: true }
-  }
-
-  try {
-    const ggRes = await fetch(EMERGENT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${EMERGENT_LLM_KEY}`,
-      },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        modalities: ['image', 'text'],
-        messages: [{ role: 'user', content: cinematic }],
-      }),
-    })
-
-    if (!ggRes.ok) {
-      return { url: placeholder(), mock: true }
-    }
-
-    const ggJson = (await ggRes.json().catch(() => ({}))) as Record<string, unknown>
-    const b64 = extractB64(ggJson)
-    if (!b64) {
-      return { url: placeholder(), mock: true }
-    }
-
-    const buffer = Buffer.from(b64, 'base64')
-    const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
-    const uploaded = await uploadImageBuffer({ buffer, filename })
-    if (uploaded) {
-      return { url: uploaded, mock: false }
-    }
-
-    return { url: `data:image/png;base64,${b64}`, mock: true }
-  } catch {
-    return { url: placeholder(), mock: true }
-  }
+  return { url: placeholder(), mock: true }
 }
 
 export async function generateSceneStoryboardImages(params: {

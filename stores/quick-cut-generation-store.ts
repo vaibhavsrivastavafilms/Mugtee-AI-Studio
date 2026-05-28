@@ -607,7 +607,10 @@ function persistSession(state: QuickCutGenerationState) {
   void archiveQuickCutProject(state).catch((err) => {
     useQuickCutGenerationStore.setState({
       saveState: 'error',
-      saveError: resolveSaveError(err),
+      saveError:
+        isCinematicProjectsUnavailable(err) || err instanceof CinematicProjectsUnavailableError
+          ? CINEMATIC_PROJECTS_MIGRATION_HINT
+          : resolveSaveError(err),
     })
   })
 
@@ -657,15 +660,32 @@ export const useQuickCutGenerationStore = create<
     const videoRenderEnabled = config.videoRenderEnabled === true
     set({ videoRenderEnabled })
 
+    const freeTier = config.freeTierOnly === true
     const noteMissing = (step: 'script' | 'images' | 'voice' | 'video') => {
-      if (step === 'script' && !config.openai) missingKeys.add('OPENAI_API_KEY')
+      if (step === 'script' && config.script !== true) {
+        if (freeTier) {
+          missingKeys.add('GEMINI_API_KEY')
+        } else {
+          missingKeys.add('GEMINI_API_KEY')
+          missingKeys.add('ANTHROPIC_API_KEY')
+          missingKeys.add('OPENAI_API_KEY')
+        }
+      }
       if (step === 'images' && !config.images) {
-        if (!config.openai) missingKeys.add('OPENAI_API_KEY')
-        if (!config.emergent) missingKeys.add('EMERGENT_LLM_KEY')
+        if (freeTier || config.geminiDirect) {
+          missingKeys.add('GEMINI_API_KEY')
+        } else {
+          if (!config.emergent && !config.gemini) missingKeys.add('EMERGENT_LLM_KEY')
+          if (!config.openai) missingKeys.add('OPENAI_API_KEY')
+        }
       }
       if (step === 'voice' && !config.elevenlabs && !config.openai && !config.emergent) {
-        missingKeys.add('ELEVENLABS_API_KEY')
-        missingKeys.add('OPENAI_API_KEY')
+        if (freeTier) {
+          missingKeys.add('OPENAI_API_KEY')
+        } else {
+          missingKeys.add('ELEVENLABS_API_KEY')
+          missingKeys.add('OPENAI_API_KEY')
+        }
       }
       if (step === 'video' && videoRenderEnabled && !config.ffmpeg) {
         missingKeys.add('FFMPEG_PATH')
@@ -875,8 +895,10 @@ export const useQuickCutGenerationStore = create<
         try {
           await simulateMockExport((label) => set({ renderStatusLabel: label }))
           exportPackageReady = true
-        } catch {
-          exportPackageReady = true
+        } catch (mockErr) {
+          exportPackageReady = false
+          renderError =
+            mockErr instanceof Error ? mockErr.message : 'Storyboard export packaging failed'
         }
       }
 
@@ -1045,8 +1067,12 @@ export const useQuickCutGenerationStore = create<
         await simulateMockExport((label) => set({ renderStatusLabel: label }))
         set({ exportPackageReady: true, renderError: null })
         persistSession(get())
-      } catch {
-        set({ exportPackageReady: true, renderError: null })
+      } catch (mockErr) {
+        set({
+          exportPackageReady: false,
+          renderError:
+            mockErr instanceof Error ? mockErr.message : 'Storyboard export packaging failed',
+        })
       }
       return
     }
