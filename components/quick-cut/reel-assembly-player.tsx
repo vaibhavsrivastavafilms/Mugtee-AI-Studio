@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
-import { Loader2 } from 'lucide-react'
+import { Loader2, Pause, Play } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -116,6 +116,7 @@ export function ReelAssemblyPlayer({
 
 
   const [frameIndex, setFrameIndex] = useState(0)
+  const [videoPlaying, setVideoPlaying] = useState(false)
 
   const internalAudioRef = useRef<HTMLAudioElement>(null)
 
@@ -206,6 +207,54 @@ export function ReelAssemblyPlayer({
 
   useEffect(() => {
 
+    setVideoPlaying(false)
+
+    const video = videoRef.current
+
+    if (!video || !hasVideo) return
+
+    const onPlay = () => setVideoPlaying(true)
+
+    const onPause = () => setVideoPlaying(false)
+
+    const onEnded = () => setVideoPlaying(false)
+
+    video.addEventListener('play', onPlay)
+
+    video.addEventListener('pause', onPause)
+
+    video.addEventListener('ended', onEnded)
+
+    return () => {
+
+      video.removeEventListener('play', onPlay)
+
+      video.removeEventListener('pause', onPause)
+
+      video.removeEventListener('ended', onEnded)
+
+    }
+
+  }, [hasVideo, videoUrl])
+
+
+
+  const toggleVideoPlayback = () => {
+
+    const video = videoRef.current
+
+    if (!video) return
+
+    if (video.paused) void video.play()
+
+    else video.pause()
+
+  }
+
+
+
+  useEffect(() => {
+
     if (hasVideo || frames.length < 2) return
 
     if (voiceUrl && duration > 0 && captionState) {
@@ -280,23 +329,67 @@ export function ReelAssemblyPlayer({
 
         {hasVideo ? (
 
-          <video
+          <>
 
-            ref={videoRef}
+            <video
 
-            src={videoUrl!}
+              ref={videoRef}
 
-            controls
+              src={videoUrl!}
 
-            autoPlay
+              playsInline
 
-            playsInline
+              preload="metadata"
 
-            preload="metadata"
+              className="h-full w-full object-cover"
 
-            className="h-full w-full object-cover"
+              onClick={toggleVideoPlayback}
 
-          />
+            />
+
+            <button
+
+              type="button"
+
+              onClick={toggleVideoPlayback}
+
+              className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
+
+              aria-label={videoPlaying ? 'Pause video' : 'Play video'}
+
+            >
+
+              <span
+
+                className={cn(
+
+                  'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
+
+                  videoPlaying
+
+                    ? 'opacity-0 group-hover:opacity-100'
+
+                    : 'opacity-100'
+
+                )}
+
+              >
+
+                {videoPlaying ? (
+
+                  <Pause className="h-5 w-5" aria-hidden />
+
+                ) : (
+
+                  <Play className="h-5 w-5 ml-0.5" aria-hidden />
+
+                )}
+
+              </span>
+
+            </button>
+
+          </>
 
         ) : showLiveTiles ? (
 

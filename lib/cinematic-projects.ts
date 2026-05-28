@@ -1,4 +1,42 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+
+/** User-facing hint when migrations 0014–0017 have not been applied. */
+export const CINEMATIC_PROJECTS_MIGRATION_HINT =
+  'Project library is not set up yet. Run Supabase migrations 0014–0017 (cinematic_projects) in the SQL editor, then retry save.'
+
+/** Thrown when migrations 0014–0017 have not been applied (table missing). */
+export class CinematicProjectsUnavailableError extends Error {
+  constructor(message = CINEMATIC_PROJECTS_MIGRATION_HINT) {
+    super(message)
+    this.name = 'CinematicProjectsUnavailableError'
+  }
+}
+
+/** Detect Supabase/PostgREST errors for a missing cinematic_projects table. */
+export function isCinematicProjectsUnavailable(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: string; message?: string; status?: number; details?: string }
+  if (e.code === '42P01' || e.code === 'PGRST205' || e.code === 'PGRST204') return true
+  if (e.status === 404) return true
+  const msg = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
+  return (
+    msg.includes('cinematic_projects') &&
+    (msg.includes('does not exist') ||
+      msg.includes('could not find') ||
+      msg.includes('schema cache') ||
+      msg.includes('relation'))
+  )
+}
+
+function throwIfUnavailable(error: unknown): never {
+  if (isCinematicProjectsUnavailable(error)) {
+    console.warn(
+      '[cinematic_projects] Table missing — apply supabase/migrations/0014_cinematic_projects.sql through 0017_project_archive_fields.sql'
+    )
+    throw new CinematicProjectsUnavailableError()
+  }
+  throw error
+}
 import {
   captionsToPayload,
   parseCaptionsPayload,
@@ -222,7 +260,14 @@ async function requireUserId(): Promise<string> {
 }
 
 export async function createProject(
-  state: Partial<CinematicProjectState> & { id?: string; mode?: 'quick' | 'director' },
+  state: Partial<CinematicProjectState> & {
+    id?: string
+    mode?: 'quick' | 'director'
+    video_url?: string | null
+    thumbnail_url?: string | null
+    storyboard?: unknown
+    virlo?: unknown
+  },
   userId?: string
 ): Promise<CinematicProjectRow> {
   const supabase = createSupabaseBrowserClient()
@@ -243,16 +288,22 @@ export async function createProject(
     suggestedVoiceStyle: state.suggestedVoiceStyle ?? 'warm_documentary',
     niche: state.niche ?? 'storytelling',
     status: state.status ?? 'create',
-    mode: (state as { mode?: 'quick' | 'director' }).mode ?? 'director',
+    mode: state.mode ?? 'director',
   })
+
+  const insertRow: Record<string, unknown> = { ...payload, user_id: uid }
+  if (state.video_url !== undefined) insertRow.video_url = state.video_url
+  if (state.thumbnail_url !== undefined) insertRow.thumbnail_url = state.thumbnail_url
+  if (state.storyboard !== undefined) insertRow.storyboard = state.storyboard
+  if (state.virlo !== undefined) insertRow.virlo = state.virlo
 
   const { data, error } = await supabase
     .from('cinematic_projects')
-    .insert({ ...payload, user_id: uid })
+    .insert(insertRow)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) throwIfUnavailable(error)
   return data as CinematicProjectRow
 }
 
@@ -315,7 +366,7 @@ export async function updateProject(
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) throwIfUnavailable(error)
   return data as CinematicProjectRow
 }
 
@@ -327,7 +378,7 @@ export async function loadProject(id: string): Promise<CinematicProjectRow> {
     .eq('id', id)
     .single()
 
-  if (error) throw error
+  if (error) throwIfUnavailable(error)
   return data as CinematicProjectRow
 }
 
@@ -341,50 +392,84 @@ export async function loadRecentProjects(
     .order('updated_at', { ascending: false })
     .limit(limit)
 
-  if (error) throw error
+  if (error) {
+    if (isCinematicProjectsUnavailable(error)) {
+      console.warn(
+        '[cinematic_projects] Table missing — apply supabase/migrations/0014_cinematic_projects.sql through 0017_project_archive_fields.sql'
+      )
+      return []
+    }
+    throw error
+  }
   return (data as CinematicProjectRow[]).map(rowToSummary)
 }
 
 /** Auto-save a completed or in-progress generation into the unified project library. */
 export async function archiveGeneratedProject(
   input: ArchiveGeneratedProjectInput
-): Promise<CinematicProjectRow | null> {
-  try {
-    const scenes = input.scenes ?? []
-    const thumbnail = resolveThumbnail(input.thumbnail_url, scenes)
-    const status = input.status ?? (input.video_url ? 'complete' : 'preview')
-    const payload = stateToRowPayload({
-      id: input.projectId ?? null,
-      title: input.title || 'Untitled reel',
-      prompt: input.prompt || '',
-      style: input.style ?? 'cinematic',
-      duration: input.duration ?? 60,
-      hook: input.hook ?? '',
-      summary: input.summary ?? input.hook ?? '',
-      script: input.script ?? '',
-      scenes,
-      voice: input.voice ?? null,
-      captions: input.captionLines?.join('\n') ?? '',
-      captionLines: input.captionLines ?? [],
-      suggestedVoiceStyle: input.suggestedVoiceStyle ?? 'warm_documentary',
-      niche: input.niche ?? 'storytelling',
-      status,
-      mode: input.mode,
-    })
+): Promise<CinematicProjectRow> {
+  const scenes = input.scenes ?? []
+  const thumbnail = resolveThumbnail(input.thumbnail_url, scenes)
+  const status = input.status ?? (input.video_url ? 'complete' : 'preview')
+  const payload = stateToRowPayload({
+    id: input.projectId ?? null,
+    title: input.title || 'Untitled reel',
+    prompt: input.prompt || '',
+    style: input.style ?? 'cinematic',
+    duration: input.duration ?? 60,
+    hook: input.hook ?? '',
+    summary: input.summary ?? input.hook ?? '',
+    script: input.script ?? '',
+    scenes,
+    voice: input.voice ?? null,
+    captions: input.captionLines?.join('\n') ?? '',
+    captionLines: input.captionLines ?? [],
+    suggestedVoiceStyle: input.suggestedVoiceStyle ?? 'warm_documentary',
+    niche: input.niche ?? 'storytelling',
+    status,
+    mode: input.mode,
+  })
 
-    type ArchivePatch = Partial<CinematicProjectState> & {
-      mode?: 'quick' | 'director'
-      video_url?: string | null
-      thumbnail_url?: string | null
-      storyboard?: unknown
-      virlo?: unknown
-    }
+  type ArchivePatch = Partial<CinematicProjectState> & {
+    mode?: 'quick' | 'director'
+    video_url?: string | null
+    thumbnail_url?: string | null
+    storyboard?: unknown
+    virlo?: unknown
+  }
 
-    const archivePatch: ArchivePatch = {
+  const archivePatch: ArchivePatch = {
+    title: payload.title,
+    prompt: payload.prompt,
+    style: payload.style,
+    duration: payload.duration,
+    script: payload.script,
+    scenes: payload.scenes as CinematicScene[],
+    voice: payload.voice as CinematicVoice | null,
+    captions: input.captionLines?.join('\n') ?? '',
+    captionLines: input.captionLines ?? [],
+    suggestedVoiceStyle: input.suggestedVoiceStyle ?? 'warm_documentary',
+    niche: input.niche ?? 'storytelling',
+    status: status as CinematicProjectStatus,
+    mode: input.mode,
+    video_url: input.video_url ?? null,
+    thumbnail_url: thumbnail,
+    storyboard: input.storyboard ?? scenes,
+    virlo: input.virlo ?? null,
+  }
+
+  if (input.projectId) {
+    return await updateProject(input.projectId, archivePatch)
+  }
+
+  return await createProject(
+    {
       title: payload.title,
       prompt: payload.prompt,
       style: payload.style,
       duration: payload.duration,
+      hook: input.hook ?? '',
+      summary: input.summary ?? input.hook ?? '',
       script: payload.script,
       scenes: payload.scenes as CinematicScene[],
       voice: payload.voice as CinematicVoice | null,
@@ -398,41 +483,9 @@ export async function archiveGeneratedProject(
       thumbnail_url: thumbnail,
       storyboard: input.storyboard ?? scenes,
       virlo: input.virlo ?? null,
-    }
-
-    if (input.projectId) {
-      return await updateProject(input.projectId, archivePatch)
-    }
-
-    const row = await createProject(
-      {
-        title: payload.title,
-        prompt: payload.prompt,
-        style: payload.style,
-        duration: payload.duration,
-        hook: input.hook ?? '',
-        summary: input.summary ?? input.hook ?? '',
-        script: payload.script,
-        scenes: payload.scenes as CinematicScene[],
-        voice: payload.voice as CinematicVoice | null,
-        captions: input.captionLines?.join('\n') ?? '',
-        captionLines: input.captionLines ?? [],
-        suggestedVoiceStyle: input.suggestedVoiceStyle ?? 'warm_documentary',
-        niche: input.niche ?? 'storytelling',
-        status: status as CinematicProjectStatus,
-        mode: input.mode,
-      },
-      undefined
-    )
-
-    if (!input.video_url && !thumbnail && !input.storyboard && !input.virlo) {
-      return row
-    }
-
-    return await updateProject(row.id, archivePatch)
-  } catch {
-    return null
-  }
+    },
+    undefined
+  )
 }
 
 /** Persist render output metadata on an existing project (client-side fallback). */
@@ -444,18 +497,14 @@ export async function saveProjectRenderOutput(
     status?: CinematicProjectStatus
     duration?: number
   }
-): Promise<CinematicProjectRow | null> {
-  try {
-    return await updateProject(projectId, {
-      status: input.status ?? 'complete',
-      duration: input.duration,
-      video_url: input.video_url,
-      thumbnail_url: input.thumbnail_url ?? null,
-    } as Partial<CinematicProjectState> & {
-      video_url?: string | null
-      thumbnail_url?: string | null
-    })
-  } catch {
-    return null
-  }
+): Promise<CinematicProjectRow> {
+  return await updateProject(projectId, {
+    status: input.status ?? 'complete',
+    duration: input.duration,
+    video_url: input.video_url,
+    thumbnail_url: input.thumbnail_url ?? null,
+  } as Partial<CinematicProjectState> & {
+    video_url?: string | null
+    thumbnail_url?: string | null
+  })
 }

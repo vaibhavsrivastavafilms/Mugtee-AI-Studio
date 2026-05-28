@@ -132,6 +132,15 @@ These two SQL files must be run **once** in production's Supabase SQL editor if 
 - `migrations/0001_billing.sql` — `subscriptions` table + RLS
 - `migrations/0002_youtube.sql` — `youtube_accounts` table + RLS + 3 columns on `content_pieces`
 
+**Quick Cut / cinematic project persistence** (required for save-to-library and recent projects):
+
+- `supabase/migrations/0014_cinematic_projects.sql` — base `cinematic_projects` table + RLS
+- `supabase/migrations/0015_project_video_urls.sql` — `video_url`, `thumbnail_url` columns
+- `supabase/migrations/0016_unified_projects.sql` — `mode`, `virlo`, `storyboard` columns
+- `supabase/migrations/0017_project_archive_fields.sql` — archive index fields
+
+Without 0014–0017, Quick Cut auto-save and `/projects` will 404 on `cinematic_projects`. The UI degrades gracefully (local preview still works).
+
 Without these, the Razorpay verify endpoint and YouTube upload endpoint will fail with `relation does not exist`.
 
 ---

@@ -20,6 +20,7 @@ export function QuickCutSaveProjectButton({
 }: QuickCutSaveProjectButtonProps) {
   const saveState = useQuickCutGenerationStore((s) => s.saveState)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const saveError = useQuickCutGenerationStore((s) => s.saveError)
   const lastSavedAt = useQuickCutGenerationStore((s) => s.lastSavedAt)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
@@ -84,6 +85,12 @@ export function QuickCutSaveProjectButton({
         <Icon className={cn('w-4 h-4', isSaving && 'animate-spin')} aria-hidden />
         {label}
       </button>
+
+      {saveError && isError ? (
+        <p className="max-w-xs text-center text-[10px] leading-relaxed tracking-wide text-amber-200/80">
+          {saveError}
+        </p>
+      ) : null}
 
       {lastSavedAt && saveState === 'idle' && hasSaved ? (
         <p className="text-[10px] tracking-[0.14em] uppercase text-gold-300/55">
