@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
+import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import type { QuickCutPipelineStep, QuickCutPipelineStatus, QuickCutStepStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 
 const STEP_KEY_HINTS: Record<QuickCutPipelineStep, string[]> = {
@@ -23,6 +24,7 @@ export function missingKeysForStep(step: QuickCutPipelineStep): string[] {
   const hints = STEP_KEY_HINTS[step]
   const configured = detectConfiguredKeys()
   if (step === 'video') {
+    if (!isVideoRenderEnabled()) return []
     return isFfmpegAvailable() ? [] : ['FFMPEG_PATH (or ffmpeg-static in dev)']
   }
   return hints.filter((k) => !configured.includes(k))

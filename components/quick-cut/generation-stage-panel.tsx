@@ -11,17 +11,23 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { cn } from '@/lib/utils'
+import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 function SceneBreakdownList({
   scenes,
   loading,
   showImages,
+  exportTitle,
+  allowDownload,
 }: {
   scenes: GeneratedScene[]
   loading?: boolean
   showImages?: boolean
+  exportTitle?: string
+  allowDownload?: boolean
 }) {
+  const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
   if (scenes.length === 0 && !loading) {
     return (
       <p className="text-[12px] text-luxe/55 italic text-center py-6">
@@ -35,7 +41,13 @@ function SceneBreakdownList({
       {scenes.map((scene, i) =>
         showImages ? (
           <li key={scene.id || i}>
-            <SceneVisualCard scene={scene} index={i} compact />
+            <SceneVisualCard
+              scene={scene}
+              index={i}
+              compact
+              exportBaseName={exportBase}
+              allowDownload={allowDownload}
+            />
           </li>
         ) : (
           <li
@@ -208,6 +220,8 @@ export function GenerationStagePanel({
           scenes={scenes}
           loading={generationStep === 'scenes'}
           showImages={scenes.some((s) => s.imageUrl?.trim())}
+          exportTitle={title}
+          allowDownload={isComplete}
         />,
         generationStep === 'scenes'
       )
@@ -255,6 +269,8 @@ export function GenerationStagePanel({
             scenes={scenes}
             loading={generationStep === 'images'}
             interactive={isComplete}
+            exportTitle={title}
+            allowDownload={isComplete}
           />
         </div>
       )

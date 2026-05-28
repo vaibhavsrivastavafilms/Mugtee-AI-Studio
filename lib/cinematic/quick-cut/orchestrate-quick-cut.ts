@@ -25,6 +25,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { coerceDuration, coerceTone } from '@/lib/workspace/validation'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status.server'
+import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 
 export type QuickCutInput = {
   prompt: string
@@ -211,25 +212,27 @@ export async function orchestrateQuickCut(
   let videoUrl: string | null = null
   let videoError = false
 
-  try {
-    const renderResult = await orchestrateFacelessVideo(
-      {
-        idea: prompt,
-        title: projectState.title,
-        script: projectState.script,
-        scenes: storeScenesToGenerated(scenes),
-        voiceAudioPath: null,
-        voiceUrl: voiceSynth.audioUrl,
-        subtitles: [],
-        userId,
-        projectId: sessionId,
-      },
-      { baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }
-    )
-    videoUrl = renderResult.videoUrl
-  } catch {
-    videoError = true
-    /* MP4 compile optional when FFmpeg unavailable */
+  if (isVideoRenderEnabled()) {
+    try {
+      const renderResult = await orchestrateFacelessVideo(
+        {
+          idea: prompt,
+          title: projectState.title,
+          script: projectState.script,
+          scenes: storeScenesToGenerated(scenes),
+          voiceAudioPath: null,
+          voiceUrl: voiceSynth.audioUrl,
+          subtitles: [],
+          userId,
+          projectId: sessionId,
+        },
+        { baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }
+      )
+      videoUrl = renderResult.videoUrl
+    } catch {
+      videoError = true
+      /* MP4 compile optional when FFmpeg unavailable */
+    }
   }
 
   const pipeline = buildPipelineStatus({

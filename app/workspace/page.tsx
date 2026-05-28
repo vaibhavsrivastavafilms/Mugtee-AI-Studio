@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 // Mugtee Workspace ΓÇö cinematic 3-panel creator workspace.
 // Reuses existing shadcn/ui primitives + the Mugtee gold/luxe theme. Zero new deps.
 

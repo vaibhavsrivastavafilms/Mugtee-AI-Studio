@@ -15,8 +15,12 @@ import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import { scenesToStore } from '@/lib/cinematic/generation'
 import {
   archiveGeneratedProject,
+  CinematicProjectsUnavailableError,
+  CINEMATIC_PROJECTS_MIGRATION_HINT,
+  isCinematicProjectsUnavailable,
   type ArchiveGeneratedProjectInput,
 } from '@/lib/cinematic-projects'
+import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
 import {
@@ -66,7 +70,7 @@ export const STEP_LABELS: Record<QuickCutGenerationStep, string> = {
   scenes: 'Building emotional pacing…',
   images: 'Generating cinematic visuals…',
   voice: 'Synthesizing voiceover…',
-  render: 'Rendering subtitles & compiling MP4…',
+  render: 'Packaging storyboard export…',
   complete: 'Your cinematic video is ready',
   error: 'Generation paused',
 }
@@ -105,6 +109,8 @@ interface QuickCutGenerationState {
   renderPollUrl: string | null
   renderError: string | null
   renderStatusLabel: string | null
+  exportPackageReady: boolean
+  videoRenderEnabled: boolean
   virlo: VirloMetadata | null
   isRegeneratingHook: boolean
   mock: boolean
@@ -115,6 +121,7 @@ interface QuickCutGenerationState {
   isComplete: boolean
   savedProjectId: string | null
   saveState: QuickCutSaveState
+  saveError: string | null
   lastSavedAt: number | null
 }
 
@@ -155,6 +162,8 @@ const INITIAL: QuickCutGenerationState = {
   renderPollUrl: null,
   renderError: null,
   renderStatusLabel: null,
+  exportPackageReady: false,
+  videoRenderEnabled: false,
   virlo: null,
   isRegeneratingHook: false,
   mock: false,
@@ -165,6 +174,7 @@ const INITIAL: QuickCutGenerationState = {
   isComplete: false,
   savedProjectId: null,
   saveState: 'idle',
+  saveError: null,
   lastSavedAt: null,
 }
 
@@ -250,20 +260,39 @@ function buildArchiveInput(
   }
 }
 
+function resolveSaveError(err: unknown): string {
+  if (err instanceof CinematicProjectsUnavailableError) return err.message
+  if (isCinematicProjectsUnavailable(err)) return CINEMATIC_PROJECTS_MIGRATION_HINT
+  if (err instanceof Error && err.message === 'Not signed in') {
+    return 'Sign in to save projects to your library.'
+  }
+  if (err instanceof Error && err.message.trim()) return err.message
+  return 'Could not save to library — try again.'
+}
+
 async function archiveQuickCutProject(
   state: QuickCutGenerationState
 ): Promise<string | null> {
   if (!state.script && state.scenes.length < 1) return null
   const output = buildGenerationOutput(state)
   const row = await archiveGeneratedProject(buildArchiveInput(state, output))
-  if (!row?.id) return null
+  if (!row?.id) throw new Error('Save returned no project id')
   useQuickCutGenerationStore.setState({
     savedProjectId: row.id,
     saveState: 'saved',
+    saveError: null,
     lastSavedAt: Date.now(),
   })
   flashSavedState()
   return row.id
+}
+
+async function ensureProjectArchived(
+  state: QuickCutGenerationState
+): Promise<string | null> {
+  if (state.savedProjectId) return state.savedProjectId
+  if (!state.script && state.scenes.length < 1) return null
+  return archiveQuickCutProject(state)
 }
 
 function appendPreviousHook(previousHooks: string[], hook: string): string[] {
@@ -486,6 +515,7 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       scenes: state.scenes,
       voiceUrl: state.voiceUrl,
       async: asyncMode,
+      projectId: state.savedProjectId ?? undefined,
     }),
   })
   const renderData = (await renderRes.json()) as Record<string, unknown>
@@ -574,8 +604,11 @@ function persistSession(state: QuickCutGenerationState) {
     renderError: state.renderError,
   })
 
-  void archiveQuickCutProject(state).catch(() => {
-    useQuickCutGenerationStore.setState({ saveState: 'error' })
+  void archiveQuickCutProject(state).catch((err) => {
+    useQuickCutGenerationStore.setState({
+      saveState: 'error',
+      saveError: resolveSaveError(err),
+    })
   })
 
   persistHookSession(state)
@@ -621,6 +654,8 @@ export const useQuickCutGenerationStore = create<
 
     const configRes = await fetch('/api/quick-cut/config')
     const config = (await configRes.json().catch(() => ({}))) as Record<string, boolean>
+    const videoRenderEnabled = config.videoRenderEnabled === true
+    set({ videoRenderEnabled })
 
     const noteMissing = (step: 'script' | 'images' | 'voice' | 'video') => {
       if (step === 'script' && !config.openai) missingKeys.add('OPENAI_API_KEY')
@@ -632,7 +667,9 @@ export const useQuickCutGenerationStore = create<
         missingKeys.add('ELEVENLABS_API_KEY')
         missingKeys.add('OPENAI_API_KEY')
       }
-      if (step === 'video' && !config.ffmpeg) missingKeys.add('FFMPEG_PATH')
+      if (step === 'video' && videoRenderEnabled && !config.ffmpeg) {
+        missingKeys.add('FFMPEG_PATH')
+      }
     }
 
     try {
@@ -788,41 +825,59 @@ export const useQuickCutGenerationStore = create<
       let videoUrl: string | null = null
       let renderPollUrl: string | null = null
       let renderError: string | null = null
+      let exportPackageReady = false
 
       try {
-        const { renderRes, renderData } = await requestVideoRender(get(), true)
+        await ensureProjectArchived(get())
+      } catch (err) {
+        useQuickCutGenerationStore.setState({
+          saveState: 'error',
+          saveError: resolveSaveError(err),
+        })
+      }
 
-        if (renderRes.ok) {
-          if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
-            videoUrl = renderData.videoUrl
-            set({ videoUrl, renderPollUrl: null, renderError: null })
-          } else if (typeof renderData.pollUrl === 'string') {
-            renderPollUrl = renderData.pollUrl
-            set({ renderPollUrl, renderError: null })
-            try {
-              videoUrl = await pollRenderJob(renderPollUrl, (patch) => {
-                if (patch.label) set({ renderStatusLabel: patch.label })
-                if (patch.videoUrl) {
-                  set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
-                }
-              })
-            } catch (pollErr) {
-              renderError =
-                pollErr instanceof Error ? pollErr.message : 'Video render timed out'
-              /* Export screen resumes polling via renderPollUrl */
+      if (videoRenderEnabled) {
+        try {
+          const { renderRes, renderData } = await requestVideoRender(get(), true)
+
+          if (renderRes.ok) {
+            if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
+              videoUrl = renderData.videoUrl
+              set({ videoUrl, renderPollUrl: null, renderError: null })
+            } else if (typeof renderData.pollUrl === 'string') {
+              renderPollUrl = renderData.pollUrl
+              set({ renderPollUrl, renderError: null })
+              try {
+                videoUrl = await pollRenderJob(renderPollUrl, (patch) => {
+                  if (patch.label) set({ renderStatusLabel: patch.label })
+                  if (patch.videoUrl) {
+                    set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
+                  }
+                })
+              } catch (pollErr) {
+                renderError =
+                  pollErr instanceof Error ? pollErr.message : 'Video render timed out'
+              }
             }
+            if (renderData.mock === true) anyMock = true
+          } else {
+            renderError = String(renderData?.error || 'Video render unavailable')
+            anyMock = true
+            noteMissing('video')
           }
-          if (renderData.mock === true) anyMock = true
-        } else {
-          renderError = String(renderData?.error || 'Video render unavailable')
+        } catch (renderErr) {
+          renderError =
+            renderErr instanceof Error ? renderErr.message : 'Video render unavailable'
           anyMock = true
           noteMissing('video')
         }
-      } catch (renderErr) {
-        renderError =
-          renderErr instanceof Error ? renderErr.message : 'Video render unavailable'
-        anyMock = true
-        noteMissing('video')
+      } else {
+        try {
+          await simulateMockExport((label) => set({ renderStatusLabel: label }))
+          exportPackageReady = true
+        } catch {
+          exportPackageReady = true
+        }
       }
 
       const pipeline: QuickCutPipelineStatus = {
@@ -830,7 +885,7 @@ export const useQuickCutGenerationStore = create<
           script: scriptData.mock === true ? 'fallback' : 'live',
           images: imgMock ? 'fallback' : 'live',
           voice: voiceUrl ? 'live' : 'fallback',
-          video: videoUrl ? 'live' : 'skipped',
+          video: videoRenderEnabled ? (videoUrl ? 'live' : 'skipped') : 'skipped',
         },
         missingKeys: [...missingKeys],
         live: !anyMock,
@@ -841,6 +896,7 @@ export const useQuickCutGenerationStore = create<
         videoUrl,
         renderPollUrl: videoUrl ? null : renderPollUrl,
         renderError: videoUrl ? null : renderError,
+        exportPackageReady,
         mock: anyMock,
         missingKeys: [...missingKeys],
         pipeline,
@@ -983,10 +1039,31 @@ export const useQuickCutGenerationStore = create<
     const state = get()
     if (state.videoUrl || state.scenes.length < 1 || state.isGenerating) return
 
+    if (!state.videoRenderEnabled) {
+      set({ renderError: null, exportPackageReady: false })
+      try {
+        await simulateMockExport((label) => set({ renderStatusLabel: label }))
+        set({ exportPackageReady: true, renderError: null })
+        persistSession(get())
+      } catch {
+        set({ exportPackageReady: true, renderError: null })
+      }
+      return
+    }
+
     set({ renderError: null })
 
     try {
-      const { renderRes, renderData } = await requestVideoRender(state, true)
+      try {
+        await ensureProjectArchived(get())
+      } catch (err) {
+        useQuickCutGenerationStore.setState({
+          saveState: 'error',
+          saveError: resolveSaveError(err),
+        })
+      }
+
+      const { renderRes, renderData } = await requestVideoRender(get(), true)
       if (!renderRes.ok) {
         set({ renderError: String(renderData?.error || 'Video render unavailable') })
         return
@@ -1024,8 +1101,8 @@ export const useQuickCutGenerationStore = create<
   },
 
   resumeRenderPoll: async () => {
-    const { renderPollUrl, videoUrl } = get()
-    if (!renderPollUrl || videoUrl) return
+    const { renderPollUrl, videoUrl, videoRenderEnabled } = get()
+    if (!videoRenderEnabled || !renderPollUrl || videoUrl) return
 
     try {
       const url = await pollRenderJob(
@@ -1052,13 +1129,12 @@ export const useQuickCutGenerationStore = create<
     if (state.saveState === 'saving') return state.savedProjectId
     if (!state.script && state.scenes.length < 1) return null
 
-    set({ saveState: 'saving' })
+    set({ saveState: 'saving', saveError: null })
     try {
       const id = await archiveQuickCutProject(get())
-      if (!id) set({ saveState: 'error' })
       return id
-    } catch {
-      set({ saveState: 'error' })
+    } catch (err) {
+      set({ saveState: 'error', saveError: resolveSaveError(err) })
       return null
     }
   },

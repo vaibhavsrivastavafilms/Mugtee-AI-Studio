@@ -20,7 +20,12 @@ export default function CreatePage({ searchParams }: Props) {
 
   if (qs.get('tab') === 'projects' || qs.get('tab') === 'exports') {
     const filter = qs.get('filter')
-    redirect(filter ? `/projects?filter=${filter}` : '/projects')
+    if (filter) {
+      const params = new URLSearchParams({ filter })
+      redirect(`/projects?${params.toString()}`)
+    } else {
+      redirect('/projects')
+    }
   }
 
   return <CreateEntry />

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
+import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,5 +15,6 @@ export async function GET() {
     replicate: Boolean(process.env.REPLICATE_API_TOKEN?.trim()),
     images: hasImageGenerationKey(),
     ffmpeg: isFfmpegAvailable(),
+    videoRenderEnabled: isVideoRenderEnabled(),
   })
 }
