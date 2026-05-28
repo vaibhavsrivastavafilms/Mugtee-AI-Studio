@@ -41,12 +41,34 @@ export default function PipelinePage() {
   const statusParam = searchParams.get('status')
 
   // Phase P3 — bulk selection
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const toggleSelect = useCallback((id: string) => {
-    setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }, [])
-  const clearSelection = useCallback(() => setSelected(new Set()), [])
-  const selectionCtxValue = useMemo(() => ({ selected, toggle: toggleSelect }), [selected, toggleSelect])
+ // Phase P3 — bulk selection
+const [selected, setSelected] = useState<Set<string>>(new Set())
+
+const toggleSelect = useCallback((id: string) => {
+  setSelected((s) => {
+    const next = new Set(s)
+
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+
+    return next
+  })
+}, [])
+
+const clearSelection = useCallback(() => {
+  setSelected(new Set())
+}, [])
+
+const selectionCtxValue = useMemo(
+  () => ({
+    selected,
+    toggle: toggleSelect,
+  }),
+  [selected, toggleSelect]
+)
 
   const bulkMove = async (target: ContentStatus) => {
     const ids = Array.from(selected)
@@ -308,8 +330,9 @@ function KanbanCard({ item, dragging }: { item: ContentPiece; dragging?: boolean
   const confirm = useConfirm()
   const onSchedule = useContext(ScheduleCtx)
   const sel = useContext(SelectionCtx)
-  const selected = !!sel?.selected.has(item.id)
-  const anySelected = !!sel && sel.selected.size > 0
+const selected = !!sel && sel.selected.has(item.id)
+const anySelected = !!sel && sel.selected.size > 0
+  
   const stages: { key: keyof ContentPiece; label: string; dot: string }[] = [
     { key: 'script_due_date', label: 'S', dot: 'bg-blue-400' },
     { key: 'shoot_date',      label: 'F', dot: 'bg-orange-400' },

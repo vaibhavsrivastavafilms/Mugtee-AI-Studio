@@ -58,15 +58,11 @@ export const metadata: Metadata = {
   // Phase P10 — PWA / Capacitor mobile metadata (static manifest under /public)
   manifest: '/manifest.json',
   icons: {
-    icon: [
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-    shortcut: [{ url: '/icons/favicon-32.png', type: 'image/png' }],
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
   },
+   
+  
   appleWebApp: {
     capable: true,
     title: 'Mugtee',
@@ -83,8 +79,9 @@ export const metadata: Metadata = {
     'msapplication-TileImage': '/icons/icon-192.png',
     'format-detection': 'telephone=no',
   },
-}
 
+  
+} 
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#0B0B0B' },
@@ -103,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <head>
-        <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
+       {/* temporary removed hydration issue script */} <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
         {/* Phase 16 — AdSense loader. Loaded lazily, only if a publisher ID is configured. */}
         {adsenseClient && (
           <script

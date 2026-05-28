@@ -3,13 +3,16 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "NODE_OPTIONS='--max-old-space-size=512' next dev --hostname 0.0.0.0 --port 3000",
+        "dev": "set NODE_OPTIONS=--max-old-space-size=4096 && next dev --hostname 0.0.0.0 --port 3000",
         "dev:no-reload": "next dev --hostname 0.0.0.0 --port 3000",
         "dev:webpack": "next dev --hostname 0.0.0.0 --port 3000",
         "build": "next build",
-        "start": "next start"
+        "start": "next start",
+        "lint": "next lint"
     },
     "dependencies": {
+        "@capacitor/cli": "^8.3.4",
+        "@capacitor/core": "^8.3.4",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -42,7 +45,7 @@
         "@radix-ui/react-toggle-group": "^1.1.10",
         "@radix-ui/react-tooltip": "^1.2.7",
         "@supabase/ssr": "^0.10.3",
-        "@supabase/supabase-js": "^2.106.0",
+        "@supabase/supabase-js": "^2.106.2",
         "@tanstack/react-table": "^8.21.3",
         "axios": "^1.10.0",
         "class-variance-authority": "^0.7.1",
@@ -50,7 +53,7 @@
         "cmdk": "^1.1.1",
         "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
-        "framer-motion": "^12.39.0",
+        "framer-motion": "^12.40.0",
         "google-auth-library": "^10.6.2",
         "input-otp": "^1.4.2",
         "lucide-react": "^0.516.0",
@@ -70,17 +73,18 @@
         "tailwindcss-animate": "^1.0.7",
         "uuid": "^9.0.1",
         "vaul": "^1.1.2",
-        "zod": "^3.25.67"
+        "zod": "^3.25.67",
+        "zustand": "^5.0.13"
     },
     "devDependencies": {
         "@types/node": "^25.9.0",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
+        "@types/react": "^18.3.29",
+        "@types/react-dom": "^18.3.7",
         "autoprefixer": "^10.4.19",
         "globals": "^16.2.0",
         "postcss": "^8",
         "tailwindcss": "^3.4.1",
-        "typescript": "^6.0.3"
+        "typescript": "^5.4.5"
     },
     "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

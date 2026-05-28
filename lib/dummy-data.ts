@@ -24,12 +24,12 @@ export const CONTENT: ContentPiece[] = [
 ]
 
 export const ACTIVITY: ActivityItem[] = [
-  { id: 'a1', who: 'Aria Knox', action: 'moved', target: 'Midnight Pasta · Rome to Shooting', time: '2m ago', avatar: 'https://i.pravatar.cc/80?img=47' },
-  { id: 'a2', who: 'Saanvi Rao', action: 'uploaded', target: 'rough_cut_v3.mp4', time: '18m ago', avatar: 'https://i.pravatar.cc/80?img=32' },
-  { id: 'a3', who: 'Nadia Chen', action: 'scheduled', target: 'Sourdough Reel · Day 3', time: '1h ago', avatar: 'https://i.pravatar.cc/80?img=49' },
-  { id: 'a4', who: 'Leo Marchetti', action: 'commented on', target: 'Tokyo Ramen Tour Teaser', time: '3h ago', avatar: 'https://i.pravatar.cc/80?img=12' },
-  { id: 'a5', who: 'Theo Bennett', action: 'completed', target: 'Audio pass on Knife Skills', time: '6h ago', avatar: 'https://i.pravatar.cc/80?img=15' },
-  { id: 'a6', who: 'Aria Knox', action: 'created', target: 'Chef Q&A · Massimo', time: '1d ago', avatar: 'https://i.pravatar.cc/80?img=47' },
+  { id: 'a1', actor: 'Aria Knox', action: 'moved', target: 'Midnight Pasta · Rome to Shooting', created_at: '2m ago', avatar: 'https://i.pravatar.cc/80?img=47' },
+  { id: 'a2', actor: 'Saanvi Rao', action: 'uploaded', target: 'rough_cut_v3.mp4', created_at: '18m ago', avatar: 'https://i.pravatar.cc/80?img=32' },
+  { id: 'a3', actor: 'Nadia Chen', action: 'scheduled', target: 'Sourdough Reel · Day 3', created_at: '1h ago', avatar: 'https://i.pravatar.cc/80?img=49' },
+  { id: 'a4', actor: 'Leo Marchetti', action: 'commented on', target: 'Tokyo Ramen Tour Teaser', created_at: '3h ago', avatar: 'https://i.pravatar.cc/80?img=12' },
+  { id: 'a5', actor: 'Theo Bennett', action: 'completed', target: 'Audio pass on Knife Skills', created_at: '6h ago', avatar: 'https://i.pravatar.cc/80?img=15' },
+  { id: 'a6', actor: 'Aria Knox', action: 'created', target: 'Chef Q&A · Massimo', created_at: '1d ago', avatar: 'https://i.pravatar.cc/80?img=47' },
 ]
 
 export const STATUS_META: Record<string, { label: string; color: string; ring: string }> = {

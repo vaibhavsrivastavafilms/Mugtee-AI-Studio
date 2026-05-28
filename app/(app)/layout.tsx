@@ -5,19 +5,18 @@ import { MugteeAssistant } from '@/components/mugtee/mugtee-assistant'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  // V3.7 — Floating <MugteeAssistant /> RESTORED as a lightweight ambient orb.
-  // It auto-hides on /dashboard (where the unified studio owns the orb + input) and
-  // on landing/legal routes, so there is no duplication with the central workflow.
-  // Pure CSS Mugtee Orb (4 states) + the existing voice/intent/chat logic — no new
-  // architecture, no avatar engine.
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <DashboardShell user={{ id: user.id, email: user.email, user_metadata: user.user_metadata }}>
-      {children}
-      <MugteeAssistant />
-    </DashboardShell>
+    <html lang="en">
+      <head>
+        <title>Mugtee</title>
+        <meta name="description" content="Mugtee AI Studio" />
+      </head>
+      <body>{children}</body>
+    </html>
   )
 }

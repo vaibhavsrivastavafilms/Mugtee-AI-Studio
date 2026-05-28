@@ -67,7 +67,8 @@ export async function POST(req: NextRequest) {
     // when frames are generated. Uses the same vocabulary the kanban
     // pipeline already filters on (idea / scripting / shooting / editing /
     // scheduled / published).
-    const hasStoryboard = (output.storyboard || '').trim().length > 20
+    const hasStoryboard =
+    JSON.stringify(output.storyboard || []).length > 20
     const hasScript     = (output.script     || '').trim().length > 20
     const derivedStatus = hasStoryboard ? 'shooting' : hasScript ? 'scripting' : 'idea'
 

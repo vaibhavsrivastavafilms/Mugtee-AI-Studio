@@ -9,31 +9,34 @@ const MODEL = 'gpt-4o-mini'
 
 // 10 internal modes. UI surfaces 5; the rest are reachable via API for future routing.
 type Mode =
-  | 'reel_script' | 'script'        // /script
-  | 'viral_hook'  | 'hooks'         // /hooks
-  | 'caption'                       // /caption (enhanced packaging)
-  | 'shot_breakdown' | 'storyboard' // /storyboard
-  | 'analyze'                       // /analyze
-  | 'viralize'                      // /viralize  — rewrite an existing piece for max virality
-  | 'series'                        // /series    — propose a 5-part series arc
-  | 'topics'                        // /topics    — propose 10 future content topics
-  | 'comments'                      // /comments  — pinned + comment-bait set
-  | 'clone'                         // /clone     — reverse-engineer mechanics of a reference, do NOT copy
-  | 'ideas'                         // viral idea seeds — 3-5 structured ideas (title + hook + angle), used by the Pipeline side panel
-  | 'weekly_plan'                   // Phase 12 — generate an N-day strategic content plan (default 7)
-  | 'regen_day'                     // Phase 12 — regenerate a single day given context (day_index, existing pillars, requested field)
+  | 'reel_script'
+  | 'script'
+  | 'viral_hook'
+  | 'hooks'
+  | 'caption'
+  | 'shot_breakdown'
+  | 'storyboard'
+  | 'shot_list'
+  | 'analyze'
+  | 'viralize'
+  | 'series'
+  | 'topics'
+  | 'comments'
+  | 'clone'
+  | 'ideas'
+  | 'weekly_plan'
+  | 'regen_day'
   // Phase 13D — Faceless AI Engine
-  | 'deep_research'                 // research breakdown for documentary/faceless topic (prompt-only)
-  | 'reference_analysis'            // analyze pasted reference script for retention mechanics
-  | 'flow_prompts'                  // cinematic image/B-roll prompts derived from a script
-  | 'faceless_script'               // routed to Claude
-  | 'documentary_script'            // routed to Claude
-  | 'cinematic_story'               // routed to Claude
-  | 'retention_script'              // routed to Claude
-  // Phase 14 — YouTube Intelligence (AI-only analysis, no scraping)
+  | 'deep_research'
+  | 'reference_analysis'
+  | 'flow_prompts'
+  | 'faceless_script'
+  | 'documentary_script'
+  | 'cinematic_story'
+  | 'retention_script'
+  // Phase 14 — YouTube Intelligence
   | 'youtube_intelligence'
-  // Phase V1.2 — Highlight + Rewrite. Rewrites ONLY the user-selected text fragment.
-  // Variant controls the style ('more_viral' | 'shorter' | 'emotional' | 'documentary' | 'cta').
+  // Selection rewrite
   | 'rewrite_selection'
 
 interface AIRequest {
@@ -75,6 +78,9 @@ interface AIRequest {
     // documentary pacing + Netflix-doc directives. Set by the studio panel when tone is
     // narrative (cinematic_emotional / storytelling / documentary).
     cinematic?: boolean | null
+   
+    narration_text?: string | null
+    updated_at?: string | null
   }
 }
 

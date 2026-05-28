@@ -457,23 +457,47 @@ export default function ScriptWorkspace() {
       {/* Script body */}
       <div className="rounded-2xl glass border border-gold-soft p-5 sm:p-6">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300">Full script</span>
-          {!editing && <span className="text-[10px] text-muted-foreground">{scriptText.split(/\s+/).filter(Boolean).length} words</span>}
+          <span className="text-[10px] tracking-[0.25em] uppercase text-gold-300">
+            {parsedScript.isStructured && parsedScript.hook ? 'Hook & script' : 'Full script'}
+          </span>
+          {!editing && (
+            <span className="text-[10px] text-muted-foreground">
+              {scriptText.split(/\s+/).filter(Boolean).length} words
+            </span>
+          )}
         </div>
         {editing ? (
           <>
-            <textarea value={draft} onChange={e => setDraft(e.target.value)} className="w-full min-h-[280px] bg-white/[0.03] border border-white/[0.08] rounded-lg p-3 text-[13px] leading-relaxed font-mono text-luxe/90 focus:outline-none focus:border-gold-500/50" />
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-full min-h-[280px] bg-white/[0.03] border border-white/[0.08] rounded-lg p-3 text-[13px] leading-relaxed font-mono text-luxe/90 focus:outline-none focus:border-gold-500/50"
+            />
             <div className="flex justify-end gap-2 mt-3">
               <Button variant="ghost" onClick={() => setEditing(false)} className="text-muted-foreground">Cancel</Button>
               <Button onClick={saveEdit} className="bg-gold-gradient text-black gap-2"><Check className="w-4 h-4" /> Save</Button>
             </div>
           </>
-        ) : scriptText ? (
-          <pre ref={scriptBodyRef} className="text-[13px] sm:text-[13.5px] leading-[1.95] sm:leading-[2] tracking-[0.005em] text-luxe/90 whitespace-pre-wrap font-mono break-words select-text [&>br+br]:block">{scriptText}</pre>
         ) : (
-          <div className="text-[12px] text-muted-foreground italic">No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.</div>
+          <>
+            {scriptText || (parsedScript.isStructured && parsedScript.hook) ? (
+              viewMode === 'narration' || !parsedScript.isStructured ? (
+                <pre
+                  ref={scriptBodyRef}
+                  className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text"
+                >
+                  {scriptText}
+                </pre>
+              ) : (
+                <CinematicScriptBody raw={fullScript} scriptBodyRef={scriptBodyRef} />
+              )
+            ) : (
+              <div className="text-[12px] text-muted-foreground italic">
+                No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.
+              </div>
+            )}
+          </>
         )}
-        {/* Phase V1.2 — Hint shown only when there is body text */}
         {scriptText && !editing && (
           <div className="mt-3 pt-3 border-t border-white/[0.05] text-[10px] text-muted-foreground tracking-wider flex items-center gap-1.5">
             <Wand2 className="w-3 h-3 text-gold-400/80" /> Highlight any paragraph to rewrite it with AI · 5 styles

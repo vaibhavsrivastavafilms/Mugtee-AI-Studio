@@ -73,7 +73,14 @@ function readPlan(): Plan {
 // so the UI naturally shows ∞ Unlimited without rewriting any caller.
 export function useUsage() {
   const [plan, setPlan]   = useState<Plan>('free')
-  const [usage, setUsage] = useState<UsageRow>({ month: monthKey(), ai: 0, scripts: 0, planner: 0 })
+  const [usage, setUsage] = useState<UsageRow>({
+    month: monthKey(),
+    ai: 0,
+    scripts: 0,
+    planner: 0,
+    bonus: 0,
+   bonusDay: ''
+  })
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [upgradeReason, setUpgradeReason] = useState<string>('')
   const [trial, setTrial] = useState<{ active: boolean; daysLeft: number; endsAt: string | null; planType: string }>({ active: false, daysLeft: 0, endsAt: null, planType: 'FREE' })
