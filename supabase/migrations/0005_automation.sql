@@ -32,7 +32,7 @@ alter table public.shoots         add column if not exists reminder_sent boolean
 create table if not exists public.publishing_queue (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  content_id uuid references public.content_pieces(id) on delete cascade,
+  content_id uuid references public..select(id) on delete cascade,
   platform text,
   scheduled_for timestamptz,
   status text not null default 'queued',

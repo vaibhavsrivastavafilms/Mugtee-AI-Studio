@@ -1,4 +1,12 @@
-export type ContentStatus = 'idea' | 'scripting' | 'shooting' | 'editing' | 'scheduled' | 'published'
+export type ContentStatus =
+  | 'idea'
+  | 'scripting'
+  | 'shooting'
+  | 'editing'
+  | 'scheduled'
+  | 'published'
+  | 'draft'
+  | string
 export type Platform = 'youtube' | 'instagram' | 'tiktok' | 'twitter' | 'linkedin' | 'facebook' | 'reddit'
 export type CrewStatus = 'active' | 'busy' | 'offline'
 export type ShootStatus = 'planned' | 'today' | 'wrapped'
@@ -9,7 +17,7 @@ export interface ContentPiece {
   user_id?: string
   title: string
   description?: string | null
-  status: ContentStatus
+  status?: string
   platform: Platform
   thumbnail?: string | null
   scheduled_at?: string | null
@@ -26,6 +34,9 @@ export interface ContentPiece {
   youtube_status?: 'uploading' | 'published' | 'failed' | null
   youtube_error?: string | null
   created_at?: string
+  updated_at?: string
+  narration_text?: string
+  selection?: string
 }
 
 export interface InstagramAccount {
@@ -76,12 +87,11 @@ export interface MediaAsset {
   content_id?: string | null
   created_at?: string
 }
-
 export interface ActivityItem {
   id: string
-  user_id?: string
-  actor?: string | null
-  action?: string | null
-  target?: string | null
-  created_at?: string
+  actor: string
+  action: string
+  target: string
+  created_at: string
+  avatar: string
 }

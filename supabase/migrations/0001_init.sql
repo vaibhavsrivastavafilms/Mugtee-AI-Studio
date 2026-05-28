@@ -57,7 +57,7 @@ create table if not exists public.media (
   url text,
   thumbnail text,
   size_bytes bigint,
-  content_id uuid references public.content_pieces(id) on delete set null,
+  content_id uuid references public..select(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

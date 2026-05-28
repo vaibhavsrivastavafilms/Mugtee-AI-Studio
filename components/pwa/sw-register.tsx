@@ -26,7 +26,7 @@ export function ServiceWorkerRegister() {
     if ('requestIdleCallback' in window) {
       ;(window as any).requestIdleCallback(register, { timeout: 4000 })
     } else {
-      window.setTimeout(register, 1500)
+      setTimeout(register, 1500)
     }
   }, [])
 

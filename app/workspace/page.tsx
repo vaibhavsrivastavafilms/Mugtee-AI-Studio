@@ -91,12 +91,31 @@ const SHOWCASE: { title: string; hook: string; platform: string }[] = [
   { title: 'Mornings With Aaji',            hook: '"She poured chai like she was pouring a story."', platform: 'Instagram Reel' },
   { title: 'The Camera That Knew My Father', hook: '"He never said he loved me. He filmed it instead."', platform: 'YouTube Short' },
 ]
+type StoryboardShot = {
+  id: string
 
+  shot_number: number
+  duration: number
+
+  narration: string
+  visual: string
+
+  shot_type: string
+  lens: string
+  camera_movement: string
+  framing: string
+
+  lighting: string
+  mood: string
+
+  image_prompt: string
+
+  image_url?: string
+}
 type GenOutput = {
   hook: string
   script: string
-  storyboard: string
-  captions: string
+  storyboardShots: StoryboardShot[]
   thumbnailIdea: string
 }
 type RecentProject = {
@@ -138,7 +157,7 @@ type CreativeStage = 'idea' | 'script' | 'storyboard' | 'frames' | 'voice'
 function deriveStage(output: GenOutput | null, tab: string): CreativeStage {
   if (tab === 'voiceover') return 'voice'
   if (!output) return 'idea'
-  const hasStoryboard = ((output.storyboard || '').trim()).length > 20
+  const hasStoryboard = (output.storyboardShots?.length || 0) > 0
   if (!hasStoryboard) return 'script'
   if (tab === 'storyboard') return 'frames'
   return 'storyboard'
@@ -511,7 +530,7 @@ export default function WorkspacePage() {
     usedStarterPromptRef.current = true
     track('workspace_template_applied', { seed: seed.slice(0, 40) })
   }
-
+  const [isGenerating, setIsGenerating] = useState(false)
   const newProject = () => {
     setTopic(''); setOutput(null); setSavedId(null); setTab('hook'); setActiveProjectId(null)
     setLastSavedAt(null); setRecovered(false)
@@ -856,34 +875,47 @@ function OutputPanel({
           <TabsTrigger value="thumbnail"  className="text-[11.5px] font-medium tracking-[0.02em] gap-1.5 px-2.5"><ImageIcon className="w-3 h-3" />Thumb</TabsTrigger>
         </TabsList>
 
-        {(['hook','script','storyboard','voiceover','captions','thumbnail'] as const).map(key => (
-          <TabsContent key={key} value={key} className="flex-1 mt-3">
-            {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
-              <StoryboardTiming storyboardText={output.storyboard} />
-            )}
-            {key === 'voiceover' ? (
-              <VoiceoverPanel
-                script={output?.script || ''}
-                platform={platform}
-                duration={duration}
-                savedId={savedId}
-                loading={loading}
-                ensureSaved={ensureSaved}
-              />
-            ) : (
-              <OutputBody loading={loading} text={output ? output[key === 'thumbnail' ? 'thumbnailIdea' : key] : ''} />
-            )}
-            {key === 'storyboard' && output && (output.storyboard || '').trim().length > 20 && (
-              <StoryboardFrames
-                storyboardText={output.storyboard}
-                projectTitle={projectTitle}
-                savedId={savedId}
-                ensureSaved={ensureSaved}
-                platform={platform}
-              />
-            )}
-          </TabsContent>
-        ))}
+          {(['hook','script','storyboard','voiceover','captions','thumbnail'] as const).map(key => (
+  <TabsContent key={key} value={key} className="flex-1 mt-3">
+
+    {key === 'storyboard' ? (
+      <>
+        {output?.storyboardShots?.length > 0 && (
+          <>
+            <StoryboardTiming shots={output.storyboardShots} />
+
+            <StoryboardFrames
+  shots={output.storyboardShots}
+  projectTitle={projectTitle}
+  savedId={savedId}
+  ensureSaved={ensureSaved}
+  platform={platform}
+/>
+          </>
+        )}
+      </>
+    ) : key === 'voiceover' ? (
+      <VoiceoverPanel
+        script={output?.script || ''}
+        platform={platform}
+        duration={duration}
+        savedId={savedId}
+        loading={loading}
+        ensureSaved={ensureSaved}
+      />
+    ) : (
+      <OutputBody
+        loading={loading}
+        text={
+          output
+            ? output[key === 'thumbnail' ? 'thumbnailIdea' : key as keyof GenOutput] as string
+            : ''
+        }
+      />
+    )}
+
+  </TabsContent>
+))}
           </Tabs>
         </>
       )}
@@ -1165,14 +1197,11 @@ function VoiceoverPanel({
 // Pure client-side. No backend, no new deps. Reuses existing Button + sonner.
 // =====================================================================
 
-const SECTIONS: { key: keyof GenOutput; label: string }[] = [
-  { key: 'hook',          label: 'Hook' },
-  { key: 'script',        label: 'Script' },
-  { key: 'storyboard',    label: 'Storyboard' },
-  { key: 'captions',      label: 'Captions' },
+const SECTIONS = [
+  { key: 'hook', label: 'Hook' },
+  { key: 'script', label: 'Script' },
   { key: 'thumbnailIdea', label: 'Thumbnail Idea' },
-]
-
+] as const
 function formatAsText(out: GenOutput, title?: string): string {
   const parts: string[] = []
   if (title?.trim()) {
@@ -1182,7 +1211,7 @@ function formatAsText(out: GenOutput, title?: string): string {
   }
   for (const { key, label } of SECTIONS) {
     parts.push(label.toUpperCase())
-    parts.push((out[key] || '').trim() || '(empty)')
+    parts.push(String(out[key] || '').trim() || '(empty)')
     parts.push('')
   }
   parts.push('—')
@@ -1195,7 +1224,7 @@ function formatAsMarkdown(out: GenOutput, title?: string): string {
   if (title?.trim()) parts.push(`# ${title.trim()}`, '')
   for (const { key, label } of SECTIONS) {
     parts.push(`# ${label}`, '')
-    parts.push((out[key] || '').trim() || '_(empty)_', '')
+    parts.push(String(out[key] || '').trim() || '_(empty)_', '')
   }
   parts.push('---')
   parts.push('_Generated with [Mugtee AI Studio](https://mugtee.in)._')
@@ -1356,8 +1385,21 @@ function parseAllShotBlocks(storyboard: string): string[] {
     .filter(b => /^\s*\d+\./.test(b) || /Shot:|Framing:|Movement:|Lighting:/.test(b))
 }
 
-function estimateShotTiming(shotText: string, index: number, total: number): ShotTiming {
-  const t = shotText.toLowerCase()
+function estimateShotTiming(
+  shot: StoryboardShot,
+  index: number,
+  total: number
+): ShotTiming {
+
+  const t = `
+  ${shot.visual}
+  ${shot.narration}
+  ${shot.image_prompt}
+  ${shot.camera_movement}
+  ${shot.mood}
+`
+  .toLowerCase()
+  
   // Climactic — last or second-last shot, OR keyword signal of a payoff moment.
   const isFinal = index >= total - 1
   if (/\b(climax|reveal|payoff|resolution|smash[- ]?to|final frame|hero wide|end card|hold to black|title card)\b/.test(t)
@@ -1386,41 +1428,49 @@ function estimateShotTiming(shotText: string, index: number, total: number): Sho
   return { index, durationSeconds: 3 }
 }
 
-function StoryboardTiming({ storyboardText }: { storyboardText: string }) {
-  const timings = useMemo(() => {
-    const blocks = parseAllShotBlocks(storyboardText)
-    return blocks.map((s, i) => estimateShotTiming(s, i, blocks.length))
-  }, [storyboardText])
-  if (!timings.length) return null
-  const total = timings.reduce((sum, t) => sum + t.durationSeconds, 0)
+function StoryboardTiming({
+  shots,
+}: {
+  shots: StoryboardShot[]
+}) {
+  if (!shots?.length) return null
+
+  const totalDuration = shots.reduce(
+    (acc, shot) => acc + (shot.duration || 0),
+    0
+  )
+
   return (
-    <div className="mb-3 rounded-lg border border-white/[0.04] bg-white/[0.015] p-2.5">
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
-        <span className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/35">Pacing</span>
-        <span className="text-[9.5px] tracking-[0.18em] uppercase text-gold-300/65">
-          Estimated Runtime · {total}s
+    <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-white">
+          Shot Timing
+        </h3>
+
+        <span className="text-xs text-gold-300">
+          {totalDuration}s total
         </span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {timings.map(t => (
+
+      <div className="space-y-2">
+        {shots.map((shot: StoryboardShot) => (
           <div
-            key={t.index}
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/20 border border-white/[0.04] text-[10px] leading-none"
+            key={shot.id}
+            className="flex items-center justify-between text-xs"
           >
-            <span className="text-luxe/35 tracking-[0.04em] font-mono">{String(t.index + 1).padStart(2, '0')}</span>
-            <span className="text-gold-200/75 font-medium font-mono">{t.durationSeconds}s</span>
-            {t.tag && (
-              <span className="text-luxe/45 tracking-[0.04em] hidden sm:inline">
-                {t.tag}
-              </span>
-            )}
+            <span className="text-white/70">
+              Shot {shot.shot_number}
+            </span>
+
+            <span className="text-gold-300">
+              {shot.duration}s
+            </span>
           </div>
         ))}
       </div>
     </div>
   )
 }
-
 // =====================================================================
 // STORYBOARD FRAMES — Phase 2A cinematic still generation
 // Reuses /api/ai/image (Gemini via Emergent gateway) which already stores
@@ -1431,24 +1481,22 @@ function StoryboardTiming({ storyboardText }: { storyboardText: string }) {
 
 type FrameAsset = {
   id: string
-  url: string
-  prompt?: string
-  shotText?: string                       // cached for single-frame regenerate
-  mood?: MoodId                           // Phase 2D — visual mood lock used to generate this frame
-  cameraStyle?: CameraStyleId             // Phase 2G — camera style lock used to generate this frame
-  metadata?: Record<string, any> | null
-  created_at?: string
-  regenerating?: boolean                  // local-only UI flag
-}
 
-function parseShots(storyboard: string): string[] {
-  if (!storyboard) return []
-  const blocks = storyboard
-    .split(/\n\s*\n/)
-    .map(b => b.trim())
-    .filter(Boolean)
-    .filter(b => /^\s*\d+\./.test(b) || /Shot:|Framing:|Movement:|Lighting:/.test(b))
-  return blocks.slice(0, 6)
+  url: string
+
+  prompt?: string
+
+  shot: StoryboardShot
+
+  mood?: MoodId
+
+  cameraStyle?: CameraStyleId
+
+  metadata?: Record<string, any> | null
+
+  created_at?: string
+
+  regenerating?: boolean
 }
 
 function frameAspectFor(platform?: string): '1:1' | '9:16' | '16:9' {
@@ -1568,12 +1616,18 @@ function titleCase(s: string): string {
 
 // Detect recurring characters from the parsed shot list.
 // A "recurring" character = role noun appearing in 2+ distinct shots.
-function detectCharacters(shots: string[]): CharacterMemory[] {
+function detectCharacters(shots: StoryboardShot[][]): CharacterMemory[] {
   const map = new Map<string, CharacterMemory>()
-  shots.forEach((shotText, idx) => {
+  shots.forEach((shot, idx) => {
     // Tokenize without apostrophes so possessives ("fisherman's") still match the
     // base role noun. Hyphens preserved so "grey-bearded" stays a single token.
-    const tokens = (shotText.toLowerCase().match(/[a-z][a-z-]*/g) || [])
+    const tokens = (
+  shot
+    .map(s => s.visual || '')
+    .join(' ')
+    .toLowerCase()
+    .match(/[a-z][a-z-]*/g) || []
+)
     for (let i = 0; i < tokens.length; i++) {
       const w = tokens[i]
       if (!ROLE_NOUNS.has(w)) continue
@@ -1604,9 +1658,9 @@ function detectCharacters(shots: string[]): CharacterMemory[] {
 }
 
 // Returns the characters that actually appear in a specific shot's text.
-function charactersInShot(shotText: string, characters: CharacterMemory[]): CharacterMemory[] {
+function charactersInShot(shot: string, characters: CharacterMemory[]): CharacterMemory[] {
   if (!characters.length) return []
-  const tokens = new Set((shotText.toLowerCase().match(/[a-z][a-z-]*/g) || []))
+  const tokens = new Set((shot.toLowerCase().match(/[a-z][a-z-]*/g) || []))
   return characters.filter(c => tokens.has(c.role))
 }
 
@@ -1621,7 +1675,7 @@ function continuityLineFor(present: CharacterMemory[]): string {
 }
 
 function buildFramePrompt(
-  shotText: string,
+  shot: StoryboardShot,
   index: number,
   moodId?: string,
   characters?: CharacterMemory[],
@@ -1635,7 +1689,7 @@ function buildFramePrompt(
   // Retry path uses baseline only — drops mood / continuity / camera to give
   // Gemini the best chance of a clean generation.
   if (opts?.baselineOnly) {
-    return `Frame ${index + 1}\n${shotText}\n${baseline}`
+    return `Frame ${index + 1}\n${shot}\n${baseline}`
   }
 
   // Compact mood suffix — short modifier phrase only (no "Visual Mood Lock:" label).
@@ -1645,7 +1699,7 @@ function buildFramePrompt(
 
   // Compact continuity — single descriptor line, no leading sentence.
   const present = characters && characters.length
-    ? charactersInShot(shotText, characters)
+    ? charactersInShot(shot.visual || '', characters)
     : []
   const continuitySuffix = present.length
     ? ' Recurring: ' + present.map(c => {
@@ -1659,7 +1713,7 @@ function buildFramePrompt(
     ? ` Camera: ${CAMERA_STYLE_BY_ID[cameraStyleId].suffix}.`
     : ''
 
-  return `Frame ${index + 1}\n${shotText}\n${baseline}${moodSuffix}${continuitySuffix}${cameraSuffix}`
+  return `Frame ${index + 1}\n${shot}\n${baseline}${moodSuffix}${continuitySuffix}${cameraSuffix}`
 }
 
 // =====================================================================
@@ -1685,17 +1739,21 @@ function frameFileName(projectTitle: string | undefined, index: number): string 
 }
 
 function StoryboardFrames({
-  storyboardText, projectTitle, savedId, ensureSaved, platform,
+  shots,
+  projectTitle,
+  savedId,
+  ensureSaved,
+  platform,
 }: {
-  storyboardText: string
+  shots: StoryboardShot[]
   projectTitle?: string
   savedId: string | null
   ensureSaved?: () => Promise<string | null>
   platform?: string
 }) {
-  const shots = useMemo(() => parseShots(storyboardText), [storyboardText])
+  
   // Phase 2E — derive recurring characters from the storyboard (in-session memory).
-  const characters = useMemo(() => detectCharacters(shots), [shots])
+  const characters = useMemo(() => detectCharacters([shots]), [shots])
   const [frames, setFrames] = useState<FrameAsset[]>([])
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
@@ -1844,7 +1902,7 @@ function StoryboardFrames({
                 url: asset.url,
                 prompt: asset.prompt,
                 metadata: asset.metadata,
-                shotText: targetShots[i],
+                shot: targetShots[i],
                 mood,
                 cameraStyle,
               }
@@ -2030,15 +2088,19 @@ function StoryboardFrames({
               key={f.id || i}
               frame={f}
               index={i}
-              storyboardText={storyboardText}
+              shots={shots}
               projectTitle={projectTitle}
               onRegenerate={async () => {
                 const pid = savedId
                 if (!pid) { toast.error('Save the project first.'); return }
                 // Re-derive the shot text if it wasn't stored (e.g. legacy DB hydration).
-                const fallbackShot = parseShots(storyboardText)[i] || f.shotText || ''
-                const shotText = f.shotText || fallbackShot
-                if (!shotText) { toast.error('Original shot text not found.'); return }
+               
+                const shot = f.shot
+
+if (!shot) {
+  toast.error('Original storyboard shot not found.')
+  return
+}
                 setFrames(prev => prev.map((x, idx) => idx === i ? { ...x, regenerating: true } : x))
                 track('storyboard_frame_regenerated', { index: i, mood, camera_style: cameraStyle })
 
@@ -2050,7 +2112,7 @@ function StoryboardFrames({
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         project_id: pid,
-                        prompt: buildFramePrompt(shotText, i, mood, characters, cameraStyle, { baselineOnly }),
+                        prompt: buildFramePrompt(shot, i, mood, characters, cameraStyle, { baselineOnly }),
                         aspect_ratio: frameAspectFor(platform),
                         sequence_index: i,
                       }),
@@ -2071,7 +2133,7 @@ function StoryboardFrames({
 
                 if (asset?.url) {
                   setFrames(prev => prev.map((x, idx) => idx === i
-                    ? { id: asset.id, url: asset.url, prompt: asset.prompt, metadata: asset.metadata, shotText, mood, cameraStyle }
+                    ? { id: asset.id, url: asset.url, prompt: asset.prompt, metadata: asset.metadata, shot, mood, cameraStyle }
                     : x))
                   toast.success(`Frame ${String(i + 1).padStart(2, '0')} refreshed`)
                 } else {
@@ -2104,11 +2166,11 @@ function StoryboardFrames({
 // reuses existing /api/ai/image (regen) + Blob (download) + sonner.
 // =====================================================================
 function FrameCard({
-  frame, index, storyboardText, projectTitle, onRegenerate,
+  frame, index, shots, projectTitle, onRegenerate,
 }: {
   frame: FrameAsset
   index: number
-  storyboardText: string
+  shots: StoryboardShot[]
   projectTitle?: string
   onRegenerate: () => void | Promise<void>
 }) {
@@ -2142,8 +2204,8 @@ function FrameCard({
 
   const copyPrompt = async () => {
     const prompt = frame.prompt
-      || (frame.shotText ? buildFramePrompt(frame.shotText, index, frame.mood, undefined, frame.cameraStyle) : '')
-      || (parseShots(storyboardText)[index] ? buildFramePrompt(parseShots(storyboardText)[index], index, frame.mood, undefined, frame.cameraStyle) : '')
+      || (frame.shot ? buildFramePrompt(frame.shot, index, frame.mood, undefined, frame.cameraStyle) : '')
+    
     if (!prompt) { toast.error('Prompt not available for this frame.'); return }
     try {
       await navigator.clipboard.writeText(prompt)
@@ -2438,8 +2500,8 @@ function AIDirectorCard({
     }
   }, [])
 
-  const storyboardText = output?.storyboard || ''
-  const hasStoryboard = storyboardText.trim().length > 20
+  const shots = output?.storyboardShots || []
+  const hasStoryboard = shots.length > 0
 
   // Story Feel — derived from tone.
   const toneLabel = TONES.find(t => t.value === tone)?.label || 'Cinematic'
@@ -2451,15 +2513,38 @@ function AIDirectorCard({
   // Runtime + dominant pacing tag — both derived from the local timing engine.
   const { runtime, dominantTag } = useMemo(() => {
     if (!hasStoryboard) return { runtime: null as number | null, dominantTag: null as string | null }
-    const blocks = parseAllShotBlocks(storyboardText)
+    const blocks = parseAllShotBlocks(
+  shots.map(s => s.visual || '').join("\n")
+)
     if (!blocks.length) return { runtime: null, dominantTag: null }
-    const timings = blocks.map((s, i) => estimateShotTiming(s, i, blocks.length))
+    const timings = blocks.map((s, i) =>
+      estimateShotTiming(
+        {
+          id: crypto.randomUUID(),
+          shot_number: i + 1,
+          visual: s,
+          narration: '',
+          duration: 3,
+          shot_type: 'medium',
+          lens: '35mm',
+          camera_movement: 'static',
+          lighting: '',
+          composition: '',
+          transition: '',
+          audio: '',
+          fx: '',
+          caption: ''
+        } as unknown as StoryboardShot,
+        i,
+        blocks.length
+      )
+    )
     const total = timings.reduce((sum, t) => sum + t.durationSeconds, 0)
     const tally: Record<string, number> = {}
     for (const t of timings) if (t.tag) tally[t.tag] = (tally[t.tag] || 0) + 1
     const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]
     return { runtime: total, dominantTag: top ? top[0] : null }
-  }, [storyboardText, hasStoryboard])
+  }, [shots, hasStoryboard])
 
   // Frame readiness — derived from storyboard existence (no fake numbers).
   const frameReadiness = !hasStoryboard

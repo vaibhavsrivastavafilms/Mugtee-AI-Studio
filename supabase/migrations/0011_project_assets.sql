@@ -6,7 +6,7 @@
 -- =============================================================
 create table if not exists public.project_assets (
   id           uuid primary key default gen_random_uuid(),
-  project_id   uuid not null references public.content_pieces(id) on delete cascade,
+  project_id   uuid not null references public..select(id) on delete cascade,
   user_id      uuid not null references auth.users(id) on delete cascade,
   kind         text not null check (kind in ('image', 'voiceover', 'video', 'music', 'export', 'prompt')),
   url          text,           -- public URL into supabase storage (or external)
