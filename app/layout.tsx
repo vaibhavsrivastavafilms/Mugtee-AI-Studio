@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
 import { ServiceWorkerUnregister } from '@/components/pwa/sw-register'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { Analytics } from '@vercel/analytics/next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
 const SITE_NAME = 'Mugtee'
@@ -118,6 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* PWA — Branded "Install App" prompt (Android Chrome only, auto-hides elsewhere). */}
         <InstallPrompt />
         {children}
+        <Analytics />
         <Toaster theme="dark" position="top-right" toastOptions={{ style: { background: 'rgba(20,16,12,0.95)', border: '1px solid rgba(212,175,55,0.25)', color: '#E8D9A8' } }} />
       </body>
     </html>
