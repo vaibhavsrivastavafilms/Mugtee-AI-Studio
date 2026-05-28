@@ -6,12 +6,16 @@ import path from 'node:path'
 export const dynamic = 'force-static'
 export const runtime = 'nodejs'
 
-const FILES: Record<string, { file: string; type: string }> = {
-  'icon-192.png': { file: 'icon-192.png', type: 'image/png' },
-  'icon-512.png': { file: 'icon-512.png', type: 'image/png' },
-  'icon-512-maskable.png': { file: 'icon-512.png', type: 'image/png' },
-  'apple-touch-icon.png': { file: 'apple-icon.png', type: 'image/png' },
-  'favicon-32.png': { file: 'icon.png', type: 'image/png' },
+const ICON_SOURCE = 'icon.png'
+
+const FILES: Record<string, string> = {
+  'icon.png': ICON_SOURCE,
+  'icon-192.png': ICON_SOURCE,
+  'icon-512.png': ICON_SOURCE,
+  'icon-512-maskable.png': ICON_SOURCE,
+  'apple-touch-icon.png': ICON_SOURCE,
+  'apple-icon.png': ICON_SOURCE,
+  'favicon-32.png': ICON_SOURCE,
 }
 
 export function generateStaticParams() {
@@ -19,16 +23,16 @@ export function generateStaticParams() {
 }
 
 export async function GET(_req: Request, ctx: { params: { file: string } }) {
-  const spec = FILES[ctx.params.file]
-  if (!spec) {
+  const source = FILES[ctx.params.file]
+  if (!source) {
     return new Response('Not found', { status: 404 })
   }
 
   try {
-    const body = await readFile(path.join(process.cwd(), 'public', 'icons', spec.file))
+    const body = await readFile(path.join(process.cwd(), 'public', 'icons', source))
     return new Response(body, {
       headers: {
-        'Content-Type': spec.type,
+        'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     })

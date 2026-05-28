@@ -107,7 +107,9 @@ const selectionCtxValue = useMemo(
     }
     // Else find target item's status
     const target = content.find(c => c.id === overId)
-    if (target) setStatus(activeId, target.status as ContentStatus)
+    if (target?.status && COLUMNS.includes(target.status as ContentStatus)) {
+      setStatus(activeId, target.status as ContentStatus)
+    }
   }
 
   const activeItem = activeId ? content.find(c => c.id === activeId) : null
