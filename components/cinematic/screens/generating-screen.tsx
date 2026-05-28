@@ -18,7 +18,7 @@ import {
 } from '@/components/cinematic/workflow-shell'
 import { pickGenerationLine } from '@/lib/cinematic/generation-progress'
 import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
-import { updateCreatorMemory } from '@/lib/cinematic/execution/cinematic-creator-memory'
+import { syncCreatorMemoryFromGeneration } from '@/lib/cinematic/execution/cinematic-creator-memory'
 import { writePacingMemory } from '@/lib/cinematic/execution/screenplay-pacing-memory'
 import { trackCreatorMilestone } from '@/lib/creator/session-insights'
 import { TRUST_COPY } from '@/lib/creator/trust-copy'
@@ -81,10 +81,13 @@ export function CinematicGeneratingScreen() {
 
         applyGenerationToStore(data.output)
         trackCreatorMilestone('generation_completed')
-        updateCreatorMemory({
+        syncCreatorMemoryFromGeneration({
           niche: data.output.niche,
           lastTitle: data.output.summary || prompt.trim(),
           voiceStyle: data.output.suggestedVoiceStyle,
+          duration,
+          sceneCount: data.output.scenes?.length ?? 4,
+          style,
         })
         writePacingMemory({
           duration,

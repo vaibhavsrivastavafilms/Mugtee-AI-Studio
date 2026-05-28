@@ -1,5 +1,6 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 
 export type RhythmAnalysis = {
   targetDuration: number
@@ -36,6 +37,17 @@ export function analyzeCinematicRhythm(
     const last = scenes[scenes.length - 1]?.duration ?? 0
     if (avgMid <= first * 0.85) issues.push('flat_middle')
     if (last > first * 1.4) issues.push('rushed_open')
+  }
+
+  if (scenes.length >= 10) {
+    const arcRoles = scenes.map((_, i) => sceneArcRole(i + 1, scenes.length))
+    const releaseCount = arcRoles.filter((r) => r === 'release').length
+    if (releaseCount < 2) issues.push('rhythm_collapse')
+    const peakCount = arcRoles.filter((r) => r === 'peak').length
+    if (peakCount === 0) issues.push('repetitive_arc')
+    const midRoles = arcRoles.slice(2, -2)
+    const tensionRatio = midRoles.filter((r) => r === 'tension').length / Math.max(midRoles.length, 1)
+    if (tensionRatio > 0.85) issues.push('emotional_flattening')
   }
 
   let escalationScore = 0
@@ -79,6 +91,24 @@ export function rebalanceSceneDurations(
     const raw = Math.round(targetDuration * share)
     const duration = Math.min(8, Math.max(2, raw))
     return { ...scene, duration }
+  })
+}
+
+/** Inject breathing beats into long sequences when arc rhythm collapses. */
+export function correctLongFormRhythm(
+  scenes: GeneratedScene[],
+  targetDuration: number
+): GeneratedScene[] {
+  if (scenes.length < 10) return scenes
+  const roles = scenes.map((_, i) => sceneArcRole(i + 1, scenes.length))
+  const releaseCount = roles.filter((r) => r === 'release').length
+  if (releaseCount >= 2) return scenes
+
+  return scenes.map((scene, i) => {
+    if (i === 0 || i === scenes.length - 1) return scene
+    if (i % 5 !== 0) return scene
+    const dur = scene.duration ?? targetDuration / scenes.length
+    return { ...scene, duration: Math.max(2, Math.round(dur * 1.06 * 10) / 10) }
   })
 }
 

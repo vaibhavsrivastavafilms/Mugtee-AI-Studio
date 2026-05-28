@@ -3,9 +3,17 @@ export type {
   CinematicShotRenderIntent,
   CinematicRenderProviderId,
 } from '@/lib/cinematic/execution/render/cinematic-render-intent'
-export type { RenderProviderResult, CinematicRenderProvider } from '@/lib/cinematic/execution/render/cinematic-render-provider'
+export type {
+  RenderProviderResult,
+  CinematicRenderProvider,
+  RenderProviderContext,
+} from '@/lib/cinematic/execution/render/cinematic-render-provider'
 export type { ScreenplayRenderInstructions } from '@/lib/cinematic/execution/render/screenplay-render-conversion'
 export type { RenderOrchestrationResult } from '@/lib/cinematic/execution/render/render-orchestration-engine'
+export type {
+  CinematicFilmRealization,
+  FilmSceneSegment,
+} from '@/lib/cinematic/execution/render/cinematic-film-assembler'
 
 export { buildCinematicRenderIntent } from '@/lib/cinematic/execution/render/cinematic-render-intent'
 export { translateEmotionalMotion, motionAtmosphereHint } from '@/lib/cinematic/execution/render/emotional-motion-translation'
@@ -23,3 +31,5 @@ export { cinematicRenderFallback, shouldFallbackRender } from '@/lib/cinematic/e
 export { recoverEmotionalRender, emotionalRenderRecoveryMessage } from '@/lib/cinematic/execution/render/emotional-render-recovery'
 export { continuitySafeRender } from '@/lib/cinematic/execution/render/continuity-safe-render'
 export { retryCinematicRender } from '@/lib/cinematic/execution/render/cinematic-retry-system'
+export { assembleCinematicFilm } from '@/lib/cinematic/execution/render/cinematic-film-assembler'
+export { buildFfmpegAssemblySpec, resolveFfmpegAssemblyMode } from '@/lib/cinematic/execution/render/ffmpeg-film-assembly'

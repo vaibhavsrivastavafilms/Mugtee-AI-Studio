@@ -22,17 +22,36 @@ function fadeMsForBeat(
   defaultFadeMs: number,
   restrainedMotion: boolean
 ): number {
+  if (previewRhythm?.transitionFadeMs?.[index] != null) {
+    const base = previewRhythm.transitionFadeMs[index]
+    return restrainedMotion ? Math.min(base, 280) : base
+  }
   if (previewRhythm?.fadeMs != null && index === 0) {
     return restrainedMotion
       ? Math.min(previewRhythm.fadeMs, 260)
       : previewRhythm.fadeMs
   }
-  if (total > 1 && index > 0) {
-    const transition = emotionalTransitionMotion(index, index + 1, total)
+  if (total > 1) {
+    const fromBeat = index + 1
+    const toBeat = Math.min(index + 2, total)
+    const transition = emotionalTransitionMotion(fromBeat, toBeat, total)
     const base = transition.fadeMs
     return restrainedMotion ? Math.min(base, 280) : Math.min(base + 40, defaultFadeMs + 80)
   }
   return restrainedMotion ? Math.min(defaultFadeMs, 240) : defaultFadeMs
+}
+
+function silenceHoldMs(
+  index: number,
+  total: number,
+  previewRhythm: PreviewRhythmMetadata | undefined
+): number {
+  if (total <= 1) return 0
+  const weight = previewRhythm?.emotionalWeights?.[index]
+  if (weight === 'peak') return 180
+  if (weight === 'hold' || index === total - 1) return 240
+  if (total >= 10 && index > 0 && index % 5 === 0) return 160
+  return weight === 'open' ? 120 : 80
 }
 
 export function ImmersiveFilmViewer({
@@ -100,7 +119,7 @@ export function ImmersiveFilmViewer({
     }
 
     const schedule = () => {
-      const holdMs = intervalAt(idx)
+      const holdMs = intervalAt(idx) + silenceHoldMs(idx, frames.length, previewRhythm)
       waitTimer = setTimeout(() => {
         if (cancelled) return
         setFading(true)

@@ -412,7 +412,7 @@ export function CinematicCompileScreen() {
 
       {phase === 'idle' ? <CreatorGuidance step="compile" /> : null}
 
-      <CinematicStepNav backHref="/cinematic/voiceover" backLabel="Back to Voiceover" />
+      <CinematicStepNav backHref="/cinematic/voiceover" backLabel="Return to voice arc" />
     </CinematicWorkflowShell>
   )
 }

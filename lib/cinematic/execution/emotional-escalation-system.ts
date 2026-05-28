@@ -1,6 +1,6 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { NICHE_PROFILES } from '@/lib/cinematic/niches'
-import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 
 const ESCALATION_VERBS = [
@@ -42,7 +42,7 @@ export function applyEmotionalEscalation(
   const total = scenes.length || 1
   return scenes.map((scene, index) => {
     const sceneIndex = index + 1
-    const role = scenePacingRole(sceneIndex, total)
+    const role = sceneArcRole(sceneIndex, total)
     return {
       ...scene,
       title: scene.title.trim() || `Beat ${sceneIndex}`,

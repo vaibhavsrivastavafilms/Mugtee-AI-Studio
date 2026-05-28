@@ -5,6 +5,7 @@ export type EmotionalTransitionMotion = {
   toRole: string
   motionCue: string
   fadeMs: number
+  softness: number
 }
 
 const TRANSITIONS: Record<string, string> = {
@@ -42,9 +43,14 @@ export function emotionalTransitionMotion(
           ? 540
           : fromRole === 'hook'
             ? 380
-            : 340
+            : totalScenes >= 10 && fromRole === 'tension' && toRole === 'tension'
+              ? 360
+              : 340
 
-  return { fromRole, toRole, motionCue, fadeMs }
+  const softness =
+    fadeMs >= 500 ? 0.85 : fadeMs >= 420 ? 0.65 : fadeMs >= 360 ? 0.45 : 0.3
+
+  return { fromRole, toRole, motionCue, fadeMs, softness }
 }
 
 export function averageTransitionFadeMs(totalScenes: number): number {

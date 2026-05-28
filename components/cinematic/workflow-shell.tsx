@@ -248,8 +248,8 @@ function CinematicSaveIndicator() {
 export function CinematicStepNav({
   backHref,
   nextHref,
-  nextLabel = 'Continue',
-  backLabel = 'Back',
+  nextLabel = 'Forward',
+  backLabel = 'Return',
   onNext,
   nextDisabled,
 }: {

@@ -37,9 +37,11 @@ const SELECTIVE_EVOLUTION_LINES = [
 ] as const
 
 const EXPORT_CLOSURE_LINES = [
-  'Your cinematic sequence has reached final form.',
-  'Emotional rhythm preserved through export.',
-  'Visual continuity finalized for delivery.',
+  'Your film world has reached its enduring form.',
+  'Emotional rhythm preserved — the story endures.',
+  'Visual continuity sealed — atmosphere held in time.',
+  'Your cinematic world persists beyond this session.',
+  'The sequence is sealed — permanence, not a file transfer.',
 ] as const
 
 export function getFocusAnchorLine(seed = 0): string {

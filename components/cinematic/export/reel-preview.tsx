@@ -94,11 +94,11 @@ export const ReelPreview = memo(function ReelPreview({
               alt="Film beat preview"
               className={cn(
                 'absolute inset-0 w-full h-full object-cover calm-opacity-transition',
-                restrainedMotion ? 'duration-300' : 'duration-500',
+                restrainedMotion ? 'duration-300' : 'duration-[480ms]',
                 fading
                   ? restrainedMotion
                     ? 'opacity-0'
-                    : 'opacity-0 scale-[1.012]'
+                    : 'opacity-0 scale-[1.008]'
                   : 'opacity-100 scale-100'
               )}
             />

@@ -3,7 +3,8 @@ import { orchestrateRender } from '@/lib/cinematic/execution/render/render-orche
 import { continuitySafeRender } from '@/lib/cinematic/execution/render/continuity-safe-render'
 
 export async function renderCinematicFilm(
-  blueprint: CinematicRenderBlueprint
+  blueprint: CinematicRenderBlueprint,
+  options?: { projectId?: string }
 ) {
   const safe = continuitySafeRender(blueprint)
   if (!safe.canProceed) {
@@ -15,5 +16,5 @@ export async function renderCinematicFilm(
       pacingNote: blueprint.narrationRhythm,
     }
   }
-  return orchestrateRender(blueprint)
+  return orchestrateRender(blueprint, options)
 }

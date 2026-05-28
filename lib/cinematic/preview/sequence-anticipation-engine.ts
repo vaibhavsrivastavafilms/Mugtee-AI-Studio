@@ -18,11 +18,17 @@ const PRESENCE_LINES = [
 
 function intervalForRole(role: string, durationSec: number, index: number, total: number): number {
   const base = durationSec * 1000
-  if (role === 'hook' || index === 0) return Math.max(1600, Math.round(base * 0.82))
-  if (role === 'peak') return Math.max(2100, Math.round(base * 1.06))
-  if (role === 'aftertaste' || index === total - 1) return Math.max(2300, Math.round(base * 1.14))
-  if (role === 'tension') return Math.max(1900, Math.round(base * 0.98))
-  return Math.max(1800, Math.round(base))
+  const longForm = total >= 10
+  const wave = longForm ? 1 + Math.sin((index / total) * Math.PI * 2) * 0.05 : 1
+  const breathBeat = longForm && index > 0 && index % 5 === 0 ? 1.08 : 1
+
+  if (role === 'hook' || index === 0) return Math.max(1600, Math.round(base * 0.82 * wave))
+  if (role === 'peak') return Math.max(2100, Math.round(base * 1.06 * wave))
+  if (role === 'aftertaste' || index === total - 1) {
+    return Math.max(2300, Math.round(base * 1.14 * breathBeat))
+  }
+  if (role === 'tension') return Math.max(1900, Math.round(base * 0.98 * wave))
+  return Math.max(1800, Math.round(base * wave))
 }
 
 export function buildSequenceAnticipation(

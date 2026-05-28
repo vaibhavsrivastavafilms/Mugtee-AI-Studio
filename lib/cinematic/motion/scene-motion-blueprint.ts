@@ -15,11 +15,15 @@ export function buildSceneMotionBlueprint(
 ): SceneMotionBlueprint {
   const steps = buildMotionSequence(scenes)
   const memory = buildVisualMovementMemory(scenes, scenes.length - 1)
+  const total = scenes.length || 1
+  const longForm = total >= 10
 
   return {
     steps,
-    averageFadeMs: averageTransitionFadeMs(scenes.length || 1),
-    continuityThread: memory.continuityThread,
+    averageFadeMs: averageTransitionFadeMs(total),
+    continuityThread: longForm
+      ? `${memory.continuityThread} · long-form motion variation held`
+      : memory.continuityThread,
     motionDirections: steps.map((s) => `${s.motionType} · ${s.transitionOut}`),
   }
 }

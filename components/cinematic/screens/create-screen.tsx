@@ -27,8 +27,9 @@ import { WorkflowAtmosphereMemory } from '@/components/cinematic/workflow-atmosp
 import { CreatorMemoryRestore } from '@/components/create/creator-memory-restore'
 import { MomentumStrip } from '@/components/create/momentum-strip'
 import { ResumeProjectCard } from '@/components/create/resume-project-card'
-import { InspirationPrompts } from '@/components/showcase/inspiration-prompts'
 import { CinematicReturnSystem } from '@/components/cinematic/execution/cinematic-return-system'
+import { CreatorFeedbackPrompt } from '@/components/cinematic/creator-feedback-prompt'
+import { InspirationPrompts } from '@/components/showcase/inspiration-prompts'
 
 const STYLE_OPTIONS = [
   { value: 'cinematic', label: 'Cinematic' },
@@ -150,6 +151,10 @@ export function CinematicCreateScreen() {
           >
             <ResumeProjectCard project={resumeProject} />
           </EmotionalResumeLayer>
+          <CreatorFeedbackPrompt
+            context="return"
+            question="Did returning feel like re-entering your film world?"
+          />
         </CreatorReturnSequence>
       ) : null}
 

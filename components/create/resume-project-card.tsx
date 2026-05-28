@@ -8,20 +8,19 @@ import {
   cinematicHrefForProject,
   type CinematicProjectSummary,
 } from '@/lib/cinematic-projects'
-import { getDirectedContinuityLine } from '@/lib/creator/momentum-lines'
-import { getReturnEnergyLine } from '@/lib/creator/return-energy'
+import { getSessionReturnLine, getContinuityMemoryLine } from '@/lib/creator/creator-identity'
 import { getAtmosphereMemoryLine } from '@/lib/creator/operating-presence-copy'
 import { cn } from '@/lib/utils'
 
 const STATUS_LABEL: Record<string, string> = {
-  create: 'Story idea',
-  generating: 'Taking form',
-  preview: 'Preview',
-  director: 'Director',
-  scenes: 'Storyboard',
-  voiceover: 'Voice',
-  compile: 'Final form',
-  complete: 'Complete',
+  create: 'Premise forming',
+  generating: 'World taking form',
+  preview: 'Screenplay world',
+  director: 'Directing atmosphere',
+  scenes: 'Visual story-world',
+  voiceover: 'Voice arc',
+  compile: 'Final breath',
+  complete: 'World complete',
 }
 
 const STATUS_TONE: Record<string, string> = {
@@ -38,13 +37,14 @@ export function ResumeProjectCard({ project }: { project: CinematicProjectSummar
   const href = cinematicHrefForProject(project.status, project.id)
   const statusCls =
     STATUS_TONE[project.status] ?? 'bg-white/[0.05] border-white/[0.1] text-luxe/70'
+  const seed = project.title.length % 3
   const returnLine = useMemo(
-    () => getReturnEnergyLine(project.status, project.title.length % 3),
-    [project.status, project.title]
+    () => getSessionReturnLine(project.status, project.style, seed),
+    [project.status, project.style, seed]
   )
   const continuityLine = useMemo(
-    () => getDirectedContinuityLine(project.status, project.style, project.title.length % 2),
-    [project.status, project.style, project.title]
+    () => getContinuityMemoryLine(project.style, null, project.title.length % 2),
+    [project.style, project.title]
   )
   const atmosphereLine = useMemo(
     () => getAtmosphereMemoryLine(project.style, null),
@@ -54,7 +54,7 @@ export function ResumeProjectCard({ project }: { project: CinematicProjectSummar
   return (
     <Link
       href={href}
-      className="resume-card-enter group block rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-br from-[#2B1A08]/35 via-black/25 to-black/40 p-5 sm:p-6 hover:border-[#D4AF37]/35 transition"
+      className="resume-card-enter group block rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-br from-[#2B1A08]/35 via-black/25 to-black/40 p-5 sm:p-6 hover:border-[#D4AF37]/35 transition cinematic-stage-transition overflow-y-auto max-h-[420px] sm:max-h-none"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -68,7 +68,7 @@ export function ResumeProjectCard({ project }: { project: CinematicProjectSummar
             {atmosphereLine}
           </p>
           <h3 className="font-display text-lg text-[#F4E7C1] italic leading-snug truncate">
-            {project.title || 'Untitled story'}
+            {project.title || 'Untitled story world'}
           </h3>
           {project.prompt ? (
             <p className="mt-2 text-sm text-white/45 line-clamp-2 leading-relaxed">
@@ -94,10 +94,10 @@ export function ResumeProjectCard({ project }: { project: CinematicProjectSummar
           <Clock className="w-3 h-3" />
           {project.updatedAt
             ? formatDistanceToNow(parseISO(project.updatedAt), { addSuffix: true })
-            : 'recently'}
+            : 'still breathing'}
         </span>
         <span className="ml-auto inline-flex items-center gap-1 text-[10px] tracking-[0.18em] uppercase text-[#C8A24E]/70 group-hover:text-[#E7C56A] transition">
-          Continue <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          Re-enter world <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
         </span>
       </div>
     </Link>

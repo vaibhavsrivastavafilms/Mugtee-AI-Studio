@@ -1,5 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 
 export type SceneWeight = {
   index: number
@@ -13,7 +13,7 @@ export function cinematicSceneWeight(
   sceneIndex: number,
   totalScenes: number
 ): SceneWeight {
-  const role = scenePacingRole(sceneIndex, totalScenes || 1)
+  const role = sceneArcRole(sceneIndex, totalScenes || 1)
   const weight =
     role === 'peak' ? 1 : role === 'hook' ? 0.85 : role === 'tension' ? 0.7 : role === 'aftertaste' ? 0.55 : 0.6
   const durationBias =
