@@ -3,12 +3,14 @@
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { Clapperboard } from 'lucide-react'
+import Link from 'next/link'
 import { CinematicBackground } from '@/components/mugtee-portal/cinematic-background'
 import { CinematicHeader } from '@/components/shell/cinematic-header'
 import { QuickCutCard } from '@/components/mugtee-portal/quick-cut-card'
-import { DirectorCutCard } from '@/components/mugtee-portal/director-cut-card'
-import { LockedDirectorCutCard } from '@/components/mugtee-portal/locked-director-cut-card'
+import { RecentProjectsRail } from '@/components/mugtee-portal/recent-projects-rail'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
+import { authLoginHref } from '@/lib/create/mode-selection'
 
 const AmbientParticles = dynamic(
   () =>
@@ -19,6 +21,10 @@ const AmbientParticles = dynamic(
 )
 
 export function ModeSelectionHero() {
+  const directorHref = isDirectorCutLocked
+    ? authLoginHref('director', { locked: '1' })
+    : authLoginHref('director')
+
   return (
     <div className="relative min-h-[100dvh] flex flex-col bg-[#050505] text-luxe overflow-x-hidden film-grain">
       <CinematicBackground />
@@ -28,31 +34,35 @@ export function ModeSelectionHero() {
 
       <CinematicHeader variant="portal" />
 
-      <header className="relative z-20 flex flex-col items-center px-5 pt-6 sm:pt-10 pb-4 sm:pb-6 text-center">
-        <motion.div
-          className="max-w-xl space-y-3"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <motion.div
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-4 w-[min(480px,90vw)] h-24 bg-gold-500/[0.08] blur-[80px] rounded-full"
-            animate={{ opacity: [0.4, 0.7, 0.4] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-            aria-hidden
-          />
-          <h1 className="relative font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-[1.1] text-luxe">
-            Your Cinematic AI Studio
-          </h1>
-          <p className="relative text-base sm:text-lg text-luxe/55">
-            Choose how you want to create.
-          </p>
-        </motion.div>
-      </header>
+      <main className="relative z-10 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+          <QuickCutCard />
+        </div>
 
-      <main className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0">
-        <QuickCutCard />
-        {isDirectorCutLocked ? <LockedDirectorCutCard /> : <DirectorCutCard />}
+        <motion.aside
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="relative z-10 border-t border-white/[0.04] bg-black/20"
+        >
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-luxe/40">
+              <Clapperboard className="w-4 h-4 shrink-0" />
+              <p className="text-xs sm:text-sm text-center sm:text-left">
+                Need scene-by-scene control?{' '}
+                <span className="text-luxe/55">Director Mode</span> is available for full cinematic workspace editing.
+              </p>
+            </div>
+            <Link
+              href={directorHref}
+              className="shrink-0 text-[10px] tracking-[0.22em] uppercase text-gold-300/70 hover:text-gold-200 border border-white/[0.08] hover:border-gold-500/25 rounded-lg px-4 py-2 transition-colors"
+            >
+              {isDirectorCutLocked ? 'Preview Director Mode' : 'Enter Director Mode'}
+            </Link>
+          </div>
+        </motion.aside>
+
+        <RecentProjectsRail />
       </main>
     </div>
   )

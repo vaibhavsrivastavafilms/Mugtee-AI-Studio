@@ -1,24 +1,28 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { DirectorCutUpgradeModal } from '@/components/mugtee-portal/director-cut-upgrade-modal'
+import { directorWorkspaceHref } from '@/lib/create/routes'
 
 type LockedDirectorCutTriggerProps = {
-  children: ReactNode
+  children: React.ReactNode
   className?: string
+  projectId?: string | null
 }
 
-export function LockedDirectorCutTrigger({ children, className }: LockedDirectorCutTriggerProps) {
-  const [modalOpen, setModalOpen] = useState(false)
-
+/** Locked Director Cut entry — navigates to workspace and surfaces upgrade via ?upgrade=1. */
+export function LockedDirectorCutTrigger({
+  children,
+  className,
+  projectId,
+}: LockedDirectorCutTriggerProps) {
   return (
-    <>
-      <button type="button" onClick={() => setModalOpen(true)} className={className}>
-        {children}
-      </button>
-      <DirectorCutUpgradeModal open={modalOpen} onOpenChange={setModalOpen} />
-    </>
+    <Link
+      href={directorWorkspaceHref(projectId, { upgrade: '1' })}
+      className={className}
+    >
+      {children}
+    </Link>
   )
 }
 

@@ -7,9 +7,30 @@ import {
   isPublicPath,
   loginRedirectUrl,
 } from '@/lib/auth/public-routes'
-import { safeRelative } from '@/lib/url'
+import {
+  MUGTEE_MODE_COOKIE,
+  POST_LOGIN_REDIRECT_COOKIE,
+  resolvePostLoginRedirect,
+} from '@/lib/auth/post-login-redirect'
+
+function legacyStudioQuickCutRedirect(request: NextRequest): NextResponse | null {
+  const { pathname, searchParams } = request.nextUrl
+  if (pathname !== '/studio/quick-cut' && !pathname.startsWith('/studio/quick-cut/')) {
+    return null
+  }
+  const url = request.nextUrl.clone()
+  url.pathname = '/create'
+  url.searchParams.set('mode', 'quick')
+  for (const [key, value] of searchParams.entries()) {
+    if (key !== 'mode') url.searchParams.set(key, value)
+  }
+  return NextResponse.redirect(url)
+}
 
 export async function middleware(request: NextRequest) {
+  const legacyRedirect = legacyStudioQuickCutRedirect(request)
+  if (legacyRedirect) return legacyRedirect
+
   const pathname = request.nextUrl.pathname
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', pathname)
@@ -49,9 +70,16 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Signed-in users should not see the login form again after OAuth.
-  if (user && (pathname === '/login' || pathname === '/signin')) {
-    const next = safeRelative(request.nextUrl.searchParams.get('next'), APP_ROUTE_LOGIN_FALLBACK)
+  if (user && (pathname === '/login' || pathname === '/signin' || pathname === '/auth/login')) {
+    const next = resolvePostLoginRedirect({
+      nextParam: request.nextUrl.searchParams.get('next'),
+      redirectCookie: request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value,
+      modeCookie: request.cookies.get(MUGTEE_MODE_COOKIE)?.value,
+      fallback: APP_ROUTE_LOGIN_FALLBACK,
+    })
     const redirectResponse = NextResponse.redirect(new URL(next, request.url))
+    redirectResponse.cookies.set(POST_LOGIN_REDIRECT_COOKIE, '', { path: '/', maxAge: 0 })
+    redirectResponse.cookies.set(MUGTEE_MODE_COOKIE, '', { path: '/', maxAge: 0 })
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie)
     })

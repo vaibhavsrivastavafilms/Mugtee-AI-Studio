@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
 import { cinematicLegacyRedirectTarget } from '@/lib/create/routes'
-import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
-import { DirectorCutLockedPage } from '@/components/mugtee-portal/director-cut-locked-page'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,9 +12,5 @@ function toSearchParams(sp?: { project?: string }) {
 }
 
 export default function CinematicDirectorRedirect({ searchParams }: Props) {
-  if (isDirectorCutLocked && !searchParams?.project) {
-    return <DirectorCutLockedPage showBack />
-  }
-
   redirect(cinematicLegacyRedirectTarget('/cinematic/director', toSearchParams(searchParams)))
 }

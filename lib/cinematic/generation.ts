@@ -42,6 +42,63 @@ export type GeneratedScene = {
   movementStyle: string
   /** Populated after /api/generate-images */
   imageUrl?: string | null
+  /** Optional alt frame from Generate Variations */
+  variationImageUrl?: string | null
+}
+
+export type SceneImagePromptContext = {
+  characterDescription?: string
+  niche?: CinematicNiche | string
+  style?: string
+  emotionalGoal?: string
+  hook?: string
+  sceneIndex?: number
+  totalScenes?: number
+  /** Alternate composition — same character and palette */
+  variation?: boolean
+}
+
+/** Extract protagonist / subject description for visual consistency across scenes. */
+export function extractCharacterDescription(
+  script: string,
+  scenes: GeneratedScene[] = []
+): string {
+  const scriptMatch = script.match(
+    /(?:main\s+)?character(?:\s+description)?[:\s]+([^\n]+)/i
+  )?.[1]
+  if (scriptMatch?.trim()) return scriptMatch.trim().slice(0, 320)
+
+  const protagonist = script.match(
+    /(?:protagonist|subject|hero)[:\s]+([^\n]+)/i
+  )?.[1]
+  if (protagonist?.trim()) return protagonist.trim().slice(0, 320)
+
+  const first = scenes[0]
+  if (first) {
+    const beat = (first.description || first.visualPrompt || '').trim()
+    const sentence = beat.split(/[.!?]/)[0]?.trim() ?? ''
+    if (
+      sentence.length >= 24 &&
+      /(person|woman|man|figure|creator|character|face|silhouette|narrator)/i.test(
+        sentence
+      )
+    ) {
+      return sentence.slice(0, 320)
+    }
+  }
+
+  const opening = script.split(/\n\s*\n/)[0]?.trim() ?? ''
+  if (opening.length >= 30 && opening.length <= 280) {
+    return opening.slice(0, 320)
+  }
+
+  return ''
+}
+
+function nicheStyleLabel(niche?: string): string {
+  if (!niche) return 'cinematic storytelling'
+  const key = niche as CinematicNiche
+  return NICHE_PROFILES[key]?.label ?? niche
 }
 
 /** Single-frame prompt for image generation from scene beat + visual direction. */
@@ -51,41 +108,88 @@ export function buildSceneImagePrompt(
     | 'description'
     | 'title'
     | 'visualPrompt'
+    | 'imagePrompt'
     | 'cameraAngle'
     | 'lightingMood'
     | 'environment'
     | 'colorPalette'
     | 'movementStyle'
-  >
+  >,
+  ctx?: SceneImagePromptContext
 ): string {
+  const custom = scene.imagePrompt?.trim()
+  if (custom && !ctx?.variation) {
+    const withCharacter =
+      ctx?.characterDescription &&
+      !custom.toLowerCase().includes('character consistency')
+        ? `${custom} Character consistency: ${ctx.characterDescription}.`
+        : custom
+    return withCharacter.slice(0, 900)
+  }
+
   const narrative = (scene.description || scene.title || '').trim()
   const cinematic = (scene.visualPrompt || '').trim()
-  const styleLine = [
-    scene.cameraAngle,
-    scene.lightingMood,
-    scene.colorPalette,
-    scene.movementStyle,
+  const sceneNum =
+    ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
+
+  const lines: string[] = [
+    'Cinematic storyboard frame for a vertical 9:16 creator reel.',
+    sceneNum ? `Scene ${sceneNum}${ctx?.totalScenes ? ` of ${ctx.totalScenes}` : ''}.` : '',
+    ctx?.variation
+      ? 'Alternate composition — same character, palette, and emotional tone.'
+      : 'Primary storyboard frame — single composed shot, film-director quality.',
+  ]
+
+  if (narrative) lines.push(`Scene text: ${narrative.slice(0, 220)}.`)
+  if (cinematic && cinematic !== narrative) {
+    lines.push(`Visual direction: ${cinematic.slice(0, 180)}.`)
+  }
+  if (ctx?.characterDescription?.trim()) {
+    lines.push(`Character consistency: ${ctx.characterDescription.trim().slice(0, 200)}.`)
+  }
+  if (ctx?.niche || ctx?.style) {
+    lines.push(
+      `Style: ${nicheStyleLabel(ctx.niche)}${ctx.style ? ` · ${ctx.style}` : ''}.`
+    )
+  }
+  if (ctx?.emotionalGoal) {
+    lines.push(`Mood: ${ctx.emotionalGoal.replace(/_/g, ' ')}.`)
+  }
+  if (ctx?.hook?.trim()) {
+    lines.push(`Story hook: ${ctx.hook.trim().slice(0, 100)}.`)
+  }
+
+  const env = scene.environment?.trim()
+  if (env) lines.push(`Environment: ${env}.`)
+  if (scene.cameraAngle?.trim()) lines.push(`Camera: ${scene.cameraAngle.trim()}.`)
+  if (scene.lightingMood?.trim()) lines.push(`Lighting: ${scene.lightingMood.trim()}.`)
+  if (scene.movementStyle?.trim()) {
+    lines.push(`Composition / movement: ${scene.movementStyle.trim()}.`)
+  }
+  if (scene.colorPalette?.trim()) {
+    lines.push(`Color palette: ${scene.colorPalette.trim()}.`)
+  }
+
+  lines.push(
+    'No text overlays, no watermarks, no collage. Premium restrained cinematic still.'
+  )
+
+  const merged = lines.join(' ').replace(/\s+/g, ' ').trim()
+  return (merged || 'Cinematic vertical 9:16 storyboard still.').slice(0, 900)
+}
+
+/** DALL-E wrapper prefix — beat prompt from buildSceneImagePrompt. */
+export function buildDalleSceneImagePrompt(
+  scene: GeneratedScene,
+  ctx?: SceneImagePromptContext
+): string {
+  const beat = buildSceneImagePrompt(scene, ctx)
+  return [
+    'Vertical 9:16 cinematic still, no text, no watermark.',
+    beat,
   ]
     .filter(Boolean)
-    .join(' · ')
-
-  const parts: string[] = []
-  if (narrative) parts.push(narrative)
-  if (
-    cinematic &&
-    cinematic !== narrative &&
-    !narrative.includes(cinematic.slice(0, Math.min(40, cinematic.length)))
-  ) {
-    parts.push(cinematic)
-  }
-  const env = scene.environment?.trim()
-  if (env && !parts.some((p) => p.includes(env.slice(0, 20)))) parts.push(env)
-  if (styleLine && !parts.join(' ').includes(styleLine.slice(0, 24))) {
-    parts.push(styleLine)
-  }
-
-  const merged = parts.join(' ').replace(/\s+/g, ' ').trim()
-  return (merged || styleLine || 'Cinematic vertical 9:16 still.').slice(0, 900)
+    .join(' ')
 }
 
 export function ensureSceneImagePrompt<T extends GeneratedScene>(scene: T): T {
@@ -97,6 +201,29 @@ export function ensureScenesHaveImagePrompts(
   scenes: GeneratedScene[]
 ): GeneratedScene[] {
   return scenes.map(ensureSceneImagePrompt)
+}
+
+export function scenesWithCharacterImagePrompts(
+  scenes: GeneratedScene[],
+  ctx: {
+    characterDescription: string
+    hook: string
+    emotionalGoal?: string
+    total: number
+  }
+): GeneratedScene[] {
+  return ensureScenesHaveImagePrompts(
+    scenes.map((scene, i) => ({
+      ...scene,
+      imagePrompt: buildSceneImagePrompt(scene, {
+        characterDescription: ctx.characterDescription,
+        emotionalGoal: ctx.emotionalGoal,
+        hook: ctx.hook,
+        sceneIndex: i + 1,
+        totalScenes: ctx.total,
+      }),
+    }))
+  )
 }
 
 export type { SceneVisualDirection }
@@ -353,6 +480,7 @@ export function storeScenesToGenerated(scenes: CinematicScene[]): GeneratedScene
         title: scene.title || `Scene ${scene.index}`,
         description: scene.narration || scene.title || '',
         visualPrompt: scene.visualPrompt || '',
+        imagePrompt: scene.imagePrompt || '',
         cameraAngle: scene.cameraAngle || scene.camera || '',
         lightingMood: scene.lightingMood || scene.lighting || '',
         environment: scene.environment || '',

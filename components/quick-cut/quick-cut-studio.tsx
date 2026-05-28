@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { ExportPreview } from '@/components/quick-cut/export-preview'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
+import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { RenderProgress } from '@/components/quick-cut/render-progress'
 import { VirloMetadataPanel } from '@/components/quick-cut/virlo-metadata-panel'
@@ -23,6 +24,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const virlo = useQuickCutGenerationStore((s) => s.virlo)
+  const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const error = useQuickCutGenerationStore((s) => s.error)
 
@@ -80,6 +82,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
             audioRef={voiceAudioRef}
             waveform={waveform}
             isLive
+            generationStep={generationStep}
             mp4Compiling={generationStep === 'render'}
             className="mx-auto"
           />
@@ -88,10 +91,16 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
         <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} />
 
         <RenderProgress />
+
+        {scenes.length > 0 ? (
+          <div className="flex justify-center pt-1">
+            <QuickCutSaveProjectButton variant="compact" showViewLink={false} />
+          </div>
+        ) : null}
       </div>
 
       <aside className={cn('min-w-0', 'lg:sticky lg:top-24 lg:self-start')}>
-        <VirloMetadataPanel virlo={virlo} hook={hook} />
+        <VirloMetadataPanel virlo={virlo} hook={hook} hookVariantNumber={hookVariantNumber} />
       </aside>
     </div>
   )

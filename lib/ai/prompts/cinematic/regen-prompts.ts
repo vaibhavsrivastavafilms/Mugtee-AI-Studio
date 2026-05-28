@@ -8,23 +8,63 @@ import {
   sceneDescription,
   scenePacingRole,
 } from '@/lib/cinematic/regen-context'
+import { rotatedHookFramework } from '@/lib/cinematic/hook-variation'
 
 export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
+  const avoidHooks = [
+    ...ctx.previousHooks,
+    ...(ctx.hook ? [ctx.hook] : []),
+  ].filter(Boolean)
+
+  const framework = rotatedHookFramework(ctx.hookVariantIndex)
+  const emotionalTone = ctx.emotionalGoal || ctx.tone
+
+  const avoidBlock =
+    avoidHooks.length > 0
+      ? [
+          `Previously used hooks this session — Do NOT repeat, paraphrase, or echo these openings:`,
+          ...avoidHooks.map((h, i) => `${i + 1}. "${h}"`),
+        ].join('\n')
+      : ''
+
+  const variationBlock = ctx.strongVariation
+    ? [
+        `MAXIMUM DIVERGENCE REQUIRED.`,
+        `The last attempt was too similar to a previous hook.`,
+        `Choose a completely different emotional entry point, sentence structure, and rhetorical device.`,
+        `Do not reuse key phrases, metaphors, or the same opening words as any prior hook.`,
+      ].join('\n')
+    : [
+        `Generate ONE completely new hook.`,
+        `Different opening pattern, different emotional angle, cinematic and retention-optimized.`,
+        `Do not start with similar wording to any previous hook.`,
+        `This should feel like another way to tell the same story — not a rewrite.`,
+      ].join('\n')
+
   return [
     `Refine ONLY the opening hook for this vertical cinematic reel.`,
-    `Creator brief: "${ctx.topic || ctx.prompt}"`,
-    `Tone: ${ctx.tone} · Duration: ${ctx.duration}s`,
+    `Original creator idea: "${ctx.topic || ctx.prompt}"`,
+    `Niche: ${ctx.niche}`,
+    `Emotional tone: ${emotionalTone}`,
+    `Tone / style: ${ctx.tone} · Duration: ${ctx.duration}s`,
     buildNicheLayer(ctx.niche),
     buildHookLayer(),
-    `Current hook (improve — do not repeat verbatim): "${ctx.hook || '—'}"`,
+    `Hook framework for this attempt: ${framework.name}`,
+    `Framework instruction: ${framework.instruction}`,
+    `Example shape (do NOT copy verbatim): "${framework.example}"`,
+    avoidBlock,
+    variationBlock,
+    `Current hook (replace entirely): "${ctx.hook || '—'}"`,
     `Summary context: ${ctx.summary.slice(0, 400) || '—'}`,
     `Script excerpt: ${ctx.script.slice(0, 500) || '—'}`,
     `Output JSON only:
 {
-  "hookVariations": ["v1", "v2", "v3"],
-  "hook": "strongest hook only"
+  "hookFramework": "${framework.id}",
+  "hook": "single strongest hook only — one sentence, cinematic, under 220 chars"
 }`,
-  ].join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 export function buildSceneRegenPrompt(

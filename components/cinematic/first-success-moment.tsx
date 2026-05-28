@@ -8,7 +8,7 @@ import {
   dismissFirstSuccess,
   shouldShowFirstSuccess,
 } from '@/lib/creator/session-insights'
-import { withProjectQuery } from '@/components/cinematic/workflow-shell'
+import { directorWorkspaceHref } from '@/lib/create/routes'
 
 export function FirstSuccessMoment({ projectId }: { projectId?: string | null }) {
   const [visible, setVisible] = useState(false)
@@ -42,19 +42,19 @@ export function FirstSuccessMoment({ projectId }: { projectId?: string | null })
 
       <div className="relative mt-6 flex flex-wrap justify-center gap-2">
         <QuickAction
-          href={withProjectQuery('/cinematic/scenes', projectId)}
+          href={directorWorkspaceHref(projectId, { tab: 'storyboard' })}
           icon={Film}
           label="Refine scenes"
           onNavigate={dismiss}
         />
         <QuickAction
-          href={withProjectQuery('/cinematic/director', projectId)}
+          href={directorWorkspaceHref(projectId)}
           icon={Wand2}
           label="Open Director Mode"
           onNavigate={dismiss}
         />
         <QuickAction
-          href={withProjectQuery('/cinematic/compile', projectId)}
+          href={directorWorkspaceHref(projectId, { tab: 'voiceover' })}
           icon={Package}
           label="Film world"
           onNavigate={dismiss}

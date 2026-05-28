@@ -9,16 +9,25 @@ export function hasImageGenerationKey(): boolean {
   )
 }
 
-/** Generate a vertical cinematic still via OpenAI DALL-E 3. */
-export async function generateOpenAISceneImage(prompt: string): Promise<string | null> {
+export type SceneImageOptions = {
+  quality?: 'standard' | 'hd'
+  size?: '1024x1792' | '1792x1024' | '1024x1024'
+}
+
+/** Generate a cinematic still via OpenAI DALL-E 3. */
+export async function generateOpenAISceneImage(
+  prompt: string,
+  opts: SceneImageOptions = {}
+): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY?.trim()) return null
+  const { quality = 'standard', size = '1024x1792' } = opts
   try {
     const openai = getOpenAIClient()
     const res = await openai.images.generate({
       model: 'dall-e-3',
       prompt: prompt.slice(0, 3800),
-      size: '1024x1792',
-      quality: 'standard',
+      size,
+      quality,
       n: 1,
     })
     return res.data?.[0]?.url ?? null

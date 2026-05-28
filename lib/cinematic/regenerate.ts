@@ -10,6 +10,12 @@ import {
   type RegenSceneInput,
 } from '@/lib/cinematic/regen-context'
 import {
+  isHookTooSimilar,
+  rotatedHookFramework,
+} from '@/lib/cinematic/hook-variation'
+import { pickRotatedHookCandidate } from '@/lib/virlo-engine/hook-engine'
+import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
+import {
   pickStrongestHook,
   validateRegeneratedCaptions,
   validateRegeneratedHook,
@@ -61,14 +67,50 @@ export function normalizeHookRegen(
   return { hook }
 }
 
-export function mockHookRegen(ctx: RegenProjectContext): { hook: string } {
+export function mockHookRegen(ctx: RegenProjectContext): {
+  hook: string
+  virlo?: ReturnType<typeof virloMetadataFromContext>
+} {
   const profile = NICHE_PROFILES[ctx.niche]
+  const avoid = [...ctx.previousHooks, ...(ctx.hook ? [ctx.hook] : [])]
+  const virloContext = buildVirloContext(ctx.topic || ctx.prompt, {
+    sessionSeed: `${ctx.topic}-${ctx.hookVariantIndex}-${Date.now()}`,
+    niche: ctx.niche,
+    tone: ctx.tone,
+    duration: ctx.duration,
+    skipMemory: true,
+  })
+
+  const rotated = pickRotatedHookCandidate(
+    ctx.topic || ctx.prompt,
+    ctx.niche,
+    virloContext.emotionalGoal,
+    virloContext.creativeSeed.seed,
+    ctx.hookVariantIndex,
+    (text) => isHookTooSimilar(text, avoid)
+  )
+
+  const framework = rotatedHookFramework(ctx.hookVariantIndex)
   const variations = [
-    `The ${profile.vocabulary[0]} in "${ctx.topic.slice(0, 40)}" is not what you think.`,
+    rotated.text,
+    `${framework.example.split('—')[0]?.trim() || `The ${profile.vocabulary[0]} in this story`} — and that changes everything.`,
     `Nobody warns you about the ${profile.vocabulary[1]} behind this.`,
     `This is the ${profile.label.toLowerCase()} moment people scroll past too fast.`,
-  ]
-  return { hook: pickStrongestHook(variations, ctx.niche) }
+  ].filter((v) => !isHookTooSimilar(v, avoid))
+
+  const hook =
+    variations.find((v) => !isHookTooSimilar(v, avoid)) ||
+    rotated.text ||
+    pickStrongestHook(variations, ctx.niche)
+
+  const meta = virloMetadataFromContext(virloContext)
+  return {
+    hook,
+    virlo: {
+      ...meta,
+      hookVariant: `v${ctx.hookVariantIndex + 2}-${rotated.variant}`,
+    },
+  }
 }
 
 export type SceneRegenResult = {

@@ -11,12 +11,10 @@ import { LiveGenerationCanvas } from '@/components/quick-cut/canvas/live-generat
 import { ReelRenderPreview } from '@/components/quick-cut/canvas/reel-render-preview'
 
 import {
-
   clearQuickCutPreview,
-
   loadQuickCutPreview,
-
 } from '@/lib/cinematic/quick-cut/preview-session'
+import { loadHookSession } from '@/lib/cinematic/quick-cut/hook-session'
 
 import { applyGenerationToStore } from '@/stores/cinematic-project'
 
@@ -75,6 +73,8 @@ function hydrateFromSession(session: NonNullable<ReturnType<typeof loadQuickCutP
     )
   )
 
+  const hookSession = loadHookSession()
+
   useQuickCutGenerationStore.setState({
     generationStep: 'complete',
     activeStageTab: 'complete',
@@ -82,6 +82,8 @@ function hydrateFromSession(session: NonNullable<ReturnType<typeof loadQuickCutP
     prompt: project.prompt,
     title: project.title,
     hook: project.hook,
+    previousHooks: hookSession?.previousHooks ?? [],
+    hookVariantNumber: hookSession?.hookVariantNumber ?? 1,
     script: project.script,
     scenes,
     storyboard: scenes,

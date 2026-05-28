@@ -5,13 +5,14 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Clapperboard, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createEntryHref, type CreatorMode } from '@/lib/create/routes'
+import { createEntryHref, directorWorkspaceHref, type CreatorMode } from '@/lib/create/routes'
+import { QuickCutCreator } from '@/components/create/quick-cut-creator'
+import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
+import { storeCreatorMode } from '@/lib/create/mode-selection'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 import { UnifiedProjectsGrid, type ProjectCardModel } from '@/components/create/unified-projects-grid'
 import { ProjectsInsightsPanel } from '@/components/create/projects-insights-panel'
-import { QuickCutCreator } from '@/components/create/quick-cut-creator'
-import { DirectorCutLockedPage } from '@/components/mugtee-portal/director-cut-locked-page'
 import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-director-cut-mode-card'
 import {
   ProjectsGalleryChrome,
@@ -85,36 +86,30 @@ function CreateEntryInner() {
     if (filterParam === 'downloaded') setGalleryFilter('downloaded')
   }, [filterParam])
 
+  useEffect(() => {
+    if (mode === 'quick') {
+      storeCreatorMode('quick')
+      return
+    }
+    if (mode === 'director') {
+      router.replace(directorWorkspaceHref())
+    }
+  }, [mode, router])
+
   if (mode === 'quick') {
     return (
-      <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
+      <div className="flex flex-col gap-4 -mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
+        <RecentGenerationsStrip limit={6} />
         <QuickCutCreator />
       </div>
     )
   }
 
   if (mode === 'director') {
-    if (isDirectorCutLocked) {
-      return (
-        <UnifiedCreatorShell mode="director" title="Director Cut" subtitle="Studio Pro exclusive workflow.">
-          <DirectorCutLockedPage compact showBack={false} />
-        </UnifiedCreatorShell>
-      )
-    }
-
     return (
-      <UnifiedCreatorShell
-        mode="director"
-        title="Director Cut"
-        subtitle="Open a project below or start a new cinematic workflow."
-      >
-        <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            Pick a recent project to continue directing — every generation auto-saves to your library.
-          </p>
-          <UnifiedProjectsGrid limit={12} showActions />
-        </div>
-      </UnifiedCreatorShell>
+      <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
+        Opening Director Mode…
+      </div>
     )
   }
 

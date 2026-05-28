@@ -1,7 +1,10 @@
-import { DirectorCreatorPage } from '@/components/create/director-creator-page'
+import { redirect } from 'next/navigation'
+import { directorWorkspaceHref } from '@/lib/create/routes'
 
 export const dynamic = 'force-dynamic'
 
-export default function CreateDirectorPage() {
-  return <DirectorCreatorPage />
+type Props = { params: { projectId: string } }
+
+export default function CreateDirectorPage({ params }: Props) {
+  redirect(directorWorkspaceHref(params.projectId))
 }
