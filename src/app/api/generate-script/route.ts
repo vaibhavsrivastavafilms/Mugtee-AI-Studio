@@ -1,9 +1,5 @@
-import OpenAI from "openai"
 import { NextResponse } from "next/server"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { getOpenAIClient } from "@/lib/ai/openai-client"
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +11,7 @@ export async function POST(req: Request) {
 
     console.log("PROMPT:", prompt)
 
+    const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [

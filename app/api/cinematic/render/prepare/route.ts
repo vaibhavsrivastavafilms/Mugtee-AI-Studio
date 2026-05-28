@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       filmRhythm: blueprint.filmRhythm,
       rhythm,
       status: render.status,
+      provider: render.provider,
       output: projectStateToGenerationOutput({
         title: filmPlan.title,
         hook: ctx.hook,
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
         ready: true,
         presenceLine: 'Your cinematic world is preparing itself naturally.',
         status: 'preparing',
+        provider: 'stub',
       },
       { status: 200 }
     )
