@@ -178,7 +178,7 @@ export function CinematicPreviewScreen() {
       <CreatorGuidance step="preview" />
 
       <CreatorFeedbackPrompt
-        context="generation"
+        context="preview"
         question="Did this feel cinematic?"
         secondaryQuestion="Did the pacing feel natural?"
       />
