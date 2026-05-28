@@ -86,8 +86,8 @@ export function getEmotionalFlowMarker(
     director: ['Directing flow · mood locked', 'Creative session in progress'],
     scenes: ['Storyboard flow · visual sequence', 'Scene rhythm active'],
     voiceover: ['Voice flow · narration rhythm', 'Audio cadence aligned'],
-    compile: ['Export flow · final form approaching', 'Closure rhythm active'],
-    generating: ['Creation flow · story forming', 'Generative rhythm held'],
+    compile: ['Final form approaching · closure rhythm', 'Showcase rhythm active'],
+    generating: ['Story forming · arc taking shape', 'Creation rhythm held'],
     create: ['Session opening · premise forming', 'Flow state initializing'],
   }
   const pool = stageMarkers[stage] ?? ['Creative flow active']

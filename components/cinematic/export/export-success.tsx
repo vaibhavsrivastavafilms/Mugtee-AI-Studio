@@ -53,7 +53,7 @@ export function ExportSuccessPanel({
 
         <div className="flex flex-wrap justify-center gap-3">
           <ActionButton icon={Download} label="Save Film World" primary onClick={onDownload} />
-          <ActionButton icon={Copy} label="Copy Caption Package" onClick={onCopyCaptions} />
+          <ActionButton icon={Copy} label="Copy captions" onClick={onCopyCaptions} />
           <ActionButton icon={Share2} label="Share Preview" onClick={onShare} />
         </div>
 

@@ -51,11 +51,11 @@ export const CREATOR_GUIDANCE: Record<
     ],
   },
   compile: {
-    title: 'Export with confidence',
+    title: 'Let the world become film',
     tips: [
-      'Your export pack bundles hook, captions, and frames.',
-      'Copy captions before publishing to Reels or Shorts.',
-      'Every scene stays synced in your cinematic workspace.',
+      'Your film world bundles hook, captions, and frames in rhythm.',
+      'Copy captions before sharing to Reels or Shorts.',
+      'Every scene stays held in your cinematic workspace.',
     ],
   },
 }

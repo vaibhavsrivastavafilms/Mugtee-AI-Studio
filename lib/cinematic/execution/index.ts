@@ -17,7 +17,7 @@ export { prepareCinematicVoiceover, emotionalNarrationSystemPrompt } from '@/lib
 export { paceNarrationForFilm, voiceDirectionNote, dialogueFlowSegments } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 export { parseCinematicIntent, intentPromptFragment } from '@/lib/cinematic/execution/cinematic-intent-engine'
 export { readCreatorMemory, updateCreatorMemory, authoredStoryRecall, cinematicIdentityContinuity } from '@/lib/cinematic/execution/cinematic-creator-memory'
-export { optimizeAtmosphereRender, immersiveLoadingCopy, shouldDeferNonCriticalAssets } from '@/lib/cinematic/execution/cinematic-performance-engine'
+export { optimizeAtmosphereRender, immersiveLoadingCopy, pacingAwareWaitMs, softTransitionDelayMs, shouldDeferNonCriticalAssets } from '@/lib/cinematic/execution/cinematic-performance-engine'
 
 export type { FilmAssemblyPlan, FilmShot } from '@/lib/cinematic/execution/screenplay-video-translator'
 export type { RenderOrchestration } from '@/lib/cinematic/execution/cinematic-video-pipeline'

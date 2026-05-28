@@ -9,6 +9,7 @@ const WORLD_PRESENCE = [
 
 const SCENE_WORLD = [
   'Warm emotional realism continues.',
+  'Visual atmosphere remains aligned.',
   'Documentary atmosphere remains aligned.',
   'Visual emotional tension carries forward.',
 ] as const

@@ -10,7 +10,7 @@ import {
   persistExportSequence,
 } from '@/lib/cinematic/render'
 import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
-import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
+import { immersiveLoadingCopy, optimizeAtmosphereRender } from '@/lib/cinematic/execution/cinematic-performance-engine'
 import {
   buildCaptionPackageText,
   buildExportPackageSnapshot,
@@ -142,9 +142,14 @@ export function CinematicCompileScreen() {
     ]
   )
 
+  const { preferReducedLayers } = optimizeAtmosphereRender()
+
   const previewRhythm = useMemo(
-    () => buildPreviewRhythmFromBlueprint(filmOrchestration.blueprint),
-    [filmOrchestration.blueprint]
+    () =>
+      buildPreviewRhythmFromBlueprint(filmOrchestration.blueprint, {
+        restrainedMotion: preferReducedLayers,
+      }),
+    [filmOrchestration.blueprint, preferReducedLayers]
   )
 
   const previewScenes = useMemo(
@@ -381,7 +386,7 @@ export function CinematicCompileScreen() {
           <ExportProgressPanel
             activeStep={activeStep}
             progress={progress}
-            presenceLine={immersiveLoadingCopy('compile', activeStep)}
+            presenceLine={immersiveLoadingCopy('export', activeStep)}
           />
         </>
       )}

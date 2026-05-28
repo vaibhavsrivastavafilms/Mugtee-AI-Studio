@@ -24,10 +24,15 @@ export function recallNarrationEscalation(
     return 0.5
   })
 
-  const escalationLine =
+  const escalationLines = [
     peakSceneIndex >= 0
-      ? `Narration crests at beat ${peakSceneIndex + 1} — then exhales`
-      : 'Even cadence — lyrical restraint held throughout'
+      ? `Voice crests at beat ${peakSceneIndex + 1} — then exhales`
+      : 'Even cadence — lyrical restraint throughout',
+    peakSceneIndex >= 0
+      ? `Narration gathers toward beat ${peakSceneIndex + 1}`
+      : 'Held breath — documentary restraint',
+  ]
+  const escalationLine = escalationLines[total % escalationLines.length]
 
   return {
     peakSceneIndex,

@@ -8,11 +8,23 @@ export type EscalationPreview = {
   continuityMemory: string[]
 }
 
-const PHASE_LINES: Record<EscalationPreview['phase'], string> = {
-  opening: 'The world opens — hook held in stillness',
-  rising: 'Tension gathers — each beat closer to the frame',
-  peak: 'Emotional crest — the story holds its breath',
-  settling: 'Aftertaste — rhythm settles into memory',
+const PHASE_LINES: Record<EscalationPreview['phase'], string[]> = {
+  opening: [
+    'The world opens — hook held in stillness',
+    'First breath before the frame arrives',
+  ],
+  rising: [
+    'Tension gathers — each beat closer to the frame',
+    'Rhythm lifts — the story leans forward',
+  ],
+  peak: [
+    'Emotional crest — the story holds its breath',
+    'The crest — intimacy before release',
+  ],
+  settling: [
+    'Aftertaste — rhythm settles into memory',
+    'Exhale — what lingers after the cut',
+  ],
 }
 
 export function buildEscalationPreview(scenes: GeneratedScene[]): EscalationPreview {
@@ -21,7 +33,7 @@ export function buildEscalationPreview(scenes: GeneratedScene[]): EscalationPrev
     return {
       phase: 'opening',
       currentBeat: 'Anticipation before the first frame',
-      escalationLine: PHASE_LINES.opening,
+      escalationLine: PHASE_LINES.opening[0],
       continuityMemory: [],
     }
   }
@@ -50,7 +62,7 @@ export function buildEscalationPreview(scenes: GeneratedScene[]): EscalationPrev
   return {
     phase,
     currentBeat,
-    escalationLine: PHASE_LINES[phase],
+    escalationLine: PHASE_LINES[phase][total % PHASE_LINES[phase].length],
     continuityMemory,
   }
 }
@@ -60,9 +72,12 @@ export function escalationPresenceForIndex(
   total: number
 ): string {
   const role = scenePacingRole(index + 1, total)
-  if (role === 'hook') return 'Opening anticipation'
-  if (role === 'tension') return 'Rhythm rising'
-  if (role === 'peak') return 'Emotional crest'
-  if (role === 'aftertaste') return 'Held aftertaste'
-  return 'Breathing between beats'
+  const labels: Record<string, string[]> = {
+    hook: ['Opening anticipation', 'First breath held'],
+    tension: ['Rhythm rising', 'Tension gathering'],
+    peak: ['Emotional crest', 'Breath held at crest'],
+    aftertaste: ['Held aftertaste', 'Memory after the cut'],
+  }
+  const pool = labels[role] ?? ['Breathing between beats', 'Restrained cadence']
+  return pool[index % pool.length]
 }

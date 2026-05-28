@@ -120,7 +120,7 @@ export function CinematicGeneratingScreen() {
       <MomentumStrip stage="generating" seed={lineIndex} />
       <PacingIntelligenceStrip style={style} seed={lineIndex} />
       <WorkflowEmotionalState phase="generating" visible={!error} seed={lineIndex} />
-      <div className="min-h-[320px] flex items-center justify-center">
+      <div className="min-h-[320px] flex items-center justify-center cinematic-stage-transition">
         {error ? (
           <CinematicErrorState
             title="Story paused"

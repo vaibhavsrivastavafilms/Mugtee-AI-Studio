@@ -39,14 +39,14 @@ const EXPORT_MOTION = [
 // ── Phase 6 — Live Video Generation ───────────────────────────────────────
 const VIDEO_PRESENCE = [
   'My cinematic worlds become living film.',
-  'Cinematic scene rendering emotionally coherent.',
-  'Visual atmosphere preservation held.',
+  'Cinematic scenes held in emotional coherence.',
+  'Visual atmosphere preserved through the arc.',
 ] as const
 
 const RENDER_PRESENCE = [
   'Emotional shot continuity steady.',
-  'Cinematic pacing generation calm.',
-  'Screenplay-to-scene translation held.',
+  'Cinematic pacing held in calm.',
+  'Screenplay rhythm carried into frame.',
 ] as const
 
 const FILM_FLOW = [

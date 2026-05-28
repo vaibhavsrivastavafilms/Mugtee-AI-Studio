@@ -2,9 +2,9 @@ import { resolveCreatorIdentity } from '@/lib/creator/creator-identity'
 import type { CinematicProjectStatus } from '@/stores/cinematic-project'
 
 const PRODUCTION_PRESENCE = [
-  'Active cinematic production',
-  'Directing environment live',
-  'Cinematic studio in session',
+  'Your cinematic world is in motion',
+  'Directing environment breathing',
+  'Story held in cinematic session',
 ] as const
 
 const ACTIVE_SEQUENCE = [
@@ -26,9 +26,9 @@ const PRODUCTION_THREAD = [
 ] as const
 
 const PRODUCTION_STATE = [
-  'Visual story continuity active.',
-  'Maintaining cinematic directing rhythm.',
-  'Current emotional arc remains stable.',
+  'Visual story continuity held.',
+  'Cinematic directing rhythm steady.',
+  'Emotional arc rests in balance.',
 ] as const
 
 const EXPORT_LEGACY = [
@@ -81,7 +81,7 @@ export function getEmotionalSequenceFlow(
     scenes: ['Visual sequence progressing', 'Storyboard world active'],
     compile: ['Showcase sequence nearing closure', 'Film world taking final form'],
   }
-  const pool = stageLines[stage] ?? ['Production sequence active']
+  const pool = stageLines[stage] ?? ['Your sequence continues']
   return pool[seed % pool.length]
 }
 
@@ -98,7 +98,7 @@ export function getDirectingMomentumTrack(
   sceneCount: number,
   seed = 0
 ): string {
-  if (sceneCount <= 0) return 'Directing momentum initializing'
+  if (sceneCount <= 0) return 'Directing momentum gathering'
   const pool = [
     `Directing momentum · ${sceneCount} beats staged`,
     'Visual production rhythm aligned',
@@ -167,7 +167,7 @@ export function getProjectWorldHeadline(
 ): string {
   const id = resolveCreatorIdentity(style, niche)
   if (title?.trim()) return title.trim()
-  return `${id.label} production world`
+  return `${id.label} film world`
 }
 
 export function getProjectAtmosphereSubtitle(

@@ -15,12 +15,12 @@ import { cn } from '@/lib/utils'
 
 const STATUS_LABEL: Record<string, string> = {
   create: 'Story idea',
-  generating: 'Generating',
+  generating: 'Taking form',
   preview: 'Preview',
   director: 'Director',
   scenes: 'Storyboard',
   voiceover: 'Voice',
-  compile: 'Export',
+  compile: 'Final form',
   complete: 'Complete',
 }
 

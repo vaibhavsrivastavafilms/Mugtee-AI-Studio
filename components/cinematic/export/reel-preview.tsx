@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { optimizeAtmosphereRender } from '@/lib/cinematic/execution/cinematic-performance-engine'
@@ -19,7 +20,7 @@ import { ImmersiveShowcaseLayer } from '@/components/cinematic/cinematic-showcas
 import { ImmersiveNarrativeViewer } from '@/components/cinematic/story-evolution/story-evolution-frame'
 import { ImmersiveFilmEnvironment } from '@/components/cinematic/live-cinematic/live-cinematic-frame'
 
-export function ReelPreview({
+export const ReelPreview = memo(function ReelPreview({
   frames,
   hook,
   duration,
@@ -47,9 +48,13 @@ export function ReelPreview({
   const { preferReducedLayers } = optimizeAtmosphereRender()
   const restrainedMotion = preferReducedLayers
 
-  const previs = buildCinematicPrevisualization(
-    { hook, scenes: previewScenes ?? [] },
-    { script: '', hook, duration, style }
+  const previs = useMemo(
+    () =>
+      buildCinematicPrevisualization(
+        { hook, scenes: previewScenes ?? [] },
+        { script: '', hook, duration, style }
+      ),
+    [hook, previewScenes, duration, style]
   )
 
   return (
@@ -93,7 +98,7 @@ export function ReelPreview({
                 fading
                   ? restrainedMotion
                     ? 'opacity-0'
-                    : 'opacity-0 scale-[1.02]'
+                    : 'opacity-0 scale-[1.012]'
                   : 'opacity-100 scale-100'
               )}
             />
@@ -106,7 +111,7 @@ export function ReelPreview({
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 pointer-events-none" />
           <div className="absolute inset-x-0 bottom-0 p-4 space-y-2">
             <p className="text-[9px] tracking-[0.22em] uppercase text-[#C8A24E]/70">
-              {anticipationLabel || (activeIndex === 0 ? 'Opening beat' : `Beat ${activeIndex + 1}`)}
+              {anticipationLabel || (activeIndex === 0 ? 'Opening breath' : `Beat ${activeIndex + 1}`)}
               {transitionRhythm ? ` · ${transitionRhythm.split('·')[0]?.trim()}` : ' · held rhythm'}
             </p>
             {hook ? (
@@ -141,4 +146,4 @@ export function ReelPreview({
     </ShowcasePresenceFade>
     </CinematicPremiereEnvironment>
   )
-}
+})
