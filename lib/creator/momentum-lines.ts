@@ -11,23 +11,23 @@ const STAGE_LINES: Partial<Record<CinematicProjectStatus | string, string[]>> = 
   ],
   preview: [
     'Narrative pacing locked',
-    'Structured for short-form retention',
+    'Rhythm held before the lens',
   ],
   director: [
     'Visual continuity aligned',
-    'Balanced for emotional cadence',
+    'Directing cadence in balance',
   ],
   scenes: [
     'Visual continuity aligned',
     'Visual rhythm preserved',
   ],
   voiceover: [
-    'Audience retention optimized',
     'Voice arc aligned to story',
+    'Narration breath matches your beats',
   ],
   compile: [
-    'Audience retention optimized',
-    'Export rhythm aligned',
+    'Final rhythm gathering',
+    'Showcase sequence nearly complete',
   ],
   complete: ['Your cinematic draft is ready to continue'],
 }
@@ -65,7 +65,7 @@ export function getDirectedContinuityLine(
     pool.unshift('Resume visual direction across your scenes')
   }
   if (stage === 'compile') {
-    pool.unshift('Your export sequence awaits completion')
+    pool.unshift('Your film world awaits its final form')
   }
   return pool[seed % pool.length]
 }

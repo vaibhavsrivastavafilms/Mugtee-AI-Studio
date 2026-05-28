@@ -33,7 +33,7 @@ const PRODUCTION_STATE = [
 
 const EXPORT_LEGACY = [
   'Your cinematic sequence now joins your directing archive.',
-  'Emotional continuity preserved through final export.',
+  'Emotional continuity preserved through the final showcase.',
   'Visual story world finalized.',
 ] as const
 
@@ -79,7 +79,7 @@ export function getEmotionalSequenceFlow(
     preview: ['Screenplay sequence flowing', 'Draft world active'],
     director: ['Directing sequence evolving', 'Mood world active'],
     scenes: ['Visual sequence progressing', 'Storyboard world active'],
-    compile: ['Production nearing closure', 'Export world forming'],
+    compile: ['Showcase sequence nearing closure', 'Film world taking final form'],
   }
   const pool = stageLines[stage] ?? ['Production sequence active']
   return pool[seed % pool.length]
@@ -145,7 +145,7 @@ export function getExportLegacyLine(
   const id = resolveCreatorIdentity(style, niche)
   const pool = [
     EXPORT_LEGACY[seed % EXPORT_LEGACY.length],
-    `${id.label} production archived through export.`,
+    `${id.label} sequence archived in your film world.`,
     'Visual story world finalized.',
   ]
   return pool[seed % pool.length]

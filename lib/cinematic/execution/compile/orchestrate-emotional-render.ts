@@ -1,8 +1,12 @@
-import { buildCompileFilmPlan } from '@/lib/cinematic/execution/compile/compile-film-plan'
+import {
+  buildCompileFilmPlan,
+  projectStateToGenerationOutput,
+} from '@/lib/cinematic/execution/compile/compile-film-plan'
 import {
   buildCinematicRenderBlueprint,
   blueprintPresenceLine,
 } from '@/lib/cinematic/execution/compile/cinematic-render-blueprint'
+import { buildSceneMotionBlueprint } from '@/lib/cinematic/motion/scene-motion-blueprint'
 import type { CinematicProjectState } from '@/stores/cinematic-project'
 
 export type OrchestratedEmotionalRender = {
@@ -33,7 +37,20 @@ export function orchestrateEmotionalRenderForCompile(
   >
 ): OrchestratedEmotionalRender {
   const filmPlan = buildCompileFilmPlan(state)
-  const blueprint = buildCinematicRenderBlueprint(filmPlan)
+  const baseBlueprint = buildCinematicRenderBlueprint(filmPlan)
+  const motion = buildSceneMotionBlueprint(
+    projectStateToGenerationOutput(state).scenes
+  )
+  const blueprint = {
+    ...baseBlueprint,
+    motionDirections:
+      motion.motionDirections.length > 0
+        ? motion.motionDirections
+        : baseBlueprint.motionDirections,
+    transitionRhythm: motion.continuityThread
+      ? `${baseBlueprint.transitionRhythm} · ${motion.continuityThread}`
+      : baseBlueprint.transitionRhythm,
+  }
 
   return {
     blueprint,

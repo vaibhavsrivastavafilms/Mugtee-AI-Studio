@@ -31,7 +31,6 @@ export function ImmersiveFilmViewer({
   beatIntervalsMs?: number[]
   previewRhythm?: PreviewRhythmMetadata
   restrainedMotion?: boolean
-  anticipationScale?: number
   children: (
     activeFrame: string | null,
     activeIndex: number,

@@ -39,7 +39,7 @@ export function withProjectQuery(
 
 const STEPS: { status: CinematicProjectStatus; href: string; label: string }[] = [
   { status: 'create', href: '/cinematic/create', label: 'Create' },
-  { status: 'generating', href: '/cinematic/generating', label: 'Generating' },
+  { status: 'generating', href: '/cinematic/generating', label: 'Shaping' },
   { status: 'preview', href: '/cinematic/preview', label: 'Preview' },
   { status: 'director', href: '/cinematic/director', label: 'Director' },
   { status: 'scenes', href: '/cinematic/scenes', label: 'Scenes' },
@@ -60,8 +60,12 @@ export function CinematicWorkflowShell({
   const projectId = useCinematicProjectStore(
     useShallow((s) => s.persistedId || s.id)
   )
-  const { isHydrating } = useCinematicProjectStore(
-    useShallow((s) => ({ isHydrating: s.isHydrating }))
+  const { isHydrating, segmentCount, durationSec } = useCinematicProjectStore(
+    useShallow((s) => ({
+      isHydrating: s.isHydrating,
+      segmentCount: Math.max(s.scenes.length, 1),
+      durationSec: s.duration || 30,
+    }))
   )
 
   useEffect(() => {
@@ -130,7 +134,11 @@ export function CinematicWorkflowShell({
       <main className="relative z-10 px-4 sm:px-6 py-10 sm:py-16 pb-32 sm:pb-16 keyboard-safe-bottom sm:keyboard-safe-bottom-0 directing-focus-glow cinematic-master-atmosphere">
         <CinematicWorkflowAtmosphere />
         <DirectingEnvironmentComposer>
-        <CinematicMobileMode className="max-w-5xl mx-auto">
+        <CinematicMobileMode
+          className="max-w-5xl mx-auto"
+          segmentCount={segmentCount}
+          durationSec={durationSec}
+        >
         <div className="relative emotional-directing-depth rounded-none sm:rounded-sm visual-composition-weight">
           <div className="mb-8 sm:mb-10 text-center min-h-[120px] sm:min-h-[140px] flex flex-col justify-end screenplay-rhythm-spacing">
             <p className="text-[#C8A24E] uppercase tracking-[0.35em] text-[10px] sm:text-xs mb-3 sm:mb-4">

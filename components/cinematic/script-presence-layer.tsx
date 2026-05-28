@@ -17,7 +17,7 @@ export function ScriptPresenceLayer({ script }: { script: string }) {
     return (
       <DirectorReadingMode>
         <p className="text-white/40 italic text-[15px] leading-[1.9]">
-          Your script will appear here after generation.
+          Your story arrives here as the arc takes form.
         </p>
       </DirectorReadingMode>
     )

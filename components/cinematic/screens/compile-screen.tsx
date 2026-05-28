@@ -9,6 +9,7 @@ import {
   orchestrateEmotionalRenderForCompile,
   persistExportSequence,
 } from '@/lib/cinematic/render'
+import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
 import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
 import {
   buildCaptionPackageText,
@@ -146,6 +147,30 @@ export function CinematicCompileScreen() {
     [filmOrchestration.blueprint]
   )
 
+  const previewScenes = useMemo(
+    () =>
+      projectStateToGenerationOutput({
+        title,
+        hook,
+        summary,
+        script,
+        scenes,
+        captionLines,
+        suggestedVoiceStyle,
+        niche,
+      }).scenes,
+    [
+      title,
+      hook,
+      summary,
+      script,
+      scenes,
+      captionLines,
+      suggestedVoiceStyle,
+      niche,
+    ]
+  )
+
   const platformCards = useMemo(
     () => buildPlatformExportCards(snapshot),
     [snapshot]
@@ -260,7 +285,7 @@ export function CinematicCompileScreen() {
   const copyCaptionPackage = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(captionPackageText)
-      toast.success('Caption package copied')
+      toast.success('Caption rhythm copied')
     } catch {
       toast.error('Could not copy captions')
     }
@@ -320,6 +345,7 @@ export function CinematicCompileScreen() {
               previewFadeMs={snapshot.previewFadeMs}
               previewRhythm={previewRhythm}
               transitionRhythm={snapshot.transitionRhythm}
+              previewScenes={previewScenes}
             />
             <div className="space-y-6 min-w-0">
               <ExportDetailsPanel snapshot={snapshot} />
@@ -343,7 +369,7 @@ export function CinematicCompileScreen() {
               onClick={copyCaptionPackage}
               className="px-5 py-3 rounded-2xl border border-white/10 text-white/70 text-sm hover:border-[#D4AF37]/25 hover:text-[#F4E7C1] transition"
             >
-              Copy Caption Package
+              Copy Captions
             </button>
           </div>
         </div>
@@ -355,7 +381,7 @@ export function CinematicCompileScreen() {
           <ExportProgressPanel
             activeStep={activeStep}
             progress={progress}
-            presenceLine={immersiveLoadingCopy('compile')}
+            presenceLine={immersiveLoadingCopy('compile', activeStep)}
           />
         </>
       )}

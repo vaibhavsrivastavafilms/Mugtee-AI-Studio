@@ -1,5 +1,6 @@
 import type { CinematicRenderBlueprint } from '@/lib/cinematic/execution/compile/cinematic-render-blueprint'
 import type { EmotionalSequenceBeat } from '@/lib/cinematic/execution/compile/emotional-film-plan'
+import { averageTransitionFadeMs } from '@/lib/cinematic/motion/emotional-transition-motion'
 
 export type PreviewRhythmMetadata = {
   beatIntervalsMs: number[]
@@ -34,7 +35,10 @@ export function buildPreviewRhythmFromBlueprint(
   })
 
   const hasDissolve = blueprint.shots.some((s) => s.transition === 'dissolve')
-  const fadeMs = options?.restrainedMotion ? (hasDissolve ? 280 : 220) : hasDissolve ? 520 : 420
+  const motionFade = averageTransitionFadeMs(total)
+  const fadeMs = options?.restrainedMotion
+    ? Math.min(hasDissolve ? 280 : 220, motionFade)
+    : Math.min(hasDissolve ? 520 : 420, motionFade + 80)
 
   return {
     beatIntervalsMs,

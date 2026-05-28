@@ -59,7 +59,23 @@ export function CinematicPreviewScreen() {
   const previs = useMemo(
     () =>
       buildCinematicPrevisualization(
-        { hook, summary, script, scenes },
+        {
+          hook,
+          summary,
+          script,
+          scenes: scenes.map((s) => ({
+            id: String(s.index),
+            title: s.title || `Beat ${s.index}`,
+            description: s.visualPrompt || s.title || '',
+            duration: s.duration ?? duration / Math.max(scenes.length, 1),
+            visualPrompt: s.visualPrompt || '',
+            cameraAngle: s.cameraAngle || '',
+            lightingMood: s.lightingMood || '',
+            environment: s.environment || '',
+            colorPalette: s.colorPalette || '',
+            movementStyle: s.movementStyle || '',
+          })),
+        },
         { script, hook, duration, style }
       ),
     [hook, summary, script, scenes, duration, style]
@@ -162,7 +178,7 @@ export function CinematicPreviewScreen() {
       <CreatorGuidance step="preview" />
 
       <CreatorFeedbackPrompt
-        context="preview"
+        context="generation"
         question="Did this feel cinematic?"
         secondaryQuestion="Did the pacing feel natural?"
       />

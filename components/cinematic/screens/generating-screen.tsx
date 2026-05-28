@@ -114,8 +114,8 @@ export function CinematicGeneratingScreen() {
 
   return (
     <CinematicWorkflowShell
-      title="Mugtee is creating your story"
-      subtitle="Script, beats, and captions are being shaped from your prompt."
+      title="Your story is taking form"
+      subtitle="Script, beats, and captions unfold from your premise."
     >
       <MomentumStrip stage="generating" seed={lineIndex} />
       <PacingIntelligenceStrip style={style} seed={lineIndex} />
@@ -147,7 +147,7 @@ export function CinematicGeneratingScreen() {
               {prompt.trim() || 'Waiting for your cinematic idea.'}
             </p>
             <p className="mt-6 text-[10px] tracking-[0.25em] uppercase text-white/30">
-              {immersiveLoadingCopy('generating')}
+              {immersiveLoadingCopy('generating', lineIndex)}
             </p>
           </div>
         )}
