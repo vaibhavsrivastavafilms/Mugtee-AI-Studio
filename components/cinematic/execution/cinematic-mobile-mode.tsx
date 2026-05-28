@@ -15,7 +15,9 @@ export function CinematicMobileMode({
   return (
     <div
       className={cn(
-        'cinematic-mobile-mode cinematic-touch-flow',
+        'cinematic-mobile-mode cinematic-touch-flow min-h-[100dvh] overscroll-y-contain touch-manipulation',
+        'pb-[max(0px,env(safe-area-inset-bottom))] pt-[max(0px,env(safe-area-inset-top))]',
+        'max-sm:[&_.immersive-film-viewer]:min-h-[min(68dvh,520px)] max-sm:[&_.cinematic-export-frame]:aspect-[9/16]',
         preferReducedLayers && 'cinematic-reduced-layers',
         className
       )}

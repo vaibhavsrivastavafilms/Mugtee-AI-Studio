@@ -12,6 +12,7 @@ export function CompletionPresence({
 }) {
   return (
     <section
+      aria-label="Film world complete"
       className={cn(
         'relative rounded-[32px] border border-[#D4AF37]/25 bg-gradient-to-br from-[#2B1A08]/40 via-black/40 to-black overflow-hidden p-8 sm:p-12 text-center max-w-2xl mx-auto min-h-[420px] flex flex-col justify-center workflow-presence-glow cinematic-success-glow cinematic-identity-glow cinematic-vignette-soft pacing-awareness-glow immersive-session-fade directing-focus-glow cinematic-operating-depth emotional-production-glow cinematic-environment-focus',
         className

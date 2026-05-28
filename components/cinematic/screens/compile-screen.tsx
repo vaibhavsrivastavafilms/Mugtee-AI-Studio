@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import {
+  buildPreviewRhythmFromBlueprint,
   orchestrateEmotionalRenderForCompile,
   persistExportSequence,
-} from '@/lib/cinematic/execution/compile'
+} from '@/lib/cinematic/render'
 import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
 import {
   buildCaptionPackageText,
@@ -140,6 +141,11 @@ export function CinematicCompileScreen() {
     ]
   )
 
+  const previewRhythm = useMemo(
+    () => buildPreviewRhythmFromBlueprint(filmOrchestration.blueprint),
+    [filmOrchestration.blueprint]
+  )
+
   const platformCards = useMemo(
     () => buildPlatformExportCards(snapshot),
     [snapshot]
@@ -245,10 +251,10 @@ export function CinematicCompileScreen() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${(title || 'mugtee-reel').replace(/\s+/g, '-').toLowerCase()}-export.txt`
+    link.download = `${(title || 'mugtee-reel').replace(/\s+/g, '-').toLowerCase()}-film-world.txt`
     link.click()
     URL.revokeObjectURL(url)
-    toast.success('Export package downloaded')
+    toast.success('Your film world is saved locally')
   }, [fullExportText, title])
 
   const copyCaptionPackage = useCallback(async () => {
@@ -283,7 +289,7 @@ export function CinematicCompileScreen() {
 
   return (
     <CinematicWorkflowShell
-      title="Your cinematic world is almost film"
+      title="Your world is becoming film"
       subtitle={snapshot.presenceLine || filmOrchestration.presenceLine}
     >
       <MomentumStrip stage="compile" style={style} />
@@ -310,6 +316,10 @@ export function CinematicCompileScreen() {
               title={snapshot.title}
               style={style}
               niche={niche}
+              beatIntervalsMs={snapshot.previewBeatIntervalsMs}
+              previewFadeMs={snapshot.previewFadeMs}
+              previewRhythm={previewRhythm}
+              transitionRhythm={snapshot.transitionRhythm}
             />
             <div className="space-y-6 min-w-0">
               <ExportDetailsPanel snapshot={snapshot} />
@@ -326,7 +336,7 @@ export function CinematicCompileScreen() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#D4AF37] text-black text-sm font-medium hover:bg-[#E7C56A] transition shadow-[0_0_24px_rgba(212,175,55,0.15)]"
             >
               <Sparkles className="w-4 h-4" />
-              Prepare Your Film
+              Let the World Become Film
             </button>
             <button
               type="button"
@@ -362,8 +372,8 @@ export function CinematicCompileScreen() {
           />
           <CreatorFeedbackPrompt
             context="export"
-            question="Did this export feel creator-ready?"
-            secondaryQuestion="Was the compile workflow helpful?"
+            question="Did this film world feel complete?"
+            secondaryQuestion="Did the final sequence hold emotional rhythm?"
           />
         </>
       )}

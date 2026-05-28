@@ -73,10 +73,10 @@ export function CinematicGeneratingScreen() {
         clearTimeout(timeout)
 
         const data = await res.json()
-        if (!res.ok) throw new Error(data?.error || 'Generation failed')
+        if (!res.ok) throw new Error(data?.error || 'Story shaping paused')
 
         if (!data.output) {
-          throw new Error('The story engine returned an empty response. Try again.')
+          throw new Error('Your story did not fully arrive. Try again.')
         }
 
         applyGenerationToStore(data.output)
@@ -102,7 +102,7 @@ export function CinematicGeneratingScreen() {
         const message =
           e instanceof Error
             ? e.name === 'AbortError'
-              ? 'Generation timed out. Your prompt is saved — try again.'
+              ? 'This beat took too long. Your prompt is saved — try again.'
               : e.message
             : 'Something went wrong'
         setError(message)
@@ -123,7 +123,7 @@ export function CinematicGeneratingScreen() {
       <div className="min-h-[320px] flex items-center justify-center">
         {error ? (
           <CinematicErrorState
-            title="Generation paused"
+            title="Story paused"
             message={`${error} ${TRUST_COPY.generationPaused}`}
             onRetry={() => {
               startedRef.current = false

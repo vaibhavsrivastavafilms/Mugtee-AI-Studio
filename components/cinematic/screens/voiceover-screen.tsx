@@ -14,6 +14,7 @@ import { WorkflowEmotionalState } from '@/components/cinematic/workflow-emotiona
 import { DirectingFocusAnchor } from '@/components/cinematic/directing-focus-anchor'
 import { PacingFlowStrip } from '@/components/cinematic/pacing-flow-strip'
 import { MomentumStrip } from '@/components/create/momentum-strip'
+import { voiceDirectionNote } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 import {
   CinematicStepNav,
   CinematicWorkflowShell,
@@ -131,6 +132,10 @@ export function CinematicVoiceoverScreen() {
       <CreatorStylePresence style={style} niche={niche} />
       <CreatorMemoryStrip style={style} niche={niche} seed={script.length % 4} />
       <WorkflowEmotionalState phase="regenerating" visible={busy} />
+
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#C8A24E]/55 text-center mb-2">
+        {voiceDirectionNote(voiceStyle, duration)}
+      </p>
 
       <div className="space-y-6 cinematic-panel-transition">
         <div className="flex flex-wrap gap-2">

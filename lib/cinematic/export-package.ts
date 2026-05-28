@@ -2,13 +2,14 @@ import { captionsFromLines } from '@/lib/cinematic/regen-context'
 import { NICHE_PROFILES, type CinematicNiche } from '@/lib/cinematic/niches'
 import { getActiveStoryboardImage } from '@/lib/cinematic/storyboard-utils'
 import { voiceStyleLabel } from '@/lib/cinematic/voice-match'
-import { COMPILE_EXPORT_STEPS } from '@/lib/cinematic/execution/compile/orchestrate-emotional-render'
-import { formatBlueprintForExport } from '@/lib/cinematic/execution/compile/cinematic-sequence-export'
 import {
+  COMPILE_EXPORT_STEPS,
   buildCompileFilmPlan,
   buildCinematicRenderBlueprint,
+  buildPreviewRhythmFromBlueprint,
+  formatBlueprintForExport,
   orchestrateEmotionalRenderForCompile,
-} from '@/lib/cinematic/execution/compile'
+} from '@/lib/cinematic/render'
 import type { CinematicProjectState, CinematicScene } from '@/stores/cinematic-project'
 
 export const EXPORT_PROGRESS_STEPS = COMPILE_EXPORT_STEPS
@@ -49,6 +50,9 @@ export type ExportPackageSnapshot = {
   hasVoice: boolean
   filmRhythm: string
   presenceLine: string
+  previewBeatIntervalsMs: number[]
+  previewFadeMs: number
+  transitionRhythm: string
 }
 
 function parseCaptions(state: Pick<CinematicProjectState, 'hook' | 'captionLines'>) {
@@ -124,6 +128,11 @@ export function buildExportPackageSnapshot(
   const voice = voiceStyleLabel(state.suggestedVoiceStyle)
   const hook = state.hook.trim() || captions.primary
   const orchestration = orchestrateEmotionalRenderForCompile(state)
+  const previewRhythm = buildPreviewRhythmFromBlueprint(orchestration.blueprint)
+  const alignedBeatMs =
+    previewFrames.length > 0
+      ? previewRhythm.beatIntervalsMs.slice(0, previewFrames.length)
+      : previewRhythm.beatIntervalsMs
 
   return {
     title: state.title || 'Untitled cinematic story',
@@ -142,6 +151,9 @@ export function buildExportPackageSnapshot(
     hasVoice: Boolean(state.voice?.audioUrl || state.voice?.narration),
     filmRhythm: orchestration.blueprint.filmRhythm,
     presenceLine: orchestration.presenceLine,
+    previewBeatIntervalsMs: alignedBeatMs,
+    previewFadeMs: previewRhythm.fadeMs,
+    transitionRhythm: previewRhythm.transitionRhythm,
   }
 }
 
@@ -211,7 +223,7 @@ export function buildFullExportText(
   return [
     `# ${snapshot.title}`,
     '',
-    '## Mugtee Cinematic Export Package',
+    '## Mugtee Film World',
     '',
     `Format: 9:16 · ${snapshot.duration}s · ${snapshot.visualStyle}`,
     `Voice: ${snapshot.voiceStyle}`,

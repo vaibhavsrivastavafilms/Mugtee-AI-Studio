@@ -42,7 +42,7 @@ export function ExportSuccessPanel({
           Your cinematic story is ready.
         </h2>
         <p className="text-sm text-white/50 max-w-md mx-auto mb-2">
-          Your directed export pack is ready — hook, captions, storyboard frames, and voice direction aligned for vertical delivery.
+          Your film world is ready — hook, captions, storyboard frames, and voice held in vertical rhythm.
         </p>
         <p className="text-[9px] tracking-[0.2em] uppercase text-white/32 mb-2">
           {pacingLine}
@@ -52,7 +52,7 @@ export function ExportSuccessPanel({
         </p>
 
         <div className="flex flex-wrap justify-center gap-3">
-          <ActionButton icon={Download} label="Download Reel" primary onClick={onDownload} />
+          <ActionButton icon={Download} label="Save Film World" primary onClick={onDownload} />
           <ActionButton icon={Copy} label="Copy Caption Package" onClick={onCopyCaptions} />
           <ActionButton icon={Share2} label="Share Preview" onClick={onShare} />
         </div>

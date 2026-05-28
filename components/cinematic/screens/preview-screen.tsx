@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { voiceStyleLabel } from '@/lib/cinematic/generation'
+import {
+  buildCinematicPrevisualization,
+  previewAnticipationSubtitle,
+} from '@/lib/cinematic/preview'
+import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
 import { useCinematicRoute } from '@/hooks/use-cinematic-route'
 import { useCinematicProjectStore } from '@/stores/cinematic-project'
 import { CreatorFeedbackPrompt } from '@/components/cinematic/creator-feedback-prompt'
@@ -47,8 +52,18 @@ export function CinematicPreviewScreen() {
     suggestedVoiceStyle,
     niche,
     prompt,
+    scenes,
     updateStatus,
   } = useCinematicRoute('preview')
+
+  const previs = useMemo(
+    () =>
+      buildCinematicPrevisualization(
+        { hook, summary, script, scenes },
+        { script, hook, duration, style }
+      ),
+    [hook, summary, script, scenes, duration, style]
+  )
 
   useEffect(() => {
     if (!script.trim() && !prompt.trim()) {
@@ -58,9 +73,31 @@ export function CinematicPreviewScreen() {
 
   return (
     <CinematicWorkflowShell
-      title="Preview your cinematic draft"
-      subtitle="Review the hook and script before directing scenes and voice."
+      title="Feel your story before the lens"
+      subtitle={previewAnticipationSubtitle(previs)}
     >
+      <section className="rounded-[28px] border border-white/[0.06] bg-white/[0.02] px-5 py-4 mb-5 max-w-2xl mx-auto text-center">
+        <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/70 mb-2">
+          {previs.buildupPhase === 'opening'
+            ? 'Opening anticipation'
+            : previs.buildupPhase === 'peak'
+              ? 'Emotional crest'
+              : previs.buildupPhase === 'settling'
+                ? 'Held aftertaste'
+                : 'Rhythm rising'}
+        </p>
+        <p className="text-white/70 text-sm leading-relaxed italic">
+          {previs.presenceLine}
+        </p>
+        {previs.visualContinuityHint ? (
+          <p className="text-white/35 text-[11px] mt-3 tracking-wide">
+            {previs.visualContinuityHint}
+          </p>
+        ) : null}
+        <p className="text-white/25 text-[10px] tracking-[0.2em] uppercase mt-4">
+          {immersiveLoadingCopy('preview', script.length % 3)}
+        </p>
+      </section>
       <FirstSuccessMoment projectId={projectId} />
       <CinematicViewingRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-2" />
       <CinematicShowcaseRoutePresence stage="preview" style={style} niche={niche} seed={script.length % 3} className="mb-3 hidden sm:block" />
@@ -125,9 +162,9 @@ export function CinematicPreviewScreen() {
       <CreatorGuidance step="preview" />
 
       <CreatorFeedbackPrompt
-        context="generation"
+        context="preview"
         question="Did this feel cinematic?"
-        secondaryQuestion="Was this workflow helpful?"
+        secondaryQuestion="Did the pacing feel natural?"
       />
 
       <CinematicStepNav

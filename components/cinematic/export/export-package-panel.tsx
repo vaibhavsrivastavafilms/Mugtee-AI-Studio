@@ -8,10 +8,10 @@ export function ExportPackagePanel({ snapshot }: { snapshot: ExportPackageSnapsh
       <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/85">
-            Export Package
+            Film World
           </p>
           <p className="text-sm text-white/45 mt-1">
-            Your finished creative asset bundle
+            Hook, captions, and rhythm aligned for the world
           </p>
         </div>
         <span className="px-2.5 py-1 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] text-[9px] tracking-wider uppercase text-emerald-200/90">

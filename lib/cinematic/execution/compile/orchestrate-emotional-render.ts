@@ -15,7 +15,7 @@ export const COMPILE_EXPORT_STEPS = [
   'Holding your cinematic rhythm',
   'Sequencing emotional beats',
   'Aligning visual continuity',
-  'Preparing your film for the world',
+  'Letting the world become film',
 ] as const
 
 export function orchestrateEmotionalRenderForCompile(

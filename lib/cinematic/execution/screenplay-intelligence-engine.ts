@@ -12,6 +12,12 @@ import {
 } from '@/lib/cinematic/execution/emotional-escalation-system'
 import { selectCinematicHook } from '@/lib/cinematic/execution/cinematic-hook-engine'
 import { alignOpeningSceneWithHook } from '@/lib/cinematic/execution/visual-hook-architecture'
+import { enhanceStoryboardScenes } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
+import { planCameraDirection } from '@/lib/cinematic/execution/cinematic-camera-engine'
+import {
+  applyCalibratedDurations,
+  calibrateVisualRhythm,
+} from '@/lib/cinematic/storyboard/visual-rhythm-calibration'
 
 export type ScreenplayEnhanceContext = {
   topic: string
@@ -37,6 +43,14 @@ export function enhanceScreenplayOutput(
 
   let scenes = applyEmotionalEscalation(output.scenes, context.niche)
   scenes = alignOpeningSceneWithHook(scenes, hook)
+  scenes = enhanceStoryboardScenes(scenes, context.niche)
+  const rhythmCalibration = calibrateVisualRhythm(scenes, context.duration)
+  scenes = applyCalibratedDurations(scenes, rhythmCalibration)
+  scenes = scenes.map((scene, i) => {
+    if (scene.cameraAngle.trim()) return scene
+    const role = scenePacingRole(i + 1, scenes.length || 1)
+    return { ...scene, cameraAngle: planCameraDirection(role) }
+  })
 
   const roles = scenes.map((_, i) =>
     scenePacingRole(i + 1, scenes.length || 1)
