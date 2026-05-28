@@ -27,9 +27,10 @@ export function buildEmotionalPreviewRhythm(
     : ['open', 'build', 'peak', 'hold']
 
   const hasPeak = beatWeights.includes('peak')
-  const label = hasPeak
-    ? 'Rising cadence toward emotional peak'
-    : 'Held rhythm — lyrical restraint'
+  const labelPool = hasPeak
+    ? ['Rising cadence toward emotional peak', 'Tension gathers — crest ahead']
+    : ['Held rhythm — lyrical restraint', 'Even breath — documentary cadence']
+  const label = labelPool[total % labelPool.length]
 
   return {
     label,
@@ -57,5 +58,9 @@ export function mergePreviewRhythm(
     narrationPacingLabel: emotional.label,
     transitionRhythm: emotional.transitionHint,
     movementSequencing: [],
+    emotionalWeights: emotional.beatWeights,
+    transitionFadeMs: emotional.beatWeights.map((w) =>
+      w === 'peak' ? 480 : w === 'hold' ? 520 : 360
+    ),
   }
 }

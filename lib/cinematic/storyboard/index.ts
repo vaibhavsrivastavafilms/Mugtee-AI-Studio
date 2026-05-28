@@ -21,3 +21,7 @@ export {
   applyCalibratedDurations,
   calibrateVisualRhythm,
 } from '@/lib/cinematic/storyboard/visual-rhythm-calibration'
+export {
+  getEscalationContinuityLine,
+  getSceneWorldContinuityLine,
+} from '@/lib/creator/scene-world-continuity'

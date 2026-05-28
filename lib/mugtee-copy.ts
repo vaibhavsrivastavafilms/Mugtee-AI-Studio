@@ -29,7 +29,7 @@ export const MUGTEE_SPEAK_LINES = {
   rewriteViral:     ['Sharpening the hook.', 'Making it scroll-stop.'],
   rewriteDoc:       ['Switching to documentary voice.'],
   rewriteCTA:       ['Rewriting the final line. Earning the share this time.'],
-  exporting:        ['Exporting now.', 'Packaging your script.'],
+  exporting:        ['Your film world is taking form.', 'Letting the sequence settle.'],
   openingProject:   ['Opening your latest project.'],
   reading:          ['Reading it back.'],
   unknown:          ["Didn't catch that. Try again?", 'Say it sharper — I\'m listening.'],

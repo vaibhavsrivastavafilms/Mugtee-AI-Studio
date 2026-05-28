@@ -199,7 +199,7 @@ export function CinematicCreateScreen() {
             className="h-14 sm:h-16 rounded-2xl bg-[#D4AF37] hover:bg-[#E7C56A] transition text-black font-semibold flex items-center justify-center gap-2 shadow-xl shadow-yellow-500/10 disabled:opacity-50 min-h-[48px]"
           >
             <Sparkles className="w-5 h-5" />
-            Generate with Mugtee
+            Let your story take form
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export function CinematicCreateScreen() {
         backHref="/dashboard"
         backLabel="Your studio"
         nextHref={canContinue ? withProjectQuery('/cinematic/generating', persistedId || id) : undefined}
-        nextLabel="Generate"
+        nextLabel="Begin"
         onNext={async () => {
           updateStatus('generating')
           await persistProject()

@@ -6,7 +6,7 @@ export function PlatformExportCards({ cards }: { cards: ExportPlatformCard[] }) 
   return (
     <section className="space-y-3">
       <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/85">
-        Platform Formats
+        Where your film lives
       </p>
       <div className="flex gap-3 overflow-x-auto scroll-touch scrollbar-luxe pb-1 -mx-1 px-1 snap-x snap-mandatory">
         {cards.map((card) => (

@@ -29,7 +29,8 @@ export function ImmersiveSceneScroll({
     <div
       className={cn(
         'immersive-scene-scroll max-h-[min(72dvh,640px)] overflow-y-auto overscroll-y-contain',
-        'pb-[max(1rem,env(safe-area-inset-bottom))]',
+        'px-[max(0.5rem,env(safe-area-inset-left))]',
+        'pb-[max(1.25rem,env(safe-area-inset-bottom))]',
         scrollSnapClass(preferReducedLayers),
         preferReducedLayers && 'cinematic-reduced-layers',
         className
@@ -39,8 +40,9 @@ export function ImmersiveSceneScroll({
         <section
           key={scene.id}
           className={cn(
-            'min-h-[min(52dvh,420px)] px-4 py-6 flex flex-col justify-center',
-            !preferReducedLayers && 'snap-start snap-always'
+            'min-h-[min(52dvh,420px)] px-4 py-7 flex flex-col justify-center',
+            !preferReducedLayers && 'snap-start snap-always',
+            preferReducedLayers && 'py-8',
           )}
           style={{ scrollMarginTop: '1rem' }}
         >

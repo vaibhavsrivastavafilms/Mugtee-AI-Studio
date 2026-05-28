@@ -49,7 +49,7 @@ export function enhanceScreenplayOutput(
   scenes = scenes.map((scene, i) => {
     if (scene.cameraAngle.trim()) return scene
     const role = scenePacingRole(i + 1, scenes.length || 1)
-    return { ...scene, cameraAngle: planCameraDirection(role) }
+    return { ...scene, cameraAngle: planCameraDirection(role, i + 1) }
   })
 
   const roles = scenes.map((_, i) =>
@@ -82,7 +82,7 @@ export function enhanceScreenplayOutput(
     summary:
       arcScore >= 0.4
         ? summary
-        : `${summary} Emotional arc held across ${scenes.length} beats.`,
+        : `${summary.replace(/\.\s*$/, '')} — ${scenes.length} beats held in arc.`,
     niche: context.niche,
   }
 }

@@ -13,6 +13,8 @@ const TRANSITIONS: Record<string, string> = {
   'peak→release': 'controlled pull-back — exhale into space',
   'release→aftertaste': 'held stillness — memory lingers',
   'tension→release': 'gentle cut — stakes settle',
+  'hook→peak': 'accelerated dissolve — hook to crest',
+  'tension→aftertaste': 'soft landing — tension resolves quietly',
 }
 
 export function emotionalTransitionMotion(
@@ -32,7 +34,15 @@ export function emotionalTransitionMotion(
         : 'motivated cut — rhythm preserved')
 
   const fadeMs =
-    toRole === 'peak' ? 480 : fromRole === 'peak' ? 420 : toRole === 'aftertaste' ? 520 : 320
+    toRole === 'peak'
+      ? 520
+      : fromRole === 'peak'
+        ? 460
+        : toRole === 'aftertaste'
+          ? 540
+          : fromRole === 'hook'
+            ? 380
+            : 340
 
   return { fromRole, toRole, motionCue, fadeMs }
 }

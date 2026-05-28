@@ -8,6 +8,7 @@ const STAGE_LINES: Partial<Record<CinematicProjectStatus | string, string[]>> = 
   generating: [
     'Hook intensity elevated',
     'Emotional cadence forming',
+    'Your premise breathes into form',
   ],
   preview: [
     'Narrative pacing locked',

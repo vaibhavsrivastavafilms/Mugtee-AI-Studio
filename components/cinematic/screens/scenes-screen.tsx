@@ -44,6 +44,9 @@ import { SceneEmotionalBridge } from '@/components/cinematic/scene-emotional-bri
 import { VisualContinuityThread } from '@/components/cinematic/visual-continuity-thread'
 import { VisualWeightIndicator } from '@/components/cinematic/visual-weight-indicator'
 import { CreatorMemoryStrip } from '@/components/cinematic/creator-memory-strip'
+import { ScenesStoryWorldShell } from '@/components/cinematic/story-world/scenes-story-world-layer'
+import { CinematicSequencePresence } from '@/components/cinematic/story-world/story-flow'
+import { getEscalationContinuityLine } from '@/lib/creator/scene-world-continuity'
 import { PreviousSceneEcho } from '@/components/cinematic/previous-scene-echo'
 import { SceneContinuityLink } from '@/components/cinematic/scene-continuity-link'
 import { StoryboardRhythmStrip } from '@/components/cinematic/storyboard-rhythm-strip'
@@ -183,7 +186,7 @@ export function CinematicScenesScreen() {
   return (
     <CinematicWorkflowShell
       title="Scene beats"
-      subtitle="Walk the visual sequence — shot progression held in film-aware rhythm."
+      subtitle="Walk the visual sequence — story-world rhythm held in cinematic flow."
     >
       <CinematicVisualProductionShell>
       <MomentumStrip stage="scenes" style={style} />
@@ -206,6 +209,7 @@ export function CinematicScenesScreen() {
         className="text-center mb-2 hidden sm:block"
       />
       <CreatorMemoryStrip style={style} niche={niche} seed={scenes.length % 3} />
+      <ScenesStoryWorldShell sceneCount={scenes.length} style={style} niche={niche}>
       <PacingIntelligenceStrip style={style} niche={niche} seed={scenes.length} />
       <VisualContinuityThread style={style} niche={niche} className="mb-3" />
       <PacingFlowStrip seed={scenes.length} />
@@ -239,14 +243,14 @@ export function CinematicScenesScreen() {
       ) : null}
       {scenes.length === 0 ? (
         <CinematicEmptyState
-          title="No scene beats yet"
-          message="Generate from Create to populate this cinematic timeline."
+          title="Your beats await the lens"
+          message="Return to Create — your premise will unfold into scene rhythm."
           actionHref="/cinematic/create"
-          actionLabel="Back to Create"
+          actionLabel="Back to your premise"
         />
       ) : (
         <>
-        <div className="hidden sm:block space-y-4 cinematic-touch-flow scroll-mt-24">
+        <div className="hidden sm:block space-y-6 cinematic-touch-flow scroll-mt-24">
           {scenes.map((scene, i) => (
             <div
               key={scene.id}
@@ -256,6 +260,7 @@ export function CinematicScenesScreen() {
             <SceneCard
               scene={scene}
               totalScenes={scenes.length}
+              allScenes={scenes}
               style={style}
               niche={niche}
               storyboardFailed={storyboardFailed.has(scene.index)}
@@ -282,6 +287,7 @@ export function CinematicScenesScreen() {
               <SceneCard
                 scene={scene}
                 totalScenes={scenes.length}
+                allScenes={scenes}
                 style={style}
                 niche={niche}
                 storyboardFailed={storyboardFailed.has(scene.index)}
@@ -307,6 +313,7 @@ export function CinematicScenesScreen() {
         nextHref="/cinematic/voiceover"
         onNext={() => updateStatus('voiceover')}
       />
+      </ScenesStoryWorldShell>
       </CinematicVisualProductionShell>
     </CinematicWorkflowShell>
   )
@@ -331,6 +338,7 @@ function regenPayload() {
 const SceneCard = memo(function SceneCard({
   scene,
   totalScenes,
+  allScenes,
   style,
   niche,
   storyboardFailed,
@@ -338,6 +346,7 @@ const SceneCard = memo(function SceneCard({
 }: {
   scene: CinematicScene
   totalScenes: number
+  allScenes: CinematicScene[]
   style?: string | null
   niche?: string | null
   storyboardFailed: boolean
@@ -470,6 +479,11 @@ const SceneCard = memo(function SceneCard({
     }
   }, [busy, onStoryboardFailed, projectId, scene.index])
 
+  const escalationLine = useMemo(
+    () => getEscalationContinuityLine(allScenes, scene.index, scene.index % 3),
+    [allScenes, scene.index]
+  )
+
   return (
     <AtmosphericSceneShell
       active={!!busy || storyboardLoading}
@@ -477,6 +491,11 @@ const SceneCard = memo(function SceneCard({
       className="bg-white/[0.03]"
     >
     <article id={`scene-card-${scene.index}`}>
+      <CinematicSequencePresence
+        sceneIndex={scene.index}
+        totalScenes={totalScenes}
+        className="px-4 pt-2"
+      />
       <CinematicSceneProduction
         sceneIndex={scene.index}
         totalScenes={totalScenes}
@@ -510,6 +529,9 @@ const SceneCard = memo(function SceneCard({
 
       <div className="px-4 sm:px-5 pt-1">
         <ContinuityMemoryLine style={style} niche={niche} seed={scene.index} />
+        <p className="text-[8px] tracking-[0.18em] uppercase text-white/28 text-center mt-1 emotional-sequence-atmosphere">
+          {escalationLine}
+        </p>
       </div>
 
       <div className="px-4 sm:px-5 pt-3">

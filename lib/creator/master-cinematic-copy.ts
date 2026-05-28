@@ -28,7 +28,7 @@ const DELIVERY_ATMOSPHERE = [
 const WORKFLOW_PRESENCE = [
   'Directing environment active.',
   'Cinematic atmosphere held.',
-  'Emotional workflow continuity preserved.',
+  'Emotional continuity preserved.',
 ] as const
 
 export function getRefinementRhythmLine(seed = 0): string {

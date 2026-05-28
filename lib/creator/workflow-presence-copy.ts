@@ -42,9 +42,9 @@ export function getWorkflowPresenceLine(
 }
 
 export const COMPLETION_ACHIEVEMENT_LINES = [
-  'Your cinematic reel sequence is ready',
-  'Hook, pacing, and frames held in rhythm',
-  'Your directed story reached completion',
+  'Your cinematic story rests in rhythm',
+  'Hook, pacing, and frames held together',
+  'Your directed story reached its form',
 ] as const
 
 export function getCompletionAchievementLine(seed = 0): string {

@@ -47,7 +47,18 @@ export function cameraLanguageForSceneIndex(
   totalScenes: number
 ): CameraLanguageCue {
   const role = scenePacingRole(sceneIndex, totalScenes || 1)
-  return emotionalCameraLanguage(role)
+  const base = emotionalCameraLanguage(role)
+  const variant = sceneIndex % 3
+  if (variant === 1 && role === 'tension') {
+    return { ...base, movement: 'slow lateral drift — viewer leans in' }
+  }
+  if (variant === 2 && role === 'peak') {
+    return { ...base, framing: 'intimate two-shot or held portrait' }
+  }
+  if (variant === 1 && role === 'hook') {
+    return { ...base, framing: 'detail insert or environmental reveal' }
+  }
+  return base
 }
 
 export function formatCameraLanguageBlock(cue: CameraLanguageCue): string {

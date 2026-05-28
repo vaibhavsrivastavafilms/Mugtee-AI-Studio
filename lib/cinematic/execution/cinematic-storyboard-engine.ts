@@ -23,7 +23,7 @@ export function enhanceStoryboardScenes(
   const harmonized = harmonizeSceneVisuals(scenes, niche)
   return harmonized.map((scene, i) => {
     const memory = buildShotEscalationMemory(harmonized, i)
-    const withEscalation = applyEscalationToScene(scene, memory)
+    const withEscalation = applyEscalationToScene(scene, memory, i + 1, harmonized.length)
     if (withEscalation.cameraAngle.trim()) return withEscalation
     const cue = cameraLanguageForSceneIndex(i + 1, harmonized.length)
     return {
@@ -52,13 +52,29 @@ export function buildStoryboardContinuityBlock(
     .join('\n')
 }
 
-export function cameraDirectionForRole(role: string): string {
-  const map: Record<string, string> = {
-    hook: 'pattern interrupt — detail or off-center portrait',
-    tension: 'handheld drift, motivated movement',
-    peak: 'slow push-in or locked intimate frame',
-    release: 'controlled pull-back, breathing room',
-    aftertaste: 'stillness — hold on emotional residue',
+export function cameraDirectionForRole(role: string, sceneIndex = 1): string {
+  const variants: Record<string, string[]> = {
+    hook: [
+      'pattern interrupt — detail or off-center portrait',
+      'visual question — tight detail before context',
+    ],
+    tension: [
+      'handheld drift, motivated movement',
+      'medium close — subject slightly off-axis',
+    ],
+    peak: [
+      'slow push-in or locked intimate frame',
+      'shallow depth — subject at emotional center',
+    ],
+    release: [
+      'controlled pull-back, breathing room',
+      'wider frame — context returns gently',
+    ],
+    aftertaste: [
+      'stillness — hold on emotional residue',
+      'minimal movement — memory lingers',
+    ],
   }
-  return map[role] ?? 'motivated cinematic framing'
+  const pool = variants[role] ?? ['motivated cinematic framing']
+  return pool[(sceneIndex - 1) % pool.length]
 }

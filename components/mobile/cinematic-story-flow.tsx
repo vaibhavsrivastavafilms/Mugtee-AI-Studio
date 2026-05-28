@@ -26,6 +26,7 @@ export function CinematicStoryFlow({
     <div
       className={cn(
         'cinematic-story-flow flex flex-col gap-6 sm:gap-8',
+        'pb-[max(0.5rem,env(safe-area-inset-bottom))]',
         preferReducedLayers && 'cinematic-reduced-layers',
         className
       )}

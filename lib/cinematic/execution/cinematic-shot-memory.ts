@@ -28,8 +28,20 @@ export function nextShotSuggestion(
 ): string {
   const prior = memory.find((m) => m.sceneIndex === sceneIndex - 1)
   const role = scenePacingRole(sceneIndex, memory.length || 1)
-  if (!prior) return 'Establish environment with emotional clarity'
-  if (role === 'peak') return `Push in from ${prior.cameraAngle} — emotional peak`
+  if (!prior) {
+    const openers = [
+      'Establish environment with emotional clarity',
+      'Open on atmosphere — subject enters frame',
+    ]
+    return openers[sceneIndex % openers.length]
+  }
+  if (role === 'peak') {
+    const peaks = [
+      `Push in from ${prior.cameraAngle} — emotional peak`,
+      `Intimate close — crest from ${prior.movementStyle}`,
+    ]
+    return peaks[sceneIndex % peaks.length]
+  }
   if (role === 'aftertaste') return `Release movement; hold on ${prior.palette} tones`
   return `Motivated shift from ${prior.movementStyle}`
 }

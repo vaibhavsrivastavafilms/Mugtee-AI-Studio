@@ -13,6 +13,7 @@ const PRESENCE_LINES = [
   'Scenes gather before the lens',
   'Rhythm builds toward the frame',
   'Your story holds its cinematic pulse',
+  'Anticipation threads through the sequence',
 ] as const
 
 function intervalForRole(role: string, durationSec: number, index: number, total: number): number {

@@ -15,7 +15,7 @@ export function ExportPackagePanel({ snapshot }: { snapshot: ExportPackageSnapsh
           </p>
         </div>
         <span className="px-2.5 py-1 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] text-[9px] tracking-wider uppercase text-emerald-200/90">
-          Publish ready
+          World ready
         </span>
       </div>
 

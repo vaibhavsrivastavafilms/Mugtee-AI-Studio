@@ -48,7 +48,7 @@ export function voiceDirectionNote(
       ? breathingCadenceForScene(Math.min(2, sceneCount), sceneCount).breathLabel
       : 'natural cinematic cadence'
   return [
-    `${voiceStyle.replace(/_/g, ' ')} · ${pace} · no announcer energy`,
+    `${voiceStyle.replace(/_/g, ' ')} · ${pace} · human, not broadcast`,
     breath,
     escalation,
   ]

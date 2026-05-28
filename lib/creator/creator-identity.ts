@@ -19,7 +19,7 @@ const STYLE_IDENTITY: Record<string, { tone: string; pacing: string; rhythm: str
   },
   motivational: {
     tone: 'Motivational arc',
-    pacing: 'Retention-forward pacing',
+    pacing: 'Momentum-led pacing',
     rhythm: 'Momentum-driven beats',
   },
 }

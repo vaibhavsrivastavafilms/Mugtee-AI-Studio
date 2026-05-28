@@ -35,9 +35,9 @@ const COLOR_PRESENCE = [
 ] as const
 
 const EXPORT_VISUAL = [
-  'Your cinematic visual sequence is finalized.',
-  'Scene atmosphere preserved through the showcase.',
-  'Visual directing continuity complete.',
+  'Your visual sequence holds its final breath.',
+  'Scene atmosphere carried through to the world.',
+  'Directing continuity rests in the frame.',
 ] as const
 
 export function getCameraDirectionLine(
@@ -108,11 +108,11 @@ export function getVisualRhythmSequence(
   totalScenes: number,
   seed = 0
 ): string {
-  if (totalScenes <= 0) return 'Visual rhythm initializing'
+  if (totalScenes <= 0) return 'Visual rhythm gathering'
   const pool = [
-    `Beat ${sceneIndex} · ${totalScenes} frame sequence`,
-    'Visual pacing aligned across scenes',
-    'Emotional escalation visually staged',
+    `Beat ${sceneIndex} · ${totalScenes} held in sequence`,
+    'Pacing aligned across scenes',
+    'Emotional escalation staged in the frame',
   ]
   return pool[seed % pool.length]
 }
@@ -137,9 +137,9 @@ export function getFrameLabel(scene: CinematicScene): string {
 
 export function getAssetPresenceLine(sceneIndex: number, seed = 0): string {
   const pool = [
-    `Production frame · beat ${sceneIndex}`,
-    'Cinematic storyboard element',
-    'Directed visual production asset',
+    `Directed frame · beat ${sceneIndex}`,
+    'Cinematic storyboard moment',
+    'Story-world visual beat held',
   ]
   return pool[seed % pool.length]
 }
@@ -189,8 +189,8 @@ export function getExportVisualClosureLine(
   const id = resolveCreatorIdentity(style, niche)
   const pool = [
     EXPORT_VISUAL[seed % EXPORT_VISUAL.length],
-    `${id.label} visual sequence finalized`,
-    'Storyboard-to-export continuity preserved',
+    `${id.label} visual sequence at rest`,
+    'Storyboard rhythm carried into the world',
   ]
   return pool[seed % pool.length]
 }
@@ -202,14 +202,14 @@ export function getStoryboardWorldHeadline(
 ): string {
   const id = resolveCreatorIdentity(style, niche)
   if (sceneCount <= 0) return `${id.label} visual world forming`
-  return `${sceneCount} beat visual production · ${id.label}`
+  return `${sceneCount} beat story-world · ${id.label}`
 }
 
 export function getProductionPresenceLine(seed = 0): string {
   const pool = [
-    'Visual production atmosphere active',
-    'Cinematic frame world live',
-    'Storyboard directing environment',
+    'Story-world atmosphere present',
+    'Cinematic frame world breathing',
+    'Directing environment held in restraint',
   ]
   return pool[seed % pool.length]
 }

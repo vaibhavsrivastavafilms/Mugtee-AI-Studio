@@ -55,7 +55,23 @@ export function breathingCadenceForScene(
   totalScenes: number
 ): BreathingCadence {
   const role = scenePacingRole(sceneIndex, totalScenes || 1)
-  return breathingCadenceForRole(role)
+  const base = breathingCadenceForRole(role)
+  const variant = sceneIndex % 2
+  if (variant === 1 && role === 'tension') {
+    return {
+      ...base,
+      pauseBeforeMs: base.pauseBeforeMs + 40,
+      breathLabel: 'measured urgency — consonants stay soft',
+    }
+  }
+  if (variant === 1 && role === 'peak') {
+    return {
+      ...base,
+      pauseAfterMs: base.pauseAfterMs + 60,
+      breathLabel: 'long vowel hold — performed, not read',
+    }
+  }
+  return base
 }
 
 export function adjustWpmForBreathing(baseWpm: number, cadence: BreathingCadence): number {

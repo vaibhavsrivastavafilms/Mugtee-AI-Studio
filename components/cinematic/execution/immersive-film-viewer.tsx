@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { escalationPresenceForIndex } from '@/lib/cinematic/preview/cinematic-escalation-preview'
+import { emotionalTransitionMotion } from '@/lib/cinematic/motion/emotional-transition-motion'
 import { beatIntervalMsFromRhythm, type PreviewRhythmMetadata } from '@/lib/cinematic/render/preview-rhythm'
 
 function defaultBeatIntervalMs(index: number, total: number, durationSec: number): number {
@@ -14,11 +15,31 @@ function defaultBeatIntervalMs(index: number, total: number, durationSec: number
   return Math.max(1900, Math.round(base))
 }
 
+function fadeMsForBeat(
+  index: number,
+  total: number,
+  previewRhythm: PreviewRhythmMetadata | undefined,
+  defaultFadeMs: number,
+  restrainedMotion: boolean
+): number {
+  if (previewRhythm?.fadeMs != null && index === 0) {
+    return restrainedMotion
+      ? Math.min(previewRhythm.fadeMs, 260)
+      : previewRhythm.fadeMs
+  }
+  if (total > 1 && index > 0) {
+    const transition = emotionalTransitionMotion(index, index + 1, total)
+    const base = transition.fadeMs
+    return restrainedMotion ? Math.min(base, 280) : Math.min(base + 40, defaultFadeMs + 80)
+  }
+  return restrainedMotion ? Math.min(defaultFadeMs, 240) : defaultFadeMs
+}
+
 export function ImmersiveFilmViewer({
   frames,
   duration,
   className,
-  fadeMs = 480,
+  fadeMs = 520,
   beatIntervalsMs,
   previewRhythm,
   restrainedMotion = false,
@@ -41,9 +62,16 @@ export function ImmersiveFilmViewer({
   const [activeIndex, setActiveIndex] = useState(0)
   const [fading, setFading] = useState(false)
 
-  const effectiveFadeMs = restrainedMotion
-    ? Math.min(fadeMs, previewRhythm?.fadeMs ?? 220)
-    : (previewRhythm?.fadeMs ?? fadeMs)
+  useEffect(() => {
+    setActiveIndex(0)
+    setFading(false)
+  }, [frames.length, duration])
+
+  const effectiveFadeMs = useMemo(
+    () =>
+      fadeMsForBeat(activeIndex, frames.length, previewRhythm, fadeMs, restrainedMotion),
+    [activeIndex, fadeMs, frames.length, previewRhythm, restrainedMotion]
+  )
 
   useEffect(() => {
     if (frames.length <= 1) return
@@ -67,22 +95,30 @@ export function ImmersiveFilmViewer({
       } else {
         base = defaultBeatIntervalMs(index, frames.length, duration)
       }
-      if (restrainedMotion) return Math.round(base * 1.06)
+      if (restrainedMotion) return Math.round(base * 1.08)
       return base
     }
 
     const schedule = () => {
+      const holdMs = intervalAt(idx)
       waitTimer = setTimeout(() => {
         if (cancelled) return
         setFading(true)
+        const transitionFade = fadeMsForBeat(
+          idx,
+          frames.length,
+          previewRhythm,
+          fadeMs,
+          restrainedMotion
+        )
         fadeTimer = setTimeout(() => {
           if (cancelled) return
           idx = (idx + 1) % frames.length
           setActiveIndex(idx)
           setFading(false)
           schedule()
-        }, effectiveFadeMs)
-      }, intervalAt(idx))
+        }, transitionFade)
+      }, holdMs)
     }
 
     schedule()
@@ -94,17 +130,20 @@ export function ImmersiveFilmViewer({
   }, [
     frames.length,
     duration,
-    effectiveFadeMs,
+    fadeMs,
     beatIntervalsMs,
     previewRhythm,
     restrainedMotion,
   ])
 
   const activeFrame = frames.length > 0 ? frames[activeIndex] : null
-  const anticipationLabel =
-    frames.length > 1
-      ? escalationPresenceForIndex(activeIndex, frames.length)
-      : undefined
+  const anticipationLabel = useMemo(
+    () =>
+      frames.length > 1
+        ? escalationPresenceForIndex(activeIndex, frames.length)
+        : undefined,
+    [activeIndex, frames.length]
+  )
 
   return (
     <div

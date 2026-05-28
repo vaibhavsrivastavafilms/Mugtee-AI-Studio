@@ -9,7 +9,7 @@ export default function OfflinePage() {
            style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)', color: '#0B0B0B', fontWeight: 800, fontSize: 32 }}>M</div>
       <h1 className="text-2xl font-semibold tracking-tight mb-2">You’re offline</h1>
       <p className="text-sm text-[#E8D9A8]/70 max-w-sm">
-        Mugtee AI Studio needs an internet connection to generate, save and sync your work.
+        Mugtee AI Studio needs an internet connection to shape, save, and continue your cinematic work.
         Reconnect and we’ll pick up exactly where you left off.
       </p>
       <a href="/"

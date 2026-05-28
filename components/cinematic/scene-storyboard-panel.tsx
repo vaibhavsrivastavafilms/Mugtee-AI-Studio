@@ -9,6 +9,10 @@ import { CinematicFrameLabel } from '@/components/cinematic/cinematic-frame-labe
 import { StoryboardCrossfadeImage } from '@/components/cinematic/storyboard-crossfade-image'
 import { VisualIntensityMeter } from '@/components/cinematic/visual-intensity-meter'
 import { CinematicShimmer } from '@/components/cinematic/cinematic-states'
+import {
+  ImmersiveFrameComposition,
+  CinematicShotPresence,
+} from '@/components/cinematic/story-world/frame-immersion'
 import type { CinematicScene, StoryboardImage } from '@/stores/cinematic-project'
 
 export const SceneStoryboardPanel = memo(function SceneStoryboardPanel({
@@ -30,8 +34,8 @@ export const SceneStoryboardPanel = memo(function SceneStoryboardPanel({
   if (loading && images.length === 0) {
     return (
       <div className="border-b border-white/[0.06] bg-black/20">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_92px] gap-3 p-3 sm:p-4 min-h-[220px] md:min-h-[252px]">
-          <CinematicShimmer className="aspect-[16/10] md:aspect-auto md:min-h-[220px] rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_92px] gap-3 p-3 sm:p-4 min-h-[min(48dvh,380px)] md:min-h-[252px]">
+          <CinematicShimmer className="aspect-[16/10] md:aspect-auto md:min-h-[220px] min-h-[min(40dvh,320px)] rounded-2xl" />
           <div className="flex md:flex-col gap-2 overflow-x-auto scroll-snap-storyboard scroll-touch scrollbar-luxe pb-1 md:pb-0">
             {[0, 1, 2].map((i) => (
               <CinematicShimmer
@@ -49,7 +53,7 @@ export const SceneStoryboardPanel = memo(function SceneStoryboardPanel({
   if (loading && preserveUrl) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-[1fr_92px] gap-3 p-3 sm:p-4 border-b border-white/[0.06] bg-black/20">
-        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px] rounded-2xl overflow-hidden border border-white/[0.08]">
+        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px] min-h-[min(40dvh,320px)] rounded-2xl overflow-hidden border border-white/[0.08]">
           <StoryboardCrossfadeImage
             src={preserveUrl}
             alt={`Scene ${scene.index} storyboard`}
@@ -92,27 +96,32 @@ export const SceneStoryboardPanel = memo(function SceneStoryboardPanel({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_92px] gap-3 p-3 sm:p-4">
-      <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px] rounded-2xl overflow-hidden border border-white/[0.08] group storyboard-scene-transition storyboard-edge-fade production-frame-focus">
-        <StoryboardCrossfadeImage
-          src={active!.url}
-          alt={`Scene ${scene.index} storyboard`}
-          parallax
-        />
-        <CinematicFrameOverlay
-          sceneIndex={scene.index}
-          variantLabel={active!.variantLabel}
-          active
-        />
-        <div className="absolute top-3 left-3 z-[2]">
-          <CinematicFrameLabel scene={scene} />
-        </div>
-        <div className="absolute top-3 right-3 hidden sm:block z-[2]">
-          <VisualIntensityMeter
-            level={Math.min(5, 2 + (scene.index % 3))}
-            className="px-2 py-1 rounded-full bg-black/50 border border-white/[0.06]"
+      <ImmersiveFrameComposition sceneIndex={scene.index} seed={scene.index % 3}>
+        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px] rounded-2xl overflow-hidden border border-white/[0.08] group storyboard-scene-transition storyboard-edge-fade cinematic-environment-focus">
+          <StoryboardCrossfadeImage
+            src={active!.url}
+            alt={`Scene ${scene.index} storyboard`}
+            parallax
           />
+          <CinematicFrameOverlay
+            sceneIndex={scene.index}
+            variantLabel={active!.variantLabel}
+            active
+          />
+          <div className="absolute top-3 left-3 z-[2]">
+            <CinematicFrameLabel scene={scene} />
+          </div>
+          <div className="absolute top-3 right-3 hidden sm:block z-[2]">
+            <VisualIntensityMeter
+              level={Math.min(5, 2 + (scene.index % 3))}
+              className="px-2 py-1 rounded-full bg-black/50 border border-white/[0.06]"
+            />
+          </div>
+          <div className="absolute bottom-3 left-3 right-3 z-[2] flex justify-center sm:justify-start">
+            <CinematicShotPresence sceneIndex={scene.index} seed={scene.index % 3} />
+          </div>
         </div>
-      </div>
+      </ImmersiveFrameComposition>
 
       <VariantRail
         images={images}

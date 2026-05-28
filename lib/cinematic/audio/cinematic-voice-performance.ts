@@ -23,15 +23,17 @@ export function buildCinematicVoicePerformance(
     escalation.peakSceneIndex + 1,
     total
   )
-
-  const performanceNotes = emphasis.slice(0, 4).map((e) => `${e.label}: ${e.cue}`)
+  const openingCadence = breathingCadenceForScene(1, total)
   const targetWpm = Math.round(baseWpm * peakCadence.wpmModifier)
 
+  const performanceNotes = emphasis.slice(0, 4).map((e) => `${e.label}: ${e.cue}`)
+
   const direction = [
-    `${voiceStyle.replace(/_/g, ' ')} — directed, human, restrained`,
+    `${voiceStyle.replace(/_/g, ' ')} — performed, human, restrained`,
+    openingCadence.breathLabel,
     peakCadence.breathLabel,
     escalation.escalationLine,
-    `Target ~${targetWpm} wpm across ${duration}s`,
+    `Target ~${targetWpm} wpm across ${duration}s — pauses are part of the line`,
   ].join('\n')
 
   return {

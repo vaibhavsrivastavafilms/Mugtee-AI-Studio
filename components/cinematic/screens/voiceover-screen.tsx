@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Volume2 } from 'lucide-react'
+import { Volume2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { buildCinematicVoicePerformance } from '@/lib/cinematic/audio/cinematic-voice-performance'
 import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
@@ -10,6 +10,7 @@ import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-perfor
 import { paceNarrationForFilm, voiceDirectionNote } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 import { useCinematicRoute } from '@/hooks/use-cinematic-route'
 import { useCinematicProjectStore } from '@/stores/cinematic-project'
+import { CinematicShimmer } from '@/components/cinematic/cinematic-states'
 import { CreatorGuidance } from '@/components/cinematic/creator-guidance'
 import { CreatorMemoryStrip } from '@/components/cinematic/creator-memory-strip'
 import { CreatorStylePresence } from '@/components/cinematic/creator-style-presence'
@@ -120,7 +121,7 @@ export function CinematicVoiceoverScreen() {
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Could not generate voiceover')
+      if (!res.ok) throw new Error(data?.error || 'Voice could not be found — try again')
 
       updateVoice({
         style: voiceStyle,
@@ -131,9 +132,9 @@ export function CinematicVoiceoverScreen() {
         audioUrl: String(data?.audio || ''),
       })
       await useCinematicProjectStore.getState().persistProject({ silent: true })
-      toast.success('Voiceover added to your project')
+      toast.success('Your voice rests in the story')
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Voiceover failed')
+      toast.error(e instanceof Error ? e.message : 'Voice could not be found — try again')
     } finally {
       setBusy(false)
     }
@@ -178,7 +179,7 @@ export function CinematicVoiceoverScreen() {
         </p>
       ) : null}
 
-      <div className="space-y-6 cinematic-panel-transition">
+      <div className="space-y-6 cinematic-panel-transition cinematic-stage-transition">
         <div className="flex flex-wrap gap-2">
           {VOICE_STYLES.map((option) => {
             const active = voiceStyle === option.id
@@ -213,17 +214,17 @@ export function CinematicVoiceoverScreen() {
           className="w-full h-14 rounded-2xl bg-[#D4AF37] text-black font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {busy ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <CinematicShimmer className="w-5 h-5 rounded-full" />
           ) : (
             <Volume2 className="w-5 h-5" />
           )}
-          Find your voice
+          {busy ? 'Finding your voice…' : 'Find your voice'}
         </button>
 
         {voice?.audioUrl ? (
           <div className="rounded-[28px] border border-[#D4AF37]/20 bg-white/[0.03] p-6 space-y-4">
             <p className="text-[#C8A24E] uppercase tracking-[0.3em] text-xs">
-              Preview
+              Listen
             </p>
             <audio
               controls
