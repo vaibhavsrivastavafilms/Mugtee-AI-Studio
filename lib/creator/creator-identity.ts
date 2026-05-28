@@ -109,7 +109,7 @@ const SESSION_RETURN_LINES: Partial<Record<string, string[]>> = {
   director: ['Resume directing your visual mood.', 'Your cinematic tone awaits refinement.'],
   scenes: ['Your storyboard sequence is ready to continue.', 'Visual continuity preserved from your last session.'],
   voiceover: ['Voice arc aligned to your directing style.', 'Narration rhythm preserved.'],
-  compile: ['Your export sequence awaits completion.', 'Directed output ready to finalize.'],
+  compile: ['Your film world awaits its final form.', 'Directed sequence ready to showcase.'],
 }
 
 export function getSessionReturnLine(
@@ -136,7 +136,7 @@ export function getExportIdentityLine(
   const lines = [
     `Your ${id.label.toLowerCase()} sequence has been prepared.`,
     'Visual pacing continuity preserved.',
-    `Export reflects your ${id.tone.toLowerCase()}.`,
+    'Showcase reflects your directed tone.',
   ]
   return lines[seed % lines.length]
 }

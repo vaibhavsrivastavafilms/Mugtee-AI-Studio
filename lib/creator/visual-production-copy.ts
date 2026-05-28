@@ -36,7 +36,7 @@ const COLOR_PRESENCE = [
 
 const EXPORT_VISUAL = [
   'Your cinematic visual sequence is finalized.',
-  'Scene atmosphere preserved through export.',
+  'Scene atmosphere preserved through the showcase.',
   'Visual directing continuity complete.',
 ] as const
 
