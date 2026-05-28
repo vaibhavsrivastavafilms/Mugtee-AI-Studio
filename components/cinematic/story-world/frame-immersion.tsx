@@ -68,6 +68,8 @@ export function VisualStoryDepth({
 }
 
 export function ImmersiveFrameComposition({
+  sceneIndex = 0,
+  seed = 0,
   className,
   children,
 }: {
@@ -76,9 +78,19 @@ export function ImmersiveFrameComposition({
   className?: string
   children: ReactNode
 }) {
+  const framePresence = useMemo(
+    () => getShotPresenceLine(sceneIndex, seed),
+    [sceneIndex, seed]
+  )
+
   return (
-    <div className={cn('relative', className)}>
-      <CinematicWorldBreathing />
+    <div
+      className={cn('relative cinematic-frame-environment', className)}
+      aria-label={framePresence}
+    >
+      <CinematicWorldBreathing
+        style={{ animationDelay: `${seed * 0.35}s` }}
+      />
       <EmotionalFrameEnvironment />
       <div className="relative z-[1]">{children}</div>
     </div>
