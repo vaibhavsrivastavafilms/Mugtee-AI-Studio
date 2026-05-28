@@ -20,6 +20,10 @@ import {
   voiceStyleLabel,
 } from '@/lib/cinematic/voice-match'
 import type { CinematicScene } from '@/stores/cinematic-project'
+import type { VirloContext } from '@/lib/virlo-engine/types'
+import { generateHookCandidates, pickStrongestHookCandidate } from '@/lib/virlo-engine/hook-engine'
+import { buildVirloContext } from '@/lib/virlo-engine'
+import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -29,11 +33,70 @@ export type GeneratedScene = {
   description: string
   duration: number
   visualPrompt: string
+  /** DALL-E / storyboard still — narrative + visual style */
+  imagePrompt: string
   cameraAngle: string
   lightingMood: string
   environment: string
   colorPalette: string
   movementStyle: string
+  /** Populated after /api/generate-images */
+  imageUrl?: string | null
+}
+
+/** Single-frame prompt for image generation from scene beat + visual direction. */
+export function buildSceneImagePrompt(
+  scene: Pick<
+    GeneratedScene,
+    | 'description'
+    | 'title'
+    | 'visualPrompt'
+    | 'cameraAngle'
+    | 'lightingMood'
+    | 'environment'
+    | 'colorPalette'
+    | 'movementStyle'
+  >
+): string {
+  const narrative = (scene.description || scene.title || '').trim()
+  const cinematic = (scene.visualPrompt || '').trim()
+  const styleLine = [
+    scene.cameraAngle,
+    scene.lightingMood,
+    scene.colorPalette,
+    scene.movementStyle,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const parts: string[] = []
+  if (narrative) parts.push(narrative)
+  if (
+    cinematic &&
+    cinematic !== narrative &&
+    !narrative.includes(cinematic.slice(0, Math.min(40, cinematic.length)))
+  ) {
+    parts.push(cinematic)
+  }
+  const env = scene.environment?.trim()
+  if (env && !parts.some((p) => p.includes(env.slice(0, 20)))) parts.push(env)
+  if (styleLine && !parts.join(' ').includes(styleLine.slice(0, 24))) {
+    parts.push(styleLine)
+  }
+
+  const merged = parts.join(' ').replace(/\s+/g, ' ').trim()
+  return (merged || styleLine || 'Cinematic vertical 9:16 still.').slice(0, 900)
+}
+
+export function ensureSceneImagePrompt<T extends GeneratedScene>(scene: T): T {
+  const imagePrompt = scene.imagePrompt?.trim() || buildSceneImagePrompt(scene)
+  return imagePrompt === scene.imagePrompt ? scene : { ...scene, imagePrompt }
+}
+
+export function ensureScenesHaveImagePrompts(
+  scenes: GeneratedScene[]
+): GeneratedScene[] {
+  return scenes.map(ensureSceneImagePrompt)
 }
 
 export type { SceneVisualDirection }
@@ -93,16 +156,19 @@ function coerceSceneList(
     const role = scenePacingRole(sceneIndex, total || 1)
     const visual = normalizeVisualDirection(row, niche, role)
 
-    scenes.push({
-      id: coerceString(row.id, `scene-${index + 1}`, 40),
-      title,
-      description,
-      duration: sceneDuration,
-      ...visual,
-    })
+    scenes.push(
+      ensureSceneImagePrompt({
+        id: coerceString(row.id, `scene-${index + 1}`, 40),
+        title,
+        description,
+        duration: sceneDuration,
+        imagePrompt: coerceString(row.imagePrompt, '', 900),
+        ...visual,
+      })
+    )
   })
 
-  return scenes.slice(0, 10)
+  return ensureScenesHaveImagePrompts(scenes.slice(0, 10))
 }
 
 function normalizeHashtags(raw: unknown): string[] {
@@ -262,6 +328,7 @@ export function scenesToStore(scenes: GeneratedScene[]): CinematicScene[] {
     narration: scene.description,
     duration: scene.duration,
     visualPrompt: scene.visualPrompt,
+    imagePrompt: scene.imagePrompt,
     cameraAngle: scene.cameraAngle,
     lightingMood: scene.lightingMood,
     environment: scene.environment,
@@ -269,6 +336,35 @@ export function scenesToStore(scenes: GeneratedScene[]): CinematicScene[] {
     movementStyle: scene.movementStyle,
     camera: scene.cameraAngle,
     lighting: scene.lightingMood,
+    imageUrl: scene.imageUrl ?? undefined,
+  }))
+}
+
+export function storeScenesToGenerated(scenes: CinematicScene[]): GeneratedScene[] {
+  return scenes.map((scene) => ({
+    id: scene.id,
+    title: scene.title || `Scene ${scene.index}`,
+    description: scene.narration || scene.title || '',
+    duration: scene.duration || 4,
+    visualPrompt: scene.visualPrompt || '',
+    imagePrompt:
+      scene.imagePrompt?.trim() ||
+      buildSceneImagePrompt({
+        title: scene.title || `Scene ${scene.index}`,
+        description: scene.narration || scene.title || '',
+        visualPrompt: scene.visualPrompt || '',
+        cameraAngle: scene.cameraAngle || scene.camera || '',
+        lightingMood: scene.lightingMood || scene.lighting || '',
+        environment: scene.environment || '',
+        colorPalette: scene.colorPalette || '',
+        movementStyle: scene.movementStyle || '',
+      }),
+    cameraAngle: scene.cameraAngle || scene.camera || '',
+    lightingMood: scene.lightingMood || scene.lighting || '',
+    environment: scene.environment || '',
+    colorPalette: scene.colorPalette || '',
+    movementStyle: scene.movementStyle || '',
+    imageUrl: scene.imageUrl ?? null,
   }))
 }
 
@@ -277,6 +373,7 @@ export function buildMockCinematicOutput(input: {
   tone: string
   duration: number
   niche?: CinematicNiche
+  virloContext?: VirloContext
 }): CinematicGenerationOutput {
   const niche =
     input.niche ??
@@ -284,26 +381,45 @@ export function buildMockCinematicOutput(input: {
   const profile = NICHE_PROFILES[niche]
   const perScene = Math.max(3, Math.round(input.duration / 5))
 
-  const hookVariations = [
-    `You were never afraid of ${profile.vocabulary[0]} — you were afraid of what it would cost.`,
-    `Most people miss the ${profile.vocabulary[1]} in "${input.topic.slice(0, 40)}".`,
-    `This is the part nobody posts about ${profile.label.toLowerCase()}.`,
-  ]
-  const hook = pickStrongestHook(hookVariations, niche)
+  const virlo =
+    input.virloContext ??
+    buildVirloContext(input.topic, {
+      tone: input.tone,
+      duration: input.duration,
+      niche,
+    })
 
-  const sceneCount = 4
-  const sceneDefs = [
-    { title: 'Pattern interrupt', desc: `Vertical close detail tied to ${profile.label.toLowerCase()} — ${profile.vocabulary[0]}, soft contrast, immediate emotional question.` },
-    { title: 'Tension builds', desc: `Handheld movement reveals the human cost behind "${input.topic.slice(0, 50)}" — ${profile.vocabulary[1]} without exposition.` },
-    { title: 'Emotional peak', desc: `Visual metaphor lands the ${profile.label.toLowerCase()} insight — ${profile.vocabulary[2]}, slower breath, tighter frame.` },
-    { title: 'Aftertaste', desc: `Hold on stillness. Let the viewer feel the choice. ${profile.toneNotes}` },
-  ]
+  const hookCandidates = generateHookCandidates(
+    input.topic,
+    niche,
+    virlo.emotionalGoal,
+    virlo.creativeSeed.seed
+  )
+  const hook = pickStrongestHookCandidate(hookCandidates).text
+
+  const sceneCount = virlo.sceneTarget
+  const beatLabels = virlo.structure.pattern
+  const sceneDefs = beatLabels.slice(0, sceneCount).map((beat, i) => ({
+    title: `Beat ${i + 1}`,
+    desc: `${beat} — ${profile.vocabulary[i % profile.vocabulary.length]} tied to "${input.topic.slice(0, 50)}".`,
+  }))
+
+  while (sceneDefs.length < sceneCount) {
+    const i = sceneDefs.length
+    sceneDefs.push({
+      title: `Scene ${i + 1}`,
+      desc: `${profile.toneNotes} — ${input.topic.slice(0, 60)}.`,
+    })
+  }
 
   const scenes: GeneratedScene[] = sceneDefs.map((def, i) => {
     const sceneIndex = i + 1
     const role = scenePacingRole(sceneIndex, sceneCount)
-    const visual = defaultVisualDirection(niche, role, def.title)
-    return {
+    const virloVisual = virlo.visuals[i]
+    const visual = virloVisual
+      ? sceneVisualFieldsFromVirlo(virloVisual)
+      : defaultVisualDirection(niche, role, def.title)
+    return ensureSceneImagePrompt({
       id: `scene-${sceneIndex}`,
       title: def.title,
       description: def.desc,
@@ -311,10 +427,12 @@ export function buildMockCinematicOutput(input: {
         sceneIndex === 1
           ? Math.max(2, perScene - 1)
           : sceneIndex === sceneCount
-            ? Math.max(2, input.duration - perScene * 3)
+            ? Math.max(2, input.duration - perScene * (sceneCount - 1))
             : perScene,
+      visualPrompt: def.desc.slice(0, 120),
+      imagePrompt: '',
       ...visual,
-    }
+    })
   })
 
   const captionPack: StructuredCaptions = {
@@ -331,12 +449,12 @@ export function buildMockCinematicOutput(input: {
     {
       title: input.topic.slice(0, 80) || 'Untitled project',
       hook,
-      summary: `A ${input.duration}s ${profile.label.toLowerCase()} reel — ${input.topic.slice(0, 90)}.`,
+      summary: `A ${input.duration}s ${virlo.structure.name} reel — ${input.topic.slice(0, 90)}.`,
       script: [
         hook.replace(/^"|"$/g, ''),
-        `This is not advice. It is the moment "${input.topic.slice(0, 60)}" stopped being abstract.`,
-        `Every frame asks: what are you willing to feel?`,
-        `Stay until the last beat. That is where the truth lives.`,
+        virlo.structure.midpointTurn,
+        virlo.retention.escalationSteps[0] ?? `Every frame asks: what are you willing to feel?`,
+        virlo.structure.closingMove,
       ].join('\n\n'),
       scenes,
       captions: captionLinesFromPack(captionPack),

@@ -138,8 +138,8 @@ const selectionCtxValue = useMemo(
               The legacy NewProjectModal is preserved below for backward compat
               but is no longer reachable from this button. */}
           <Link
-            href="/workspace?fresh=1"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition"
+            href="/create?mode=quick"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition-opacity"
           >
             <Sparkles className="w-4 h-4" /> + New Project
           </Link>

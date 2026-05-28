@@ -1,20 +1,23 @@
-// Phase — Cinematic landing page (replaces redirect-only page).
-// Auth-aware: signed-in users still skip straight to /workspace (the
-// cinematic cockpit is now the primary creator surface).
-// Visual system uses existing tokens: bg-gold-gradient · glass-strong · shadow-gold-glow ·
-// border-gold-soft · text-gold-gradient. No new deps, no new CSS.
-
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import LandingClient from './landing-client'
+import nextDynamic from 'next/dynamic'
 
 export const dynamic = 'force-dynamic'
 
-export default async function Index() {
-  try {
-    const supabase = createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) redirect('/workspace')
-  } catch {}
-  return <LandingClient />
+const ModeSelectionHero = nextDynamic(
+  () =>
+    import('@/components/mugtee-portal/mode-selection-hero').then((m) => ({
+      default: m.ModeSelectionHero,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[100dvh] bg-[#050505] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl bg-gold-gradient animate-pulse shadow-gold-glow" />
+      </div>
+    ),
+  }
+)
+
+/** Root portal — choose Quick Cut or Director Cut (not marketing homepage). */
+export default function Index() {
+  return <ModeSelectionHero />
 }

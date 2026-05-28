@@ -18,7 +18,7 @@ export function ShowcaseEmptyState() {
           Direct stories, not dashboards. Start with one emotional idea — Mugtee carries the hook, beats, and frames.
         </p>
         <Link
-          href="/cinematic/create"
+          href="/quick-cut/preview"
           className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition min-h-[44px]"
         >
           <Sparkles className="w-3.5 h-3.5" /> Direct your first reel

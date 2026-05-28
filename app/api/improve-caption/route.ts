@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { buildCaptionImprovePrompt } from '@/lib/ai/prompts/cinematic/regen-prompts'
 import { parseRegenContext } from '@/lib/cinematic/regen-context'
 import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const openai = getOpenAIClient()
     const prompt = buildCaptionImprovePrompt(ctx)
 
     try {

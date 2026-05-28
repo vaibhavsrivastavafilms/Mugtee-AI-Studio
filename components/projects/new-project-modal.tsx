@@ -53,7 +53,7 @@ export function NewProjectModal({ open, onOpenChange }: { open: boolean; onOpenC
       if (name.trim()) localStorage.setItem('mugtee:project:name', name.trim())
     } catch {}
     const qs = new URLSearchParams({ topic: trimmed, niche, platform, tone, autorun: '1' })
-    router.push(`/dashboard?${qs.toString()}`)
+    router.push(`/create?mode=quick&${qs.toString()}`)
     setTimeout(() => { setLaunching(false); onOpenChange(false) }, 600)
   }
 

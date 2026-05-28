@@ -1,32 +1,21 @@
 'use client'
-import { ReactNode, useState } from 'react'
-import { Sidebar } from './sidebar'
-import { Topbar } from './topbar'
-import { StoreProvider } from '@/lib/store'
-import { AutomationsProvider } from '@/lib/automations-store'
-import { ConfirmProvider } from '@/components/ui/confirm'
 
-interface User { id: string; email?: string | null; user_metadata?: any }
+import { ReactNode } from 'react'
+import CinematicAppShell from '@/components/shell/cinematic-app-shell'
 
-export default function DashboardShell({ children, user }: { children: ReactNode; user: User }) {
-  const [open, setOpen] = useState(false)
-  const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Producer'
+interface User {
+  id: string
+  email?: string | null
+  user_metadata?: Record<string, unknown>
+}
 
-  return (
-    <StoreProvider userId={user.id} userName={name}>
-      <AutomationsProvider userId={user.id}>
-        <ConfirmProvider>
-          <div className="min-h-screen flex bg-noir-radial">
-            <Sidebar mobileOpen={open} onClose={() => setOpen(false)} />
-            <div className="flex-1 flex flex-col min-w-0">
-              <Topbar user={user} onMenu={() => setOpen(true)} />
-              <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-                {children}
-              </main>
-            </div>
-          </div>
-        </ConfirmProvider>
-      </AutomationsProvider>
-    </StoreProvider>
-  )
+/** @deprecated Use CinematicAppShell — kept for import compatibility. */
+export default function DashboardShell({
+  children,
+  user,
+}: {
+  children: ReactNode
+  user: User
+}) {
+  return <CinematicAppShell user={user}>{children}</CinematicAppShell>
 }

@@ -180,7 +180,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           <label className="text-xs tracking-wider uppercase text-muted-foreground">Studio name</label>
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="Mugtee AI Studio" className="bg-white/[0.03] h-12 text-lg font-display" />
-          <p className="text-xs text-muted-foreground">Shown in the sidebar and across your studio.</p>
+          <p className="text-xs text-muted-foreground">Shown in the header and across your studio.</p>
         </div>
 
         <div className="gold-divider" />

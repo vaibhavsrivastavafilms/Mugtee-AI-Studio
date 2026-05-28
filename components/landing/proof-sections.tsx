@@ -115,7 +115,7 @@ export default function ProofSections() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md sm:max-w-none mx-auto">
             <Link
-              href="/login?next=%2Fcinematic%2Fcreate"
+              href="/quick-cut/preview"
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gold-gradient text-black font-medium text-sm shadow-gold-glow hover:opacity-90 transition"
             >
               <Sparkles className="w-4 h-4" /> Enter the cinematic studio

@@ -2,7 +2,7 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
-import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
+import { ServiceWorkerUnregister } from '@/components/pwa/sw-register'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
@@ -113,8 +113,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-background text-foreground antialiased scrollbar-luxe">
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
-        {/* PWA — Service worker registration (production-only, idle-deferred). */}
-        <ServiceWorkerRegister />
+        {/* PWA — unregister legacy service workers (prevents stale chunk caches). */}
+        <ServiceWorkerUnregister />
         {/* PWA — Branded "Install App" prompt (Android Chrome only, auto-hides elsewhere). */}
         <InstallPrompt />
         {children}

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { APP_ROUTE_LOGIN_FALLBACK } from '@/lib/auth/public-routes'
 import { safeRelative } from '@/lib/url'
 
 export const dynamic = 'force-dynamic'
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
-  const next = safeRelative(url.searchParams.get('next'), '/workspace')
+  const next = safeRelative(url.searchParams.get('next'), APP_ROUTE_LOGIN_FALLBACK)
 
   // CRITICAL AUTH FIX (Master Execution): Use the request's ACTUAL origin for the
   // post-OAuth redirect, NOT NEXT_PUBLIC_BASE_URL. If they diverge (preview proxy
@@ -19,10 +20,11 @@ export async function GET(request: NextRequest) {
   const base  = `${proto}://${host}`.replace(/\/$/, '')
 
   if (!code) {
-    return NextResponse.redirect(`${base}/login?error=missing_code`)
+    return NextResponse.redirect(
+      `${base}/login?error=missing_code&next=${encodeURIComponent(next)}`
+    )
   }
 
-  // Build the response FIRST so we can attach Supabase session cookies to it.
   const response = NextResponse.redirect(`${base}${next}`)
 
   const supabase = createServerClient(
@@ -30,14 +32,16 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: any) {
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          response.cookies.set({ name, value: '', ...options, maxAge: 0 })
+        setAll(cookiesToSet, headers) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+          Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value)
+          })
         },
       },
     }
@@ -47,7 +51,9 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[auth/callback] exchange error:', error.message)
-    return NextResponse.redirect(`${base}/login?error=oauth_failed&msg=${encodeURIComponent(error.message)}`)
+    return NextResponse.redirect(
+      `${base}/login?error=oauth_failed&msg=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`
+    )
   }
 
   // Phase V1.1 — Grant 7-day PRO_TRIAL on first login. Idempotent via trial_claimed flag.

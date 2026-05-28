@@ -1,7 +1,16 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { cinematicLegacyRedirectTarget } from '@/lib/create/routes'
 
-import { CinematicGeneratingScreen } from '@/components/cinematic/screens/generating-screen'
+export const dynamic = 'force-dynamic'
 
-export default function CinematicGeneratingPage() {
-  return <CinematicGeneratingScreen />
+type Props = { searchParams?: { project?: string } }
+
+function toSearchParams(sp?: { project?: string }) {
+  const qs = new URLSearchParams()
+  if (sp?.project) qs.set('project', sp.project)
+  return qs
+}
+
+export default function CinematicGeneratingRedirect({ searchParams }: Props) {
+  redirect(cinematicLegacyRedirectTarget('/cinematic/generating', toSearchParams(searchParams)))
 }

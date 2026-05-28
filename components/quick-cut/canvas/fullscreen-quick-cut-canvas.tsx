@@ -1,0 +1,330 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { Film, Sparkles } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
+import { useSpeechRecognition } from '@/lib/use-voice'
+import {
+  QUICK_CUT_PROMPTS,
+  QUICK_CUT_SIGN_IN,
+} from '@/lib/cinematic/quick-cut/copy'
+import {
+  clearQuickCutPending,
+  saveQuickCutPending,
+  type QuickCutPending,
+} from '@/lib/cinematic/quick-cut/preview-session'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
+import { CinematicPromptInput } from '@/components/quick-cut/canvas/cinematic-prompt-input'
+import { FloatingMicButton } from '@/components/quick-cut/canvas/floating-mic-button'
+import { VoiceTranscriptPanel } from '@/components/quick-cut/canvas/voice-transcript-panel'
+import {
+  ImageReferenceUploader,
+  type ImageReference,
+} from '@/components/quick-cut/canvas/image-reference-uploader'
+import { KeywordMoodSelector } from '@/components/quick-cut/canvas/keyword-mood-selector'
+import { AIAtmosphereDetector } from '@/components/quick-cut/canvas/ai-atmosphere-detector'
+import {
+  buildStyleFromKeywords,
+  detectInputMode,
+  type MoodKeyword,
+} from '@/components/quick-cut/canvas/types'
+import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
+
+const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
+
+export function FullscreenQuickCutCanvas({
+  embedded = false,
+  initialPrompt = '',
+}: {
+  embedded?: boolean
+  initialPrompt?: string
+}) {
+  const [prompt, setPrompt] = useState(initialPrompt)
+  const [keywords, setKeywords] = useState<MoodKeyword[]>([])
+  const [imageRef, setImageRef] = useState<ImageReference | null>(null)
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceNote, setVoiceNote] = useState('')
+  const [promptFocused, setPromptFocused] = useState(false)
+  const [promptIndex, setPromptIndex] = useState(0)
+  const [showSignIn, setShowSignIn] = useState(false)
+  const [mobileImageOpen, setMobileImageOpen] = useState(false)
+
+  const { ready: authReady, user } = useAuthHydration()
+  const signedIn = authReady ? Boolean(user) : null
+
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const error = useQuickCutGenerationStore((s) => s.error)
+  const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
+
+  const voiceAppendRef = useRef('')
+
+  const stt = useSpeechRecognition({
+    onResult: (text, isFinal) => {
+      if (isFinal) {
+        const next = voiceAppendRef.current
+          ? `${voiceAppendRef.current} ${text}`.trim()
+          : text.trim()
+        voiceAppendRef.current = next
+        setVoiceTranscript(next)
+        setVoiceNote(`Spoken direction: ${next}`)
+        if (!prompt.trim()) setPrompt(next)
+        else setPrompt((p) => (p.includes(text) ? p : `${p} ${text}`.trim()))
+      } else {
+        setVoiceTranscript(
+          voiceAppendRef.current ? `${voiceAppendRef.current} ${text}`.trim() : text
+        )
+      }
+    },
+  })
+
+  const question = useMemo(
+    () => QUICK_CUT_PROMPTS[promptIndex % QUICK_CUT_PROMPTS.length],
+    [promptIndex]
+  )
+
+  const imageNote = imageRef?.note
+
+  useEffect(() => {
+    const timer = setInterval(() => setPromptIndex((i) => i + 1), 5200)
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (initialPrompt) setPrompt(initialPrompt)
+  }, [initialPrompt])
+
+  const inputMode = detectInputMode({
+    prompt,
+    imageNote,
+    voiceNote,
+    hasImage: Boolean(imageRef),
+  })
+
+  const canGenerate =
+    prompt.trim().length >= 6 ||
+    Boolean(imageNote?.trim()) ||
+    Boolean(voiceNote?.trim())
+
+  const readiness =
+    prompt.trim().length >= 6 ? 1 : Math.min(0.85, (prompt.trim().length / 6) * 0.85 + (imageRef ? 0.15 : 0) + (voiceNote ? 0.15 : 0))
+
+  const loginHref = `/login?next=${encodeURIComponent(LOGIN_AFTER_QUICK_CUT)}`
+
+  const toggleKeyword = useCallback((keyword: MoodKeyword) => {
+    setKeywords((prev) =>
+      prev.includes(keyword) ? prev.filter((k) => k !== keyword) : [...prev, keyword]
+    )
+  }, [])
+
+  const buildPending = useCallback((): QuickCutPending => {
+    const style = buildStyleFromKeywords(keywords)
+    return {
+      prompt: prompt.trim() || voiceTranscript.trim() || 'Cinematic visual story',
+      style,
+      duration: 60,
+      imageNote: imageNote?.trim() || undefined,
+      voiceNote: voiceNote.trim() || undefined,
+      keywords: keywords.length ? [...keywords] : undefined,
+    }
+  }, [prompt, keywords, imageNote, voiceNote, voiceTranscript])
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!canGenerate || isGenerating) return
+
+    const pending = buildPending()
+
+    if (!signedIn) {
+      saveQuickCutPending(pending)
+      setShowSignIn(true)
+      return
+    }
+
+    await runPipeline({
+      prompt: pending.prompt,
+      style: pending.style,
+      duration: pending.duration,
+      imageNote: pending.imageNote,
+      voiceNote: pending.voiceNote,
+      keywords: pending.keywords,
+    })
+    clearQuickCutPending()
+  }
+
+  return (
+    <div
+      className={cn(
+        'relative text-luxe overflow-hidden',
+        embedded ? 'min-h-[calc(100dvh-4rem)]' : 'min-h-[100dvh]'
+      )}
+    >
+      <CinematicCanvasBackground />
+
+      {!embedded ? (
+        <header className="relative z-20 flex items-center justify-between px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+          <Link
+            href="/create?mode=quick"
+            className="flex items-center gap-2 min-h-[44px] transition-opacity hover:opacity-90"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
+              <span className="font-display text-sm text-black font-black">M</span>
+            </div>
+            <span className="font-display text-sm tracking-wide text-gold-gradient">Mugtee</span>
+          </Link>
+          {signedIn === false ? (
+            <Link
+              href={loginHref}
+              className="text-[11px] tracking-[0.2em] uppercase text-luxe/60 hover:text-gold-300 transition min-h-[44px] inline-flex items-center px-2"
+            >
+              Sign in
+            </Link>
+          ) : null}
+        </header>
+      ) : null}
+
+      <main className="relative z-10 flex flex-col lg:flex-row gap-6 lg:gap-8 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
+        <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
+          <motion.p
+            key={promptIndex}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center font-display text-lg sm:text-xl md:text-2xl text-[#F4E7C1]/90 leading-snug italic mb-6 sm:mb-8 px-2"
+          >
+            {question}
+          </motion.p>
+
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <CinematicPromptInput
+              value={prompt}
+              onChange={setPrompt}
+              focused={promptFocused}
+              onFocus={() => setPromptFocused(true)}
+              onBlur={() => setPromptFocused(false)}
+            />
+
+            <div className="flex items-start gap-3">
+              <FloatingMicButton
+                listening={stt.listening}
+                supported={stt.supported}
+                onToggle={stt.toggle}
+                className="shrink-0 mt-1"
+              />
+              <div className="flex-1 min-w-0 space-y-3">
+                <VoiceTranscriptPanel
+                  transcript={voiceTranscript}
+                  interim={stt.interim}
+                  listening={stt.listening}
+                  supported={stt.supported}
+                />
+                <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
+              </div>
+            </div>
+
+            <div className="hidden sm:block">
+              <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
+            </div>
+
+            <div className="sm:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileImageOpen((v) => !v)}
+                className="w-full min-h-[44px] rounded-xl border border-white/[0.08] bg-black/30 text-[11px] tracking-[0.16em] uppercase text-luxe/70"
+              >
+                {mobileImageOpen ? 'Hide reference frame' : 'Add reference frame'}
+              </button>
+              {mobileImageOpen ? (
+                <div className="mt-3">
+                  <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
+                </div>
+              ) : null}
+            </div>
+
+            {error ? (
+              <p className="text-center text-sm text-amber-200/90" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            {showSignIn && !signedIn ? (
+              <div className="rounded-2xl border border-gold-500/25 bg-gold-500/[0.06] p-4 text-center space-y-3">
+                <p className="font-display text-lg text-[#F4E7C1]">{QUICK_CUT_SIGN_IN.title}</p>
+                <p className="text-sm text-luxe/65">{QUICK_CUT_SIGN_IN.body}</p>
+                <Link
+                  href={loginHref}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-gold-gradient text-black text-sm font-medium shadow-gold-glow"
+                >
+                  {QUICK_CUT_SIGN_IN.cta}
+                </Link>
+              </div>
+            ) : null}
+
+            <motion.button
+              type="submit"
+              disabled={!canGenerate || isGenerating}
+              whileHover={canGenerate ? { scale: 1.01 } : undefined}
+              whileTap={canGenerate ? { scale: 0.99 } : undefined}
+              animate={
+                canGenerate
+                  ? {
+                      boxShadow: [
+                        '0 0 24px -6px rgba(212,175,55,0.35)',
+                        '0 0 40px -4px rgba(212,175,55,0.55)',
+                        '0 0 24px -6px rgba(212,175,55,0.35)',
+                      ],
+                    }
+                  : undefined
+              }
+              transition={{ duration: 2.5, repeat: canGenerate ? Infinity : 0 }}
+              className={cn(
+                'w-full min-h-[52px] inline-flex items-center justify-center gap-2.5 rounded-2xl',
+                'bg-gold-gradient text-black text-sm font-semibold tracking-[0.08em] uppercase',
+                'shadow-gold-glow disabled:opacity-40 disabled:pointer-events-none hover:opacity-95 transition-opacity'
+              )}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate Cinematic Reel
+              {inputMode !== 'idle' && inputMode !== 'text' ? (
+                <span className="text-[10px] opacity-70 normal-case tracking-normal">
+                  · {inputMode}
+                </span>
+              ) : null}
+            </motion.button>
+
+            {canGenerate ? (
+              <p className="text-center text-[10px] tracking-[0.18em] uppercase text-luxe/35">
+                <Film className="w-3 h-3 inline mr-1 opacity-60" />
+                Readiness {Math.round(readiness * 100)}%
+              </p>
+            ) : null}
+          </form>
+
+          {!isGenerating ? <RecentGenerationsStrip limit={8} /> : null}
+        </div>
+
+        <div className="hidden lg:block w-full max-w-[300px] shrink-0 lg:sticky lg:top-24 lg:self-start">
+          <AIAtmosphereDetector
+            prompt={prompt}
+            keywords={keywords}
+            imageNote={imageNote}
+            voiceNote={voiceNote}
+            hasImage={Boolean(imageRef)}
+          />
+        </div>
+
+        <div className="lg:hidden">
+          <AIAtmosphereDetector
+            prompt={prompt}
+            keywords={keywords}
+            imageNote={imageNote}
+            voiceNote={voiceNote}
+            hasImage={Boolean(imageRef)}
+          />
+        </div>
+      </main>
+    </div>
+  )
+}

@@ -1,7 +1,16 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { cinematicLegacyRedirectTarget } from '@/lib/create/routes'
 
-import { CinematicVoiceoverScreen } from '@/components/cinematic/screens/voiceover-screen'
+export const dynamic = 'force-dynamic'
 
-export default function CinematicVoiceoverPage() {
-  return <CinematicVoiceoverScreen />
+type Props = { searchParams?: { project?: string } }
+
+function toSearchParams(sp?: { project?: string }) {
+  const qs = new URLSearchParams()
+  if (sp?.project) qs.set('project', sp.project)
+  return qs
+}
+
+export default function CinematicVoiceoverRedirect({ searchParams }: Props) {
+  redirect(cinematicLegacyRedirectTarget('/cinematic/voiceover', toSearchParams(searchParams)))
 }

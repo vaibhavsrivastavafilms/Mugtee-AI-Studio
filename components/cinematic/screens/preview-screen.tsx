@@ -69,6 +69,7 @@ export function CinematicPreviewScreen() {
             description: s.visualPrompt || s.title || '',
             duration: s.duration ?? duration / Math.max(scenes.length, 1),
             visualPrompt: s.visualPrompt || '',
+            imagePrompt: s.imagePrompt || s.visualPrompt || '',
             cameraAngle: s.cameraAngle || '',
             lightingMood: s.lightingMood || '',
             environment: s.environment || '',
@@ -138,7 +139,7 @@ export function CinematicPreviewScreen() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 min-h-[72px]">
-        <MetaCard label="Title" value={title || 'Untitled project'} />
+        <MetaCard label="Title" value={title || 'Untitled story world'} />
         <MetaCard label="Duration" value={`${duration}s`} />
         <MetaCard label="Style" value={style} />
         <MetaCard label="Voice" value={voiceStyleLabel(suggestedVoiceStyle)} />

@@ -1,12 +1,17 @@
 'use client'
 
+import { memo } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import {
   CONFIDENCE_SIGNALS,
   type ExportPackageSnapshot,
 } from '@/lib/cinematic/export-package'
 
-export function ExportDetailsPanel({ snapshot }: { snapshot: ExportPackageSnapshot }) {
+export const ExportDetailsPanel = memo(function ExportDetailsPanel({
+  snapshot,
+}: {
+  snapshot: ExportPackageSnapshot
+}) {
   return (
     <section className="rounded-[28px] border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
       <div>
@@ -29,7 +34,7 @@ export function ExportDetailsPanel({ snapshot }: { snapshot: ExportPackageSnapsh
       <PublishReadyStatus snapshot={snapshot} />
     </section>
   )
-}
+})
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (

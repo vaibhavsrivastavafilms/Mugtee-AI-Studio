@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
-  buildCinematicScriptPrompt,
-  CINEMATIC_SYSTEM_PROMPT,
-} from '@/lib/ai/prompts/cinematic/build-prompt'
-import {
   buildMockCinematicOutput,
-  finalizeCinematicOutput,
-  normalizeCinematicOutput,
   validateCinematicOutput,
 } from '@/lib/cinematic/generation'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
+import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-generation'
+import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import {
   coerceDuration,
   coercePlatform,
@@ -23,46 +18,52 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function generateWithOpenAI(
-  openai: OpenAI,
-  input: {
-    topic: string
-    platform: string
-    tone: string
-    duration: number
-    niche: ReturnType<typeof inferNicheFromBrief>
-  },
-  retryNote?: string
-) {
-  const userPrompt = [
-    buildCinematicScriptPrompt(input),
-    retryNote
-      ? `\nRETRY NOTE: Previous draft failed quality checks (${retryNote}). Fix niche drift, weak hook, repetitive scenes, or empty captions.`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    temperature: retryNote ? 0.75 : 0.85,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: CINEMATIC_SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
-  })
-
-  const content = completion.choices[0]?.message?.content || '{}'
-  try {
-    return JSON.parse(content)
-  } catch {
-    return {}
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
+    const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
+
+    if (raw?.landing === true || raw?.mock === true) {
+      const topic = coerceTopic(raw.topic ?? raw.prompt ?? raw.idea)
+      const tone = coerceTone(raw.tone ?? raw.style)
+      const duration = coerceDuration(raw.duration)
+      const sessionSeed =
+        typeof raw.sessionSeed === 'string' || typeof raw.sessionSeed === 'number'
+          ? raw.sessionSeed
+          : topic
+      const niche = inferNicheFromBrief({
+        topic: topic || 'Cinematic story',
+        tone,
+        style: typeof raw.style === 'string' ? raw.style : tone,
+        niche: typeof raw.niche === 'string' ? raw.niche : undefined,
+      })
+      const virloContext = buildVirloContext(topic || 'Cinematic story', {
+        tone,
+        duration,
+        niche,
+        sessionSeed,
+      })
+      const output = buildMockCinematicOutput({
+        topic: topic || 'Cinematic story',
+        tone,
+        duration,
+        niche,
+        virloContext,
+      })
+      if (typeof raw.title === 'string' && raw.title.trim()) {
+        output.title = raw.title.trim()
+      }
+      if (typeof raw.hook === 'string' && raw.hook.trim()) {
+        output.hook = raw.hook.trim()
+      }
+      return NextResponse.json({
+        output,
+        mock: true,
+        niche,
+        landing: true,
+        virlo: virloMetadataFromContext(virloContext),
+      })
+    }
+
     const supabase = createSupabaseServerClient()
     const {
       data: { user },
@@ -70,8 +71,6 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
-
-    const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return NextResponse.json(
         { error: 'Body must be a JSON object' },
@@ -90,6 +89,10 @@ export async function POST(req: NextRequest) {
     const platform = coercePlatform(raw.platform)
     const tone = coerceTone(raw.tone ?? raw.style)
     const duration = coerceDuration(raw.duration)
+    const sessionSeed =
+      typeof raw.sessionSeed === 'string' || typeof raw.sessionSeed === 'number'
+        ? raw.sessionSeed
+        : user.id
     const niche = inferNicheFromBrief({
       topic,
       tone,
@@ -97,71 +100,58 @@ export async function POST(req: NextRequest) {
       niche: typeof raw.niche === 'string' ? raw.niche : undefined,
     })
 
-    const input = { topic, platform, tone, duration, niche }
+    const input = { topic, platform, tone, duration, niche, sessionSeed }
 
     if (!process.env.OPENAI_API_KEY) {
-      const output = buildMockCinematicOutput({ topic, tone, duration, niche })
-      return NextResponse.json({ output, mock: true, reason: 'missing_api_key' })
-    }
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-    try {
-      let parsed = await generateWithOpenAI(openai, input)
-      const hookVariations = Array.isArray((parsed as Record<string, unknown>)?.hookVariations)
-        ? ((parsed as Record<string, unknown>).hookVariations as unknown[]).filter(
-            (v): v is string => typeof v === 'string'
-          )
-        : []
-
-      let output = finalizeCinematicOutput(
-        normalizeCinematicOutput(parsed, { topic, duration, tone, niche }),
+      const virloContext = buildVirloContext(topic, {
+        platform,
+        tone,
+        duration,
         niche,
-        { topic, duration, tone, hookVariations }
-      )
-
-      let validation = validateCinematicOutput(output, niche)
-      if (!validation.valid) {
-        parsed = await generateWithOpenAI(
-          openai,
-          input,
-          validation.issues.join(', ')
-        )
-        const retryHookVariations = Array.isArray(
-          (parsed as Record<string, unknown>)?.hookVariations
-        )
-          ? ((parsed as Record<string, unknown>).hookVariations as unknown[]).filter(
-              (v): v is string => typeof v === 'string'
-            )
-          : hookVariations
-        output = finalizeCinematicOutput(
-          normalizeCinematicOutput(parsed, { topic, duration, tone, niche }),
-          niche,
-          { topic, duration, tone, hookVariations: retryHookVariations }
-        )
-        validation = validateCinematicOutput(output, niche)
-      }
-
+        sessionSeed,
+      })
+      const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
       return NextResponse.json({
         output,
-        mock: false,
+        mock: true,
+        reason: 'missing_api_key',
+        virlo: virloMetadataFromContext(virloContext),
+      })
+    }
+
+    try {
+      const result = await runScriptGeneration(input)
+      const validation = validateCinematicOutput(result.output, niche)
+
+      return NextResponse.json({
+        output: result.output,
+        mock: result.mock,
         niche,
         validation,
+        virlo: result.virlo,
       })
     } catch (err) {
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })
-      const output = buildMockCinematicOutput({ topic, tone, duration, niche })
+      const virloContext = buildVirloContext(topic, {
+        platform,
+        tone,
+        duration,
+        niche,
+        sessionSeed,
+      })
+      const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
       return NextResponse.json({
         output,
         mock: true,
         reason: 'provider_fallback',
         niche,
+        virlo: virloMetadataFromContext(virloContext),
       })
     }
   } catch (err) {
     logError('generate-script.exception', err)
     return NextResponse.json(
-      { error: 'Unexpected error' },
+      { error: 'Story shaping paused — try again' },
       { status: 500 }
     )
   }

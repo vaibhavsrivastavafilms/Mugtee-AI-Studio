@@ -18,6 +18,7 @@ import {
 } from '@/lib/cinematic/storyboard-client'
 import { applyVisualToScene } from '@/lib/cinematic/visual-direction'
 import { REFINEMENT_PACING_LINE } from '@/lib/creator/output-confidence'
+import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import {
   hasCreatorMilestone,
   trackCreatorMilestone,
@@ -415,7 +416,7 @@ const SceneCard = memo(function SceneCard({
       await useCinematicProjectStore.getState().persistProject({ silent: true })
       toast.success(`Scene ${scene.index} reshaped`, { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Scene refinement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.scenePaused))
     } finally {
       setBusy(null)
     }
@@ -436,7 +437,7 @@ const SceneCard = memo(function SceneCard({
         description: REFINEMENT_PACING_LINE,
       })
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Visual enhancement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.visualPaused))
     } finally {
       setBusy(null)
     }
@@ -452,7 +453,7 @@ const SceneCard = memo(function SceneCard({
       if (!id) {
         id = (await useCinematicProjectStore.getState().persistProject({ silent: true })) ?? null
       }
-      if (!id) throw new Error('Save your project before enhancing storyboards')
+      if (!id) throw new Error(SOFT_ERROR_COPY.stageFirst)
 
       const data = await enhanceStoryboard(regenPayload(), scene.index, id)
       const state = useCinematicProjectStore.getState()
@@ -472,7 +473,7 @@ const SceneCard = memo(function SceneCard({
       })
     } catch (e: unknown) {
       onStoryboardFailed(true)
-      toast.error(e instanceof Error ? e.message : 'Storyboard enhancement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.storyboardPaused))
     } finally {
       setStoryboardLoading(false)
       setBusy(null)

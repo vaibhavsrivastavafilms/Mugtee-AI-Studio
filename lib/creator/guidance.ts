@@ -31,7 +31,7 @@ export const CREATOR_GUIDANCE: Record<
     tips: [
       'Lock camera and lighting mood per scene.',
       'Visual direction should match the emotional arc.',
-      'Refine selectively — you do not need to regenerate everything.',
+      'Refine selectively — you do not need to reshape every beat.',
     ],
   },
   scenes: {

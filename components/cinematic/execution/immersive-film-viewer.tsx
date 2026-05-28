@@ -81,10 +81,12 @@ export function ImmersiveFilmViewer({
   const [activeIndex, setActiveIndex] = useState(0)
   const [fading, setFading] = useState(false)
 
+  const framesKey = useMemo(() => frames.join('\0'), [frames])
+
   useEffect(() => {
     setActiveIndex(0)
     setFading(false)
-  }, [frames.length, duration])
+  }, [framesKey, duration])
 
   const effectiveFadeMs = useMemo(
     () =>
@@ -119,7 +121,12 @@ export function ImmersiveFilmViewer({
     }
 
     const schedule = () => {
-      const holdMs = intervalAt(idx) + silenceHoldMs(idx, frames.length, previewRhythm)
+      const loopBreath =
+        idx === frames.length - 1 && frames.length > 2 ? 280 : 0
+      const holdMs =
+        intervalAt(idx) +
+        silenceHoldMs(idx, frames.length, previewRhythm) +
+        loopBreath
       waitTimer = setTimeout(() => {
         if (cancelled) return
         setFading(true)
@@ -156,13 +163,13 @@ export function ImmersiveFilmViewer({
   ])
 
   const activeFrame = frames.length > 0 ? frames[activeIndex] : null
-  const anticipationLabel = useMemo(
-    () =>
-      frames.length > 1
-        ? escalationPresenceForIndex(activeIndex, frames.length)
-        : undefined,
-    [activeIndex, frames.length]
-  )
+  const anticipationLabel = useMemo(() => {
+    if (frames.length <= 1) return undefined
+    const escalation = escalationPresenceForIndex(activeIndex, frames.length)
+    const motion = previewRhythm?.movementSequencing?.[activeIndex]?.trim()
+    if (motion && motion.length <= 36) return `${escalation} · ${motion}`
+    return escalation
+  }, [activeIndex, frames.length, previewRhythm])
 
   return (
     <div

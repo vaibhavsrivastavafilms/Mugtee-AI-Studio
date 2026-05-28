@@ -58,29 +58,59 @@ const VOICE_STYLES: Record<string, { voice: string; persona: string; label: stri
 
 function categorize(status: number, sample: string): { code: string; label: string } {
   const s = sample.toLowerCase()
-  if (status === 401 || status === 403 || s.includes('unauthor') || s.includes('invalid api key')) return { code: 'auth_failed', label: 'Voice provider authentication failed' }
-  if (status === 429 || s.includes('quota') || s.includes('rate limit')) return { code: 'quota_exceeded', label: 'Voice provider quota exceeded' }
-  if (status === 404 || s.includes('not found') || s.includes('invalid model')) return { code: 'invalid_model', label: 'Voice model unavailable' }
-  if (status === 408 || status === 504 || s.includes('timeout')) return { code: 'timeout', label: 'Voice provider timed out' }
-  if (status >= 500) return { code: 'provider_unavailable', label: 'Voice provider is temporarily unavailable' }
-  return { code: 'provider_error', label: 'Voice provider error' }
+  if (status === 401 || status === 403 || s.includes('unauthor') || s.includes('invalid api key')) {
+    return { code: 'auth_failed', label: 'Voice could not connect — try again' }
+  }
+  if (status === 429 || s.includes('quota') || s.includes('rate limit')) {
+    return { code: 'quota_exceeded', label: 'Voice is resting — try again shortly' }
+  }
+  if (status === 404 || s.includes('not found') || s.includes('invalid model')) {
+    return { code: 'invalid_model', label: 'Voice tone unavailable — try another mood' }
+  }
+  if (status === 408 || status === 504 || s.includes('timeout')) {
+    return { code: 'timeout', label: 'Voice took too long — your script is preserved' }
+  }
+  if (status >= 500) {
+    return { code: 'provider_unavailable', label: 'Voice is resting — try again shortly' }
+  }
+  return { code: 'provider_error', label: 'Voice could not settle — try again' }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
-
-    if (!EMERGENT_LLM_KEY) return NextResponse.json({ error: 'EMERGENT_LLM_KEY missing' }, { status: 500 })
+    if (!user) return NextResponse.json({ error: 'Sign in to hear your story' }, { status: 401 })
 
     const body = await req.json().catch(() => ({} as any))
     const script: string = String(body?.script || '').trim()
     if (!script || script.length < 20) {
-      return NextResponse.json({ error: 'Script too short for narration' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Script needs more breath before voice can settle' },
+        { status: 400 }
+      )
     }
     const styleId: string = String(body?.voice_style || 'warm_documentary')
     const style = VOICE_STYLES[styleId] || VOICE_STYLES.warm_documentary
+
+    if (!EMERGENT_LLM_KEY) {
+      const narration = script
+        .replace(/\s+/g, ' ')
+        .split(/(?<=[.!?])\s+/)
+        .slice(0, 4)
+        .join(' ')
+        .slice(0, 600)
+        .trim()
+      return NextResponse.json({
+        narration: narration || script.slice(0, 400),
+        audio: '',
+        voice: style.voice,
+        voice_style: styleId,
+        voice_label: style.label,
+        fallback: 'browser',
+        mock: true,
+      })
+    }
     const platform: string = String(body?.platform || 'instagram_reel')
     const duration: number = Number(body?.duration || 60)
     const moodLabel: string = String(body?.mood || '').trim()
@@ -146,7 +176,7 @@ export async function POST(req: NextRequest) {
     const narration: string = (chatJson?.choices?.[0]?.message?.content || '').trim()
     if (!narration) {
       console.error('[voiceover] empty narration', { keys: Object.keys(chatJson || {}) })
-      return NextResponse.json({ error: 'Could not draft narration' }, { status: 502 })
+      return NextResponse.json({ error: 'Narration could not take form — try again' }, { status: 502 })
     }
 
     // ----- 2. Synthesize narration → MP3 via TTS -----
@@ -171,7 +201,7 @@ export async function POST(req: NextRequest) {
     const audioBuf = Buffer.from(await ttsRes.arrayBuffer())
     if (audioBuf.length < 200) {
       console.error('[voiceover] suspiciously small audio', { bytes: audioBuf.length })
-      return NextResponse.json({ narration, voice: style.voice, voice_style: styleId, error: 'Voice audio empty' }, { status: 502 })
+      return NextResponse.json({ narration, voice: style.voice, voice_style: styleId, error: 'Voice audio empty — narration preserved' }, { status: 502 })
     }
     const audioDataUri = `data:audio/mpeg;base64,${audioBuf.toString('base64')}`
 
@@ -235,6 +265,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (e: any) {
     console.error('[voiceover] unexpected error', e?.message)
-    return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
+    return NextResponse.json({ error: 'Voice could not settle — try again' }, { status: 500 })
   }
 }

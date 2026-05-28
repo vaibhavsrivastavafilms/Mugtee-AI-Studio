@@ -1,9 +1,20 @@
+export type FilmRealizationSummary = {
+  ready: boolean
+  assemblyMode: string
+  totalDurationSec: number
+  assemblyDigest: string
+  segmentCount: number
+  escalationPreserved?: boolean
+  longFormCalibrated?: boolean
+}
+
 export type ExportMemoryEntry = {
   title: string
   hook: string
   niche: string
   filmRhythm: string
   exportedAt: number
+  filmRealization?: FilmRealizationSummary
 }
 
 const STORAGE_KEY = 'mugtee:export-memory:v1'

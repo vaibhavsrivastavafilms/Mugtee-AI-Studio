@@ -9,6 +9,7 @@ export type RegenSceneInput = {
   description?: string
   duration?: number
   visualPrompt?: string
+  imagePrompt?: string
   cameraAngle?: string
   lightingMood?: string
   environment?: string
@@ -63,6 +64,7 @@ function coerceScenes(raw: unknown): RegenSceneInput[] {
             ? Math.min(Math.max(Math.round(row.duration), 2), 8)
             : undefined,
         visualPrompt: coerceString(row.visualPrompt, '', 500) || undefined,
+        imagePrompt: coerceString(row.imagePrompt, '', 900) || undefined,
         cameraAngle: coerceString(row.cameraAngle ?? row.camera, '', 120) || undefined,
         lightingMood: coerceString(row.lightingMood ?? row.lighting, '', 120) || undefined,
         environment: coerceString(row.environment, '', 160) || undefined,

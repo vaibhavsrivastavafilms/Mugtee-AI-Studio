@@ -1,5 +1,10 @@
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  APP_ROUTE_LOGIN_FALLBACK,
+  loginRedirectUrl,
+} from '@/lib/auth/public-routes'
 import DashboardShell from '@/components/shell/dashboard-shell'
 import { MugteeAssistant } from '@/components/mugtee/mugtee-assistant'
 
@@ -16,7 +21,8 @@ export default async function AppLayout({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login')
+    const pathname = headers().get('x-pathname') ?? APP_ROUTE_LOGIN_FALLBACK
+    redirect(loginRedirectUrl(pathname))
   }
 
   return (

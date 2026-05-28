@@ -5,6 +5,7 @@ import { Compass } from 'lucide-react'
 import { toast } from 'sonner'
 import { voiceStyleLabel } from '@/lib/cinematic/generation'
 import { REFINEMENT_PACING_LINE } from '@/lib/creator/output-confidence'
+import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import {
   improveCaption,
   regenerateHook,
@@ -77,7 +78,7 @@ export function CinematicDirectorScreen() {
       await useCinematicProjectStore.getState().persistProject({ silent: true })
       toast.success('Opening beat refined', { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Hook refinement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.hookPaused))
     } finally {
       setBusy(null)
     }
@@ -92,7 +93,7 @@ export function CinematicDirectorScreen() {
       await useCinematicProjectStore.getState().persistProject({ silent: true })
       toast.success('Caption rhythm polished', { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Caption improvement failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.captionPaused))
     } finally {
       setBusy(null)
     }
@@ -114,7 +115,7 @@ export function CinematicDirectorScreen() {
         { description: REFINEMENT_PACING_LINE }
       )
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Voice suggestion failed')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.voicePaused))
     } finally {
       setBusy(null)
     }

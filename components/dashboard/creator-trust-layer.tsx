@@ -43,7 +43,7 @@ export function CreatorTrustLayer() {
             {RECENT_NICHE_SIGNALS.map((niche) => (
               <Link
                 key={niche}
-                href="/cinematic/create"
+                href="/quick-cut/preview"
                 className="px-2.5 py-1 rounded-full border border-white/[0.08] bg-white/[0.02] text-[10px] tracking-wider uppercase text-luxe/70 hover:border-gold-500/30 hover:text-gold-200 transition"
               >
                 {nicheLabel(niche as CinematicNiche)}

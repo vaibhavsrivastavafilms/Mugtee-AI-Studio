@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { buildCinematicVoicePerformance } from '@/lib/cinematic/audio/cinematic-voice-performance'
 import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
 import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
+import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import { paceNarrationForFilm, voiceDirectionNote } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 import { useCinematicRoute } from '@/hooks/use-cinematic-route'
 import { useCinematicProjectStore } from '@/stores/cinematic-project'
@@ -121,7 +122,9 @@ export function CinematicVoiceoverScreen() {
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Voice could not be found — try again')
+      if (!res.ok && !data?.narration) {
+        throw new Error(data?.error || SOFT_ERROR_COPY.voiceFind)
+      }
 
       updateVoice({
         style: voiceStyle,
@@ -132,9 +135,13 @@ export function CinematicVoiceoverScreen() {
         audioUrl: String(data?.audio || ''),
       })
       await useCinematicProjectStore.getState().persistProject({ silent: true })
-      toast.success('Your voice rests in the story')
+      if (data?.audio) {
+        toast.success('Your voice rests in the story')
+      } else {
+        toast.message('Narration held — voice audio will follow when ready')
+      }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Voice could not be found — try again')
+      toast.error(softenCinematicError(e, SOFT_ERROR_COPY.voiceFind))
     } finally {
       setBusy(false)
     }

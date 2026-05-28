@@ -82,11 +82,11 @@ export const SceneStoryboardPanel = memo(function SceneStoryboardPanel({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
           <p className="text-[10px] tracking-[0.28em] uppercase text-[#C8A24E]/60">
-            {failed ? 'Storyboard unavailable' : 'Storyboard preview'}
+            {failed ? 'Frames resting' : 'Storyboard preview'}
           </p>
           {failed ? (
             <p className="text-xs text-white/40 max-w-xs leading-relaxed">
-              Visual frames could not load. Refine the storyboard frame to retry — your scene pacing is preserved.
+              Visual frames are resting. Refine the storyboard frame to try again — your scene pacing is preserved.
             </p>
           ) : null}
         </div>

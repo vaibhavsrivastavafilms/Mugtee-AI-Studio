@@ -18,16 +18,16 @@ export function ProjectLibraryEmpty() {
       <div className="text-center max-w-md mx-auto">
         <Sparkles className="w-5 h-5 text-gold-400/40 mx-auto mb-3" />
         <p className="font-display text-[15px] text-luxe/80 italic leading-snug">
-          Your future projects will appear here.
+          Your cinematic stories will appear here.
         </p>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          Direct your first cinematic story — saved reels, storyboards, and exports stay in your workspace.
+          Every AI generation auto-saves to your library — reels, storyboards, and finished MP4s in one place.
         </p>
         <Link
-          href="/cinematic/create"
+          href="/create?mode=quick"
           className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition min-h-[44px]"
         >
-          <Sparkles className="w-3.5 h-3.5" /> Direct your first reel
+          <Sparkles className="w-3.5 h-3.5" /> Create First Reel
         </Link>
       </div>
 
@@ -39,7 +39,7 @@ export function ProjectLibraryEmpty() {
           {niches.map((niche) => (
             <Link
               key={niche.label}
-              href="/cinematic/create"
+              href="/create?mode=quick"
               className="px-3 py-2 rounded-full border border-white/[0.06] bg-white/[0.02] text-[11px] text-luxe/60 hover:border-gold-500/25 hover:text-gold-200 transition"
             >
               {niche.label}
@@ -80,7 +80,7 @@ export function ProjectLibraryEmpty() {
         {STARTER_PROMPT_CHIPS.slice(0, 3).map((chip) => (
           <Link
             key={chip.label}
-            href={`/cinematic/create?prompt=${encodeURIComponent(chip.prompt)}`}
+            href={`/create?mode=quick&topic=${encodeURIComponent(chip.prompt)}`}
             className="px-3 py-1.5 rounded-full border border-white/[0.06] text-[10px] text-luxe/50 hover:text-gold-200 hover:border-gold-500/25 transition"
           >
             {chip.label}

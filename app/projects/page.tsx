@@ -102,7 +102,7 @@ export default function ProjectsPage() {
               </p>
 
               <Link
-                href="/workspace"
+                href="/create"
                 className="inline-flex mt-8 px-6 py-3 rounded-2xl bg-[#D4AF37] text-black font-medium hover:bg-[#E7C56A] transition-all duration-300"
               >
                 Open Workspace
@@ -157,7 +157,7 @@ export default function ProjectsPage() {
 
               {/* Open */}
               <Link
-                href="/workspace"
+                href="/create"
                 className="mt-10 inline-flex items-center gap-2 text-[#D4AF37] hover:text-[#E7C56A] transition-all duration-300"
               >
                 Open Project

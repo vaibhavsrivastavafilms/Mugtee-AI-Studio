@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { Button } from '@/components/ui/button'
 import { Film, ArrowRight } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -10,36 +11,24 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { LoginSlideshow } from '@/components/auth/login-slideshow'
 import { track } from '@/lib/posthog'
+import { APP_ROUTE_LOGIN_FALLBACK } from '@/lib/auth/public-routes'
 import { safeRelative } from '@/lib/url'
 
 function LoginContent() {
   const [loading, setLoading] = useState(false)
-  const [ready, setReady] = useState(false)
+  const { ready, user } = useAuthHydration()
   const params = useSearchParams()
   const router = useRouter()
-  const nextPath = safeRelative(params?.get('next'), '/workspace')
+  const nextPath = safeRelative(params?.get('next'), APP_ROUTE_LOGIN_FALLBACK)
 
   useEffect(() => {
     if (params?.get('error')) toast.error('Sign-in failed. Please try again.')
   }, [params])
 
   useEffect(() => {
-    let cancelled = false
-    const supabase = createSupabaseBrowserClient()
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return
-      if (session?.user) {
-        router.replace(nextPath)
-        return
-      }
-      setReady(true)
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [router, nextPath])
+    if (!ready || !user) return
+    router.replace(nextPath)
+  }, [ready, user, router, nextPath])
 
   const handleGoogle = async () => {
     setLoading(true)
@@ -62,7 +51,7 @@ function LoginContent() {
     }
   }
 
-  if (!ready) {
+  if (!ready || user) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background px-6">
         <div className="w-full max-w-md space-y-4">

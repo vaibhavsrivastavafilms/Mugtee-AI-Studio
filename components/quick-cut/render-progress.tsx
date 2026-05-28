@@ -1,0 +1,88 @@
+'use client'
+
+import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  STAGE_TAB_LABELS,
+  STAGE_TAB_ORDER,
+  isStageTabActive,
+  isStageTabDone,
+  isStageTabReachable,
+} from '@/lib/cinematic/quick-cut/stage-tabs'
+import {
+  STEP_LABELS,
+  useQuickCutGenerationStore,
+} from '@/stores/quick-cut-generation-store'
+
+export function RenderProgress({ className }: { className?: string }) {
+  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const progress = useQuickCutGenerationStore((s) => s.progress)
+  const eta = useQuickCutGenerationStore((s) => s.eta)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
+  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
+
+  return (
+    <div className={cn('space-y-4', className)}>
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/80">
+            {STEP_LABELS[generationStep] || 'Preparing…'}
+          </p>
+          <span className="text-[10px] text-luxe/45 tabular-nums">
+            {progress}%{!isComplete && eta > 0 ? ` · ~${eta}s` : ''}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="h-full bg-gold-gradient transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      <nav aria-label="Generation stages">
+        <ol className="flex flex-wrap gap-2">
+          {STAGE_TAB_ORDER.map((tab) => {
+            const reachable = isStageTabReachable(tab, generationStep, isComplete)
+            const active = isStageTabActive(tab, generationStep, isComplete)
+            const done = isStageTabDone(tab, generationStep, isComplete)
+            const selected = activeStageTab === tab
+
+            return (
+              <li key={tab}>
+                <button
+                  type="button"
+                  disabled={!reachable}
+                  onClick={() => reachable && setActiveStageTab(tab)}
+                  aria-current={selected ? 'step' : undefined}
+                  aria-busy={active && !done}
+                  className={cn(
+                    'rounded-full px-2.5 py-1 text-[9px] tracking-[0.16em] uppercase border transition-colors',
+                    'inline-flex items-center gap-1 min-h-[28px]',
+                    !reachable && 'cursor-not-allowed opacity-40',
+                    reachable && 'cursor-pointer hover:border-gold-500/45',
+                    selected && reachable
+                      ? 'border-gold-500/60 bg-gold-500/20 text-gold-100 ring-1 ring-gold-500/25'
+                      : done
+                        ? 'border-gold-500/30 bg-gold-500/10 text-gold-200'
+                        : active
+                          ? 'border-gold-500/50 bg-gold-500/15 text-gold-100'
+                          : reachable
+                            ? 'border-white/[0.1] text-luxe/55'
+                            : 'border-white/[0.06] text-luxe/35'
+                  )}
+                >
+                  {active && !done ? (
+                    <Loader2 className="w-2.5 h-2.5 animate-spin shrink-0" aria-hidden />
+                  ) : null}
+                  {STAGE_TAB_LABELS[tab]}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
+    </div>
+  )
+}
