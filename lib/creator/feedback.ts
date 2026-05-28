@@ -1,4 +1,4 @@
-export type FeedbackContext = 'generation' | 'preview' | 'export'
+export type FeedbackContext = 'generation' | 'preview' | 'export' | 'return' | 'compile'
 export type FeedbackRating = 'up' | 'down'
 
 type FeedbackEntry = {
@@ -50,4 +50,13 @@ export function saveCreatorFeedback(
   }
   const next = [entry, ...readEntries().filter((e) => e.context !== context)]
   writeEntries(next)
+}
+
+export function recentFeedbackResonance(context: FeedbackContext): FeedbackRating | null {
+  const entry = readEntries().find((e) => e.context === context)
+  return entry?.rating ?? null
+}
+
+export function shouldPromptFeedback(context: FeedbackContext): boolean {
+  return !hasFeedbackFor(context)
 }

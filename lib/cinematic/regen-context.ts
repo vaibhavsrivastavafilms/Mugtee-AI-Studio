@@ -122,6 +122,35 @@ export function scenePacingRole(index: number, total: number): string {
   return 'escalation / rising tension'
 }
 
+export type SceneArcRole = 'hook' | 'tension' | 'peak' | 'release' | 'aftertaste'
+
+/** Canonical arc role for engines — supports multi-act long sequences (10–30 beats). */
+export function sceneArcRole(index: number, total: number): SceneArcRole {
+  if (total <= 1) return 'hook'
+  if (index === 1) return 'hook'
+  if (index === total) return 'aftertaste'
+
+  const progress = (index - 1) / Math.max(total - 1, 1)
+
+  if (total >= 10) {
+    if (index % 5 === 0 && progress > 0.12 && progress < 0.88) return 'release'
+    if (progress <= 0.14) return 'hook'
+    if (progress >= 0.9) return 'aftertaste'
+    if (progress >= 0.74 && progress < 0.9) {
+      const peakSlot = Math.round(total * 0.82)
+      return index === peakSlot || index === total - 1 ? 'peak' : 'tension'
+    }
+    if (progress >= 0.5 && progress < 0.74) {
+      return index % 4 === 0 ? 'release' : 'tension'
+    }
+    return index % 3 === 0 ? 'release' : 'tension'
+  }
+
+  if (index === total - 1) return 'peak'
+  if (index >= total - 2 && total <= 6) return 'release'
+  return 'tension'
+}
+
 export function captionsFromLines(lines: string[]): {
   primary: string
   cta: string

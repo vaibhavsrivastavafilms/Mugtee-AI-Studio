@@ -25,10 +25,13 @@ export function ImmersiveSceneScroll({
     [scenes.length, durationSec, preferReducedLayers]
   )
 
+  const longForm = scenes.length >= 10
+
   return (
     <div
       className={cn(
         'immersive-scene-scroll max-h-[min(72dvh,640px)] overflow-y-auto overscroll-y-contain',
+        longForm && 'max-h-[min(76dvh,680px)]',
         'px-[max(0.5rem,env(safe-area-inset-left))]',
         'pb-[max(1.25rem,env(safe-area-inset-bottom))]',
         scrollSnapClass(preferReducedLayers),

@@ -1,22 +1,22 @@
 import type { CinematicProjectStatus } from '@/stores/cinematic-project'
 
 const STAGE_RETURN: Partial<Record<string, string[]>> = {
-  create: ['Continue shaping your story', 'Your cinematic draft awaits'],
-  preview: ['Your cinematic draft awaits', 'Continue shaping your story'],
-  director: ['Resume visual direction', 'Continue shaping your story'],
-  scenes: ['Resume visual direction', 'Your storyboard awaits'],
-  voiceover: ['Your cinematic draft awaits', 'Continue shaping your story'],
-  compile: ['Your export package awaits', 'Continue shaping your story'],
+  create: ['Your film world awaits a new premise', 'The directing environment is open'],
+  preview: ['Your screenplay world still breathes', 'Return to the sequence you shaped'],
+  director: ['Your mood world is still alive', 'Re-enter the atmosphere you were directing'],
+  scenes: ['Your visual story-world waits', 'Storyboard rhythm held in place'],
+  voiceover: ['Voice arc held in your film world', 'Narration rhythm still present'],
+  compile: ['Your film world nears final form', 'The showcase sequence awaits'],
 }
 
 const NIGHT_RETURN = [
-  'Your cinematic draft awaits',
-  'Return to the story you were directing',
+  'Your cinematic world still lives here',
+  'Return to the atmosphere you were shaping',
 ]
 
 const MORNING_RETURN = [
-  'Continue shaping your story',
-  'Pick up where your arc left off',
+  'Your film world is waking with you',
+  'Re-enter where your directed arc left off',
 ]
 
 export function getReturnEnergyLine(

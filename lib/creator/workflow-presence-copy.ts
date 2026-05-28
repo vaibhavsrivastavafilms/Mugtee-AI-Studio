@@ -27,9 +27,9 @@ const PHASE_LINES: Record<WorkflowPresencePhase, readonly string[]> = {
     'Letting the sequence settle into form…',
   ],
   restoring: [
-    'Restoring your cinematic draft…',
-    'Continuing where your story left off…',
-    'Your pacing rhythm is intact…',
+    'Your film world is waking back up…',
+    'Atmosphere returning — the story still lives here…',
+    'Directing rhythm intact — re-entering your world…',
   ],
 }
 
@@ -42,9 +42,9 @@ export function getWorkflowPresenceLine(
 }
 
 export const COMPLETION_ACHIEVEMENT_LINES = [
-  'Your cinematic story rests in rhythm',
-  'Hook, pacing, and frames held together',
-  'Your directed story reached its form',
+  'Your film world rests in enduring rhythm',
+  'Hook, pacing, and frames held in time',
+  'Your directed world reached its form',
 ] as const
 
 export function getCompletionAchievementLine(seed = 0): string {

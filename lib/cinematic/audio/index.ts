@@ -13,4 +13,6 @@ export {
   buildSceneEmphasisMap,
   emphasisForSceneIndex,
 } from '@/lib/cinematic/audio/scene-emphasis-mapping'
-export { recallNarrationEscalation } from '@/lib/cinematic/audio/narration-escalation-memory'
+export type { NarrationSyncPoint, NarrationSyncTimeline } from '@/lib/cinematic/audio/narration-sync-points'
+
+export { buildNarrationSyncTimeline } from '@/lib/cinematic/audio/narration-sync-points'

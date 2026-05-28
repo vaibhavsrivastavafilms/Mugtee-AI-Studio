@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}))
     const ctx = parseRegenContext(body)
+    const projectId =
+      typeof body.projectId === 'string' ? body.projectId : undefined
 
     const filmPlan = buildCompileFilmPlan({
       title: ctx.prompt.slice(0, 80) || 'Untitled cinematic story',
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const blueprint = buildCinematicRenderBlueprint(filmPlan)
     const rhythm = buildInvisibleFilmMetadata(blueprint)
-    const render = await orchestrateRender(blueprint)
+    const render = await orchestrateRender(blueprint, { projectId })
 
     return NextResponse.json({
       ready: filmPlan.ready,
@@ -49,6 +51,14 @@ export async function POST(req: NextRequest) {
       rhythm,
       status: render.status,
       provider: render.provider,
+      filmRealization: {
+        ready: render.filmRealization.ready,
+        assemblyMode: render.filmRealization.assemblyMode,
+        totalDurationSec: render.filmRealization.totalDurationSec,
+        assemblyDigest: render.filmRealization.assemblyDigest,
+        segmentCount: render.filmRealization.sceneSegments.length,
+        continuity: render.filmRealization.continuity,
+      },
       output: projectStateToGenerationOutput({
         title: filmPlan.title,
         hook: ctx.hook,

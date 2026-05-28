@@ -39,10 +39,13 @@ export function ExportSuccessPanel({
         <CreatorAchievementLine seed={1} />
 
         <h2 className="font-display text-2xl sm:text-3xl text-[#F4E7C1] italic leading-snug mb-2">
-          Your cinematic story is ready.
+          Your film world endures.
         </h2>
         <p className="text-sm text-white/50 max-w-md mx-auto mb-2">
-          Your film world is ready — hook, captions, storyboard frames, and voice held in vertical rhythm.
+          Hook, captions, storyboard frames, and voice — held in vertical rhythm, sealed for permanence.
+        </p>
+        <p className="text-[9px] tracking-[0.2em] uppercase text-white/28 mb-2 italic">
+          Your cinematic world endures beyond this session — not a download, a preserved film form.
         </p>
         <p className="text-[9px] tracking-[0.2em] uppercase text-white/32 mb-2">
           {pacingLine}
@@ -54,7 +57,7 @@ export function ExportSuccessPanel({
         <div className="flex flex-wrap justify-center gap-3">
           <ActionButton icon={Download} label="Save Film World" primary onClick={onDownload} />
           <ActionButton icon={Copy} label="Copy captions" onClick={onCopyCaptions} />
-          <ActionButton icon={Share2} label="Share Preview" onClick={onShare} />
+          <ActionButton icon={Share2} label="Share the world" onClick={onShare} />
         </div>
 
         <button
@@ -62,7 +65,7 @@ export function ExportSuccessPanel({
           onClick={onStartNew}
           className="mt-8 text-[10px] tracking-[0.22em] uppercase text-white/45 hover:text-[#C8A24E] transition calm-opacity-transition"
         >
-          Start a new cinematic story
+          Start a new film world
         </button>
       </EmotionalPresenceFade>
     </CinematicExportClosure>

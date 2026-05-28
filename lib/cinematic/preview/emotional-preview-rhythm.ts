@@ -1,5 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 import type { PreviewRhythmMetadata } from '@/lib/cinematic/render/preview-rhythm'
 
 export type EmotionalPreviewRhythm = {
@@ -23,19 +23,38 @@ export function buildEmotionalPreviewRhythm(
 ): EmotionalPreviewRhythm {
   const total = Math.max(scenes.length, 1)
   const beatWeights: EmotionalPreviewRhythm['beatWeights'] = scenes.length
-    ? scenes.map((_, i) => weightForRole(scenePacingRole(i + 1, total)))
+    ? scenes.map((_, i) => weightForRole(sceneArcRole(i + 1, total)))
     : ['open', 'build', 'peak', 'hold']
 
   const hasPeak = beatWeights.includes('peak')
+  const longForm = total >= 10
   const labelPool = hasPeak
-    ? ['Rising cadence toward emotional peak', 'Tension gathers — crest ahead']
-    : ['Held rhythm — lyrical restraint', 'Even breath — documentary cadence']
+    ? longForm
+      ? [
+          'Rising cadence toward emotional peak — long-form variation held',
+          'Tension gathers — crest ahead with breathing beats',
+        ]
+      : ['Rising cadence toward emotional peak', 'Tension gathers — crest ahead']
+    : longForm
+      ? ['Held rhythm — lyrical restraint across extended arc', 'Even breath — documentary cadence with variation']
+      : ['Held rhythm — lyrical restraint', 'Even breath — documentary cadence']
   const label = labelPool[total % labelPool.length]
+
+  const buildupBase = Math.max(1800, Math.round((totalDuration * 1000) / total * 0.9))
+  const buildupMs = longForm
+    ? Math.round(buildupBase * (1 + Math.sin(total * 0.3) * 0.04))
+    : buildupBase
 
   return {
     label,
-    buildupMs: Math.max(1800, Math.round((totalDuration * 1000) / total * 0.9)),
-    transitionHint: hasPeak ? 'dissolve into peak · cut on release' : 'held cuts · breathing room',
+    buildupMs,
+    transitionHint: hasPeak
+      ? longForm
+        ? 'dissolve into peak · cut on release · mid-arc breaths'
+        : 'dissolve into peak · cut on release'
+      : longForm
+        ? 'held cuts · breathing room · anti-fatigue variation'
+        : 'held cuts · breathing room',
     beatWeights,
   }
 }

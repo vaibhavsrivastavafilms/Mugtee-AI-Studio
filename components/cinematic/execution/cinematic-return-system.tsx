@@ -19,14 +19,14 @@ export function CinematicReturnSystem({ title }: { title?: string }) {
       }
     }
     if ((mem.projectCount ?? 0) > 0 && mem.lastTitle) {
-      setMessage(`Continue from "${mem.lastTitle.slice(0, 48)}" or begin a new world.`)
+      setMessage(`"${mem.lastTitle.slice(0, 48)}" still lives in your film world.`)
     }
   }, [title])
 
   if (!message) return null
 
   return (
-    <p className="text-center text-[11px] tracking-[0.18em] uppercase text-[#C8A24E]/70 mb-4 animate-in fade-in duration-500">
+    <p className="text-center text-[11px] tracking-[0.18em] uppercase text-[#C8A24E]/70 mb-4 animate-in fade-in duration-500 immersive-workspace-fade">
       {message}
     </p>
   )

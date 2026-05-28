@@ -1,5 +1,5 @@
 export { enhanceScreenplayOutput, buildScreenplayIntelligenceNote } from '@/lib/cinematic/execution/screenplay-intelligence-engine'
-export { analyzeCinematicRhythm, rebalanceSceneDurations, formatDirectedScript } from '@/lib/cinematic/execution/cinematic-rhythm-analysis'
+export { analyzeCinematicRhythm, correctLongFormRhythm, rebalanceSceneDurations, formatDirectedScript } from '@/lib/cinematic/execution/cinematic-rhythm-analysis'
 export { applyEmotionalEscalation, scoreEmotionalArc } from '@/lib/cinematic/execution/emotional-escalation-system'
 export { readPacingMemory, writePacingMemory, suggestSceneTarget } from '@/lib/cinematic/execution/screenplay-pacing-memory'
 export { selectCinematicHook, generateHookVariations } from '@/lib/cinematic/execution/cinematic-hook-engine'
@@ -16,7 +16,7 @@ export { motionForScene, emotionalCameraMotion, cinematicTransitionHint, visualR
 export { prepareCinematicVoiceover, emotionalNarrationSystemPrompt } from '@/lib/cinematic/execution/cinematic-voice-engine'
 export { paceNarrationForFilm, voiceDirectionNote, dialogueFlowSegments } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 export { parseCinematicIntent, intentPromptFragment } from '@/lib/cinematic/execution/cinematic-intent-engine'
-export { readCreatorMemory, updateCreatorMemory, authoredStoryRecall, cinematicIdentityContinuity } from '@/lib/cinematic/execution/cinematic-creator-memory'
+export { readCreatorMemory, updateCreatorMemory, authoredStoryRecall, cinematicIdentityContinuity, recallPacingSignature, recallDirectingTone, syncCreatorMemoryFromGeneration } from '@/lib/cinematic/execution/cinematic-creator-memory'
 export { optimizeAtmosphereRender, immersiveLoadingCopy, pacingAwareWaitMs, softTransitionDelayMs, shouldDeferNonCriticalAssets } from '@/lib/cinematic/execution/cinematic-performance-engine'
 
 export type { FilmAssemblyPlan, FilmShot } from '@/lib/cinematic/execution/screenplay-video-translator'

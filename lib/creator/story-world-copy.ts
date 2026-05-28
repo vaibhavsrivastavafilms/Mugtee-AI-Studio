@@ -34,9 +34,9 @@ const WORLD_MEMORY = [
 ] as const
 
 const EXPORT_WORLD = [
-  'Your cinematic world sequence is complete.',
-  'Atmospheric continuity preserved through delivery.',
-  'Visual environment finalized.',
+  'Your film world endures — held in vertical rhythm.',
+  'Atmospheric continuity preserved beyond the cut.',
+  'Visual environment sealed — the story lives on.',
 ] as const
 
 export function getStoryWorldPresenceLine(seed = 0): string {

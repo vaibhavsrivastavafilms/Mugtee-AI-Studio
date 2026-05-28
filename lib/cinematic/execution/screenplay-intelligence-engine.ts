@@ -1,8 +1,9 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
-import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 import {
   analyzeCinematicRhythm,
+  correctLongFormRhythm,
   formatDirectedScript,
   rebalanceSceneDurations,
 } from '@/lib/cinematic/execution/cinematic-rhythm-analysis'
@@ -46,18 +47,25 @@ export function enhanceScreenplayOutput(
   scenes = enhanceStoryboardScenes(scenes, context.niche)
   const rhythmCalibration = calibrateVisualRhythm(scenes, context.duration)
   scenes = applyCalibratedDurations(scenes, rhythmCalibration)
+  if (scenes.length >= 10 && rhythmCalibration.longFormAdjusted) {
+    scenes = correctLongFormRhythm(scenes, context.duration)
+  }
   scenes = scenes.map((scene, i) => {
     if (scene.cameraAngle.trim()) return scene
-    const role = scenePacingRole(i + 1, scenes.length || 1)
+    const role = sceneArcRole(i + 1, scenes.length || 1)
     return { ...scene, cameraAngle: planCameraDirection(role, i + 1) }
   })
 
   const roles = scenes.map((_, i) =>
-    scenePacingRole(i + 1, scenes.length || 1)
+    sceneArcRole(i + 1, scenes.length || 1)
   )
   const rhythm = analyzeCinematicRhythm(scenes, context.duration, roles)
 
-  if (rhythm.issues.includes('duration_drift')) {
+  if (
+    rhythm.issues.includes('duration_drift') ||
+    rhythm.issues.includes('flat_middle') ||
+    rhythm.issues.includes('rhythm_collapse')
+  ) {
     scenes = rebalanceSceneDurations(scenes, context.duration, roles)
   }
 

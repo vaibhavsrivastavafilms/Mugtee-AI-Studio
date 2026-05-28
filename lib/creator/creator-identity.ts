@@ -82,11 +82,11 @@ export function getCreatorSignatureLine(style?: string | null, niche?: string | 
 }
 
 const CONTINUITY_MEMORY_LINES = [
-  'Your documentary pacing remains preserved.',
-  'Maintaining your slow-burn emotional rhythm.',
-  'Visual tone continuity preserved across your arc.',
-  'Your pacing structure carries forward.',
-  'Scene rhythm remembered from your last session.',
+  'Your film world still breathes here.',
+  'The atmosphere you shaped remains alive.',
+  'Visual tone continuity held across your arc.',
+  'Your pacing signature carries forward.',
+  'Scene rhythm remembered — the world waits.',
 ] as const
 
 export function getContinuityMemoryLine(
@@ -96,20 +96,35 @@ export function getContinuityMemoryLine(
 ): string {
   const id = resolveCreatorIdentity(style, niche)
   const tailored = [
-    `Your ${id.pacing.toLowerCase()} remains preserved.`,
+    `${id.pacing} · still present in this world.`,
     `Maintaining your ${id.rhythm.toLowerCase()}.`,
-    `Your ${id.tone.toLowerCase()} carries forward.`,
+    `${id.tone} · atmosphere remembered.`,
     CONTINUITY_MEMORY_LINES[seed % CONTINUITY_MEMORY_LINES.length],
   ]
   return tailored[seed % tailored.length]
 }
 
 const SESSION_RETURN_LINES: Partial<Record<string, string[]>> = {
-  preview: ['Your visual sequence is ready to continue.', 'Hook tension preserved from your previous session.'],
-  director: ['Resume directing your visual mood.', 'Your cinematic tone awaits refinement.'],
-  scenes: ['Your storyboard sequence is ready to continue.', 'Visual continuity preserved from your last session.'],
-  voiceover: ['Voice arc aligned to your directing style.', 'Narration rhythm preserved.'],
-  compile: ['Your film world awaits its final form.', 'Directed sequence ready to showcase.'],
+  preview: [
+    'Your screenplay world is still unfolding.',
+    'Hook tension held — the lens awaits your return.',
+  ],
+  director: [
+    'Your directing atmosphere is still alive.',
+    'The mood world you shaped waits for you.',
+  ],
+  scenes: [
+    'Your visual story-world remains in motion.',
+    'Storyboard rhythm preserved — frames still breathing.',
+  ],
+  voiceover: [
+    'Voice arc aligned to your directing signature.',
+    'Narration rhythm held in the world you built.',
+  ],
+  compile: [
+    'Your film world nears its final breath.',
+    'The showcase sequence waits in cinematic form.',
+  ],
 }
 
 export function getSessionReturnLine(
@@ -118,11 +133,11 @@ export function getSessionReturnLine(
   seed = 0
 ): string {
   const pool = SESSION_RETURN_LINES[status] ?? [
-    'Your cinematic draft awaits your direction.',
-    'Pick up where your directed arc left off.',
+    'Your cinematic world is still alive here.',
+    'Return to the story atmosphere you were shaping.',
   ]
   const id = resolveCreatorIdentity(style, null)
-  const stylePool = [`Continue your ${id.label.toLowerCase()} production.`]
+  const stylePool = [`Re-enter your ${id.label.toLowerCase()} film world.`]
   const combined = [...pool, ...stylePool]
   return combined[seed % combined.length]
 }
@@ -134,9 +149,9 @@ export function getExportIdentityLine(
 ): string {
   const id = resolveCreatorIdentity(style, niche)
   const lines = [
-    `Your ${id.label.toLowerCase()} sequence has been prepared.`,
-    'Visual pacing continuity preserved.',
-    'Showcase reflects your directed tone.',
+    `Your ${id.label.toLowerCase()} world endures in rhythm.`,
+    'Visual pacing continuity preserved through time.',
+    'Showcase reflects your directed atmosphere.',
   ]
   return lines[seed % lines.length]
 }
@@ -162,7 +177,7 @@ export function getWorkflowMemorySummary(
 ): { headline: string; detail: string } {
   const id = resolveCreatorIdentity(style, niche)
   return {
-    headline: `${id.label} production`,
-    detail: `${id.pacing} · ${id.rhythm}`,
+    headline: `${id.label} film world`,
+    detail: `${id.pacing} · ${id.rhythm} · remembered`,
   }
 }

@@ -22,11 +22,19 @@ function intervalForBeat(
   total: number
 ): number {
   const base = durationSec * 1000
-  if (weight === 'open' || index === 0) return Math.max(2000, Math.round(base * 0.9))
-  if (weight === 'peak') return Math.max(2300, Math.round(base * 1.1))
-  if (weight === 'hold' || index === total - 1) return Math.max(2500, Math.round(base * 1.16))
-  if (weight === 'build') return Math.max(2100, Math.round(base * 1.04))
-  return Math.max(2000, Math.round(base * 1.02))
+  const longForm = total >= 10
+  const fatigueDampen = longForm && index > 0 && index % 5 === 0 ? 0.94 : 1
+  const variation = longForm ? 1 + Math.sin((index / total) * Math.PI * 2) * 0.04 : 1
+
+  if (weight === 'open' || index === 0) {
+    return Math.max(2000, Math.round(base * 0.9 * fatigueDampen * variation))
+  }
+  if (weight === 'peak') return Math.max(2300, Math.round(base * 1.1 * variation))
+  if (weight === 'hold' || index === total - 1) {
+    return Math.max(2500, Math.round(base * 1.16 * fatigueDampen))
+  }
+  if (weight === 'build') return Math.max(2100, Math.round(base * 1.04 * variation))
+  return Math.max(2000, Math.round(base * 1.02 * fatigueDampen))
 }
 
 export function buildPreviewRhythmFromBlueprint(

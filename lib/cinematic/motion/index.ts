@@ -15,4 +15,6 @@ export {
   buildVisualMovementMemory,
   movementHintForScene,
 } from '@/lib/cinematic/motion/visual-movement-memory'
-export { buildSceneMotionBlueprint } from '@/lib/cinematic/motion/scene-motion-blueprint'
+export type { MotionInterpolationStep, MotionRealizationProfile } from '@/lib/cinematic/motion/motion-realization-metadata'
+
+export { buildMotionRealizationProfile } from '@/lib/cinematic/motion/motion-realization-metadata'

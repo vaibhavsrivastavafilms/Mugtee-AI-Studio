@@ -1,5 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { scenePacingRole } from '@/lib/cinematic/regen-context'
+import { sceneArcRole } from '@/lib/cinematic/regen-context'
 import {
   cameraLanguageForSceneIndex,
   formatCameraLanguageBlock,
@@ -10,6 +10,7 @@ export type ShotEscalationMemory = {
   escalationLevel: number
   suggestedProgression: string
   visualThread: string
+  actBreath: boolean
 }
 
 const PROGRESSION_POOL: Record<string, readonly string[]> = {
@@ -40,12 +41,45 @@ const PROGRESSION_POOL: Record<string, readonly string[]> = {
   ],
 }
 
-function pickProgression(role: string, priorMovement: string[], sceneIndex: number): string {
+const LONG_FORM_VARIATIONS: readonly string[] = [
+  'oblique angle — reframing without rupture',
+  'rack focus — attention shifts quietly',
+  'slow orbit — world reveals in layers',
+  'held medium — restraint before the next lift',
+  'detail cutaway — texture between beats',
+]
+
+function pickProgression(
+  role: string,
+  priorMovement: string[],
+  sceneIndex: number,
+  total: number
+): string {
   const pool = PROGRESSION_POOL[role] ?? PROGRESSION_POOL.release
   const priorSet = new Set(priorMovement.map((m) => m.toLowerCase()))
   const fresh = pool.filter((line) => !priorSet.has(line.toLowerCase()))
-  const candidates = fresh.length > 0 ? fresh : pool
+  let candidates = fresh.length > 0 ? fresh : pool
+
+  if (total >= 10 && role === 'tension') {
+    const longFresh = LONG_FORM_VARIATIONS.filter((line) => !priorSet.has(line.toLowerCase()))
+    if (longFresh.length > 0 && (sceneIndex % 4 === 0 || (total >= 20 && sceneIndex % 3 === 0))) {
+      candidates = longFresh
+    }
+  }
+
+  if (total >= 20 && role === 'release' && sceneIndex % 6 === 0) {
+    candidates = ['held wide — mid-arc breath before next lift', ...candidates]
+  }
+
   return candidates[sceneIndex % candidates.length]
+}
+
+function escalationLevelForRole(role: string, total: number, index: number): number {
+  const base =
+    role === 'hook' ? 0.2 : role === 'tension' ? 0.5 : role === 'peak' ? 0.9 : role === 'aftertaste' ? 0.35 : 0.65
+  if (total < 10) return base
+  const wave = Math.sin((index / total) * Math.PI * 2) * 0.08
+  return Math.min(1, Math.max(0.15, base + wave))
 }
 
 export function buildShotEscalationMemory(
@@ -55,17 +89,17 @@ export function buildShotEscalationMemory(
   const total = scenes.length || 1
   const idx = Math.max(0, Math.min(sceneIndex, total - 1))
   const prior = scenes.slice(0, idx)
+  const lookback = total >= 10 ? 5 : 3
 
   const priorMovement = prior
     .map((s) => s.movementStyle || s.cameraAngle)
     .filter(Boolean)
-    .slice(-3)
+    .slice(-lookback)
 
-  const role = scenePacingRole(idx + 1, total)
-  const escalationLevel =
-    role === 'hook' ? 0.2 : role === 'tension' ? 0.5 : role === 'peak' ? 0.9 : role === 'aftertaste' ? 0.35 : 0.65
-
-  const suggestedProgression = pickProgression(role, priorMovement, idx)
+  const role = sceneArcRole(idx + 1, total)
+  const escalationLevel = escalationLevelForRole(role, total, idx + 1)
+  const suggestedProgression = pickProgression(role, priorMovement, idx, total)
+  const actBreath = total >= 10 && role === 'release' && idx > 0 && idx < total - 1
 
   const visualThread =
     prior.length > 0
@@ -77,6 +111,7 @@ export function buildShotEscalationMemory(
     escalationLevel,
     suggestedProgression,
     visualThread,
+    actBreath,
   }
 }
 

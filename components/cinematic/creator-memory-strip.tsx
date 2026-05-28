@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { getContinuityMemoryLine } from '@/lib/creator/creator-identity'
+import { recallDirectingTone, recallPacingSignature } from '@/lib/cinematic/execution/cinematic-creator-memory'
 import { cn } from '@/lib/utils'
 
 export function CreatorMemoryStrip({
@@ -15,10 +16,13 @@ export function CreatorMemoryStrip({
   seed?: number
   className?: string
 }) {
-  const line = useMemo(
-    () => getContinuityMemoryLine(style, niche, seed),
-    [style, niche, seed]
-  )
+  const line = useMemo(() => {
+    const pacing = recallPacingSignature(style, niche)
+    if (pacing) return pacing
+    const tone = recallDirectingTone(style, niche)
+    if (tone) return tone
+    return getContinuityMemoryLine(style, niche, seed)
+  }, [style, niche, seed])
 
   return (
     <div

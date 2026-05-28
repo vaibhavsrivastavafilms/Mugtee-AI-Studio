@@ -30,7 +30,7 @@ const STAGE_LINES: Partial<Record<CinematicProjectStatus | string, string[]>> = 
     'Final rhythm gathering',
     'Showcase sequence nearly complete',
   ],
-  complete: ['Your cinematic draft is ready to continue'],
+  complete: ['Your film world rests in rhythm — ready when you are'],
 }
 
 export function getMomentumLine(
@@ -58,15 +58,15 @@ export function getDirectedContinuityLine(
 ): string {
   const styleWord = style?.trim() || 'cinematic'
   const pool = [
-    `Continue shaping your ${styleWord} sequence`,
-    `Resume your ${styleWord} directing arc`,
-    'Your cinematic draft awaits your direction',
+    `Re-enter your ${styleWord} film world`,
+    `Return to your ${styleWord} directing atmosphere`,
+    'Your cinematic world is still alive here',
   ]
   if (stage === 'scenes') {
-    pool.unshift('Resume visual direction across your scenes')
+    pool.unshift('Your visual story-world waits across the beats')
   }
   if (stage === 'compile') {
-    pool.unshift('Your film world awaits its final form')
+    pool.unshift('Your film world nears its final breath')
   }
   return pool[seed % pool.length]
 }
