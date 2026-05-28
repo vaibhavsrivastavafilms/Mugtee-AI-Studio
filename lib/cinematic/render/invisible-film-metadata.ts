@@ -10,6 +10,7 @@ export type InvisibleFilmMetadata = {
   voiceTiming: string
   soundtrackPlaceholder: string
   movementSequencing: string[]
+  motionContinuityThread: string
   filmRhythm: string
   beatIntervalsMs: number[]
   previewFadeMs: number
@@ -20,6 +21,11 @@ export function buildInvisibleFilmMetadata(
 ): InvisibleFilmMetadata {
   const rhythm = buildPreviewRhythmFromBlueprint(blueprint)
 
+  const motionThread =
+    blueprint.transitionRhythm.split(' · ').pop()?.trim() ||
+    rhythm.movementSequencing[0] ||
+    'visual thread held in restraint'
+
   return {
     sceneTimingMs: blueprint.shots.map((s) => s.durationSec * 1000),
     emotionalWeights: blueprint.sequence.map((b) => b.emotionalWeight),
@@ -28,6 +34,7 @@ export function buildInvisibleFilmMetadata(
     voiceTiming: blueprint.voiceTiming,
     soundtrackPlaceholder: blueprint.soundtrackBed,
     movementSequencing: rhythm.movementSequencing,
+    motionContinuityThread: motionThread,
     filmRhythm: blueprint.filmRhythm,
     beatIntervalsMs: rhythm.beatIntervalsMs,
     previewFadeMs: rhythm.fadeMs,

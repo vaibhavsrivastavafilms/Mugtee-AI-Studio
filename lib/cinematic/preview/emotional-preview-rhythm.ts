@@ -22,9 +22,9 @@ export function buildEmotionalPreviewRhythm(
   totalDuration: number
 ): EmotionalPreviewRhythm {
   const total = Math.max(scenes.length, 1)
-  const beatWeights = scenes.length
+  const beatWeights: EmotionalPreviewRhythm['beatWeights'] = scenes.length
     ? scenes.map((_, i) => weightForRole(scenePacingRole(i + 1, total)))
-    : (['open', 'build', 'peak', 'hold'] as const)
+    : ['open', 'build', 'peak', 'hold']
 
   const hasPeak = beatWeights.includes('peak')
   const label = hasPeak

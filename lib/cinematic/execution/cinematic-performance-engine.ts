@@ -15,6 +15,16 @@ const IMMERSIVE_LOADING: Record<string, readonly string[]> = {
     'Visual rhythm calibrates across scenes…',
     'Shot progression held in restraint…',
   ],
+  director: [
+    'Directing choices settle into rhythm…',
+    'Mood and pacing align to your arc…',
+    'The lens finds your story…',
+  ],
+  scenes: [
+    'Each beat holds its visual breath…',
+    'Storyboard rhythm carries forward…',
+    'Continuity threads through your frames…',
+  ],
   voiceover: [
     'Finding the breath of your narration…',
     'Voice cadence aligns to your arc…',
@@ -29,6 +39,16 @@ const IMMERSIVE_LOADING: Record<string, readonly string[]> = {
     'Anticipation before the first frame…',
     'Your story holds its cinematic pulse…',
     'Each beat arrives with held breath…',
+  ],
+  refining: [
+    'Refining without breaking rhythm…',
+    'Your arc stays intact while evolving…',
+    'Continuity held through the adjustment…',
+  ],
+  restoring: [
+    'Returning to your cinematic draft…',
+    'Your pacing rhythm is intact…',
+    'The story world remembers where you left off…',
   ],
 }
 

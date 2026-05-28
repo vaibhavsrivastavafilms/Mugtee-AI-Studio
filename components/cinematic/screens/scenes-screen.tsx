@@ -57,6 +57,7 @@ import { MomentumStrip } from '@/components/create/momentum-strip'
 import { CinematicEmptyState } from '@/components/cinematic/cinematic-states'
 import { SceneStoryboardPanel } from '@/components/cinematic/scene-storyboard-panel'
 import { SceneVisualChips } from '@/components/cinematic/scene-visual-chips'
+import { ImmersiveSceneScroll } from '@/components/mobile/immersive-scene-scroll'
 import {
   CinematicStepNav,
   CinematicWorkflowShell,
@@ -65,7 +66,7 @@ import type { CinematicScene } from '@/stores/cinematic-project'
 
 export function CinematicScenesScreen() {
   const router = useRouter()
-  const { scenes, script, style, niche, updateStatus } = useCinematicRoute('scenes')
+  const { scenes, script, style, niche, duration, updateStatus } = useCinematicRoute('scenes')
   const generatingRef = useRef<Set<number>>(new Set())
   const attemptedRef = useRef<Set<number>>(new Set())
   const [storyboardFailed, setStoryboardFailed] = useState<Set<number>>(() => new Set())
@@ -182,7 +183,7 @@ export function CinematicScenesScreen() {
   return (
     <CinematicWorkflowShell
       title="Scene beats"
-      subtitle="Walk through the storyboard sequence before voice and compile."
+      subtitle="Walk the visual sequence — shot progression held in film-aware rhythm."
     >
       <CinematicVisualProductionShell>
       <MomentumStrip stage="scenes" style={style} />
@@ -244,7 +245,8 @@ export function CinematicScenesScreen() {
           actionLabel="Back to Create"
         />
       ) : (
-        <div className="space-y-4 cinematic-touch-flow scroll-mt-24">
+        <>
+        <div className="hidden sm:block space-y-4 cinematic-touch-flow scroll-mt-24">
           {scenes.map((scene, i) => (
             <div
               key={scene.id}
@@ -269,6 +271,33 @@ export function CinematicScenesScreen() {
             </div>
           ))}
         </div>
+        <ImmersiveSceneScroll
+          className="sm:hidden -mx-1"
+          scenes={scenes.map((s) => ({ id: s.id, title: s.title }))}
+          durationSec={duration}
+          renderScene={(sceneMeta, _i) => {
+            const scene = scenes.find((s) => s.id === sceneMeta.id)
+            if (!scene) return null
+            return (
+              <SceneCard
+                scene={scene}
+                totalScenes={scenes.length}
+                style={style}
+                niche={niche}
+                storyboardFailed={storyboardFailed.has(scene.index)}
+                onStoryboardFailed={(failed) =>
+                  setStoryboardFailed((prev) => {
+                    const next = new Set(prev)
+                    if (failed) next.add(scene.index)
+                    else next.delete(scene.index)
+                    return next
+                  })
+                }
+              />
+            )
+          }}
+        />
+        </>
       )}
 
       <CreatorGuidance step="scenes" />

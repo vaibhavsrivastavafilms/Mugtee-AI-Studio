@@ -3,6 +3,7 @@
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { optimizeAtmosphereRender } from '@/lib/cinematic/execution/cinematic-performance-engine'
+import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { buildCinematicPrevisualization } from '@/lib/cinematic/preview/cinematic-previsualization'
 import type { PreviewRhythmMetadata } from '@/lib/cinematic/render/preview-rhythm'
 import { CinematicFadeImage } from '@/components/cinematic/cinematic-states'
@@ -29,6 +30,7 @@ export function ReelPreview({
   previewFadeMs,
   previewRhythm,
   transitionRhythm,
+  previewScenes,
 }: {
   frames: string[]
   hook: string
@@ -40,12 +42,13 @@ export function ReelPreview({
   previewFadeMs?: number
   previewRhythm?: PreviewRhythmMetadata
   transitionRhythm?: string
+  previewScenes?: GeneratedScene[]
 }) {
   const { preferReducedLayers } = optimizeAtmosphereRender()
   const restrainedMotion = preferReducedLayers
 
   const previs = buildCinematicPrevisualization(
-    { hook },
+    { hook, scenes: previewScenes ?? [] },
     { script: '', hook, duration, style }
   )
 

@@ -1,9 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Volume2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { buildCinematicVoicePerformance } from '@/lib/cinematic/audio/cinematic-voice-performance'
+import { projectStateToGenerationOutput } from '@/lib/cinematic/execution/compile/compile-film-plan'
+import { immersiveLoadingCopy } from '@/lib/cinematic/execution/cinematic-performance-engine'
+import { paceNarrationForFilm, voiceDirectionNote } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 import { useCinematicRoute } from '@/hooks/use-cinematic-route'
 import { useCinematicProjectStore } from '@/stores/cinematic-project'
 import { CreatorGuidance } from '@/components/cinematic/creator-guidance'
@@ -14,7 +18,6 @@ import { WorkflowEmotionalState } from '@/components/cinematic/workflow-emotiona
 import { DirectingFocusAnchor } from '@/components/cinematic/directing-focus-anchor'
 import { PacingFlowStrip } from '@/components/cinematic/pacing-flow-strip'
 import { MomentumStrip } from '@/components/create/momentum-strip'
-import { voiceDirectionNote } from '@/lib/cinematic/execution/screenplay-voice-pacing'
 import {
   CinematicStepNav,
   CinematicWorkflowShell,
@@ -50,6 +53,36 @@ export function CinematicVoiceoverScreen() {
   const [voiceStyle, setVoiceStyle] = useState(
     voice?.style || suggestedVoiceStyle || 'warm_documentary'
   )
+
+  const voicePerformance = useMemo(() => {
+    const output = projectStateToGenerationOutput({
+      title: '',
+      hook,
+      summary,
+      script,
+      scenes,
+      captionLines,
+      suggestedVoiceStyle,
+      niche,
+    })
+    const paced = paceNarrationForFilm(script, output)
+    return buildCinematicVoicePerformance(
+      output,
+      voiceStyle,
+      duration,
+      paced.targetWpm
+    )
+  }, [
+    captionLines,
+    duration,
+    hook,
+    niche,
+    scenes,
+    script,
+    suggestedVoiceStyle,
+    summary,
+    voiceStyle,
+  ])
 
   useEffect(() => {
     if (!script.trim()) router.replace('/cinematic/create')
@@ -123,8 +156,8 @@ export function CinematicVoiceoverScreen() {
 
   return (
     <CinematicWorkflowShell
-      title="Voiceover"
-      subtitle="Generate narrator-grade audio from your cinematic script."
+      title="Voice of your story"
+      subtitle="Directed narration — human cadence, emotional restraint."
     >
       <PacingFlowStrip seed={script.length % 5} />
       <DirectingFocusAnchor seed={voiceStyle.length % 3} className="mb-3" />
@@ -133,9 +166,17 @@ export function CinematicVoiceoverScreen() {
       <CreatorMemoryStrip style={style} niche={niche} seed={script.length % 4} />
       <WorkflowEmotionalState phase="regenerating" visible={busy} />
 
-      <p className="text-[10px] tracking-[0.2em] uppercase text-[#C8A24E]/55 text-center mb-2">
-        {voiceDirectionNote(voiceStyle, duration)}
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#C8A24E]/55 text-center mb-1">
+        {voiceDirectionNote(voiceStyle, duration, scenes.length)}
       </p>
+      <p className="text-white/35 text-[11px] text-center italic mb-2 max-w-md mx-auto">
+        {voicePerformance.breathingLabel}
+      </p>
+      {busy ? (
+        <p className="text-[10px] tracking-[0.22em] uppercase text-white/25 text-center mb-4">
+          {immersiveLoadingCopy('voiceover', scenes.length % 3)}
+        </p>
+      ) : null}
 
       <div className="space-y-6 cinematic-panel-transition">
         <div className="flex flex-wrap gap-2">
@@ -176,7 +217,7 @@ export function CinematicVoiceoverScreen() {
           ) : (
             <Volume2 className="w-5 h-5" />
           )}
-          Generate Voiceover
+          Find your voice
         </button>
 
         {voice?.audioUrl ? (

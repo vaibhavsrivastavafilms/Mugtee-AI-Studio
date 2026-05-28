@@ -2,7 +2,7 @@ export const CINEMATIC_GENERATION_LINES = [
   'Structuring emotional pacing…',
   'Designing cinematic scene flow…',
   'Refining hook tension…',
-  'Locking visual storyboard beats…',
+  'Framing storyboard beats…',
   'Shaping caption rhythm…',
   'Directing scene-by-scene visuals…',
 ] as const
