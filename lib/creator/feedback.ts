@@ -1,4 +1,4 @@
-export type FeedbackContext = 'generation' | 'export'
+export type FeedbackContext = 'generation' | 'preview' | 'export'
 export type FeedbackRating = 'up' | 'down'
 
 type FeedbackEntry = {
