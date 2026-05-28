@@ -1,7 +1,15 @@
+import { getAnthropicClient, CLAUDE_SCRIPT_MODEL } from '@/lib/ai/anthropic-client'
+import {
+  allowAnthropicScript,
+  allowOpenAIScript,
+  FREE_OPENAI_CHAT_MODEL,
+} from '@/lib/ai/free-tier'
+import { generateScriptWithGemini } from '@/lib/ai/gemini-script'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
+import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
@@ -24,19 +32,17 @@ export type ScriptGenerationInput = {
   sessionSeed?: string | number
 }
 
-async function generateWithOpenAI(
-  input: {
-    topic: string
-    platform: string
-    tone: string
-    duration: number
-    niche: CinematicNiche
-    sessionSeed?: string | number
-  },
-  retryNote?: string
-) {
-  const openai = getOpenAIClient()
-  const userPrompt = [
+type GenInput = {
+  topic: string
+  platform: string
+  tone: string
+  duration: number
+  niche: CinematicNiche
+  sessionSeed?: string | number
+}
+
+function buildUserPrompt(input: GenInput, retryNote?: string): string {
+  return [
     buildCinematicScriptPrompt(input),
     retryNote
       ? `\nRETRY NOTE: Previous draft failed quality checks (${retryNote}). Fix niche drift, weak hook, repetitive scenes, or empty captions.`
@@ -44,9 +50,46 @@ async function generateWithOpenAI(
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function parseLlmJson(content: string): Record<string, unknown> {
+  const trimmed = content.trim()
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>
+  } catch {
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fenced) {
+      try {
+        return JSON.parse(fenced[1].trim()) as Record<string, unknown>
+      } catch {
+        return {}
+      }
+    }
+    return {}
+  }
+}
+
+async function generateWithClaude(userPrompt: string, retryNote?: string) {
+  const anthropic = getAnthropicClient()
+  const message = await anthropic.messages.create({
+    model: CLAUDE_SCRIPT_MODEL,
+    max_tokens: 8192,
+    temperature: retryNote ? 0.75 : 0.85,
+    system: buildVirloSystemPrompt(),
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+
+  const textBlock = message.content.find((block) => block.type === 'text')
+  const content = textBlock && textBlock.type === 'text' ? textBlock.text : '{}'
+  return parseLlmJson(content)
+}
+
+async function generateWithOpenAI(input: GenInput, retryNote?: string) {
+  const openai = getOpenAIClient()
+  const userPrompt = buildUserPrompt(input, retryNote)
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: FREE_OPENAI_CHAT_MODEL,
     temperature: retryNote ? 0.75 : 0.85,
     response_format: { type: 'json_object' },
     messages: [
@@ -56,11 +99,34 @@ async function generateWithOpenAI(
   })
 
   const content = completion.choices[0]?.message?.content || '{}'
-  try {
-    return JSON.parse(content)
-  } catch {
-    return {}
+  return parseLlmJson(content)
+}
+
+/** Gemini (free) → Claude → OpenAI mini. Throws when no provider succeeds. */
+async function generateScript(input: GenInput, retryNote?: string) {
+  const userPrompt = buildUserPrompt(input, retryNote)
+  const systemPrompt = buildVirloSystemPrompt()
+
+  const gemini = await generateScriptWithGemini({
+    systemPrompt,
+    userPrompt,
+    temperature: retryNote ? 0.75 : 0.85,
+  })
+  if (gemini && Object.keys(gemini).length > 0) return gemini
+
+  if (allowAnthropicScript()) {
+    try {
+      return await generateWithClaude(userPrompt, retryNote)
+    } catch {
+      // Fall through when Claude fails.
+    }
   }
+
+  if (allowOpenAIScript()) {
+    return await generateWithOpenAI(input, retryNote)
+  }
+
+  throw new Error('No script generation provider configured')
 }
 
 /** Shared script shaping used by Quick Cut orchestration and generate-script API. */
@@ -94,7 +160,7 @@ export async function runScriptGeneration(
 
   const genInput = { topic, platform, tone, duration, niche, sessionSeed: input.sessionSeed }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!hasScriptGenerationKey()) {
     return {
       output: buildMockCinematicOutput({ topic, tone, duration, niche, virloContext }),
       mock: true,
@@ -104,11 +170,9 @@ export async function runScriptGeneration(
   }
 
   try {
-    let parsed = await generateWithOpenAI(genInput)
-    const hookVariations = Array.isArray((parsed as Record<string, unknown>)?.hookVariations)
-      ? ((parsed as Record<string, unknown>).hookVariations as unknown[]).filter(
-          (v): v is string => typeof v === 'string'
-        )
+    let parsed = await generateScript(genInput)
+    const hookVariations = Array.isArray(parsed.hookVariations)
+      ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
       : []
 
     let output = finalizeCinematicOutput(
@@ -119,13 +183,9 @@ export async function runScriptGeneration(
 
     let validation = validateCinematicOutput(output, niche)
     if (!validation.valid) {
-      parsed = await generateWithOpenAI(genInput, validation.issues.join(', '))
-      const retryHookVariations = Array.isArray(
-        (parsed as Record<string, unknown>)?.hookVariations
-      )
-        ? ((parsed as Record<string, unknown>).hookVariations as unknown[]).filter(
-            (v): v is string => typeof v === 'string'
-          )
+      parsed = await generateScript(genInput, validation.issues.join(', '))
+      const retryHookVariations = Array.isArray(parsed.hookVariations)
+        ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
         : hookVariations
       output = finalizeCinematicOutput(
         normalizeCinematicOutput(parsed, { topic, duration, tone, niche }),

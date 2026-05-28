@@ -7,8 +7,11 @@ import {
   type SceneImagePromptContext,
 } from '@/lib/cinematic/generation'
 import { placeholderSceneImageUrl } from '@/lib/cinematic/scene-preview-url'
+import { allowDalleImages } from '@/lib/ai/free-tier'
 import {
+  generateGeminiSceneImage,
   generateOpenAISceneImage,
+  hasGeminiImageKey,
   hasImageGenerationKey,
   persistRemoteImage,
 } from '@/lib/ai/generate-scene-image'
@@ -86,19 +89,29 @@ export async function generateSceneImages(
       })
     }
 
-    const prompt = buildDalleSceneImagePrompt(scene, {
+    const scenePrompt = buildSceneImagePrompt(scene, {
       ...ctx,
       characterDescription,
     })
+    const filename = input.userId
+      ? `${input.userId}/faceless/scene_${scene.id}_${Date.now()}.png`
+      : `anon/faceless/scene_${scene.id}_${Date.now()}.png`
 
     let imageUrl: string | null = null
 
-    if (process.env.OPENAI_API_KEY?.trim()) {
-      const remoteUrl = await generateOpenAISceneImage(prompt)
+    // Primary: Gemini via Emergent gateway (same provider as /api/ai/image Flow pipeline)
+    if (hasGeminiImageKey()) {
+      imageUrl = await generateGeminiSceneImage(scenePrompt, { filename })
+    }
+
+    // Fallback: OpenAI DALL-E 3 (disabled in free-tier-only mode)
+    if (!imageUrl && allowDalleImages()) {
+      const dallePrompt = buildDalleSceneImagePrompt(scene, {
+        ...ctx,
+        characterDescription,
+      })
+      const remoteUrl = await generateOpenAISceneImage(dallePrompt)
       if (remoteUrl) {
-        const filename = input.userId
-          ? `${input.userId}/faceless/scene_${scene.id}_${Date.now()}.png`
-          : `anon/faceless/scene_${scene.id}_${Date.now()}.png`
         imageUrl = await persistRemoteImage({
           remoteUrl,
           userId: input.userId,

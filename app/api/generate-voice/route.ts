@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isFreeTierOnly } from '@/lib/ai/free-tier'
 import { synthesizeSpeechBuffer } from '@/lib/ai/synthesize-speech'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
@@ -30,8 +31,9 @@ export async function POST(req: NextRequest) {
     if (!buffer || !narration || narration.length < 12) {
       return NextResponse.json(
         {
-          error:
-            'Voice generation requires ELEVENLABS_API_KEY, OPENAI_API_KEY, or EMERGENT_LLM_KEY.',
+          error: isFreeTierOnly()
+            ? 'Voice generation requires OPENAI_API_KEY (tts-1) in free tier, or runs without audio.'
+            : 'Voice generation requires ELEVENLABS_API_KEY, OPENAI_API_KEY, or EMERGENT_LLM_KEY.',
           audioUrl: null,
           mock: true,
           waveform,

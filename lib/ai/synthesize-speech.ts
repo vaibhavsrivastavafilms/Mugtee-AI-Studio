@@ -1,3 +1,9 @@
+import {
+  allowElevenLabsVoice,
+  allowEmergentTts,
+  allowOpenAITts,
+  FREE_OPENAI_TTS_MODEL,
+} from '@/lib/ai/free-tier'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { logError } from '@/lib/workspace/validation'
 
@@ -15,11 +21,11 @@ export function buildNarrationFromScript(script: string): string {
 }
 
 async function synthesizeOpenAITts(text: string): Promise<Buffer | null> {
-  if (!process.env.OPENAI_API_KEY?.trim() || !text.trim()) return null
+  if (!allowOpenAITts() || !text.trim()) return null
   try {
     const openai = getOpenAIClient()
     const res = await openai.audio.speech.create({
-      model: 'tts-1',
+      model: FREE_OPENAI_TTS_MODEL,
       voice: 'onyx',
       input: text.slice(0, 4000),
     })
@@ -31,7 +37,7 @@ async function synthesizeOpenAITts(text: string): Promise<Buffer | null> {
 }
 
 async function synthesizeEmergentTts(text: string): Promise<Buffer | null> {
-  if (!EMERGENT_LLM_KEY || !text.trim()) return null
+  if (!allowEmergentTts() || !text.trim()) return null
   try {
     const res = await fetch(TTS_URL, {
       method: 'POST',
@@ -40,7 +46,7 @@ async function synthesizeEmergentTts(text: string): Promise<Buffer | null> {
         Authorization: `Bearer ${EMERGENT_LLM_KEY}`,
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: FREE_OPENAI_TTS_MODEL,
         voice: 'onyx',
         input: text.slice(0, 4000),
         response_format: 'mp3',
@@ -56,7 +62,7 @@ async function synthesizeEmergentTts(text: string): Promise<Buffer | null> {
 
 async function synthesizeElevenLabsTts(text: string): Promise<Buffer | null> {
   const key = process.env.ELEVENLABS_API_KEY?.trim()
-  if (!key || !text.trim()) return null
+  if (!allowElevenLabsVoice() || !key || !text.trim()) return null
 
   const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'
   const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_turbo_v2_5'
@@ -93,21 +99,25 @@ export type SpeechSynthesisResult = {
   provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'none'
 }
 
-/** Try ElevenLabs → OpenAI TTS → Emergent TTS in order. */
+/** Free tier: OpenAI TTS only. Paid: ElevenLabs → OpenAI → Emergent. */
 export async function synthesizeSpeechBuffer(text: string): Promise<SpeechSynthesisResult> {
   const narration = buildNarrationFromScript(text)
   if (!narration || narration.length < 12) {
     return { buffer: null, provider: 'none' }
   }
 
-  let buffer = await synthesizeElevenLabsTts(narration)
-  if (buffer) return { buffer, provider: 'elevenlabs' }
+  if (allowElevenLabsVoice()) {
+    const eleven = await synthesizeElevenLabsTts(narration)
+    if (eleven) return { buffer: eleven, provider: 'elevenlabs' }
+  }
 
-  buffer = await synthesizeOpenAITts(narration)
-  if (buffer) return { buffer, provider: 'openai_tts' }
+  const openai = await synthesizeOpenAITts(narration)
+  if (openai) return { buffer: openai, provider: 'openai_tts' }
 
-  buffer = await synthesizeEmergentTts(narration)
-  if (buffer) return { buffer, provider: 'emergent_tts' }
+  if (allowEmergentTts()) {
+    const emergent = await synthesizeEmergentTts(narration)
+    if (emergent) return { buffer: emergent, provider: 'emergent_tts' }
+  }
 
   return { buffer: null, provider: 'none' }
 }

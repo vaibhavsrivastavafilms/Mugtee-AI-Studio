@@ -6,6 +6,7 @@ import {
 } from '@/lib/cinematic/generation'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-generation'
+import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import {
   coerceDuration,
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     const input = { topic, platform, tone, duration, niche, sessionSeed }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!hasScriptGenerationKey()) {
       const virloContext = buildVirloContext(topic, {
         platform,
         tone,
