@@ -3,10 +3,9 @@
 const nextConfig = {
   output: 'standalone',
 
-  // Keep ffmpeg-static out of webpack bundles so binary paths stay in node_modules.
-  serverExternalPackages: ['ffmpeg-static'],
   experimental: {
-    serverComponentsExternalPackages: ['ffmpeg-static'],
+    // Next 14.2: keep native/heavy packages out of webpack bundles (avoids BSON OOM at build).
+    serverComponentsExternalPackages: ['ffmpeg-static', 'mongodb'],
   },
 
   images: {
