@@ -5,6 +5,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import { logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,10 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+    if (user) {
+      const blocked = await guardUsageLimit(user.id, 'generations')
+      if (blocked) return blocked
+    }
 
     const sceneIds = Array.isArray(raw?.sceneIds)
       ? (raw.sceneIds as string[]).filter((id) => typeof id === 'string')
@@ -58,6 +63,8 @@ export async function POST(req: NextRequest) {
         raw?.hasReferenceStyle === true || Boolean(referenceStyleNote?.trim()),
       referenceStyleNote,
     })
+
+    if (user) await trackUsageMetric(user.id, 'generations')
 
     return NextResponse.json({
       scenes: result.scenes,

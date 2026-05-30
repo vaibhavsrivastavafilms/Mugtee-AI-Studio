@@ -3,7 +3,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { runDeepResearch } from '@/lib/cinematic/deep-research-engine'
 import { normalizeDeepResearchReport } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import { normalizeDirectorMode } from '@/lib/cinematic/director-modes'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import type {
   DeepResearchApiRequestBody,
   DeepResearchApiResponse,
@@ -26,6 +28,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
+    const limitBlocked = await guardUsageLimit(user.id, 'generations')
+    if (limitBlocked) return limitBlocked
+
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return NextResponse.json({ error: 'Body must be a JSON object' }, { status: 400 })
     }
@@ -39,7 +44,8 @@ export async function POST(req: NextRequest) {
     }
 
     const language = normalizeProjectLanguage(raw.language)
-    const researchPromise = runDeepResearch({ topic, language })
+    const directorMode = normalizeDirectorMode(raw.directorMode)
+    const researchPromise = runDeepResearch({ topic, language, directorMode })
     const timeoutMs = 50_000
     const result = await Promise.race([
       researchPromise,
@@ -67,6 +73,8 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(skipped)
     }
+
+    await trackUsageMetric(user.id, 'generations')
 
     const body: DeepResearchApiResponse = {
       topic,

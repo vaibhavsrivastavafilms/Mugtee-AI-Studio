@@ -16,6 +16,7 @@ import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
 import { PublishCenter } from '@/components/quick-cut/publish-center'
+import { ContentRepurposePanel } from '@/components/quick-cut/content-repurpose-panel'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
@@ -410,6 +411,9 @@ export function GenerationStagePanel({
 
     case 'publish':
       return <PublishCenter className={className} />
+
+    case 'repurpose':
+      return <ContentRepurposePanel className={className} />
 
     default:
       return null

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -7,6 +8,16 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: Request) {
   try {
     const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Not signed in' }, { status: 401 })
+    }
+
+    const blocked = await guardUsageLimit(user.id, 'projects')
+    if (blocked) return blocked
+
     const body = await req.json()
 
     const { data, error } = await supabase
@@ -27,6 +38,8 @@ export async function POST(req: Request) {
         error,
       })
     }
+
+    await trackUsageMetric(user.id, 'projects')
 
     return NextResponse.json({
       success: true,

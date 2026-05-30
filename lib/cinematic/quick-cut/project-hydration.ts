@@ -36,6 +36,8 @@ import {
   type PersistedGenerationStep,
 } from '@/lib/cinematic/generation-state'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
+import { extractContentSeriesFromCaptions } from '@/lib/cinematic/content-series'
+import type { ContentSeries } from '@/lib/cinematic/content-series'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -107,6 +109,7 @@ export type QuickCutProjectHydrationPatch = {
   lastCompletedStep: PersistedGenerationStep | null
   failedAtStep: PersistedGenerationStep | null
   repurposedAssets: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
+  contentSeries: ContentSeries | null
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -194,5 +197,7 @@ export function buildQuickCutHydrationFromRow(
         ? normalizePersistedStep(row.generation_step)
         : null,
     repurposedAssets: parsedCaptions.repurposedAssets ?? {},
+    contentSeries:
+      parsedCaptions.series ?? extractContentSeriesFromCaptions(row.captions),
   }
 }

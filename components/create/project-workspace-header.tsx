@@ -18,6 +18,7 @@ import {
   quickCutCanCompileMp4,
 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
+import { ShareAsShowcaseToggle } from '@/components/showcase/share-as-showcase-toggle'
 import { relSavedLabel } from '@/stores/cinematic-project'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -133,7 +134,9 @@ export function ProjectWorkspaceHeader({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-col sm:items-end gap-2 shrink-0 w-full sm:w-auto">
+          <ShareAsShowcaseToggle projectId={projectId} className="w-full sm:max-w-xs" />
+          <div className="flex flex-wrap items-center gap-2">
           {mode === 'quick' ? <QuickCutProjectScriptViewDialog /> : null}
           <Link href={createEntryHref('quick')} className={actionClass}>
             <Sparkles className="w-3 h-3" /> Generate More
@@ -154,6 +157,7 @@ export function ProjectWorkspaceHeader({
               }
             }}
           />
+          </div>
         </div>
       </div>
     </header>

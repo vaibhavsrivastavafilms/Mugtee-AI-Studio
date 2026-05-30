@@ -4,6 +4,7 @@ import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import { generateSceneStoryboardImages } from '@/lib/cinematic/storyboard-generator'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireCinematicUser()
     if (auth.response) return auth.response
+
+    const blocked = await guardUsageLimit(auth.user!.id, 'generations')
+    if (blocked) return blocked
 
     const parsed = parseJsonBody(await req.json().catch(() => null))
     if (parsed.response) return parsed.response
@@ -66,6 +70,8 @@ export async function POST(req: NextRequest) {
       userId: auth.user!.id,
       projectId,
     })
+
+    await trackUsageMetric(auth.user!.id, 'generations')
 
     return NextResponse.json({
       sceneIndex,

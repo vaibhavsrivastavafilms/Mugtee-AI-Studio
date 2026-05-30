@@ -10,6 +10,7 @@ export type QuickCutStageTab =
   | 'render'
   | 'complete'
   | 'publish'
+  | 'repurpose'
 
 export function isQuickCutStageTab(value: string | null | undefined): value is QuickCutStageTab {
   return Boolean(value && STAGE_TAB_ORDER.includes(value as QuickCutStageTab))
@@ -25,6 +26,7 @@ export const STAGE_TAB_ORDER: QuickCutStageTab[] = [
   'render',
   'complete',
   'publish',
+  'repurpose',
 ]
 
 export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
@@ -37,6 +39,7 @@ export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
   render: 'Render',
   complete: 'Download',
   publish: 'Publish',
+  repurpose: 'Repurpose',
 }
 
 export function generationStepToTab(
@@ -70,6 +73,13 @@ export function isStageTabReachable(
   generationStep: QuickCutGenerationStep,
   isComplete: boolean
 ): boolean {
+  if (tab === 'repurpose') {
+    if (isComplete) return true
+    if (generationStep === 'error' || generationStep === 'idle') return false
+    const scriptIdx = STAGE_TAB_ORDER.indexOf('script')
+    const currentIdx = currentTabIndex(generationStep)
+    return currentIdx >= scriptIdx && currentIdx >= 0
+  }
   if (isComplete) return true
   if (generationStep === 'error' || generationStep === 'idle') return false
   const currentIdx = currentTabIndex(generationStep)
@@ -93,7 +103,7 @@ export function isStageTabDone(
   generationStep: QuickCutGenerationStep,
   isComplete: boolean
 ): boolean {
-  if (isComplete) return tab !== 'complete' && tab !== 'publish'
+  if (isComplete) return tab !== 'complete' && tab !== 'publish' && tab !== 'repurpose'
   if (!isStageTabReachable(tab, generationStep, isComplete)) return false
   return !isStageTabActive(tab, generationStep, isComplete)
 }

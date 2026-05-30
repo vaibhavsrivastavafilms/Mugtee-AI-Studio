@@ -194,7 +194,12 @@ export function DeepResearchPanel({
   if (!hasReport && !trimmed) return null
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className={className}>
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className={className}
+      data-recommend-target="deep-research"
+    >
       <CollapsibleTrigger
         type="button"
         className="flex w-full items-center justify-between gap-2 rounded-lg border border-gold-500/20 bg-gold-500/[0.04] px-3 py-2 text-left transition hover:border-gold-500/35"

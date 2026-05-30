@@ -232,3 +232,220 @@ export function getMemoryRestoreMessage(
   if (style) return 'Reel hook style remembered'
   return null
 }
+
+// ─── Creator Memory Profile (Phase 2.3) ───────────────────────────
+
+export const CREATOR_PLATFORMS = [
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'multi', label: 'Multi-platform' },
+] as const
+
+export const CREATOR_CONTENT_STYLES = [
+  { id: 'storytelling', label: 'Storytelling' },
+  { id: 'documentary', label: 'Documentary' },
+  { id: 'educational', label: 'Educational' },
+  { id: 'personal_brand', label: 'Personal Brand' },
+  { id: 'business', label: 'Business' },
+  { id: 'entertainment', label: 'Entertainment' },
+] as const
+
+export const CREATOR_PROFILE_TONES = [
+  { id: 'cinematic', label: 'Cinematic' },
+  { id: 'emotional', label: 'Emotional' },
+  { id: 'professional', label: 'Professional' },
+  { id: 'authority', label: 'Authority' },
+  { id: 'viral', label: 'Viral' },
+  { id: 'minimalist', label: 'Minimalist' },
+] as const
+
+export type CreatorMemoryProfile = {
+  creatorName?: string
+  primaryPlatform?: string
+  contentStyle?: string
+  tone?: string
+  audience?: string
+  channelDescription?: string
+  /** Legacy niche id — synced from viral studio localStorage */
+  niche?: string
+  updatedAt?: string
+}
+
+export type CreatorProfileOverride = Partial<CreatorMemoryProfile>
+
+const CREATOR_PROFILE_CACHE_KEY = 'mugtee:creator:profile:v1'
+const PROFILE_FIELD_LIMITS = {
+  creatorName: 120,
+  audience: 500,
+  channelDescription: 1200,
+} as const
+
+function labelForId(
+  list: readonly { id: string; label: string }[],
+  id?: string
+): string | undefined {
+  if (!id?.trim()) return undefined
+  return list.find((item) => item.id === id)?.label ?? id
+}
+
+function trimField(value: unknown, max: number): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, max) : undefined
+}
+
+export function normalizeCreatorMemoryProfile(
+  raw: unknown
+): CreatorMemoryProfile {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const o = raw as Record<string, unknown>
+  const pick = (key: keyof CreatorMemoryProfile, max = 80) =>
+    trimField(o[key], max)
+
+  return {
+    creatorName: pick('creatorName', PROFILE_FIELD_LIMITS.creatorName),
+    primaryPlatform: pick('primaryPlatform'),
+    contentStyle: pick('contentStyle'),
+    tone: pick('tone'),
+    audience: pick('audience', PROFILE_FIELD_LIMITS.audience),
+    channelDescription: pick(
+      'channelDescription',
+      PROFILE_FIELD_LIMITS.channelDescription
+    ),
+    niche: pick('niche'),
+    updatedAt:
+      typeof o.updatedAt === 'string' && o.updatedAt.trim()
+        ? o.updatedAt.trim()
+        : undefined,
+  }
+}
+
+export function hasCreatorProfileContent(
+  profile?: CreatorMemoryProfile | null
+): boolean {
+  if (!profile) return false
+  return Boolean(
+    profile.creatorName ||
+      profile.primaryPlatform ||
+      profile.contentStyle ||
+      profile.tone ||
+      profile.audience ||
+      profile.channelDescription ||
+      profile.niche
+  )
+}
+
+/** Project overrides win over global creator profile when both are set. */
+export function getEffectiveCreatorProfile(
+  base?: CreatorMemoryProfile | null,
+  override?: CreatorProfileOverride | null
+): CreatorMemoryProfile | null {
+  const merged = { ...(base ?? {}), ...(override ?? {}) }
+  return hasCreatorProfileContent(merged) ? merged : null
+}
+
+export function creatorProfileDirective(
+  profile?: CreatorMemoryProfile | null
+): string {
+  if (!hasCreatorProfileContent(profile)) return ''
+  const p = profile!
+  const lines = [
+    p.creatorName ? `Creator name: ${p.creatorName}` : '',
+    p.primaryPlatform
+      ? `Primary platform: ${labelForId(CREATOR_PLATFORMS, p.primaryPlatform) ?? p.primaryPlatform}`
+      : '',
+    p.contentStyle
+      ? `Content style: ${labelForId(CREATOR_CONTENT_STYLES, p.contentStyle) ?? p.contentStyle}`
+      : '',
+    p.tone
+      ? `Voice tone: ${labelForId(CREATOR_PROFILE_TONES, p.tone) ?? p.tone}`
+      : '',
+    p.audience ? `Target audience: ${p.audience}` : '',
+    p.channelDescription
+      ? `Channel description: ${p.channelDescription}`
+      : '',
+    p.niche ? `Creator niche (legacy): ${p.niche}` : '',
+  ].filter(Boolean)
+  return [
+    'CREATOR MEMORY PROFILE (honor when compatible — project brief overrides):',
+    ...lines,
+  ].join('\n')
+}
+
+function readCachedCreatorProfile(): CreatorMemoryProfile {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(CREATOR_PROFILE_CACHE_KEY)
+    if (!raw) return {}
+    return normalizeCreatorMemoryProfile(JSON.parse(raw))
+  } catch {
+    return {}
+  }
+}
+
+function writeCachedCreatorProfile(profile: CreatorMemoryProfile): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(
+      CREATOR_PROFILE_CACHE_KEY,
+      JSON.stringify({
+        ...profile,
+        updatedAt: profile.updatedAt ?? new Date().toISOString(),
+      })
+    )
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Load creator profile — API when signed in, local cache fallback. */
+export async function fetchCreatorMemoryProfile(): Promise<CreatorMemoryProfile> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const res = await fetch('/api/profile', { cache: 'no-store' })
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, unknown>
+      const profile = normalizeCreatorMemoryProfile(
+        data.creator_profile ?? data.creatorProfile
+      )
+      if (hasCreatorProfileContent(profile)) {
+        writeCachedCreatorProfile(profile)
+        return profile
+      }
+    }
+  } catch {
+    /* fall through to cache */
+  }
+  return readCachedCreatorProfile()
+}
+
+/** Persist creator profile via profile API + local cache. */
+export async function saveCreatorMemoryProfile(
+  patch: CreatorProfileOverride
+): Promise<CreatorMemoryProfile> {
+  const next = normalizeCreatorMemoryProfile({
+    ...readCachedCreatorProfile(),
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  })
+  writeCachedCreatorProfile(next)
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creator_profile: next }),
+    })
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, unknown>
+      const saved = normalizeCreatorMemoryProfile(
+        data.creator_profile ?? data.creatorProfile ?? next
+      )
+      writeCachedCreatorProfile(saved)
+      return saved
+    }
+  } catch {
+    /* offline — cache only */
+  }
+  return next
+}

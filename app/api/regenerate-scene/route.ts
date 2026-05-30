@@ -11,6 +11,7 @@ import {
   validateRegeneratedScene,
 } from '@/lib/cinematic/regenerate'
 import { logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,9 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireCinematicUser()
     if (auth.response) return auth.response
+
+    const blocked = await guardUsageLimit(auth.user!.id, 'generations')
+    if (blocked) return blocked
 
     const parsed = parseJsonBody(await req.json().catch(() => null))
     if (parsed.response) return parsed.response
@@ -65,6 +69,8 @@ export async function POST(req: NextRequest) {
         validation = validateRegeneratedScene(scene, others, ctx.niche)
       }
 
+      await trackUsageMetric(auth.user!.id, 'generations')
+
       return NextResponse.json({
         sceneIndex,
         ...scene,
@@ -73,6 +79,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (err) {
       logError('regenerate-scene.openai', err)
+      await trackUsageMetric(auth.user!.id, 'generations')
       return NextResponse.json({
         sceneIndex,
         ...mockSceneRegen(ctx, sceneIndex),

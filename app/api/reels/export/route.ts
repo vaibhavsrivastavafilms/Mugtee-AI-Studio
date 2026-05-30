@@ -7,6 +7,7 @@ import {
   queueReelExportForProject,
 } from '@/lib/reels/export-api'
 import { logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const renderBlocked = await guardUsageLimit(auth.user!.id, 'renders')
+    if (renderBlocked) return renderBlocked
+
     if (!projectCanExportReel(row)) {
       return NextResponse.json(
         {
@@ -73,6 +77,8 @@ export async function POST(req: NextRequest) {
       includeVoiceover,
       includeCaptions,
     })
+
+    await trackUsageMetric(auth.user!.id, 'renders')
 
     return NextResponse.json({ jobId, status })
   } catch (err) {

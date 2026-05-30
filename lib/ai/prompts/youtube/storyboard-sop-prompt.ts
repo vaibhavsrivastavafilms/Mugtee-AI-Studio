@@ -11,6 +11,8 @@ import {
 } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { clampSceneDurationsToTarget } from '@/lib/cinematic/scene-duration'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
+import { buildDirectorModePromptSection } from '@/lib/ai/prompts/cinematic/director-mode-prompt'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import {
   resolveStoryboardSceneCount,
   resolveStoryboardSceneCountRange,
@@ -41,6 +43,8 @@ export type StoryboardSopOptions = {
   durationSec?: number
   /** When true, LLM must output exactly sceneTarget segments mapped to retention beats */
   retentionMode?: boolean
+  /** AI Director Mode — visual pacing and scene emphasis */
+  directorMode?: DirectorMode
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Human-readable segment block for logs / debug (SOP output format). */
@@ -123,6 +127,7 @@ export function buildStoryboardSopPrompt(
   return [
     '═══ STORYBOARD SOP — SCRIPT TO VISUAL SEGMENTS ═══',
     langLock,
+    options.directorMode ? buildDirectorModePromptSection(options.directorMode) : '',
     retentionNote,
     durationNote,
     research,

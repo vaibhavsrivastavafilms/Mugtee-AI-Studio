@@ -37,6 +37,7 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
+import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const rowButtonClass =
@@ -57,14 +58,19 @@ function DownloadRow({
   label,
   hint,
   children,
+  'data-recommend-target': recommendTarget,
 }: {
   icon: React.ReactNode
   label: string
   hint?: string
   children: React.ReactNode
+  'data-recommend-target'?: string
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+    <div
+      data-recommend-target={recommendTarget}
+      className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between"
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/80">
           {icon}
@@ -461,6 +467,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         <DownloadRow
           icon={<Video className="w-3 h-3" />}
           label="Video"
+          data-recommend-target="mp4-export"
           hint={
             exportExpired
               ? EXPORT_EXPIRED_MSG
@@ -548,6 +555,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         <DownloadRow
           icon={<Package className="w-3 h-3" />}
           label="Creator Pack"
+          data-recommend-target="creator-pack"
           hint={
             creatorPackState === 'preparing'
               ? 'Preparing Creator Pack…'
@@ -595,6 +603,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
           )}
         </DownloadRow>
       </div>
+
+      <QuickCutPlatformExportProfiles />
     </div>
   )
 }

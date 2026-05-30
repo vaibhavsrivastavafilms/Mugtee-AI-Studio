@@ -32,6 +32,7 @@ import {
 } from '@/lib/cinematic/hook-variation'
 
 import { logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 
 
@@ -217,6 +218,9 @@ export async function POST(req: NextRequest) {
 
     if (auth.response) return auth.response
 
+    const blocked = await guardUsageLimit(auth.user!.id, 'generations')
+    if (blocked) return blocked
+
 
 
     const parsed = parseJsonBody(await req.json().catch(() => null))
@@ -261,6 +265,8 @@ export async function POST(req: NextRequest) {
 
       const mock = mockHookRegen(ctx)
 
+      await trackUsageMetric(auth.user!.id, 'generations')
+
       return NextResponse.json({
 
         ...mock,
@@ -289,6 +295,8 @@ export async function POST(req: NextRequest) {
 
 
 
+      await trackUsageMetric(auth.user!.id, 'generations')
+
       return NextResponse.json({
 
         hook: result.hook,
@@ -310,6 +318,8 @@ export async function POST(req: NextRequest) {
       logError('regenerate-hook.openai', err)
 
       const mock = mockHookRegen(ctx)
+
+      await trackUsageMetric(auth.user!.id, 'generations')
 
       return NextResponse.json({
 

@@ -3,6 +3,14 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { NICHES, AUDIENCES, readCreatorProfile, writeCreatorProfile } from '@/components/ai/viral-studio-panel'
+import {
+  CREATOR_CONTENT_STYLES,
+  CREATOR_PLATFORMS,
+  CREATOR_PROFILE_TONES,
+  fetchCreatorMemoryProfile,
+  saveCreatorMemoryProfile,
+  type CreatorMemoryProfile,
+} from '@/lib/creator/creator-memory'
 import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles } from 'lucide-react'
 import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
@@ -10,11 +18,14 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow, parseISO } from 'date-fns'
+import { UsageOverview } from '@/components/settings/usage-overview'
+import { FoundingCreatorProgramSection } from '@/components/settings/founding-creator-program'
 
 const THEMES = [
   { key: 'gold',     label: 'Gold',          hue: 43,  sat: 60, css: 'linear-gradient(135deg, hsl(43 60% 70%), hsl(43 60% 50%), hsl(43 60% 30%))' },
@@ -93,14 +104,47 @@ export default function SettingsPage() {
   const igTokenExpired  = igExpiresMs !== null && igExpiresMs < Date.now()
   const igExpiresLabel  = (() => { try { return igAccount?.expires_at ? formatDistanceToNow(parseISO(igAccount.expires_at), { addSuffix: true }) : null } catch { return null } })()
 
-  // Phase 6F: Creator profile (niche + audience) — default AI context for TT Viral. Stored in localStorage.
+  // Phase 6F + 2.3: Creator profile — niche/audience (local) + memory profile (Supabase)
   const [profile, setProfile] = useState<{ niche: string; audience: string }>({ niche: 'general', audience: 'mass' })
-  useEffect(() => { setProfile(readCreatorProfile()) }, [])
+  const [memoryProfile, setMemoryProfile] = useState<CreatorMemoryProfile>({})
+  const [profileSaving, setProfileSaving] = useState(false)
+  useEffect(() => {
+    setProfile(readCreatorProfile())
+    fetchCreatorMemoryProfile()
+      .then((loaded) => {
+        setMemoryProfile(loaded)
+        if (loaded.niche) setProfile((p) => ({ ...p, niche: loaded.niche! }))
+      })
+      .catch(() => {})
+  }, [])
   const updateProfile = (patch: { niche?: string; audience?: string }) => {
     const next = { ...profile, ...patch }
     setProfile(next)
     writeCreatorProfile(patch)
+    if (patch.niche) {
+      void saveCreatorMemoryProfile({ ...memoryProfile, niche: patch.niche })
+        .then(setMemoryProfile)
+        .catch(() => {})
+    }
     toast.success('Creator profile updated')
+  }
+  const updateMemoryProfile = (patch: Partial<CreatorMemoryProfile>) => {
+    setMemoryProfile((prev) => ({ ...prev, ...patch }))
+  }
+  const saveMemoryProfile = async () => {
+    setProfileSaving(true)
+    try {
+      const saved = await saveCreatorMemoryProfile({
+        ...memoryProfile,
+        niche: profile.niche,
+      })
+      setMemoryProfile(saved)
+      toast.success('Creator memory profile saved')
+    } catch {
+      toast.error('Could not save creator profile')
+    } finally {
+      setProfileSaving(false)
+    }
   }
 
   // Keep local form in sync with workspace updates from realtime
@@ -178,6 +222,12 @@ export default function SettingsPage() {
       {/* Phase V1.1 — Free Trial card */}
       <TrialCard />
 
+      {/* Phase 2.8 — Usage vs plan limits */}
+      <UsageOverview />
+
+      {/* Phase 3.1 — Founding Creator Beta Program */}
+      <FoundingCreatorProgramSection />
+
       {/* Identity ============================================================== */}
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.05}}
         className="glass rounded-2xl p-6 sm:p-8 space-y-6"
@@ -220,7 +270,7 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      {/* Creator Profile (Phase 6F) ====================================== */}
+      {/* Creator Profile (Phase 6F + 2.3) ====================================== */}
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.09}}
         className="glass rounded-2xl p-6 sm:p-8"
       >
@@ -228,21 +278,101 @@ export default function SettingsPage() {
           <Sparkles className="w-4 h-4 text-gold-400" />
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Creator Profile</div>
         </div>
-        <h2 className="font-display text-2xl mb-1">AI scripting voice</h2>
-        <p className="text-luxe/70 text-sm mb-5">Mugtee AI adapts hooks, scripts, and ideas to your niche and audience automatically. Change anytime.</p>
+        <h2 className="font-display text-2xl mb-1">Creator memory</h2>
+        <p className="text-luxe/70 text-sm mb-5">
+          Mugtee remembers your voice, platform, and audience — injected into every script and hook automatically.
+        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Niche</label>
-            <Select value={profile.niche} onValueChange={(v) => updateProfile({ niche: v })}>
-              <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Creator name</label>
+            <Input
+              value={memoryProfile.creatorName ?? ''}
+              onChange={(e) => updateMemoryProfile({ creatorName: e.target.value })}
+              placeholder="Your channel or brand name"
+              className="bg-white/[0.03] h-10"
+            />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Primary platform</label>
+              <Select
+                value={memoryProfile.primaryPlatform ?? ''}
+                onValueChange={(v) => updateMemoryProfile({ primaryPlatform: v })}
+              >
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue placeholder="Select platform" /></SelectTrigger>
+                <SelectContent>
+                  {CREATOR_PLATFORMS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Content style</label>
+              <Select
+                value={memoryProfile.contentStyle ?? ''}
+                onValueChange={(v) => updateMemoryProfile({ contentStyle: v })}
+              >
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue placeholder="Select style" /></SelectTrigger>
+                <SelectContent>
+                  {CREATOR_CONTENT_STYLES.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Tone</label>
+              <Select
+                value={memoryProfile.tone ?? ''}
+                onValueChange={(v) => updateMemoryProfile({ tone: v })}
+              >
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue placeholder="Select tone" /></SelectTrigger>
+                <SelectContent>
+                  {CREATOR_PROFILE_TONES.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Niche</label>
+              <Select value={profile.niche} onValueChange={(v) => updateProfile({ niche: v })}>
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Audience</label>
+            <Textarea
+              value={memoryProfile.audience ?? ''}
+              onChange={(e) => updateMemoryProfile({ audience: e.target.value })}
+              placeholder="Who watches your content? e.g. aspiring filmmakers, 25–35, interested in history"
+              className="bg-white/[0.03] min-h-[72px] resize-y"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Channel description</label>
+            <Textarea
+              value={memoryProfile.channelDescription ?? ''}
+              onChange={(e) => updateMemoryProfile({ channelDescription: e.target.value })}
+              placeholder="What your channel is about — themes, values, recurring formats"
+              className="bg-white/[0.03] min-h-[96px] resize-y"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Audience segment (legacy)</label>
             <Select value={profile.audience} onValueChange={(v) => updateProfile({ audience: v })}>
               <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -251,7 +381,19 @@ export default function SettingsPage() {
             </Select>
           </div>
         </div>
-        <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-4">Saved on this device · synced into every Mugtee generation</p>
+
+        <div className="flex flex-wrap justify-between items-center gap-3 pt-5 mt-2 border-t border-white/[0.06]">
+          <p className="text-[10px] tracking-widest uppercase text-muted-foreground">
+            Synced to your account · injected into every generation
+          </p>
+          <Button
+            onClick={saveMemoryProfile}
+            disabled={profileSaving}
+            className="bg-gold-gradient text-black gap-2 shadow-gold-glow"
+          >
+            <Save className="w-4 h-4" /> {profileSaving ? 'Saving…' : 'Save profile'}
+          </Button>
+        </div>
       </motion.div>
 
       {/* Theme ================================================================= */}

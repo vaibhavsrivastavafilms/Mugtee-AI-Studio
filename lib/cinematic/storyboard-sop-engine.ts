@@ -13,6 +13,7 @@ import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { logError } from '@/lib/workspace/validation'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import {
   buildStoryboardProjectFields,
   storyboardScenesToGeneratedScenes,
@@ -26,6 +27,7 @@ export type StoryboardSopGenerationInput = {
   durationSec: number
   /** Quick Cut — merge segments into retention-scaled beat count */
   retentionMode?: boolean
+  directorMode?: DirectorMode
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 export type StoryboardSopResult = StoryboardProjectFields
@@ -99,6 +101,7 @@ async function generateStoryboardScenesInternal(
             researchReport: input.researchReport,
             sceneTarget,
             retentionMode,
+            directorMode: input.directorMode,
           }),
         },
       ],

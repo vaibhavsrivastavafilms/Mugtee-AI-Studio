@@ -11,6 +11,13 @@ const NETWORK_RECOVERY_MESSAGE =
 const GATEWAY_TIMEOUT_MESSAGE =
   'This step took too long — your work is saved. Try again.'
 
+export class PlanLimitError extends Error {
+  constructor(message = "You've reached your current plan limit.") {
+    super(message)
+    this.name = 'PlanLimitError'
+  }
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -104,5 +111,12 @@ export async function pipelineFetchJson<T = Record<string, unknown>>(
     throw new Error(GATEWAY_TIMEOUT_MESSAGE)
   }
   const data = (await res.json().catch(() => ({}))) as T
+  if (res.status === 429) {
+    const msg =
+      typeof (data as { error?: string }).error === 'string'
+        ? (data as { error: string }).error
+        : "You've reached your current plan limit."
+    throw new PlanLimitError(msg)
+  }
   return { res, data }
 }

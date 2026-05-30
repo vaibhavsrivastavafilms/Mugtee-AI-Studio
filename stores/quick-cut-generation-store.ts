@@ -62,6 +62,7 @@ import type {
   RepurposedAssetsMap,
   RepurposeOutputType,
 } from '@/lib/cinematic/content-repurpose'
+import type { ContentSeries } from '@/lib/cinematic/content-series'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
@@ -294,6 +295,7 @@ interface QuickCutGenerationStateBase {
   /** Optional per-project overrides — merged over creatorProfile for generation */
   creatorProfileOverride: CreatorProfileOverride | null
   repurposedAssets: RepurposedAssetsMap
+  contentSeries: ContentSeries | null
 }
 
 interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
@@ -327,6 +329,8 @@ interface QuickCutGenerationActions {
   setSelectedElevenLabsVoice: (voiceId: string, name: string) => void
   ensureRecommendedElevenLabsVoice: () => Promise<void>
   setCreatorProfileOverride: (override: CreatorProfileOverride | null) => void
+  setContentSeries: (series: ContentSeries | null) => void
+  persistContentSeries: (series: ContentSeries) => Promise<void>
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -402,6 +406,7 @@ const INITIAL: QuickCutGenerationState = {
   creatorProfile: null,
   creatorProfileOverride: null,
   repurposedAssets: {},
+  contentSeries: null,
   ...EMPTY_STORYBOARD_FIELDS,
 }
 
@@ -614,6 +619,7 @@ function buildArchiveInput(
     generation_error:
       state.generationStatus === 'failed' ? state.error : null,
     repurposedAssets: state.repurposedAssets,
+    series: state.contentSeries ?? undefined,
   }
 }
 
@@ -2430,6 +2436,29 @@ export const useQuickCutGenerationStore = create<
         [type]: entry,
       },
     }))
+  },
+
+  setContentSeries: (series) => set({ contentSeries: series }),
+
+  persistContentSeries: async (series) => {
+    set({ contentSeries: series })
+    const state = get()
+    if (!state.savedProjectId) return
+    try {
+      await updateProject(state.savedProjectId, {
+        hook: state.hook,
+        summary: state.hook,
+        captionLines: state.hook ? [state.hook, state.cta].filter(Boolean) : [],
+        niche: state.niche,
+        suggestedVoiceStyle: 'warm_documentary',
+        directorMode: state.directorMode,
+        blueprintId: state.blueprintId,
+        repurposedAssets: state.repurposedAssets,
+        series,
+      })
+    } catch {
+      /* keep in-memory series if save fails */
+    }
   },
 
   saveProject: async () => {
