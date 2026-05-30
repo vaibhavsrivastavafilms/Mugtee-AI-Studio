@@ -1,7 +1,7 @@
 // Mugtee cinematic workflow — auth-gated immersive creator routes.
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,10 +19,10 @@ export default async function CinematicLayout({
     )
   }
 
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const supabase = tryCreateSupabaseServerClient()
+  const user = supabase
+    ? (await supabase.auth.getUser()).data.user
+    : null
 
   if (!user) {
     const next =

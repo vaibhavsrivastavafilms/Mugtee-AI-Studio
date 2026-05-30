@@ -98,7 +98,9 @@ node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
 # Environment and credential files
 .env
 .env.*
+!.env.example
 *.env
+!.env.example
 credentials.json
 *.pem
 *.key
