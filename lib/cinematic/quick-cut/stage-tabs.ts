@@ -9,6 +9,7 @@ export type QuickCutStageTab =
   | 'voice'
   | 'render'
   | 'complete'
+  | 'publish'
 
 export function isQuickCutStageTab(value: string | null | undefined): value is QuickCutStageTab {
   return Boolean(value && STAGE_TAB_ORDER.includes(value as QuickCutStageTab))
@@ -23,6 +24,7 @@ export const STAGE_TAB_ORDER: QuickCutStageTab[] = [
   'voice',
   'render',
   'complete',
+  'publish',
 ]
 
 export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
@@ -34,6 +36,7 @@ export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
   voice: 'Voice',
   render: 'Render',
   complete: 'Download',
+  publish: 'Publish',
 }
 
 export function generationStepToTab(
@@ -90,7 +93,7 @@ export function isStageTabDone(
   generationStep: QuickCutGenerationStep,
   isComplete: boolean
 ): boolean {
-  if (isComplete) return tab !== 'complete'
+  if (isComplete) return tab !== 'complete' && tab !== 'publish'
   if (!isStageTabReachable(tab, generationStep, isComplete)) return false
   return !isStageTabActive(tab, generationStep, isComplete)
 }
