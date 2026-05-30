@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import {
   APP_ROUTE_LOGIN_FALLBACK,
   loginRedirectUrl,
@@ -15,10 +15,10 @@ export default async function StudioShellLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const supabase = tryCreateSupabaseServerClient()
+  const user = supabase
+    ? (await supabase.auth.getUser()).data.user
+    : null
 
   if (!user) {
     const pathname = headers().get('x-pathname') ?? APP_ROUTE_LOGIN_FALLBACK

@@ -11,7 +11,9 @@ export function createSupabaseAnonClient(): SupabaseClient | null {
   if (anonClient !== undefined) return anonClient
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   if (!url || !key) {
     anonClient = null
     return null
