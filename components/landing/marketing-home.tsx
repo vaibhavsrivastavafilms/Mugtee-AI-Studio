@@ -9,6 +9,7 @@ import { MobileStickyCta } from '@/components/landing/mobile-sticky-cta'
 import { HERO, PRICING, FINAL_CTA, FOOTER, PROOF } from '@/lib/marketing/site-copy'
 import { quickCutStudioHref } from '@/lib/create/routes'
 import { FeatureStatusBadge, type FeatureStatus } from '@/components/marketing/feature-status-badge'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 const PROOF_STATUS: FeatureStatus[] = ['live', 'live', 'beta']
 
@@ -32,9 +33,7 @@ export default function MarketingHome() {
       <nav className="sticky top-0 z-40 backdrop-blur-xl bg-[#050505]/70 border-b border-white/[0.04]">
         <div className="container max-w-6xl mx-auto px-5 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-              <span className="font-display text-sm text-black font-black">M</span>
-            </div>
+            <MugteeLogoMark size={28} className="w-7 h-7 shadow-gold-glow" />
             <span className="font-display text-base text-gold-gradient">Mugtee</span>
           </Link>
           <div className="hidden sm:flex items-center gap-7 text-[12px] tracking-wider uppercase text-luxe/70">

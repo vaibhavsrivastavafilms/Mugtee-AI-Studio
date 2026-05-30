@@ -6,8 +6,9 @@ import { ServiceWorkerUnregister } from '@/components/pwa/sw-register'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { OfflineGate } from '@/components/app/offline-gate'
 import { AppBootstrapProvider } from '@/components/app/app-bootstrap-provider'
+import { getCanonicalSiteUrl } from '@/lib/url'
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
+const SITE_URL = getCanonicalSiteUrl()
 const SITE_NAME = 'Mugtee'
 const SITE_TAGLINE = 'AI Production OS for Creators'
 const SITE_DESCRIPTION = 'Cinematic AI workspace for creators, agencies, and brands. Plan, script, schedule, and ship viral content — all in one premium production hub.'
@@ -40,12 +41,14 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: `${SITE_NAME} \u00b7 ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} \u00b7 ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     creator: '@mugtee',
+    images: ['/logo.png'],
   },
   robots: {
     index: true,

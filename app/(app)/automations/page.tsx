@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 import {
   Sparkles,
   Film,
@@ -107,10 +108,7 @@ export default function WorkspacePage() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#D4AF37] text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-yellow-500/10">
-              M
-            </div>
-
+            <MugteeLogoMark size={44} className="w-11 h-11 shadow-lg shadow-yellow-500/10" />
             <span className="text-[#E7C56A] text-2xl font-semibold tracking-tight">
               Mugtee
             </span>

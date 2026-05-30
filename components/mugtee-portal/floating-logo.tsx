@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 export function FloatingLogo() {
   return (
@@ -12,11 +13,11 @@ export function FloatingLogo() {
     >
       <div className="absolute -inset-8 rounded-full bg-gold-500/[0.12] blur-3xl animate-pulse" />
       <motion.div
-        className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gold-gradient flex items-center justify-center shadow-gold-glow"
+        className="relative shrink-0"
         animate={{ y: [0, -5, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <span className="font-display text-2xl sm:text-3xl text-black font-black">M</span>
+        <MugteeLogoMark size={64} className="w-14 h-14 sm:w-16 sm:h-16 shadow-gold-glow" />
       </motion.div>
       <span className="mt-3 font-display text-sm tracking-[0.2em] uppercase text-gold-gradient">
         Mugtee

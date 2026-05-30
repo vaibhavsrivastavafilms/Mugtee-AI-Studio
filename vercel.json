@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://mugtee.in/:path*",
+      "statusCode": 301,
+      "has": [
+        {
+          "type": "host",
+          "value": "www.mugtee.in"
+        }
+      ]
+    }
+  ]
+}

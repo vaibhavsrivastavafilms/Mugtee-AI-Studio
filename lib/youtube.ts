@@ -3,6 +3,7 @@
 // to keep the dev-server memory footprint low. All YouTube REST calls are made with raw fetch.
 import { OAuth2Client } from 'google-auth-library'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { CANONICAL_SITE_ORIGIN } from '@/lib/url'
 
 export const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.upload',
@@ -11,7 +12,7 @@ export const YOUTUBE_SCOPES = [
 
 export function getRedirectUri() {
   return process.env.YOUTUBE_REDIRECT_URI
-      || `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/youtube/callback`
+      || `${process.env.NEXT_PUBLIC_BASE_URL || CANONICAL_SITE_ORIGIN}/api/youtube/callback`
 }
 
 export function createYoutubeOAuthClient() {

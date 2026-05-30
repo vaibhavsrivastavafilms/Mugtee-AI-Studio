@@ -25,6 +25,7 @@ import { CinematicOutputPreviewStrip } from '@/components/showcase/cinematic-out
 import { HomeTrustLayer } from '@/components/landing/home-trust-layer'
 import { MobileStickyCta } from '@/components/landing/mobile-sticky-cta'
 import { HERO, PRICING as PRICING_COPY, FINAL_CTA, FOOTER, ATMOSPHERE_STATS } from '@/lib/marketing/site-copy'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
@@ -48,9 +49,7 @@ export default function LandingClient() {
       <nav className="sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-white/[0.04]">
         <div className="container max-w-6xl mx-auto px-5 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-7 h-7 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-              <span className="font-display text-sm text-black font-black">M</span>
-            </div>
+            <MugteeLogoMark size={28} className="w-7 h-7 shadow-gold-glow" />
             <span className="font-display text-base tracking-wide"><span className="text-gold-gradient">Mugtee</span></span>
           </Link>
           <div className="hidden sm:flex items-center gap-7 text-[12px] tracking-wider uppercase text-luxe/70">
@@ -281,9 +280,7 @@ export default function LandingClient() {
         <div className="container max-w-6xl mx-auto flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-                <span className="font-display text-sm text-black font-black">M</span>
-              </div>
+              <MugteeLogoMark size={28} className="w-7 h-7 shadow-gold-glow" />
               <span className="font-display text-base tracking-wide"><span className="text-gold-gradient">Mugtee</span></span>
             </Link>
             {/* Phase V1.2 — Trust Fix #9: social links */}

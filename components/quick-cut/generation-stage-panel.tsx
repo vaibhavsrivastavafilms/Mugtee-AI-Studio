@@ -376,19 +376,19 @@ export function GenerationStagePanel({
 
     case 'render':
       return shell(
-        'Video assembly',
+        'Rendering reel',
         <Video className="w-3 h-3" />,
         <div className="space-y-3">
           {videoUrl ? (
-            <p className="text-[12px] text-gold-200/90">MP4 ready — preview above.</p>
+            <p className="text-[12px] text-gold-200/90">Download ready — MP4 reel is live.</p>
           ) : (
             <>
               <p className="text-[12px] text-luxe/70 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-gold-400/80 shrink-0" />
-                {renderStatusLabel || 'Ken Burns motion · subtitles · MP4 compile…'}
+                {renderStatusLabel || 'Rendering reel…'}
               </p>
               <p className="text-[11px] text-luxe/45">
-                Scene crossfades animate in the player while the final reel encodes.
+                Assembling film → rendering reel → download ready. Preview animates while the MP4 encodes.
               </p>
             </>
           )}

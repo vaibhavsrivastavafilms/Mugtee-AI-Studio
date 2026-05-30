@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 export const metadata: Metadata = {
   title: 'Mugtee Blog — Creator workflows, AI scripts, faceless content',
@@ -41,9 +42,7 @@ export default function BlogIndex() {
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-white/[0.04]">
         <div className="container max-w-4xl mx-auto px-5 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-7 h-7 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-              <span className="font-display text-sm text-black font-black">M</span>
-            </div>
+            <MugteeLogoMark size={28} className="w-7 h-7 shadow-gold-glow" />
             <span className="font-display text-base tracking-wide"><span className="text-gold-gradient">Mugtee</span> Blog</span>
           </Link>
           <Link href="/login" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition">

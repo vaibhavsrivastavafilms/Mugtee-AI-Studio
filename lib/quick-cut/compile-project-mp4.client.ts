@@ -1,14 +1,9 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import { loadProject, resolveProjectScenes } from '@/lib/cinematic-projects'
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
 
 let compileInFlight: Promise<string> | null = null
 let compileInFlightProjectId: string | null = null
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 /** True while a project MP4 compile job is running (one at a time globally). */
 export function isCompileProjectMp4Busy(projectId?: string): boolean {
@@ -47,71 +42,19 @@ export function projectCanCompileMp4(
   return scenes.some((scene) => Boolean(resolvePersistedSceneImageUrl(scene)))
 }
 
-function scenesForRender(scenes: CinematicScene[]): GeneratedScene[] {
-  const withImages = scenes.map((scene) => {
-    const imageUrl = resolvePersistedSceneImageUrl(scene)
-    return imageUrl ? { ...scene, imageUrl } : scene
-  })
-  return storeScenesToGenerated(withImages)
-}
-
-async function pollRenderJob(
-  pollUrl: string,
-  options?: {
-    maxAttempts?: number
-    onProgress?: (label: string) => void
-  }
-): Promise<string> {
-  const maxAttempts = options?.maxAttempts ?? 120
-  for (let i = 0; i < maxAttempts; i++) {
-    await delay(1500)
-    const res = await fetch(pollUrl)
-    const job = (await res.json()) as Record<string, unknown>
-
-    if (res.status === 404) {
-      throw new Error('Render job expired — try again')
-    }
-    if (!res.ok) {
-      throw new Error(String(job?.error || 'Render status unavailable'))
-    }
-    if (typeof job.label === 'string' && job.label) {
-      options?.onProgress?.(job.label)
-    }
-    if (job.status === 'failed') {
-      throw new Error(String(job.error || 'Video render failed'))
-    }
-
-    const url =
-      typeof job.videoUrl === 'string' && job.videoUrl ? job.videoUrl : null
-    if (url) return url
-  }
-  throw new Error('Video render timed out — try again')
-}
-
-async function requestVideoRender(input: {
-  idea: string
-  title: string
-  script: string
-  scenes: GeneratedScene[]
-  voiceUrl: string | null
-  projectId: string
-  asyncMode: boolean
-}) {
-  const renderRes = await fetch('/api/render-video', {
+async function requestReelExport(projectId: string) {
+  const exportRes = await fetch('/api/reels/export', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      idea: input.idea,
-      title: input.title,
-      script: input.script,
-      scenes: input.scenes,
-      voiceUrl: input.voiceUrl,
-      async: input.asyncMode,
-      projectId: input.projectId,
+      projectId,
+      quality: '1080p',
+      includeVoiceover: true,
+      includeCaptions: true,
     }),
   })
-  const renderData = (await renderRes.json()) as Record<string, unknown>
-  return { renderRes, renderData }
+  const exportData = (await exportRes.json()) as Record<string, unknown>
+  return { renderRes: exportRes, renderData: exportData }
 }
 
 export type CompileProjectMp4Options = {
@@ -130,53 +73,48 @@ async function compileProjectMp4Inner(
     throw new Error('Add storyboard images and voice narration before compiling MP4.')
   }
 
-  if (row.video_url?.trim()) {
-    return row.video_url.trim()
+  if (row.reel_url?.trim() || row.video_url?.trim()) {
+    return (row.reel_url ?? row.video_url)!.trim()
   }
 
   const configRes = await fetch('/api/quick-cut/config')
-  const config = (await configRes.json()) as { videoRenderEnabled?: boolean; ffmpeg?: boolean }
+  const config = (await configRes.json()) as {
+    videoRenderEnabled?: boolean
+    remotion?: boolean
+    ffmpeg?: boolean
+  }
   if (!config.videoRenderEnabled) {
     throw new Error(
-      'MP4 compile is not enabled on this server. Set VIDEO_RENDER_ENABLED=true and configure FFmpeg.'
+      'MP4 compile is not enabled on this server. Set VIDEO_RENDER_ENABLED=true.'
     )
   }
-  if (!config.ffmpeg) {
-    throw new Error('FFmpeg is not available on the server for MP4 compile.')
+  if (!config.remotion && !config.ffmpeg) {
+    throw new Error('Reel render is not available on this server.')
   }
 
-  const renderScenes = scenesForRender(scenes)
-  const base = {
-    idea: row.prompt || row.title || 'cinematic-story',
-    title: row.title || 'Untitled reel',
-    script: row.script || '',
-    scenes: renderScenes,
-    voiceUrl,
-    projectId,
-  }
-
-  const { renderRes, renderData } = await requestVideoRender({ ...base, asyncMode: true })
+  const { renderRes, renderData } = await requestReelExport(projectId)
   if (!renderRes.ok) {
     throw new Error(String(renderData?.error || 'Video render unavailable'))
   }
 
-  if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
-    return renderData.videoUrl
+  if (renderData.status === 'completed' && typeof renderData.reelUrl === 'string') {
+    return renderData.reelUrl
   }
 
-  if (typeof renderData.pollUrl === 'string') {
-    return pollRenderJob(renderData.pollUrl, { onProgress: options?.onProgress })
+  const jobId = typeof renderData.jobId === 'string' ? renderData.jobId : null
+  if (jobId) {
+    const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+    return pollReelExportJob(`/api/reels/export/${jobId}`, {
+      onProgress: (patch) => {
+        if (patch.label) options?.onProgress?.(patch.label)
+      },
+    })
   }
 
-  const sync = await requestVideoRender({ ...base, asyncMode: false })
-  if (sync.renderRes.ok && typeof sync.renderData.videoUrl === 'string') {
-    return sync.renderData.videoUrl
-  }
-
-  throw new Error(String(sync.renderData?.error || 'Video render unavailable'))
+  throw new Error(String(renderData?.error || 'Video render unavailable'))
 }
 
-/** Loads project assets and compiles all scene slides + voice into one MP4 via /api/render-video. */
+/** Loads project assets and compiles scene slides + voice into one MP4 via /api/render/reel. */
 export async function compileProjectMp4(
   projectId: string,
   options?: CompileProjectMp4Options

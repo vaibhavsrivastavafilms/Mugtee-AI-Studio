@@ -5,7 +5,13 @@ const nextConfig = {
 
   experimental: {
     // Next 14.2: keep native/heavy packages out of webpack bundles (avoids BSON OOM at build).
-    serverComponentsExternalPackages: ['ffmpeg-static', 'mongodb'],
+    serverComponentsExternalPackages: [
+      'ffmpeg-static',
+      'mongodb',
+      '@remotion/renderer',
+      '@remotion/bundler',
+      'remotion',
+    ],
   },
 
   images: {

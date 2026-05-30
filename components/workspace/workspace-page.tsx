@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 import { toast } from 'sonner'
 import { track } from '@/lib/posthog'
 import {
@@ -584,8 +585,7 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
       <aside className="lg:w-64 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-black/40 backdrop-blur-xl">
         <div className="p-4 lg:p-5 space-y-5">
           <Link href="/workspace" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-black"
-                 style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}>M</div>
+            <MugteeLogoMark size={32} className="w-8 h-8" />
             <span className="font-display text-base tracking-tight text-luxe group-hover:text-gold-200 transition">Mugtee</span>
           </Link>
 

@@ -14,6 +14,7 @@ import {
   HeaderSearchDropdown,
 } from '@/components/shell/cinematic-header-app-actions'
 import { Button } from '@/components/ui/button'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 type User = { email?: string | null; user_metadata?: Record<string, unknown> }
 
@@ -78,17 +79,17 @@ function CinematicHeaderInner({
       <div className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 h-14 sm:h-16">
         <Link href={isApp ? STUDIO.create + '?mode=quick' : '/'} className="group flex items-center gap-2.5 shrink-0 min-w-0">
           <motion.div
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow shrink-0"
+            className="shrink-0"
             animate={{
-              boxShadow: [
-                '0 0 20px rgba(212,175,55,0.25)',
-                '0 0 32px rgba(212,175,55,0.45)',
-                '0 0 20px rgba(212,175,55,0.25)',
+              filter: [
+                'drop-shadow(0 0 8px rgba(212,175,55,0.25))',
+                'drop-shadow(0 0 14px rgba(212,175,55,0.45))',
+                'drop-shadow(0 0 8px rgba(212,175,55,0.25))',
               ],
             }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <span className="font-display text-sm sm:text-base font-bold text-black">M</span>
+            <MugteeLogoMark size={40} className="w-9 h-9 sm:w-10 sm:h-10" />
           </motion.div>
           <div className="hidden sm:block min-w-0">
             <div className="font-display text-sm sm:text-base leading-none text-gold-gradient truncate">

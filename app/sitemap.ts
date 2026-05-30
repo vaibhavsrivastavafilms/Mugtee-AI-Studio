@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
+import { getCanonicalSiteUrl } from '@/lib/url'
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://mugtee.in'
+const SITE_URL = getCanonicalSiteUrl()
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

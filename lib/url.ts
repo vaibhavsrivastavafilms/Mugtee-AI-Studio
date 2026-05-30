@@ -1,5 +1,17 @@
 import { NextRequest } from 'next/server'
 
+/** Production apex origin — canonical for SEO metadata and fallbacks. */
+export const CANONICAL_SITE_ORIGIN = 'https://mugtee.in'
+
+/**
+ * Canonical site origin for metadata, sitemap, and robots.
+ * Always prefers NEXT_PUBLIC_BASE_URL; falls back to the production apex.
+ */
+export function getCanonicalSiteUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL
+  return (fromEnv || CANONICAL_SITE_ORIGIN).replace(/\/$/, '')
+}
+
 /**
  * Returns the canonical absolute origin for this deployment.
  * Priority: NEXT_PUBLIC_BASE_URL > request origin > forwarded host header > localhost fallback.
@@ -14,7 +26,7 @@ export function getBaseUrl(request?: NextRequest): string {
     const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
     if (host) return `${proto}://${host}`.replace(/\/$/, '')
   }
-  return 'https://mugtee.in'
+  return CANONICAL_SITE_ORIGIN
 }
 
 /**
