@@ -37,6 +37,7 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
+import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -133,6 +134,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     [savedProjectId]
   )
 
+  const guardExport = useCallback(async () => trackClientUsage('exports'), [])
+
   const exportBase = slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')
   const mp4Name = `${exportBase}.mp4`
   const mp3Name = `${exportBase}-narration.mp3`
@@ -202,10 +205,11 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
 
   const scriptInput = { title, hook, script, scriptBeats, payoff, cta, isUnlimited }
 
-  const handleDownloadTxt = useCallback(() => {
+  const handleDownloadTxt = useCallback(async () => {
+    if (!(await guardExport())) return
     trackExportStarted('script_txt')
     downloadScriptTxt(scriptInput)
-  }, [title, hook, script, scriptBeats, payoff, cta, isUnlimited, trackExportStarted])
+  }, [scriptInput, trackExportStarted, guardExport])
 
   const handleDownloadDoc = useCallback(() => {
     downloadScriptDoc(scriptInput)
@@ -214,6 +218,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const handleDownloadImages = useCallback(
     async (exportSize: SceneImageExportSize) => {
       if (downloadingImagesFormat || !hasImages) return
+      if (!(await guardExport())) return
       trackExportStarted(`images_${exportSize}`)
       setAssetError(null)
       setDownloadingImagesFormat(exportSize)
@@ -227,11 +232,12 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         setDownloadingImagesFormat(null)
       }
     },
-    [downloadingImagesFormat, scenes, title, trackExportStarted, hasImages]
+    [downloadingImagesFormat, scenes, title, trackExportStarted, hasImages, guardExport]
   )
 
   const handleDownloadMp3 = useCallback(async () => {
     if (!hasNarration || downloadingMp3) return
+    if (!(await guardExport())) return
     trackExportStarted('narration_mp3')
     setAssetError(null)
     setDownloadingMp3(true)
@@ -243,10 +249,11 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     } finally {
       setDownloadingMp3(false)
     }
-  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted, hasNarration])
+  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted, hasNarration, guardExport])
 
   const handleShareReel = useCallback(async () => {
     if (!videoUrl?.trim()) return
+    if (!(await guardExport())) return
     trackExportStarted('video_share')
     try {
       if (navigator.share) {
@@ -257,7 +264,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     } catch {
       /* user cancelled share */
     }
-  }, [videoUrl, title, trackExportStarted])
+  }, [videoUrl, title, trackExportStarted, guardExport])
 
   const handlePreviewReel = useCallback(() => {
     if (!videoUrl?.trim()) return
@@ -267,6 +274,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const handleDownloadMp4 = useCallback(async () => {
     if (downloadingMp4) return
     if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
+    if (!(await guardExport())) return
     trackExportStarted('video_mp4')
     setDownloadingMp4(true)
     try {
@@ -307,6 +315,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     savedProjectId,
     canCompileMp4,
     retryVideoRender,
+    guardExport,
   ])
 
   const handleExportCreatorPack = useCallback(async () => {
@@ -314,6 +323,10 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     setCreatorPackProgress(0)
     setCreatorPackResult(null)
     setAssetError(null)
+    if (!(await guardExport())) {
+      setCreatorPackState('idle')
+      return
+    }
     trackExportStarted('creator_pack')
 
     try {
