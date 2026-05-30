@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, Plus, Search, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
+import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { HEADER_NAV, headerNavActive } from '@/lib/shell/header-nav'
 import {
   HeaderRightActions,
@@ -112,6 +113,9 @@ function CinematicHeaderInner({
               <Link
                 key={item.id}
                 href={item.href}
+                onClick={() => {
+                  if (item.id === 'create') resetQuickCutForFreshCreate()
+                }}
                 className={cn(
                   'relative px-3.5 py-2 text-sm font-medium tracking-wide transition-colors rounded-lg',
                   active ? 'text-gold-200' : 'text-muted-foreground hover:text-luxe'
@@ -221,7 +225,10 @@ function CinematicHeaderInner({
                   <Link
                     key={item.id}
                     href={item.href}
-                    onClick={() => setMobileNavOpen(false)}
+                    onClick={() => {
+                      setMobileNavOpen(false)
+                      if (item.id === 'create') resetQuickCutForFreshCreate()
+                    }}
                     className={cn(
                       'shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-all',
                       active

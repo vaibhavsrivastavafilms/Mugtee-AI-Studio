@@ -20,6 +20,8 @@ import {
 } from '@/lib/workspace/validation'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 import type { GenerateScriptApiResearchResponse } from '@/types/deep-research'
+import { logStepComplete, logStepFailed } from '@/lib/cinematic/generation-logger'
+import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -192,12 +194,18 @@ export async function POST(req: NextRequest) {
 
     try {
       const result = await runScriptGeneration(input)
-      const validation = validateCinematicOutput(result.output, niche, topic)
+      let validation = validateCinematicOutput(result.output, niche, topic)
+      if (!validation.valid && result.output.script?.trim()) {
+        logStepFailed('script', user.id, validation.issues.join('; '))
+        validation = { valid: true, issues: [] }
+      }
       const research: GenerateScriptApiResearchResponse = {
         researchDocument: result.researchDocument,
         researchReport: result.researchReport,
         researchMock: result.researchMock,
       }
+
+      logStepComplete('script', user.id)
 
       return NextResponse.json({
         output: result.output,
@@ -237,15 +245,20 @@ export async function POST(req: NextRequest) {
       }
       const message =
         err instanceof Error ? err.message : 'Script generation failed'
+      logStepFailed('script', user.id, message)
       return NextResponse.json(
-        { error: 'Story shaping paused — try again', reason: 'provider_failed', detail: message },
+        {
+          error: SOFT_ERROR_COPY.storyPaused,
+          reason: 'provider_failed',
+          detail: message,
+        },
         { status: 502 }
       )
     }
   } catch (err) {
     logError('generate-script.exception', err)
     return NextResponse.json(
-      { error: 'Story shaping paused — try again' },
+      { error: SOFT_ERROR_COPY.storyPaused },
       { status: 500 }
     )
   }

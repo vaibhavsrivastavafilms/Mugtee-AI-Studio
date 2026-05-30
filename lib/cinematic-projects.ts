@@ -118,6 +118,10 @@ export type CinematicProjectRow = {
   variation_history?: VariationHistory | Record<string, unknown> | null
   visual_style?: VisualStyle | Record<string, unknown> | null
   viral_script?: ViralScript | Record<string, unknown> | null
+  generation_status?: string | null
+  generation_step?: string | null
+  generation_error?: string | null
+  last_completed_step?: string | null
 }
 
 export type CinematicProjectSummary = {
@@ -164,6 +168,10 @@ export type ArchiveGeneratedProjectInput = {
   variation_history?: VariationHistory
   visual_style?: VisualStyle | null
   viral_script?: ViralScript | null
+  generation_status?: string | null
+  generation_step?: string | null
+  generation_error?: string | null
+  last_completed_step?: string | null
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -379,6 +387,18 @@ export async function createProject(
   }
   if (state.visual_style !== undefined) insertRow.visual_style = state.visual_style
   if (state.viral_script !== undefined) insertRow.viral_script = state.viral_script
+  if ((state as { generation_status?: string }).generation_status !== undefined) {
+    insertRow.generation_status = (state as { generation_status?: string }).generation_status
+  }
+  if ((state as { generation_step?: string }).generation_step !== undefined) {
+    insertRow.generation_step = (state as { generation_step?: string }).generation_step
+  }
+  if ((state as { generation_error?: string | null }).generation_error !== undefined) {
+    insertRow.generation_error = (state as { generation_error?: string | null }).generation_error
+  }
+  if ((state as { last_completed_step?: string | null }).last_completed_step !== undefined) {
+    insertRow.last_completed_step = (state as { last_completed_step?: string | null }).last_completed_step
+  }
 
   const { data, error } = await supabase
     .from('cinematic_projects')
@@ -458,6 +478,18 @@ export async function updateProject(
   }
   if ((state as { viral_script?: unknown }).viral_script !== undefined) {
     patch.viral_script = (state as { viral_script?: unknown }).viral_script
+  }
+  if ((state as { generation_status?: string }).generation_status !== undefined) {
+    patch.generation_status = (state as { generation_status?: string }).generation_status
+  }
+  if ((state as { generation_step?: string }).generation_step !== undefined) {
+    patch.generation_step = (state as { generation_step?: string }).generation_step
+  }
+  if ((state as { generation_error?: string | null }).generation_error !== undefined) {
+    patch.generation_error = (state as { generation_error?: string | null }).generation_error
+  }
+  if ((state as { last_completed_step?: string | null }).last_completed_step !== undefined) {
+    patch.last_completed_step = (state as { last_completed_step?: string | null }).last_completed_step
   }
 
   const { data, error } = await supabase
@@ -572,6 +604,10 @@ export async function archiveGeneratedProject(
     variation_history?: unknown
     visual_style?: unknown
     viral_script?: unknown
+    generation_status?: string | null
+    generation_step?: string | null
+    generation_error?: string | null
+    last_completed_step?: string | null
   }
 
   const archivePatch: ArchivePatch = {
@@ -598,6 +634,10 @@ export async function archiveGeneratedProject(
     variation_history: input.variation_history ?? null,
     visual_style: input.visual_style ?? null,
     viral_script: input.viral_script ?? null,
+    generation_status: input.generation_status ?? null,
+    generation_step: input.generation_step ?? null,
+    generation_error: input.generation_error ?? null,
+    last_completed_step: input.last_completed_step ?? null,
   }
 
   if (input.projectId) {
@@ -631,6 +671,10 @@ export async function archiveGeneratedProject(
       variation_history: input.variation_history ?? null,
       visual_style: input.visual_style ?? null,
       viral_script: input.viral_script ?? null,
+      generation_status: input.generation_status ?? null,
+      generation_step: input.generation_step ?? null,
+      generation_error: input.generation_error ?? null,
+      last_completed_step: input.last_completed_step ?? null,
     } as Parameters<typeof createProject>[0],
     undefined
   )

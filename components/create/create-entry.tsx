@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Clapperboard, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createEntryHref, directorWorkspaceHref, STUDIO, type CreatorMode } from '@/lib/create/routes'
-import { QuickCutCreator } from '@/components/create/quick-cut-creator'
+import { QuickCutCreateEntry } from '@/components/create/quick-cut-create-entry'
 import { storeCreatorMode } from '@/lib/create/mode-selection'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
@@ -96,11 +96,7 @@ function CreateEntryInner() {
   }, [mode, router])
 
   if (mode === 'quick') {
-    return (
-      <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
-        <QuickCutCreator />
-      </div>
-    )
+    return <QuickCutCreateEntry />
   }
 
   if (mode === 'director') {
