@@ -16,7 +16,7 @@ Mugtee runs as a fast, installable web app on Android. Sign in with Google, crea
 
 **Category:** Productivity / Video players & editors  
 **Content rating:** Everyone (update after questionnaire)  
-**Privacy policy URL:** https://mugtee.in/privacy  
-**Terms URL:** https://mugtee.in/terms  
+**Privacy policy URL:** <https://mugtee.in/privacy>  
+**Terms URL:** <https://mugtee.in/terms>  
 
 **Package name:** `com.mugtee.studio`
