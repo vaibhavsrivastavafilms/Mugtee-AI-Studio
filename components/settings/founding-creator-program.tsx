@@ -9,7 +9,10 @@ import {
   FOUNDING_CREATOR_TYPES,
   FOUNDING_PLATFORMS,
 } from '@/lib/founding-creator/constants'
-import { fetchCreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import {
+  fetchCreatorMemoryProfile,
+  type CreatorMemoryProfile,
+} from '@/lib/creator/creator-memory'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -29,7 +32,9 @@ export function FoundingCreatorProgramSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const memory = await fetchCreatorMemoryProfile().catch(() => ({}))
+        const memory = await fetchCreatorMemoryProfile().catch(
+          (): CreatorMemoryProfile => ({})
+        )
         if (supabase) {
           const { data: { user } } = await supabase.auth.getUser()
           if (user && !cancelled) {
