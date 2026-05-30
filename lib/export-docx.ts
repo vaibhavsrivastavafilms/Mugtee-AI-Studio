@@ -6,16 +6,13 @@
 //
 // Filename pattern: mugtee-script-{slug}.doc
 
-export function exportScriptAsDoc(args: {
+export function buildScriptDocBlob(args: {
   title: string
   body: string
-  isUnlimited?: boolean   // when false (free tier) we append a tasteful watermark
-}) {
+  isUnlimited?: boolean
+}): Blob {
   const { title, body, isUnlimited } = args
-  const safeTitle = (title || 'mugtee-script').replace(/[^a-z0-9-_]+/gi, '-').toLowerCase().slice(0, 60)
-  const filename = `mugtee-script-${safeTitle}.doc`
 
-  // Preserve paragraphs by converting double-newline blocks into <p>, single newlines into <br>.
   const escape = (s: string) => s
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -23,7 +20,7 @@ export function exportScriptAsDoc(args: {
   const bodyHtml = String(body || '')
     .trim()
     .split(/\n\s*\n+/)
-    .map(block => `<p>${escape(block).replace(/\n/g, '<br/>')}</p>`) 
+    .map(block => `<p>${escape(block).replace(/\n/g, '<br/>')}</p>`)
     .join('\n')
 
   const watermarkHtml = isUnlimited
@@ -49,8 +46,19 @@ export function exportScriptAsDoc(args: {
 </body>
 </html>`
 
-  // Use the official Word MIME so OSes default-open to Word / Pages / Google Docs.
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+  return new Blob(['\ufeff', html], { type: 'application/msword' })
+}
+
+export function exportScriptAsDoc(args: {
+  title: string
+  body: string
+  isUnlimited?: boolean   // when false (free tier) we append a tasteful watermark
+}) {
+  const { title, body, isUnlimited } = args
+  const safeTitle = (title || 'mugtee-script').replace(/[^a-z0-9-_]+/gi, '-').toLowerCase().slice(0, 60)
+  const filename = `mugtee-script-${safeTitle}.doc`
+
+  const blob = buildScriptDocBlob({ title, body, isUnlimited })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

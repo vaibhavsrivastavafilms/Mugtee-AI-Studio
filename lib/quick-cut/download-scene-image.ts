@@ -93,6 +93,21 @@ async function blobToExportBlob(
   })
 }
 
+/** Fetches a storyboard still as an export-ready JPG blob (for ZIP export). */
+export async function fetchSceneImageBlob(
+  url: string,
+  exportSize: SceneImageExportSize = 'vertical'
+): Promise<Blob> {
+  const trimmed = url.trim()
+  if (!isRealSceneImageUrl(trimmed)) throw new Error(ASSET_UNAVAILABLE_MSG)
+
+  const res = await fetch(trimmed, { mode: 'cors' })
+  if (!res.ok) throw new Error(ASSET_UNAVAILABLE_MSG)
+  const blob = await res.blob()
+  if (!blob.size) throw new Error(ASSET_UNAVAILABLE_MSG)
+  return blobToExportBlob(blob, 'jpg', exportSize)
+}
+
 /** Downloads a storyboard still as JPG (converts when needed) or PNG at the target export size. */
 export async function downloadSceneImage(
   url: string,

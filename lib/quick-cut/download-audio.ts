@@ -12,23 +12,28 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(objectUrl)
 }
 
-/** Triggers a browser download with a guaranteed .mp3 filename. */
-export async function downloadMp3File(url: string, filename: string): Promise<void> {
+/** Fetches narration audio as a Blob (for ZIP export). */
+export async function fetchMp3Blob(url: string): Promise<Blob> {
   const trimmed = url.trim()
   if (!trimmed) throw new Error(ASSET_UNAVAILABLE_MSG)
-
-  const safeName = filename.endsWith('.mp3') ? filename : `${filename}.mp3`
 
   if (trimmed.startsWith('data:')) {
     const res = await fetch(trimmed)
     const blob = await res.blob()
-    triggerBlobDownload(blob, safeName)
-    return
+    if (!blob.size) throw new Error(ASSET_UNAVAILABLE_MSG)
+    return blob
   }
 
   const res = await fetch(trimmed, { mode: 'cors' })
   if (!res.ok) throw new Error(ASSET_UNAVAILABLE_MSG)
   const blob = await res.blob()
   if (!blob.size) throw new Error(ASSET_UNAVAILABLE_MSG)
+  return blob
+}
+
+/** Triggers a browser download with a guaranteed .mp3 filename. */
+export async function downloadMp3File(url: string, filename: string): Promise<void> {
+  const safeName = filename.endsWith('.mp3') ? filename : `${filename}.mp3`
+  const blob = await fetchMp3Blob(url)
   triggerBlobDownload(blob, safeName)
 }
