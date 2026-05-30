@@ -1,16 +1,11 @@
 import { ImageResponse } from 'next/og'
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 
 export const alt = 'Mugtee \u00b7 The cinematic storytelling operating system'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
-export default async function OG() {
-  const logoBuffer = await readFile(path.join(process.cwd(), 'public', 'logo.png'))
-  const logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`
-
+export default function OG() {
   return new ImageResponse(
     (
       <div
@@ -22,13 +17,16 @@ export default async function OG() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 60 }}>
-          <img
-            src={logoSrc}
-            width={64}
-            height={64}
-            alt=""
-            style={{ borderRadius: 14, objectFit: 'contain' }}
-          />
+          <div
+            style={{
+              width: 64, height: 64, borderRadius: 14,
+              background: 'linear-gradient(135deg, #F5D061 0%, #D4AF37 60%, #A87A1E 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 32px rgba(212,175,55,0.35)',
+            }}
+          >
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#0a0807', display: 'flex' }}>M</div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ fontSize: 16, letterSpacing: 8, color: 'rgba(245,208,97,0.7)', textTransform: 'uppercase', display: 'flex' }}>Mugtee</div>
             <div style={{ fontSize: 13, letterSpacing: 4, color: 'rgba(232,217,168,0.5)', textTransform: 'uppercase', display: 'flex' }}>Storytelling operating system</div>

@@ -12,6 +12,7 @@ import {
   computeRenderTotalSec,
 } from '@/lib/cinematic/scene-duration'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
+import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/constants'
 import type {
   ReelCompositionProps,
@@ -76,6 +77,7 @@ export async function renderRemotionReel(
     )
 
     const reelScenes: ReelSceneInput[] = []
+    let thumbnailLocalPath: string | null = null
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
       const imageUrl =
@@ -84,10 +86,15 @@ export async function renderRemotionReel(
       const ext = extFromUrl(imageUrl, '.jpg')
       const localImage = path.join(workDir, `scene_${i}${ext}`)
       await downloadToFile(imageUrl, localImage)
+      if (i === 0) thumbnailLocalPath = localImage
+
+      const imageSrc = isHttpUrl(imageUrl)
+        ? imageUrl
+        : await localPathToDataUrl(localImage)
 
       reelScenes.push({
         id: scene.id || `scene-${i}`,
-        imageSrc: localImage,
+        imageSrc,
         durationSec: Math.max(2, scene.duration || 4),
         caption: captionForScene(scene, i, input.subtitles),
         motion: MOTIONS[i % MOTIONS.length],
@@ -99,7 +106,9 @@ export async function renderRemotionReel(
       const ext = extFromUrl(input.voiceUrl, '.mp3')
       const voicePath = path.join(workDir, `voice${ext}`)
       await downloadToFile(input.voiceUrl, voicePath)
-      voiceAudioSrc = voicePath
+      voiceAudioSrc = isHttpUrl(input.voiceUrl)
+        ? input.voiceUrl.trim()
+        : await localPathToDataUrl(voicePath)
     }
 
     let musicAudioSrc: string | null = null
@@ -107,7 +116,9 @@ export async function renderRemotionReel(
       const ext = extFromUrl(input.musicUrl, '.mp3')
       const musicPath = path.join(workDir, `music${ext}`)
       await downloadToFile(input.musicUrl, musicPath)
-      musicAudioSrc = musicPath
+      musicAudioSrc = isHttpUrl(input.musicUrl)
+        ? input.musicUrl.trim()
+        : await localPathToDataUrl(musicPath)
     }
 
     const compositionProps: ReelCompositionProps = {
@@ -148,7 +159,7 @@ export async function renderRemotionReel(
     return {
       outputPath: input.outputPath,
       durationSec,
-      thumbnailPath: reelScenes[0]?.imageSrc ?? null,
+      thumbnailPath: thumbnailLocalPath,
     }
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined)

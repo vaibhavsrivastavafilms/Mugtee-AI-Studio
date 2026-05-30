@@ -12,7 +12,6 @@
 import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { mugteePresence } from '@/lib/mugtee-presence'
-import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 import { cn } from '@/lib/utils'
 
 function usePresence() {
@@ -68,10 +67,10 @@ export function AudioSpectrumLogo({
           </>
         )}
 
-        {/* Brand mark — animated presence states */}
+        {/* The actual gold square logo + M */}
         <span
           className={cn(
-            'relative inline-flex items-center justify-center overflow-hidden transition-shadow',
+            'relative inline-flex items-center justify-center font-display font-black text-black transition-shadow',
             state === 'idle'      && 'shadow-[0_0_18px_-4px_rgba(245,196,77,0.55)]',
             state === 'listening' && 'shadow-[0_0_28px_-2px_rgba(245,196,77,0.85)] scale-[1.02]',
             state === 'speaking'  && 'shadow-[0_0_24px_-4px_rgba(245,196,77,0.7)]',
@@ -79,27 +78,28 @@ export function AudioSpectrumLogo({
           style={{
             width: px,
             height: px,
+            background: 'linear-gradient(135deg, #f5c44d 0%, #d4af37 50%, #b8941f 100%)',
             borderRadius: radius,
+            fontSize: `${Math.round(size * 0.48)}px`,
+            lineHeight: 1,
           }}
         >
           {state === 'speaking' ? (
-            <span aria-hidden className="absolute inset-0 inline-flex items-center justify-center bg-black/80">
-              <span className="inline-flex items-end gap-[2px] h-[60%]">
-                {[0, 1, 2, 3, 4].map(i => (
-                  <span
-                    key={i}
-                    className="block bg-gold-400/90 rounded-[1px]"
-                    style={{
-                      width: Math.max(1, Math.round(size * 0.06)),
-                      animation: `mugtee-bar-${i} 0.9s ease-in-out infinite`,
-                      animationDelay: `${i * 0.08}s`,
-                    }}
-                  />
-                ))}
-              </span>
+            <span aria-hidden className="inline-flex items-end gap-[2px] h-[60%]">
+              {[0, 1, 2, 3, 4].map(i => (
+                <span
+                  key={i}
+                  className="block bg-black/85 rounded-[1px]"
+                  style={{
+                    width: Math.max(1, Math.round(size * 0.06)),
+                    animation: `mugtee-bar-${i} 0.9s ease-in-out infinite`,
+                    animationDelay: `${i * 0.08}s`,
+                  }}
+                />
+              ))}
             </span>
           ) : (
-            <MugteeLogoMark size={size} className="w-full h-full" />
+            <span>M</span>
           )}
         </span>
       </span>

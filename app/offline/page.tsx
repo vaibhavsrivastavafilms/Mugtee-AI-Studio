@@ -1,13 +1,17 @@
 // Mugtee PWA — minimal offline shell. Served by the SW when navigation fails.
 // Kept intentionally tiny: no client JS, no fetches, no third-party imports.
-import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
-
 export const dynamic = 'force-static'
 
 export default function OfflinePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#0B0B0B] text-[#E8D9A8]">
-      <MugteeLogoMark size={64} className="w-16 h-16 mb-6" />
+      <div
+        className="w-16 h-16 mb-6 rounded-2xl flex items-center justify-center font-bold text-3xl text-[#0B0B0B]"
+        style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}
+        aria-hidden
+      >
+        M
+      </div>
       <h1 className="text-2xl font-semibold tracking-tight mb-2">You’re offline</h1>
       <p className="text-sm text-[#E8D9A8]/70 max-w-sm">
         Mugtee AI Studio needs an internet connection to shape, save, and continue your cinematic work.
