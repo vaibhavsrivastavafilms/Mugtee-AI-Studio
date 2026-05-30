@@ -8,7 +8,7 @@ import { useMediaPlaybackTime } from '@/hooks/use-media-playback-time'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { RenderBuildStage } from '@/stores/cinematic-render-store'
 import { LiveStoryboardBuild } from '@/components/cinematic/render/live-storyboard-build'
-import { ProjectTranscriptDialog } from '@/components/quick-cut/project-transcript-dialog'
+import { ProjectScriptViewDialog } from '@/components/quick-cut/project-script-view-dialog'
 
 const WAVEFORM_BARS = [0.2, 0.55, 0.85, 0.45, 0.7, 0.35, 0.9, 0.5, 0.65, 0.4, 0.75, 0.3]
 
@@ -78,7 +78,7 @@ export function CinematicRenderPreview({
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6 }}
-      className={cn('relative flex flex-col items-center', className)}
+      className={cn('relative flex flex-col items-center space-y-3', className)}
     >
       <div
         className={cn(
@@ -224,17 +224,19 @@ export function CinematicRenderPreview({
         <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/50 border border-white/10 text-[8px] tracking-[0.15em] uppercase text-white/50">
           9:16
         </div>
-        {isComplete && videoUrl ? (
-          <ProjectTranscriptDialog
-            script={script}
-            scenes={scenes}
-            captionLines={caption ? [caption] : undefined}
-            projectId={projectId}
-            compact
-            triggerClassName="absolute top-3 right-3 z-[3] rounded-full border-gold-500/30 bg-black/55 min-h-[24px] px-2.5 py-0.5 text-gold-200/90 hover:bg-black/70"
-          />
-        ) : null}
       </div>
+
+      {isComplete && videoUrl ? (
+        <ProjectScriptViewDialog
+          script={script}
+          hook={hook}
+          scenes={scenes}
+          captionLines={caption ? [caption] : undefined}
+          projectId={projectId}
+          compact
+          triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
+        />
+      ) : null}
 
       {!isComplete && scenes.length > 0 ? (
         <LiveStoryboardBuild

@@ -40,7 +40,7 @@ import {
   formatPlaybackTime,
 } from '@/lib/media/format-playback-time'
 
-import { QuickCutProjectTranscriptDialog } from '@/components/quick-cut/project-transcript-dialog'
+import { QuickCutProjectScriptViewDialog } from '@/components/quick-cut/project-script-view-dialog'
 import { QuickCutPlayerMp4Download } from '@/components/quick-cut/project-mp4-button'
 
 
@@ -67,7 +67,7 @@ export function ReelAssemblyPlayer({
 
   waveform = [],
 
-  showSubtitles = true,
+  showSubtitles = false,
 
   isLive = false,
 
@@ -488,8 +488,6 @@ export function ReelAssemblyPlayer({
 
   const showKaraoke = showSubtitles && captionState && captionState.words.length > 0
 
-  const showStaticCaption = showSubtitles && hook && !showKaraoke && !voiceUrl && !slideshowPlaying
-
   const previewIsPlaying = hasVideo || voiceUrl ? isPlaying : slideshowPlaying
 
   const hasPlaybackProgress =
@@ -712,55 +710,61 @@ export function ReelAssemblyPlayer({
 
             activeIndex={captionState!.activeIndex}
 
-            title={!hasVideo ? title : undefined}
-
           />
 
-        ) : (
+        ) : null}
 
-          <div className="absolute inset-x-0 bottom-0 p-3 space-y-1 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
+      </div>
 
-            {title && !hasVideo ? (
 
-              <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70 truncate">
+
+      {(title || hook) ? (
+
+        <div className="space-y-2 px-0.5">
+
+          {title ? (
+
+            <div className="rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2">
+
+              <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70 mb-0.5">
+
+                Title
+
+              </p>
+
+              <p className="font-display text-sm text-luxe leading-snug line-clamp-2">
 
                 {title}
 
               </p>
 
-            ) : null}
+            </div>
 
-            {showStaticCaption ? (
+          ) : null}
 
-              <p className="font-display text-[13px] text-[#F4E7C1] italic leading-snug line-clamp-2">
+          {hook ? (
+
+            <div className="rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2">
+
+              <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70 mb-0.5">
+
+                Hook
+
+              </p>
+
+              <p className="font-display text-[13px] text-[#F4E7C1] italic leading-snug line-clamp-3">
 
                 {hook}
 
               </p>
 
-            ) : voiceUrl && !hasVideo && !previewIsPlaying ? (
+            </div>
 
-              <p className="text-[10px] tracking-[0.12em] uppercase text-gold-300/55">
+          ) : null}
 
-                Tap to play preview
+        </div>
 
-              </p>
-
-            ) : storyboardPreview && !previewIsPlaying ? (
-
-              <p className="text-[10px] tracking-[0.12em] uppercase text-gold-300/55">
-
-                Tap play to preview reel
-
-              </p>
-
-            ) : null}
-
-          </div>
-
-        )}
-
-      </div>
+      ) : null}
 
 
 
@@ -856,8 +860,9 @@ export function ReelAssemblyPlayer({
 
             </p>
 
-            <QuickCutProjectTranscriptDialog
+            <QuickCutProjectScriptViewDialog
               compact
+              title={title}
               script={script}
               hook={hook}
               scenes={scenes}
@@ -884,7 +889,8 @@ export function ReelAssemblyPlayer({
 
         <div className="flex items-center justify-center gap-2 flex-wrap">
 
-          <QuickCutProjectTranscriptDialog
+          <QuickCutProjectScriptViewDialog
+            title={title}
             script={script}
             hook={hook}
             scenes={scenes}
