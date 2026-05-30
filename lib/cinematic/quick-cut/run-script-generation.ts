@@ -373,7 +373,7 @@ export async function runScriptGeneration(
   const platform = coercePlatform(input.platform)
   const tone = coerceTone(input.tone)
   const duration = coerceDuration(input.duration)
-  const language = normalizeProjectLanguage(input.language, input.transcript || topic)
+  const language = normalizeProjectLanguage(input.language)
 
   let researchDocument = input.researchDocument?.trim() || undefined
   let researchReport = input.researchReport

@@ -1,5 +1,4 @@
 import {
-  detectInputLanguage,
   languageLabel,
   normalizeProjectLanguage,
   type ProjectLanguage,
@@ -221,7 +220,7 @@ export function analyzeViralStructure(input: AnalyzeViralStructureInput): ViralS
   ].filter(Boolean) as string[]
 
   const combined = parts.join('\n\n').trim()
-  const detectedLanguage = normalizeProjectLanguage(input.language, combined)
+  const detectedLanguage = normalizeProjectLanguage(input.language)
   const inputMode = inferInputMode(combined)
 
   const beats =

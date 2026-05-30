@@ -1,5 +1,8 @@
 import { languageDirective } from '@/lib/cinematic/language-prompt'
-import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  normalizeProjectLanguage,
+  type ProjectLanguage,
+} from '@/lib/cinematic/language-detection'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import {
@@ -99,7 +102,7 @@ export function buildStoryboardSopPrompt(
         }
       : resolveStoryboardSceneCountRange(durationSec)
   const sceneTarget = range.target
-  const langLock = options.language ? languageDirective(options.language) : ''
+  const langLock = languageDirective(normalizeProjectLanguage(options.language))
   const research = options.researchReport
     ? [
         buildDeepResearchReportScriptContext(options.researchReport).slice(0, 4_000),

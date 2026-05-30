@@ -10,7 +10,8 @@ import {
 } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
-import { detectInputLanguage, type ProjectLanguage } from '@/lib/cinematic/language-detection'
+import { type ProjectLanguage } from '@/lib/cinematic/language-detection'
+import { loadContentLanguagePreference } from '@/lib/cinematic/content-languages'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
@@ -175,6 +176,8 @@ export type QuickCutInput = {
   inputType?: 'text' | 'voice' | 'mixed'
   /** Skip pre-script deep research (faster) */
   skipResearch?: boolean
+  /** Explicit output language — defaults to English or saved preference */
+  language?: ProjectLanguage
   /** Resume pipeline after last_completed_step (skips completed steps) */
   resumeFrom?: PersistedGenerationStep | null
 }
@@ -1098,8 +1101,8 @@ export const useQuickCutGenerationStore = create<
       : null
 
     const language = regenFresh
-      ? preserved?.language ?? detectInputLanguage(prompt)
-      : detectInputLanguage(prompt)
+      ? preserved?.language ?? input.language ?? loadContentLanguagePreference()
+      : input.language ?? loadContentLanguagePreference()
     const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
     const duration = coerceDuration(input.duration ?? prior.duration ?? 60)
     const preserveProjectId =

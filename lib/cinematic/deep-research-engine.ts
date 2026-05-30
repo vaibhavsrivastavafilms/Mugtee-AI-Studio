@@ -251,7 +251,7 @@ export function toDeepResearchDocument(
  */
 export async function runDeepResearch(input: DeepResearchInput): Promise<DeepResearchResult> {
   const topic = input.topic.trim()
-  const language = normalizeProjectLanguage(input.language, topic)
+  const language = normalizeProjectLanguage(input.language)
   const userPrompt = buildDeepResearchSopPrompt(topic, language)
 
   if (!topic) {

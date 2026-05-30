@@ -1,5 +1,8 @@
 import { languageDirective } from '@/lib/cinematic/language-prompt'
-import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  normalizeProjectLanguage,
+  type ProjectLanguage,
+} from '@/lib/cinematic/language-detection'
 import {
   DEEP_RESEARCH_SOP_MINIMUMS,
   type Controversy,
@@ -125,7 +128,7 @@ export function buildDeepResearchSopSystemPrompt(): string {
 /** User prompt — 13-section SOP + final output with embedded JSON schema. */
 export function buildDeepResearchSopPrompt(topic: string, language?: ProjectLanguage): string {
   const trimmed = topic.trim()
-  const langLock = language ? `\n${languageDirective(language)}\n` : ''
+  const langLock = `\n${languageDirective(normalizeProjectLanguage(language))}\n`
   const min = DEEP_RESEARCH_SOP_MINIMUMS
 
   return `Research this topic deeply for a faceless YouTube documentary script.
