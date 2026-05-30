@@ -5,6 +5,7 @@ import { LuxFooter } from '@/components/v2/lux-footer'
 import { CinematicParticles } from '@/components/v2/cinematic-particles'
 import { LandingHeroSplit } from '@/components/v2/landing-hero-split'
 import { CreatorExamplesSection } from '@/components/v2/creator-examples-section'
+import { OutputShowcaseSection } from '@/components/v2/output-showcase-section'
 import { LandingTrustedBy } from '@/components/v2/landing-trusted-by'
 import { LandingWorkflowTimeline } from '@/components/v2/landing-workflow-timeline'
 import { PosterGrid } from '@/components/v2/poster-grid'
@@ -19,6 +20,7 @@ export default function V2LandingPage() {
       <main className="relative z-10">
         <LandingHeroSplit />
         <CreatorExamplesSection />
+        <OutputShowcaseSection />
         <LandingTrustedBy />
         <LandingWorkflowTimeline />
         <PosterGrid />
