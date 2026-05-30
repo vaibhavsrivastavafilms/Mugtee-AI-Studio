@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 import { Upload, X, FileVideo, Image as ImageIcon, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -57,8 +58,12 @@ export function UploadDropzone() {
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     const path = `${userId}/${Date.now()}_${safeName}`
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const env = getSupabasePublicEnv()
+    if (!env) {
+      updateOne(upload.id, { status: 'error', error: 'Authentication not configured' })
+      return
+    }
+    const { url: supabaseUrl, anonKey: supabaseKey } = env
 
     // POST raw file to Supabase Storage REST with XHR for progress events.
     await new Promise<void>((resolve, reject) => {

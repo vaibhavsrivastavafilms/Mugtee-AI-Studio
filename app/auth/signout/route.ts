@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
+
 async function handle(request: NextRequest) {
   const response = NextResponse.redirect(new URL('/signin', request.url))
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const env = getSupabasePublicEnv()
+  if (env) {
+    const supabase = createServerClient(env.url, env.anonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -20,11 +21,11 @@ async function handle(request: NextRequest) {
             response.headers.set(key, value)
           })
         },
-      }
-    }
-  )
+      },
+    })
 
-  await supabase.auth.signOut()
+    await supabase.auth.signOut()
+  }
 
   return response
 }

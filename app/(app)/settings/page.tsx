@@ -7,6 +7,7 @@ import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw
 import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -125,8 +126,9 @@ export default function SettingsPage() {
       if (!session) throw new Error('Not authenticated')
       const ext = file.name.split('.').pop() || 'png'
       const path = `${userId}/logo_${Date.now()}.${ext}`
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const env = getSupabasePublicEnv()
+      if (!env) throw new Error('Authentication not configured')
+      const { url: supabaseUrl, anonKey: supabaseKey } = env
       const res = await fetch(`${supabaseUrl}/storage/v1/object/media/${path}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'apikey': supabaseKey, 'Content-Type': file.type, 'x-upsert': 'true' },

@@ -6,6 +6,7 @@ import {
   validateToken, publishImage, publishReel, publishCarousel, getPublishingLimit,
   IGPublishError, type MetaApiError,
 } from '@/lib/instagram'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,18 +18,17 @@ const FB_OAUTH = 'https://www.facebook.com/v20.0/dialog/oauth'
 const SCOPES = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
 
 function getSupabase() {
+  const env = getSupabasePublicEnv()
+  if (!env) return null
+
   const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-        set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }) } catch {} },
-        remove(name: string, options: CookieOptions) { try { cookieStore.set({ name, value: '', ...options }) } catch {} },
-      },
-    }
-  )
+  return createServerClient(env.url, env.anonKey, {
+    cookies: {
+      get(name: string) { return cookieStore.get(name)?.value },
+      set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }) } catch {} },
+      remove(name: string, options: CookieOptions) { try { cookieStore.set({ name, value: '', ...options }) } catch {} },
+    },
+  })
 }
 
 function redirectUri(req: NextRequest) {
@@ -50,6 +50,9 @@ async function notify(supabase: any, user_id: string, payload: { title: string; 
 export async function GET(req: NextRequest, { params }: { params: { action: string } }) {
   const action = params.action
   const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
+  }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.redirect(new URL('/login', req.url))
 
@@ -176,6 +179,9 @@ export async function GET(req: NextRequest, { params }: { params: { action: stri
 // =====================================================================
 export async function POST(req: NextRequest, { params }: { params: { action: string } }) {
   const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
+  }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 

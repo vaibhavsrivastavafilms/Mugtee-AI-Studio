@@ -8,6 +8,7 @@ import {
   POST_LOGIN_REDIRECT_COOKIE,
   resolvePostLoginRedirect,
 } from '@/lib/auth/post-login-redirect'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,27 +46,32 @@ export async function GET(request: NextRequest) {
 
   console.log('[bootstrap] auth/callback exchanging code', { next })
 
+  const env = getSupabasePublicEnv()
+  if (!env) {
+    console.error('[bootstrap] auth/callback missing Supabase env')
+    const loginUrl = new URL('/auth/login', base)
+    loginUrl.searchParams.set('error', 'auth_not_configured')
+    loginUrl.searchParams.set('next', next)
+    return NextResponse.redirect(loginUrl)
+  }
+
   const response = NextResponse.redirect(`${base}${next}`)
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet, headers) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
-          Object.entries(headers).forEach(([key, value]) => {
-            response.headers.set(key, value)
-          })
-        },
+  const supabase = createServerClient(env.url, env.anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
       },
-    }
-  )
+      setAll(cookiesToSet, headers) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
+        Object.entries(headers).forEach(([key, value]) => {
+          response.headers.set(key, value)
+        })
+      },
+    },
+  })
 
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
