@@ -11,6 +11,11 @@ import {
 } from '@/lib/ai/free-tier'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
+  DEFAULT_PERPLEXITY_RESEARCH_MODEL,
+  hasPerplexityKey,
+  perplexityChatCompletion,
+} from '@/lib/ai/perplexity-client'
+import {
   buildDeepResearchSopPrompt,
   buildDeepResearchSopSystemPrompt,
   buildMockDeepResearchReport,
@@ -90,7 +95,7 @@ function finalizeResearch(
 function buildMockDeepResearch(topic: string, language: ProjectLanguage): DeepResearchResult {
   const report = buildMockDeepResearchReport(topic)
   const label = languageLabel(language)
-  const document = `${serializeDeepResearchReport(report)}\n\n_Mock research (${label}) — add OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for live output._`
+  const document = `${serializeDeepResearchReport(report)}\n\n_Mock research (${label}) — add PERPLEXITY_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for live output._`
 
   return {
     topic,
@@ -101,6 +106,42 @@ function buildMockDeepResearch(topic: string, language: ProjectLanguage): DeepRe
     mock: true,
     provider: 'mock',
     reason: 'missing_api_key',
+  }
+}
+
+async function generateWithPerplexity(userPrompt: string): Promise<DeepResearchReport | null> {
+  if (!hasPerplexityKey()) return null
+  const model = DEFAULT_PERPLEXITY_RESEARCH_MODEL
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[PERPLEXITY] REQUEST START', { model, step: 'deep-research' })
+  }
+  try {
+    const content = await perplexityChatCompletion({
+      model,
+      temperature: 0.85,
+      jsonObject: true,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    })
+    if (!content) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[PERPLEXITY] REQUEST FAILED', { step: 'deep-research', error: 'empty_response' })
+      }
+      return null
+    }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PERPLEXITY] REQUEST SUCCESS', { step: 'deep-research' })
+    }
+    const parsed = parseLlmJson(content)
+    if (!parsed || typeof parsed !== 'object') return null
+    return normalizeDeepResearchReport(parsed, '')
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[PERPLEXITY] REQUEST FAILED', { step: 'deep-research', error })
+    }
+    throw error
   }
 }
 
@@ -205,8 +246,8 @@ export function toDeepResearchDocument(
 }
 
 /**
- * Run faceless YouTube deep research (structured JSON report — no live web search).
- * Provider order: Gemini first on free tier, else OpenAI → Claude → Gemini → mock.
+ * Run faceless YouTube deep research (structured JSON report).
+ * Provider order: Perplexity (when key set) → Gemini-first on free tier → OpenAI → Claude → Gemini → mock.
  */
 export async function runDeepResearch(input: DeepResearchInput): Promise<DeepResearchResult> {
   const topic = input.topic.trim()
@@ -228,7 +269,8 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
   }
 
   const errors: string[] = []
-  const geminiFirst = isFreeTierOnly()
+  const perplexityPreferred = hasPerplexityKey()
+  const geminiFirst = isFreeTierOnly() && !perplexityPreferred
 
   const accept = (report: DeepResearchReport | null, provider: DeepResearchProvider) => {
     if (!report) return null
@@ -247,6 +289,20 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     } catch (err) {
       logError('deep-research-engine.gemini', err)
       errors.push('gemini_failed')
+    }
+    return null
+  }
+
+  const tryPerplexity = async (): Promise<DeepResearchResult | null> => {
+    if (!perplexityPreferred) return null
+    try {
+      const report = await generateWithPerplexity(userPrompt)
+      const result = accept(report, 'perplexity')
+      if (result) return result
+      errors.push('perplexity_empty')
+    } catch (err) {
+      logError('deep-research-engine.perplexity', err)
+      errors.push('perplexity_failed')
     }
     return null
   }
@@ -278,6 +334,9 @@ export async function runDeepResearch(input: DeepResearchInput): Promise<DeepRes
     }
     return null
   }
+
+  const perplexity = await tryPerplexity()
+  if (perplexity) return perplexity
 
   if (geminiFirst) {
     const gemini = await tryGemini()

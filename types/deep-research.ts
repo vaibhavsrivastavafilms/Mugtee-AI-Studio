@@ -1,7 +1,12 @@
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 
 /** LLM provider that produced research (or mock fallback). */
-export type DeepResearchProvider = 'openai' | 'anthropic' | 'gemini' | 'mock'
+export type DeepResearchProvider =
+  | 'perplexity'
+  | 'openai'
+  | 'anthropic'
+  | 'gemini'
+  | 'mock'
 
 /** Known failure / fallback reasons from the engine. */
 export type DeepResearchReason =
@@ -15,7 +20,7 @@ export type DeepResearchReason =
 export type DeepResearchInput = {
   topic: string
   language?: ProjectLanguage | string
-  /** Reserved — live web search is not used; training-knowledge prompts only. */
+  /** When false and PERPLEXITY_API_KEY is set, Sonar may use live web search. */
   skipWebSearch?: boolean
 }
 
