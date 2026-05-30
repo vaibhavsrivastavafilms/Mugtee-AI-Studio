@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createEntryHref, stageTabFromSearchParams } from '@/lib/create/routes'
+import { stageTabFromSearchParams, STUDIO } from '@/lib/create/routes'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 /** Loads a saved Quick Cut project from the dedicated project workspace route. */
@@ -27,7 +27,7 @@ export function useQuickCutProjectHydration(projectId: string | undefined) {
     void loadSavedProject(projectId, stageTab ? { stageTab } : undefined)
       .then((ok) => {
         if (!ok) {
-          router.replace(createEntryHref('quick'))
+          router.replace(STUDIO.projects)
           return
         }
 

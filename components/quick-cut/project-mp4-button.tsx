@@ -134,12 +134,23 @@ const playerDownloadClass =
 export function QuickCutPlayerMp4Download({
   className,
   triggerClassName,
+  projectId: projectIdOverride,
+  videoUrl: videoUrlOverride,
+  title: titleOverride,
+  canCompileMp4: canCompileMp4Override,
+  onVideoUrl,
 }: {
   className?: string
   triggerClassName?: string
+  /** Director export / project workspace — bypass Quick Cut session store */
+  projectId?: string
+  videoUrl?: string | null
+  title?: string
+  canCompileMp4?: boolean
+  onVideoUrl?: (url: string) => void
 }) {
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const storeTitle = useQuickCutGenerationStore((s) => s.title)
+  const storeVideoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
@@ -147,22 +158,30 @@ export function QuickCutPlayerMp4Download({
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
 
+  const title = titleOverride ?? storeTitle
+  const videoUrl = videoUrlOverride !== undefined ? videoUrlOverride : storeVideoUrl
+  const projectId = projectIdOverride ?? savedProjectId
+
   const [busy, setBusy] = useState(false)
-  const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
+  const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
+  const resolvedUrl = localVideoUrl ?? videoUrl
+  const canCompileMp4 =
+    canCompileMp4Override ??
+    quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
   const compileBusy =
     busy ||
     isRenderingVideo ||
-    (savedProjectId ? isCompileProjectMp4Busy(savedProjectId) : false)
-  const enabled = Boolean(videoUrl) || canCompileMp4
+    (projectId ? isCompileProjectMp4Busy(projectId) : false)
+  const enabled = Boolean(resolvedUrl) || canCompileMp4
   const downloadName = `${(title || 'mugtee-reel').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-reel'}.mp4`
 
   const handleClick = useCallback(async () => {
     if (!enabled || compileBusy) return
 
-    if (videoUrl) {
+    if (resolvedUrl) {
       setBusy(true)
       try {
-        await downloadMp4File(videoUrl, downloadName)
+        await downloadMp4File(resolvedUrl, downloadName)
       } finally {
         setBusy(false)
       }
@@ -172,18 +191,32 @@ export function QuickCutPlayerMp4Download({
     setBusy(true)
     try {
       let url: string | null = null
-      if (savedProjectId) {
-        url = await compileProjectMp4(savedProjectId)
-        useQuickCutGenerationStore.setState({ videoUrl: url, renderPollUrl: null, renderError: null })
+      if (projectId) {
+        url = await compileProjectMp4(projectId)
+        setLocalVideoUrl(url)
+        onVideoUrl?.(url)
+        if (!projectIdOverride) {
+          useQuickCutGenerationStore.setState({ videoUrl: url, renderPollUrl: null, renderError: null })
+        }
       } else {
         await retryVideoRender()
         url = useQuickCutGenerationStore.getState().videoUrl
+        if (url) onVideoUrl?.(url)
       }
       if (url) await downloadMp4File(url, downloadName)
     } finally {
       setBusy(false)
     }
-  }, [enabled, compileBusy, videoUrl, savedProjectId, downloadName, retryVideoRender])
+  }, [
+    enabled,
+    compileBusy,
+    resolvedUrl,
+    projectId,
+    projectIdOverride,
+    downloadName,
+    onVideoUrl,
+    retryVideoRender,
+  ])
 
   if (!enabled) return null
 
@@ -201,7 +234,7 @@ export function QuickCutPlayerMp4Download({
       title={
         compileBusy
           ? 'Compiling MP4…'
-          : videoUrl
+          : resolvedUrl
             ? 'Download MP4 (1080p vertical)'
             : 'Compile and download MP4 (1080p vertical)'
       }

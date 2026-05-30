@@ -77,6 +77,12 @@ export function ReelAssemblyPlayer({
 
   autoPlayPreview = false,
 
+  projectId,
+
+  canCompileMp4,
+
+  onVideoUrl,
+
   className,
 
 }: {
@@ -116,6 +122,13 @@ export function ReelAssemblyPlayer({
   /** Start slideshow or narration once on export complete */
 
   autoPlayPreview?: boolean
+
+  /** Director export — compile via saved project id */
+  projectId?: string
+
+  canCompileMp4?: boolean
+
+  onVideoUrl?: (url: string) => void
 
   className?: string
 
@@ -846,7 +859,13 @@ export function ReelAssemblyPlayer({
               triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
             />
 
-            <QuickCutPlayerMp4Download />
+            <QuickCutPlayerMp4Download
+              projectId={projectId}
+              videoUrl={videoUrl}
+              title={title}
+              canCompileMp4={canCompileMp4}
+              onVideoUrl={onVideoUrl}
+            />
 
           </div>
 
@@ -858,13 +877,22 @@ export function ReelAssemblyPlayer({
 
       {!canPlayPreview && (scenes.length > 0 || hook || script) ? (
 
-        <div className="flex justify-center">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
 
           <QuickCutProjectTranscriptDialog
             script={script}
             hook={hook}
             scenes={scenes}
             triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[32px] px-4 py-1.5 text-gold-100/90 hover:bg-black/60"
+          />
+
+          <QuickCutPlayerMp4Download
+            projectId={projectId}
+            videoUrl={videoUrl}
+            title={title}
+            canCompileMp4={canCompileMp4}
+            onVideoUrl={onVideoUrl}
+            triggerClassName="min-h-[32px] px-4 py-1.5"
           />
 
         </div>

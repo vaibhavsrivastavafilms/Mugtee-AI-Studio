@@ -93,9 +93,11 @@ export function RecentProjectsGrid() {
   const [projects, setProjects] = useState<RecentProject[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [tableUnavailable, setTableUnavailable] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let alive = true
+    setLoading(true)
     ;(async () => {
       try {
         const { projects: rows, tableUnavailable: missing } = await loadRecentProjects(8)
@@ -112,7 +114,9 @@ export function RecentProjectsGrid() {
       }
     })()
     return () => { alive = false }
-  }, [])
+  }, [reloadKey])
+
+  const retryLoadProjects = () => setReloadKey((k) => k + 1)
 
   if (loading) {
     return (
@@ -130,7 +134,7 @@ export function RecentProjectsGrid() {
   if (tableUnavailable) {
     return (
       <div className="space-y-4">
-        <DatabaseMigrationBanner />
+        <DatabaseMigrationBanner onRetry={retryLoadProjects} />
         <ProjectLibraryEmpty />
       </div>
     )

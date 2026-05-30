@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
       scenes: result.scenes,
       mock: result.mock,
       characterDescription: result.characterDescription,
+      ...(result.degradedSceneIds?.length
+        ? {
+            degraded: true,
+            degradedSceneIds: result.degradedSceneIds,
+            imageFailures: result.imageFailures,
+            warning:
+              'Some scenes used placeholder images because all configured image providers failed. Check server logs for provider details.',
+          }
+        : {}),
     })
   } catch (err) {
     logError('generate-images', err)

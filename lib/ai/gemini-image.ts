@@ -86,6 +86,34 @@ function finalizeGeminiImagePrompt(prompt: string): string {
   return prompt.trim().slice(0, 3800)
 }
 
+function summarizeProviderBody(body: string, max = 280): string {
+  const trimmed = body.trim()
+  if (!trimmed) return ''
+  try {
+    const json = JSON.parse(trimmed) as Record<string, unknown>
+    const err = json.error as Record<string, unknown> | undefined
+    if (err?.message) return String(err.message).slice(0, max)
+    const msg = json.message
+    if (typeof msg === 'string') return msg.slice(0, max)
+  } catch {
+    // non-JSON body
+  }
+  return trimmed.slice(0, max)
+}
+
+function logProviderHttpError(
+  scope: string,
+  status: number,
+  body: string,
+  extra?: Record<string, unknown>
+): void {
+  logError(scope, new Error(`HTTP ${status}`), {
+    status,
+    detail: summarizeProviderBody(body),
+    ...extra,
+  })
+}
+
 async function generateGeminiSceneImageDirect(
   prompt: string,
   _opts: GeminiImagePromptOptions = {}
@@ -110,7 +138,10 @@ async function generateGeminiSceneImageDirect(
     })
 
     if (!res.ok) {
-      logError('gemini-image.direct', new Error(`HTTP ${res.status}`))
+      const body = await res.text().catch(() => '')
+      logProviderHttpError('gemini-image.direct', res.status, body, {
+        model,
+      })
       return null
     }
 
@@ -152,7 +183,10 @@ async function generateGeminiSceneImageEmergent(
     })
 
     if (!res.ok) {
-      logError('gemini-image.emergent', new Error(`HTTP ${res.status}`))
+      const body = await res.text().catch(() => '')
+      logProviderHttpError('gemini-image.emergent', res.status, body, {
+        model: GEMINI_IMAGE_MODEL,
+      })
       return null
     }
 

@@ -6,6 +6,7 @@ import { QuickCutCreator } from '@/components/create/quick-cut-creator'
 import { ProjectWorkspaceHeader } from '@/components/create/project-workspace-header'
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
 import { loadProject } from '@/lib/cinematic-projects'
+import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import { STUDIO, type CreatorMode } from '@/lib/create/routes'
 import WorkspacePage from '@/components/workspace/workspace-page'
 
@@ -75,7 +76,7 @@ function ProjectWorkspaceInner() {
       try {
         const row = await loadProject(projectId)
         if (!alive) return
-        const resolvedMode: CreatorMode = row.mode === 'quick' ? 'quick' : 'director'
+        const resolvedMode = inferProjectMode(row)
         setMode(resolvedMode)
         setMeta({
           title: row.title,

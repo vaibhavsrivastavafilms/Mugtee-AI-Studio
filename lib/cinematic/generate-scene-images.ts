@@ -47,6 +47,10 @@ export type GenerateSceneImagesResult = {
   scenes: GeneratedScene[]
   mock: boolean
   characterDescription: string
+  /** Scene ids that fell back to placeholders despite configured providers */
+  degradedSceneIds?: string[]
+  /** Providers attempted before placeholder fallback (per scene) */
+  imageFailures?: Array<{ sceneId: string; attempted: string[] }>
 }
 
 function promptContext(
@@ -94,6 +98,7 @@ export async function generateSceneImages(
     : null
 
   let anyMock = !canGenerate
+  const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
   const updated = input.scenes.map((scene) => ({ ...scene }))
 
   for (let i = 0; i < updated.length; i++) {
@@ -118,17 +123,20 @@ export async function generateSceneImages(
       : `anon/faceless/scene_${scene.id}_${Date.now()}.png`
 
     let imageUrl: string | null = null
+    const attempted: string[] = []
 
-    // Primary: Gemini via Emergent gateway (same provider as /api/ai/image Flow pipeline)
+    // Primary: Gemini (direct AI Studio key first, then Emergent gateway when allowed)
     if (hasGeminiImageKey()) {
+      attempted.push('gemini')
       imageUrl = await generateGeminiSceneImage(scenePrompt, {
         filename,
         hasReferenceStyle: ctx.hasReferenceStyle,
       })
     }
 
-    // Fallback: OpenAI DALL-E 3 (disabled in free-tier-only mode)
+    // Fallback: OpenAI Images API (disabled in free-tier-only mode)
     if (!imageUrl && allowDalleImages()) {
+      attempted.push('openai')
       const dallePrompt = buildDalleSceneImagePrompt(scene, {
         ...ctx,
         characterDescription,
@@ -144,6 +152,9 @@ export async function generateSceneImages(
     }
 
     if (!imageUrl) {
+      if (canGenerate && attempted.length > 0) {
+        imageFailures.push({ sceneId: scene.id, attempted })
+      }
       imageUrl = placeholderSceneImageUrl(scene, i)
       anyMock = true
     }
@@ -160,5 +171,11 @@ export async function generateSceneImages(
     scenes: ensureScenesHaveImagePrompts(updated),
     mock: anyMock,
     characterDescription,
+    ...(imageFailures.length
+      ? {
+          degradedSceneIds: imageFailures.map((f) => f.sceneId),
+          imageFailures,
+        }
+      : {}),
   }
 }
