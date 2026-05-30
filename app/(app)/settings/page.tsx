@@ -191,13 +191,13 @@ export default function SettingsPage() {
         <div className="gold-divider" />
 
         <div className="space-y-3">
-          <label className="text-xs tracking-wider uppercase text-muted-foreground">Logo</label>
+          <label htmlFor="studio-logo-upload" className="text-xs tracking-wider uppercase text-muted-foreground">Logo</label>
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-xl glass flex items-center justify-center overflow-hidden shrink-0">
               {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-gold-400/60" />}
             </div>
             <div className="flex-1 space-y-2">
-              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+              <input id="studio-logo-upload" ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
                 onChange={(e) => e.target.files?.[0] && handleLogoFile(e.target.files[0])} />
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()} className="gap-2 border-gold-500/30">

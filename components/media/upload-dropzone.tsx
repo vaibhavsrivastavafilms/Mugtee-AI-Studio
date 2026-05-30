@@ -150,12 +150,13 @@ export function UploadDropzone() {
           multiple
           accept=".mp4,.mov,.jpg,.jpeg,.png,video/mp4,video/quicktime,image/jpeg,image/png"
           className="hidden"
+          aria-labelledby="upload-dropzone-label"
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
         <div className="w-12 h-12 mx-auto rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow mb-3">
           <Upload className="w-6 h-6 text-black" />
         </div>
-        <h3 className="font-display text-xl mb-1">Drop files to upload</h3>
+        <h3 id="upload-dropzone-label" className="font-display text-xl mb-1">Drop files to upload</h3>
         <p className="text-luxe/70 text-sm">mp4 · mov · jpg · png · up to 500 MB each</p>
       </div>
 
