@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  output: 'standalone',
+  // Standalone file tracing fails on Windows (ENOENT in collect-build-traces).
+  // Set NEXT_OUTPUT_STANDALONE=1 for self-hosted Docker/Linux builds only.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
 
   experimental: {
     optimizePackageImports: ['framer-motion'],
