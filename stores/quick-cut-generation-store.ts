@@ -1822,18 +1822,30 @@ export const useQuickCutGenerationStore = create<
           }
         }
 
-        set({ lastCompletedStep: 'export' })
-        const exportId = await persistStepComplete(
-          get(),
-          'export',
-          buildArchiveInput(get(), buildGenerationOutput(get()))
-        )
-        if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
+        const exportDone = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
+        const exportFailed = videoRenderEnabled && Boolean(renderError) && !videoUrl
+
+        if (exportDone) {
+          set({ lastCompletedStep: 'export' })
+          const exportId = await persistStepComplete(
+            get(),
+            'export',
+            buildArchiveInput(get(), buildGenerationOutput(get()))
+          )
+          if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
+        } else if (exportFailed && renderError) {
+          logStepFailed('export', get().savedProjectId, renderError)
+        }
       }
 
       if (assemblyPresentation) {
         await assemblyPresentation
       }
+
+      const exportDoneFinal = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
+      const exportInProgressFinal =
+        videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError
+      const exportFailedFinal = videoRenderEnabled && Boolean(renderError) && !videoUrl
 
       const pipeline: QuickCutPipelineStatus = {
         steps: {
@@ -1847,27 +1859,38 @@ export const useQuickCutGenerationStore = create<
         live: !anyMock,
       }
 
-      setStep(set, get, videoRenderEnabled && !videoUrl && !exportPackageReady ? 'render' : 'complete')
+      setStep(
+        set,
+        get,
+        exportDoneFinal ? 'complete' : exportInProgressFinal || exportFailedFinal ? 'render' : 'complete'
+      )
       set({
         videoUrl,
-        renderPollUrl: videoUrl ? null : renderPollUrl,
+        renderPollUrl: videoUrl || renderError ? null : renderPollUrl,
         renderError: videoUrl ? null : renderError,
         exportPackageReady,
         mock: anyMock,
         missingKeys: [...missingKeys],
         pipeline,
         isGenerating: false,
-        isComplete: true,
-        generationStatus: 'completed',
-        generationStep:
-          videoRenderEnabled && !videoUrl && !exportPackageReady ? 'render' : 'complete',
+        isComplete: exportDoneFinal,
+        generationStatus: exportDoneFinal
+          ? 'completed'
+          : exportInProgressFinal || exportFailedFinal
+            ? 'generating'
+            : 'completed',
+        generationStep: exportDoneFinal
+          ? 'complete'
+          : exportInProgressFinal || exportFailedFinal
+            ? 'render'
+            : 'complete',
         generationState: 'idle',
         assemblyPreviewAutoplay: false,
         assemblyLineIndex: 0,
-        lastCompletedStep: 'export',
-        failedAtStep: null,
-        error: null,
-        progress: 100,
+        lastCompletedStep: exportDoneFinal ? 'export' : get().lastCompletedStep,
+        failedAtStep: exportFailedFinal ? 'export' : null,
+        error: exportFailedFinal ? renderError : null,
+        progress: exportDoneFinal ? 100 : exportFailedFinal || exportInProgressFinal ? 88 : 100,
         eta: 0,
         lastGeneratedPrompt: prompt,
         studioReviewMode: false,
@@ -1878,28 +1901,42 @@ export const useQuickCutGenerationStore = create<
       try {
         await archiveGeneratedProject({
           ...completedArchive,
-          generation_status: 'completed',
-          generation_step: 'export',
-          last_completed_step: 'export',
-          generation_error: null,
+          generation_status: exportDoneFinal
+            ? 'completed'
+            : exportInProgressFinal || exportFailedFinal
+              ? 'generating'
+              : 'completed',
+          generation_step: exportDoneFinal ? 'export' : 'export',
+          last_completed_step: exportDoneFinal ? 'export' : get().lastCompletedStep ?? 'voice',
+          generation_error: exportFailedFinal ? renderError : null,
         })
       } catch {
         /* preview session still holds state */
       }
 
-      trackEvent(AnalyticsEvents.GENERATION_COMPLETED, {
-        projectId: get().savedProjectId,
-        metadata: {
-          duration_ms: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
-          niche: get().niche,
-          duration: get().duration,
-          mock: anyMock,
-        },
-      })
-      trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
-        projectId: get().savedProjectId,
-        metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
-      })
+      if (exportDoneFinal) {
+        trackEvent(AnalyticsEvents.GENERATION_COMPLETED, {
+          projectId: get().savedProjectId,
+          metadata: {
+            duration_ms: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
+            niche: get().niche,
+            duration: get().duration,
+            mock: anyMock,
+          },
+        })
+        trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
+          projectId: get().savedProjectId,
+          metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+        })
+      } else if (exportFailedFinal) {
+        trackEvent(AnalyticsEvents.GENERATION_FAILED, {
+          projectId: get().savedProjectId,
+          metadata: {
+            message: renderError?.slice(0, 120) ?? 'Export failed',
+            step: 'export',
+          },
+        })
+      }
 
       persistSession(get())
     } catch (err) {

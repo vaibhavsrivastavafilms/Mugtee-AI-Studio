@@ -118,6 +118,40 @@ export async function loadOwnedCinematicProject(
   return data as CinematicProjectRow
 }
 
+/** Serverless poll fallback when in-memory render jobs are lost between requests. */
+export async function loadOwnedProjectByReelJobId(
+  reelJobId: string,
+  userId: string
+): Promise<CinematicProjectRow | null> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('cinematic_projects')
+    .select('*')
+    .eq('reel_job_id', reelJobId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as CinematicProjectRow
+}
+
+export function projectRowToExportPollResponse(row: CinematicProjectRow) {
+  const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
+  const status = mapProjectReelStatus(row.reel_status, reelUrl)
+  return {
+    status,
+    progress: status === 'completed' ? 100 : status === 'failed' ? 0 : 50,
+    label:
+      status === 'completed'
+        ? 'Download ready'
+        : status === 'failed'
+          ? 'Reel export failed'
+          : 'Rendering reel…',
+    reelUrl: status === 'completed' ? reelUrl : null,
+    error: status === 'failed' ? 'Reel export failed' : null,
+  }
+}
+
 export function jobToExportPollResponse(job: RenderJobStatus) {
   const status = mapJobToExportStatus(job)
   return {
@@ -173,6 +207,7 @@ export async function queueReelExportForProject(params: {
     userId: params.userId,
     projectId: params.row.id,
     reelStatus: 'queued',
+    reelJobId: jobId,
   }).catch(() => undefined)
 
   const input = {
@@ -200,6 +235,12 @@ export async function queueReelExportForProject(params: {
       error: friendlyExportError(err),
       percent: 0,
     })
+    void updateProjectReelStatus({
+      userId: params.userId,
+      projectId: params.row.id,
+      reelStatus: 'failed',
+      reelJobId: null,
+    }).catch(() => undefined)
   })
 
   return { jobId, status: 'queued' }

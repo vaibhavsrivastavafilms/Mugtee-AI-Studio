@@ -240,6 +240,7 @@ export async function orchestrateRemotionReel(
         userId: input.userId,
         projectId: input.projectId,
         reelStatus: 'failed',
+        reelJobId: null,
       }).catch(() => undefined)
     }
 

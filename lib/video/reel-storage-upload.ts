@@ -95,6 +95,7 @@ export async function persistProjectReel(params: {
       reel_status: dbReelStatus,
       reel_url: params.videoUrl,
       reel_rendered_at: status === 'ready' || status === 'completed' ? now : null,
+      reel_job_id: null,
       updated_at: now,
     })
     .eq('id', params.projectId)
@@ -105,14 +106,19 @@ export async function updateProjectReelStatus(params: {
   userId: string
   projectId: string
   reelStatus: ReelStatus
+  reelJobId?: string | null
 }) {
   const supabase = createSupabaseServerClient()
+  const patch: Record<string, unknown> = {
+    reel_status: params.reelStatus,
+    updated_at: new Date().toISOString(),
+  }
+  if (params.reelJobId !== undefined) {
+    patch.reel_job_id = params.reelJobId
+  }
   await supabase
     .from('cinematic_projects')
-    .update({
-      reel_status: params.reelStatus,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq('id', params.projectId)
     .eq('user_id', params.userId)
 }

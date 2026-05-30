@@ -135,6 +135,7 @@ export type CinematicProjectRow = {
   reel_status?: string | null
   reel_url?: string | null
   reel_rendered_at?: string | null
+  reel_job_id?: string | null
   updated_at: string
   created_at: string
   language?: string | null
@@ -189,6 +190,7 @@ export type ArchiveGeneratedProjectInput = {
   reel_status?: string | null
   reel_url?: string | null
   reel_rendered_at?: string | null
+  reel_job_id?: string | null
   style?: string
   hook?: string
   summary?: string
