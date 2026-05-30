@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import {
+  GENERATION_FOOTER_CLEARANCE,
+  QuickCutGenerationFooter,
+} from '@/components/quick-cut/generation-footer'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
-import { RenderProgress } from '@/components/quick-cut/render-progress'
 import { VirloMetadataPanel } from '@/components/quick-cut/virlo-metadata-panel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { cn } from '@/lib/utils'
@@ -55,49 +58,47 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   }
 
   return (
-    <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_min(260px,28%)] lg:gap-6">
-      {voiceUrl ? (
-        <audio
-          ref={voiceAudioRef}
-          src={voiceUrl}
-          preload="metadata"
-          className="sr-only"
-          aria-hidden
-        />
-      ) : null}
-      <div className="space-y-5 min-w-0">
-        <div className="flex flex-col items-center">
-          <ReelAssemblyPlayer
-            scenes={scenes}
-            title={title}
-            hook={hook}
-            script={script}
-            videoUrl={videoUrl}
-            voiceUrl={voiceUrl}
-            audioRef={voiceAudioRef}
-            waveform={waveform}
-            isLive={!isComplete}
-            generationStep={isComplete ? 'complete' : generationStep}
-            mp4Compiling={generationStep === 'render' && !videoUrl}
-            autoPlayPreview={isComplete && Boolean(voiceUrl) && !videoUrl}
-            className="mx-auto"
-          />
+    <>
+      <div
+        className={cn(
+          'space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_min(260px,28%)] lg:gap-6',
+          GENERATION_FOOTER_CLEARANCE
+        )}
+      >
+        <div className="space-y-5 min-w-0">
+          <div className="flex flex-col items-center">
+            <ReelAssemblyPlayer
+              scenes={scenes}
+              title={title}
+              hook={hook}
+              script={script}
+              videoUrl={videoUrl}
+              voiceUrl={voiceUrl}
+              audioRef={voiceAudioRef}
+              waveform={waveform}
+              isLive={!isComplete}
+              generationStep={isComplete ? 'complete' : generationStep}
+              mp4Compiling={generationStep === 'render' && !videoUrl}
+              autoPlayPreview={isComplete && Boolean(voiceUrl) && !videoUrl}
+              className="mx-auto"
+            />
+          </div>
+
+          <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
+
+          {scenes.length > 0 ? (
+            <div className="flex justify-center pt-1">
+              <QuickCutSaveProjectButton variant="compact" showViewLink={false} />
+            </div>
+          ) : null}
         </div>
 
-        <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
-
-        <RenderProgress />
-
-        {scenes.length > 0 ? (
-          <div className="flex justify-center pt-1">
-            <QuickCutSaveProjectButton variant="compact" showViewLink={false} />
-          </div>
-        ) : null}
+        <aside className={cn('min-w-0', 'lg:sticky lg:top-24 lg:self-start')}>
+          <VirloMetadataPanel virlo={virlo} hook={hook} hookVariantNumber={hookVariantNumber} />
+        </aside>
       </div>
 
-      <aside className={cn('min-w-0', 'lg:sticky lg:top-24 lg:self-start')}>
-        <VirloMetadataPanel virlo={virlo} hook={hook} hookVariantNumber={hookVariantNumber} />
-      </aside>
-    </div>
+      <QuickCutGenerationFooter />
+    </>
   )
 }

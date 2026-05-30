@@ -75,6 +75,7 @@ export type QuickCutProjectHydrationPatch = {
   virlo: VirloMetadata | null
   lastSavedAt: number
   originalTranscript: string
+  lastGeneratedPrompt: string
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -119,5 +120,6 @@ export function buildQuickCutHydrationFromRow(
     virlo: (row.virlo as VirloMetadata | null) ?? null,
     lastSavedAt: new Date(row.updated_at).getTime(),
     originalTranscript: row.original_transcript?.trim() || state.prompt || '',
+    lastGeneratedPrompt: state.prompt?.trim() || '',
   }
 }

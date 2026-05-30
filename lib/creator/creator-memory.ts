@@ -5,8 +5,12 @@ export type CreatorPreferenceKey =
   | 'lastNiche'
   | 'preferredRewriteMode'
   | 'preferredPlatform'
+  | 'preferredVisualStyle'
+  | 'preferredPacing'
+  | 'preferredHookStyle'
   | 'recentTones'
   | 'recentStoryboardStyles'
+  | 'recentHookStyles'
   | 'lastProjectId'
   | 'lastProjectTitle'
   | 'lastProjectStatus'
@@ -15,12 +19,25 @@ export type CreatorPreferences = {
   lastNiche?: CinematicNiche | string
   preferredRewriteMode?: string
   preferredPlatform?: string
+  preferredVisualStyle?: string
+  preferredPacing?: string
+  preferredHookStyle?: string
   recentTones?: string[]
   recentStoryboardStyles?: string[]
+  recentHookStyles?: string[]
   lastProjectId?: string
   lastProjectTitle?: string
   lastProjectStatus?: CinematicProjectStatus | string
   updatedAt?: string
+}
+
+export type CreatorMemoryBiasHints = {
+  niche?: string
+  visualStyle?: string
+  pacing?: string
+  hookStyle?: string
+  platform?: string
+  recentTones?: string[]
 }
 
 const STORAGE_KEY = 'mugtee:creator:memory:v1'
@@ -49,19 +66,25 @@ function writePrefs(prefs: CreatorPreferences) {
   }
 }
 
+const RECENT_LIST_KEYS = new Set<CreatorPreferenceKey>([
+  'recentTones',
+  'recentStoryboardStyles',
+  'recentHookStyles',
+])
+
 export function saveCreatorPreference(
   key: CreatorPreferenceKey,
   value: string | string[]
 ): void {
   const prefs = readPrefs()
-  if (key === 'recentTones' || key === 'recentStoryboardStyles') {
+  if (RECENT_LIST_KEYS.has(key)) {
     const list = Array.isArray(value) ? value : [value]
     const existing = (prefs[key] as string[] | undefined) ?? []
     const next = [list[0], ...existing.filter((v) => v !== list[0])].slice(
       0,
       MAX_RECENT
     )
-    prefs[key] = next
+    ;(prefs as Record<string, unknown>)[key] = next
   } else {
     ;(prefs as Record<string, unknown>)[key] = value
   }
@@ -78,11 +101,25 @@ export function getCreatorPreferences(): CreatorPreferences {
   return readPrefs()
 }
 
+function inferPacingFromStyle(style?: string): string | undefined {
+  if (!style?.trim()) return undefined
+  const key = style.toLowerCase()
+  if (/documentary|history|witness/.test(key)) return 'documentary'
+  if (/emotional|story|narrative/.test(key)) return 'emotional'
+  if (/motivational|hook|viral/.test(key)) return 'punchy'
+  if (/luxury|quiet|restraint/.test(key)) return 'measured'
+  if (/cinematic|film/.test(key)) return 'cinematic'
+  return style
+}
+
 export function rememberCreativeSession(input: {
   niche?: string
   style?: string
   platform?: string
   storyboardStyle?: string
+  visualStyle?: string
+  hookStyle?: string
+  pacing?: string
   projectId?: string
   projectTitle?: string
   projectStatus?: string
@@ -91,11 +128,23 @@ export function rememberCreativeSession(input: {
   if (input.style) {
     saveCreatorPreference('preferredRewriteMode', input.style)
     saveCreatorPreference('recentTones', input.style)
+    const pacing = input.pacing ?? inferPacingFromStyle(input.style)
+    if (pacing) saveCreatorPreference('preferredPacing', pacing)
   }
   if (input.platform) saveCreatorPreference('preferredPlatform', input.platform)
   if (input.storyboardStyle) {
     saveCreatorPreference('recentStoryboardStyles', input.storyboardStyle)
   }
+  if (input.visualStyle) {
+    saveCreatorPreference('preferredVisualStyle', input.visualStyle)
+  }
+  if (input.hookStyle) {
+    saveCreatorPreference('preferredHookStyle', input.hookStyle)
+    saveCreatorPreference('recentHookStyles', input.hookStyle)
+  } else if (input.style) {
+    saveCreatorPreference('recentHookStyles', input.style)
+  }
+  if (input.pacing) saveCreatorPreference('preferredPacing', input.pacing)
   if (input.projectId) saveCreatorPreference('lastProjectId', input.projectId)
   if (input.projectTitle) {
     saveCreatorPreference('lastProjectTitle', input.projectTitle)
@@ -110,6 +159,9 @@ export function getRecentCreativePatterns(): {
   tone?: string
   platform?: string
   storyboardStyle?: string
+  visualStyle?: string
+  pacing?: string
+  hookStyle?: string
   recentTones: string[]
 } {
   const prefs = readPrefs()
@@ -118,8 +170,45 @@ export function getRecentCreativePatterns(): {
     tone: prefs.preferredRewriteMode,
     platform: prefs.preferredPlatform,
     storyboardStyle: prefs.recentStoryboardStyles?.[0],
+    visualStyle: prefs.preferredVisualStyle,
+    pacing: prefs.preferredPacing,
+    hookStyle: prefs.preferredHookStyle ?? prefs.recentHookStyles?.[0],
     recentTones: prefs.recentTones ?? [],
   }
+}
+
+/** Lightweight bias hints for script generation — read from localStorage on client. */
+export function getCreatorMemoryBiasHints(): CreatorMemoryBiasHints {
+  const prefs = readPrefs()
+  return {
+    niche: prefs.lastNiche,
+    visualStyle: prefs.preferredVisualStyle ?? prefs.recentStoryboardStyles?.[0],
+    pacing: prefs.preferredPacing ?? inferPacingFromStyle(prefs.preferredRewriteMode),
+    hookStyle: prefs.preferredHookStyle ?? prefs.recentHookStyles?.[0],
+    platform: prefs.preferredPlatform,
+    recentTones: prefs.recentTones,
+  }
+}
+
+export function buildCreatorMemoryPromptSection(
+  hints?: CreatorMemoryBiasHints | null
+): string {
+  if (!hints) return ''
+  const lines = [
+    hints.niche ? `Preferred niche: ${hints.niche}` : '',
+    hints.visualStyle ? `Preferred visual style: ${hints.visualStyle}` : '',
+    hints.pacing ? `Preferred pacing: ${hints.pacing}` : '',
+    hints.hookStyle ? `Preferred hook style: ${hints.hookStyle}` : '',
+    hints.platform ? `Preferred platform: ${hints.platform}` : '',
+    hints.recentTones?.length
+      ? `Recent tones (bias lightly): ${hints.recentTones.slice(0, 3).join(', ')}`
+      : '',
+  ].filter(Boolean)
+  if (!lines.length) return ''
+  return [
+    'CREATOR MEMORY (light bias — honor when compatible with the brief):',
+    ...lines,
+  ].join('\n')
 }
 
 const RESTORE_MESSAGES: Record<string, string> = {

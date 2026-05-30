@@ -14,13 +14,21 @@ export function useMediaPlaybackTime(
   const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      setCurrentTime(0)
+      setDuration(0)
+      setIsPlaying(false)
+      return
+    }
 
-    let el = mediaRef.current
+    let bound: HTMLMediaElement | null = null
     let detach: (() => void) | undefined
     let pollId: number | undefined
+    let rafId: number | undefined
 
     const bind = (node: HTMLMediaElement) => {
+      bound = node
+
       const syncDuration = () => {
         if (Number.isFinite(node.duration) && node.duration > 0) {
           setDuration(node.duration)
@@ -30,42 +38,73 @@ export function useMediaPlaybackTime(
       const syncTime = () => setCurrentTime(node.currentTime)
       const onPlay = () => setIsPlaying(true)
       const onPause = () => setIsPlaying(false)
-      const onEnded = () => setIsPlaying(false)
+      const onEnded = () => {
+        setIsPlaying(false)
+        syncTime()
+      }
+
+      const tick = () => {
+        if (bound !== node) return
+        syncTime()
+        setIsPlaying(!node.paused && !node.ended)
+        if (!node.paused && !node.ended) {
+          rafId = requestAnimationFrame(tick)
+        }
+      }
+
+      const onPlayRaf = () => {
+        onPlay()
+        if (rafId !== undefined) cancelAnimationFrame(rafId)
+        rafId = requestAnimationFrame(tick)
+      }
+
+      const onPauseRaf = () => {
+        onPause()
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId)
+          rafId = undefined
+        }
+        syncTime()
+      }
 
       node.addEventListener('loadedmetadata', syncDuration)
       node.addEventListener('durationchange', syncDuration)
       node.addEventListener('timeupdate', syncTime)
       node.addEventListener('seeked', syncTime)
-      node.addEventListener('play', onPlay)
-      node.addEventListener('pause', onPause)
+      node.addEventListener('play', onPlayRaf)
+      node.addEventListener('pause', onPauseRaf)
       node.addEventListener('ended', onEnded)
 
       syncDuration()
       syncTime()
       setIsPlaying(!node.paused && !node.ended)
+      if (!node.paused && !node.ended) {
+        rafId = requestAnimationFrame(tick)
+      }
 
       return () => {
+        if (rafId !== undefined) cancelAnimationFrame(rafId)
         node.removeEventListener('loadedmetadata', syncDuration)
         node.removeEventListener('durationchange', syncDuration)
         node.removeEventListener('timeupdate', syncTime)
         node.removeEventListener('seeked', syncTime)
-        node.removeEventListener('play', onPlay)
-        node.removeEventListener('pause', onPause)
+        node.removeEventListener('play', onPlayRaf)
+        node.removeEventListener('pause', onPauseRaf)
         node.removeEventListener('ended', onEnded)
+        if (bound === node) bound = null
       }
     }
 
-    if (el) {
+    const tryBind = () => {
+      const el = mediaRef.current
+      if (!el || el === bound) return
+      detach?.()
       detach = bind(el)
-    } else {
-      pollId = window.setInterval(() => {
-        el = mediaRef.current
-        if (el) {
-          window.clearInterval(pollId)
-          pollId = undefined
-          detach = bind(el)
-        }
-      }, 100)
+    }
+
+    tryBind()
+    if (!bound) {
+      pollId = window.setInterval(tryBind, 100)
     }
 
     return () => {

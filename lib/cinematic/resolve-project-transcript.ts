@@ -6,10 +6,15 @@ export type ProjectTranscriptSource =
   | 'scenes'
   | 'captions'
 
+export type ProjectTranscriptScene = Pick<GeneratedScene, 'description' | 'title'> & {
+  narration?: string | null
+}
+
 export type ProjectTranscriptInput = {
   originalTranscript?: string | null
   script?: string | null
-  scenes?: Pick<GeneratedScene, 'description' | 'title'>[]
+  hook?: string | null
+  scenes?: ProjectTranscriptScene[]
   captions?: string | null
   captionLines?: string[] | null
 }
@@ -24,10 +29,18 @@ function nonEmpty(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null
 }
 
+function sceneLine(scene: ProjectTranscriptScene): string | null {
+  return (
+    nonEmpty(scene.description) ||
+    nonEmpty(scene.narration) ||
+    nonEmpty(scene.title)
+  )
+}
+
 function sceneNarrations(scenes: ProjectTranscriptInput['scenes']): string | null {
   if (!scenes?.length) return null
   const lines = scenes
-    .map((scene) => nonEmpty(scene.description) || nonEmpty(scene.title))
+    .map((scene) => sceneLine(scene))
     .filter((line): line is string => Boolean(line))
   return lines.length ? lines.join('\n\n') : null
 }
@@ -45,14 +58,17 @@ function captionText(
 export function resolveProjectTranscript(
   input: ProjectTranscriptInput
 ): ResolvedProjectTranscript {
-  const original = nonEmpty(input.originalTranscript)
-  if (original) return { text: original, source: 'original_transcript' }
-
   const script = nonEmpty(input.script)
   if (script) return { text: script, source: 'script' }
 
+  const original = nonEmpty(input.originalTranscript)
+  if (original) return { text: original, source: 'original_transcript' }
+
   const scenes = sceneNarrations(input.scenes)
   if (scenes) return { text: scenes, source: 'scenes' }
+
+  const hook = nonEmpty(input.hook)
+  if (hook) return { text: hook, source: 'script' }
 
   const captions = captionText(input.captions, input.captionLines)
   if (captions) return { text: captions, source: 'captions' }

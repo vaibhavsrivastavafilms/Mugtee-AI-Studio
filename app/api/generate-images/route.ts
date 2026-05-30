@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
       ? (raw.sceneIds as string[]).filter((id) => typeof id === 'string')
       : undefined
 
+    const referenceStyleNote =
+      typeof raw?.referenceStyleNote === 'string'
+        ? raw.referenceStyleNote
+        : typeof raw?.imageNote === 'string'
+          ? raw.imageNote
+          : undefined
+
     const result = await generateSceneImages({
       scenes,
       characterDescription:
@@ -47,6 +54,9 @@ export async function POST(req: NextRequest) {
       diversityAttempt:
         typeof raw?.diversityAttempt === 'number' ? raw.diversityAttempt : 0,
       userId: user?.id,
+      hasReferenceStyle:
+        raw?.hasReferenceStyle === true || Boolean(referenceStyleNote?.trim()),
+      referenceStyleNote,
     })
 
     return NextResponse.json({

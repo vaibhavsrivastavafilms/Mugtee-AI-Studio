@@ -5,10 +5,12 @@ import {
   validateCinematicOutput,
 } from '@/lib/cinematic/generation'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
+import { coerceReferenceScript } from '@/lib/ai/prompts/cinematic/script-writing-sop'
 import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-generation'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import {
   coerceDuration,
   coercePlatform,
@@ -16,9 +18,31 @@ import {
   coerceTone,
   logError,
 } from '@/lib/workspace/validation'
+import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function parseCreatorMemoryBias(raw: unknown): CreatorMemoryBiasHints | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const str = (key: string) => {
+    const v = o[key]
+    return typeof v === 'string' && v.trim() ? v.trim().slice(0, 120) : undefined
+  }
+  const recentTones = Array.isArray(o.recentTones)
+    ? o.recentTones.filter((v): v is string => typeof v === 'string').slice(0, 5)
+    : undefined
+  const hints: CreatorMemoryBiasHints = {
+    niche: str('niche'),
+    visualStyle: str('visualStyle'),
+    pacing: str('pacing'),
+    hookStyle: str('hookStyle'),
+    platform: str('platform'),
+    recentTones: recentTones?.length ? recentTones : undefined,
+  }
+  return Object.values(hints).some(Boolean) ? hints : undefined
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -111,6 +135,24 @@ export async function POST(req: NextRequest) {
           : undefined
     const voiceNote =
       typeof raw.voiceNote === 'string' ? raw.voiceNote.slice(0, 500) : undefined
+    const referenceScript = coerceReferenceScript(
+      raw.referenceScript ?? raw.reference_script
+    )
+    const regenFresh = raw.regenFresh === true
+    const previousScript =
+      typeof raw.previousScript === 'string'
+        ? raw.previousScript.slice(0, 12_000)
+        : undefined
+    const previousHook =
+      typeof raw.previousHook === 'string' ? raw.previousHook.slice(0, 220) : undefined
+    const visualStyle = parseVisualStyle(raw.visualStyle)
+    const skipResearch = raw.skipResearch === true
+    const researchDocument =
+      typeof raw.researchDocument === 'string'
+        ? raw.researchDocument.slice(0, 12_000)
+        : undefined
+
+    const creatorMemoryBias = parseCreatorMemoryBias(raw.creatorMemoryBias)
 
     const input = {
       topic,
@@ -122,6 +164,14 @@ export async function POST(req: NextRequest) {
       language,
       transcript,
       voiceNote,
+      referenceScript,
+      skipResearch: skipResearch || undefined,
+      researchDocument,
+      regenFresh: regenFresh || undefined,
+      previousScript: regenFresh ? previousScript : undefined,
+      previousHook: regenFresh ? previousHook : undefined,
+      visualStyle,
+      creatorMemoryBias,
     }
 
     if (!hasScriptGenerationKey()) {
@@ -155,6 +205,9 @@ export async function POST(req: NextRequest) {
         visualStyle: result.visualStyle,
         viralScript: result.viralScript,
         viralStructure: result.viralStructure,
+        referenceScriptUsed: Boolean(referenceScript),
+        researchDocument: result.researchDocument,
+        researchMock: result.researchMock,
       })
     } catch (err) {
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })

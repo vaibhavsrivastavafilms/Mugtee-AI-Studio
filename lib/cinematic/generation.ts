@@ -33,6 +33,11 @@ import {
 } from '@/lib/cinematic/viral-structure'
 import { clampSceneDurationsToTarget } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
+import {
+  prependReferenceStylePrefix,
+  sanitizeSceneOnlyPrompt,
+} from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
+import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -60,6 +65,8 @@ export type SceneImagePromptContext = {
   niche?: CinematicNiche | string
   style?: string
   visualStyleLabel?: string
+  /** Locked look — applied in a separate layer, not inside scene description */
+  visualStyle?: VisualStyle | null
   emotionalGoal?: string
   hook?: string
   sceneIndex?: number
@@ -68,6 +75,8 @@ export type SceneImagePromptContext = {
   variation?: boolean
   /** Custom variation directive from diversity engine */
   variationDirective?: string
+  /** Reference style image attached — prepends SOP prefix at Gemini call */
+  hasReferenceStyle?: boolean
 }
 
 /** Extract protagonist / subject description for visual consistency across scenes. */
@@ -107,13 +116,73 @@ export function extractCharacterDescription(
   return ''
 }
 
-function nicheStyleLabel(niche?: string): string {
-  if (!niche) return 'cinematic storytelling'
-  const key = niche as CinematicNiche
-  return NICHE_PROFILES[key]?.label ?? niche
+/** Scene-only body for image gen (SOP) — no style, lighting, or medium keywords. */
+export function buildSceneOnlyImageBody(
+  scene: Pick<
+    GeneratedScene,
+    | 'description'
+    | 'title'
+    | 'visualPrompt'
+    | 'imagePrompt'
+  >,
+  ctx?: SceneImagePromptContext
+): string {
+  const custom = sanitizeSceneOnlyPrompt(
+    (scene.imagePrompt || scene.visualPrompt || '').trim()
+  )
+  const narrative = (scene.description || scene.title || '').trim()
+
+  const lines: string[] = []
+  if (custom) {
+    lines.push(custom)
+  } else if (narrative) {
+    lines.push(narrative.slice(0, 320))
+  }
+
+  if (ctx?.characterDescription?.trim()) {
+    const char = ctx.characterDescription.trim().slice(0, 200)
+    if (!lines.join(' ').toLowerCase().includes('character')) {
+      lines.push(`Subject consistency: ${char}.`)
+    }
+  }
+
+  if (ctx?.variation) {
+    lines.push(
+      ctx.variationDirective ??
+        'Alternate framing — same subjects and setting.'
+    )
+  }
+
+  return lines.join(' ').replace(/\s+/g, ' ').trim()
 }
 
-/** Single-frame prompt for image generation from scene beat + visual direction. */
+/** Style / camera metadata layer — separate from scene description (reference + visualStyle). */
+export function buildSceneImageStyleLayer(
+  scene: Pick<
+    GeneratedScene,
+    'cameraAngle' | 'lightingMood' | 'environment' | 'colorPalette' | 'movementStyle'
+  >,
+  ctx?: SceneImagePromptContext
+): string {
+  const bits: string[] = []
+  const vs = ctx?.visualStyle
+  if (vs?.label) bits.push(`Style lock: ${vs.label}`)
+  if (vs?.palette) bits.push(`Palette: ${vs.palette}`)
+  if (vs?.camera) bits.push(`Camera language: ${vs.camera}`)
+  if (vs?.lighting) bits.push(`Lighting: ${vs.lighting}`)
+  if (vs?.environment) bits.push(`Environment: ${vs.environment}`)
+  if (ctx?.visualStyleLabel && !vs) bits.push(`Style: ${ctx.visualStyleLabel}`)
+  if (ctx?.style?.trim()) bits.push(`Tone: ${ctx.style.trim()}`)
+  if (ctx?.emotionalGoal) bits.push(`Mood: ${ctx.emotionalGoal.replace(/_/g, ' ')}`)
+  if (scene.environment?.trim()) bits.push(`Setting: ${scene.environment.trim()}`)
+  if (scene.cameraAngle?.trim()) bits.push(`Camera: ${scene.cameraAngle.trim()}`)
+  if (scene.lightingMood?.trim()) bits.push(`Lighting: ${scene.lightingMood.trim()}`)
+  if (scene.colorPalette?.trim()) bits.push(`Palette: ${scene.colorPalette.trim()}`)
+  if (scene.movementStyle?.trim()) bits.push(`Movement: ${scene.movementStyle.trim()}`)
+  return bits.join('\n')
+}
+
+/** Full Gemini/OpenAI prompt: scene body + style layer + reference prefix when applicable. */
 export function buildSceneImagePrompt(
   scene: Pick<
     GeneratedScene,
@@ -129,66 +198,28 @@ export function buildSceneImagePrompt(
   >,
   ctx?: SceneImagePromptContext
 ): string {
-  const custom = scene.imagePrompt?.trim()
-  if (custom && !ctx?.variation) {
-    const withCharacter =
-      ctx?.characterDescription &&
-      !custom.toLowerCase().includes('character consistency')
-        ? `${custom} Character consistency: ${ctx.characterDescription}.`
-        : custom
-    return withCharacter.slice(0, 900)
-  }
-
-  const narrative = (scene.description || scene.title || '').trim()
-  const cinematic = (scene.visualPrompt || '').trim()
+  const sceneBody = buildSceneOnlyImageBody(scene, ctx)
+  const styleLayer = buildSceneImageStyleLayer(scene, ctx)
   const sceneNum =
     ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
 
-  const lines: string[] = [
-    'Cinematic storyboard frame for a vertical 9:16 creator reel.',
-    sceneNum ? `Scene ${sceneNum}${ctx?.totalScenes ? ` of ${ctx.totalScenes}` : ''}.` : '',
-    ctx?.variation
-      ? (ctx.variationDirective ??
-          'Alternate composition — same character, palette, and emotional tone.')
-      : 'Primary storyboard frame — single composed shot, film-director quality.',
-  ]
-
-  if (narrative) lines.push(`Scene text: ${narrative.slice(0, 220)}.`)
-  if (cinematic && cinematic !== narrative) {
-    lines.push(`Visual direction: ${cinematic.slice(0, 180)}.`)
-  }
-  if (ctx?.characterDescription?.trim()) {
-    lines.push(`Character consistency: ${ctx.characterDescription.trim().slice(0, 200)}.`)
-  }
-  if (ctx?.niche || ctx?.style || ctx?.visualStyleLabel) {
-    lines.push(
-      `Style: ${ctx.visualStyleLabel || nicheStyleLabel(ctx.niche)}${ctx.style ? ` · ${ctx.style}` : ''}.`
-    )
-  }
-  if (ctx?.emotionalGoal) {
-    lines.push(`Mood: ${ctx.emotionalGoal.replace(/_/g, ' ')}.`)
-  }
-  if (ctx?.hook?.trim()) {
-    lines.push(`Story hook: ${ctx.hook.trim().slice(0, 100)}.`)
-  }
-
-  const env = scene.environment?.trim()
-  if (env) lines.push(`Environment: ${env}.`)
-  if (scene.cameraAngle?.trim()) lines.push(`Camera: ${scene.cameraAngle.trim()}.`)
-  if (scene.lightingMood?.trim()) lines.push(`Lighting: ${scene.lightingMood.trim()}.`)
-  if (scene.movementStyle?.trim()) {
-    lines.push(`Composition / movement: ${scene.movementStyle.trim()}.`)
-  }
-  if (scene.colorPalette?.trim()) {
-    lines.push(`Color palette: ${scene.colorPalette.trim()}.`)
-  }
-
-  lines.push(
-    'No text overlays, no watermarks, no collage. Premium restrained cinematic still.'
+  const parts: string[] = []
+  const withRef = prependReferenceStylePrefix(
+    sceneBody,
+    Boolean(ctx?.hasReferenceStyle)
   )
+  if (withRef) parts.push(withRef)
+  if (sceneNum) {
+    parts.push(
+      `Vertical 9:16 storyboard still. Scene ${sceneNum}${ctx?.totalScenes ? ` of ${ctx.totalScenes}` : ''}.`
+    )
+  } else {
+    parts.push('Vertical 9:16 storyboard still.')
+  }
+  if (styleLayer) parts.push(styleLayer)
+  parts.push('No text overlays, no watermarks, no collage.')
 
-  const merged = lines.join(' ').replace(/\s+/g, ' ').trim()
-  return (merged || 'Cinematic vertical 9:16 storyboard still.').slice(0, 900)
+  return parts.join('\n\n').slice(0, 3800)
 }
 
 /** DALL-E wrapper prefix — beat prompt from buildSceneImagePrompt. */

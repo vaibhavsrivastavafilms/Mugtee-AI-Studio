@@ -17,16 +17,19 @@ export function hasImageGenerationKey(): boolean {
 export type SceneImageOptions = {
   quality?: 'standard' | 'hd'
   size?: '1024x1792' | '1792x1024' | '1024x1024'
+  hasReferenceStyle?: boolean
 }
 
 /** Generate a cinematic still via Gemini (Emergent gateway). Uploads when filename provided. */
 export async function generateGeminiSceneImage(
   prompt: string,
-  opts: { filename?: string } = {}
+  opts: { filename?: string; hasReferenceStyle?: boolean } = {}
 ): Promise<string | null> {
   if (!hasGeminiImageKey()) return null
 
-  const result = await generateGeminiSceneImageBuffer(prompt)
+  const result = await generateGeminiSceneImageBuffer(prompt, {
+    hasReferenceStyle: opts.hasReferenceStyle,
+  })
   if (!result) return null
 
   if (opts.filename) {

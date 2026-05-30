@@ -14,7 +14,11 @@ import { detectInputLanguage, type ProjectLanguage } from '@/lib/cinematic/langu
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
-import { saveQuickCutPreview } from '@/lib/cinematic/quick-cut/preview-session'
+import {
+  clearQuickCutPreview,
+  saveQuickCutPreview,
+} from '@/lib/cinematic/quick-cut/preview-session'
+import { quickCutTopicChanged } from '@/lib/cinematic/quick-cut/prompt-key'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import { scenesToStore } from '@/lib/cinematic/generation'
 import {
@@ -55,6 +59,14 @@ import {
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
 import { loadProject } from '@/lib/cinematic-projects'
+import {
+  streakRecordExportCompleted,
+  streakRecordWorkflowCreated,
+} from '@/lib/creator/creator-streak-events'
+import {
+  getCreatorMemoryBiasHints,
+  rememberCreativeSession,
+} from '@/lib/creator/creator-memory'
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -106,9 +118,13 @@ export type QuickCutInput = {
   keywords?: string[]
   /** Preserve existing project row on re-run (UPDATE not INSERT) */
   reuseProject?: boolean
+  /** Full project regen — same context, fresh script + images */
+  regenFresh?: boolean
   /** Raw voice transcript before prompt assembly */
   originalTranscript?: string
   inputType?: 'text' | 'voice' | 'mixed'
+  /** Skip pre-script deep research (faster) */
+  skipResearch?: boolean
 }
 
 export type QuickCutSaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -164,6 +180,12 @@ interface QuickCutGenerationState {
   saveState: QuickCutSaveState
   saveError: string | null
   lastSavedAt: number | null
+  /** Prompt used for the last completed pipeline — topic-change detection */
+  lastGeneratedPrompt: string | null
+  researchDocument: string | null
+  researchMock: boolean
+  /** Visual reference note from canvas uploader — triggers SOP style prefix at image gen */
+  imageNote: string | null
 }
 
 interface QuickCutGenerationActions {
@@ -241,6 +263,10 @@ const INITIAL: QuickCutGenerationState = {
   saveState: 'idle',
   saveError: null,
   lastSavedAt: null,
+  lastGeneratedPrompt: null,
+  researchDocument: null,
+  researchMock: false,
+  imageNote: null,
 }
 
 const SAVE_FLASH_MS = 2500
@@ -380,6 +406,7 @@ async function archiveQuickCutProject(
     saveError: null,
     lastSavedAt: Date.now(),
   })
+  streakRecordWorkflowCreated()
   flashSavedState()
   return row.id
 }
@@ -490,6 +517,7 @@ async function fetchSceneImages(
     | 'style'
     | 'visualStyle'
     | 'language'
+    | 'imageNote'
   >,
   sceneIds?: string[],
   variation = false,
@@ -514,6 +542,8 @@ async function fetchSceneImages(
       style: state.style,
       visualStyle: state.visualStyle ?? undefined,
       language: state.language,
+      referenceStyleNote: state.imageNote ?? undefined,
+      hasReferenceStyle: Boolean(state.imageNote?.trim()),
       diversityAttempt,
     }),
   })
@@ -545,6 +575,14 @@ function mergeScenesById(
     const next = patchMap.get(scene.id)
     return next ? { ...scene, ...next } : scene
   })
+}
+
+function stripSceneImages(scenes: GeneratedScene[]): GeneratedScene[] {
+  return scenes.map((scene) => ({
+    ...scene,
+    imageUrl: undefined,
+    variationImageUrl: undefined,
+  }))
 }
 
 function appendNotes(
@@ -743,8 +781,11 @@ export const useQuickCutGenerationStore = create<
 
   reset: (options) => {
     const savedProjectId = options?.clearProject ? null : get().savedProjectId
+    const lastGeneratedPrompt = options?.clearProject
+      ? null
+      : get().lastGeneratedPrompt
     clearHookSession()
-    set({ ...INITIAL, savedProjectId, studioReviewMode: false })
+    set({ ...INITIAL, savedProjectId, lastGeneratedPrompt, studioReviewMode: false })
   },
 
   setActiveStageTab: (tab, pinned = true) =>
@@ -760,26 +801,83 @@ export const useQuickCutGenerationStore = create<
     const prompt = appendNotes(rawPrompt, input.imageNote, input.voiceNote, input.keywords)
     if (prompt.length < 6) return
 
-    const language = detectInputLanguage(prompt)
-    const tone = input.style ?? 'cinematic'
-    const duration = coerceDuration(input.duration ?? 60)
+    const prior = get()
+    const lastPrompt =
+      prior.lastGeneratedPrompt?.trim() || prior.prompt?.trim() || ''
+    const hadPriorWork = Boolean(
+      prior.script?.trim() ||
+        prior.lastGeneratedPrompt?.trim() ||
+        prior.isComplete ||
+        prior.studioReviewMode
+    )
+    const topicChanged =
+      hadPriorWork && lastPrompt.length > 0 && quickCutTopicChanged(lastPrompt, prompt)
+    const sameTopicRerun =
+      hadPriorWork && lastPrompt.length > 0 && !topicChanged
+    const regenFresh =
+      input.regenFresh === true || topicChanged || sameTopicRerun
+
+    if (regenFresh) {
+      clearQuickCutPreview()
+    }
+
+    const preserved = regenFresh
+      ? {
+          savedProjectId: prior.savedProjectId,
+          visualStyle: prior.visualStyle,
+          niche: prior.niche,
+          language: prior.language,
+          originalTranscript: prior.originalTranscript,
+          previousScript: prior.script,
+          previousHook: prior.hook,
+          previousHooks: prior.previousHooks,
+          previousTopic: lastPrompt,
+          topicChanged,
+        }
+      : null
+
+    const language = regenFresh
+      ? preserved?.language ?? detectInputLanguage(prompt)
+      : detectInputLanguage(prompt)
+    const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
+    const duration = coerceDuration(input.duration ?? prior.duration ?? 60)
     const preserveProjectId =
-      input.reuseProject !== false ? get().savedProjectId : null
+      input.reuseProject !== false
+        ? preserved?.savedProjectId ?? prior.savedProjectId
+        : null
     const inputType =
       input.inputType ??
       (input.voiceNote?.trim() || input.originalTranscript?.trim() ? 'voice' : 'text')
 
+    const sessionSeed = regenFresh ? `${prompt}-regen-${Date.now()}` : prompt
+    const regenAvoidHooks = regenFresh
+      ? [preserved?.previousHook, ...(preserved?.previousHooks ?? [])].filter(
+          (h): h is string => Boolean(h?.trim())
+        )
+      : []
+
     set({
       ...INITIAL,
-      ...restoreHookSession(),
+      ...(regenFresh ? {} : restoreHookSession()),
       savedProjectId: preserveProjectId,
       studioReviewMode: false,
       prompt,
       language,
       style: tone,
       duration,
+      niche:
+        regenFresh && !topicChanged ? preserved?.niche ?? 'storytelling' : 'storytelling',
+      visualStyle:
+        regenFresh && !topicChanged ? preserved?.visualStyle ?? null : null,
       inputType,
-      originalTranscript: input.originalTranscript?.trim() || rawPrompt,
+      originalTranscript:
+        input.originalTranscript?.trim() ||
+        preserved?.originalTranscript ||
+        rawPrompt,
+      imageNote: input.imageNote?.trim() || null,
+      previousHooks: regenFresh ? regenAvoidHooks : restoreHookSession().previousHooks,
+      hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : restoreHookSession().hookVariantNumber,
+      variationHistory: emptyVariationHistory(),
       isGenerating: true,
       generationStep: 'analyzing',
       activeStageTab: 'title',
@@ -788,7 +886,6 @@ export const useQuickCutGenerationStore = create<
       eta: 14,
     })
 
-    const sessionSeed = prompt
     let anyMock = false
     const missingKeys = new Set<string>()
 
@@ -836,7 +933,12 @@ export const useQuickCutGenerationStore = create<
       const titleRes = await fetch('/api/generate-title', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea: prompt, sessionSeed }),
+        body: JSON.stringify({
+          idea: prompt,
+          sessionSeed,
+          language,
+          ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
+        }),
       })
       const titleData = (await titleRes.json()) as Record<string, unknown>
       if (!titleRes.ok) throw new Error(String(titleData?.error || 'Title generation failed'))
@@ -852,8 +954,8 @@ export const useQuickCutGenerationStore = create<
         hook,
         virlo,
         storyboard: [],
-        previousHooks: [],
-        hookVariantNumber: 1,
+        previousHooks: regenFresh ? regenAvoidHooks : [],
+        hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
         variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
           select: true,
         }),
@@ -871,8 +973,17 @@ export const useQuickCutGenerationStore = create<
           duration,
           sessionSeed,
           language,
-          transcript: input.originalTranscript?.trim() || undefined,
+          niche: preserved?.topicChanged ? undefined : preserved?.niche,
+          visualStyle: preserved?.topicChanged
+            ? undefined
+            : preserved?.visualStyle ?? undefined,
+          transcript: input.originalTranscript?.trim() || preserved?.originalTranscript || undefined,
           voiceNote: input.voiceNote?.trim() || undefined,
+          regenFresh: regenFresh || undefined,
+          previousScript: regenFresh ? preserved?.previousScript : undefined,
+          previousHook: regenFresh ? preserved?.previousHook : undefined,
+          creatorMemoryBias: getCreatorMemoryBiasHints(),
+          skipResearch: input.skipResearch === true || undefined,
         }),
       })
       const scriptData = (await scriptRes.json()) as Record<string, unknown>
@@ -888,24 +999,37 @@ export const useQuickCutGenerationStore = create<
       }
 
       const hookHistory = scriptHook && scriptHook !== hook ? appendPreviousHook([], hook) : []
-      const visualStyle =
-        scriptData.visualStyle && typeof scriptData.visualStyle === 'object'
-          ? (scriptData.visualStyle as VisualStyle)
-          : null
+      const lockedVisualStyle =
+        regenFresh && preserved?.visualStyle
+          ? preserved.visualStyle
+          : scriptData.visualStyle && typeof scriptData.visualStyle === 'object'
+            ? (scriptData.visualStyle as VisualStyle)
+            : null
+      const visualStyle = lockedVisualStyle
       const viralScript =
         scriptData.viralScript && typeof scriptData.viralScript === 'object'
           ? (scriptData.viralScript as ViralScript)
           : null
       const scriptNiche =
-        typeof scriptData.niche === 'string'
-          ? (scriptData.niche as CinematicNiche)
-          : 'storytelling'
+        regenFresh && preserved?.niche
+          ? preserved.niche
+          : typeof scriptData.niche === 'string'
+            ? (scriptData.niche as CinematicNiche)
+            : 'storytelling'
 
       set({
         script,
         title: scriptTitle,
         hook: scriptHook,
-        previousHooks: hookHistory,
+        researchDocument:
+          typeof scriptData.researchDocument === 'string'
+            ? scriptData.researchDocument
+            : null,
+        researchMock: scriptData.researchMock === true,
+        previousHooks:
+          regenFresh && hook
+            ? appendPreviousHook(regenAvoidHooks, hook)
+            : hookHistory,
         virlo: (scriptData.virlo as VirloMetadata | undefined) ?? virlo,
         visualStyle,
         viralScript,
@@ -928,6 +1052,8 @@ export const useQuickCutGenerationStore = create<
           language,
           visualStyle,
           niche: scriptNiche,
+          duration,
+          researchDocument: get().researchDocument ?? undefined,
         }),
       })
       const scenesData = (await scenesRes.json()) as Record<string, unknown>
@@ -951,6 +1077,8 @@ export const useQuickCutGenerationStore = create<
 
       set({ scenes, storyboard: scenes, characterDescription, niche: scriptNiche })
 
+      scenes = stripSceneImages(scenes)
+
       setStep(set, get, 'images')
       let imgMock = false
       set({ directingSceneLabel: 'Composing visuals…' })
@@ -964,7 +1092,9 @@ export const useQuickCutGenerationStore = create<
         try {
           const imgResult = await fetchSceneImages(
             { ...get(), scenes, characterDescription, hook: scriptHook, script },
-            [scene.id]
+            [scene.id],
+            false,
+            regenFresh ? i + 1 : 0
           )
           scenes = mergeScenesById(scenes, imgResult.scenes, [scene.id])
           if (imgResult.characterDescription) {
@@ -1099,6 +1229,8 @@ export const useQuickCutGenerationStore = create<
         isComplete: true,
         progress: 100,
         eta: 0,
+        lastGeneratedPrompt: prompt,
+        studioReviewMode: false,
       })
 
       persistSession(get())
@@ -1329,7 +1461,13 @@ export const useQuickCutGenerationStore = create<
           duration: state.duration,
           sessionSeed: `${state.prompt}-script-${Date.now()}`,
           language: state.language,
+          niche: state.niche,
+          visualStyle: state.visualStyle ?? undefined,
           transcript: state.originalTranscript?.trim() || undefined,
+          regenFresh: true,
+          previousScript: state.script?.trim() || undefined,
+          previousHook: state.hook?.trim() || undefined,
+          creatorMemoryBias: getCreatorMemoryBiasHints(),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -1379,6 +1517,7 @@ export const useQuickCutGenerationStore = create<
     if (!savedProjectId) return
     try {
       await updateProject(savedProjectId, { status: exportedStatus() })
+      streakRecordExportCompleted()
     } catch {
       /* non-blocking */
     }

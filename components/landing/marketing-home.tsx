@@ -8,6 +8,9 @@ import HeroGoogleCta from '@/components/landing/hero-google-cta'
 import { MobileStickyCta } from '@/components/landing/mobile-sticky-cta'
 import { HERO, PRICING, FINAL_CTA, FOOTER, PROOF } from '@/lib/marketing/site-copy'
 import { quickCutStudioHref } from '@/lib/create/routes'
+import { FeatureStatusBadge, type FeatureStatus } from '@/components/marketing/feature-status-badge'
+
+const PROOF_STATUS: FeatureStatus[] = ['live', 'live', 'beta']
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -115,8 +118,9 @@ export default function MarketingHome() {
                 transition={{ ...fadeUp.transition, delay: i * 0.05 }}
                 className="rounded-2xl glass-strong border border-gold-soft p-5 sm:p-6"
               >
-                <div className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80 mb-3">
-                  {String(i + 1).padStart(2, '0')}
+                <div className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80 mb-3 flex items-center justify-between gap-2">
+                  <span>{String(i + 1).padStart(2, '0')}</span>
+                  <FeatureStatusBadge status={PROOF_STATUS[i] ?? 'live'} />
                 </div>
                 <h3 className="font-display text-lg text-luxe mb-2">{step.title}</h3>
                 <p className="text-[13.5px] text-luxe/60 leading-relaxed">{step.body}</p>

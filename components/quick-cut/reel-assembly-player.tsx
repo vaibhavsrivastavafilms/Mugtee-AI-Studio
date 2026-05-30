@@ -40,9 +40,8 @@ import {
   formatPlaybackTime,
 } from '@/lib/media/format-playback-time'
 
-import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
-
 import { QuickCutProjectTranscriptDialog } from '@/components/quick-cut/project-transcript-dialog'
+import { QuickCutPlayerMp4Download } from '@/components/quick-cut/project-mp4-button'
 
 
 
@@ -212,11 +211,9 @@ export function ReelAssemblyPlayer({
     !hasVideo
 
   const estimatedDuration = useMemo(() => {
-
-    const base = duration > 0 ? duration : computeRenderTotalSec(scenes)
-
-    return Math.min(base, MAX_VIDEO_DURATION_SEC)
-
+    const sceneEstimate = computeRenderTotalSec(scenes)
+    const mediaDuration = duration > 0 ? duration : sceneEstimate
+    return Math.max(mediaDuration, sceneEstimate, 1)
   }, [duration, scenes])
 
 
@@ -502,22 +499,14 @@ export function ReelAssemblyPlayer({
 
     <div className={cn('relative mx-auto w-full max-w-[280px] space-y-3', className)}>
 
-      {!externalAudioRef && voiceUrl && !hasVideo ? (
-
+      {!hasVideo && voiceUrl ? (
         <audio
-
-          ref={internalAudioRef}
-
+          ref={audioRef as RefObject<HTMLAudioElement>}
           src={voiceUrl}
-
           preload="metadata"
-
           className="sr-only"
-
           aria-hidden
-
         />
-
       ) : null}
 
 
@@ -529,19 +518,12 @@ export function ReelAssemblyPlayer({
         {hasVideo ? (
 
           <video
-
             ref={videoRef}
-
             src={videoUrl!}
-
             playsInline
-
             preload="metadata"
-
-            className="h-full w-full object-cover"
-
+            className="h-full w-full object-cover cursor-pointer"
             onClick={togglePlayback}
-
           />
 
         ) : showLiveTiles ? (
@@ -624,7 +606,7 @@ export function ReelAssemblyPlayer({
 
 
 
-        {canPlayPreview ? (
+        {canPlayPreview && !previewIsPlaying ? (
 
           <button
 
@@ -632,45 +614,35 @@ export function ReelAssemblyPlayer({
 
             onClick={togglePlayback}
 
-            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
+            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors"
 
-            aria-label={
-              previewIsPlaying
-                ? hasVideo
-                  ? 'Pause video'
-                  : 'Pause preview'
-                : hasPlaybackProgress
-                  ? 'Resume preview'
-                  : hasVideo
-                    ? 'Play video'
-                    : 'Play preview'
-            }
+            aria-label={playControlLabel}
 
           >
 
-            <span
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm">
 
-              className={cn(
-
-                'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
-
-                previewIsPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
-
-              )}
-
-            >
-
-              {previewIsPlaying ? (
-
-                <Pause className="h-5 w-5" aria-hidden />
-
-              ) : (
-
-                <Play className="h-5 w-5 ml-0.5" aria-hidden />
-
-              )}
+              <Play className="h-5 w-5 ml-0.5" aria-hidden />
 
             </span>
+
+          </button>
+
+        ) : canPlayPreview && previewIsPlaying ? (
+
+          <button
+
+            type="button"
+
+            onClick={togglePlayback}
+
+            className="absolute bottom-3 right-3 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-black/60 text-gold-100 shadow-lg backdrop-blur-sm opacity-90 hover:opacity-100 transition-opacity"
+
+            aria-label={hasVideo ? 'Pause video' : 'Pause preview'}
+
+          >
+
+            <Pause className="h-4 w-4" aria-hidden />
 
           </button>
 
@@ -858,7 +830,7 @@ export function ReelAssemblyPlayer({
 
 
 
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
 
             <p className="text-[10px] tabular-nums tracking-wide text-gold-300/55">
 
@@ -867,12 +839,14 @@ export function ReelAssemblyPlayer({
             </p>
 
             <QuickCutProjectTranscriptDialog
-
               compact
-
+              script={script}
+              hook={hook}
+              scenes={scenes}
               triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
-
             />
+
+            <QuickCutPlayerMp4Download />
 
           </div>
 
@@ -887,9 +861,10 @@ export function ReelAssemblyPlayer({
         <div className="flex justify-center">
 
           <QuickCutProjectTranscriptDialog
-
+            script={script}
+            hook={hook}
+            scenes={scenes}
             triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[32px] px-4 py-1.5 text-gold-100/90 hover:bg-black/60"
-
           />
 
         </div>

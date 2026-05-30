@@ -2,6 +2,6 @@
 
 import WorkspacePage from '@/components/workspace/workspace-page'
 
-export default function WorkspaceRoutePage() {
+export default function Page() {
   return <WorkspacePage />
 }

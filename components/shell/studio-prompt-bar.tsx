@@ -15,6 +15,9 @@ export function StudioPromptBar() {
 
   if (!inStudio) return null
 
+  // Creator workspace has its own daily prompt headline.
+  if (pathname === '/studio' || pathname === '/studio/') return null
+
   return (
     <div className="border-b border-white/[0.04] bg-black/20">
       <div className="px-3 sm:px-5 lg:px-6 py-3">

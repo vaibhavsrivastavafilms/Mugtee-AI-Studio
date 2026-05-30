@@ -1,6 +1,7 @@
-import { redirect } from 'next/navigation'
-import { quickCutStudioHref } from '@/lib/create/routes'
+import { CreatorWorkspace } from '@/components/creator/creator-workspace'
+
+export const dynamic = 'force-dynamic'
 
 export default function StudioIndexPage() {
-  redirect(quickCutStudioHref())
+  return <CreatorWorkspace />
 }

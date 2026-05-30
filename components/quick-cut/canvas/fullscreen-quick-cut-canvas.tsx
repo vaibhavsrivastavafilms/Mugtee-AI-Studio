@@ -49,6 +49,7 @@ export function FullscreenQuickCutCanvas({
   const [imageRef, setImageRef] = useState<ImageReference | null>(null)
   const [voiceTranscript, setVoiceTranscript] = useState('')
   const [voiceNote, setVoiceNote] = useState('')
+  const [deepResearchEnabled, setDeepResearchEnabled] = useState(true)
   const [promptFocused, setPromptFocused] = useState(false)
   const [promptIndex, setPromptIndex] = useState(0)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -152,6 +153,7 @@ export function FullscreenQuickCutCanvas({
       return
     }
 
+    const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
     await runPipeline({
       prompt: pending.prompt,
       style: pending.style,
@@ -159,6 +161,8 @@ export function FullscreenQuickCutCanvas({
       imageNote: pending.imageNote,
       voiceNote: pending.voiceNote,
       keywords: pending.keywords,
+      reuseProject: Boolean(savedProjectId),
+      skipResearch: !deepResearchEnabled,
     })
     clearQuickCutPending()
   }
@@ -269,6 +273,16 @@ export function FullscreenQuickCutCanvas({
                 </Link>
               </div>
             ) : null}
+
+            <label className="flex items-center justify-center gap-2 text-[11px] text-luxe/55 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={deepResearchEnabled}
+                onChange={(e) => setDeepResearchEnabled(e.target.checked)}
+                className="rounded border-gold-500/40 bg-black/40 text-gold-500 focus:ring-gold-500/30"
+              />
+              Deep Research before script (slower, richer facts)
+            </label>
 
             <motion.button
               type="submit"

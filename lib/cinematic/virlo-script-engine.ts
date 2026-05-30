@@ -24,6 +24,8 @@ export type VirloScriptEngineInput = {
   language?: ProjectLanguage | string
   transcript?: string
   voiceNote?: string
+  /** Locked visual style from saved project (regen) */
+  visualStyle?: VisualStyle | null
 }
 
 export type VirloScriptBlueprint = {
@@ -73,7 +75,7 @@ export function runVirloScriptEngine(input: VirloScriptEngineInput): VirloScript
     viralStructure,
     virloContext,
     virlo: virloMetadataFromContext(virloContext),
-    visualStyle: visualStyleFromVirloContext(virloContext),
+    visualStyle: input.visualStyle ?? visualStyleFromVirloContext(virloContext),
     niche,
   }
 }
