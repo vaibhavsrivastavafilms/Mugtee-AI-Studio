@@ -3,6 +3,7 @@ export type HeaderNavId =
   | 'video'
   | 'projects'
   | 'knowledge'
+  | 'analytics'
   | 'director'
   | 'exports'
   | 'settings'
@@ -12,6 +13,7 @@ export const HEADER_NAV = [
   { id: 'video' as const, label: 'Text To Video', href: '/studio/video' },
   { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
   { id: 'knowledge' as const, label: 'Knowledge', href: '/studio/knowledge' },
+  { id: 'analytics' as const, label: 'Analytics', href: '/studio/analytics' },
   { id: 'director' as const, label: 'Director Mode', href: '/studio/director' },
   { id: 'exports' as const, label: 'Exports', href: '/studio/exports' },
   { id: 'settings' as const, label: 'Settings', href: '/studio/settings' },
