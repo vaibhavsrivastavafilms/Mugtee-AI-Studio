@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Check, Circle, Download, Loader2, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import {
@@ -132,6 +133,8 @@ function PlatformExportCard({
 }
 
 export function QuickCutPlatformExportProfiles({ className }: { className?: string }) {
+  const { isUnlimited } = useUsage()
+
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
@@ -175,6 +178,7 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
       researchReport,
       savedProjectId,
       isGenerating,
+      isUnlimited,
     }),
     [
       title,
@@ -196,6 +200,7 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
       researchReport,
       savedProjectId,
       isGenerating,
+      isUnlimited,
     ]
   )
 
