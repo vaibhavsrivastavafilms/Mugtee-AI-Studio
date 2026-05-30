@@ -6,6 +6,9 @@ const DEFAULT_MAX_RETRIES = 2
 const NETWORK_RECOVERY_MESSAGE =
   'Connection lost — your work is saved. Try again.'
 
+const GATEWAY_TIMEOUT_MESSAGE =
+  'This step took too long — your work is saved. Try again.'
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -24,7 +27,7 @@ function isNetworkFetchError(err: unknown): boolean {
 
 function toPipelineFetchError(err: unknown): Error {
   if (err instanceof Error && err.name === 'AbortError') {
-    return new Error('This step took too long — your work is saved. Try again.')
+    return new Error(GATEWAY_TIMEOUT_MESSAGE)
   }
   if (isNetworkFetchError(err)) {
     return new Error(NETWORK_RECOVERY_MESSAGE)
@@ -95,6 +98,9 @@ export async function pipelineFetchJson<T = Record<string, unknown>>(
   options: PipelineFetchOptions = {}
 ): Promise<{ res: Response; data: T }> {
   const res = await pipelineFetch(url, options)
+  if (res.status === 504) {
+    throw new Error(GATEWAY_TIMEOUT_MESSAGE)
+  }
   const data = (await res.json().catch(() => ({}))) as T
   return { res, data }
 }

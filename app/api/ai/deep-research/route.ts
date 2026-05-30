@@ -10,6 +10,8 @@ import type {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+/** Perplexity / LLM research can exceed the default 10–15s serverless limit. */
+export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   try {
