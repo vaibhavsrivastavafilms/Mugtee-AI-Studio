@@ -9,6 +9,8 @@ export const EXIT_FEEDBACK_TRIGGERS = [
 
 export type ExitFeedbackTrigger = (typeof EXIT_FEEDBACK_TRIGGERS)[number]
 
+/** `account_delete` is reserved; not wired until settings exposes delete-account. */
+
 export const EXIT_FEEDBACK_REASONS = [
   { value: 'just_exploring', label: 'Just exploring' },
   { value: 'output_quality', label: 'Output quality' },
