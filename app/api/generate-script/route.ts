@@ -19,6 +19,7 @@ import {
   logError,
 } from '@/lib/workspace/validation'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
+import type { GenerateScriptApiResearchResponse } from '@/types/deep-research'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -154,6 +155,19 @@ export async function POST(req: NextRequest) {
 
     const creatorMemoryBias = parseCreatorMemoryBias(raw.creatorMemoryBias)
 
+    const hookSeed =
+      typeof raw.hookSeed === 'string'
+        ? raw.hookSeed.slice(0, 220)
+        : typeof raw.hook === 'string'
+          ? raw.hook.slice(0, 220)
+          : undefined
+    const titleSeed =
+      typeof raw.titleSeed === 'string'
+        ? raw.titleSeed.slice(0, 120)
+        : typeof raw.title === 'string'
+          ? raw.title.slice(0, 120)
+          : undefined
+
     const input = {
       topic,
       platform,
@@ -172,28 +186,17 @@ export async function POST(req: NextRequest) {
       previousHook: regenFresh ? previousHook : undefined,
       visualStyle,
       creatorMemoryBias,
-    }
-
-    if (!hasScriptGenerationKey()) {
-      const virloContext = buildVirloContext(topic, {
-        platform,
-        tone,
-        duration,
-        niche,
-        sessionSeed,
-      })
-      const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
-      return NextResponse.json({
-        output,
-        mock: true,
-        reason: 'missing_api_key',
-        virlo: virloMetadataFromContext(virloContext),
-      })
+      hookSeed,
+      titleSeed,
     }
 
     try {
       const result = await runScriptGeneration(input)
       const validation = validateCinematicOutput(result.output, niche, topic)
+      const research: GenerateScriptApiResearchResponse = {
+        researchDocument: result.researchDocument,
+        researchMock: result.researchMock,
+      }
 
       return NextResponse.json({
         output: result.output,
@@ -206,26 +209,33 @@ export async function POST(req: NextRequest) {
         viralScript: result.viralScript,
         viralStructure: result.viralStructure,
         referenceScriptUsed: Boolean(referenceScript),
-        researchDocument: result.researchDocument,
-        researchMock: result.researchMock,
+        ...research,
       })
     } catch (err) {
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })
-      const virloContext = buildVirloContext(topic, {
-        platform,
-        tone,
-        duration,
-        niche,
-        sessionSeed,
-      })
-      const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
-      return NextResponse.json({
-        output,
-        mock: true,
-        reason: 'provider_fallback',
-        niche,
-        virlo: virloMetadataFromContext(virloContext),
-      })
+      if (!hasScriptGenerationKey()) {
+        const virloContext = buildVirloContext(topic, {
+          platform,
+          tone,
+          duration,
+          niche,
+          sessionSeed,
+        })
+        const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
+        return NextResponse.json({
+          output,
+          mock: true,
+          reason: 'missing_api_key',
+          niche,
+          virlo: virloMetadataFromContext(virloContext),
+        })
+      }
+      const message =
+        err instanceof Error ? err.message : 'Script generation failed'
+      return NextResponse.json(
+        { error: 'Story shaping paused — try again', reason: 'provider_failed', detail: message },
+        { status: 502 }
+      )
     }
   } catch (err) {
     logError('generate-script.exception', err)

@@ -68,6 +68,7 @@ import {
   getCreatorMemoryBiasHints,
   rememberCreativeSession,
 } from '@/lib/creator/creator-memory'
+import type { DeepResearchStoreFields } from '@/types/deep-research'
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -130,7 +131,7 @@ export type QuickCutInput = {
 
 export type QuickCutSaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-interface QuickCutGenerationState {
+interface QuickCutGenerationStateBase {
   generationStep: QuickCutGenerationStep
   activeStageTab: QuickCutStageTab
   stageTabPinned: boolean
@@ -183,11 +184,11 @@ interface QuickCutGenerationState {
   lastSavedAt: number | null
   /** Prompt used for the last completed pipeline — topic-change detection */
   lastGeneratedPrompt: string | null
-  researchDocument: string | null
-  researchMock: boolean
   /** Visual reference note from canvas uploader — triggers SOP style prefix at image gen */
   imageNote: string | null
 }
+
+interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields {}
 
 interface QuickCutGenerationActions {
   reset: (options?: { clearProject?: boolean }) => void
@@ -974,6 +975,8 @@ export const useQuickCutGenerationStore = create<
           duration,
           sessionSeed,
           language,
+          title,
+          hook,
           niche: preserved?.topicChanged ? undefined : preserved?.niche,
           visualStyle: preserved?.topicChanged
             ? undefined
@@ -985,6 +988,7 @@ export const useQuickCutGenerationStore = create<
           previousHook: regenFresh ? preserved?.previousHook : undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
           skipResearch: input.skipResearch === true || undefined,
+          researchDocument: get().researchDocument ?? undefined,
         }),
       })
       const scriptData = (await scriptRes.json()) as Record<string, unknown>
@@ -1462,6 +1466,8 @@ export const useQuickCutGenerationStore = create<
           duration: state.duration,
           sessionSeed: `${state.prompt}-script-${Date.now()}`,
           language: state.language,
+          title: state.title,
+          hook: state.hook,
           niche: state.niche,
           visualStyle: state.visualStyle ?? undefined,
           transcript: state.originalTranscript?.trim() || undefined,
@@ -1469,6 +1475,7 @@ export const useQuickCutGenerationStore = create<
           previousScript: state.script?.trim() || undefined,
           previousHook: state.hook?.trim() || undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
+          researchDocument: state.researchDocument ?? undefined,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>

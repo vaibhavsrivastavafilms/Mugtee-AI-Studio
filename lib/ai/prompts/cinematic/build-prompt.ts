@@ -9,6 +9,7 @@ import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection } from '@/lib/creator/creator-memory'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { scriptWordCountHint } from '@/lib/ai/prompts/cinematic/script-writing-sop'
+import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
 export type CinematicPromptInput = {
   topic: string
@@ -22,8 +23,6 @@ export type CinematicPromptInput = {
   virloHook?: string
   retentionPattern?: string
   viralStructure?: ViralStructureAnalysis
-  /** Pre-script deep research markdown */
-  researchDocument?: string
   /** Full project regen — fresh script, same locked context */
   regenFresh?: boolean
   /** Brief changed — new story for the new topic */
@@ -32,7 +31,9 @@ export type CinematicPromptInput = {
   previousScript?: string
   previousHook?: string
   creatorMemoryBias?: CreatorMemoryBiasHints | null
-}
+  /** Title from /api/generate-title */
+  titleSeed?: string
+} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
 export function buildFreshRegenDirective(input: {
@@ -99,6 +100,9 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.language ? languageDirective(input.language) : '',
     input.virloHook
       ? `VIRLO HOOK SEED (expand into spoken hook — not a quote): ${input.virloHook}`
+      : '',
+    input.titleSeed
+      ? `TITLE SEED (use or improve — not a quote): ${input.titleSeed}`
       : '',
     input.retentionPattern
       ? `CREATOR RETENTION PATTERN: ${input.retentionPattern}`

@@ -11,15 +11,15 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { logError } from '@/lib/workspace/validation'
+import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
 export type StoryboardSopGenerationInput = {
   script: string
   language: ProjectLanguage
   durationSec: number
-  researchDocument?: string
   /** Quick Cut — merge segments into 7 retention beats */
   retentionMode?: boolean
-}
+} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
 
 /** LLM pass: script → SOP segments → scene records. */
 export async function generateScenesViaStoryboardSop(

@@ -1,3 +1,4 @@
+import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import type { VirloContext, VirloMetadata } from '@/lib/virlo-engine/types'
 import { inferNicheFromBrief, type CinematicNiche } from '@/lib/cinematic/niches'
@@ -12,6 +13,7 @@ import {
   type ViralScript,
   type VisualStyle,
 } from '@/lib/cinematic/workflow-state'
+import type { DeepResearchReport } from '@/types/deep-research'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
 
 export type VirloScriptEngineInput = {
@@ -24,8 +26,12 @@ export type VirloScriptEngineInput = {
   language?: ProjectLanguage | string
   transcript?: string
   voiceNote?: string
+  /** Hook from /api/generate-title — feeds LLM instead of topic-template fallback */
+  hookSeed?: string
   /** Locked visual style from saved project (regen) */
   visualStyle?: VisualStyle | null
+  /** Structured deep-research report — overrides generic hook/retention when present */
+  researchReport?: DeepResearchReport
 }
 
 export type VirloScriptBlueprint = {
@@ -69,10 +75,34 @@ export function runVirloScriptEngine(input: VirloScriptEngineInput): VirloScript
     sessionSeed: input.sessionSeed,
   })
 
+  const research = input.researchReport
+  const researchHook = research?.writersGoldmine.strongestHook?.trim()
+  const hook =
+    input.hookSeed?.trim() ||
+    researchHook ||
+    research?.hookAngles[0]?.hookLine?.trim() ||
+    viralStructure.hook
+
+  const structure =
+    hook !== viralStructure.hook
+      ? { ...viralStructure, hook }
+      : viralStructure
+
+  const baseRetention = retentionPatternFromAnalysis(structure)
+  const retention_pattern = research
+    ? [
+        research.retentionEngineering.openingPattern,
+        ...research.retentionEngineering.rehookMoments.slice(0, 3),
+        ...research.retentionEngineering.payoffBeats.slice(0, 2),
+      ]
+        .filter(Boolean)
+        .join(' → ')
+    : baseRetention
+
   return {
-    hook: viralStructure.hook,
-    retention_pattern: retentionPatternFromAnalysis(viralStructure),
-    viralStructure,
+    hook,
+    retention_pattern,
+    viralStructure: structure,
     virloContext,
     virlo: virloMetadataFromContext(virloContext),
     visualStyle: input.visualStyle ?? visualStyleFromVirloContext(virloContext),
@@ -90,4 +120,12 @@ export function mergeViralScript(
     retention_pattern: blueprint.retention_pattern,
     script: script.trim(),
   }
+}
+
+/** Script prompt block from structured deep research — goldmine, facts, stories, psychology. */
+export function buildVirloResearchScriptContext(
+  report: DeepResearchReport | null | undefined
+): string {
+  if (!report) return ''
+  return buildDeepResearchReportScriptContext(report)
 }

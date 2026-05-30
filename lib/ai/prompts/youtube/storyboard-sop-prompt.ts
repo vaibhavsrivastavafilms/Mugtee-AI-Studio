@@ -4,6 +4,7 @@ import { CREATOR_RETENTION_SCENE_COUNT } from '@/lib/cinematic/viral-structure'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { clampSceneDurationsToTarget } from '@/lib/cinematic/scene-duration'
+import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
 /** Prepended to Gemini image prompts when a reference style image is attached. */
 export const STORYBOARD_REFERENCE_STYLE_PREFIX =
@@ -21,11 +22,9 @@ export type StoryboardSopOptions = {
   sceneTarget?: number
   /** Total video duration for pacing hints */
   durationSec?: number
-  /** Deep research doc from youtube-deep-research (optional context) */
-  researchDocument?: string
   /** When true, LLM must output exactly sceneTarget segments mapped to retention beats */
   retentionMode?: boolean
-}
+} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
 
 /** Human-readable segment block for logs / debug (SOP output format). */
 export function formatSegmentOutput(segment: StoryboardSegment, oneBased = true): string {

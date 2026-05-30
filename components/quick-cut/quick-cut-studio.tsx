@@ -8,7 +8,6 @@ import {
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
-import { VirloMetadataPanel } from '@/components/quick-cut/virlo-metadata-panel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -25,8 +24,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
-  const virlo = useQuickCutGenerationStore((s) => s.virlo)
-  const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const error = useQuickCutGenerationStore((s) => s.error)
 
@@ -59,13 +56,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
 
   return (
     <>
-      <div
-        className={cn(
-          'space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_min(260px,28%)] lg:gap-6',
-          GENERATION_FOOTER_CLEARANCE
-        )}
-      >
-        <div className="space-y-5 min-w-0">
+      <div className={cn('space-y-5 min-w-0', GENERATION_FOOTER_CLEARANCE)}>
           <div className="flex flex-col items-center">
             <ReelAssemblyPlayer
               scenes={scenes}
@@ -91,11 +82,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
               <QuickCutSaveProjectButton variant="compact" showViewLink={false} />
             </div>
           ) : null}
-        </div>
-
-        <aside className={cn('min-w-0', 'lg:sticky lg:top-24 lg:self-start')}>
-          <VirloMetadataPanel virlo={virlo} hook={hook} hookVariantNumber={hookVariantNumber} />
-        </aside>
       </div>
 
       <QuickCutGenerationFooter />
