@@ -12,9 +12,14 @@ export function LandingCtaBanner({ className }: { className?: string }) {
           Create 30 days of content{' '}
           <span className="italic text-[var(--v2-gold)]">in one hour</span>
         </h2>
-        <LuxButton href="/create?mode=quick" size="lg" className="mt-8 rounded-full">
-          Launch Mugtee <ArrowRight className="h-4 w-4" />
-        </LuxButton>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <LuxButton href="/create?mode=quick" size="lg" className="rounded-full">
+            Launch Mugtee <ArrowRight className="h-4 w-4" />
+          </LuxButton>
+          <LuxButton href="/pricing" variant="secondary" size="lg" className="rounded-full">
+            View pricing
+          </LuxButton>
+        </div>
         <p className="mt-4 text-[11px] tracking-[0.18em] uppercase text-[var(--v2-text-secondary)]">
           No credit card required
         </p>
