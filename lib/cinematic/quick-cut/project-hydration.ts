@@ -69,6 +69,8 @@ export type QuickCutProjectHydrationPatch = {
   elevenLabsVoiceId: string | null
   voiceName: string | null
   videoUrl: string | null
+  renderPollUrl: null
+  renderError: string | null
   generationStep: QuickCutGenerationStep
   isComplete: boolean
   isGenerating: false
@@ -102,13 +104,10 @@ export function buildQuickCutHydrationFromRow(
     ensureScenesHaveImagePrompts(storeScenesToGenerated(state.scenes))
   )
   const resolvedTab = stageTab ?? inferOpenStageTab(row)
-  const generationStep =
-    row.generation_status === 'failed'
-      ? ('error' as QuickCutGenerationStep)
-      : inferGenerationStep(row, scenes)
-  const isComplete =
-    row.generation_status !== 'failed' &&
-    (generationStep === 'complete' || Boolean(row.reel_url || row.video_url))
+
+  const reelUrl = row.reel_url ?? row.video_url ?? null
+  const videoReady = Boolean(reelUrl?.trim())
+  const reelFailed = (row.reel_status ?? '').toLowerCase() === 'failed'
 
   return {
     savedProjectId: row.id,
@@ -125,8 +124,19 @@ export function buildQuickCutHydrationFromRow(
     voiceUrl: state.voice?.audioUrl ?? null,
     elevenLabsVoiceId: state.voice?.voiceId ?? null,
     voiceName: state.voice?.voiceName ?? null,
-    videoUrl: row.reel_url ?? row.video_url ?? null,
-    generationStep: isComplete && (row.reel_url || row.video_url) ? 'complete' : generationStep,
+    videoUrl: reelUrl,
+    renderPollUrl: null,
+    renderError: videoReady
+      ? null
+      : reelFailed
+        ? 'Export failed — retry compile'
+        : null,
+    generationStep:
+      row.generation_status === 'failed'
+        ? ('error' as QuickCutGenerationStep)
+        : videoReady
+          ? 'complete'
+          : inferGenerationStep(row, scenes),
     isComplete: Boolean(
       row.reel_url ||
         row.video_url ||
@@ -135,7 +145,7 @@ export function buildQuickCutHydrationFromRow(
     isGenerating: false,
     activeStageTab: resolvedTab,
     stageTabPinned: true,
-    progress: 100,
+    progress: videoReady ? 100 : reelFailed ? 88 : 100,
     eta: 0,
     error:
       row.generation_status === 'failed'

@@ -108,6 +108,7 @@ async function compileProjectMp4Inner(
       onProgress: (patch) => {
         if (patch.label) options?.onProgress?.(patch.label)
       },
+      projectId,
     })
   }
 
