@@ -194,15 +194,18 @@ export async function POST(req: NextRequest) {
       titleSeed,
     }
 
-    console.log('[OPENAI] KEY EXISTS', Boolean(process.env.OPENAI_API_KEY?.trim()))
-    console.log('[generate-script] REQUEST START', { topic: topic.slice(0, 48) })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[generate-script] REQUEST START', { topic: topic.slice(0, 48) })
+    }
 
     try {
       const result = await runScriptGeneration(input)
-      console.log('[generate-script] REQUEST SUCCESS', {
-        mock: result.mock,
-        sopRegenAttempts: result.sopRegenAttempts,
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[generate-script] REQUEST SUCCESS', {
+          mock: result.mock,
+          sopRegenAttempts: result.sopRegenAttempts,
+        })
+      }
       let validation = validateCinematicOutput(result.output, niche, topic)
       if (!validation.valid && result.output.script?.trim()) {
         logStepFailed('script', user.id, validation.issues.join('; '))

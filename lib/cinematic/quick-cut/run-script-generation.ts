@@ -243,7 +243,9 @@ async function generateWithOpenAI(
   retryNote?: string
 ) {
   const openai = getOpenAIClient()
-  console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, retry: Boolean(retryNote) })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, retry: Boolean(retryNote) })
+  }
 
   try {
     const completion = await openai.chat.completions.create({
@@ -257,10 +259,14 @@ async function generateWithOpenAI(
     })
 
     const content = completion.choices[0]?.message?.content || '{}'
-    console.log('[OPENAI] REQUEST SUCCESS')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OPENAI] REQUEST SUCCESS')
+    }
     return parseLlmJson(content)
   } catch (error) {
-    console.error('[OPENAI] REQUEST FAILED', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[OPENAI] REQUEST FAILED', error)
+    }
     throw error
   }
 }
@@ -289,12 +295,14 @@ async function generateScript(input: GenInput, retryNote?: string) {
   const systemPrompt = buildSystemPrompt()
   const errors: string[] = []
   const geminiFirst = isFreeTierOnly()
-  console.log('[generate-script] provider order', {
-    geminiFirst,
-    openai: allowOpenAIScript(),
-    anthropic: allowAnthropicScript(),
-    gemini: hasDirectGeminiKey(),
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[generate-script] provider order', {
+      geminiFirst,
+      openai: allowOpenAIScript(),
+      anthropic: allowAnthropicScript(),
+      gemini: hasDirectGeminiKey(),
+    })
+  }
 
   const runGemini = () =>
     tryGeminiScript(userPrompt, systemPrompt, input.topic, retryNote, errors)
@@ -310,7 +318,9 @@ async function generateScript(input: GenInput, retryNote?: string) {
       if (hasUsableLlmScript(openai, input.topic)) return openai
       errors.push('openai_echo_or_empty')
     } catch (err) {
-      console.error('[OPENAI] REQUEST FAILED (script provider)', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[OPENAI] REQUEST FAILED (script provider)', err)
+      }
       errors.push('openai_failed')
     }
   }

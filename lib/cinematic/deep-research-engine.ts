@@ -105,7 +105,9 @@ function buildMockDeepResearch(topic: string, language: ProjectLanguage): DeepRe
 }
 
 async function generateWithOpenAI(userPrompt: string): Promise<DeepResearchReport | null> {
-  console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, step: 'deep-research' })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, step: 'deep-research' })
+  }
   try {
     const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
@@ -118,12 +120,16 @@ async function generateWithOpenAI(userPrompt: string): Promise<DeepResearchRepor
       ],
     })
     const content = completion.choices[0]?.message?.content?.trim() || '{}'
-    console.log('[OPENAI] REQUEST SUCCESS', { step: 'deep-research' })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OPENAI] REQUEST SUCCESS', { step: 'deep-research' })
+    }
     const parsed = parseLlmJson(content)
     if (!parsed || typeof parsed !== 'object') return null
     return normalizeDeepResearchReport(parsed, '')
   } catch (error) {
-    console.error('[OPENAI] REQUEST FAILED', { step: 'deep-research', error })
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[OPENAI] REQUEST FAILED', { step: 'deep-research', error })
+    }
     throw error
   }
 }
