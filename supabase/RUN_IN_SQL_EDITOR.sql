@@ -103,6 +103,36 @@ alter table public.cinematic_projects
 comment on column public.cinematic_projects.script_beats is
   'Reel-native script: { beats: [{narration,duration,emotion}], payoff?, cta? }';
 
+-- ========== 0022_reel_render.sql ==========
+-- Remotion reel MP4 tracking + public reels storage bucket.
+
+alter table public.cinematic_projects
+  add column if not exists reel_status text,
+  add column if not exists reel_url text,
+  add column if not exists reel_rendered_at timestamptz;
+
+comment on column public.cinematic_projects.reel_status is
+  'Remotion reel pipeline: pending | assembling | rendering | ready | failed';
+
+insert into storage.buckets (id, name, public)
+values ('reels', 'reels', true)
+on conflict (id) do update set public = excluded.public;
+
+drop policy if exists "reels read public" on storage.objects;
+create policy "reels read public"
+  on storage.objects for select
+  using (bucket_id = 'reels');
+
+drop policy if exists "reels authenticated upload" on storage.objects;
+create policy "reels authenticated upload"
+  on storage.objects for insert
+  with check (bucket_id = 'reels' and auth.role() = 'authenticated');
+
+drop policy if exists "reels authenticated update" on storage.objects;
+create policy "reels authenticated update"
+  on storage.objects for update
+  using (bucket_id = 'reels' and auth.role() = 'authenticated');
+
 -- ========== VERIFICATION (one-click — run after migrations above) ==========
 -- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
 select
@@ -134,10 +164,13 @@ select
           'generation_step',
           'generation_error',
           'last_completed_step',
-          'script_beats'
+          'script_beats',
+          'reel_status',
+          'reel_url',
+          'reel_rendered_at'
         )
-    ) < 16
-      then 'FAIL: missing columns from 0015–0021 — re-run the 0015–0021 blocks above'
+    ) < 19
+      then 'FAIL: missing columns from 0015–0022 — re-run the 0015–0022 blocks above'
     when (
       select count(*)
       from pg_policies

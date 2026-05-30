@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Clapperboard,
   Download,
+  ExternalLink,
   FileText,
   ImageIcon,
   Loader2,
   Mic,
+  Share2,
   Video,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -189,6 +191,25 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     }
   }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted])
 
+  const handleShareReel = useCallback(async () => {
+    if (!videoUrl?.trim()) return
+    trackExportStarted('video_share')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: title || 'Mugtee reel', url: videoUrl })
+      } else {
+        await navigator.clipboard.writeText(videoUrl)
+      }
+    } catch {
+      /* user cancelled share */
+    }
+  }, [videoUrl, title, trackExportStarted])
+
+  const handlePreviewReel = useCallback(() => {
+    if (!videoUrl?.trim()) return
+    window.open(videoUrl, '_blank', 'noopener,noreferrer')
+  }, [videoUrl])
+
   const handleDownloadMp4 = useCallback(async () => {
     if (!videoUrl?.trim() || downloadingMp4) return
     trackExportStarted('video_mp4')
@@ -292,34 +313,52 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
           label="Video"
           hint={
             videoUrl
-              ? 'Final synced MP4 reel'
+              ? 'Download ready — final synced MP4 reel'
               : mp4Compiling
-                ? renderStatusLabel || 'Compiling MP4…'
+                ? renderStatusLabel || 'Rendering reel…'
                 : renderError
                   ? renderError
                   : canCompileMp4
-                    ? 'Compile slides and narration into one MP4'
+                    ? 'Ken Burns motion · captions · voiceover'
                     : 'Available after render completes'
           }
         >
           {videoUrl ? (
-            <button
-              type="button"
-              onClick={() => void handleDownloadMp4()}
-              disabled={downloadingMp4}
-              className={primaryButtonClass}
-            >
-              {downloadingMp4 ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Download className="w-3 h-3" />
-              )}
-              {downloadingMp4 ? 'Downloading…' : '.mp4'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => void handleDownloadMp4()}
+                disabled={downloadingMp4}
+                className={primaryButtonClass}
+              >
+                {downloadingMp4 ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3" />
+                )}
+                {downloadingMp4 ? 'Downloading…' : '.mp4'}
+              </button>
+              <button
+                type="button"
+                onClick={handlePreviewReel}
+                className={secondaryButtonClass}
+              >
+                <ExternalLink className="w-3 h-3" />
+                Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleShareReel()}
+                className={secondaryButtonClass}
+              >
+                <Share2 className="w-3 h-3" />
+                Share
+              </button>
+            </>
           ) : mp4Compiling ? (
             <button type="button" disabled className={ghostButtonClass}>
               <Loader2 className="w-3 h-3 animate-spin" />
-              Compiling…
+              Rendering reel…
             </button>
           ) : canCompileMp4 ? (
             <button
