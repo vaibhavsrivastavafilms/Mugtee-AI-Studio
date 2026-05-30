@@ -1,5 +1,7 @@
 /** Admin-configurable plan caps (Phase 2.8 + Phase 4 monetization validation). */
 
+import { getReferralCreatorPlanGenerationCap } from '@/lib/billing/referral-rewards'
+
 export type UsageMetric = 'projects' | 'generations' | 'exports' | 'renders'
 
 export type PlanLimits = Record<UsageMetric, number>
@@ -97,11 +99,28 @@ export function isUnlimitedPlan(planType: string, trialEndsAt: string | null | u
   return false
 }
 
+export type ReferralLimitContext = {
+  referralBonusGenerations?: number
+  referralCreatorPlanBonus?: boolean
+}
+
 export function limitForMetric(
   metric: UsageMetric,
   planType: string,
-  trialEndsAt: string | null | undefined
+  trialEndsAt: string | null | undefined,
+  referral?: ReferralLimitContext
 ): number {
   if (isUnlimitedPlan(planType, trialEndsAt)) return Infinity
-  return getFreePlanLimits()[metric]
+
+  let base = getFreePlanLimits()[metric]
+
+  if (referral?.referralCreatorPlanBonus && metric === 'generations') {
+    base = Math.max(base, getReferralCreatorPlanGenerationCap())
+  }
+
+  if (metric === 'generations' && referral?.referralBonusGenerations) {
+    base += Math.max(0, referral.referralBonusGenerations)
+  }
+
+  return base
 }
