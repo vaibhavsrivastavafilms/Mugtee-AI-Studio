@@ -1,3 +1,4 @@
+// Edge Tools no-inline-styles suppressed via .hintrc (Remotion requires inline styles).
 import React from 'react'
 import {
   AbsoluteFill,
