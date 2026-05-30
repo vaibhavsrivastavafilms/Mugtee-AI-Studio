@@ -15,6 +15,16 @@ function scrollToRecommendTarget(target: string) {
   }, 120)
 }
 
+function triggerRecommendTarget(target: string) {
+  window.setTimeout(() => {
+    const el = document.querySelector(
+      `[data-recommend-target="${target}"]`
+    ) as HTMLButtonElement | null
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el?.click()
+  }, 120)
+}
+
 function RecommendationCard({
   step,
   onAction,
@@ -60,8 +70,8 @@ export function RecommendedNextSteps({ className }: { className?: string }) {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
-  const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
-  const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
+  const repurposedAssets = useQuickCutGenerationStore((s) => s.repurposedAssets)
+  const contentSeries = useQuickCutGenerationStore((s) => s.contentSeries)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
 
@@ -80,14 +90,18 @@ export function RecommendedNextSteps({ className }: { className?: string }) {
     isRenderingVideo,
     renderPollUrl,
     renderError,
-    researchReport,
-    researchDocument,
+    repurposedAssets,
+    contentSeries,
     savedProjectId,
   })
 
   const handleAction = (step: RecommendedNextStep) => {
     if (step.tabTarget) {
       setActiveStageTab(step.tabTarget, true)
+    }
+    if (step.actionType === 'trigger-element' && step.scrollTarget) {
+      triggerRecommendTarget(step.scrollTarget)
+      return
     }
     if (step.scrollTarget) {
       scrollToRecommendTarget(step.scrollTarget)

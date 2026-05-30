@@ -1,13 +1,20 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import type { ContentSeries } from '@/lib/cinematic/content-series'
+import {
+  REPURPOSE_OUTPUT_TYPES,
+  type RepurposedAssetsMap,
+} from '@/lib/cinematic/content-repurpose'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import {
   hasExportableScript,
   resolvePublishReadiness,
   type PublishReadinessInput,
 } from '@/lib/quick-cut/asset-availability'
-import type { DeepResearchReport } from '@/types/deep-research'
 
-export type RecommendedNextStepActionType = 'navigate-tab' | 'scroll-section'
+export type RecommendedNextStepActionType =
+  | 'navigate-tab'
+  | 'scroll-section'
+  | 'trigger-element'
 
 export type RecommendedNextStep = {
   id: string
@@ -21,23 +28,15 @@ export type RecommendedNextStep = {
 }
 
 export type RecommendedNextStepsInput = PublishReadinessInput & {
-  researchReport?: DeepResearchReport | null
-  researchDocument?: string | null
+  repurposedAssets?: RepurposedAssetsMap
+  contentSeries?: ContentSeries | null
   isComplete?: boolean
   savedProjectId?: string | null
 }
 
-function hasDeepResearch(input: RecommendedNextStepsInput): boolean {
-  if (input.researchReport?.topic?.trim()) return true
-  return Boolean(input.researchDocument?.trim())
-}
-
-function hasSeriesResearch(report: DeepResearchReport | null | undefined): boolean {
-  if (!report?.topic?.trim()) return false
-  const angles = report.finalSummary?.top10Angles?.length ?? 0
-  const hooks = report.hookAngles?.length ?? 0
-  const storyboardIdeas = report.storyboardIdeas?.length ?? 0
-  return angles >= 3 || hooks >= 5 || storyboardIdeas >= 5
+function hasRepurposedContent(assets: RepurposedAssetsMap | undefined): boolean {
+  if (!assets) return false
+  return REPURPOSE_OUTPUT_TYPES.some((type) => Boolean(assets[type]?.content))
 }
 
 function hasWorkspaceContext(input: RecommendedNextStepsInput): boolean {
@@ -125,27 +124,25 @@ export function resolveRecommendedNextSteps(
     })
   }
 
-  if (scriptGenerated && !hasDeepResearch(input)) {
+  if (scriptGenerated && !hasRepurposedContent(input.repurposedAssets)) {
     candidates.push({
       id: 'repurpose',
       title: 'Repurpose Content',
-      explanation: 'Run deep research for hooks, angles, and platform-ready variants.',
-      actionType: 'scroll-section',
-      tabTarget: 'script',
-      scrollTarget: 'deep-research',
-      impact: 65,
+      explanation: 'Turn your script into carousels, threads, newsletters, and short-form scripts.',
+      actionType: 'navigate-tab',
+      tabTarget: 'repurpose',
+      impact: 70,
     })
   }
 
-  if (scriptGenerated && hasDeepResearch(input) && !hasSeriesResearch(input.researchReport)) {
+  if (scriptGenerated && !input.contentSeries) {
     candidates.push({
       id: 'content-series',
       title: 'Generate Content Series',
-      explanation: 'Expand research into episodic hooks and storyboard ideas for a series.',
-      actionType: 'scroll-section',
-      tabTarget: 'script',
-      scrollTarget: 'deep-research',
-      impact: 60,
+      explanation: 'Plan episodic hooks and scripts from your current topic.',
+      actionType: 'trigger-element',
+      scrollTarget: 'content-series',
+      impact: 65,
     })
   }
 
@@ -176,8 +173,8 @@ export function recommendedNextStepsFromStore(state: {
   isRenderingVideo?: boolean
   renderPollUrl?: string | null
   renderError?: string | null
-  researchReport?: DeepResearchReport | null
-  researchDocument?: string | null
+  repurposedAssets?: RepurposedAssetsMap
+  contentSeries?: ContentSeries | null
   savedProjectId?: string | null
 }): RecommendedNextStep[] {
   return resolveRecommendedNextSteps({
@@ -195,8 +192,8 @@ export function recommendedNextStepsFromStore(state: {
     isRenderingVideo: state.isRenderingVideo,
     renderPollUrl: state.renderPollUrl,
     renderError: state.renderError,
-    researchReport: state.researchReport,
-    researchDocument: state.researchDocument,
+    repurposedAssets: state.repurposedAssets,
+    contentSeries: state.contentSeries,
     savedProjectId: state.savedProjectId,
   })
 }
