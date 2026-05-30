@@ -47,6 +47,7 @@ import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
 import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
+import { KnowledgeSuggestions } from '@/components/create/knowledge-suggestions'
 import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
@@ -279,6 +280,16 @@ export function FullscreenQuickCutCanvas({
               onFocus={() => setPromptFocused(true)}
               onBlur={() => setPromptFocused(false)}
             />
+
+            {signedIn ? (
+              <KnowledgeSuggestions
+                prompt={prompt}
+                onSelectTopic={(topic) => {
+                  setPrompt(topic)
+                  setPromptFocused(true)
+                }}
+              />
+            ) : null}
 
             <ContentLanguageSelector
               value={contentLanguage}

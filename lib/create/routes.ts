@@ -14,6 +14,7 @@ const STUDIO = {
   create: '/studio/create',
   projects: '/studio/projects',
   project: '/studio/project',
+  knowledge: '/studio/knowledge',
   exports: '/studio/exports',
   director: '/studio/director',
   settings: '/studio/settings',

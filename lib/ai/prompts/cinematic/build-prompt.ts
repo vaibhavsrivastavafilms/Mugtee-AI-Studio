@@ -10,6 +10,7 @@ import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection, creatorProfileDirective } from '@/lib/creator/creator-memory'
+import { creatorHistoryDirective } from '@/lib/creator/knowledge-base'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { scriptWordCountHint } from '@/lib/ai/prompts/cinematic/script-writing-sop'
@@ -45,6 +46,10 @@ export type CinematicPromptInput = {
   directorMode?: DirectorMode
   /** Creator Project Template — blueprint-specific generation directive */
   blueprintId?: string | null
+  /** Rule-based prior topics from project library (client aggregate) */
+  recentTopics?: string[]
+  /** Director mode / style line for creator history block */
+  creatorHistoryStyle?: string
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -145,6 +150,12 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
         : '',
     input.directorMode ? buildDirectorModePromptSection(input.directorMode) : '',
     input.blueprintId ? buildCreatorBlueprintPromptSection(input.blueprintId) : '',
+    input.recentTopics?.length || input.creatorHistoryStyle
+      ? creatorHistoryDirective({
+          recentTopics: input.recentTopics,
+          directorMode: input.creatorHistoryStyle ?? input.directorMode,
+        })
+      : '',
   ]
     .filter(Boolean)
     .join('\n')

@@ -199,6 +199,18 @@ export async function POST(req: NextRequest) {
     const directorMode = normalizeDirectorMode(raw.directorMode)
     const blueprintId = normalizeCreatorBlueprintId(raw.blueprintId)
 
+    const recentTopics = Array.isArray(raw.recentTopics)
+      ? raw.recentTopics
+          .filter((v): v is string => typeof v === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 12)
+      : undefined
+    const creatorHistoryStyle =
+      typeof raw.creatorHistoryStyle === 'string' && raw.creatorHistoryStyle.trim()
+        ? raw.creatorHistoryStyle.trim().slice(0, 80)
+        : undefined
+
     const input = {
       topic,
       platform,
@@ -223,6 +235,8 @@ export async function POST(req: NextRequest) {
       titleSeed,
       directorMode,
       blueprintId,
+      recentTopics: recentTopics?.length ? recentTopics : undefined,
+      creatorHistoryStyle,
     }
 
     if (process.env.NODE_ENV === 'development') {

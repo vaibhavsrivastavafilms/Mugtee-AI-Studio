@@ -13,6 +13,7 @@ import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 import { UnifiedProjectsGrid, type ProjectCardModel } from '@/components/create/unified-projects-grid'
 import { ProjectsInsightsPanel } from '@/components/create/projects-insights-panel'
 import { ProjectsLibrarySection } from '@/components/create/projects-library-section'
+import { KnowledgeBaseView } from '@/components/create/knowledge-base-view'
 import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-director-cut-mode-card'
 import { HelpShapeMugteeBanner } from '@/components/shell/help-shape-mugtee-banner'
 
@@ -64,6 +65,7 @@ function CreateEntryInner() {
   const mode = (searchParams?.get('mode') as CreatorMode | null) ?? null
   const tab = searchParams?.get('tab')
   const isProjectsTab = tab === 'projects' || tab === 'exports'
+  const isKnowledgeTab = tab === 'knowledge'
   const isScriptOrStoryboardTab = tab === 'scripts' || tab === 'storyboards'
   const [gallerySearch, setGallerySearch] = useState('')
   const [selectedProject, setSelectedProject] = useState<ProjectCardModel | null>(null)
@@ -106,16 +108,20 @@ function CreateEntryInner() {
       ? 'Scripts'
       : tab === 'storyboards'
         ? 'Storyboards'
-        : isProjectsTab
-          ? 'Projects'
-          : undefined
+        : isKnowledgeTab
+          ? 'Knowledge Base'
+          : isProjectsTab
+            ? 'Projects'
+            : undefined
 
   const sectionSubtitle =
     tab === 'scripts' || tab === 'storyboards'
       ? 'Scripts and storyboards in your project library.'
-      : isProjectsTab
-        ? 'Continue, preview, or refine any reel.'
-        : undefined
+      : isKnowledgeTab
+        ? 'Topics, series, and themes from your project history — no extra AI cost.'
+        : isProjectsTab
+          ? 'Continue, preview, or refine any reel.'
+          : undefined
 
   return (
     <UnifiedCreatorShell
@@ -147,7 +153,9 @@ function CreateEntryInner() {
         </>
       ) : null}
 
-      {isProjectsTab ? (
+      {isKnowledgeTab ? (
+        <KnowledgeBaseView />
+      ) : isProjectsTab ? (
         <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
           <div className="flex-1 min-w-0">
             <ProjectsLibrarySection

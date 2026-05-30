@@ -13,6 +13,8 @@ import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-pa
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
+import { SeriesContextPanel } from '@/components/quick-cut/series-context-panel'
+import { episodeTopic } from '@/lib/cinematic/content-series'
 import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -45,6 +47,8 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
+  const contentSeries = useQuickCutGenerationStore((s) => s.contentSeries)
+  const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
 
   useEffect(() => {
     if (stageTabPinned) return
@@ -125,6 +129,23 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
           ) : null}
 
           <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
+
+          {contentSeries ? (
+            <SeriesContextPanel
+              series={contentSeries}
+              className="max-w-2xl mx-auto w-full"
+              onSuggestEpisode={(episode) => {
+                void runPipeline({
+                  prompt: episodeTopic(episode),
+                  style: useQuickCutGenerationStore.getState().style,
+                  duration: useQuickCutGenerationStore.getState().duration,
+                  language: useQuickCutGenerationStore.getState().language,
+                  directorMode: useQuickCutGenerationStore.getState().directorMode,
+                  blueprintId: useQuickCutGenerationStore.getState().blueprintId ?? undefined,
+                })
+              }}
+            />
+          ) : null}
 
           {scenes.length > 0 ? (
             <div className="flex justify-center items-center gap-3 pt-1">
