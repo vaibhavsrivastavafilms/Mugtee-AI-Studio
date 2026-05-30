@@ -35,7 +35,7 @@ export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   if (row.video_url) return 'complete'
   if (hasImages) return 'visuals'
   if (scenes.length > 0) return 'scenes'
-  if (row.script?.trim()) return 'script'
+  if (row.script_beats || row.script?.trim()) return 'script'
   const hook = rowToState(row).hook
   if (hook?.trim()) return 'hook'
   return 'scenes'
@@ -49,7 +49,7 @@ function inferGenerationStep(
   const hasImages = scenes.some((scene) => scene.imageUrl)
   if (hasImages) return 'voice'
   if (scenes.length > 0) return 'scenes'
-  if (row.script?.trim()) return 'script'
+  if (row.script_beats || row.script?.trim()) return 'script'
   return 'hook'
 }
 
@@ -60,6 +60,9 @@ export type QuickCutProjectHydrationPatch = {
   title: string
   hook: string
   script: string
+  scriptBeats: import('@/types/cinematic-script').ScriptBeat[]
+  payoff: string
+  cta: string
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
   voiceUrl: string | null
@@ -114,6 +117,9 @@ export function buildQuickCutHydrationFromRow(
     title: state.title,
     hook: state.hook,
     script: state.script,
+    scriptBeats: state.scriptBeats,
+    payoff: state.payoff,
+    cta: state.cta,
     scenes,
     storyboard: scenes,
     voiceUrl: state.voice?.audioUrl ?? null,
@@ -121,7 +127,10 @@ export function buildQuickCutHydrationFromRow(
     voiceName: state.voice?.voiceName ?? null,
     videoUrl: row.video_url ?? null,
     generationStep: isComplete && row.video_url ? 'complete' : generationStep,
-    isComplete: Boolean(row.video_url || (scenes.length > 0 && state.script.trim())),
+    isComplete: Boolean(
+      row.video_url ||
+        (scenes.length > 0 && (state.scriptBeats.length > 0 || state.script.trim()))
+    ),
     isGenerating: false,
     activeStageTab: resolvedTab,
     stageTabPinned: true,

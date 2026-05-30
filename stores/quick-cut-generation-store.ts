@@ -19,7 +19,7 @@ import {
   saveQuickCutPreview,
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { quickCutTopicChanged } from '@/lib/cinematic/quick-cut/prompt-key'
-import type { MugteeScriptBeat } from '@/lib/cinematic/script-sop'
+import type { ScriptBeat } from '@/types/cinematic-script'
 import {
   scenesToStore,
   type CinematicGenerationOutput,
@@ -101,6 +101,11 @@ import {
 } from '@/lib/cinematic/generation-persist'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
+import {
+  deriveScriptText,
+  narrationFromCinematicScript,
+  resolveCinematicScript,
+} from '@/lib/cinematic/cinematic-script'
 import type { CinematicGenerationState } from '@/lib/cinematic/quick-cut/cinematic-assembly-timing'
 import { runCinematicAssemblyPresentation } from '@/lib/cinematic/quick-cut/run-cinematic-assembly'
 
@@ -186,7 +191,7 @@ interface QuickCutGenerationStateBase {
   previousHooks: string[]
   hookVariantNumber: number
   script: string
-  scriptBeats: MugteeScriptBeat[]
+  scriptBeats: ScriptBeat[]
   payoff: string
   cta: string
   characterDescription: string
@@ -357,6 +362,30 @@ function flashSavedState() {
   }, SAVE_FLASH_MS)
 }
 
+function applyScriptOutput(
+  output: Record<string, unknown> | undefined,
+  hook: string
+): {
+  script: string
+  scriptBeats: ScriptBeat[]
+  payoff: string
+  cta: string
+} {
+  const cinematic = resolveCinematicScript({
+    scriptBeats: output?.scriptBeats as ScriptBeat[] | undefined,
+    script: typeof output?.script === 'string' ? output.script : '',
+    hook: typeof output?.hook === 'string' ? output.hook : hook,
+    payoff: typeof output?.payoff === 'string' ? output.payoff : '',
+    cta: typeof output?.cta === 'string' ? output.cta : '',
+  })
+  return {
+    script: deriveScriptText(cinematic),
+    scriptBeats: cinematic.scriptBeats,
+    payoff: cinematic.payoff,
+    cta: cinematic.cta,
+  }
+}
+
 function buildGenerationOutput(
   state: QuickCutGenerationState
 ): CinematicGenerationOutput {
@@ -376,14 +405,22 @@ function buildGenerationOutput(
         movementStyle: 'Slow drift',
       }
 
+  const cinematic = resolveCinematicScript({
+    scriptBeats: state.scriptBeats,
+    script: state.script,
+    hook: state.hook,
+    payoff: state.payoff,
+    cta: state.cta,
+  })
+
   return {
     title: state.title,
     hook: state.hook,
     summary: state.hook,
-    script: state.script,
-    scriptBeats: state.scriptBeats.length ? state.scriptBeats : undefined,
-    payoff: state.payoff || undefined,
-    cta: state.cta || undefined,
+    script: deriveScriptText(cinematic),
+    scriptBeats: cinematic.scriptBeats,
+    payoff: cinematic.payoff,
+    cta: cinematic.cta,
     scenes: state.scenes.map((s, i) => ({
       id: s.id || `scene-${i}`,
       title: s.title || `Scene ${i + 1}`,
@@ -450,7 +487,20 @@ function buildArchiveInput(
     title: state.title || 'Untitled reel',
     prompt: state.prompt,
     mode: 'quick',
-    script: state.script,
+    script: deriveScriptText(
+      resolveCinematicScript({
+        scriptBeats: state.scriptBeats,
+        script: state.script,
+        hook: state.hook,
+        payoff: state.payoff,
+        cta: state.cta,
+      })
+    ),
+    scriptBeats: state.scriptBeats.length
+      ? { beats: state.scriptBeats, payoff: state.payoff, cta: state.cta }
+      : null,
+    payoff: state.payoff,
+    cta: state.cta,
     scenes: storedScenes,
     storyboard: storedScenes,
     voice: state.voiceUrl
@@ -459,7 +509,16 @@ function buildArchiveInput(
           voiceName: state.voiceName || 'Cinematic Narrator',
           style: 'warm_documentary',
           audioUrl: state.voiceUrl,
-          narration: state.script,
+          narration: narrationFromCinematicScript(
+            resolveCinematicScript({
+              scriptBeats: state.scriptBeats,
+              script: state.script,
+              hook: state.hook,
+              payoff: state.payoff,
+              cta: state.cta,
+            }),
+            false
+          ),
         }
       : null,
     duration: coerceDuration(state.duration),
@@ -1264,14 +1323,10 @@ export const useQuickCutGenerationStore = create<
         }
 
         const output = scriptData.output as Record<string, unknown> | undefined
-        script = String(output?.script ?? '')
+        const applied = applyScriptOutput(output, hook)
+        script = applied.script
         scriptTitle = String(output?.title ?? title)
         scriptHook = String(output?.hook ?? hook)
-        const parsedBeats = Array.isArray(output?.scriptBeats)
-          ? (output.scriptBeats as MugteeScriptBeat[])
-          : []
-        const parsedPayoff = typeof output?.payoff === 'string' ? output.payoff : ''
-        const parsedCta = typeof output?.cta === 'string' ? output.cta : ''
         if (scriptData.mock === true) {
           anyMock = true
           noteMissing('script')
@@ -1298,9 +1353,9 @@ export const useQuickCutGenerationStore = create<
 
         set({
           script,
-          scriptBeats: parsedBeats,
-          payoff: parsedPayoff,
-          cta: parsedCta,
+          scriptBeats: applied.scriptBeats,
+          payoff: applied.payoff,
+          cta: applied.cta,
           title: scriptTitle,
           hook: scriptHook,
           researchDocument:
@@ -1944,21 +1999,16 @@ export const useQuickCutGenerationStore = create<
       if (!res.ok) throw new Error(String(data?.error || 'Script regeneration failed'))
 
       const output = data.output as Record<string, unknown> | undefined
-      const nextScript = String(output?.script ?? '').trim()
-      if (!nextScript) throw new Error('Script regeneration returned empty result')
-      const nextBeats = Array.isArray(output?.scriptBeats)
-        ? (output.scriptBeats as MugteeScriptBeat[])
-        : []
-      const nextPayoff = typeof output?.payoff === 'string' ? output.payoff : ''
-      const nextCta = typeof output?.cta === 'string' ? output.cta : ''
+      const applied = applyScriptOutput(output, state.hook)
+      if (!applied.script.trim()) throw new Error('Script regeneration returned empty result')
 
       set({
-        script: nextScript,
-        scriptBeats: nextBeats,
-        payoff: nextPayoff,
-        cta: nextCta,
+        script: applied.script,
+        scriptBeats: applied.scriptBeats,
+        payoff: applied.payoff,
+        cta: applied.cta,
         viralScript: state.viralScript
-          ? { ...state.viralScript, script: nextScript }
+          ? { ...state.viralScript, script: applied.script }
           : state.viralScript,
       })
       persistSession(get())

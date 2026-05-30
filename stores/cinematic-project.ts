@@ -13,6 +13,7 @@ import {
   type CinematicGenerationOutput,
 } from '@/lib/cinematic/generation'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
+import { coerceDuration } from '@/lib/workspace/validation'
 import {
   createProject as createProjectRow,
   loadProject as loadProjectRow,
@@ -20,7 +21,7 @@ import {
   stateToRowPayload,
   updateProject as updateProjectRow,
 } from '@/lib/cinematic-projects'
-import { coerceDuration } from '@/lib/workspace/validation'
+import type { ScriptBeat } from '@/types/cinematic-script'
 
 export type CinematicProjectStatus =
   | 'idle'
@@ -86,7 +87,11 @@ export interface CinematicProjectState {
   duration: number
   hook: string
   summary: string
+  /** @deprecated Derived flat text — use scriptBeats as source of truth. */
   script: string
+  scriptBeats: ScriptBeat[]
+  payoff: string
+  cta: string
   scenes: CinematicScene[]
   voice: CinematicVoice | null
   captions: string
@@ -116,6 +121,7 @@ interface CinematicProjectActions {
   updateHook: (hook: string) => void
   updateSummary: (summary: string) => void
   updateScript: (script: string) => void
+  updateScriptBeats: (beats: ScriptBeat[], payoff?: string, cta?: string) => void
   updateScenes: (scenes: CinematicScene[]) => void
   updateCaptionLines: (captionLines: string[]) => void
   updateSuggestedVoiceStyle: (style: string) => void
@@ -139,6 +145,9 @@ const INITIAL_STATE: CinematicProjectState = {
   hook: '',
   summary: '',
   script: '',
+  scriptBeats: [],
+  payoff: '',
+  cta: '',
   scenes: [],
   voice: null,
   captions: '',
@@ -275,6 +284,16 @@ export const useCinematicProjectStore = create<CinematicProjectStore>(
       scheduleAutosave(get)
     },
 
+    updateScriptBeats: (scriptBeats, payoff, cta) => {
+      set((state) => ({
+        scriptBeats,
+        payoff: payoff ?? state.payoff,
+        cta: cta ?? state.cta,
+        updatedAt: touchUpdatedAt(),
+      }))
+      scheduleAutosave(get)
+    },
+
     updateScenes: (scenes) => {
       set({ scenes, updatedAt: touchUpdatedAt() })
       scheduleAutosave(get)
@@ -325,6 +344,9 @@ export const useCinematicProjectStore = create<CinematicProjectStore>(
           hook: state.hook,
           summary: state.summary,
           script: state.script,
+          scriptBeats: state.scriptBeats,
+          payoff: state.payoff,
+          cta: state.cta,
           scenes: state.scenes,
           voice: state.voice,
           captions: state.captions,
@@ -344,6 +366,9 @@ export const useCinematicProjectStore = create<CinematicProjectStore>(
           hook: state.hook,
           summary: state.summary,
           script: payload.script,
+          scriptBeats: state.scriptBeats,
+          payoff: state.payoff,
+          cta: state.cta,
           scenes: payload.scenes as CinematicScene[],
           voice: payload.voice as CinematicVoice | null,
           captions: state.captions,
@@ -491,6 +516,9 @@ export function applyCinematicGeneration(output: CinematicGenerationOutput) {
     hook: output.hook,
     summary: output.summary,
     script: output.script,
+    scriptBeats: output.scriptBeats,
+    payoff: output.payoff,
+    cta: output.cta,
     scenes: scenesToStore(output.scenes),
     captionLines: output.captions,
     captions: output.captions.join('\n') || output.hook,

@@ -1,7 +1,7 @@
 'use client'
 
 import { ScriptBeatsDisplay } from '@/components/quick-cut/script-beats-display'
-import type { MugteeScriptBeat } from '@/lib/cinematic/script-sop'
+import type { ScriptBeat } from '@/types/cinematic-script'
 import { cn } from '@/lib/utils'
 
 export function LiveScriptReveal({
@@ -15,7 +15,7 @@ export function LiveScriptReveal({
 }: {
   script: string
   hook?: string
-  scriptBeats?: MugteeScriptBeat[]
+  scriptBeats?: ScriptBeat[]
   payoff?: string
   cta?: string
   active?: boolean
