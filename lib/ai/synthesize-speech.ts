@@ -5,19 +5,21 @@ import {
   FREE_OPENAI_TTS_MODEL,
 } from '@/lib/ai/free-tier'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
+import { trimNarrationForMaxDuration } from '@/lib/cinematic/scene-duration'
 import { logError } from '@/lib/workspace/validation'
 
 const EMERGENT_LLM_KEY = process.env.EMERGENT_LLM_KEY
 const TTS_URL = 'https://integrations.emergentagent.com/llm/v1/audio/speech'
 
 export function buildNarrationFromScript(script: string): string {
-  return script
-    .replace(/Scene\s+\d+[^\n]*/gi, '')
-    .replace(/Visual:[^\n]*/gi, '')
-    .replace(/\[0:\d+[^\]]*\]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 4000)
+  return trimNarrationForMaxDuration(
+    script
+      .replace(/Scene\s+\d+[^\n]*/gi, '')
+      .replace(/Visual:[^\n]*/gi, '')
+      .replace(/\[0:\d+[^\]]*\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
 }
 
 async function synthesizeOpenAITts(text: string): Promise<Buffer | null> {

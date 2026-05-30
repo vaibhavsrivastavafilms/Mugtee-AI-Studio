@@ -52,4 +52,5 @@ export type RenderVideoResult = {
   status: 'ready' | 'failed'
   durationSec: number
   mock?: boolean
+  provider?: 'runway' | 'ffmpeg'
 }

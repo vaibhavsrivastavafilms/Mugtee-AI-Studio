@@ -1,5 +1,6 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { SubtitleSegment } from '@/lib/video/types'
+import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 
 function formatSrtTime(sec: number): string {
   const h = Math.floor(sec / 3600)
@@ -16,8 +17,9 @@ export function buildSubtitleSegmentsFromScenes(
   const usable = scenes.filter((s) => s.description?.trim())
   if (usable.length === 0) return []
 
+  const cappedTotal = Math.min(totalDurationSec, MAX_VIDEO_DURATION_SEC)
   const rawTotal = usable.reduce((sum, s) => sum + Math.max(2, s.duration || 4), 0)
-  const scale = totalDurationSec / rawTotal
+  const scale = cappedTotal / rawTotal
   let cursor = 0
   const segments: SubtitleSegment[] = []
 
@@ -26,7 +28,7 @@ export function buildSubtitleSegmentsFromScenes(
     const text = scene.description.replace(/\s+/g, ' ').trim().slice(0, 120)
     segments.push({
       startSec: cursor,
-      endSec: Math.min(cursor + dur, totalDurationSec),
+      endSec: Math.min(cursor + dur, cappedTotal),
       text,
     })
     cursor += dur

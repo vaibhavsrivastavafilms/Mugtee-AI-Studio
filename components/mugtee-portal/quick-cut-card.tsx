@@ -4,8 +4,26 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { QuickCutCarousel } from '@/components/mugtee-portal/quick-cut-carousel'
 import { ModeEntryCta } from '@/components/mugtee-portal/mode-entry-cta'
+import { IdeaInput } from '@/components/mugtee-home/idea-input'
+import type { RefObject } from 'react'
 
-export function QuickCutCard() {
+type QuickCutCardProps = {
+  ideaTopic?: string
+  onIdeaTopicChange?: (value: string) => void
+  ideaInputRef?: RefObject<HTMLTextAreaElement>
+}
+
+export function QuickCutCard({
+  ideaTopic,
+  onIdeaTopicChange,
+  ideaInputRef,
+}: QuickCutCardProps = {}) {
+  const showIdeaInput = typeof onIdeaTopicChange === 'function'
+  const topicParams =
+    showIdeaInput && ideaTopic?.trim()
+      ? { topic: ideaTopic.trim() }
+      : undefined
+
   return (
     <motion.article
       className={cn(
@@ -44,6 +62,16 @@ export function QuickCutCard() {
 
         <QuickCutCarousel />
 
+        {showIdeaInput ? (
+          <IdeaInput
+            ref={ideaInputRef}
+            value={ideaTopic ?? ''}
+            onChange={onIdeaTopicChange}
+            placeholder="Describe your cinematic idea…"
+            className="w-full max-w-xl text-left"
+          />
+        ) : null}
+
         <motion.div
           variants={{ rest: { scale: 1 }, hover: { scale: 1.02 } }}
           transition={{ duration: 0.3 }}
@@ -52,6 +80,7 @@ export function QuickCutCard() {
           <ModeEntryCta
             mode="quick"
             label="Start Quick Cut"
+            params={topicParams}
             className="bg-gold-gradient text-black shadow-gold-glow hover:opacity-95 min-w-[220px]"
           />
         </motion.div>

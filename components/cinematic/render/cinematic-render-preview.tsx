@@ -1,18 +1,22 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Film } from 'lucide-react'
+import { Film, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMediaPlaybackTime } from '@/hooks/use-media-playback-time'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { RenderBuildStage } from '@/stores/cinematic-render-store'
 import { LiveStoryboardBuild } from '@/components/cinematic/render/live-storyboard-build'
+import { ProjectTranscriptDialog } from '@/components/quick-cut/project-transcript-dialog'
 
 const WAVEFORM_BARS = [0.2, 0.55, 0.85, 0.45, 0.7, 0.35, 0.9, 0.5, 0.65, 0.4, 0.75, 0.3]
 
 export function CinematicRenderPreview({
   hook,
   caption,
+  script = '',
+  projectId,
   buildStage,
   scenes,
   completedSceneIndices,
@@ -26,6 +30,8 @@ export function CinematicRenderPreview({
 }: {
   hook: string
   caption?: string
+  script?: string
+  projectId?: string | null
   buildStage: RenderBuildStage
   scenes: GeneratedScene[]
   completedSceneIndices: number[]
@@ -38,6 +44,12 @@ export function CinematicRenderPreview({
   className?: string
 }) {
   const [activeFrame, setActiveFrame] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const { isPlaying } = useMediaPlaybackTime(
+    videoRef,
+    Boolean(isComplete && videoUrl),
+    videoUrl
+  )
   const frames = useMemo(() => {
     const urls = livePreviewFrames.filter(Boolean)
     if (urls.length) return urls
@@ -52,12 +64,12 @@ export function CinematicRenderPreview({
     return () => clearInterval(timer)
   }, [frames.length, isComplete])
 
-  useEffect(() => {
-    if (isComplete && videoUrl) {
-      const video = document.getElementById('cinematic-render-preview-video') as HTMLVideoElement | null
-      video?.play().catch(() => undefined)
-    }
-  }, [isComplete, videoUrl])
+  const togglePlayback = () => {
+    const media = videoRef.current
+    if (!media) return
+    if (media.paused) void media.play()
+    else media.pause()
+  }
 
   const displayFrame = frames[activeFrame] ?? frames[0]
 
@@ -76,15 +88,35 @@ export function CinematicRenderPreview({
         )}
       >
         {isComplete && videoUrl ? (
-          <video
-            id="cinematic-render-preview-video"
-            src={videoUrl}
-            controls
-            autoPlay
-            playsInline
-            loop
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <>
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 w-full h-full object-cover"
+              onClick={togglePlayback}
+            />
+            <button
+              type="button"
+              onClick={togglePlayback}
+              className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
+              aria-label={isPlaying ? 'Pause video' : 'Play video'}
+            >
+              <span
+                className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
+                  isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+                )}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" aria-hidden />
+                ) : (
+                  <Play className="h-5 w-5 ml-0.5" aria-hidden />
+                )}
+              </span>
+            </button>
+          </>
         ) : (
           <>
             {buildStage >= 1 ? (
@@ -192,6 +224,16 @@ export function CinematicRenderPreview({
         <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/50 border border-white/10 text-[8px] tracking-[0.15em] uppercase text-white/50">
           9:16
         </div>
+        {isComplete && videoUrl ? (
+          <ProjectTranscriptDialog
+            script={script}
+            scenes={scenes}
+            captionLines={caption ? [caption] : undefined}
+            projectId={projectId}
+            compact
+            triggerClassName="absolute top-3 right-3 z-[3] rounded-full border-gold-500/30 bg-black/55 min-h-[24px] px-2.5 py-0.5 text-gold-200/90 hover:bg-black/70"
+          />
+        ) : null}
       </div>
 
       {!isComplete && scenes.length > 0 ? (

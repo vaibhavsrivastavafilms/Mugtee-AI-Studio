@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isFreeTierOnly } from '@/lib/ai/free-tier'
 import { synthesizeSpeechBuffer } from '@/lib/ai/synthesize-speech'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { logError } from '@/lib/workspace/validation'
+import { trimNarrationForMaxDuration } from '@/lib/cinematic/scene-duration'
+import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,13 +21,14 @@ export async function POST(req: NextRequest) {
     })
 
     const { buffer, provider } = await synthesizeSpeechBuffer(script)
-    const narration = script
-      .replace(/Scene\s+\d+[^\n]*/gi, '')
-      .replace(/Visual:[^\n]*/gi, '')
-      .replace(/\[0:\d+[^\]]*\]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 4000)
+    const narration = trimNarrationForMaxDuration(
+      script
+        .replace(/Scene\s+\d+[^\n]*/gi, '')
+        .replace(/Visual:[^\n]*/gi, '')
+        .replace(/\[0:\d+[^\]]*\]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    )
 
     if (!buffer || !narration || narration.length < 12) {
       return NextResponse.json(
@@ -58,7 +60,10 @@ export async function POST(req: NextRequest) {
           audioUrl: pub.publicUrl,
           voiceName: 'Cinematic Narrator',
           style: 'warm_documentary',
-          durationSec: Math.max(30, Math.round(narration.length / 14)),
+          durationSec: Math.min(
+            MAX_VIDEO_DURATION_SEC,
+            Math.max(15, Math.round(narration.length / 14))
+          ),
           waveform,
           mock: false,
           provider,
@@ -71,7 +76,10 @@ export async function POST(req: NextRequest) {
       audioUrl: dataUri,
       voiceName: 'Cinematic Narrator',
       style: 'warm_documentary',
-      durationSec: Math.max(30, Math.round(narration.length / 14)),
+      durationSec: Math.min(
+        MAX_VIDEO_DURATION_SEC,
+        Math.max(15, Math.round(narration.length / 14))
+      ),
       waveform,
       mock: false,
       provider,

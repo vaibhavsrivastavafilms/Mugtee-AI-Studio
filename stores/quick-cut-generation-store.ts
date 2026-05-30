@@ -1,6 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { coerceDuration } from '@/lib/workspace/validation'
 import {
   ensureScenesHaveImagePrompts,
   extractCharacterDescription,
@@ -9,6 +10,9 @@ import {
 } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
+import { detectInputLanguage, type ProjectLanguage } from '@/lib/cinematic/language-detection'
+import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
+import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
 import { saveQuickCutPreview } from '@/lib/cinematic/quick-cut/preview-session'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
@@ -18,8 +22,24 @@ import {
   CinematicProjectsUnavailableError,
   CINEMATIC_PROJECTS_MIGRATION_HINT,
   isCinematicProjectsUnavailable,
+  updateProject,
   type ArchiveGeneratedProjectInput,
 } from '@/lib/cinematic-projects'
+import {
+  completedStatus,
+  editingStatus,
+  exportedStatus,
+  reviewingStatus,
+} from '@/lib/cinematic/project-status'
+import {
+  appendHookVersion,
+  appendStoryboardVersion,
+  emptyVariationHistory,
+  selectHookVersion as applyHookVersionSelection,
+  selectStoryboardVersion as applyStoryboardVersionSelection,
+  type VariationHistory,
+} from '@/lib/cinematic/variation-history'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
@@ -33,6 +53,8 @@ import {
   generationStepToTab,
   type QuickCutStageTab,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
+import { loadProject } from '@/lib/cinematic-projects'
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -82,6 +104,11 @@ export type QuickCutInput = {
   imageNote?: string
   voiceNote?: string
   keywords?: string[]
+  /** Preserve existing project row on re-run (UPDATE not INSERT) */
+  reuseProject?: boolean
+  /** Raw voice transcript before prompt assembly */
+  originalTranscript?: string
+  inputType?: 'text' | 'voice' | 'mixed'
 }
 
 export type QuickCutSaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -109,16 +136,30 @@ interface QuickCutGenerationState {
   renderPollUrl: string | null
   renderError: string | null
   renderStatusLabel: string | null
+  isRenderingVideo: boolean
   exportPackageReady: boolean
   videoRenderEnabled: boolean
   virlo: VirloMetadata | null
+  language: ProjectLanguage
+  niche: CinematicNiche
+  style: string
+  duration: number
+  visualStyle: VisualStyle | null
+  viralScript: ViralScript | null
+  inputType: 'text' | 'voice' | 'mixed'
+  originalTranscript: string
+  variationHistory: VariationHistory
   isRegeneratingHook: boolean
+  isRegeneratingTitle: boolean
+  isRegeneratingScript: boolean
   mock: boolean
   missingKeys: string[]
   pipeline: QuickCutPipelineStatus | null
   error: string | null
   isGenerating: boolean
   isComplete: boolean
+  /** Saved project opened via OPEN — show storyboard studio instead of export/home. */
+  studioReviewMode: boolean
   savedProjectId: string | null
   saveState: QuickCutSaveState
   saveError: string | null
@@ -126,17 +167,28 @@ interface QuickCutGenerationState {
 }
 
 interface QuickCutGenerationActions {
-  reset: () => void
+  reset: (options?: { clearProject?: boolean }) => void
   setActiveStageTab: (tab: QuickCutStageTab, pinned?: boolean) => void
   followPipelineStage: () => void
   runPipeline: (input: QuickCutInput) => Promise<void>
   regenerateHook: () => Promise<void>
+  regenerateTitle: () => Promise<void>
+  regenerateScript: () => Promise<void>
   regenerateSceneImage: (sceneId: string) => Promise<void>
   updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
   generateSceneVariations: (sceneId: string) => Promise<void>
+  selectHookVersion: (versionId: string) => void
+  selectStoryboardVersion: (versionId: string) => void
+  markProjectExported: () => Promise<void>
   retryVideoRender: () => Promise<void>
   resumeRenderPoll: () => Promise<void>
+  /** Refresh server video-render flag (VIDEO_RENDER_ENABLED) for export/compile UI. */
+  syncVideoRenderConfig: () => Promise<void>
   saveProject: () => Promise<string | null>
+  loadSavedProject: (
+    projectId: string,
+    options?: { stageTab?: QuickCutStageTab }
+  ) => Promise<boolean>
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -162,16 +214,29 @@ const INITIAL: QuickCutGenerationState = {
   renderPollUrl: null,
   renderError: null,
   renderStatusLabel: null,
+  isRenderingVideo: false,
   exportPackageReady: false,
   videoRenderEnabled: false,
   virlo: null,
+  language: 'en',
+  niche: 'storytelling',
+  style: 'cinematic',
+  duration: 60,
+  visualStyle: null,
+  viralScript: null,
+  inputType: 'text',
+  originalTranscript: '',
+  variationHistory: emptyVariationHistory(),
   isRegeneratingHook: false,
+  isRegeneratingTitle: false,
+  isRegeneratingScript: false,
   mock: false,
   missingKeys: [],
   pipeline: null,
   error: null,
   isGenerating: false,
   isComplete: false,
+  studioReviewMode: false,
   savedProjectId: null,
   saveState: 'idle',
   saveError: null,
@@ -192,6 +257,22 @@ function flashSavedState() {
 function buildGenerationOutput(
   state: QuickCutGenerationState
 ): CinematicGenerationOutput {
+  const visualDefaults = state.visualStyle
+    ? {
+        cameraAngle: state.visualStyle.camera,
+        lightingMood: state.visualStyle.lighting,
+        environment: state.visualStyle.environment,
+        colorPalette: state.visualStyle.palette,
+        movementStyle: state.visualStyle.movement,
+      }
+    : {
+        cameraAngle: 'Cinematic medium',
+        lightingMood: 'Motivated key light',
+        environment: 'Contextual setting',
+        colorPalette: 'Natural contrast',
+        movementStyle: 'Slow drift',
+      }
+
   return {
     title: state.title,
     hook: state.hook,
@@ -202,13 +283,17 @@ function buildGenerationOutput(
       title: s.title || `Scene ${i + 1}`,
       description: s.description || '',
       duration: s.duration ?? 4,
-      visualPrompt: s.visualPrompt || '',
+      visualPrompt:
+        s.visualPrompt ||
+        (state.visualStyle
+          ? `${state.visualStyle.label}. ${visualDefaults.cameraAngle}.`
+          : ''),
       imagePrompt: s.imagePrompt || '',
-      cameraAngle: s.cameraAngle || 'Cinematic medium',
-      lightingMood: s.lightingMood || 'Moody contrast',
-      environment: s.environment || 'Abstract cinematic',
-      colorPalette: s.colorPalette || 'Deep shadow, gold highlight',
-      movementStyle: s.movementStyle || 'Slow push-in',
+      cameraAngle: s.cameraAngle || visualDefaults.cameraAngle,
+      lightingMood: s.lightingMood || visualDefaults.lightingMood,
+      environment: s.environment || visualDefaults.environment,
+      colorPalette: s.colorPalette || visualDefaults.colorPalette,
+      movementStyle: s.movementStyle || visualDefaults.movementStyle,
       imageUrl: s.imageUrl,
     })),
     captions: state.script.split('\n').filter(Boolean).slice(0, 8),
@@ -218,7 +303,7 @@ function buildGenerationOutput(
       hashtags: ['#cinematic', '#storytelling', '#faceless'],
     },
     suggestedVoiceStyle: 'warm_documentary',
-    niche: 'storytelling',
+    niche: state.niche,
   }
 }
 
@@ -249,14 +334,26 @@ function buildArchiveInput(
           narration: state.script,
         }
       : null,
-    duration: 60,
-    status: state.videoUrl ? 'complete' : 'preview',
+    duration: coerceDuration(state.duration),
+    status: state.videoUrl
+      ? completedStatus()
+      : state.isComplete
+        ? reviewingStatus()
+        : editingStatus(),
     video_url: state.videoUrl,
     thumbnail_url: thumbnail,
     hook: state.hook,
     summary: state.hook,
     captionLines: output.captions,
+    style: state.style,
+    niche: state.niche,
     virlo: state.virlo,
+    language: state.language,
+    input_type: state.inputType,
+    original_transcript: state.originalTranscript || state.prompt,
+    variation_history: state.variationHistory,
+    visual_style: state.visualStyle,
+    viral_script: state.viralScript,
   }
 }
 
@@ -264,7 +361,7 @@ function resolveSaveError(err: unknown): string {
   if (err instanceof CinematicProjectsUnavailableError) return err.message
   if (isCinematicProjectsUnavailable(err)) return CINEMATIC_PROJECTS_MIGRATION_HINT
   if (err instanceof Error && err.message === 'Not signed in') {
-    return 'Sign in to save projects to your library.'
+    return 'Sign in to save'
   }
   if (err instanceof Error && err.message.trim()) return err.message
   return 'Could not save to library — try again.'
@@ -306,10 +403,13 @@ function buildQuickCutRegenPayload(state: QuickCutGenerationState) {
   return {
     topic: state.prompt,
     prompt: state.prompt,
-    tone: 'cinematic',
-    style: 'cinematic',
-    duration: 60,
-    niche: 'storytelling' as const,
+    tone: state.style,
+    style: state.style,
+    duration: state.duration,
+    niche: state.niche,
+    language: state.language,
+    visualStyle: state.visualStyle,
+    viralScript: state.viralScript,
     hook: state.hook,
     summary: state.hook,
     script: state.script,
@@ -357,6 +457,7 @@ async function requestHookRegeneration(
         sessionSeed: `${state.prompt}-${state.previousHooks.length}-${Date.now()}`,
         previousHooks: [...state.previousHooks, state.hook].filter(Boolean),
         hookVariantIndex: state.previousHooks.length + (strongVariation ? 1 : 0),
+        language: state.language,
       }),
     })
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -380,10 +481,19 @@ function delay(ms: number) {
 async function fetchSceneImages(
   state: Pick<
     QuickCutGenerationState,
-    'scenes' | 'characterDescription' | 'virlo' | 'hook' | 'script'
+    | 'scenes'
+    | 'characterDescription'
+    | 'virlo'
+    | 'hook'
+    | 'script'
+    | 'niche'
+    | 'style'
+    | 'visualStyle'
+    | 'language'
   >,
   sceneIds?: string[],
-  variation = false
+  variation = false,
+  diversityAttempt = 0
 ): Promise<{
   scenes: GeneratedScene[]
   mock: boolean
@@ -400,7 +510,11 @@ async function fetchSceneImages(
       virlo: state.virlo ?? undefined,
       hook: state.hook,
       script: state.script,
-      niche: 'storytelling',
+      niche: state.niche,
+      style: state.style,
+      visualStyle: state.visualStyle ?? undefined,
+      language: state.language,
+      diversityAttempt,
     }),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -561,8 +675,8 @@ function persistSession(state: QuickCutGenerationState) {
     project: {
       title: state.title,
       prompt: state.prompt,
-      style: 'cinematic',
-      duration: 60,
+      style: state.style,
+      duration: state.duration,
       hook: state.hook,
       summary: state.hook,
       script: state.script,
@@ -577,7 +691,7 @@ function persistSession(state: QuickCutGenerationState) {
         : null,
       captionLines: output.captions,
       suggestedVoiceStyle: 'warm_documentary',
-      niche: 'storytelling',
+      niche: state.niche,
       status: state.videoUrl ? 'complete' : 'preview',
     },
     previewFrames,
@@ -597,6 +711,11 @@ function persistSession(state: QuickCutGenerationState) {
         live: !state.mock,
       } satisfies QuickCutPipelineStatus),
     sessionId: `quick-cut-${Date.now()}`,
+    savedProjectId: state.savedProjectId,
+    language: state.language,
+    visualStyle: state.visualStyle ?? undefined,
+    viralScript: state.viralScript ?? undefined,
+    variationHistory: state.variationHistory,
     virlo: state.virlo ?? undefined,
     videoUrl: state.videoUrl,
     voiceUrl: state.voiceUrl,
@@ -622,9 +741,10 @@ export const useQuickCutGenerationStore = create<
 >((set, get) => ({
   ...INITIAL,
 
-  reset: () => {
+  reset: (options) => {
+    const savedProjectId = options?.clearProject ? null : get().savedProjectId
     clearHookSession()
-    set({ ...INITIAL })
+    set({ ...INITIAL, savedProjectId, studioReviewMode: false })
   },
 
   setActiveStageTab: (tab, pinned = true) =>
@@ -636,13 +756,30 @@ export const useQuickCutGenerationStore = create<
   },
 
   runPipeline: async (input) => {
-    const prompt = appendNotes(input.prompt, input.imageNote, input.voiceNote, input.keywords)
+    const rawPrompt = input.prompt.trim()
+    const prompt = appendNotes(rawPrompt, input.imageNote, input.voiceNote, input.keywords)
     if (prompt.length < 6) return
+
+    const language = detectInputLanguage(prompt)
+    const tone = input.style ?? 'cinematic'
+    const duration = coerceDuration(input.duration ?? 60)
+    const preserveProjectId =
+      input.reuseProject !== false ? get().savedProjectId : null
+    const inputType =
+      input.inputType ??
+      (input.voiceNote?.trim() || input.originalTranscript?.trim() ? 'voice' : 'text')
 
     set({
       ...INITIAL,
       ...restoreHookSession(),
+      savedProjectId: preserveProjectId,
+      studioReviewMode: false,
       prompt,
+      language,
+      style: tone,
+      duration,
+      inputType,
+      originalTranscript: input.originalTranscript?.trim() || rawPrompt,
       isGenerating: true,
       generationStep: 'analyzing',
       activeStageTab: 'title',
@@ -717,6 +854,9 @@ export const useQuickCutGenerationStore = create<
         storyboard: [],
         previousHooks: [],
         hookVariantNumber: 1,
+        variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
+          select: true,
+        }),
       })
       persistHookSession(get())
 
@@ -727,9 +867,12 @@ export const useQuickCutGenerationStore = create<
         body: JSON.stringify({
           topic: prompt,
           prompt,
-          tone: input.style ?? 'cinematic',
-          duration: input.duration ?? 60,
+          tone,
+          duration,
           sessionSeed,
+          language,
+          transcript: input.originalTranscript?.trim() || undefined,
+          voiceNote: input.voiceNote?.trim() || undefined,
         }),
       })
       const scriptData = (await scriptRes.json()) as Record<string, unknown>
@@ -745,6 +888,18 @@ export const useQuickCutGenerationStore = create<
       }
 
       const hookHistory = scriptHook && scriptHook !== hook ? appendPreviousHook([], hook) : []
+      const visualStyle =
+        scriptData.visualStyle && typeof scriptData.visualStyle === 'object'
+          ? (scriptData.visualStyle as VisualStyle)
+          : null
+      const viralScript =
+        scriptData.viralScript && typeof scriptData.viralScript === 'object'
+          ? (scriptData.viralScript as ViralScript)
+          : null
+      const scriptNiche =
+        typeof scriptData.niche === 'string'
+          ? (scriptData.niche as CinematicNiche)
+          : 'storytelling'
 
       set({
         script,
@@ -752,13 +907,28 @@ export const useQuickCutGenerationStore = create<
         hook: scriptHook,
         previousHooks: hookHistory,
         virlo: (scriptData.virlo as VirloMetadata | undefined) ?? virlo,
+        visualStyle,
+        viralScript,
+        niche: scriptNiche,
+        variationHistory: appendHookVersion(
+          get().variationHistory,
+          scriptHook,
+          { select: true }
+        ),
       })
 
       setStep(set, get, 'scenes')
       const scenesRes = await fetch('/api/generate-scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea: prompt, script, sessionSeed }),
+        body: JSON.stringify({
+          idea: prompt,
+          script,
+          sessionSeed,
+          language,
+          visualStyle,
+          niche: scriptNiche,
+        }),
       })
       const scenesData = (await scenesRes.json()) as Record<string, unknown>
       if (!scenesRes.ok) throw new Error(String(scenesData?.error || 'Scene generation failed'))
@@ -779,7 +949,7 @@ export const useQuickCutGenerationStore = create<
         total: scenes.length,
       })
 
-      set({ scenes, storyboard: scenes, characterDescription })
+      set({ scenes, storyboard: scenes, characterDescription, niche: scriptNiche })
 
       setStep(set, get, 'images')
       let imgMock = false
@@ -857,6 +1027,7 @@ export const useQuickCutGenerationStore = create<
       }
 
       if (videoRenderEnabled) {
+        set({ isRenderingVideo: true, renderError: null })
         try {
           const { renderRes, renderData } = await requestVideoRender(get(), true)
 
@@ -890,6 +1061,8 @@ export const useQuickCutGenerationStore = create<
             renderErr instanceof Error ? renderErr.message : 'Video render unavailable'
           anyMock = true
           noteMissing('video')
+        } finally {
+          set({ isRenderingVideo: false })
         }
       } else {
         try {
@@ -951,11 +1124,22 @@ export const useQuickCutGenerationStore = create<
     })
 
     try {
-      const result = await fetchSceneImages(state, [sceneId])
+      const result = await fetchSceneImages(state, [sceneId], false, state.previousHooks.length)
       const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
+      const updated = scenes.find((s) => s.id === sceneId)
+      let variationHistory = state.variationHistory
+      if (updated?.imageUrl) {
+        variationHistory = appendStoryboardVersion(variationHistory, {
+          sceneId,
+          sceneTitle: updated.title || 'Scene',
+          imageUrl: updated.imageUrl,
+          select: true,
+        })
+      }
       set({
         scenes,
         storyboard: scenes,
+        variationHistory,
         characterDescription:
           result.characterDescription || state.characterDescription,
       })
@@ -994,9 +1178,28 @@ export const useQuickCutGenerationStore = create<
     })
 
     try {
-      const result = await fetchSceneImages(state, [sceneId], true)
+      const sceneVersions = state.variationHistory.storyboards.filter(
+        (v) => v.sceneId === sceneId
+      ).length
+      const result = await fetchSceneImages(
+        state,
+        [sceneId],
+        true,
+        sceneVersions + 1
+      )
       const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
-      set({ scenes, storyboard: scenes })
+      const updated = scenes.find((s) => s.id === sceneId)
+      let variationHistory = state.variationHistory
+      const altUrl = updated?.variationImageUrl ?? updated?.imageUrl
+      if (altUrl) {
+        variationHistory = appendStoryboardVersion(variationHistory, {
+          sceneId,
+          sceneTitle: updated?.title || 'Scene',
+          imageUrl: altUrl,
+          select: true,
+        })
+      }
+      set({ scenes, storyboard: scenes, variationHistory })
       persistSession(get())
     } catch {
       /* keep primary frame */
@@ -1042,11 +1245,21 @@ export const useQuickCutGenerationStore = create<
             ? { ...state.virlo, hookVariant: `v${hookVariantNumber}` }
             : result.virlo ?? null
 
+      const variationHistory = appendHookVersion(
+        state.variationHistory,
+        result.hook,
+        { select: true }
+      )
+
       set({
         hook: result.hook,
         previousHooks: nextPrevious,
         hookVariantNumber,
         virlo: nextVirlo,
+        viralScript: state.viralScript
+          ? { ...state.viralScript, hook: result.hook }
+          : state.viralScript,
+        variationHistory,
       })
 
       persistSession(get())
@@ -1057,9 +1270,125 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  regenerateTitle: async () => {
+    const state = get()
+    if (!state.prompt.trim() || state.isRegeneratingTitle || state.isGenerating) return
+
+    set({
+      isRegeneratingTitle: true,
+      activeStageTab: 'title',
+      stageTabPinned: true,
+    })
+
+    try {
+      const res = await fetch('/api/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idea: state.prompt,
+          sessionSeed: `${state.prompt}-title-${Date.now()}`,
+          previousHooks: [state.title, state.hook].filter(Boolean),
+          language: state.language,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+      if (!res.ok) throw new Error(String(data?.error || 'Title regeneration failed'))
+
+      const nextTitle = String(data.title ?? '').trim()
+      if (!nextTitle) throw new Error('Title regeneration returned empty result')
+
+      set({
+        title: nextTitle,
+      })
+      persistSession(get())
+    } catch {
+      /* title regen is non-blocking */
+    } finally {
+      set({ isRegeneratingTitle: false })
+    }
+  },
+
+  regenerateScript: async () => {
+    const state = get()
+    if (!state.prompt.trim() || state.isRegeneratingScript || state.isGenerating) return
+
+    set({
+      isRegeneratingScript: true,
+      activeStageTab: 'script',
+      stageTabPinned: true,
+    })
+
+    try {
+      const res = await fetch('/api/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: state.prompt,
+          prompt: state.prompt,
+          tone: state.style,
+          duration: state.duration,
+          sessionSeed: `${state.prompt}-script-${Date.now()}`,
+          language: state.language,
+          transcript: state.originalTranscript?.trim() || undefined,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+      if (!res.ok) throw new Error(String(data?.error || 'Script regeneration failed'))
+
+      const output = data.output as Record<string, unknown> | undefined
+      const nextScript = String(output?.script ?? '').trim()
+      if (!nextScript) throw new Error('Script regeneration returned empty result')
+
+      set({
+        script: nextScript,
+        viralScript: state.viralScript
+          ? { ...state.viralScript, script: nextScript }
+          : state.viralScript,
+      })
+      persistSession(get())
+    } catch {
+      /* script regen is non-blocking */
+    } finally {
+      set({ isRegeneratingScript: false })
+    }
+  },
+
+  selectHookVersion: (versionId) => {
+    const state = get()
+    const history = applyHookVersionSelection(state.variationHistory, versionId)
+    const version = history.hooks.find((h) => h.id === versionId)
+    if (!version) return
+    set({ variationHistory: history, hook: version.text })
+    persistSession(get())
+  },
+
+  selectStoryboardVersion: (versionId) => {
+    const state = get()
+    const history = applyStoryboardVersionSelection(state.variationHistory, versionId)
+    const version = history.storyboards.find((s) => s.id === versionId)
+    if (!version) return
+    const scenes = state.scenes.map((scene) =>
+      scene.id === version.sceneId ? { ...scene, imageUrl: version.imageUrl } : scene
+    )
+    set({ variationHistory: history, scenes, storyboard: scenes })
+    persistSession(get())
+  },
+
+  markProjectExported: async () => {
+    const { savedProjectId } = get()
+    if (!savedProjectId) return
+    try {
+      await updateProject(savedProjectId, { status: exportedStatus() })
+    } catch {
+      /* non-blocking */
+    }
+  },
+
   retryVideoRender: async () => {
     const state = get()
-    if (state.videoUrl || state.scenes.length < 1 || state.isGenerating) return
+    if (state.videoUrl || state.scenes.length < 1 || state.isGenerating || state.isRenderingVideo) {
+      return
+    }
 
     if (!state.videoRenderEnabled) {
       set({ renderError: null, exportPackageReady: false })
@@ -1077,7 +1406,7 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
-    set({ renderError: null })
+    set({ renderError: null, isRenderingVideo: true })
 
     try {
       try {
@@ -1123,13 +1452,26 @@ export const useQuickCutGenerationStore = create<
       set({
         renderError: err instanceof Error ? err.message : 'Video render unavailable',
       })
+    } finally {
+      set({ isRenderingVideo: false })
+    }
+  },
+
+  syncVideoRenderConfig: async () => {
+    try {
+      const res = await fetch('/api/quick-cut/config')
+      const config = (await res.json().catch(() => ({}))) as Record<string, boolean>
+      set({ videoRenderEnabled: config.videoRenderEnabled === true })
+    } catch {
+      /* non-blocking */
     }
   },
 
   resumeRenderPoll: async () => {
-    const { renderPollUrl, videoUrl, videoRenderEnabled } = get()
-    if (!videoRenderEnabled || !renderPollUrl || videoUrl) return
+    const { renderPollUrl, videoUrl, videoRenderEnabled, isRenderingVideo } = get()
+    if (!videoRenderEnabled || !renderPollUrl || videoUrl || isRenderingVideo) return
 
+    set({ isRenderingVideo: true })
     try {
       const url = await pollRenderJob(
         renderPollUrl,
@@ -1147,6 +1489,42 @@ export const useQuickCutGenerationStore = create<
       const message = err instanceof Error ? err.message : 'Video render timed out'
       set({ renderError: message, renderPollUrl: null })
       persistSession(get())
+    } finally {
+      set({ isRenderingVideo: false })
+    }
+  },
+
+  loadSavedProject: async (projectId, options) => {
+    const state = get()
+    if (state.isGenerating) return false
+
+    if (
+      state.savedProjectId === projectId &&
+      state.studioReviewMode &&
+      state.scenes.length > 0
+    ) {
+      if (options?.stageTab) {
+        set({ activeStageTab: options.stageTab, stageTabPinned: true })
+      }
+      return true
+    }
+
+    try {
+      const row = await loadProject(projectId)
+      if (row.mode === 'director') return false
+
+      const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
+      set({
+        ...INITIAL,
+        ...patch,
+        saveState: 'idle',
+        saveError: null,
+      })
+      persistHookSession(get())
+      void get().syncVideoRenderConfig()
+      return true
+    } catch {
+      return false
     }
   },
 
@@ -1154,6 +1532,14 @@ export const useQuickCutGenerationStore = create<
     const state = get()
     if (state.saveState === 'saving') return state.savedProjectId
     if (!state.script && state.scenes.length < 1) return null
+
+    const {
+      data: { user },
+    } = await createSupabaseBrowserClient().auth.getUser()
+    if (!user) {
+      set({ saveState: 'error', saveError: 'Sign in to save' })
+      return null
+    }
 
     set({ saveState: 'saving', saveError: null })
     try {

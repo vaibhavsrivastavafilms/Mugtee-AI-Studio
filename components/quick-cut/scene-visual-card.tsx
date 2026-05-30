@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Camera, Download, Loader2, RefreshCw, Sparkles, Pencil } from 'lucide-react'
+import { Camera, Download, Loader2, Pause, Pencil, Play, Sparkles } from 'lucide-react'
 import { downloadSceneImage, sceneImageFilename } from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
@@ -13,9 +13,12 @@ export function SceneVisualCard({
   index,
   loading = false,
   loadingLabel,
-  onRegenerate,
   onSavePrompt,
   onVariations,
+  onToggleAudio,
+  canPlayAudio = false,
+  audioPlaying = false,
+  audioDisabledReason,
   compact = false,
   exportBaseName = 'mugtee-scene',
   allowDownload = true,
@@ -24,9 +27,12 @@ export function SceneVisualCard({
   index: number
   loading?: boolean
   loadingLabel?: string
-  onRegenerate?: () => void
   onSavePrompt?: (prompt: string) => void
   onVariations?: () => void
+  onToggleAudio?: () => void
+  canPlayAudio?: boolean
+  audioPlaying?: boolean
+  audioDisabledReason?: string
   compact?: boolean
   /** Slug used for downloaded still filenames */
   exportBaseName?: string
@@ -100,7 +106,38 @@ export function SceneVisualCard({
           <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
             {sceneLabel}
           </span>
-          <span className="text-[10px] text-luxe/40">{scene.duration ?? 4}s</span>
+          <div className="flex items-center gap-2">
+            {onToggleAudio ? (
+              <button
+                type="button"
+                disabled={!canPlayAudio}
+                title={
+                  canPlayAudio
+                    ? audioPlaying
+                      ? 'Pause narration'
+                      : 'Play scene narration'
+                    : audioDisabledReason || 'Generate voice first'
+                }
+                onClick={onToggleAudio}
+                className={cn(
+                  'inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors',
+                  canPlayAudio
+                    ? audioPlaying
+                      ? 'border-gold-500/40 bg-gold-500/20 text-gold-200'
+                      : 'border-gold-500/25 bg-gold-500/10 text-gold-300/80 hover:bg-gold-500/15'
+                    : 'border-white/10 bg-black/30 text-luxe/25 cursor-not-allowed'
+                )}
+                aria-label={audioPlaying ? 'Pause scene narration' : 'Play scene narration'}
+              >
+                {audioPlaying ? (
+                  <Pause className="w-3 h-3" />
+                ) : (
+                  <Play className="w-3 h-3 ml-0.5" />
+                )}
+              </button>
+            ) : null}
+            <span className="text-[10px] text-luxe/40">{scene.duration ?? 4}s</span>
+          </div>
         </div>
 
         <p className="text-sm text-luxe/90 font-medium leading-snug line-clamp-1">
@@ -165,17 +202,6 @@ export function SceneVisualCard({
                   <Download className="w-3 h-3" />
                 )}
                 Download JPG
-              </button>
-            ) : null}
-            {onRegenerate ? (
-              <button
-                type="button"
-                disabled={loading}
-                onClick={onRegenerate}
-                className="inline-flex items-center gap-1 text-[10px] tracking-wide uppercase text-luxe/55 hover:text-gold-200 disabled:opacity-40"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Regenerate
               </button>
             ) : null}
             {onSavePrompt ? (

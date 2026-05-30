@@ -34,6 +34,13 @@ export function useAuthHydration(): AuthHydrationState {
         event === 'SIGNED_OUT' ||
         event === 'TOKEN_REFRESHED'
       ) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[bootstrap] auth state:', {
+            event,
+            hasSession: Boolean(session),
+            userId: session?.user?.id ?? null,
+          })
+        }
         setState({
           ready: true,
           session,

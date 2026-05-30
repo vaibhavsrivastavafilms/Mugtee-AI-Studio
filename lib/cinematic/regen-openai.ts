@@ -5,14 +5,15 @@ export async function callCinematicRegen(
   openai: OpenAI,
   userPrompt: string,
   retryNote?: string,
-  temperature?: number
+  temperature?: number,
+  systemPrompt?: string
 ): Promise<Record<string, unknown>> {
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     temperature: temperature ?? (retryNote ? 0.92 : 0.88),
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: CINEMATIC_SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt ?? CINEMATIC_SYSTEM_PROMPT },
       {
         role: 'user',
         content: retryNote

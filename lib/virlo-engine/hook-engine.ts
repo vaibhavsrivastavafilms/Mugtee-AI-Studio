@@ -5,13 +5,13 @@ import type { HookCandidate } from '@/lib/virlo-engine/types'
 import type { EmotionalGoal } from '@/lib/virlo-engine/types'
 
 export const HOOK_PATTERNS = [
-  'recognition-mirror',
-  'counterintuitive-truth',
-  'hidden-cost',
-  'forbidden-detail',
-  'before-after-gap',
-  'second-person-accusation',
-  'unfinished-question',
+  'pattern-interrupt',
+  'problem-first',
+  'result-tease',
+  'direct-callout',
+  'stat-claim',
+  'curiosity-gap',
+  'before-after',
 ] as const
 
 export type HookPattern = (typeof HOOK_PATTERNS)[number]
@@ -20,36 +20,40 @@ function hashPick<T>(arr: readonly T[], seed: number): T {
   return arr[Math.abs(seed) % arr.length]
 }
 
+function topicLabel(topic: string): string {
+  const slice = topic.length > 55 ? `${topic.slice(0, 52)}…` : topic
+  return slice.replace(/^["']|["']$/g, '').trim()
+}
+
 function buildHookText(
   pattern: HookPattern,
   topic: string,
   niche: CinematicNiche,
-  emotion: EmotionalGoal,
+  _emotion: EmotionalGoal,
   seed: number
 ): string {
   const profile = NICHE_PROFILES[niche]
-  const slice = topic.length > 55 ? `${topic.slice(0, 52)}…` : topic
-  const v0 = profile.vocabulary[seed % profile.vocabulary.length] ?? 'truth'
-  const v1 = profile.vocabulary[(seed + 1) % profile.vocabulary.length] ?? 'pattern'
-  const angle = profile.hookAngles[seed % profile.hookAngles.length] ?? 'the real reason'
+  const subject = topicLabel(topic)
+  const v0 = profile.vocabulary[seed % profile.vocabulary.length] ?? 'this'
+  const v1 = profile.vocabulary[(seed + 1) % profile.vocabulary.length] ?? 'results'
 
   switch (pattern) {
-    case 'recognition-mirror':
-      return `"You already know the ${v0} in "${slice}" — you just haven't named it yet."`
-    case 'counterintuitive-truth':
-      return `"Everyone talks about ${slice.toLowerCase()} — almost nobody mentions the ${v1}."`
-    case 'hidden-cost':
-      return `"The price of ignoring ${v0} isn't failure — it's forgetting who you were."`
-    case 'forbidden-detail':
-      return `"This is the part nobody posts about ${profile.label.toLowerCase()}."`
-    case 'before-after-gap':
-      return `"Before you understood ${v0}, "${slice}" felt harmless."`
-    case 'second-person-accusation':
-      return `"You're not afraid of ${slice.toLowerCase()} — you're afraid of what ${v1} would demand."`
-    case 'unfinished-question':
-      return `"What if ${angle} was never about ${v0} at all?"`
+    case 'pattern-interrupt':
+      return `Stop scrolling — if you're working on ${subject}, this one mistake wastes weeks.`
+    case 'problem-first':
+      return `Most people fail at ${subject} because they skip the first step.`
+    case 'result-tease':
+      return `I tested ${subject} for 30 days — here's what actually moved the needle.`
+    case 'direct-callout':
+      return `If ${subject} feels stuck right now, watch this before you quit.`
+    case 'stat-claim':
+      return `90% of ${subject} advice is wrong — I learned the hard way so you don't have to.`
+    case 'curiosity-gap':
+      return `Nobody talks about this part of ${subject} — but it's why most people stall.`
+    case 'before-after':
+      return `Before I fixed my ${v0} around ${subject}, I was doing everything backwards.`
     default:
-      return `"Most people miss the ${v0} in "${slice}."`
+      return `Here's the ${v1} shortcut for ${subject} that creators actually use.`
   }
 }
 
@@ -66,8 +70,13 @@ function scoreHookTension(
 
   if (/\?/.test(trimmed)) score += 1.5
   if (/\b(you|your)\b/i.test(trimmed)) score += 2
-  if (/—/.test(trimmed)) score += 1
-  if (/nobody|never|before|until|afraid|hidden|miss/i.test(trimmed)) score += 1.5
+  if (/\b(stop|most people|here's|before you|days|step|mistake|fail|works)\b/i.test(trimmed)) {
+    score += 2
+  }
+
+  if (/you're not afraid|you already know|forgetting who you|quiet cost|uncomfortably familiar/i.test(trimmed)) {
+    score -= 8
+  }
 
   const profile = NICHE_PROFILES[niche]
   profile.vocabulary.forEach((word) => {
@@ -78,10 +87,10 @@ function scoreHookTension(
   })
 
   const emotionBoost: Partial<Record<EmotionalGoal, RegExp>> = {
-    curiosity: /\?|what if|why|hidden/i,
-    tension: /cost|afraid|before|until|price/i,
-    recognition: /\byou\b|\byour\b|already know/i,
-    defiance: /not afraid|nobody|refuse|truth/i,
+    curiosity: /\?|nobody|before you|here's/i,
+    tension: /mistake|fail|wrong|quit|stall/i,
+    recognition: /\byou\b|\byour\b|most people/i,
+    defiance: /stop scrolling|wrong|before you quit/i,
   }
   const boost = emotionBoost[emotion]
   if (boost?.test(trimmed)) score += 2
@@ -120,8 +129,8 @@ export function generateHookCandidates(
 export function pickStrongestHookCandidate(candidates: HookCandidate[]): HookCandidate {
   if (!candidates.length) {
     return {
-      text: '"Something in this story will feel uncomfortably familiar."',
-      pattern: 'recognition-mirror',
+      text: 'Most creators quit here — this 60-second fix changes that.',
+      pattern: 'problem-first',
       variant: 'fallback-v0',
       tensionScore: 0,
     }
@@ -186,11 +195,11 @@ export function generateTitleCandidates(
   const v = hashPick(profile.vocabulary, seed)
 
   return [
-    `The ${v} Nobody Names`,
-    `${short}: A ${profile.label} Truth`,
-    `What ${profile.label} Gets Wrong About "${short.slice(0, 30)}"`,
-    `Before You Scroll — ${short}`,
-    `The Quiet Cost of ${v}`,
+    `${short}: What Actually Works`,
+    `Fix Your ${v} in 60 Seconds`,
+    `Stop Getting ${profile.label} Wrong`,
+    `The ${v} Mistake Everyone Makes`,
+    `${short} — Creator Breakdown`,
   ]
 }
 

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   Clapperboard,
-  Download,
   Film,
   Play,
   RefreshCw,
@@ -15,13 +14,17 @@ import {
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import {
-  hrefForProject,
+  openProjectHref,
   createEntryHref,
-  createProjectHref,
+  previewProjectHref,
+  regenerateProjectHref,
   type CreatorMode,
 } from '@/lib/create/routes'
-import { loadRecentProjects, type CinematicProjectSummary } from '@/lib/cinematic-projects'
+import { loadRecentProjects, projectHasPlayablePreview, type CinematicProjectSummary } from '@/lib/cinematic-projects'
+import { projectCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
+import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
 import { ProjectLibraryEmpty } from '@/components/showcase/project-library-empty'
+import { DatabaseMigrationBanner } from '@/components/app/database-migration-banner'
 import type { ProjectGalleryFilter } from '@/components/create/projects-gallery-chrome'
 
 export type ProjectCardModel = {
@@ -35,6 +38,8 @@ export type ProjectCardModel = {
   platform: string
   thumbnail: string | null
   videoUrl: string | null
+  canCompileMp4: boolean
+  hasPlayablePreview: boolean
   updatedAt: string
 }
 
@@ -82,6 +87,12 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
     platform: 'Instagram Reel',
     thumbnail,
     videoUrl: project.video_url ?? null,
+    canCompileMp4: projectCanCompileMp4(project.scenes, project.voice),
+    hasPlayablePreview: projectHasPlayablePreview(
+      project.scenes,
+      project.voice,
+      project.video_url
+    ),
     updatedAt: project.updatedAt,
   }
 }
@@ -107,17 +118,26 @@ export function UnifiedProjectsGrid({
 }) {
   const [projects, setProjects] = useState<ProjectCardModel[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tableUnavailable, setTableUnavailable] = useState(false)
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
-        const rows = await loadRecentProjects(limit)
+        const { projects: rows, tableUnavailable: missing } = await loadRecentProjects(limit)
         if (!alive) return
+        setTableUnavailable(missing)
         let cards = rows.map((row) => summaryToCard(row))
         if (filter === 'downloaded') {
-          cards = cards.filter((p) => p.videoUrl || p.status === 'compile' || p.status === 'complete')
+          cards = cards.filter(
+            (p) =>
+              p.videoUrl ||
+              p.hasPlayablePreview ||
+              p.status === 'compile' ||
+              p.status === 'complete' ||
+              p.status === 'completed'
+          )
         }
         setProjects(cards)
       } catch {
@@ -164,6 +184,15 @@ export function UnifiedProjectsGrid({
     return true
   })
 
+  if (tableUnavailable) {
+    return (
+      <div className="space-y-4">
+        <DatabaseMigrationBanner />
+        <ProjectLibraryEmpty />
+      </div>
+    )
+  }
+
   if (!projects || projects.length === 0) {
     return <ProjectLibraryEmpty />
   }
@@ -205,12 +234,15 @@ export function UnifiedProjectsGrid({
           const isSelected = selectedId === p.id
           const modeMeta = MODE_BADGE[p.mode]
           const ModeIcon = modeMeta.icon
-          const previewHref =
-            p.mode === 'quick'
-              ? createProjectHref(p.id, p.videoUrl ? 'export' : 'generate')
-              : createProjectHref(p.id, p.status === 'complete' || p.videoUrl ? 'export' : 'director')
-          const openHref = hrefForProject(p.status, p.id, p.mode)
-          const regenerateHref = createEntryHref(p.mode, { topic: p.title })
+          const previewHref = previewProjectHref({
+            id: p.id,
+            mode: p.mode,
+            status: p.status,
+            videoUrl: p.videoUrl,
+            hasPlayablePreview: p.hasPlayablePreview,
+          })
+          const openHref = openProjectHref(p.status, p.id, p.mode)
+          const regenerateHref = regenerateProjectHref(p.id, p.mode)
 
           return (
             <motion.article
@@ -297,20 +329,20 @@ export function UnifiedProjectsGrid({
                 {showActions ? (
                   <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex flex-wrap gap-1.5">
                     <CardAction href={previewHref} icon={Play} label="Preview" />
-                    {p.videoUrl ? (
-                      <a
-                        href={p.videoUrl}
-                        download
-                        className={cardActionClass}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Download className="w-3 h-3" /> Download MP4
-                      </a>
-                    ) : (
-                      <span className={cn(cardActionClass, 'opacity-40 cursor-not-allowed')}>
-                        <Download className="w-3 h-3" /> Download MP4
-                      </span>
-                    )}
+                    <ProjectMp4Button
+                      projectId={p.id}
+                      title={p.title}
+                      videoUrl={p.videoUrl}
+                      canCompileMp4={p.canCompileMp4}
+                      exportHref={previewHref}
+                      onVideoUrl={(url) => {
+                        setProjects((prev) =>
+                          prev?.map((card) =>
+                            card.id === p.id ? { ...card, videoUrl: url } : card
+                          ) ?? prev
+                        )
+                      }}
+                    />
                     <CardAction href={openHref} icon={Film} label="Open Project" />
                     <CardAction href={regenerateHref} icon={RefreshCw} label="Regenerate" />
                   </div>

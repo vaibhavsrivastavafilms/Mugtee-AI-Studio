@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 
 import { CinematicRenderExperience } from '@/components/cinematic/render'
+import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 
 import { useCreateProjectHydration } from '@/hooks/use-create-project-hydration'
 
@@ -25,6 +26,10 @@ import { createProjectHref } from '@/lib/create/routes'
 import { loadProject } from '@/lib/cinematic-projects'
 
 import { storeScenesToGenerated } from '@/lib/cinematic/generation'
+
+import { projectCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
+
+import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
 
 
 
@@ -124,6 +129,8 @@ function ExportInner() {
 
   const displayStyle = style || niche || 'Cinematic documentary reel'
 
+  const canCompileMp4 = projectCanCompileMp4(scenes, voice)
+
 
 
   return (
@@ -131,6 +138,32 @@ function ExportInner() {
     <UnifiedCreatorShell projectId={projectId} mode="director" title="Render Reel">
 
       <div className="space-y-6">
+
+        {canCompileMp4 || videoUrl ? (
+
+          <div className="flex justify-end">
+
+            <ProjectMp4Button
+
+              projectId={projectId}
+
+              title={title || 'Untitled reel'}
+
+              videoUrl={videoUrl}
+
+              canCompileMp4={canCompileMp4}
+
+              exportHref={createProjectHref(projectId, 'export')}
+
+              onVideoUrl={setVideoUrl}
+
+              className="min-h-[36px] px-4 py-2 text-[10px]"
+
+            />
+
+          </div>
+
+        ) : null}
 
         {!script.trim() && previewFrames.length === 0 ? (
 
@@ -164,7 +197,7 @@ function ExportInner() {
 
           </div>
 
-        ) : (
+        ) : videoUrl ? (
 
           <CinematicRenderExperience
 
@@ -192,11 +225,33 @@ function ExportInner() {
 
             directorHref={createProjectHref(projectId, 'director')}
 
-            autoStart={!videoUrl}
+            autoStart={false}
 
           />
 
-        )}
+        ) : previewScenes.length > 0 ? (
+
+          <ReelAssemblyPlayer
+
+            scenes={previewScenes}
+
+            title={title || 'Untitled reel'}
+
+            hook={hook}
+
+            script={script}
+
+            videoUrl={null}
+
+            voiceUrl={voice?.audioUrl ?? null}
+
+            generationStep="complete"
+
+            autoPlayPreview={false}
+
+          />
+
+        ) : null}
 
       </div>
 

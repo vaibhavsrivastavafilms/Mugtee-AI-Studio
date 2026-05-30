@@ -33,6 +33,7 @@ import {
   type MoodKeyword,
 } from '@/components/quick-cut/canvas/types'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
+import { CreatorInspiration } from '@/components/creator-inspiration'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
 
@@ -61,6 +62,7 @@ export function FullscreenQuickCutCanvas({
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
 
   const voiceAppendRef = useRef('')
+  const promptFormRef = useRef<HTMLFormElement>(null)
 
   const stt = useSpeechRecognition({
     onResult: (text, isFinal) => {
@@ -118,6 +120,12 @@ export function FullscreenQuickCutCanvas({
     setKeywords((prev) =>
       prev.includes(keyword) ? prev.filter((k) => k !== keyword) : [...prev, keyword]
     )
+  }, [])
+
+  const handleInspirationSelect = useCallback((topic: string) => {
+    setPrompt(topic)
+    setPromptFocused(true)
+    promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
   const buildPending = useCallback((): QuickCutPending => {
@@ -197,7 +205,7 @@ export function FullscreenQuickCutCanvas({
             {question}
           </motion.p>
 
-          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+          <form ref={promptFormRef} onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             <CinematicPromptInput
               value={prompt}
               onChange={setPrompt}
@@ -303,6 +311,10 @@ export function FullscreenQuickCutCanvas({
           </form>
 
           {!isGenerating ? <RecentGenerationsStrip limit={8} /> : null}
+
+          {!isGenerating ? (
+            <CreatorInspiration onSelectTopic={handleInspirationSelect} />
+          ) : null}
         </div>
 
         <div className="hidden lg:block w-full max-w-[300px] shrink-0 lg:sticky lg:top-24 lg:self-start">

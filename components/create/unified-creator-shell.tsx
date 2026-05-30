@@ -11,7 +11,7 @@ import {
   LayoutPanelTop,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createEntryHref, type CreatorMode } from '@/lib/create/routes'
+import { STUDIO, type CreatorMode } from '@/lib/create/routes'
 import { AiDirectorPanel } from '@/components/create/ai-director-panel'
 
 type NavItem = {
@@ -22,7 +22,7 @@ type NavItem = {
 }
 
 function projectWorkflowNav(projectId: string, mode: CreatorMode): NavItem[] {
-  const base = `/create/${projectId}`
+  const base = `${STUDIO.create}/${projectId}`
   if (mode === 'quick') {
     return [
       { id: 'generate', label: 'Generate', icon: Sparkles, href: `${base}/generate` },

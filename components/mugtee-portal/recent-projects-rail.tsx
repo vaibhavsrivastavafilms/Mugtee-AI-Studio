@@ -31,7 +31,7 @@ export function RecentProjectsRail({ limit = 5 }: { limit?: number }) {
     setLoading(true)
     ;(async () => {
       try {
-        const rows = await loadRecentProjects(limit)
+        const { projects: rows } = await loadRecentProjects(limit)
         if (!alive) return
         setProjects(rows.map((row) => summaryToCard(row)))
       } catch {

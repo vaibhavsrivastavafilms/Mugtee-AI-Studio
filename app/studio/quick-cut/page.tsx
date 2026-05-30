@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
+import { quickCutStudioHref } from '@/lib/create/routes'
 
-/** Legacy /studio/quick-cut — canonical route is /create?mode=quick. */
+/** Legacy /studio/quick-cut — canonical route is /studio/create?mode=quick. */
 export default function StudioQuickCutRedirectPage({
   searchParams,
 }: {
@@ -12,5 +13,5 @@ export default function StudioQuickCutRedirectPage({
     if (typeof value === 'string') qs.set(key, value)
     else if (Array.isArray(value) && value[0]) qs.set(key, value[0])
   }
-  redirect(`/create?${qs.toString()}`)
+  redirect(`/studio/create?${qs.toString()}`)
 }

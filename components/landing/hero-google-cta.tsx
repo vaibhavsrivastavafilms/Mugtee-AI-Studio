@@ -18,7 +18,7 @@ import { persistPostLoginRedirect } from '@/lib/create/mode-selection'
 
 export default function HeroGoogleCta({
   helper = 'Start creating cinematic stories instantly.',
-  next = '/create?mode=quick',
+  next = '/studio/create?mode=quick',
   className = '',
   source = 'home_hero',
 }: {

@@ -41,7 +41,6 @@ const STYLE_OPTIONS = [
 const DURATION_OPTIONS = [
   { value: 30, label: '30 sec' },
   { value: 60, label: '60 sec' },
-  { value: 90, label: '90 sec' },
 ]
 
 export function CinematicCreateScreen() {
@@ -91,7 +90,7 @@ export function CinematicCreateScreen() {
     let alive = true
     ;(async () => {
       try {
-        const rows = await loadRecentProjects(5)
+        const { projects: rows } = await loadRecentProjects(5)
         if (!alive) return
         const draft = rows.find(
           (p) => p.status !== 'complete' && (p.prompt.trim() || p.script.trim())

@@ -6,9 +6,17 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { FacelessRenderInput, RenderProgressStage, RenderVideoResult } from '@/lib/video/types'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
+import { resolveRunwayVideoProvider } from '@/lib/ai/runway-video'
 import { renderFacelessMp4 } from '@/lib/video/render-pipeline'
+import { renderRunwayMp4 } from '@/lib/video/render-runway-pipeline'
+import { logError } from '@/lib/workspace/validation'
 import { buildSubtitleSegmentsFromScenes } from '@/lib/video/subtitles'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
+import {
+  clampSceneDurationsToTarget,
+  computeRenderTotalSec,
+} from '@/lib/cinematic/scene-duration'
+import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 import {
   persistProjectVideo,
   saveLocalRenderAsset,
@@ -43,6 +51,7 @@ export async function orchestrateFacelessVideo(
     jobId?: string
     onProgress?: ProgressCallback
     baseUrl?: string
+    provider?: 'auto' | 'runway' | 'ffmpeg'
   }
 ): Promise<RenderVideoResult> {
   const jobId = options?.jobId ?? `render-${uuidv4()}-${Date.now()}`
@@ -72,15 +81,13 @@ export async function orchestrateFacelessVideo(
       throw new Error('At least one scene is required to compile video.')
     }
 
-    const totalDuration = Math.min(
-      60,
-      Math.max(30, scenes.reduce((sum, s) => sum + Math.max(2, s.duration || 4), 0))
-    )
+    const totalDuration = computeRenderTotalSec(scenes)
+    const timedScenes = clampSceneDurationsToTarget(scenes, totalDuration)
 
-    const renderScenes = scenes.map((scene, i) => ({
+    const renderScenes = timedScenes.map((scene, i) => ({
       id: scene.id || `scene-${i}`,
       imageUrl: sceneImageUrl(scene) ?? placeholderImage(scene.visualPrompt || scene.title),
-      durationSec: Math.max(2, scene.duration || 4),
+      durationSec: scene.duration,
       title: scene.title,
     }))
 
@@ -95,18 +102,69 @@ export async function orchestrateFacelessVideo(
       await downloadToFile(input.voiceUrl, audioPath)
     }
 
-    const subtitles = buildSubtitleSegmentsFromScenes(scenes, totalDuration)
+    const subtitles = buildSubtitleSegmentsFromScenes(timedScenes, totalDuration)
     const outputPath = path.join(os.tmpdir(), `mugtee-${jobId}.mp4`)
 
-    report('render_segments', 'Rendering 9:16 cinematic frames…')
+    const resolvedProvider =
+      options?.provider === 'ffmpeg'
+        ? 'ffmpeg'
+        : options?.provider === 'runway'
+          ? 'runway'
+          : resolveRunwayVideoProvider()
 
-    const { durationSec, thumbnailPath } = await renderFacelessMp4({
+    let durationSec = 0
+    let thumbnailPath: string | null = null
+    let renderProvider: 'runway' | 'ffmpeg' = 'ffmpeg'
+
+    const renderInput = {
       scenes: renderScenes,
       audioPath,
       subtitles,
       outputPath,
       crossfadeSec: 0.35,
-    })
+    }
+
+    if (resolvedProvider === 'runway') {
+      report('render_segments', 'Generating cinematic clips with Runway…')
+      try {
+        const motionPrompts = timedScenes.map(
+          (scene) =>
+            [scene.movementStyle, scene.visualPrompt, scene.description]
+              .filter(Boolean)
+              .join('. ')
+              .slice(0, 900) || scene.title
+        )
+        const runwayResult = await renderRunwayMp4({
+          scenes: renderScenes,
+          motionPrompts,
+          audioPath,
+          subtitles,
+          outputPath,
+          onSceneProgress: (_index, _total, label) => {
+            report('render_segments', label)
+          },
+        })
+        durationSec = runwayResult.durationSec
+        thumbnailPath = runwayResult.thumbnailPath
+        renderProvider = 'runway'
+      } catch (runwayErr) {
+        logError('orchestrate.runway', runwayErr)
+        report(
+          'render_segments',
+          'Runway unavailable — assembling slides with FFmpeg…'
+        )
+        const ffmpegResult = await renderFacelessMp4(renderInput)
+        durationSec = ffmpegResult.durationSec
+        thumbnailPath = ffmpegResult.thumbnailPath
+        renderProvider = 'ffmpeg'
+      }
+    } else {
+      report('render_segments', 'Rendering 9:16 cinematic frames…')
+      const ffmpegResult = await renderFacelessMp4(renderInput)
+      durationSec = ffmpegResult.durationSec
+      thumbnailPath = ffmpegResult.thumbnailPath
+      renderProvider = 'ffmpeg'
+    }
 
     report('assemble', 'Finalizing MP4…')
 
@@ -178,8 +236,9 @@ export async function orchestrateFacelessVideo(
       videoUrl,
       thumbnailUrl,
       status: 'ready',
-      durationSec,
+      durationSec: Math.min(durationSec, MAX_VIDEO_DURATION_SEC),
       mock: mock || undefined,
+      provider: renderProvider,
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Video render failed'

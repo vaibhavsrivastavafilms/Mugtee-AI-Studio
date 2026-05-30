@@ -44,10 +44,16 @@ export function coerceTone(raw: unknown): string {
   return 'cinematic'
 }
 
+export const MAX_VIDEO_DURATION_SEC = 60
+export const MIN_VIDEO_DURATION_SEC = 15
+
 export function coerceDuration(raw: unknown): number {
   const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
-  if (!Number.isFinite(n)) return 60
-  return Math.min(Math.max(Math.round(n), 15), 120)
+  if (!Number.isFinite(n)) return MAX_VIDEO_DURATION_SEC
+  return Math.min(
+    Math.max(Math.round(n), MIN_VIDEO_DURATION_SEC),
+    MAX_VIDEO_DURATION_SEC
+  )
 }
 
 /**

@@ -5,9 +5,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Clapperboard, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createEntryHref, directorWorkspaceHref, type CreatorMode } from '@/lib/create/routes'
+import { createEntryHref, directorWorkspaceHref, STUDIO, type CreatorMode } from '@/lib/create/routes'
 import { QuickCutCreator } from '@/components/create/quick-cut-creator'
-import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { storeCreatorMode } from '@/lib/create/mode-selection'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
@@ -79,7 +78,7 @@ function CreateEntryInner() {
     if (tab !== 'exports') return
     const params = new URLSearchParams(searchParams?.toString() ?? '')
     params.set('tab', 'projects')
-    router.replace(`/create?${params.toString()}`)
+    router.replace(`${STUDIO.create}?${params.toString()}`)
   }, [tab, router, searchParams])
 
   useEffect(() => {
@@ -98,8 +97,7 @@ function CreateEntryInner() {
 
   if (mode === 'quick') {
     return (
-      <div className="flex flex-col gap-4 -mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
-        <RecentGenerationsStrip limit={6} />
+      <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
         <QuickCutCreator />
       </div>
     )
@@ -119,15 +117,15 @@ function CreateEntryInner() {
       : tab === 'storyboards'
         ? 'Storyboards'
         : isProjectsTab
-          ? 'Cinematic Stories'
-          : 'Creator OS'
+          ? 'Projects'
+          : undefined
 
   const sectionSubtitle =
     tab === 'scripts' || tab === 'storyboards'
-      ? 'All scripts and storyboards live in your unified project library.'
+      ? 'Scripts and storyboards in your project library.'
       : isProjectsTab
-        ? 'Every AI generation auto-saves here — preview, download, or continue any reel.'
-        : 'One workspace for Quick Cut and Director Cut — pick a mode or continue a project.'
+        ? 'Continue, preview, or refine any reel.'
+        : undefined
 
   return (
     <UnifiedCreatorShell
@@ -160,8 +158,8 @@ function CreateEntryInner() {
         <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
           <div className="flex-1 min-w-0">
             <ProjectsGalleryChrome
-              title={sectionTitle}
-              subtitle={sectionSubtitle}
+              title={sectionTitle ?? 'Projects'}
+              subtitle={sectionSubtitle ?? 'Continue, preview, or refine any reel.'}
               search={gallerySearch}
               onSearchChange={setGallerySearch}
               filter={galleryFilter}

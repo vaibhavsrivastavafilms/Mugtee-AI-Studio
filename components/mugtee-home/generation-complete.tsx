@@ -1,10 +1,11 @@
 'use client'
 
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Clapperboard, Download, RefreshCw, Share2, Sparkles } from 'lucide-react'
+import { Clapperboard, Download, Pause, Play, RefreshCw, Share2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMediaPlaybackTime } from '@/hooks/use-media-playback-time'
 import { useCinematicWorkflowStore } from '@/stores/cinematic-workflow-store'
 
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -20,7 +21,16 @@ export const GenerationComplete = memo(function GenerationComplete({
 }) {
   const outputs = useCinematicWorkflowStore((s) => s.outputs)
   const videoUrl = outputs.videoUrl
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const { isPlaying } = useMediaPlaybackTime(videoRef, Boolean(videoUrl), videoUrl)
   const [shareNote, setShareNote] = useState<string | null>(null)
+
+  const togglePlayback = useCallback(() => {
+    const media = videoRef.current
+    if (!media) return
+    if (media.paused) void media.play()
+    else media.pause()
+  }, [])
 
   const handleShare = useCallback(async () => {
     if (!videoUrl) return
@@ -81,15 +91,35 @@ export const GenerationComplete = memo(function GenerationComplete({
             )}
           >
             {videoUrl ? (
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                muted
-                playsInline
-                preload="metadata"
-                className="h-full w-full object-cover"
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full object-cover"
+                  onClick={togglePlayback}
+                />
+                <button
+                  type="button"
+                  onClick={togglePlayback}
+                  className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
+                  aria-label={isPlaying ? 'Pause video' : 'Play video'}
+                >
+                  <span
+                    className={cn(
+                      'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
+                      isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+                    )}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-5 w-5" aria-hidden />
+                    ) : (
+                      <Play className="h-5 w-5 ml-0.5" aria-hidden />
+                    )}
+                  </span>
+                </button>
+              </>
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-sm text-luxe/50">
                 No video URL — re-run generation with FFmpeg configured.
