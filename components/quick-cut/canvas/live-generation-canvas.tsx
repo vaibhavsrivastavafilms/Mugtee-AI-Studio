@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { QuickCutStudio } from '@/components/quick-cut/quick-cut-studio'
+import { ExportFeedbackModal } from '@/components/quick-cut/export-feedback-modal'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +17,16 @@ export function LiveGenerationCanvas({
   complete?: boolean
   className?: string
 }) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const promptedRef = useRef(false)
+
+  useEffect(() => {
+    if (!complete || promptedRef.current) return
+    promptedRef.current = true
+    const t = window.setTimeout(() => setFeedbackOpen(true), 1500)
+    return () => window.clearTimeout(t)
+  }, [complete])
+
   return (
     <div
       className={cn(
@@ -39,6 +51,8 @@ export function LiveGenerationCanvas({
           <QuickCutStudio onRegenerate={onRegenerate} />
         </div>
       </div>
+
+      <ExportFeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   )
 }

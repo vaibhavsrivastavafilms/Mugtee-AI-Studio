@@ -166,11 +166,16 @@ export function ReelAssemblyPlayer({
   const directingSceneLabel = useQuickCutGenerationStore((s) =>
     isLive ? s.directingSceneLabel : null
   )
+  const assemblyPreview = useQuickCutGenerationStore(
+    (s) => s.generationState === 'preview' || s.assemblyPreviewAutoplay
+  )
+
   const reviewReady =
     generationStep === 'complete' ||
     generationStep === 'render' ||
     generationStep === 'voice' ||
-    mp4Compiling
+    mp4Compiling ||
+    assemblyPreview
 
   const showLiveTiles =
 

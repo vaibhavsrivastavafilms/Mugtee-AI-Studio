@@ -38,6 +38,21 @@ import {
   sanitizeSceneOnlyPrompt,
 } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
+import {
+  parseScriptSections,
+  parseScriptBeats,
+  scriptTextFromSections,
+  scriptTextFromBeats,
+  beatsToScriptSections,
+  parseBeatDurationSec,
+  type MugteeScriptSection,
+  type MugteeScriptBeat,
+} from '@/lib/cinematic/script-sop'
+import {
+  deriveScriptText,
+  migrateScriptStringToBeats,
+  cinematicScriptFromGenerationOutput,
+} from '@/lib/cinematic/cinematic-script'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -283,6 +298,12 @@ export type CinematicGenerationOutput = {
   hook: string
   summary: string
   script: string
+  /** Reel-native timed beats — primary script structure. */
+  scriptBeats: MugteeScriptBeat[]
+  /** Legacy six-phase beats when model follows old schema. */
+  scriptSections?: MugteeScriptSection[]
+  payoff: string
+  cta: string
   scenes: GeneratedScene[]
   captions: string[]
   captionPack: StructuredCaptions
@@ -427,18 +448,61 @@ export function normalizeCinematicOutput(
     pickStrongestHook(hookVariations, niche) ||
     pickStrongestHook([coerceString(src.summary, '', 180)], niche)
 
-  const script = coerceString(src.script, '')
+  const scriptBeatsRaw = parseScriptBeats(src.scriptBeats ?? src.script_beats)
+  let scriptSections = parseScriptSections(src.script_sections ?? src.scriptSections)
+
+  const payoff = coerceString(src.payoff, scriptSections[4]?.narration ?? '', 400)
+  const ctaLine = coerceString(
+    src.cta,
+    scriptSections[5]?.narration ?? '',
+    280
+  )
+  let script = coerceString(src.script, '')
+
+  let scriptBeats = scriptBeatsRaw
+  if (!scriptBeats.length && scriptSections.some((s) => s.narration.trim())) {
+    scriptBeats = scriptSections
+      .filter((s) => s.narration.trim())
+      .map((s) => ({
+        narration: s.narration,
+        duration: '4s',
+        emotion: s.emotion || '',
+      }))
+  }
+  if (!scriptBeats.length && script.trim()) {
+    scriptBeats = migrateScriptStringToBeats(script, hook, payoff, ctaLine).scriptBeats
+  }
+  if (scriptBeats.length && !scriptSections.some((s) => s.narration.trim())) {
+    scriptSections = beatsToScriptSections(scriptBeats)
+  }
+  if (!script && scriptBeats.length) {
+    script = scriptTextFromBeats(hook, scriptBeats, payoff, ctaLine)
+  }
+  if (!script && scriptSections.some((s) => s.narration.trim())) {
+    script = scriptTextFromSections(scriptSections)
+  }
   const summary = coerceString(
     src.summary,
     hook || `A ${fallback.duration}s ${niche} reel about ${fallback.topic.slice(0, 80)}.`
   )
   const title = coerceString(
     src.title,
-    fallback.titleSeed?.trim() || fallback.topic.slice(0, 80) || 'Untitled project',
+    fallback.titleSeed?.trim() || hook.slice(0, 80) || fallback.topic.slice(0, 80) || 'Untitled project',
     120
   )
-  const scenes = coerceSceneList(src.scenes, fallback.duration, niche)
+  let scenes = coerceSceneList(src.scenes, fallback.duration, niche)
+  if (scenes.length < 2 && scriptBeats.length) {
+    scenes = beatsToScenes(scriptBeats, fallback.duration, niche)
+  } else if (
+    scenes.length < CREATOR_RETENTION_SCENE_COUNT &&
+    scriptSections.some((s) => s.narration.trim())
+  ) {
+    scenes = sectionsToScenes(scriptSections, fallback.duration, niche)
+  }
   const captionPack = coerceCaptionPack(src.captions, hook, niche)
+  if (ctaLine && !captionPack.cta) {
+    captionPack.cta = ctaLine
+  }
   const captions = captionLinesFromPack(captionPack)
   const suggestedVoiceStyle = recommendVoiceStyle({
     niche,
@@ -449,17 +513,87 @@ export function normalizeCinematicOutput(
         : undefined,
   })
 
+  const resolved = cinematicScriptFromGenerationOutput({
+    hook,
+    scriptBeats,
+    script,
+    payoff,
+    cta: ctaLine,
+  })
+
   return {
     title,
     hook,
     summary,
-    script: script || [hook, summary].filter(Boolean).join('\n\n'),
+    script: deriveScriptText(resolved) || [hook, summary].filter(Boolean).join('\n\n'),
+    scriptBeats: resolved.scriptBeats,
+    scriptSections: scriptSections.some((s) => s.narration.trim())
+      ? scriptSections
+      : undefined,
+    payoff: resolved.payoff,
+    cta: resolved.cta,
     scenes,
     captions,
     captionPack,
     suggestedVoiceStyle,
     niche,
   }
+}
+
+function beatsToScenes(
+  beats: MugteeScriptBeat[],
+  duration: number,
+  niche: CinematicNiche
+): GeneratedScene[] {
+  const scenes: GeneratedScene[] = beats.map((beat, index) => {
+    const sceneIndex = index + 1
+    const role = scenePacingRole(sceneIndex, beats.length)
+    const visual = normalizeVisualDirection({}, niche, role)
+    const durSec = parseBeatDurationSec(beat.duration) ?? 4
+    return ensureSceneImagePrompt({
+      id: `scene-${sceneIndex}`,
+      title: `Beat ${sceneIndex}`,
+      description: beat.narration,
+      duration: Math.min(Math.max(durSec, 2), 8),
+      imagePrompt: '',
+      ...visual,
+      visualPrompt: beat.narration.trim() || visual.visualPrompt,
+    })
+  })
+  return clampSceneDurationsToTarget(
+    ensureScenesHaveImagePrompts(scenes),
+    duration
+  )
+}
+
+function sectionsToScenes(
+  sections: MugteeScriptSection[],
+  duration: number,
+  niche: CinematicNiche
+): GeneratedScene[] {
+  const filled = sections.filter((s) => s.narration.trim())
+  const perScene = Math.max(
+    2,
+    Math.round(duration / Math.max(filled.length, 1))
+  )
+  const scenes: GeneratedScene[] = filled.map((section, index) => {
+    const sceneIndex = index + 1
+    const role = scenePacingRole(sceneIndex, filled.length)
+    const visual = normalizeVisualDirection({}, niche, role)
+    return ensureSceneImagePrompt({
+      id: `scene-${sceneIndex}`,
+      title: section.phase,
+      description: section.narration,
+      duration: Math.min(perScene, 8),
+      imagePrompt: '',
+      ...visual,
+      visualPrompt: section.visual_intent.trim() || visual.visualPrompt,
+    })
+  })
+  return clampSceneDurationsToTarget(
+    ensureScenesHaveImagePrompts(scenes),
+    duration
+  )
 }
 
 export function finalizeCinematicOutput(
@@ -621,12 +755,37 @@ export function buildMockCinematicOutput(input: {
     ].slice(0, 3),
   }
 
+  const mockSections = sceneNarrations.map((def) => ({
+    phase: def.title as MugteeScriptSection['phase'],
+    narration: def.narration,
+    emotion: 'engaged',
+    visual_intent: `${def.title}: visual beat for ${def.narration.slice(0, 60)}`,
+  }))
+
+  const extraBeats: MugteeScriptBeat[] = [
+    { narration: viralStructure.pain, duration: '4s', emotion: 'tension' },
+    { narration: viralStructure.emotional_problem, duration: '5s', emotion: 'urgency' },
+  ].filter((b) => b.narration.trim().length >= 8)
+
+  const mockBeats: MugteeScriptBeat[] = [
+    ...sceneNarrations.map((def) => ({
+      narration: def.narration,
+      duration: '4s',
+      emotion: 'engaged',
+    })),
+    ...extraBeats,
+  ].slice(0, 10)
+
   return finalizeCinematicOutput(
     {
       title,
       hook,
       summary: `Creator retention script: ${input.topic.slice(0, 80)} in ${targetDuration}s.`,
-      script: buildRetentionNarration(viralStructure),
+      script: scriptTextFromBeats(hook, mockBeats, viralStructure.payoff, viralStructure.cta),
+      scriptBeats: mockBeats,
+      scriptSections: mockSections,
+      payoff: viralStructure.payoff,
+      cta: viralStructure.cta,
       scenes: clampSceneDurationsToTarget(scenes, targetDuration),
       captions: captionLinesFromPack(captionPack),
       captionPack,

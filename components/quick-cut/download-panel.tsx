@@ -22,6 +22,8 @@ import {
 } from '@/lib/quick-cut/download-scene-image'
 import { downloadScriptDoc, downloadScriptTxt } from '@/lib/quick-cut/download-script'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const rowButtonClass =
@@ -86,6 +88,20 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const [downloadingImagesFormat, setDownloadingImagesFormat] =
     useState<SceneImageExportSize | null>(null)
   const pollStartedRef = useRef(false)
+  const exportTrackedRef = useRef(false)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+
+  const trackExportStarted = useCallback(
+    (asset: string) => {
+      if (exportTrackedRef.current) return
+      exportTrackedRef.current = true
+      trackEvent(AnalyticsEvents.EXPORT_STARTED, {
+        projectId: savedProjectId,
+        metadata: { asset },
+      })
+    },
+    [savedProjectId]
+  )
 
   const exportBase = slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')
   const mp4Name = `${exportBase}.mp4`
@@ -137,8 +153,9 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const scriptInput = { title, hook, script, isUnlimited }
 
   const handleDownloadTxt = useCallback(() => {
+    trackExportStarted('script_txt')
     downloadScriptTxt(scriptInput)
-  }, [title, hook, script, isUnlimited])
+  }, [title, hook, script, isUnlimited, trackExportStarted])
 
   const handleDownloadDoc = useCallback(() => {
     downloadScriptDoc(scriptInput)
@@ -147,6 +164,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const handleDownloadImages = useCallback(
     async (exportSize: SceneImageExportSize) => {
       if (downloadingImagesFormat || scenes.length < 1) return
+      trackExportStarted(`images_${exportSize}`)
       setDownloadingImagesFormat(exportSize)
       try {
         await downloadAllStoryboardImages(scenes, title || 'mugtee-storyboard', exportSize)
@@ -154,28 +172,30 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         setDownloadingImagesFormat(null)
       }
     },
-    [downloadingImagesFormat, scenes, title]
+    [downloadingImagesFormat, scenes, title, trackExportStarted]
   )
 
   const handleDownloadMp3 = useCallback(async () => {
     if (!voiceUrl?.trim() || downloadingMp3) return
+    trackExportStarted('narration_mp3')
     setDownloadingMp3(true)
     try {
       await downloadMp3File(voiceUrl, mp3Name)
     } finally {
       setDownloadingMp3(false)
     }
-  }, [voiceUrl, mp3Name, downloadingMp3])
+  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted])
 
   const handleDownloadMp4 = useCallback(async () => {
     if (!videoUrl?.trim() || downloadingMp4) return
+    trackExportStarted('video_mp4')
     setDownloadingMp4(true)
     try {
       await downloadMp4File(videoUrl, mp4Name)
     } finally {
       setDownloadingMp4(false)
     }
-  }, [videoUrl, mp4Name, downloadingMp4])
+  }, [videoUrl, mp4Name, downloadingMp4, trackExportStarted])
 
   return (
     <div

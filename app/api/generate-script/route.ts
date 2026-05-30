@@ -212,6 +212,8 @@ export async function POST(req: NextRequest) {
         mock: result.mock,
         niche,
         validation,
+        sopCompliance: result.sopCompliance,
+        sopRegenAttempts: result.sopRegenAttempts,
         virlo: result.virlo,
         language: result.language,
         visualStyle: result.visualStyle,

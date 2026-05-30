@@ -82,12 +82,14 @@ export function buildVirloScenesPrompt(
 
 function buildCreatorStructureLayer(): string {
   return [
-    `CREATOR RETENTION STRUCTURE (mandatory beat order):`,
-    `Hook → Problem → Empathy → Solution → Proof → Payoff → CTA`,
+    `MUGTEE SCRIPT SOP (reel-native beats — NOT essay):`,
+    `HOOK (max 20 words) → SCRIPT BEATS (8–12 one-sentence beats, 3–8s each) → PAYOFF → CTA`,
+    `Arc guidance: Hook → Context → Escalation → Insight → Payoff → CTA spread across beats.`,
     ...RETENTION_SCENE_BEATS.map(
-      (b) => `Scene ${b.sceneIndex} ${b.label}: ${b.instruction}`
+      (b) => `Beat arc ${b.sceneIndex} "${b.label}": ${b.instruction}`
     ),
-    `Write natural spoken narration — NO quote spam, NO AI poetry, NO philosophical one-liners.`,
+    `Populate scriptBeats[] with narration (1 sentence), duration ("4s"), emotion per beat.`,
+    `Write spoken cinematic beats — NO blog tone, NO quote spam, NO AI poetry, NO paragraphs.`,
   ].join('\n')
 }
 
@@ -171,15 +173,21 @@ Return captions as an object (NOT an array):
 
 function buildOutputFormatLayer(sceneTarget: number, duration: number): string {
   return `
-OUTPUT FORMAT (exact JSON shape):
+OUTPUT FORMAT (exact JSON shape — scriptBeats is PRIMARY):
 {
-  "title": "short cinematic project title",
+  "title": "short cinematic project title (optional — derive from hook)",
   "hookVariations": ["variation 1", "variation 2", "variation 3"],
-  "hook": "strongest hook only",
-  "summary": "2-3 sentence cinematic summary",
-  "script": "full voiceover-ready narration with scene breaks",
+  "hook": "strongest hook only — max 20 words, pattern interrupt",
+  "scriptBeats": [
+    { "narration": "one sentence voiceover line", "duration": "4s", "emotion": "curiosity" },
+    { "narration": "...", "duration": "5s", "emotion": "tension" }
+  ],
+  "payoff": "single emotional landing line",
+  "cta": "short creator engagement prompt",
+  "summary": "1-2 sentence reel summary",
+  "script": "optional flat voiceover — auto-derived from beats if omitted",
   "scenes": [
-    { "id": "scene-1", "title": "beat title", "description": "see + feel", "duration": 4,
+    { "id": "scene-1", "title": "Beat 1", "description": "same as scriptBeats[0].narration", "duration": 4,
       ${sceneVisualJsonFields()} }
   ],
   "captions": {
@@ -191,22 +199,23 @@ OUTPUT FORMAT (exact JSON shape):
 }
 
 Hard rules:
-- Exactly ${sceneTarget} scenes mapped to Hook → Problem → Empathy → Solution → Proof → Payoff → CTA.
-- Scene titles MUST use those beat labels.
-- suggestedVoiceStyle must match story niche + tone intentionally.
-- Natural creator narration — never quote-mode or philosophical spam.
-- Every output must feel unique to this topic — no template filler.
+- Exactly 8–12 scriptBeats; one sentence per beat; duration 3s–8s each (e.g. "4s").
+- hook max 20 words. payoff and cta required.
+- Populate scenes (one per beat, up to ${sceneTarget}) from scriptBeats narration.
+- ${duration}s runtime — beat durations should sum near target.
+- suggestedVoiceStyle must match niche + tone.
+- Unique to this topic — no template filler or essay voice.
 `.trim()
 }
 
 export function buildVirloSystemPrompt(): string {
-  return `You are Mugtee — cinematic AI studio powered by the VIRLO engine.
-You think like a short-form creator, reel editor, and retention strategist combined.
+  return `You are Mugtee — cinematic AI studio for vertical reels.
+You think like a reel editor, retention strategist, and visual storyteller.
 
 Rules:
-- Output strict JSON only. No markdown. No extra keys.
-- Follow the creator retention structure and per-scene beat map exactly.
-- Write natural spoken scripts — NOT motivational quotes, NOT AI poetry, NOT philosophy.
-- Never reuse generic AI phrasing or cinematic quote templates.
-- Every line must feel filmable, human, and niche-native.`.trim()
+- Output strict JSON only. No markdown. No extra keys beyond the schema.
+- Follow Mugtee Script SOP: hook + scriptBeats (narration, duration, emotion) × 8–12 + payoff + cta.
+- Reel-native voice: one sentence per beat, 3–8s timing — NOT blogs, essays, GPT explainers, or paragraphs.
+- Never motivational quote spam, AI poetry, or philosophical one-liners.
+- Every beat must be filmable, human, and niche-native.`.trim()
 }

@@ -17,6 +17,8 @@ import {
   generateSceneStoryboard,
 } from '@/lib/cinematic/storyboard-client'
 import { applyVisualToScene } from '@/lib/cinematic/visual-direction'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { REFINEMENT_PACING_LINE } from '@/lib/creator/output-confidence'
 import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import {
@@ -414,6 +416,9 @@ const SceneCard = memo(function SceneCard({
       )
       useCinematicProjectStore.getState().updateScenes(nextScenes)
       await useCinematicProjectStore.getState().persistProject({ silent: true })
+      trackEvent(AnalyticsEvents.REGENERATE_SCENE, {
+        metadata: { workflow: 'cinematic', scene_index: scene.index },
+      })
       toast.success(`Scene ${scene.index} reshaped`, { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
       toast.error(softenCinematicError(e, SOFT_ERROR_COPY.scenePaused))
@@ -433,6 +438,9 @@ const SceneCard = memo(function SceneCard({
       )
       useCinematicProjectStore.getState().updateScenes(nextScenes)
       await useCinematicProjectStore.getState().persistProject({ silent: true })
+      trackEvent(AnalyticsEvents.REGENERATE_VISUAL_DIRECTION, {
+        metadata: { workflow: 'cinematic', scene_index: scene.index },
+      })
       toast.success(`Visual mood deepened — Scene ${scene.index}`, {
         description: REFINEMENT_PACING_LINE,
       })
