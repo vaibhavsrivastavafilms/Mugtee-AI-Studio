@@ -6,21 +6,21 @@ Mugtee ships as a **PWA + Capacitor WebView wrapper**, not a native rewrite. The
 
 ## Why URL mode (not static `out/`)
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **server.url → mugtee.in** ✅ | No static export rewrite; instant web deploys; full API/auth | Requires network for first load |
-| `next export` → `webDir: out` | Offline-first shell | Breaks SSR, dynamic routes, many API routes |
+| Approach                             | Pros                                                         | Cons                                        |
+| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------- |
+| **server.url → mugtee.in** (default) | No static export rewrite; instant web deploys; full API/auth | Requires network for first load             |
+| `next export` → `webDir: out`        | Offline-first shell                                          | Breaks SSR, dynamic routes, many API routes |
 
 `capacitor.config.ts` uses **`server.url`** — `webDir: 'out'` is only a CLI placeholder.
 
 ## App identity
 
-| Field | Value |
-|-------|--------|
-| App ID | `com.mugtee.studio` |
-| App name | Mugtee |
+| Field            | Value                   |
+| ---------------- | ----------------------- |
+| App ID           | `com.mugtee.studio`     |
+| App name         | Mugtee                  |
 | Deep link scheme | `https` (androidScheme) |
-| Production URL | `https://mugtee.in` |
+| Production URL   | `https://mugtee.in`     |
 
 ## One-time setup (local machine with Android Studio)
 
