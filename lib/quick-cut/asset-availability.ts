@@ -201,6 +201,112 @@ export type ProjectReelDownloadStatus = {
 }
 
 /** Reads persisted reel URL from the project export API (survives in-memory job expiry). */
+export type PublishReadinessInput = {
+  title: string
+  hook: string
+  script: string
+  scriptBeats?: { narration: string }[]
+  scenes: GeneratedScene[]
+  voiceUrl: string | null
+  videoUrl: string | null
+  videoRenderEnabled: boolean
+  isGenerating: boolean
+  exportExpired?: boolean
+  isRenderingVideo?: boolean
+  renderPollUrl?: string | null
+  renderError?: string | null
+}
+
+export type PublishReadiness = {
+  project: {
+    titleGenerated: boolean
+    hookGenerated: boolean
+    scriptGenerated: boolean
+    storyboardGenerated: boolean
+    sceneImagesGenerated: boolean
+    voiceGenerated: boolean
+    videoRendered: boolean
+    creatorPackAvailable: boolean
+  }
+  platforms: {
+    youtube: { titleReady: boolean; thumbnailReady: boolean; videoReady: boolean }
+    instagram: { captionReady: boolean; verticalVideoReady: boolean }
+    tiktok: { hookReady: boolean; verticalVideoReady: boolean }
+  }
+  exports: {
+    txt: boolean
+    docx: boolean
+    jpg: boolean
+    mp3: boolean
+    mp4: boolean
+    creatorPack: boolean
+  }
+  projectReadyForPublishing: boolean
+}
+
+export function resolvePublishReadiness(input: PublishReadinessInput): PublishReadiness {
+  const titleGenerated = Boolean(input.title?.trim())
+  const hookGenerated = Boolean(input.hook?.trim())
+  const scriptGenerated = hasExportableScript(input)
+  const storyboardGenerated = input.scenes.length > 0
+  const sceneImagesGenerated = hasExportableSceneImages(input.scenes, input.isGenerating)
+  const voiceGenerated = hasExportableNarration(input.voiceUrl)
+  const videoRendered = isQuickCutMp4DownloadReady({
+    videoUrl: input.videoUrl,
+    videoRenderEnabled: input.videoRenderEnabled,
+    exportExpired: input.exportExpired,
+    isRenderingVideo: input.isRenderingVideo,
+    renderPollUrl: input.renderPollUrl,
+    renderError: input.renderError,
+  })
+  const creatorPackAvailable =
+    scriptGenerated && (sceneImagesGenerated || voiceGenerated || titleGenerated)
+
+  const verticalVideoReady = videoRendered
+  const captionReady = hookGenerated || scriptGenerated
+
+  const project = {
+    titleGenerated,
+    hookGenerated,
+    scriptGenerated,
+    storyboardGenerated,
+    sceneImagesGenerated,
+    voiceGenerated,
+    videoRendered,
+    creatorPackAvailable,
+  }
+
+  const projectReadyForPublishing = Object.values(project).every(Boolean)
+
+  return {
+    project,
+    platforms: {
+      youtube: {
+        titleReady: titleGenerated,
+        thumbnailReady: sceneImagesGenerated,
+        videoReady: verticalVideoReady,
+      },
+      instagram: {
+        captionReady,
+        verticalVideoReady,
+      },
+      tiktok: {
+        hookReady: hookGenerated,
+        verticalVideoReady,
+      },
+    },
+    exports: {
+      txt: scriptGenerated,
+      docx: scriptGenerated,
+      jpg: sceneImagesGenerated,
+      mp3: voiceGenerated,
+      mp4: hasExportableMp4(input),
+      creatorPack: creatorPackAvailable,
+    },
+    projectReadyForPublishing,
+  }
+}
+
 export async function fetchProjectReelDownload(
   projectId: string
 ): Promise<ProjectReelDownloadStatus> {
