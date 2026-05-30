@@ -332,6 +332,7 @@ export function ContentSeriesTrigger({
     <>
       <button
         type="button"
+        data-recommend-target="content-series"
         onClick={() => setOpen(true)}
         className={cn(
           'inline-flex items-center gap-1.5 min-h-[32px] rounded-md text-[10px] tracking-[0.16em] uppercase transition',

@@ -555,6 +555,8 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   share_as_showcase?: boolean
   series?: import('@/lib/cinematic/content-series').ContentSeries | null
   repurposedAssets?: RepurposedAssetsMap
+  directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
+  blueprintId?: string | null
 }
 
 export async function updateProject(
@@ -746,6 +748,26 @@ export async function loadRecentProjects(
   }
 }
 
+/** Load full project rows for client-side creator knowledge aggregation. */
+export async function loadRecentProjectRows(
+  limit = 50
+): Promise<{ rows: CinematicProjectRow[]; tableUnavailable: boolean }> {
+  const supabase = requireBrowserClient()
+  const { data, error } = await supabase
+    .from('cinematic_projects')
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    if (isCinematicProjectsUnavailable(error)) {
+      return { rows: [], tableUnavailable: true }
+    }
+    throw error
+  }
+  return { rows: (data as CinematicProjectRow[]) ?? [], tableUnavailable: false }
+}
+
 /** Auto-save a completed or in-progress generation into the unified project library. */
 export async function archiveGeneratedProject(
   input: ArchiveGeneratedProjectInput
@@ -795,6 +817,8 @@ export async function archiveGeneratedProject(
     generation_step?: string | null
     generation_error?: string | null
     last_completed_step?: string | null
+    repurposedAssets?: RepurposedAssetsMap
+    series?: import('@/lib/cinematic/content-series').ContentSeries | null
   }
 
   const archivePatch: ArchivePatch = {
