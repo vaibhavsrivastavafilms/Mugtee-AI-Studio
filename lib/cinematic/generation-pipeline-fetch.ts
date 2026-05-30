@@ -1,6 +1,8 @@
 const DEFAULT_TIMEOUT_MS = 60_000
 /** Script step runs deep research + up to 3 LLM passes + storyboard SOP — often exceeds 60s. */
 export const SCRIPT_GENERATION_TIMEOUT_MS = 180_000
+/** Pre-script research — fail fast before gateway 504 so script step is not blocked. */
+export const DEEP_RESEARCH_TIMEOUT_MS = 55_000
 const DEFAULT_MAX_RETRIES = 2
 
 const NETWORK_RECOVERY_MESSAGE =

@@ -104,7 +104,8 @@ async function compileProjectMp4Inner(
   const jobId = typeof renderData.jobId === 'string' ? renderData.jobId : null
   if (jobId) {
     const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
-    return pollReelExportJob(`/api/reels/export/${jobId}`, {
+    const { reelExportPollPath } = await import('@/lib/reels/export-paths')
+    return pollReelExportJob(reelExportPollPath(jobId, projectId), {
       onProgress: (patch) => {
         if (patch.label) options?.onProgress?.(patch.label)
       },

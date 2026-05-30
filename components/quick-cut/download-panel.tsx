@@ -8,6 +8,7 @@ import {
   ImageIcon,
   Loader2,
   Mic,
+  Package,
   Share2,
   Video,
 } from 'lucide-react'
@@ -22,11 +23,17 @@ import {
   type SceneImageExportSize,
 } from '@/lib/quick-cut/download-scene-image'
 import { downloadScriptDoc, downloadScriptTxt } from '@/lib/quick-cut/download-script'
+import {
+  buildCreatorPackZip,
+  triggerCreatorPackDownload,
+  type CreatorPackExportResult,
+} from '@/lib/quick-cut/creator-pack-export.client'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import {
   ASSET_UNAVAILABLE_MSG,
+  EXPORT_EXPIRED_MSG,
+  isQuickCutMp4DownloadReady,
   resolveQuickCutExportAssets,
-  resolveQuickCutProgressLabel,
 } from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
@@ -100,6 +107,13 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const pollStartedRef = useRef(false)
   const exportTrackedRef = useRef(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
+  const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
+
+  type CreatorPackState = 'idle' | 'preparing' | 'ready' | 'error'
+  const [creatorPackState, setCreatorPackState] = useState<CreatorPackState>('idle')
+  const [creatorPackProgress, setCreatorPackProgress] = useState(0)
+  const [creatorPackResult, setCreatorPackResult] = useState<CreatorPackExportResult | null>(null)
 
   const trackExportStarted = useCallback(
     (asset: string) => {
@@ -132,7 +146,15 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const hasImages = exportAssets.images
   const hasNarration = exportAssets.narration
   const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
-  const hasMp4 = Boolean(videoUrl?.trim()) || canCompileMp4
+  const mp4DownloadReady = isQuickCutMp4DownloadReady({
+    videoUrl,
+    videoRenderEnabled,
+    exportExpired,
+    isRenderingVideo,
+    renderPollUrl,
+    renderError,
+  })
+  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired)
   const mp4Compiling =
     isRenderingVideo ||
     (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
@@ -262,7 +284,11 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
-      useQuickCutGenerationStore.setState({ renderError: message })
+      const expired = message === EXPORT_EXPIRED_MSG || message.includes('Export job expired')
+      useQuickCutGenerationStore.setState({
+        renderError: message,
+        ...(expired ? { exportExpired: true, videoUrl: null } : {}),
+      })
       setAssetError(message)
     } finally {
       setDownloadingMp4(false)
@@ -276,6 +302,62 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     canCompileMp4,
     retryVideoRender,
   ])
+
+  const handleExportCreatorPack = useCallback(async () => {
+    setCreatorPackState('preparing')
+    setCreatorPackProgress(0)
+    setCreatorPackResult(null)
+    setAssetError(null)
+    trackExportStarted('creator_pack')
+
+    try {
+      const result = await buildCreatorPackZip(
+        {
+          title,
+          hook,
+          script,
+          scriptBeats,
+          payoff,
+          cta,
+          scenes,
+          voiceUrl,
+          researchReport,
+          savedProjectId,
+          isUnlimited,
+          isGenerating,
+        },
+        ({ progress }) => setCreatorPackProgress(progress)
+      )
+      setCreatorPackResult(result)
+      setCreatorPackState('ready')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to create Creator Pack.'
+      setAssetError(message)
+      setCreatorPackState('error')
+    }
+  }, [
+    title,
+    hook,
+    script,
+    scriptBeats,
+    payoff,
+    cta,
+    scenes,
+    voiceUrl,
+    researchReport,
+    savedProjectId,
+    isUnlimited,
+    isGenerating,
+    trackExportStarted,
+  ])
+
+  const handleDownloadCreatorPack = useCallback(() => {
+    if (!creatorPackResult) return
+    triggerCreatorPackDownload(creatorPackResult.blob, creatorPackResult.filename)
+  }, [creatorPackResult])
+
+  const hasAnyCreatorPackAsset =
+    exportAssets.script || exportAssets.images || exportAssets.narration
 
   return (
     <div
@@ -380,25 +462,35 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
           icon={<Video className="w-3 h-3" />}
           label="Video"
           hint={
-            videoUrl
-              ? 'Download ready — final synced MP4 reel'
-              : mp4Compiling
-                ? renderStatusLabel || 'Rendering reel…'
-                : renderError
-                  ? renderError
-                  : canCompileMp4
-                    ? 'Ken Burns motion · captions · voiceover'
-                    : hasMp4
-                      ? 'Available after render completes'
-                      : ASSET_UNAVAILABLE_MSG
+            exportExpired
+              ? EXPORT_EXPIRED_MSG
+              : mp4DownloadReady
+                ? 'Download ready — final synced MP4 reel'
+                : mp4Compiling
+                  ? renderStatusLabel || 'Rendering reel…'
+                  : renderError
+                    ? renderError
+                    : canCompileMp4
+                      ? 'Ken Burns motion · captions · voiceover'
+                      : hasMp4
+                        ? 'Available after render completes'
+                        : ASSET_UNAVAILABLE_MSG
           }
         >
-          {hasMp4 ? (
+          {exportExpired ? (
+            <button
+              type="button"
+              onClick={() => void retryVideoRender()}
+              className={secondaryButtonClass}
+            >
+              Regenerate export
+            </button>
+          ) : hasMp4 ? (
             <>
               <button
                 type="button"
                 onClick={() => void handleDownloadMp4()}
-                disabled={downloadingMp4 || mp4Compiling}
+                disabled={downloadingMp4 || mp4Compiling || exportExpired}
                 className={primaryButtonClass}
               >
                 {downloadingMp4 ? (
@@ -408,11 +500,11 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
                 )}
                 {downloadingMp4
                   ? 'Downloading…'
-                  : videoUrl
+                  : mp4DownloadReady
                     ? '.mp4'
                     : 'Compile .mp4'}
               </button>
-              {videoUrl ? (
+              {mp4DownloadReady ? (
                 <>
                   <button
                     type="button"

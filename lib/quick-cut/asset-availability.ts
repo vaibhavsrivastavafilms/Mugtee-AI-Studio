@@ -3,6 +3,24 @@ import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.clien
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 
 export const ASSET_UNAVAILABLE_MSG = 'Asset unavailable. Regenerate required.'
+export const EXPORT_EXPIRED_MSG = 'Export expired. Regenerate export.'
+
+/** True when MP4 is finished rendering and a download URL is available. */
+export function isQuickCutMp4DownloadReady(input: {
+  videoUrl: string | null
+  videoRenderEnabled: boolean
+  exportExpired?: boolean
+  isRenderingVideo?: boolean
+  renderPollUrl?: string | null
+  renderError?: string | null
+}): boolean {
+  if (input.exportExpired) return false
+  if (input.isRenderingVideo || input.renderPollUrl) return false
+  const url = input.videoUrl?.trim()
+  if (!url) return false
+  if (input.videoRenderEnabled && input.renderError?.trim()) return false
+  return true
+}
 
 const PLACEHOLDER_HOST = 'images.unsplash.com'
 
@@ -90,6 +108,7 @@ export type QuickCutProgressLabelInput = {
   isRenderingVideo: boolean
   renderStatusLabel: string | null
   exportPackageReady: boolean
+  exportExpired?: boolean
   hasScript: boolean
   hasImages: boolean
   hasNarration: boolean
@@ -107,6 +126,7 @@ export function resolveQuickCutProgressLabel(input: QuickCutProgressLabelInput):
     isRenderingVideo,
     renderStatusLabel,
     exportPackageReady,
+    exportExpired,
     hasScript,
     hasImages,
     hasNarration,
@@ -127,7 +147,20 @@ export function resolveQuickCutProgressLabel(input: QuickCutProgressLabelInput):
     return labels[generationStep] ?? 'In production…'
   }
 
-  if (videoUrl?.trim()) return 'Your cinematic video is ready'
+  if (exportExpired) return EXPORT_EXPIRED_MSG
+
+  if (
+    isQuickCutMp4DownloadReady({
+      videoUrl,
+      videoRenderEnabled,
+      exportExpired,
+      isRenderingVideo,
+      renderPollUrl,
+      renderError,
+    })
+  ) {
+    return 'Your cinematic video is ready'
+  }
 
   if (videoRenderEnabled) {
     if (renderError) return renderError

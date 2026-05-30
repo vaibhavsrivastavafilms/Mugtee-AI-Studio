@@ -1,4 +1,4 @@
-import { ASSET_UNAVAILABLE_MSG } from '@/lib/quick-cut/asset-availability'
+import { ASSET_UNAVAILABLE_MSG, EXPORT_EXPIRED_MSG } from '@/lib/quick-cut/asset-availability'
 import { compileProjectMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
 
@@ -68,6 +68,9 @@ export async function resolveMp4Download(
   if (projectId) {
     const downloaded = await downloadViaProjectFileEndpoint(projectId, filename)
     if (downloaded) return videoUrl ?? projectMp4FileDownloadPath(projectId)
+    if (videoUrl) {
+      throw new Error(EXPORT_EXPIRED_MSG)
+    }
   }
 
   if (videoUrl) {

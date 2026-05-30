@@ -32,6 +32,7 @@ export function RenderProgress({ className }: { className?: string }) {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
 
   const progressLabel = resolveQuickCutProgressLabel({
     generationStep,
@@ -43,6 +44,7 @@ export function RenderProgress({ className }: { className?: string }) {
     isRenderingVideo,
     renderStatusLabel,
     exportPackageReady,
+    exportExpired,
     hasScript: Boolean(script?.trim() || hook?.trim() || title?.trim() || scriptBeats.length),
     hasImages: scenes.some((scene) => Boolean(scene.imageUrl?.trim())),
     hasNarration: Boolean(voiceUrl?.trim()),
