@@ -48,6 +48,8 @@ export function useQuickCutProjectHydration(projectId: string | undefined) {
           style: state.style,
           duration: state.duration,
           reuseProject: true,
+          regenFresh: true,
+          originalTranscript: state.originalTranscript,
         })
       })
       .finally(() => {

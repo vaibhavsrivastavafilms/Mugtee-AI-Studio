@@ -23,6 +23,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 export type ProjectTranscriptDialogProps = {
   originalTranscript?: string | null
   script?: string | null
+  hook?: string | null
   scenes?: Pick<GeneratedScene, 'description' | 'title'>[]
   captions?: string | null
   captionLines?: string[] | null
@@ -41,6 +42,7 @@ export type ProjectTranscriptDialogProps = {
 export function ProjectTranscriptDialog({
   originalTranscript,
   script,
+  hook,
   scenes,
   captions,
   captionLines,
@@ -90,11 +92,12 @@ export function ProjectTranscriptDialog({
       originalTranscript:
         nonEmptyProp(originalTranscript) ?? nonEmptyProp(persisted?.originalTranscript),
       script: nonEmptyProp(script) ?? nonEmptyProp(persisted?.script),
+      hook: nonEmptyProp(hook),
       scenes: scenes?.length ? scenes : persisted?.scenes,
       captions: nonEmptyProp(captions) ?? nonEmptyProp(persisted?.captions),
       captionLines: captionLines?.length ? captionLines : persisted?.captionLines,
     }),
-    [originalTranscript, script, scenes, captions, captionLines, persisted]
+    [originalTranscript, script, hook, scenes, captions, captionLines, persisted]
   )
 
   const resolved = useMemo(() => {
@@ -173,21 +176,41 @@ export function QuickCutProjectTranscriptDialog({
   className,
   triggerClassName,
   compact,
+  script: scriptProp,
+  hook: hookProp,
+  scenes: scenesProp,
+  originalTranscript: originalTranscriptProp,
 }: {
   className?: string
   triggerClassName?: string
   compact?: boolean
+  script?: string | null
+  hook?: string | null
+  scenes?: Pick<GeneratedScene, 'description' | 'title'>[]
+  originalTranscript?: string | null
 }) {
-  const originalTranscript = useQuickCutGenerationStore((s) => s.originalTranscript)
-  const script = useQuickCutGenerationStore((s) => s.script)
-  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const originalTranscriptStore = useQuickCutGenerationStore((s) => s.originalTranscript)
+  const scriptStore = useQuickCutGenerationStore((s) => s.script)
+  const hookStore = useQuickCutGenerationStore((s) => s.hook)
+  const scenesStore = useQuickCutGenerationStore((s) => s.scenes)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+
+  const script = scriptProp ?? scriptStore
+  const hook = hookProp ?? hookStore
+  const scenes = scenesProp ?? scenesStore
+  const originalTranscript = originalTranscriptProp ?? originalTranscriptStore
+  const captionLines = useMemo(
+    () => (script?.trim() ? script.split('\n').filter(Boolean).slice(0, 8) : undefined),
+    [script]
+  )
 
   return (
     <ProjectTranscriptDialog
       originalTranscript={originalTranscript}
       script={script}
+      hook={hook}
       scenes={scenes}
+      captionLines={captionLines}
       projectId={savedProjectId}
       className={className}
       triggerClassName={triggerClassName}

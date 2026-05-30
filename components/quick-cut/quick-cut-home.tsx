@@ -34,6 +34,7 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
 
   const runOrchestration = useCallback(
     async (payload: QuickCutPending) => {
+      const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
       await runPipeline({
         prompt: payload.prompt.trim(),
         style: payload.style,
@@ -41,6 +42,7 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
         imageNote: payload.imageNote,
         voiceNote: payload.voiceNote,
         keywords: payload.keywords,
+        reuseProject: Boolean(savedProjectId),
       })
       clearQuickCutPending()
     },

@@ -9,6 +9,10 @@ import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
+import {
+  buildScriptWritingSopSystemAugment,
+  buildScriptWritingSopUserSection,
+} from '@/lib/ai/prompts/cinematic/script-writing-sop'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
@@ -29,7 +33,9 @@ import {
   type CinematicGenerationOutput,
 } from '@/lib/cinematic/generation'
 import { type CinematicNiche } from '@/lib/cinematic/niches'
+import { runYoutubeDeepResearch } from '@/lib/cinematic/youtube-deep-research'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
+import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 
 export type ScriptGenerationInput = {
   topic: string
@@ -43,6 +49,20 @@ export type ScriptGenerationInput = {
   transcript?: string
   /** Optional voice presence note from canvas */
   voiceNote?: string
+  /** Optional reference script — triggers faceless YouTube SOP style matching */
+  referenceScript?: string
+  /** Skip pre-script deep research pass (faster generation) */
+  skipResearch?: boolean
+  /** Pre-computed research doc — skips internal research call when provided */
+  researchDocument?: string
+  /** Full project regen — fresh script, same locked context */
+  regenFresh?: boolean
+  topicChanged?: boolean
+  previousTopic?: string
+  previousScript?: string
+  previousHook?: string
+  visualStyle?: VisualStyle | null
+  creatorMemoryBias?: CreatorMemoryBiasHints | null
 }
 
 type GenInput = {
@@ -55,9 +75,33 @@ type GenInput = {
   language: ProjectLanguage
   blueprint: VirloScriptBlueprint
   viralStructure: ViralStructureAnalysis
+  referenceScript?: string
+  researchDocument?: string
+  regenFresh?: boolean
+  topicChanged?: boolean
+  previousTopic?: string
+  previousScript?: string
+  previousHook?: string
+  lockedVisualStyle?: VisualStyle | null
+  creatorMemoryBias?: CreatorMemoryBiasHints | null
+}
+
+function buildSystemPrompt(referenceScript?: string): string {
+  const base = buildVirloSystemPrompt()
+  if (!referenceScript) return base
+  return `${base}\n\n${buildScriptWritingSopSystemAugment()}`
 }
 
 function buildUserPrompt(input: GenInput, retryNote?: string): string {
+  const sopSection = input.referenceScript
+    ? buildScriptWritingSopUserSection({
+        topic: input.topic,
+        durationSec: input.duration,
+        platform: input.platform,
+        referenceScript: input.referenceScript,
+      })
+    : ''
+
   return [
     buildCinematicScriptPrompt({
       topic: input.topic,
@@ -67,17 +111,25 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       niche: input.niche,
       sessionSeed: input.sessionSeed,
       language: input.language,
-      visualStyle: input.blueprint.visualStyle,
+      visualStyle: input.lockedVisualStyle ?? input.blueprint.visualStyle,
       virloHook: input.blueprint.hook,
       retentionPattern: input.blueprint.retention_pattern,
       viralStructure: input.viralStructure,
+      regenFresh: input.regenFresh,
+      topicChanged: input.topicChanged,
+      previousTopic: input.previousTopic,
+      previousScript: input.previousScript,
+      previousHook: input.previousHook,
+      creatorMemoryBias: input.creatorMemoryBias,
+      researchDocument: input.researchDocument,
     }),
+    sopSection,
     retryNote
       ? `\nRETRY NOTE: Previous draft failed quality checks (${retryNote}). Fix niche drift, weak hook, repetitive scenes, or empty captions.`
       : '',
   ]
     .filter(Boolean)
-    .join('\n')
+    .join('\n\n')
 }
 
 function hasUsableLlmScript(parsed: Record<string, unknown>, topic: string): boolean {
@@ -120,13 +172,17 @@ function parseLlmJson(content: string): Record<string, unknown> {
   }
 }
 
-async function generateWithClaude(userPrompt: string, retryNote?: string) {
+async function generateWithClaude(
+  userPrompt: string,
+  systemPrompt: string,
+  retryNote?: string
+) {
   const anthropic = getAnthropicClient()
   const message = await anthropic.messages.create({
     model: CLAUDE_SCRIPT_MODEL,
     max_tokens: 8192,
     temperature: retryNote ? 0.75 : 0.85,
-    system: buildVirloSystemPrompt(),
+    system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   })
 
@@ -135,16 +191,20 @@ async function generateWithClaude(userPrompt: string, retryNote?: string) {
   return parseLlmJson(content)
 }
 
-async function generateWithOpenAI(input: GenInput, retryNote?: string) {
+async function generateWithOpenAI(
+  input: GenInput,
+  userPrompt: string,
+  systemPrompt: string,
+  retryNote?: string
+) {
   const openai = getOpenAIClient()
-  const userPrompt = buildUserPrompt(input, retryNote)
 
   const completion = await openai.chat.completions.create({
     model: FREE_OPENAI_CHAT_MODEL,
     temperature: retryNote ? 0.75 : 0.85,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: buildVirloSystemPrompt() },
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
   })
@@ -156,12 +216,12 @@ async function generateWithOpenAI(input: GenInput, retryNote?: string) {
 /** OpenAI (ChatGPT) → Claude → Gemini. Throws when no provider succeeds. */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
-  const systemPrompt = buildVirloSystemPrompt()
+  const systemPrompt = buildSystemPrompt(input.referenceScript)
   const errors: string[] = []
 
   if (allowOpenAIScript()) {
     try {
-      const openai = await generateWithOpenAI(input, retryNote)
+      const openai = await generateWithOpenAI(input, userPrompt, systemPrompt, retryNote)
       if (hasUsableLlmScript(openai, input.topic)) return openai
       errors.push('openai_echo_or_empty')
     } catch {
@@ -171,7 +231,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
 
   if (allowAnthropicScript()) {
     try {
-      const claude = await generateWithClaude(userPrompt, retryNote)
+      const claude = await generateWithClaude(userPrompt, systemPrompt, retryNote)
       if (hasUsableLlmScript(claude, input.topic)) return claude
       errors.push('claude_echo_or_empty')
     } catch {
@@ -206,12 +266,22 @@ export async function runScriptGeneration(
   visualStyle: VisualStyle
   viralScript: ViralScript
   viralStructure: ViralStructureAnalysis
+  researchDocument?: string
+  researchMock?: boolean
 }> {
   const topic = input.topic.trim()
   const platform = coercePlatform(input.platform)
   const tone = coerceTone(input.tone)
   const duration = coerceDuration(input.duration)
   const language = normalizeProjectLanguage(input.language, input.transcript || topic)
+
+  let researchDocument = input.researchDocument?.trim() || undefined
+  let researchMock = false
+  if (!input.skipResearch && topic && !researchDocument) {
+    const research = await runYoutubeDeepResearch({ topic, language })
+    researchDocument = research.document.trim() || undefined
+    researchMock = research.mock
+  }
 
   const blueprint = runVirloScriptEngine({
     topic,
@@ -223,8 +293,12 @@ export async function runScriptGeneration(
     language,
     transcript: input.transcript,
     voiceNote: input.voiceNote,
+    visualStyle: input.visualStyle,
   })
-  const { niche, virloContext, virlo, visualStyle, viralStructure } = blueprint
+  const { niche, virloContext, virlo, viralStructure } = blueprint
+  const resolvedVisualStyle = input.visualStyle ?? blueprint.visualStyle
+
+  const referenceScript = input.referenceScript?.trim() || undefined
 
   const genInput: GenInput = {
     topic,
@@ -236,6 +310,15 @@ export async function runScriptGeneration(
     language,
     blueprint,
     viralStructure,
+    referenceScript,
+    researchDocument,
+    regenFresh: input.regenFresh,
+    topicChanged: input.topicChanged,
+    previousTopic: input.previousTopic,
+    previousScript: input.previousScript,
+    previousHook: input.previousHook,
+    lockedVisualStyle: input.visualStyle ?? blueprint.visualStyle,
+    creatorMemoryBias: input.creatorMemoryBias,
   }
 
   if (!hasScriptGenerationKey()) {
@@ -254,9 +337,11 @@ export async function runScriptGeneration(
       reason: 'missing_api_key',
       virlo,
       language,
-      visualStyle,
+      visualStyle: resolvedVisualStyle,
       viralScript,
       viralStructure,
+      researchDocument,
+      researchMock,
     }
   }
 
@@ -287,7 +372,17 @@ export async function runScriptGeneration(
     }
 
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
-    return { output, mock: false, virlo, language, visualStyle, viralScript, viralStructure }
+    return {
+      output,
+      mock: false,
+      virlo,
+      language,
+      visualStyle: resolvedVisualStyle,
+      viralScript,
+      viralStructure,
+      researchDocument,
+      researchMock,
+    }
   } catch {
     const output = buildMockCinematicOutput({
       topic,
@@ -304,9 +399,11 @@ export async function runScriptGeneration(
       reason: 'provider_fallback',
       virlo,
       language,
-      visualStyle,
+      visualStyle: resolvedVisualStyle,
       viralScript,
       viralStructure,
+      researchDocument,
+      researchMock,
     }
   }
 }

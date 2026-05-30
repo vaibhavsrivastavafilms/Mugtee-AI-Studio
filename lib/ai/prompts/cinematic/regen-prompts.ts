@@ -45,14 +45,19 @@ function buildPreserveBlock(action: RegenAction, ctx: RegenProjectContext): stri
     scene: 'Preserve: language, visual style, hook. Change ONLY this scene beat content.',
     storyboard: 'Preserve: language, script, visual style. Change ONLY visual direction fields.',
     caption: 'Preserve: language, script. Change ONLY caption pack.',
-    all: 'Preserve: language only. You may refresh hook, script, scenes, and visuals.',
+    all: 'Preserve: language, visual style, niche, and topic. Generate COMPLETELY FRESH hook, script, scenes, and visuals. Do NOT repeat previous script wording or reuse prior scene beats verbatim.',
   }
   const parts = [rules[action], languageDirective(ctx.language)]
   const viralBlock = buildViralScriptBlock(ctx)
   if (viralBlock && action !== 'caption') parts.push(viralBlock)
   const styleLock = buildVisualStyleLock(ctx)
-  if (styleLock && action !== 'caption' && action !== 'all') {
+  if (styleLock && action !== 'caption') {
     parts.push(styleLock)
+  }
+  if (action === 'all' && ctx.script.trim()) {
+    parts.push(
+      `Previous script to avoid (generate a fresh variation — do not copy):\n${ctx.script.slice(0, 1500)}`
+    )
   }
   if (action === 'hook' && ctx.script.trim()) {
     parts.push(`Full script (do NOT rewrite): ${ctx.script.slice(0, 1200)}`)

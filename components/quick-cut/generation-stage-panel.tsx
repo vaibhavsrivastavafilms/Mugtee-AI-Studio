@@ -11,6 +11,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { ExportPreview } from '@/components/quick-cut/export-preview'
+import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -119,6 +120,8 @@ export function GenerationStagePanel({
   const regenerateTitle = useQuickCutGenerationStore((s) => s.regenerateTitle)
   const regenerateScript = useQuickCutGenerationStore((s) => s.regenerateScript)
   const script = useQuickCutGenerationStore((s) => s.script)
+  const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
+  const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
@@ -222,6 +225,7 @@ export function GenerationStagePanel({
     case 'script':
       return script ? (
         <div className={cn('space-y-2', className)}>
+          <DeepResearchPanel document={researchDocument} mock={researchMock} />
           {!isGenerating ? (
             <div className="flex justify-end">
               <button

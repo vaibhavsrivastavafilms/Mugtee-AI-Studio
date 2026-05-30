@@ -15,6 +15,7 @@ import {
   applyVisualStyleToScene,
   buildMugteeDirectorPrompt,
 } from '@/lib/cinematic/mugtee-director-engine'
+import { generateScenesViaStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
 import {
   parseVisualStyle,
@@ -22,8 +23,9 @@ import {
   visualStyleFromVirloContext,
 } from '@/lib/cinematic/workflow-state'
 import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
+import { sanitizeSceneOnlyPrompt } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
 
-import { coerceTopic, logError } from '@/lib/workspace/validation'
+import { coerceDuration, coerceTopic, logError } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
 
@@ -44,13 +46,14 @@ function parseScriptIntoScenes(
     const title = block.match(/Scene\s+(\d+)/i)?.[0] || `Scene ${index + 1}`
 
     const description = voice || visual || block.slice(0, 200)
+    const sceneOnly = sanitizeSceneOnlyPrompt(visual || description.slice(0, 200))
     const base = {
       id: `scene-${index + 1}`,
       title,
       description,
       duration: 4,
-      visualPrompt: visual || `${visualStyle.label}. ${defaults.cameraAngle}.`,
-      imagePrompt: '',
+      visualPrompt: sceneOnly,
+      imagePrompt: sceneOnly,
       ...defaults,
     }
     return { ...base, imagePrompt: buildSceneImagePrompt(base) }
@@ -95,10 +98,44 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const durationSec = coerceDuration(raw?.duration ?? virlo.duration)
+    const researchDocument =
+      typeof raw?.researchDocument === 'string' ? raw.researchDocument : undefined
+
+    if (process.env.OPENAI_API_KEY && script.trim().length > 40) {
+      const sopScenes = await generateScenesViaStoryboardSop({
+        script,
+        language,
+        durationSec,
+        researchDocument,
+        retentionMode: durationSec <= 60,
+      })
+      if (sopScenes && sopScenes.length >= 2) {
+        const styled = sopScenes.map((scene, i) => {
+          const virloVisual = virlo.visuals[i]
+          const withVirlo = virloVisual
+            ? { ...scene, ...sceneVisualFieldsFromVirlo(virloVisual) }
+            : scene
+          return applyVisualStyleToScene(withVirlo, visualStyle)
+        })
+        return NextResponse.json({
+          scenes: ensureScenesHaveImagePrompts(styled),
+          mock: false,
+          niche,
+          language,
+          visualStyle,
+          source: 'storyboard_sop',
+          virlo: meta,
+        })
+      }
+    }
+
     if (process.env.OPENAI_API_KEY) {
       try {
         const openai = getOpenAIClient()
-        const userPrompt = buildMugteeDirectorPrompt(virlo, script, visualStyle, language)
+        const userPrompt = buildMugteeDirectorPrompt(virlo, script, visualStyle, language, {
+          researchDocument,
+        })
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',

@@ -99,6 +99,7 @@ function hydrateFromSession(session: NonNullable<ReturnType<typeof loadQuickCutP
     error: null,
     isGenerating: false,
     isComplete: true,
+    lastGeneratedPrompt: project.prompt?.trim() || '',
   })
 
   void useQuickCutGenerationStore.getState().syncVideoRenderConfig()

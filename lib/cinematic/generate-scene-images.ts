@@ -38,6 +38,9 @@ export type GenerateSceneImagesInput = {
   /** Rotation index for camera/framing diversity on regen */
   diversityAttempt?: number
   userId?: string
+  /** Reference style image or note present — SOP prefix at Gemini */
+  hasReferenceStyle?: boolean
+  referenceStyleNote?: string
 }
 
 export type GenerateSceneImagesResult = {
@@ -52,11 +55,15 @@ function promptContext(
   index: number,
   total: number
 ): SceneImagePromptContext {
+  const hasReferenceStyle = Boolean(
+    input.hasReferenceStyle || input.referenceStyleNote?.trim()
+  )
   return {
     characterDescription: input.characterDescription,
     niche: input.niche,
     style: input.style,
     visualStyleLabel: input.visualStyle?.label,
+    visualStyle: input.visualStyle ?? undefined,
     emotionalGoal: input.virlo?.emotionalGoal,
     hook: input.hook,
     sceneIndex: index + 1,
@@ -65,6 +72,7 @@ function promptContext(
     variationDirective: input.variation
       ? variationCompositionDirective(index, input.diversityAttempt ?? 0)
       : cameraVariationDirective(index, input.diversityAttempt ?? 0),
+    hasReferenceStyle,
   }
 }
 
@@ -113,7 +121,10 @@ export async function generateSceneImages(
 
     // Primary: Gemini via Emergent gateway (same provider as /api/ai/image Flow pipeline)
     if (hasGeminiImageKey()) {
-      imageUrl = await generateGeminiSceneImage(scenePrompt, { filename })
+      imageUrl = await generateGeminiSceneImage(scenePrompt, {
+        filename,
+        hasReferenceStyle: ctx.hasReferenceStyle,
+      })
     }
 
     // Fallback: OpenAI DALL-E 3 (disabled in free-tier-only mode)

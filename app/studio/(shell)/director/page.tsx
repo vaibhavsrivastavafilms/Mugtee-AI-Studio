@@ -1,6 +1,6 @@
 'use client'
 
-import WorkspacePage from '@/app/workspace/page'
+import WorkspacePage from '@/components/workspace/workspace-page'
 
 export default function StudioDirectorPage() {
   return (

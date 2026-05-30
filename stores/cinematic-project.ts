@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
 import { trackCreatorMilestone } from '@/lib/creator/session-insights'
 import { rememberCreativeSession } from '@/lib/creator/creator-memory'
+import { streakRecordWorkflowCreated } from '@/lib/creator/creator-streak-events'
 import {
   captionsToPayload,
   normalizeCinematicOutput,
@@ -359,6 +360,7 @@ export const useCinematicProjectStore = create<CinematicProjectStore>(
             id: state.id ?? undefined,
             ...patch,
           })
+          streakRecordWorkflowCreated()
         }
 
         set({
