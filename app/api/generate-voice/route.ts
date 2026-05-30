@@ -4,6 +4,11 @@ import { synthesizeSpeechBuffer } from '@/lib/ai/synthesize-speech'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { trimNarrationForMaxDuration } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -78,7 +83,14 @@ export async function POST(req: NextRequest) {
         .upload(filename, buffer, { contentType: 'audio/mpeg', upsert: false })
       if (!upErr) {
         const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(filename)
-        if (user) await trackUsageMetric(user.id, 'generations')
+        if (user) {
+          await trackUsageMetric(user.id, 'generations')
+          void trackFeatureUsage(
+            user.id,
+            FeatureUsageFeatures.VOICE_GENERATION,
+            parseFeatureUsageProjectId(raw)
+          )
+        }
         return NextResponse.json({
           audioUrl: pub.publicUrl,
           voiceName: displayName,
@@ -97,7 +109,14 @@ export async function POST(req: NextRequest) {
     }
 
     const dataUri = `data:audio/mpeg;base64,${buffer.toString('base64')}`
-    if (user) await trackUsageMetric(user.id, 'generations')
+    if (user) {
+      await trackUsageMetric(user.id, 'generations')
+      void trackFeatureUsage(
+        user.id,
+        FeatureUsageFeatures.VOICE_GENERATION,
+        parseFeatureUsageProjectId(raw)
+      )
+    }
     return NextResponse.json({
       audioUrl: dataUri,
       voiceName: displayName,

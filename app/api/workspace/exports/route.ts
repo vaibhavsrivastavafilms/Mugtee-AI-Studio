@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { FeatureUsageFeatures, trackFeatureUsage } from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export async function POST(req: NextRequest) {
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     await trackUsageMetric(user.id, 'exports')
+    void trackFeatureUsage(user.id, FeatureUsageFeatures.EXPORT, projectId)
 
     return NextResponse.json({ ok: true, asset })
   } catch (e: any) {

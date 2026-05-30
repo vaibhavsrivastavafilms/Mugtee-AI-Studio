@@ -5,6 +5,11 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import { logError } from '@/lib/workspace/validation'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -64,7 +69,14 @@ export async function POST(req: NextRequest) {
       referenceStyleNote,
     })
 
-    if (user) await trackUsageMetric(user.id, 'generations')
+    if (user) {
+      await trackUsageMetric(user.id, 'generations')
+      void trackFeatureUsage(
+        user.id,
+        FeatureUsageFeatures.IMAGE_GENERATION,
+        parseFeatureUsageProjectId(raw)
+      )
+    }
 
     return NextResponse.json({
       scenes: result.scenes,

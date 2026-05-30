@@ -1,11 +1,26 @@
 'use client'
-// Legacy PWA service worker — registration disabled to avoid stale /_next/static chunk caches in dev.
-// On mount, unregister any existing workers so browsers stop serving old bundles.
+// PWA service worker — register in production; skip in dev to avoid stale chunk caches.
 import { useEffect } from 'react'
 
+export function ServiceWorkerRegister() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (process.env.NODE_ENV !== 'production') return
+    if (!('serviceWorker' in navigator)) return
+
+    void navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .catch(() => {})
+  }, [])
+
+  return null
+}
+
+/** @deprecated Dev-only cleanup — prefer ServiceWorkerRegister in layout */
 export function ServiceWorkerUnregister() {
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (process.env.NODE_ENV === 'production') return
     if (!('serviceWorker' in navigator)) return
 
     void navigator.serviceWorker
@@ -17,9 +32,4 @@ export function ServiceWorkerUnregister() {
   return null
 }
 
-/** @deprecated Registration disabled — use ServiceWorkerUnregister */
-export function ServiceWorkerRegister() {
-  return <ServiceWorkerUnregister />
-}
-
-export default ServiceWorkerUnregister
+export default ServiceWorkerRegister

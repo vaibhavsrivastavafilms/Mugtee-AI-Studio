@@ -7,6 +7,10 @@ import {
   queueReelExportForProject,
 } from '@/lib/reels/export-api'
 import { logError } from '@/lib/workspace/validation'
+import {
+  FeatureUsageFeatures,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -79,6 +83,7 @@ export async function POST(req: NextRequest) {
     })
 
     await trackUsageMetric(auth.user!.id, 'renders')
+    void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.VIDEO_GENERATION, projectId)
 
     return NextResponse.json({ jobId, status })
   } catch (err) {

@@ -18,7 +18,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What happens when free credits run out?',
-    a: 'You can recharge credits anytime from the Pricing page, or earn bonus credits through sponsor rewards and the in-app "Watch Ad \u2192 +5 credits" reward (up to 3 times per day).',
+    a: 'You\u2019ll hit your plan limits on projects, generations, exports, or renders. Join the Creator or Pro waitlist on the Pricing page \u2014 we\u2019ll notify you when paid upgrades launch with early-access pricing.',
   },
   {
     q: 'Can I generate voiceovers?',

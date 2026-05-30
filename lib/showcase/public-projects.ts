@@ -20,7 +20,7 @@ export type ShowcaseProject = {
 }
 
 const DEFAULT_LIMIT = 12
-const MAX_LIMIT = 24
+const MAX_LIMIT = 48
 
 export function clampShowcaseLimit(raw: string | null | undefined): number {
   const n = Number(raw)

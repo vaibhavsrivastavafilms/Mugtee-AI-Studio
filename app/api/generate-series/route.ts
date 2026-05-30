@@ -15,6 +15,11 @@ import {
 } from '@/lib/cinematic/content-series'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export const runtime = 'nodejs'
@@ -130,6 +135,12 @@ export async function POST(req: NextRequest) {
         { status: 502 }
       )
     }
+
+    void trackFeatureUsage(
+      user.id,
+      FeatureUsageFeatures.SERIES_CREATION,
+      parseFeatureUsageProjectId(raw)
+    )
 
     return NextResponse.json({ series, mock: false, niche })
   } catch (err) {

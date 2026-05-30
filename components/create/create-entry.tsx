@@ -131,7 +131,7 @@ function CreateEntryInner() {
       {!tab ? (
         <>
         <HelpShapeMugteeBanner />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 min-w-0 overflow-x-hidden">
           <ModeCard
             mode="quick"
             title="Quick Cut"

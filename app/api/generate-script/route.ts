@@ -25,6 +25,11 @@ import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import type { GenerateScriptApiResearchResponse } from '@/types/deep-research'
 import { logStepComplete, logStepFailed } from '@/lib/cinematic/generation-logger'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -265,6 +270,11 @@ export async function POST(req: NextRequest) {
       logStepComplete('script', user.id)
 
       await trackUsageMetric(user.id, 'generations')
+      void trackFeatureUsage(
+        user.id,
+        FeatureUsageFeatures.SCRIPT_GENERATION,
+        parseFeatureUsageProjectId(raw)
+      )
 
       return NextResponse.json({
         output: result.output,

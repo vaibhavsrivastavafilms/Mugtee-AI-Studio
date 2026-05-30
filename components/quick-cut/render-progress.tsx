@@ -76,6 +76,8 @@ export function RenderProgress({ className }: { className?: string }) {
             const active = isStageTabActive(tab, generationStep, isComplete)
             const done = isStageTabDone(tab, generationStep, isComplete)
             const selected = activeStageTab === tab
+            const stageBusy =
+              active && !done ? ({ 'aria-busy': 'true' as const } as const) : ({ 'aria-busy': 'false' as const } as const)
 
             return (
               <li key={tab}>
@@ -84,7 +86,7 @@ export function RenderProgress({ className }: { className?: string }) {
                   disabled={!reachable}
                   onClick={() => reachable && setActiveStageTab(tab)}
                   aria-current={selected ? 'step' : undefined}
-                  aria-busy={active && !done}
+                  {...stageBusy}
                   className={cn(
                     'rounded-full px-2.5 py-1 text-[9px] tracking-[0.16em] uppercase border transition-colors',
                     'inline-flex items-center gap-1 min-h-[28px]',

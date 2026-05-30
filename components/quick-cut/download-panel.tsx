@@ -37,12 +37,13 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
+import { requestExitFeedback } from '@/lib/creator/exit-feedback'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const rowButtonClass =
-  'inline-flex min-h-[36px] items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 disabled:cursor-not-allowed'
+  'inline-flex min-h-[44px] items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation'
 
 const primaryButtonClass = cn(rowButtonClass, 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90')
 const secondaryButtonClass = cn(
@@ -349,6 +350,15 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
       )
       setCreatorPackResult(result)
       setCreatorPackState('ready')
+      void fetch('/api/analytics/feature-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feature: 'export',
+          project_id: savedProjectId ?? undefined,
+        }),
+        keepalive: true,
+      }).catch(() => {})
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to create Creator Pack.'
       setAssetError(message)
@@ -373,6 +383,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const handleDownloadCreatorPack = useCallback(() => {
     if (!creatorPackResult) return
     triggerCreatorPackDownload(creatorPackResult.blob, creatorPackResult.filename)
+    window.setTimeout(() => requestExitFeedback('export_inactive'), 800)
   }, [creatorPackResult])
 
   const hasAnyCreatorPackAsset =
@@ -381,7 +392,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3',
+        'rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3 min-w-0 overflow-x-hidden',
         className
       )}
     >

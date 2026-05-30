@@ -25,6 +25,9 @@ export function FoundingCreatorProgramSection() {
   const [platform, setPlatform] = useState('')
   const [creatorType, setCreatorType] = useState('')
   const [volume, setVolume] = useState('')
+  const [painPoints, setPainPoints] = useState('')
+  const [requestedFeatures, setRequestedFeatures] = useState('')
+  const [feedback, setFeedback] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -59,6 +62,9 @@ export function FoundingCreatorProgramSection() {
             setPlatform(app.platform || '')
             setCreatorType(app.creator_type || '')
             setVolume(app.volume || '')
+            setPainPoints(app.pain_points || '')
+            setRequestedFeatures(app.requested_features || '')
+            setFeedback(app.feedback || '')
           }
         }
       } catch {
@@ -88,6 +94,9 @@ export function FoundingCreatorProgramSection() {
           platform,
           creator_type: creatorType,
           volume,
+          pain_points: painPoints.trim() || undefined,
+          requested_features: requestedFeatures.trim() || undefined,
+          feedback: feedback.trim() || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -198,6 +207,45 @@ export function FoundingCreatorProgramSection() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">
+              Pain points (optional)
+            </label>
+            <textarea
+              value={painPoints}
+              onChange={(e) => setPainPoints(e.target.value)}
+              placeholder="What's hardest about your current workflow?"
+              rows={3}
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-luxe resize-y min-h-[80px]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">
+              Requested features (optional)
+            </label>
+            <textarea
+              value={requestedFeatures}
+              onChange={(e) => setRequestedFeatures(e.target.value)}
+              placeholder="What would make Mugtee indispensable for you?"
+              rows={3}
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-luxe resize-y min-h-[80px]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-wider uppercase text-muted-foreground">
+              Additional feedback (optional)
+            </label>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Anything else for the roadmap?"
+              rows={3}
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-luxe resize-y min-h-[80px]"
+            />
           </div>
 
           <div className="flex justify-end pt-2">
