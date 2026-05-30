@@ -36,10 +36,18 @@ import {
   loadContentLanguagePreference,
   saveContentLanguagePreference,
 } from '@/lib/cinematic/content-languages'
+import {
+  DEFAULT_DIRECTOR_MODE,
+  loadDirectorModePreference,
+  saveDirectorModePreference,
+  type DirectorMode,
+} from '@/lib/cinematic/director-modes'
+import { DirectorModeSelector } from '@/components/quick-cut/canvas/director-mode-selector'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
-import { CreatorTemplatesSection } from '@/components/create/creator-templates-section'
+import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
+import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
 
@@ -57,6 +65,7 @@ export function FullscreenQuickCutCanvas({
   const [voiceNote, setVoiceNote] = useState('')
   const [deepResearchEnabled, setDeepResearchEnabled] = useState(true)
   const [contentLanguage, setContentLanguage] = useState<ProjectLanguage>('en')
+  const [directorMode, setDirectorMode] = useState<DirectorMode>(DEFAULT_DIRECTOR_MODE)
   const [promptFocused, setPromptFocused] = useState(false)
   const [promptIndex, setPromptIndex] = useState(0)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -68,6 +77,8 @@ export function FullscreenQuickCutCanvas({
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const error = useQuickCutGenerationStore((s) => s.error)
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
+  const blueprintId = useQuickCutGenerationStore((s) => s.blueprintId)
+  const setCreatorBlueprint = useQuickCutGenerationStore((s) => s.setCreatorBlueprint)
 
   const voiceAppendRef = useRef('')
   const promptFormRef = useRef<HTMLFormElement>(null)
@@ -100,6 +111,7 @@ export function FullscreenQuickCutCanvas({
 
   useEffect(() => {
     setContentLanguage(loadContentLanguagePreference())
+    setDirectorMode(loadDirectorModePreference())
   }, [])
 
   useEffect(() => {
@@ -140,14 +152,27 @@ export function FullscreenQuickCutCanvas({
     promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
-  const handleTemplateSelect = useCallback((template: string) => {
-    setPrompt(template)
-    setPromptFocused(true)
-  }, [])
+  const handleBlueprintSelect = useCallback(
+    (blueprint: CreatorBlueprint) => {
+      setPrompt(blueprint.prefillPrompt)
+      setPromptFocused(true)
+      setCreatorBlueprint(blueprint.id)
+      if (blueprint.suggestedDirectorMode) {
+        setDirectorMode(blueprint.suggestedDirectorMode)
+        saveDirectorModePreference(blueprint.suggestedDirectorMode)
+      }
+    },
+    [setCreatorBlueprint]
+  )
 
   const handleLanguageChange = useCallback((language: ProjectLanguage) => {
     setContentLanguage(language)
     saveContentLanguagePreference(language)
+  }, [])
+
+  const handleDirectorModeChange = useCallback((mode: DirectorMode) => {
+    setDirectorMode(mode)
+    saveDirectorModePreference(mode)
   }, [])
 
   const buildPending = useCallback((): QuickCutPending => {
@@ -160,8 +185,10 @@ export function FullscreenQuickCutCanvas({
       voiceNote: voiceNote.trim() || undefined,
       keywords: keywords.length ? [...keywords] : undefined,
       language: contentLanguage,
+      directorMode,
+      blueprintId: blueprintId ?? undefined,
     }
-  }, [prompt, keywords, imageNote, voiceNote, voiceTranscript, contentLanguage])
+  }, [prompt, keywords, imageNote, voiceNote, voiceTranscript, contentLanguage, directorMode, blueprintId])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -184,6 +211,8 @@ export function FullscreenQuickCutCanvas({
       voiceNote: pending.voiceNote,
       keywords: pending.keywords,
       language: pending.language,
+      directorMode: pending.directorMode,
+      blueprintId: pending.blueprintId,
       reuseProject: Boolean(savedProjectId),
       skipResearch: !deepResearchEnabled,
     })
@@ -233,7 +262,15 @@ export function FullscreenQuickCutCanvas({
           </motion.p>
 
           <form ref={promptFormRef} onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-            <CreatorTemplatesSection onSelectTemplate={handleTemplateSelect} />
+            <CreatorBlueprintSection
+              selectedBlueprintId={blueprintId}
+              onSelectBlueprint={handleBlueprintSelect}
+            />
+
+            <DirectorModeSelector
+              value={directorMode}
+              onChange={handleDirectorModeChange}
+            />
 
             <CinematicPromptInput
               value={prompt}

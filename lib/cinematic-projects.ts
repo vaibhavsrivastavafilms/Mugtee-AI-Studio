@@ -98,6 +98,7 @@ import {
   deriveScriptText,
 } from '@/lib/cinematic/cinematic-script'
 import type { ScriptBeatsPayload } from '@/types/cinematic-script'
+import type { RepurposedAssetsMap } from '@/lib/cinematic/content-repurpose'
 
 export { FINISHED_PROJECT_STATUSES, normalizeProjectStatus, isFinishedProjectStatus }
 import type {
@@ -141,6 +142,8 @@ export type CinematicProjectRow = {
   generation_step?: string | null
   generation_error?: string | null
   last_completed_step?: string | null
+  /** Opt-in public homepage gallery (default false). */
+  share_as_showcase?: boolean
 }
 
 export type CinematicProjectSummary = {
@@ -190,6 +193,9 @@ export type ArchiveGeneratedProjectInput = {
   virlo?: VirloMetadata | Record<string, unknown> | null
   projectId?: string | null
   language?: ProjectLanguage | string
+  directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
+  blueprintId?: string | null
+  series?: import('@/lib/cinematic/content-series').ContentSeries | null
   input_type?: string
   original_transcript?: string
   variation_history?: VariationHistory
@@ -199,6 +205,7 @@ export type ArchiveGeneratedProjectInput = {
   generation_step?: string | null
   generation_error?: string | null
   last_completed_step?: string | null
+  repurposedAssets?: RepurposedAssetsMap
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -266,7 +273,7 @@ export function rowToState(row: CinematicProjectRow): CinematicProjectState {
   }
 }
 
-function resolveThumbnail(
+export function resolveThumbnail(
   thumbnailUrl: string | null | undefined,
   scenes: CinematicScene[]
 ): string | null {
@@ -371,6 +378,7 @@ export function stateToRowPayload(
       niche: state.niche,
       cta: cta || undefined,
       hashtags: hashtags.length ? hashtags : undefined,
+      repurposedAssets: (state as { repurposedAssets?: RepurposedAssetsMap }).repurposedAssets,
     }),
     status: state.status || 'create',
     mode: state.mode ?? 'director',
@@ -402,6 +410,7 @@ export async function createProject(
   state: Omit<Partial<CinematicProjectState>, 'id'> & {
     id?: string
     mode?: 'quick' | 'director'
+    directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
     video_url?: string | null
     thumbnail_url?: string | null
     storyboard?: unknown
@@ -466,6 +475,48 @@ export async function createProject(
   if ((state as { last_completed_step?: string | null }).last_completed_step !== undefined) {
     insertRow.last_completed_step = (state as { last_completed_step?: string | null }).last_completed_step
   }
+  if ((state as { directorMode?: string }).directorMode !== undefined) {
+    const lines = state.captionLines ?? []
+    insertRow.captions = captionsToPayload({
+      hook: state.hook ?? '',
+      summary: state.summary ?? '',
+      captionLines: lines,
+      suggestedVoiceStyle: state.suggestedVoiceStyle ?? 'warm_documentary',
+      niche: state.niche,
+      cta: lines[1],
+      hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
+      directorMode: (state as { directorMode?: string }).directorMode,
+      blueprintId:
+        (state as { blueprintId?: string | null }).blueprintId ?? undefined,
+      series: (state as CinematicProjectPatch).series ?? undefined,
+    })
+  } else if ((state as { blueprintId?: string | null }).blueprintId !== undefined) {
+    const lines = state.captionLines ?? []
+    insertRow.captions = captionsToPayload({
+      hook: state.hook ?? '',
+      summary: state.summary ?? '',
+      captionLines: lines,
+      suggestedVoiceStyle: state.suggestedVoiceStyle ?? 'warm_documentary',
+      niche: state.niche,
+      cta: lines[1],
+      hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
+      blueprintId:
+        (state as { blueprintId?: string | null }).blueprintId ?? undefined,
+      series: (state as CinematicProjectPatch).series ?? undefined,
+    })
+  } else if ((state as CinematicProjectPatch).series !== undefined) {
+    const lines = state.captionLines ?? []
+    insertRow.captions = captionsToPayload({
+      hook: state.hook ?? '',
+      summary: state.summary ?? '',
+      captionLines: lines,
+      suggestedVoiceStyle: state.suggestedVoiceStyle ?? 'warm_documentary',
+      niche: state.niche,
+      cta: lines[1],
+      hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
+      series: (state as CinematicProjectPatch).series ?? undefined,
+    })
+  }
 
   const { data, error } = await supabase
     .from('cinematic_projects')
@@ -477,9 +528,15 @@ export async function createProject(
   return data as CinematicProjectRow
 }
 
+export type CinematicProjectPatch = Partial<CinematicProjectState> & {
+  share_as_showcase?: boolean
+  series?: import('@/lib/cinematic/content-series').ContentSeries | null
+  repurposedAssets?: RepurposedAssetsMap
+}
+
 export async function updateProject(
   id: string,
-  state: Partial<CinematicProjectState>
+  state: CinematicProjectPatch
 ): Promise<CinematicProjectRow> {
   const supabase = requireBrowserClient()
   const patch: Record<string, unknown> = {
@@ -520,7 +577,11 @@ export async function updateProject(
     state.hook !== undefined ||
     state.summary !== undefined ||
     state.suggestedVoiceStyle !== undefined ||
-    state.niche !== undefined
+    state.niche !== undefined ||
+    (state as { directorMode?: string }).directorMode !== undefined ||
+    (state as { blueprintId?: string | null }).blueprintId !== undefined ||
+    state.series !== undefined ||
+    state.repurposedAssets !== undefined
   ) {
     const lines = state.captionLines ?? []
     patch.captions = captionsToPayload({
@@ -531,6 +592,11 @@ export async function updateProject(
       niche: state.niche,
       cta: lines[1],
       hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
+      directorMode: (state as { directorMode?: string }).directorMode,
+      blueprintId:
+        (state as { blueprintId?: string | null }).blueprintId ?? undefined,
+      series: state.series ?? undefined,
+      repurposedAssets: state.repurposedAssets,
     })
   }
   if (state.status !== undefined) patch.status = state.status
@@ -578,6 +644,11 @@ export async function updateProject(
   }
   if ((state as { last_completed_step?: string | null }).last_completed_step !== undefined) {
     patch.last_completed_step = (state as { last_completed_step?: string | null }).last_completed_step
+  }
+  if ((state as { share_as_showcase?: boolean }).share_as_showcase !== undefined) {
+    patch.share_as_showcase = Boolean(
+      (state as { share_as_showcase?: boolean }).share_as_showcase
+    )
   }
 
   const { data, error } = await supabase
@@ -685,6 +756,8 @@ export async function archiveGeneratedProject(
 
   type ArchivePatch = Partial<CinematicProjectState> & {
     mode?: 'quick' | 'director'
+    directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
+    blueprintId?: string | null
     video_url?: string | null
     thumbnail_url?: string | null
     storyboard?: unknown
@@ -720,6 +793,8 @@ export async function archiveGeneratedProject(
     niche: input.niche ?? 'storytelling',
     status: status as CinematicProjectStatus,
     mode: input.mode,
+    directorMode: input.directorMode,
+    blueprintId: input.blueprintId,
     video_url: input.video_url ?? null,
     thumbnail_url: thumbnail,
     storyboard: input.storyboard ?? scenes,
@@ -734,6 +809,8 @@ export async function archiveGeneratedProject(
     generation_step: input.generation_step ?? null,
     generation_error: input.generation_error ?? null,
     last_completed_step: input.last_completed_step ?? null,
+    repurposedAssets: input.repurposedAssets,
+    series: input.series ?? undefined,
   }
 
   if (input.projectId) {
@@ -760,6 +837,8 @@ export async function archiveGeneratedProject(
       niche: input.niche ?? 'storytelling',
       status: status as CinematicProjectStatus,
       mode: input.mode,
+      directorMode: input.directorMode,
+      blueprintId: input.blueprintId,
       video_url: input.video_url ?? null,
       thumbnail_url: thumbnail,
       storyboard: input.storyboard ?? scenes,
@@ -773,8 +852,9 @@ export async function archiveGeneratedProject(
       generation_status: input.generation_status ?? null,
       generation_step: input.generation_step ?? null,
       generation_error: input.generation_error ?? null,
-      last_completed_step: input.last_completed_step ?? null,
-    } as Parameters<typeof createProject>[0],
+    last_completed_step: input.last_completed_step ?? null,
+    series: input.series ?? undefined,
+  } as Parameters<typeof createProject>[0],
     undefined
   )
 }

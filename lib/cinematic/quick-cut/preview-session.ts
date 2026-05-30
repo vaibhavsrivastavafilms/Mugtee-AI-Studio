@@ -1,6 +1,7 @@
 import type { QuickCutOrchestrationResult } from '@/lib/cinematic/quick-cut/orchestrate-quick-cut'
 
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import { ensureScenesHavePreviewUrls } from '@/lib/cinematic/scene-preview-url'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -16,6 +17,8 @@ export type QuickCutPending = {
   voiceNote?: string
   keywords?: string[]
   language?: ProjectLanguage
+  directorMode?: DirectorMode
+  blueprintId?: string | null
 }
 
 export function saveQuickCutPreview(result: QuickCutOrchestrationResult) {

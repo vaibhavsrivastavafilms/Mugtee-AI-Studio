@@ -1,4 +1,5 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
+import { parseRepurposedAssets } from '@/lib/cinematic/content-repurpose'
 import { inferNicheFromBrief, NICHE_PROFILES } from '@/lib/cinematic/niches'
 import { scenePacingRole } from '@/lib/cinematic/regen-context'
 import {
@@ -805,6 +806,20 @@ export type CaptionsPayload = {
   hashtags?: string[]
   niche?: string
   suggestedVoiceStyle?: string
+  directorMode?: string
+  blueprintId?: string
+  repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
+  series?: {
+    title: string
+    description: string
+    episodes: Array<{
+      id: string
+      title: string
+      hook: string
+      summary: string
+      projectId?: string
+    }>
+  }
 }
 
 export function captionsToPayload(state: {
@@ -815,6 +830,10 @@ export function captionsToPayload(state: {
   niche?: string
   cta?: string
   hashtags?: string[]
+  directorMode?: string
+  blueprintId?: string
+  repurposedAssets?: CaptionsPayload['repurposedAssets']
+  series?: CaptionsPayload['series']
 }): CaptionsPayload {
   return {
     text: state.captionLines.join('\n') || state.hook || '',
@@ -825,6 +844,10 @@ export function captionsToPayload(state: {
     hashtags: state.hashtags,
     niche: state.niche,
     suggestedVoiceStyle: state.suggestedVoiceStyle,
+    directorMode: state.directorMode,
+    blueprintId: state.blueprintId,
+    repurposedAssets: state.repurposedAssets,
+    series: state.series,
   }
 }
 
@@ -839,6 +862,10 @@ export function parseCaptionsPayload(
   cta: string
   hashtags: string[]
   text: string
+  directorMode?: string
+  blueprintId?: string
+  series?: CaptionsPayload['series']
+  repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
 } {
   if (typeof value === 'string') {
     return {
@@ -850,6 +877,10 @@ export function parseCaptionsPayload(
       cta: '',
       hashtags: [],
       text: value,
+      directorMode: undefined,
+      blueprintId: undefined,
+      series: undefined,
+      repurposedAssets: {},
     }
   }
 
@@ -876,6 +907,26 @@ export function parseCaptionsPayload(
           ? text.split('\n').filter(Boolean)
           : []
 
+  const directorMode =
+    typeof value?.directorMode === 'string' && value.directorMode.trim()
+      ? value.directorMode.trim()
+      : undefined
+  const blueprintId =
+    typeof value?.blueprintId === 'string' && value.blueprintId.trim()
+      ? value.blueprintId.trim()
+      : undefined
+
+  const seriesRaw = value?.series
+  const series =
+    seriesRaw &&
+    typeof seriesRaw === 'object' &&
+    !Array.isArray(seriesRaw) &&
+    typeof (seriesRaw as CaptionsPayload['series'])?.title === 'string'
+      ? (seriesRaw as CaptionsPayload['series'])
+      : undefined
+
+  const repurposedAssets = parseRepurposedAssets(value?.repurposedAssets)
+
   return {
     hook: hook || text,
     summary,
@@ -888,5 +939,9 @@ export function parseCaptionsPayload(
     cta,
     hashtags,
     text,
+    directorMode,
+    blueprintId,
+    series,
+    repurposedAssets,
   }
 }
