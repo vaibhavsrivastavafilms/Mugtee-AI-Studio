@@ -71,12 +71,16 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
 
   return (
     <div className="relative w-full h-[44vh] sm:h-[52vh] lg:h-[640px] rounded-3xl overflow-hidden glass-strong border border-gold-500/15 shadow-cinema">
-      {slides.map((s, i) => (
+      {slides.map((s, i) => {
+        const isActive = active === i
+        return (
         <div
           key={i}
-          className="absolute inset-0 transition-opacity duration-1400 ease-cinematic"
-          style={{ opacity: active === i ? 1 : 0 }}
-          aria-hidden={active !== i}
+          className={
+            'absolute inset-0 transition-opacity duration-1400 ease-cinematic ' +
+            (isActive ? 'opacity-100' : 'opacity-0')
+          }
+          {...(isActive ? {} : { 'aria-hidden': 'true' as const })}
         >
           <img
             src={s.src}
@@ -84,15 +88,16 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
             loading={i === 0 ? 'eager' : 'lazy'}
             className={
               'w-full h-full object-cover transition-transform ease-linear ' +
-              (active === i ? 'animate-kenburns' : 'scale-105')
+              (active === i ? 'animate-kenburns' : 'scale-105') +
+              (i % 2 === 0 ? ' origin-center' : ' origin-[60%_40%]')
             }
-            style={{ transformOrigin: i % 2 === 0 ? 'center center' : '60% 40%' }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/10" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20" />
           <div className="absolute inset-0 shimmer-cinematic opacity-20 pointer-events-none" />
         </div>
-      ))}
+        )
+      })}
 
       <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
         <div className="flex items-center gap-2.5">
@@ -110,16 +115,18 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
         </div>
 
         <div className="min-h-[5.5rem] sm:min-h-[6.5rem]">
-          {slides.map((s, i) => (
+          {slides.map((s, i) => {
+            const isActive = active === i
+            return (
             <div
               key={i}
-              className="transition-all duration-700 ease-out"
-              style={{
-                opacity: active === i ? 1 : 0,
-                transform: active === i ? 'translateY(0)' : 'translateY(8px)',
-                position: active === i ? 'relative' : 'absolute',
-              }}
-              aria-hidden={active !== i}
+              className={
+                'transition-all duration-700 ease-out ' +
+                (isActive
+                  ? 'relative opacity-100 translate-y-0'
+                  : 'absolute opacity-0 translate-y-2')
+              }
+              {...(isActive ? {} : { 'aria-hidden': 'true' as const })}
             >
               {s.eyebrow && (
                 <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80 mb-1.5">
@@ -130,7 +137,8 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
                 {s.caption}
               </p>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="flex gap-1.5">

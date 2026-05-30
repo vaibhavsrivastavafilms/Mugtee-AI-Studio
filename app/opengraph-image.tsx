@@ -1,5 +1,8 @@
 import { ImageResponse } from 'next/og'
 
+// Inline styles are required: @vercel/og ImageResponse does not support Tailwind/className.
+// Edge Tools no-inline-styles is suppressed via .hintrc ignoredUrls for this file.
+
 export const alt = 'Mugtee \u00b7 The cinematic storytelling operating system'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'

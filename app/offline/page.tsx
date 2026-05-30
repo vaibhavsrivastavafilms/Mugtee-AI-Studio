@@ -6,8 +6,7 @@ export default function OfflinePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#0B0B0B] text-[#E8D9A8]">
       <div
-        className="w-16 h-16 mb-6 rounded-2xl flex items-center justify-center font-bold text-3xl text-[#0B0B0B]"
-        style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}
+        className="w-16 h-16 mb-6 rounded-2xl flex items-center justify-center font-bold text-3xl text-[#0B0B0B] bg-gold-gradient"
         aria-hidden
       >
         M
@@ -18,8 +17,7 @@ export default function OfflinePage() {
         Reconnect and we’ll pick up exactly where you left off.
       </p>
       <a href="/"
-         className="mt-6 inline-flex items-center justify-center h-10 px-5 rounded-full text-sm font-medium"
-         style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)', color: '#0B0B0B' }}>
+         className="mt-6 inline-flex items-center justify-center h-10 px-5 rounded-full text-sm font-medium bg-gold-gradient text-[#0B0B0B]">
         Try again
       </a>
     </main>

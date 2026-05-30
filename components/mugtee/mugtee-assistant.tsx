@@ -537,8 +537,9 @@ function FaqAccordion({
       <button
         type="button"
         onClick={onToggle}
-        aria-expanded={expanded}
-        aria-controls={`faq-${id}`}
+        {...(expanded
+          ? { 'aria-expanded': 'true' as const, 'aria-controls': `faq-${id}` }
+          : { 'aria-expanded': 'false' as const, 'aria-controls': `faq-${id}` })}
         className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-left hover:bg-gold-500/[0.04] transition"
       >
         <span className="text-[11px] text-luxe/90 font-display">
@@ -552,21 +553,19 @@ function FaqAccordion({
           }
         />
       </button>
-      {expanded && (
-        <ul id={`faq-${id}`} className="pb-1 px-1 space-y-0.5">
-          {items.map(item => (
-            <li key={item.question}>
-              <button
-                type="button"
-                onClick={() => onItemClick(item)}
-                className="w-full text-left px-2 py-1.5 rounded-md text-[10.5px] leading-snug text-luxe/75 hover:text-gold-200 hover:bg-gold-500/[0.06] transition"
-              >
-                {item.question}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul id={`faq-${id}`} hidden={!expanded} className="pb-1 px-1 space-y-0.5">
+        {items.map(item => (
+          <li key={item.question}>
+            <button
+              type="button"
+              onClick={() => onItemClick(item)}
+              className="w-full text-left px-2 py-1.5 rounded-md text-[10.5px] leading-snug text-luxe/75 hover:text-gold-200 hover:bg-gold-500/[0.06] transition"
+            >
+              {item.question}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

@@ -64,8 +64,10 @@ export function StoryboardCrossfadeImage({
           src={previousSrc}
           alt=""
           aria-hidden
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out pointer-events-none"
-          style={{ opacity: loaded ? 0 : 1 }}
+          className={
+            'absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out pointer-events-none ' +
+            (loaded ? 'opacity-0' : 'opacity-100')
+          }
         />
       ) : null}
       <img
