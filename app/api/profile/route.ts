@@ -13,6 +13,7 @@ import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,6 +48,7 @@ function computeStatus(row: any) {
     is_unlimited:     Boolean(isTrial) || planType === 'PRO',
     trial_days_left:  daysLeft,
     trial_expired:    Boolean(expired),
+    creator_profile: normalizeCreatorMemoryProfile(row?.creator_profile),
   }
 }
 
@@ -116,4 +118,54 @@ export async function POST(req: NextRequest) {
 
   const { data: row } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
   return NextResponse.json({ ...computeStatus(row || {}), claimed: true })
+}
+
+// PATCH /api/profile — save Creator Memory Profile (Phase 2.3).
+export async function PATCH(req: NextRequest) {
+  const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
+  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
+  const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return NextResponse.json({ error: 'Body must be a JSON object' }, { status: 400 })
+  }
+
+  const creatorProfile = normalizeCreatorMemoryProfile(
+    raw.creator_profile ?? raw.creatorProfile ?? raw
+  )
+
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('creator_profile')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const merged = normalizeCreatorMemoryProfile({
+    ...(existing?.creator_profile && typeof existing.creator_profile === 'object'
+      ? existing.creator_profile
+      : {}),
+    ...creatorProfile,
+    updatedAt: new Date().toISOString(),
+  })
+
+  const { error } = await supabase.from('profiles').upsert(
+    { id: user.id, creator_profile: merged },
+    { onConflict: 'id' }
+  )
+
+  if (error) {
+    console.warn('[profile/patch] upsert failed', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const { data: row } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+  return NextResponse.json({
+    ...computeStatus(row || {}),
+    creator_profile: normalizeCreatorMemoryProfile(row?.creator_profile),
+    saved: true,
+  })
 }

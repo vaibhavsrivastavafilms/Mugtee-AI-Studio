@@ -4,6 +4,7 @@ import { synthesizeSpeechBuffer } from '@/lib/ai/synthesize-speech'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { trimNarrationForMaxDuration } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+    if (user) {
+      const blocked = await guardUsageLimit(user.id, 'generations')
+      if (blocked) return blocked
+    }
 
     if (user) {
       const filename = `${user.id}/faceless/voice_${Date.now()}.mp3`
@@ -73,6 +78,7 @@ export async function POST(req: NextRequest) {
         .upload(filename, buffer, { contentType: 'audio/mpeg', upsert: false })
       if (!upErr) {
         const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(filename)
+        if (user) await trackUsageMetric(user.id, 'generations')
         return NextResponse.json({
           audioUrl: pub.publicUrl,
           voiceName: displayName,
@@ -91,6 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
     const dataUri = `data:audio/mpeg;base64,${buffer.toString('base64')}`
+    if (user) await trackUsageMetric(user.id, 'generations')
     return NextResponse.json({
       audioUrl: dataUri,
       voiceName: displayName,

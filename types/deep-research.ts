@@ -22,6 +22,8 @@ export type DeepResearchInput = {
   language?: ProjectLanguage | string
   /** When false and PERPLEXITY_API_KEY is set, Sonar may use live web search. */
   skipWebSearch?: boolean
+  /** AI Director Mode — shapes research angles and hook emphasis */
+  directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
 }
 
 /** @deprecated Alias — prefer {@link DeepResearchInput}. */
@@ -242,6 +244,7 @@ export type DeepResearchApiRequestBody = {
   prompt?: string
   title?: string
   language?: ProjectLanguage | string
+  directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
 }
 
 /** POST /api/ai/deep-research success response. */

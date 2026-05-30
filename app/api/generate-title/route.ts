@@ -9,6 +9,8 @@ import {
 } from '@/lib/virlo-engine/hook-engine'
 import { coercePreviousHooks, isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,6 +18,16 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
+
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const blocked = await guardUsageLimit(user.id, 'generations')
+      if (blocked) return blocked
+    }
+
     const idea = coerceTopic(raw?.idea ?? raw?.prompt ?? raw?.topic)
     if (idea.length < 3) {
       return NextResponse.json({ error: 'Idea must be at least 3 characters' }, { status: 400 })
@@ -70,6 +82,8 @@ export async function POST(req: NextRequest) {
     const hook = selectedHook.text
 
     await delay(320)
+
+    if (user) await trackUsageMetric(user.id, 'generations')
 
     return NextResponse.json({
       title,

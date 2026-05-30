@@ -17,6 +17,7 @@ import {
 } from '@/lib/cinematic/mugtee-director-engine'
 import { runStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import { normalizeDirectorMode } from '@/lib/cinematic/director-modes'
 import {
   buildStoryboardProjectFields,
   storyboardScenesToGeneratedScenes,
@@ -31,6 +32,8 @@ import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
 import { sanitizeSceneOnlyPrompt } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
 
 import { coerceDuration, coerceTopic, logError } from '@/lib/workspace/validation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 
@@ -108,6 +111,20 @@ export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const blocked = await guardUsageLimit(user.id, 'generations')
+      if (blocked) return blocked
+    }
+
+    const finish = async (body: Record<string, unknown>) => {
+      if (user) await trackUsageMetric(user.id, 'generations')
+      return NextResponse.json(body)
+    }
+
     const idea = coerceTopic(raw?.idea ?? raw?.prompt ?? raw?.topic)
     const script = typeof raw?.script === 'string' ? raw.script : idea
     const sessionSeed =
@@ -119,6 +136,7 @@ export async function POST(req: NextRequest) {
     const meta = virloMetadataFromContext(virlo)
     const niche = virlo.topicAnalysis.niche
     const language = normalizeProjectLanguage(raw?.language)
+    const directorMode = normalizeDirectorMode(raw?.directorMode)
     const visualStyle =
       parseVisualStyle(raw?.visualStyle, visualStyleFromVirloContext(virlo)) ??
       visualStyleFromVirloContext(virlo)
@@ -131,7 +149,7 @@ export async function POST(req: NextRequest) {
         const fields = sceneVisualFieldsFromVirlo(virloVisual)
         return applyVisualStyleToScene({ ...scene, ...fields }, visualStyle)
       })
-      return NextResponse.json({
+      return finish({
         scenes: ensureScenesHaveImagePrompts(enriched),
         mock: false,
         niche,
@@ -156,7 +174,7 @@ export async function POST(req: NextRequest) {
           : scene
         return applyVisualStyleToScene(withVirlo, visualStyle)
       })
-      return NextResponse.json({
+      return finish({
         scenes: ensureScenesHaveImagePrompts(styled),
         mock: false,
         niche,
@@ -173,6 +191,7 @@ export async function POST(req: NextRequest) {
         language,
         researchDocument,
         retentionMode: durationSec <= 60,
+        directorMode,
       })
       if (sopResult && sopResult.storyboardScenes.length >= 2) {
         const sopScenes = storyboardScenesToGeneratedScenes(sopResult.storyboardScenes)
@@ -183,7 +202,7 @@ export async function POST(req: NextRequest) {
             : scene
           return applyVisualStyleToScene(withVirlo, visualStyle)
         })
-        return NextResponse.json({
+        return finish({
           scenes: ensureScenesHaveImagePrompts(styled),
           mock: false,
           niche,
@@ -201,6 +220,7 @@ export async function POST(req: NextRequest) {
         const openai = getOpenAIClient()
         const userPrompt = buildMugteeDirectorPrompt(virlo, script, visualStyle, language, {
           researchDocument,
+          directorMode,
         })
 
         const completion = await openai.chat.completions.create({
@@ -225,7 +245,7 @@ export async function POST(req: NextRequest) {
           const styled = normalized.scenes.map((scene) =>
             applyVisualStyleToScene(scene, visualStyle)
           )
-          return NextResponse.json({
+          return finish({
             scenes: ensureScenesHaveImagePrompts(styled),
             mock: false,
             niche,
@@ -248,7 +268,7 @@ export async function POST(req: NextRequest) {
       virloContext: virlo,
     })
 
-    return NextResponse.json({
+    return finish({
       scenes: ensureScenesHaveImagePrompts(
         mock.scenes.map((scene) => applyVisualStyleToScene(scene, visualStyle))
       ),

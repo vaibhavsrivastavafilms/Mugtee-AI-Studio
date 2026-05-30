@@ -3,6 +3,8 @@ import {
   normalizeProjectLanguage,
   type ProjectLanguage,
 } from '@/lib/cinematic/language-detection'
+import { buildDirectorModePromptSection } from '@/lib/ai/prompts/cinematic/director-mode-prompt'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import {
   DEEP_RESEARCH_SOP_MINIMUMS,
   type Controversy,
@@ -126,15 +128,22 @@ export function buildDeepResearchSopSystemPrompt(): string {
 }
 
 /** User prompt — 13-section SOP + final output with embedded JSON schema. */
-export function buildDeepResearchSopPrompt(topic: string, language?: ProjectLanguage): string {
+export function buildDeepResearchSopPrompt(
+  topic: string,
+  language?: ProjectLanguage,
+  directorMode?: DirectorMode
+): string {
   const trimmed = topic.trim()
   const langLock = `\n${languageDirective(normalizeProjectLanguage(language))}\n`
+  const directorLock = directorMode
+    ? `\n${buildDirectorModePromptSection(directorMode)}\n`
+    : ''
   const min = DEEP_RESEARCH_SOP_MINIMUMS
 
   return `Research this topic deeply for a faceless YouTube documentary script.
 
 Topic: ${trimmed || '<YOUR TOPIC OR TITLE>'}
-${langLock}
+${langLock}${directorLock}
 Use your training knowledge only — no live web search. Be specific, surprising, and script-ready.
 If uncertain about a fact, note it in factChecking.needsVerification — do NOT invent citations.
 

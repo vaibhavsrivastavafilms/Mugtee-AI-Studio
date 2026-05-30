@@ -13,6 +13,7 @@
 //   • status      = 'draft'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import {
   OUTPUT_FIELDS, LIMITS,
   coerceTopic, coercePlatform, coerceTone, coerceDuration,
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
+    const blocked = await guardUsageLimit(user.id, 'projects')
+    if (blocked) return blocked
 
     // Defensive parse — null body / malformed JSON / wrong root type.
     const raw = (await req.json().catch(() => null)) as any
@@ -99,6 +103,8 @@ export async function POST(req: NextRequest) {
       logError('workspace.save.no-id', null)
       return NextResponse.json({ error: 'Save returned no id' }, { status: 500 })
     }
+
+    await trackUsageMetric(user.id, 'projects')
 
     return NextResponse.json({ id: data.id })
   } catch (e: any) {

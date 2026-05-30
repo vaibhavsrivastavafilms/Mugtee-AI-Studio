@@ -14,6 +14,7 @@ import { UnifiedProjectsGrid, type ProjectCardModel } from '@/components/create/
 import { ProjectsInsightsPanel } from '@/components/create/projects-insights-panel'
 import { ProjectsLibrarySection } from '@/components/create/projects-library-section'
 import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-director-cut-mode-card'
+import { HelpShapeMugteeBanner } from '@/components/shell/help-shape-mugtee-banner'
 
 function ModeCard({
   mode,
@@ -122,6 +123,8 @@ function CreateEntryInner() {
       subtitle={isProjectsTab ? undefined : sectionSubtitle}
     >
       {!tab ? (
+        <>
+        <HelpShapeMugteeBanner />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <ModeCard
             mode="quick"
@@ -141,6 +144,7 @@ function CreateEntryInner() {
             />
           )}
         </div>
+        </>
       ) : null}
 
       {isProjectsTab ? (

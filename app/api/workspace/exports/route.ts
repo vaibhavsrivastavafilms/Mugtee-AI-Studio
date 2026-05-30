@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +19,9 @@ export async function POST(req: NextRequest) {
     const projectId = String(body?.project_id || '').trim()
     const format = String(body?.format || 'unknown').slice(0, 32)
     if (!projectId) return NextResponse.json({ error: 'project_id required' }, { status: 400 })
+
+    const blocked = await guardUsageLimit(user.id, 'exports')
+    if (blocked) return blocked
 
     // Ownership check (mirrors image + voiceover routes).
     const { data: piece } = await supabase
@@ -56,6 +60,8 @@ export async function POST(req: NextRequest) {
     } catch (statusErr: any) {
       console.warn('[exports] status promote soft-fail:', statusErr?.message)
     }
+
+    await trackUsageMetric(user.id, 'exports')
 
     return NextResponse.json({ ok: true, asset })
   } catch (e: any) {

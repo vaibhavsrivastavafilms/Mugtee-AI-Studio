@@ -516,6 +516,18 @@ export async function createProject(
       hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
       series: (state as CinematicProjectPatch).series ?? undefined,
     })
+  } else if ((state as CinematicProjectPatch).repurposedAssets !== undefined) {
+    const lines = state.captionLines ?? []
+    insertRow.captions = captionsToPayload({
+      hook: state.hook ?? '',
+      summary: state.summary ?? '',
+      captionLines: lines,
+      suggestedVoiceStyle: state.suggestedVoiceStyle ?? 'warm_documentary',
+      niche: state.niche,
+      cta: lines[1],
+      hashtags: lines.slice(2).filter((line) => line.startsWith('#')).slice(0, 3),
+      repurposedAssets: (state as CinematicProjectPatch).repurposedAssets,
+    })
   }
 
   const { data, error } = await supabase
@@ -854,6 +866,7 @@ export async function archiveGeneratedProject(
       generation_error: input.generation_error ?? null,
     last_completed_step: input.last_completed_step ?? null,
     series: input.series ?? undefined,
+    repurposedAssets: input.repurposedAssets,
   } as Parameters<typeof createProject>[0],
     undefined
   )
