@@ -20,7 +20,20 @@ export async function POST(req: NextRequest) {
       return Math.min(0.95, Math.max(0.12, base + (i % 5 === 0 ? 0.35 : 0)))
     })
 
-    const { buffer, provider } = await synthesizeSpeechBuffer(script)
+    const elevenLabsVoiceId =
+      typeof raw?.elevenLabsVoiceId === 'string'
+        ? raw.elevenLabsVoiceId.trim()
+        : typeof raw?.voice_id === 'string'
+          ? raw.voice_id.trim()
+          : undefined
+    const voiceName =
+      typeof raw?.voiceName === 'string' ? raw.voiceName.trim() : undefined
+
+    const { buffer, provider, voiceName: resolvedName, fallbackMessage } =
+      await synthesizeSpeechBuffer(script, {
+        elevenLabsVoiceId,
+        voiceName,
+      })
     const narration = trimNarrationForMaxDuration(
       script
         .replace(/Scene\s+\d+[^\n]*/gi, '')
@@ -39,10 +52,14 @@ export async function POST(req: NextRequest) {
           audioUrl: null,
           mock: true,
           waveform,
+          provider: 'none',
+          fallbackMessage,
         },
         { status: 503 }
       )
     }
+
+    const displayName = resolvedName || voiceName || 'Cinematic Narrator'
 
     const supabase = createSupabaseServerClient()
     const {
@@ -58,7 +75,8 @@ export async function POST(req: NextRequest) {
         const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(filename)
         return NextResponse.json({
           audioUrl: pub.publicUrl,
-          voiceName: 'Cinematic Narrator',
+          voiceName: displayName,
+          elevenLabsVoiceId: elevenLabsVoiceId || null,
           style: 'warm_documentary',
           durationSec: Math.min(
             MAX_VIDEO_DURATION_SEC,
@@ -67,6 +85,7 @@ export async function POST(req: NextRequest) {
           waveform,
           mock: false,
           provider,
+          fallbackMessage: fallbackMessage ?? null,
         })
       }
     }
@@ -74,7 +93,8 @@ export async function POST(req: NextRequest) {
     const dataUri = `data:audio/mpeg;base64,${buffer.toString('base64')}`
     return NextResponse.json({
       audioUrl: dataUri,
-      voiceName: 'Cinematic Narrator',
+      voiceName: displayName,
+      elevenLabsVoiceId: elevenLabsVoiceId || null,
       style: 'warm_documentary',
       durationSec: Math.min(
         MAX_VIDEO_DURATION_SEC,
@@ -83,6 +103,7 @@ export async function POST(req: NextRequest) {
       waveform,
       mock: false,
       provider,
+      fallbackMessage: fallbackMessage ?? null,
     })
   } catch (err) {
     logError('generate-voice', err)

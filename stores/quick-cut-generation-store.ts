@@ -68,7 +68,15 @@ import {
   getCreatorMemoryBiasHints,
   rememberCreativeSession,
 } from '@/lib/creator/creator-memory'
+import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
+import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
+import { recommendVoiceStyle } from '@/lib/cinematic/voice-match'
 import type { DeepResearchStoreFields } from '@/types/deep-research'
+import {
+  EMPTY_STORYBOARD_FIELDS,
+  type StoryboardScene,
+  type StoryboardStoreFields,
+} from '@/types/storyboard'
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -147,6 +155,9 @@ interface QuickCutGenerationStateBase {
   regeneratingSceneIds: string[]
   directingSceneLabel: string | null
   voiceUrl: string | null
+  elevenLabsVoiceId: string | null
+  voiceName: string | null
+  voiceFallbackMessage: string | null
   waveform: number[]
   progress: number
   eta: number
@@ -188,7 +199,7 @@ interface QuickCutGenerationStateBase {
   imageNote: string | null
 }
 
-interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields {}
+interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
 
 interface QuickCutGenerationActions {
   reset: (options?: { clearProject?: boolean }) => void
@@ -213,6 +224,8 @@ interface QuickCutGenerationActions {
     projectId: string,
     options?: { stageTab?: QuickCutStageTab }
   ) => Promise<boolean>
+  setSelectedElevenLabsVoice: (voiceId: string, name: string) => void
+  ensureRecommendedElevenLabsVoice: () => Promise<void>
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -231,6 +244,9 @@ const INITIAL: QuickCutGenerationState = {
   directingSceneLabel: null,
   regeneratingSceneIds: [],
   voiceUrl: null,
+  elevenLabsVoiceId: null,
+  voiceName: null,
+  voiceFallbackMessage: null,
   waveform: [],
   progress: 0,
   eta: 14,
@@ -267,8 +283,10 @@ const INITIAL: QuickCutGenerationState = {
   lastSavedAt: null,
   lastGeneratedPrompt: null,
   researchDocument: null,
+  researchReport: null,
   researchMock: false,
   imageNote: null,
+  ...EMPTY_STORYBOARD_FIELDS,
 }
 
 const SAVE_FLASH_MS = 2500
@@ -335,6 +353,27 @@ function buildGenerationOutput(
   }
 }
 
+function parseStoryboardFromApi(
+  data: Record<string, unknown>
+): Partial<StoryboardStoreFields> {
+  const scenes = Array.isArray(data.storyboardScenes)
+    ? (data.storyboardScenes as StoryboardScene[])
+    : []
+  if (scenes.length < 1) return {}
+
+  return {
+    storyboardScenes: scenes,
+    storyboardPrompts: Array.isArray(data.storyboardPrompts)
+      ? data.storyboardPrompts.filter((p): p is string => typeof p === 'string')
+      : scenes.map((s) => s.imagePrompt),
+    sceneCount:
+      typeof data.sceneCount === 'number' ? data.sceneCount : scenes.length,
+    visualTimeline: Array.isArray(data.visualTimeline)
+      ? (data.visualTimeline as StoryboardStoreFields['visualTimeline'])
+      : [],
+  }
+}
+
 function buildArchiveInput(
   state: QuickCutGenerationState,
   output: CinematicGenerationOutput
@@ -356,7 +395,8 @@ function buildArchiveInput(
     storyboard: storedScenes,
     voice: state.voiceUrl
       ? {
-          voiceName: 'Cinematic Narrator',
+          voiceId: state.elevenLabsVoiceId ?? undefined,
+          voiceName: state.voiceName || 'Cinematic Narrator',
           style: 'warm_documentary',
           audioUrl: state.voiceUrl,
           narration: state.script,
@@ -676,6 +716,31 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
   return { renderRes, renderData }
 }
 
+async function loadElevenLabsVoicesFromApi(): Promise<ElevenLabsVoiceOption[]> {
+  try {
+    const res = await fetch('/api/elevenlabs/voices')
+    const data = (await res.json()) as { voices?: ElevenLabsVoiceOption[] }
+    return Array.isArray(data.voices) ? data.voices : []
+  } catch {
+    return []
+  }
+}
+
+async function ensureRecommendedElevenLabsVoiceForState(
+  state: Pick<QuickCutGenerationState, 'elevenLabsVoiceId' | 'language' | 'niche' | 'style'>
+): Promise<{ voiceId: string; name: string } | null> {
+  if (state.elevenLabsVoiceId) return null
+  const styleId = recommendVoiceStyle({
+    niche: state.niche,
+    tone: state.style,
+  })
+  const category = voiceStyleToElevenCategory(styleId)
+  const voices = await loadElevenLabsVoicesFromApi()
+  if (voices.length < 1) return null
+  const pick = pickRecommendedVoice(voices, state.language, category)
+  return { voiceId: pick.voiceId, name: pick.name }
+}
+
 function persistHookSession(state: QuickCutGenerationState) {
   saveHookSession({
     previousHooks: state.previousHooks,
@@ -723,7 +788,8 @@ function persistSession(state: QuickCutGenerationState) {
       scenes: scenesToStore(output.scenes),
       voice: state.voiceUrl
         ? {
-            voiceName: 'Cinematic Narrator',
+            voiceId: state.elevenLabsVoiceId ?? undefined,
+            voiceName: state.voiceName || 'Cinematic Narrator',
             style: 'warm_documentary',
             audioUrl: state.voiceUrl,
             narration: state.script,
@@ -781,6 +847,24 @@ export const useQuickCutGenerationStore = create<
 >((set, get) => ({
   ...INITIAL,
 
+  setSelectedElevenLabsVoice: (voiceId, name) => {
+    set({ elevenLabsVoiceId: voiceId, voiceName: name })
+    const state = get()
+    if (state.savedProjectId && state.script.trim()) {
+      void archiveQuickCutProject(state).catch(() => {})
+    }
+  },
+
+  ensureRecommendedElevenLabsVoice: async () => {
+    const recommended = await ensureRecommendedElevenLabsVoiceForState(get())
+    if (recommended) {
+      set({
+        elevenLabsVoiceId: recommended.voiceId,
+        voiceName: recommended.name,
+      })
+    }
+  },
+
   reset: (options) => {
     const savedProjectId = options?.clearProject ? null : get().savedProjectId
     const lastGeneratedPrompt = options?.clearProject
@@ -829,6 +913,8 @@ export const useQuickCutGenerationStore = create<
           visualStyle: prior.visualStyle,
           niche: prior.niche,
           language: prior.language,
+          elevenLabsVoiceId: prior.elevenLabsVoiceId,
+          voiceName: prior.voiceName,
           originalTranscript: prior.originalTranscript,
           previousScript: prior.script,
           previousHook: prior.hook,
@@ -877,6 +963,9 @@ export const useQuickCutGenerationStore = create<
         preserved?.originalTranscript ||
         rawPrompt,
       imageNote: input.imageNote?.trim() || null,
+      elevenLabsVoiceId: regenFresh ? preserved?.elevenLabsVoiceId ?? null : null,
+      voiceName: regenFresh ? preserved?.voiceName ?? null : null,
+      voiceFallbackMessage: null,
       previousHooks: regenFresh ? regenAvoidHooks : restoreHookSession().previousHooks,
       hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : restoreHookSession().hookVariantNumber,
       variationHistory: emptyVariationHistory(),
@@ -1030,7 +1119,12 @@ export const useQuickCutGenerationStore = create<
           typeof scriptData.researchDocument === 'string'
             ? scriptData.researchDocument
             : null,
+        researchReport:
+          scriptData.researchReport && typeof scriptData.researchReport === 'object'
+            ? (scriptData.researchReport as import('@/types/deep-research').DeepResearchReport)
+            : null,
         researchMock: scriptData.researchMock === true,
+        ...parseStoryboardFromApi(scriptData),
         previousHooks:
           regenFresh && hook
             ? appendPreviousHook(regenAvoidHooks, hook)
@@ -1047,6 +1141,7 @@ export const useQuickCutGenerationStore = create<
       })
 
       setStep(set, get, 'scenes')
+      const storyboardFromScript = get().storyboardScenes
       const scenesRes = await fetch('/api/generate-scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1059,6 +1154,9 @@ export const useQuickCutGenerationStore = create<
           niche: scriptNiche,
           duration,
           researchDocument: get().researchDocument ?? undefined,
+          ...(storyboardFromScript.length >= 2
+            ? { storyboardScenes: storyboardFromScript }
+            : {}),
         }),
       })
       const scenesData = (await scenesRes.json()) as Record<string, unknown>
@@ -1080,7 +1178,13 @@ export const useQuickCutGenerationStore = create<
         total: scenes.length,
       })
 
-      set({ scenes, storyboard: scenes, characterDescription, niche: scriptNiche })
+      set({
+        scenes,
+        storyboard: scenes,
+        characterDescription,
+        niche: scriptNiche,
+        ...parseStoryboardFromApi(scenesData),
+      })
 
       scenes = stripSceneImages(scenes)
 
@@ -1124,17 +1228,46 @@ export const useQuickCutGenerationStore = create<
       let voiceUrl: string | null = null
       let waveform: number[] = []
 
+      const voiceState = get()
+      if (!voiceState.elevenLabsVoiceId) {
+        const recommended = await ensureRecommendedElevenLabsVoiceForState(voiceState)
+        if (recommended) {
+          set({
+            elevenLabsVoiceId: recommended.voiceId,
+            voiceName: recommended.name,
+          })
+        }
+      }
+
+      const { elevenLabsVoiceId, voiceName: selectedVoiceName } = get()
       const voiceRes = await fetch('/api/generate-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script }),
+        body: JSON.stringify({
+          script,
+          elevenLabsVoiceId: elevenLabsVoiceId ?? undefined,
+          voiceName: selectedVoiceName ?? undefined,
+        }),
       })
       const voiceData = (await voiceRes.json()) as Record<string, unknown>
+      let voiceFallbackMessage: string | null = null
       if (voiceRes.ok) {
         voiceUrl = typeof voiceData.audioUrl === 'string' ? voiceData.audioUrl : null
         waveform = Array.isArray(voiceData.waveform)
           ? (voiceData.waveform as number[])
           : []
+        if (typeof voiceData.fallbackMessage === 'string' && voiceData.fallbackMessage) {
+          voiceFallbackMessage = voiceData.fallbackMessage
+        }
+        if (typeof voiceData.voiceName === 'string' && voiceData.voiceName) {
+          set({ voiceName: voiceData.voiceName })
+        }
+        if (
+          typeof voiceData.elevenLabsVoiceId === 'string' &&
+          voiceData.elevenLabsVoiceId
+        ) {
+          set({ elevenLabsVoiceId: voiceData.elevenLabsVoiceId })
+        }
         if (voiceData.mock === true) {
           anyMock = true
           noteMissing('voice')
@@ -1142,9 +1275,14 @@ export const useQuickCutGenerationStore = create<
       } else {
         anyMock = true
         noteMissing('voice')
+        if (typeof voiceData.fallbackMessage === 'string') {
+          voiceFallbackMessage = voiceData.fallbackMessage
+        } else if (typeof voiceData.error === 'string') {
+          voiceFallbackMessage = voiceData.error
+        }
       }
 
-      set({ voiceUrl, waveform })
+      set({ voiceUrl, waveform, voiceFallbackMessage })
 
       setStep(set, get, 'render')
       let videoUrl: string | null = null

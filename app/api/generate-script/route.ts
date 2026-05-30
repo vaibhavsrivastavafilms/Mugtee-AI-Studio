@@ -195,6 +195,7 @@ export async function POST(req: NextRequest) {
       const validation = validateCinematicOutput(result.output, niche, topic)
       const research: GenerateScriptApiResearchResponse = {
         researchDocument: result.researchDocument,
+        researchReport: result.researchReport,
         researchMock: result.researchMock,
       }
 
@@ -209,6 +210,10 @@ export async function POST(req: NextRequest) {
         viralScript: result.viralScript,
         viralStructure: result.viralStructure,
         referenceScriptUsed: Boolean(referenceScript),
+        storyboardScenes: result.storyboardScenes,
+        storyboardPrompts: result.storyboardPrompts,
+        sceneCount: result.sceneCount,
+        visualTimeline: result.visualTimeline,
         ...research,
       })
     } catch (err) {

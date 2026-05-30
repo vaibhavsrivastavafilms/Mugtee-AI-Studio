@@ -114,6 +114,7 @@ export async function generateSceneImages(
       })
     }
 
+    // Storyboard SOP scene-only prompt + reference prefix applied in buildSceneImagePrompt
     const scenePrompt = buildSceneImagePrompt(scene, {
       ...ctx,
       characterDescription,

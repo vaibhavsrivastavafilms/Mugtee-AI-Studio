@@ -8,6 +8,7 @@ import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection } from '@/lib/creator/creator-memory'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
+import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { scriptWordCountHint } from '@/lib/ai/prompts/cinematic/script-writing-sop'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
@@ -33,7 +34,7 @@ export type CinematicPromptInput = {
   creatorMemoryBias?: CreatorMemoryBiasHints | null
   /** Title from /api/generate-title */
   titleSeed?: string
-} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
+} & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
 export function buildFreshRegenDirective(input: {
@@ -125,9 +126,11 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.creatorMemoryBias
       ? buildCreatorMemoryPromptSection(input.creatorMemoryBias)
       : '',
-    input.researchDocument
-      ? buildDeepResearchScriptContextSection(input.researchDocument)
-      : '',
+    input.researchReport
+      ? buildDeepResearchReportScriptContext(input.researchReport)
+      : input.researchDocument
+        ? buildDeepResearchScriptContextSection(input.researchDocument)
+        : '',
   ]
     .filter(Boolean)
     .join('\n')

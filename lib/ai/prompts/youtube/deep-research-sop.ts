@@ -1,39 +1,40 @@
 import { languageDirective } from '@/lib/cinematic/language-prompt'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
-import type {
-  Controversy,
-  DeepResearchReport,
-  FactValidation,
-  FinalRecommendations,
-  FuturePrediction,
-  HookAngle,
-  Metaphor,
-  PsychologyInsights,
-  RareFact,
-  RetentionPlan,
-  StoryboardIdea,
-  StoryCase,
-  TimelineEvent,
-  TopicOverview,
-  WritersGoldmine,
+import {
+  DEEP_RESEARCH_SOP_MINIMUMS,
+  type Controversy,
+  type DeepResearchReport,
+  type FactValidation,
+  type FinalRecommendations,
+  type FuturePrediction,
+  type HookAngle,
+  type Metaphor,
+  type PsychologyInsights,
+  type RareFact,
+  type RetentionPlan,
+  type StoryboardIdea,
+  type StoryCase,
+  type TimelineEvent,
+  type TopicOverview,
+  type WritersGoldmine,
 } from '@/types/deep-research'
 
-/** SOP section titles — 14 sections in generation order. */
+/** SOP section titles — 13 sections + final output. */
 export const DEEP_RESEARCH_SOP_SECTIONS = [
   'Topic Overview',
   'Viral Hook Angles',
-  'Historical Timeline',
+  'Deep Historical Timeline',
   'Rare Facts',
   'Shocking Stories',
-  'Controversies',
-  'Psychology',
-  'Comparisons & Metaphors',
+  'Controversies & Debates',
+  'Psychology of the Topic',
+  'Viral Comparisons & Metaphors',
   'Future Implications',
   'Visual Storyboard Ideas',
   "Script Writer's Goldmine",
   'Retention Engineering',
   'Fact Checking',
-  'Final Recommendations',
+  'Final Output',
 ] as const
 
 const JSON_SCHEMA_EXAMPLE = `{
@@ -45,7 +46,7 @@ const JSON_SCHEMA_EXAMPLE = `{
     "whyItMatters": "string"
   },
   "hookAngles": [
-    { "title": "string", "hookLine": "string", "curiosityGap": "string", "audienceTrigger": "string" }
+    { "title": "string", "hookLine": "string", "curiosityGap": "string", "audienceTrigger": "string", "score": 8 }
   ],
   "timeline": [
     { "year": "string", "event": "string", "significance": "string" }
@@ -101,11 +102,13 @@ const JSON_SCHEMA_EXAMPLE = `{
   },
   "finalSummary": {
     "top10Discoveries": ["string"],
+    "top10Angles": ["string"],
     "titleIdeas": ["string"],
     "thumbnailIdeas": ["string"],
     "bestDocumentaryAngle": "string",
     "bestFacelessAngle": "string",
-    "recommendedStructure": "string"
+    "recommendedStructure": "string",
+    "scriptFlow": "string — 1200-1500 word spoken documentary flow outline with section headers"
   }
 }`
 
@@ -119,35 +122,44 @@ export function buildDeepResearchSopSystemPrompt(): string {
   ].join(' ')
 }
 
-/** User prompt — 14-section SOP with embedded JSON schema. */
+/** User prompt — 13-section SOP + final output with embedded JSON schema. */
 export function buildDeepResearchSopPrompt(topic: string, language?: ProjectLanguage): string {
   const trimmed = topic.trim()
   const langLock = language ? `\n${languageDirective(language)}\n` : ''
+  const min = DEEP_RESEARCH_SOP_MINIMUMS
 
   return `Research this topic deeply for a faceless YouTube documentary script.
 
 Topic: ${trimmed || '<YOUR TOPIC OR TITLE>'}
 ${langLock}
 Use your training knowledge only — no live web search. Be specific, surprising, and script-ready.
+If uncertain about a fact, note it in factChecking.needsVerification — do NOT invent citations.
 
-Complete ALL 14 SOP sections as JSON fields:
+Complete ALL 13 SOP sections plus Final Output as JSON fields:
 
 1. Topic Overview — beginnerExplanation, expertExplanation, oneSentenceSummary, whyItMatters
-2. Viral Hook Angles — 5+ hookAngles with title, hookLine, curiosityGap, audienceTrigger
-3. Historical Timeline — 6+ timeline events with year, event, significance
-4. Rare Facts — 8+ rareFacts with fact, sourceHint, surpriseLevel
-5. Shocking Stories — 4+ shockingStories with title, summary, emotionalBeat
-6. Controversies — 3+ controversies with claim, opposingView, stakes
-7. Psychology — coreEmotions, cognitiveBiases, viewerMotivation, fearDesireTriggers
-8. Comparisons & Metaphors — 5+ metaphors with metaphor, explains
-9. Future Implications — 4+ futureImplications with prediction, timeframe, implication
-10. Visual Storyboard Ideas — MINIMUM 25 storyboardIdeas with sceneTitle, visualDescription, cameraStyle, lightingMood, atmosphere, emotionalPurpose
+2. Viral Hook Angles — MINIMUM ${min.hookAngles} hookAngles; each with title, hookLine, curiosityGap, audienceTrigger, score (1–10 retention potential)
+3. Deep Historical Timeline — 8+ timeline events with year, event, significance (chronological)
+4. Rare Facts — MINIMUM ${min.rareFacts} rareFacts with fact, sourceHint, surpriseLevel (low|medium|high)
+5. Shocking Stories — ${min.shockingStories}+ shockingStories with title, summary, emotionalBeat
+6. Controversies & Debates — ${min.controversies}+ controversies with claim, opposingView, stakes
+7. Psychology of the Topic — coreEmotions, cognitiveBiases, viewerMotivation, fearDesireTriggers
+8. Viral Comparisons & Metaphors — ${min.metaphors}+ metaphors with metaphor, explains
+9. Future Implications — ${min.futureImplications}+ futureImplications with prediction, timeframe, implication
+10. Visual Storyboard Ideas — MINIMUM ${min.storyboardIdeas} storyboardIdeas with sceneTitle, visualDescription, cameraStyle, lightingMood, atmosphere, emotionalPurpose
 11. Script Writer's Goldmine — strongestHook, strongestStoryAngle, strongestConflict, strongestReveal, strongestEnding
-12. Retention Engineering — openingPattern, rehookMoments (5+), payoffBeats (4+), dropOffRisks (3+)
-13. Fact Checking — highConfidenceFacts, needsVerification, commonMistakes
-14. Final Recommendations — top10Discoveries (10 items), titleIdeas (8+), thumbnailIdeas (6+), bestDocumentaryAngle, bestFacelessAngle, recommendedStructure
+12. Retention Engineering — openingPattern, rehookMoments (6+), payoffBeats (5+), dropOffRisks (4+)
+13. Fact Checking — highConfidenceFacts (8+), needsVerification, commonMistakes
 
-Return ONLY valid JSON matching this schema (fill every field; use [] for empty arrays only when truly irrelevant):
+Final Output (finalSummary):
+- top10Discoveries (${min.top10Discoveries} items)
+- top10Angles (${min.top10Discoveries} best narrative angles)
+- titleIdeas (${min.titleIdeas}+)
+- thumbnailIdeas (${min.thumbnailIdeas}+)
+- bestDocumentaryAngle, bestFacelessAngle, recommendedStructure
+- scriptFlow: ${min.scriptFlowWords.min}–${min.scriptFlowWords.max} word spoken-documentary flow outline with section headers (NOT the final script — beat-by-beat narration plan)
+
+Return ONLY valid JSON matching this schema (fill every field; use [] only when truly irrelevant):
 
 ${JSON_SCHEMA_EXAMPLE}`
 }
@@ -177,6 +189,12 @@ function coerceOverview(raw: unknown, topic: string): TopicOverview {
   }
 }
 
+function coerceScore(value: unknown, fallback = 5): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(10, Math.max(1, Math.round(n)))
+}
+
 function coerceHookAngles(raw: unknown): HookAngle[] {
   if (!Array.isArray(raw)) return []
   return raw
@@ -187,10 +205,12 @@ function coerceHookAngles(raw: unknown): HookAngle[] {
         hookLine: coerceString(row.hookLine),
         curiosityGap: coerceString(row.curiosityGap),
         audienceTrigger: coerceString(row.audienceTrigger),
+        score: coerceScore(row.score, 7),
       }
     })
     .filter((h) => h.hookLine || h.curiosityGap)
-    .slice(0, 12)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 28)
 }
 
 function coerceTimeline(raw: unknown): TimelineEvent[] {
@@ -221,7 +241,7 @@ function coerceRareFacts(raw: unknown): RareFact[] {
       }
     })
     .filter((f) => f.fact)
-    .slice(0, 16)
+    .slice(0, 40)
 }
 
 function coerceStories(raw: unknown): StoryCase[] {
@@ -342,10 +362,42 @@ function coerceFactChecking(raw: unknown): FactValidation {
   }
 }
 
-function coerceFinalSummary(raw: unknown, topic: string): FinalRecommendations {
+function coerceFinalSummary(raw: unknown, topic: string, hooks: HookAngle[]): FinalRecommendations {
   const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {}
+  const angleFallback = hooks.slice(0, 10).map((h) => `${h.title}: ${h.hookLine}`)
+  const flowFallback = [
+    `# ${topic} — Documentary Flow Outline`,
+    '',
+    '## Cold Open (0:00–0:30)',
+    `Pattern interrupt + ${hooks[0]?.hookLine || 'bold claim that reframes the topic'}.`,
+    '',
+    '## Context Layer (0:30–2:00)',
+    `Beginner frame → expert pivot. Why ${topic} matters now.`,
+    '',
+    '## Rare Facts Montage (2:00–5:00)',
+    'Stack 3–5 surprising facts with escalating stakes.',
+    '',
+    '## Shocking Story Beat (5:00–7:00)',
+    'One concrete episode that changes how the audience feels.',
+    '',
+    '## Controversy & Debate (7:00–9:00)',
+    'Present both sides — let tension build without preaching.',
+    '',
+    '## Psychology & Metaphor Bridge (9:00–10:30)',
+    'Name the emotions and use one sticky comparison.',
+    '',
+    '## Future Implications (10:30–12:00)',
+    'Where this is heading — stakes for the viewer today.',
+    '',
+    '## Payoff & Lingering Question (12:00–end)',
+    'Strongest reveal → open loop that survives the credits.',
+  ].join('\n')
+
   return {
     top10Discoveries: coerceStringArray(src.top10Discoveries, 10, 280),
+    top10Angles: coerceStringArray(src.top10Angles, 10, 280).length
+      ? coerceStringArray(src.top10Angles, 10, 280)
+      : angleFallback,
     titleIdeas: coerceStringArray(src.titleIdeas, 12, 120),
     thumbnailIdeas: coerceStringArray(src.thumbnailIdeas, 10, 160),
     bestDocumentaryAngle: coerceString(src.bestDocumentaryAngle, `Documentary deep-dive on ${topic}.`),
@@ -354,6 +406,7 @@ function coerceFinalSummary(raw: unknown, topic: string): FinalRecommendations {
       src.recommendedStructure,
       'Hook → context → rare facts → conflict → reveal → future → CTA.'
     ),
+    scriptFlow: coerceString(src.scriptFlow, flowFallback, 12_000),
   }
 }
 
@@ -379,7 +432,7 @@ export function normalizeDeepResearchReport(raw: unknown, topic: string): DeepRe
     writersGoldmine: coerceGoldmine(src.writersGoldmine, topic, hookAngles),
     retentionEngineering: coerceRetention(src.retentionEngineering),
     factChecking: coerceFactChecking(src.factChecking),
-    finalSummary: coerceFinalSummary(src.finalSummary, topic),
+    finalSummary: coerceFinalSummary(src.finalSummary, topic, hookAngles),
   }
 }
 
@@ -407,7 +460,7 @@ export function serializeDeepResearchReport(report: DeepResearchReport): string 
     '## Viral Hook Angles',
     ...report.hookAngles.map(
       (h) =>
-        `- **${h.title}**: ${h.hookLine} (gap: ${h.curiosityGap}; trigger: ${h.audienceTrigger})`
+        `- **${h.title}** [${h.score}/10]: ${h.hookLine} (gap: ${h.curiosityGap}; trigger: ${h.audienceTrigger})`
     ),
     '',
     '## Historical Timeline',
@@ -462,34 +515,43 @@ export function serializeDeepResearchReport(report: DeepResearchReport): string 
     `- Verify: ${report.factChecking.needsVerification.join(' | ')}`,
     `- Common mistakes: ${report.factChecking.commonMistakes.join(' | ')}`,
     '',
-    '## Final Recommendations',
+    '## Final Output',
     `- Top discoveries: ${report.finalSummary.top10Discoveries.join(' | ')}`,
+    `- Top angles: ${report.finalSummary.top10Angles.join(' | ')}`,
     `- Titles: ${report.finalSummary.titleIdeas.join(' | ')}`,
     `- Thumbnails: ${report.finalSummary.thumbnailIdeas.join(' | ')}`,
     `- Documentary angle: ${report.finalSummary.bestDocumentaryAngle}`,
     `- Faceless angle: ${report.finalSummary.bestFacelessAngle}`,
     `- Structure: ${report.finalSummary.recommendedStructure}`,
+    '',
+    '### Script Flow (1200–1500 words)',
+    report.finalSummary.scriptFlow,
   ]
 
   return lines.join('\n').trim()
 }
 
-/** Structured research context for script generation — prefers goldmine, facts, stories, hooks. */
+/** Structured research context for script generation — all key dossier sections. */
 export function buildDeepResearchReportScriptContext(report: DeepResearchReport): string {
   const gold = report.writersGoldmine
-  const hooks = report.hookAngles.slice(0, 6)
-  const facts = report.rareFacts.slice(0, 8)
-  const stories = report.shockingStories.slice(0, 4)
+  const hooks = report.hookAngles.slice(0, 8)
+  const facts = report.rareFacts.slice(0, 12)
+  const stories = report.shockingStories.slice(0, 5)
+  const timeline = report.timeline.slice(0, 6)
+  const controversies = report.controversies.slice(0, 3)
+  const metaphors = report.metaphors.slice(0, 5)
   const psych = report.psychology
+  const final = report.finalSummary
 
   return [
-    '═══ DEEP RESEARCH CONTEXT (structured report — use as factual/creative fuel) ═══',
-    'Prefer writersGoldmine, rareFacts, shockingStories, hookAngles, and psychology below.',
+    '═══ DEEP RESEARCH DOSSIER (structured — use as factual/creative fuel) ═══',
+    'Prefer writersGoldmine, rareFacts, shockingStories, hookAngles, timeline, controversies, and scriptFlow.',
     'Do NOT write generic motivational content — anchor narration in these specifics.',
     'Training-knowledge research only — verify nothing requires live web sources.',
     '---',
     `TOPIC: ${report.topic}`,
     `ONE-LINE: ${report.overview.oneSentenceSummary}`,
+    `WHY IT MATTERS: ${report.overview.whyItMatters}`,
     '',
     'WRITERS GOLDMINE:',
     `- Hook: ${gold.strongestHook}`,
@@ -498,14 +560,23 @@ export function buildDeepResearchReportScriptContext(report: DeepResearchReport)
     `- Reveal: ${gold.strongestReveal}`,
     `- Ending: ${gold.strongestEnding}`,
     '',
-    'HOOK ANGLES:',
-    ...hooks.map((h) => `- ${h.hookLine} (${h.curiosityGap})`),
+    'TOP HOOK ANGLES (by score):',
+    ...hooks.map((h) => `- [${h.score}/10] ${h.hookLine} (${h.curiosityGap})`),
     '',
     'RARE FACTS:',
     ...facts.map((f) => `- ${f.fact}`),
     '',
     'SHOCKING STORIES:',
     ...stories.map((s) => `- ${s.title}: ${s.summary}`),
+    '',
+    'TIMELINE BEATS:',
+    ...timeline.map((e) => `- ${e.year}: ${e.event}`),
+    '',
+    'CONTROVERSIES:',
+    ...controversies.map((c) => `- ${c.claim} vs ${c.opposingView}`),
+    '',
+    'METAPHORS:',
+    ...metaphors.map((m) => `- ${m.metaphor} → ${m.explains}`),
     '',
     'PSYCHOLOGY:',
     `- Emotions: ${psych.coreEmotions.join(', ')}`,
@@ -515,6 +586,27 @@ export function buildDeepResearchReportScriptContext(report: DeepResearchReport)
     'RETENTION:',
     `- Opening: ${report.retentionEngineering.openingPattern}`,
     `- Re-hooks: ${report.retentionEngineering.rehookMoments.slice(0, 5).join(' | ')}`,
+    '',
+    'RECOMMENDED STRUCTURE:',
+    final.recommendedStructure,
+    '',
+    'SCRIPT FLOW OUTLINE (adapt — do not copy verbatim):',
+    final.scriptFlow.slice(0, 6_000),
+    '---',
+  ].join('\n')
+}
+
+/** Visual storyboard ideas from dossier — for storyboard SOP pass. */
+export function buildDeepResearchStoryboardContext(report: DeepResearchReport): string {
+  const ideas = report.storyboardIdeas.slice(0, 30)
+  if (ideas.length === 0) return ''
+
+  return [
+    '═══ DEEP RESEARCH STORYBOARD IDEAS (visual fuel — align segments when script allows) ═══',
+    ...ideas.map(
+      (s, i) =>
+        `${i + 1}. ${s.sceneTitle}: ${s.visualDescription} | Camera: ${s.cameraStyle} | Mood: ${s.atmosphere} | Purpose: ${s.emotionalPurpose}`
+    ),
     '---',
   ].join('\n')
 }
@@ -531,20 +623,18 @@ export function buildMockDeepResearchReport(topic: string): DeepResearchReport {
         oneSentenceSummary: `${topic} is not what the algorithm-trained audience thinks it is.`,
         whyItMatters: `Viewers stay when ${topic} reframes something they thought they already understood.`,
       },
-      hookAngles: [
-        {
-          title: 'Hidden pivot',
-          hookLine,
-          curiosityGap: 'What happened in the gap between headline and history?',
-          audienceTrigger: 'Incompletion — the brain hates an open loop',
-        },
-        {
-          title: 'Contrarian frame',
-          hookLine: `The popular story about ${topic} is almost backwards.`,
-          curiosityGap: 'Which “common knowledge” fact collapses under scrutiny?',
-          audienceTrigger: 'Status threat — fear of being wrong in public',
-        },
-      ],
+      hookAngles: Array.from({ length: 20 }, (_, i) => ({
+        title: `Hook angle ${i + 1}`,
+        hookLine:
+          i === 0
+            ? hookLine
+            : i % 2 === 0
+              ? `The popular story about ${topic} is almost backwards.`
+              : `What if everything you know about ${topic} is a cover story?`,
+        curiosityGap: 'What happened in the gap between headline and history?',
+        audienceTrigger: i % 3 === 0 ? 'Incompletion' : 'Status threat',
+        score: 10 - Math.floor(i / 3),
+      })),
       timeline: [
         {
           year: 'Origin',
@@ -552,18 +642,14 @@ export function buildMockDeepResearchReport(topic: string): DeepResearchReport {
           significance: 'Sets the baseline myth the script must puncture early',
         },
       ],
-      rareFacts: [
-        {
-          fact: `A specific detail about ${topic} that contradicts the popular mental model`,
-          sourceHint: 'training knowledge',
-          surpriseLevel: 'high',
-        },
-        {
-          fact: `A counterintuitive timeline beat about ${topic} worth teasing in the first 30 seconds`,
-          sourceHint: 'training knowledge',
-          surpriseLevel: 'medium',
-        },
-      ],
+      rareFacts: Array.from({ length: 30 }, (_, i) => ({
+        fact:
+          i === 0
+            ? `A specific detail about ${topic} that contradicts the popular mental model`
+            : `Rare fact ${i + 1} about ${topic} worth teasing in narration`,
+        sourceHint: 'training knowledge',
+        surpriseLevel: i % 3 === 0 ? 'high' : i % 3 === 1 ? 'medium' : 'low',
+      })),
       shockingStories: [
         {
           title: 'The moment everything flipped',
@@ -629,6 +715,7 @@ export function buildMockDeepResearchReport(topic: string): DeepResearchReport {
       },
       finalSummary: {
         top10Discoveries: Array.from({ length: 10 }, (_, i) => `Discovery ${i + 1} about ${topic}`),
+        top10Angles: Array.from({ length: 10 }, (_, i) => `Angle ${i + 1}: narrative frame for ${topic}`),
         titleIdeas: [
           `The Real Story of ${topic}`,
           `What Nobody Tells You About ${topic}`,
@@ -638,6 +725,15 @@ export function buildMockDeepResearchReport(topic: string): DeepResearchReport {
         bestDocumentaryAngle: `Slow-burn investigative documentary on ${topic}`,
         bestFacelessAngle: `Faceless narration with archival-style motion graphics`,
         recommendedStructure: 'Hook → context → rare facts → conflict → reveal → future → CTA',
+        scriptFlow: [
+          `# ${topic} — Mock Documentary Flow`,
+          '',
+          '## Cold Open',
+          hookLine,
+          '',
+          '## Context → Rare Facts → Conflict → Reveal → Future → CTA',
+          `(Expand to ${DEEP_RESEARCH_SOP_MINIMUMS.scriptFlowWords.min}–${DEEP_RESEARCH_SOP_MINIMUMS.scriptFlowWords.max} words in live research.)`,
+        ].join('\n'),
       },
     },
     topic

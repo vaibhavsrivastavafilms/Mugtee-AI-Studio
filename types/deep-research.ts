@@ -29,11 +29,14 @@ export type TopicOverview = {
   whyItMatters: string
 }
 
+/** Viral hook candidate with retention score (1–10). */
 export type HookAngle = {
   title: string
   hookLine: string
   curiosityGap: string
   audienceTrigger: string
+  /** Retention potential — higher = stronger scroll-stop. */
+  score: number
 }
 
 export type TimelineEvent = {
@@ -110,12 +113,51 @@ export type FactValidation = {
 
 export type FinalRecommendations = {
   top10Discoveries: string[]
+  /** Top narrative angles distilled from hooks, stories, and controversies. */
+  top10Angles: string[]
   titleIdeas: string[]
   thumbnailIdeas: string[]
   bestDocumentaryAngle: string
   bestFacelessAngle: string
   recommendedStructure: string
+  /** 1200–1500 word spoken-documentary flow outline (section beats, not final script). */
+  scriptFlow: string
 }
+
+/** The 13 SOP research sections + final output bucket. */
+export const DEEP_RESEARCH_SOP_SECTION_KEYS = [
+  'overview',
+  'hookAngles',
+  'timeline',
+  'rareFacts',
+  'shockingStories',
+  'controversies',
+  'psychology',
+  'metaphors',
+  'futureImplications',
+  'storyboardIdeas',
+  'writersGoldmine',
+  'retentionEngineering',
+  'factChecking',
+  'finalSummary',
+] as const
+
+export type DeepResearchSopSectionKey = (typeof DEEP_RESEARCH_SOP_SECTION_KEYS)[number]
+
+/** Minimum counts the SOP prompt targets (LLM may fall short — engine coerces best-effort). */
+export const DEEP_RESEARCH_SOP_MINIMUMS = {
+  hookAngles: 20,
+  rareFacts: 30,
+  storyboardIdeas: 25,
+  shockingStories: 4,
+  controversies: 3,
+  metaphors: 5,
+  futureImplications: 4,
+  top10Discoveries: 10,
+  titleIdeas: 8,
+  thumbnailIdeas: 6,
+  scriptFlowWords: { min: 1200, max: 1500 },
+} as const
 
 /** Structured deep-research artifact — primary engine output. */
 export type DeepResearchReport = {
@@ -202,6 +244,9 @@ export type DeepResearchApiResponse = {
   topic: string
   language: ProjectLanguage
   report: DeepResearchReport
+  /** Markdown serialization of {@link report}. */
+  document: string
+  sections: DeepResearchSections | null
   mock: boolean
   provider?: DeepResearchProvider
   reason?: DeepResearchReason
@@ -229,12 +274,14 @@ export type DeepResearchPipelineOptions = {
 /** Quick Cut generation store fields tied to deep research. */
 export type DeepResearchStoreFields = {
   researchDocument: string | null
+  researchReport: DeepResearchReport | null
   researchMock: boolean
 }
 
 /** Props for the collapsible deep-research preview panel. */
 export type DeepResearchPanelProps = {
-  document: string | null | undefined
+  document?: string | null
+  report?: DeepResearchReport | null
   mock?: boolean
   className?: string
 }
@@ -242,6 +289,7 @@ export type DeepResearchPanelProps = {
 /** Research fields returned by {@link runScriptGeneration} and POST /api/generate-script. */
 export type ScriptGenerationResearchOutput = {
   researchDocument?: string
+  researchReport?: DeepResearchReport
   researchMock?: boolean
 }
 

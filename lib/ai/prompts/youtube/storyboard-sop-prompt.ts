@@ -1,10 +1,19 @@
 import { languageDirective } from '@/lib/cinematic/language-prompt'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
-import { CREATOR_RETENTION_SCENE_COUNT } from '@/lib/cinematic/viral-structure'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
+import {
+  buildDeepResearchReportScriptContext,
+  buildDeepResearchStoryboardContext,
+} from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { clampSceneDurationsToTarget } from '@/lib/cinematic/scene-duration'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
+import {
+  resolveStoryboardSceneCount,
+  resolveStoryboardSceneCountRange,
+  type StoryboardScene,
+  storyboardScenesToGeneratedScenes,
+} from '@/types/storyboard'
 
 /** Prepended to Gemini image prompts when a reference style image is attached. */
 export const STORYBOARD_REFERENCE_STYLE_PREFIX =
@@ -14,6 +23,11 @@ export type StoryboardSegment = {
   index: number
   scriptLines: string
   imagePrompt: string
+  visualFocus: string
+  location: string
+  characters: string[]
+  action: string
+  emotion: string
 }
 
 export type StoryboardSopOptions = {
@@ -24,7 +38,7 @@ export type StoryboardSopOptions = {
   durationSec?: number
   /** When true, LLM must output exactly sceneTarget segments mapped to retention beats */
   retentionMode?: boolean
-} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
+} & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Human-readable segment block for logs / debug (SOP output format). */
 export function formatSegmentOutput(segment: StoryboardSegment, oneBased = true): string {
@@ -42,24 +56,30 @@ export function buildStoryboardSopSystemAugment(): string {
 STORYBOARD SOP — AI Storyboard Generator for YouTube Scripts:
 You are a professional storyboard designer. Convert script portions into visual image prompts.
 
-Step 1 — Understand the script (internal):
-- Who is involved, what is happening, location, actions, emotional moment
-- Visualize the moment — do NOT summarize or paraphrase into abstract prose
+WORKFLOW:
+1. Read the script section — detect people, objects, locations, actions, emotions, transitions.
+2. Break into visual segments: one scene per major moment, 1–3 narration lines each.
+3. Write a scene-only imagePrompt per segment (no art style in the prompt body).
+4. Image generation prepends this reference prefix separately — do NOT include it in imagePrompt:
+   "${STORYBOARD_REFERENCE_STYLE_PREFIX}"
 
-Step 2 — Break into segments:
-- Each segment = 1–3 script lines, one clear visual moment
-- One segment = one still frame a viewer would recognize
+DO:
+- One still frame per segment — filmable as a single 9:16 vertical shot
+- Name subjects, setting, action, and emotional read in plain language
+- Keep scriptLines verbatim or tightly trimmed from the script
+- Fill visualFocus, location, characters, action, emotion for every segment
 
-Step 3 — Image prompt per segment (scene description ONLY):
-- Describe: characters, objects, environment, actions, visual focus
-- Do NOT mention: art style, illustration style, lighting style, rendering, artistic medium, "cinematic", "8k", "masterpiece"
-- Style is handled separately via reference images and locked visualStyle fields — never in imagePrompt body
+DON'T:
+- Put art style, illustration style, lighting style, rendering, or medium in imagePrompt
+- Use words like cinematic, 8k, masterpiece, photorealistic, anime style, oil painting
+- Summarize the script into abstract prose — describe what the camera sees
+- Duplicate style/camera metadata inside imagePrompt (those are separate layers)
 
 Output discipline:
-- description / narration fields = spoken voiceover lines from the script segment
+- scriptLines = spoken voiceover lines from the script segment
 - imagePrompt = scene-only still description per rules above
-- visualPrompt = director notes (camera, environment) — separate from imagePrompt
-- cameraAngle, lightingMood, environment, colorPalette, movementStyle = metadata layers, not duplicated inside imagePrompt
+- visualFocus = what the viewer's eye lands on first
+- location / characters / action / emotion = structured metadata for the panel
 `.trim()
 }
 
@@ -69,20 +89,33 @@ export function buildStoryboardSopPrompt(
   options: StoryboardSopOptions = {}
 ): string {
   const script = scriptSection.trim()
-  const sceneTarget = options.sceneTarget ?? CREATOR_RETENTION_SCENE_COUNT
+  const durationSec = options.durationSec ?? 60
+  const range =
+    options.sceneTarget != null
+      ? {
+          min: options.sceneTarget,
+          max: options.sceneTarget,
+          target: options.sceneTarget,
+        }
+      : resolveStoryboardSceneCountRange(durationSec)
+  const sceneTarget = range.target
   const langLock = options.language ? languageDirective(options.language) : ''
-  const research = options.researchDocument
-    ? buildDeepResearchScriptContextSection(options.researchDocument)
-    : ''
+  const research = options.researchReport
+    ? [
+        buildDeepResearchReportScriptContext(options.researchReport).slice(0, 4_000),
+        buildDeepResearchStoryboardContext(options.researchReport),
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : options.researchDocument
+      ? buildDeepResearchScriptContextSection(options.researchDocument)
+      : ''
 
   const retentionNote = options.retentionMode
-    ? `Retention mode: produce exactly ${sceneTarget} segments aligned to Hook → Problem → Empathy → Solution → Proof → Payoff → CTA — one segment per beat.`
-    : `Produce one segment per visual moment (typically ${sceneTarget}–${Math.min(sceneTarget + 4, 12)} segments for this script length).`
+    ? `Quick Cut retention: produce exactly ${sceneTarget} segments (${range.min}–${range.max} for ${durationSec}s) mapped to Hook → Problem → Empathy → Solution → Proof → Payoff → CTA.`
+    : `Produce ${range.min}–${range.max} segments (target ${sceneTarget}) — one per visual moment.`
 
-  const durationNote =
-    options.durationSec != null
-      ? `Total runtime: ${options.durationSec}s — assign shorter segments to fast beats, longer holds to payoff moments.`
-      : ''
+  const durationNote = `Total runtime: ${durationSec}s — shorter beats for hooks, longer holds for payoff. Scene count guide: 30s→3–5, 1min→6–10, 10min→60–100.`
 
   return [
     '═══ STORYBOARD SOP — SCRIPT TO VISUAL SEGMENTS ═══',
@@ -97,18 +130,22 @@ export function buildStoryboardSopPrompt(
     '---',
     '',
     'TASK:',
-    '1. Read the script — visualize each moment (who, what, where, action, emotion).',
+    '1. Read the script — detect people, objects, locations, actions, emotions, transitions.',
     '2. Split into segments of 1–3 lines each — one clear visual moment per segment.',
-    '3. For each segment write a scene-only imagePrompt (no style/medium/lighting adjectives).',
+    '3. For each segment write scene-only imagePrompt plus visualFocus, location, characters, action, emotion.',
     '',
     'Return JSON only:',
-    `{ "segments": [{ "scriptLines": "1-3 lines from script", "imagePrompt": "scene description only" }] }`,
+    `{ "segments": [{ "scriptLines": "1-3 lines", "imagePrompt": "scene only — no style", "visualFocus": "...", "location": "...", "characters": ["..."], "action": "...", "emotion": "..." }] }`,
     '',
-    'Rules:',
-    '- imagePrompt must be filmable as a single 9:16 still — subject, action, environment, focus',
-    '- Never put art style, rendering, or lighting mood inside imagePrompt',
-    '- scriptLines must be verbatim or tightly trimmed from the script section',
-    `- Target ${sceneTarget} segments${options.retentionMode ? ' (exact count)' : ' (approximate)'}`,
+    'DO:',
+    '- imagePrompt = filmable 9:16 still — subject, action, environment, focus',
+    '- scriptLines verbatim or tightly trimmed from script',
+    `- Target ${sceneTarget} segments (${range.min}–${range.max})${options.retentionMode ? ' — exact count' : ''}`,
+    '',
+    "DON'T:",
+    '- art style, rendering, lighting mood, or medium inside imagePrompt',
+    '- include the reference-style prefix inside imagePrompt (added at image gen)',
+    '- abstract summaries — describe what the camera sees',
   ]
     .filter(Boolean)
     .join('\n')
@@ -135,10 +172,22 @@ export function parseStoryboardSegments(raw: unknown): StoryboardSegment[] {
       seg.imagePrompt ?? seg.visualPrompt ?? seg.prompt ?? ''
     ).trim()
     if (!scriptLines && !imagePrompt) return
+    const charactersRaw = seg.characters ?? seg.subjects
+    const characters = Array.isArray(charactersRaw)
+      ? charactersRaw.filter((c): c is string => typeof c === 'string').map((c) => c.trim()).filter(Boolean)
+      : typeof charactersRaw === 'string'
+        ? charactersRaw.split(/[,;]/).map((c) => c.trim()).filter(Boolean)
+        : []
+
     segments.push({
       index: i + 1,
       scriptLines: scriptLines || imagePrompt.slice(0, 200),
       imagePrompt: sanitizeSceneOnlyPrompt(imagePrompt || scriptLines.slice(0, 200)),
+      visualFocus: String(seg.visualFocus ?? seg.focus ?? '').trim(),
+      location: String(seg.location ?? seg.setting ?? seg.environment ?? '').trim(),
+      characters,
+      action: String(seg.action ?? '').trim(),
+      emotion: String(seg.emotion ?? seg.mood ?? '').trim(),
     })
   })
   return segments
@@ -149,6 +198,47 @@ export function sanitizeSceneOnlyPrompt(prompt: string): string {
   const banned =
     /\b(cinematic|illustration|rendered|artstation|masterpiece|8k|4k|oil painting|watercolor|anime style|photorealistic|hyperrealistic|digital art|concept art|unreal engine|octane render)\b/gi
   return prompt.replace(banned, '').replace(/\s+/g, ' ').trim()
+}
+
+/** Map SOP segments → StoryboardScene records with durations. */
+export function mapStoryboardSegmentsToStoryboardScenes(
+  segments: StoryboardSegment[],
+  options: {
+    durationSec?: number
+    sceneTarget?: number
+    mergeToTarget?: boolean
+  } = {}
+): StoryboardScene[] {
+  if (segments.length === 0) return []
+
+  const target = options.sceneTarget ?? segments.length
+  const duration = options.durationSec ?? target * 4
+  const merge = options.mergeToTarget === true && segments.length > target
+
+  const buckets: StoryboardSegment[][] = merge
+    ? mergeSegmentsIntoBuckets(segments, target)
+    : segments.map((s) => [s])
+
+  const perScene = Math.max(2, Math.round(duration / buckets.length))
+
+  return buckets.map((bucket, i) => {
+    const lead = bucket[0]
+    const tail = bucket[bucket.length - 1] ?? lead
+    const scriptLines = bucket.map((s) => s.scriptLines).filter(Boolean).join('\n')
+    const imagePrompt = tail?.imagePrompt ?? lead?.imagePrompt ?? ''
+
+    return {
+      id: `scene-${i + 1}`,
+      scriptLines,
+      imagePrompt: sanitizeSceneOnlyPrompt(imagePrompt),
+      visualFocus: tail?.visualFocus || lead?.visualFocus || `Scene ${i + 1}`,
+      location: tail?.location || lead?.location || '',
+      characters: [...new Set(bucket.flatMap((s) => s.characters))],
+      action: tail?.action || lead?.action || '',
+      emotion: tail?.emotion || lead?.emotion || '',
+      duration: perScene,
+    }
+  })
 }
 
 /** Map SOP segments → GeneratedScene records (narration, visualPrompt, duration). */
@@ -216,6 +306,23 @@ export function finalizeStoryboardScenes(
 ): GeneratedScene[] {
   return clampSceneDurationsToTarget(scenes, durationSec)
 }
+
+/** Clamp storyboard scene durations to target runtime. */
+export function finalizeStoryboardSceneRecords(
+  scenes: StoryboardScene[],
+  durationSec: number
+): StoryboardScene[] {
+  const generated = finalizeStoryboardScenes(
+    storyboardScenesToGeneratedScenes(scenes),
+    durationSec
+  )
+  return scenes.map((scene, i) => ({
+    ...scene,
+    duration: generated[i]?.duration ?? scene.duration,
+  }))
+}
+
+export { resolveStoryboardSceneCount, resolveStoryboardSceneCountRange }
 
 /** Whether an image prompt already has the reference-style prefix. */
 export function hasReferenceStylePrefix(prompt: string): boolean {

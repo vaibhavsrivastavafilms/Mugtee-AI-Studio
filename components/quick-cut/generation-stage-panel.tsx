@@ -4,8 +4,9 @@ import type { ReactNode, RefObject } from 'react'
 import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
+import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-module'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
-import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator'
+import { StoryboardPanel } from '@/components/quick-cut/storyboard-panel'
 import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
@@ -121,9 +122,14 @@ export function GenerationStagePanel({
   const regenerateScript = useQuickCutGenerationStore((s) => s.regenerateScript)
   const script = useQuickCutGenerationStore((s) => s.script)
   const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
+  const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
   const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const storyboardScenes = useQuickCutGenerationStore((s) => s.storyboardScenes)
+  const visualTimeline = useQuickCutGenerationStore((s) => s.visualTimeline)
+  const sceneCount = useQuickCutGenerationStore((s) => s.sceneCount)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
+  const voiceName = useQuickCutGenerationStore((s) => s.voiceName)
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
@@ -225,7 +231,7 @@ export function GenerationStagePanel({
     case 'script':
       return script ? (
         <div className={cn('space-y-2', className)}>
-          <DeepResearchPanel document={researchDocument} mock={researchMock} />
+          <DeepResearchPanel document={researchDocument} report={researchReport} mock={researchMock} />
           {!isGenerating ? (
             <div className="flex justify-end">
               <button
@@ -314,12 +320,18 @@ export function GenerationStagePanel({
               </div>
             </div>
           ) : null}
-          <StoryboardGenerator
+          <StoryboardPanel
             scenes={scenes}
+            storyboardScenes={storyboardScenes}
+            visualTimeline={visualTimeline}
+            sceneCount={sceneCount}
             loading={generationStep === 'images'}
             interactive={isComplete}
             exportTitle={title}
-            allowDownload={isComplete}
+            script={script}
+            hook={hook}
+            voiceUrl={voiceUrl}
+            className={className}
           />
         </div>
       )
@@ -327,16 +339,19 @@ export function GenerationStagePanel({
 
     case 'voice':
       return (
-        <CinematicVoicePreview
-          waveform={waveform}
-          voiceUrl={voiceUrl}
-          script={script}
-          scenes={scenes}
-          hook={hook}
-          audioRef={audioRef}
-          loading={generationStep === 'voice'}
-          className={className}
-        />
+        <div className={cn('space-y-3', className)}>
+          <VoiceSelectionModule />
+          <CinematicVoicePreview
+            waveform={waveform}
+            voiceUrl={voiceUrl}
+            script={script}
+            scenes={scenes}
+            hook={hook}
+            audioRef={audioRef}
+            loading={generationStep === 'voice'}
+            voiceName={voiceName}
+          />
+        </div>
       )
 
     case 'render':
