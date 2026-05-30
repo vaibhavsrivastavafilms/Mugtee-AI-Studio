@@ -16,6 +16,14 @@ module.exports = {
     },
     extend: {
       colors: {
+        v2: {
+          bg: 'var(--v2-bg)',
+          surface: 'var(--v2-surface)',
+          gold: 'var(--v2-gold)',
+          'text-primary': 'var(--v2-text-primary)',
+          'text-secondary': 'var(--v2-text-secondary)',
+          border: 'var(--v2-border)',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -97,6 +105,8 @@ module.exports = {
         'orb-bar':     'orb-bar 0.8s ease-in-out infinite'
       },
       transitionDuration: {
+        150: '150ms',
+        300: '300ms',
         420: '420ms',
         480: '480ms',
         560: '560ms',

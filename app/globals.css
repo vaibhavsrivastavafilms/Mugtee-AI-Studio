@@ -6,25 +6,35 @@
 
 @layer base {
   :root {
-    --background: 24 10% 4%;
-    --foreground: 40 30% 95%;
-    --card: 30 10% 7%;
-    --card-foreground: 40 30% 95%;
-    --popover: 24 12% 6%;
-    --popover-foreground: 40 30% 95%;
-    --primary: 43 60% 52%;
-    --primary-foreground: 24 10% 6%;
-    --secondary: 30 8% 12%;
-    --secondary-foreground: 40 25% 90%;
-    --muted: 30 6% 14%;
-    --muted-foreground: 36 10% 60%;
-    --accent: 43 60% 52%;
-    --accent-foreground: 24 10% 6%;
+    /* MUGTEE V2 — luxury cinematic tokens */
+    --v2-bg: #000000;
+    --v2-surface: #0A0A0A;
+    --v2-gold: #D4AF37;
+    --v2-text-primary: #F8F4E8;
+    --v2-text-secondary: rgba(248, 244, 232, 0.65);
+    --v2-border: rgba(212, 175, 55, 0.12);
+    --v2-motion-page: 300ms;
+    --v2-motion-hover: 150ms;
+
+    --background: 0 0% 0%;
+    --foreground: 45 44% 94%;
+    --card: 0 0% 4%;
+    --card-foreground: 45 44% 94%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 45 44% 94%;
+    --primary: 46 65% 52%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 6%;
+    --secondary-foreground: 45 30% 90%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 45 15% 55%;
+    --accent: 46 65% 52%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 36 10% 16%;
-    --input: 36 10% 16%;
-    --ring: 43 60% 52%;
+    --border: 46 30% 20%;
+    --input: 0 0% 10%;
+    --ring: 46 65% 52%;
     --chart-1: 43 60% 52%;
     --chart-2: 36 50% 45%;
     --chart-3: 30 40% 38%;
@@ -43,12 +53,12 @@
     /* ===== THEME ENGINE — Phase 3E ===== */
     /* Accent hue + saturation drive the entire "gold" palette via tailwind.config.js.
        Default = gold. Override these per data-theme attribute below. */
-    --accent-h: 43;
-    --accent-s: 60%;
-    --accent-soft: rgba(245,208,97,0.18);
-    --accent-text: #E8D9A8;
-    --card-border: rgba(212,175,55,0.18);
-    --card-glow: rgba(212,175,55,0.25);
+    --accent-h: 46;
+    --accent-s: 65%;
+    --accent-soft: rgba(212, 175, 55, 0.12);
+    --accent-text: #F8F4E8;
+    --card-border: rgba(212, 175, 55, 0.12);
+    --card-glow: rgba(212, 175, 55, 0.22);
   }
 
   /* ===== Theme presets — switch via document.documentElement.setAttribute('data-theme', ...) ===== */
@@ -83,11 +93,60 @@
 
   * { @apply border-border; }
   html, body { @apply bg-background text-foreground; font-family: 'Inter', system-ui, sans-serif; }
-  body { background: radial-gradient(ellipse at top, #1a1410 0%, #0a0807 50%, #050403 100%); min-height: 100vh; }
+  body {
+    background: var(--v2-bg);
+    color: var(--v2-text-primary);
+    min-height: 100vh;
+  }
 }
 
 @layer components {
   .font-display { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
+  .v2-page-enter { animation: v2-page-enter var(--v2-motion-page) cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .v2-surface { background: var(--v2-surface); }
+  .v2-text-primary { color: var(--v2-text-primary); }
+  .v2-text-secondary { color: var(--v2-text-secondary); }
+  .v2-border { border-color: var(--v2-border); }
+  .v2-glass-nav {
+    background: rgba(0, 0, 0, 0.72);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--v2-border);
+  }
+  .v2-hover-scale {
+    transition: transform var(--v2-motion-hover) cubic-bezier(0.22, 1, 0.36, 1),
+                opacity var(--v2-motion-hover) ease;
+  }
+  .v2-hover-scale:hover { transform: scale(1.02); }
+  @keyframes v2-page-enter {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes v2-particle-drift {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.15; }
+    50% { transform: translateY(-24px) translateX(8px); opacity: 0.45; }
+  }
+  .v2-particle {
+    position: absolute;
+    top: var(--particle-top);
+    left: var(--particle-left);
+    width: var(--particle-size);
+    height: var(--particle-size);
+    opacity: var(--particle-opacity);
+    border-radius: 50%;
+    background: var(--v2-gold);
+    animation: v2-particle-drift var(--dur, 8s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+    pointer-events: none;
+  }
+  .orb-halo {
+    background: radial-gradient(circle at 50% 50%, hsl(40 92% 60% / 0.45) 0%, hsl(34 88% 38% / 0.18) 45%, transparent 70%);
+  }
+  .orb-thinking-shimmer {
+    background: conic-gradient(from 0deg, transparent 0deg, hsl(40 92% 65%) 90deg, transparent 200deg, hsl(34 88% 50%) 320deg, transparent 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 55%, black 56%, black 100%);
+    mask: radial-gradient(circle, transparent 55%, black 56%, black 100%);
+  }
   .text-gold-gradient { background: linear-gradient(135deg, hsl(var(--accent-h) var(--accent-s) 70%) 0%, hsl(var(--accent-h) var(--accent-s) 52%) 45%, hsl(var(--accent-h) var(--accent-s) 35%) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .glass { background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--card-border); box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 0 rgba(255,255,255,0.04); }
   .glass-strong { background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 0 rgba(245,208,97,0.08); }
