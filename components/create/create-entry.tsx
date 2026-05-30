@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Clapperboard, Zap } from 'lucide-react'
+import { ArrowRight, Clapperboard, Search, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createEntryHref, directorWorkspaceHref, STUDIO, type CreatorMode } from '@/lib/create/routes'
 import { QuickCutCreateEntry } from '@/components/create/quick-cut-create-entry'
@@ -63,7 +63,13 @@ function CreateEntryInner() {
   const mode = (searchParams?.get('mode') as CreatorMode | null) ?? null
   const tab = searchParams?.get('tab')
   const isProjectsTab = tab === 'projects' || tab === 'exports'
+  const isScriptOrStoryboardTab = tab === 'scripts' || tab === 'storyboards'
+  const [gallerySearch, setGallerySearch] = useState('')
   const [selectedProject, setSelectedProject] = useState<ProjectCardModel | null>(null)
+
+  useEffect(() => {
+    setGallerySearch('')
+  }, [tab])
 
   useEffect(() => {
     if (tab !== 'exports') return
@@ -151,7 +157,26 @@ function CreateEntryInner() {
           <ProjectsInsightsPanel project={selectedProject} className="xl:w-72 shrink-0" />
         </div>
       ) : (
-        <UnifiedProjectsGrid limit={16} showActions />
+        <>
+          {isScriptOrStoryboardTab ? (
+            <div className="mb-6">
+              <div className="relative flex-1 w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50" />
+                <input
+                  value={gallerySearch}
+                  onChange={(e) => setGallerySearch(e.target.value)}
+                  placeholder="Search projects..."
+                  className={cn(
+                    'w-full h-10 pl-10 pr-3 rounded-xl text-sm',
+                    'bg-black/40 border border-white/[0.08] text-luxe',
+                    'focus:outline-none focus:border-gold-500/40 focus:shadow-[0_0_20px_-8px_rgba(212,175,55,0.35)]'
+                  )}
+                />
+              </div>
+            </div>
+          ) : null}
+          <UnifiedProjectsGrid limit={16} showActions searchQuery={gallerySearch} />
+        </>
       )}
     </UnifiedCreatorShell>
   )
