@@ -33,6 +33,7 @@ import {
 } from '@/components/quick-cut/canvas/types'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
+import { CreatorTemplatesSection } from '@/components/create/creator-templates-section'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
 
@@ -128,6 +129,11 @@ export function FullscreenQuickCutCanvas({
     promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
+  const handleTemplateSelect = useCallback((template: string) => {
+    setPrompt(template)
+    setPromptFocused(true)
+  }, [])
+
   const buildPending = useCallback((): QuickCutPending => {
     const style = buildStyleFromKeywords(keywords)
     return {
@@ -209,6 +215,8 @@ export function FullscreenQuickCutCanvas({
           </motion.p>
 
           <form ref={promptFormRef} onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <CreatorTemplatesSection onSelectTemplate={handleTemplateSelect} />
+
             <CinematicPromptInput
               value={prompt}
               onChange={setPrompt}
