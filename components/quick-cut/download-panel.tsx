@@ -544,6 +544,56 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
             </button>
           )}
         </DownloadRow>
+
+        <DownloadRow
+          icon={<Package className="w-3 h-3" />}
+          label="Creator Pack"
+          hint={
+            creatorPackState === 'preparing'
+              ? 'Preparing Creator Pack…'
+              : creatorPackState === 'ready'
+                ? 'Creator Pack Ready — all available assets bundled'
+                : creatorPackState === 'error'
+                  ? 'Unable to create Creator Pack.'
+                  : hasAnyCreatorPackAsset
+                    ? 'ZIP bundle — script, storyboard, images, narration & metadata'
+                    : ASSET_UNAVAILABLE_MSG
+          }
+        >
+          {creatorPackState === 'preparing' ? (
+            <button type="button" disabled className={ghostButtonClass}>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Preparing… {creatorPackProgress > 0 ? `${creatorPackProgress}%` : ''}
+            </button>
+          ) : creatorPackState === 'ready' ? (
+            <button
+              type="button"
+              onClick={handleDownloadCreatorPack}
+              className={primaryButtonClass}
+            >
+              <Download className="w-3 h-3" />
+              Download ZIP
+            </button>
+          ) : creatorPackState === 'error' ? (
+            <button
+              type="button"
+              onClick={() => void handleExportCreatorPack()}
+              className={secondaryButtonClass}
+            >
+              Retry Export
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleExportCreatorPack()}
+              disabled={!hasAnyCreatorPackAsset}
+              className={hasAnyCreatorPackAsset ? primaryButtonClass : ghostButtonClass}
+            >
+              <Package className="w-3 h-3" />
+              Download Creator Pack
+            </button>
+          )}
+        </DownloadRow>
       </div>
     </div>
   )
