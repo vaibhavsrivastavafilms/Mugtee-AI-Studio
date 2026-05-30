@@ -77,10 +77,12 @@ export function CreatorWorkspace() {
         className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 px-0.5"
       >
         <div>
-          <p className="text-[10px] tracking-[0.32em] uppercase text-gold-300/70 mb-1">
-            Creator Workspace
+          <p className="text-[10px] tracking-[0.32em] uppercase text-[var(--v2-gold)] mb-1">
+            Studio
           </p>
-          <h1 className="font-display text-2xl sm:text-3xl text-luxe">Your studio awaits</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)]">
+            Your cinematic workspace
+          </h1>
         </div>
         {user?.id ? <CreatorStreakBadge userId={user.id} /> : null}
       </motion.header>

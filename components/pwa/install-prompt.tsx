@@ -113,14 +113,10 @@ export function InstallPrompt() {
       aria-label="Install Mugtee AI Studio"
       className="fixed inset-x-0 bottom-0 z-[80] px-3 pb-[max(env(safe-area-inset-bottom),12px)] pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
-      <div
-        className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-[#D4AF37]/25 bg-[#0B0B0B]/95 backdrop-blur-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)] p-3.5 flex items-center gap-3"
-        style={{ boxShadow: '0 12px 40px -8px rgba(212,175,55,0.18), 0 20px 60px -12px rgba(0,0,0,0.6)' }}
-      >
+      <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-[#D4AF37]/25 bg-[#0B0B0B]/95 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(212,175,55,0.18),0_20px_60px_-12px_rgba(0,0,0,0.6)] p-3.5 flex items-center gap-3">
         {/* Brand tile — reuses /icons asset, no new image dep */}
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-lg text-[#0B0B0B]"
-          style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}
+          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-lg text-[#0B0B0B] bg-gradient-to-b from-[#E0C06E] to-[#B48E3C]"
           aria-hidden
         >
           M
@@ -146,8 +142,7 @@ export function InstallPrompt() {
           type="button"
           onClick={accept}
           disabled={busy}
-          className="shrink-0 h-9 px-3.5 rounded-full text-[12px] font-semibold text-[#0B0B0B] disabled:opacity-60 transition active:scale-[0.98]"
-          style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}
+          className="shrink-0 h-9 px-3.5 rounded-full text-[12px] font-semibold text-[#0B0B0B] disabled:opacity-60 transition active:scale-[0.98] bg-gradient-to-b from-[#E0C06E] to-[#B48E3C]"
         >
           {busy ? 'Opening…' : 'Install'}
         </button>

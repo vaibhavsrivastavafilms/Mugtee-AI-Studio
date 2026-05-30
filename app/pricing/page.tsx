@@ -2,12 +2,14 @@
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Sparkles, Check, ArrowRight, Crown, Users, Building2, Lightbulb, FileText, Camera, Scissors, CalendarCheck, Send, BarChart3, ChevronLeft } from 'lucide-react'
+import { Sparkles, Check, ArrowRight, Crown, Users, Building2, Lightbulb, FileText, Camera, Scissors, CalendarCheck, Send, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
 import { BookDemoButton } from '@/components/billing/book-demo-button'
 import { PricingFaq } from '@/components/billing/pricing-faq'
+import { LuxNav } from '@/components/v2/lux-nav'
+import { LuxFooter } from '@/components/v2/lux-footer'
 import { track } from '@/lib/posthog'
 
 const WORKFLOW = [
@@ -23,7 +25,7 @@ const WORKFLOW = [
 const PLANS = [
   {
     key: 'creator',
-    name: 'Single Creator',
+    name: 'Starter',
     badge: 'For solo storytellers',
     icon: Crown,
     price: 245,
@@ -42,7 +44,7 @@ const PLANS = [
   },
   {
     key: 'agency',
-    name: 'Agency Studio',
+    name: 'Pro',
     badge: 'For small studios',
     icon: Users,
     price: 999,
@@ -61,7 +63,7 @@ const PLANS = [
   },
   {
     key: 'enterprise',
-    name: 'Enterprise',
+    name: 'Studio',
     badge: 'For larger production houses',
     icon: Building2,
     price: null,
@@ -85,37 +87,23 @@ export default function PricingPage() {
   // V4.0 — Track pricing_opened on mount for funnel analytics.
   useEffect(() => { track('pricing_opened', { source: 'direct' }) }, [])
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Cinematic ambient backdrop */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute top-[-8%] left-[8%] w-[40vw] h-[40vw] rounded-full blur-2xl opacity-20" style={{background:'radial-gradient(circle, hsl(43 60% 50% / 0.35), transparent 65%)'}} />
-        <div className="absolute bottom-[-15%] right-[-8%] w-[38vw] h-[38vw] rounded-full blur-2xl opacity-15" style={{background:'radial-gradient(circle, hsl(43 60% 45% / 0.3), transparent 70%)'}} />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-[var(--v2-bg)] text-[var(--v2-text-primary)] v2-page-enter">
+      <LuxNav />
 
       <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs tracking-[0.3em] uppercase text-gold-400/80 hover:text-gold-300 transition">
-            <ChevronLeft className="w-3.5 h-3.5" /> Mugtee
-          </Link>
-          <Link href="/login" className="inline-flex items-center gap-1 text-xs tracking-wider text-luxe/70 hover:text-gold-300 transition">
-            Sign in <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-
         {/* Hero */}
-        <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{duration:0.6}}
+        <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{duration:0.3}}
           className="text-center max-w-3xl mx-auto"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-5">
-            <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-luxe">Studio access</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--v2-border)] bg-[var(--v2-surface)] mb-5">
+            <Sparkles className="w-3.5 h-3.5 text-[var(--v2-gold)]" />
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--v2-text-secondary)]">Studio access</span>
           </div>
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl leading-[1.1] tracking-tight">
-            <span className="text-gold-gradient">Calm access</span>
-            <span className="block text-foreground mt-1">to the cinematic studio.</span>
+            <span className="text-[var(--v2-gold)]">Calm access</span>
+            <span className="block text-[var(--v2-text-primary)] mt-1">to the cinematic studio.</span>
           </h1>
-          <p className="text-luxe/80 mt-4 text-sm sm:text-base leading-relaxed">
+          <p className="text-[var(--v2-text-secondary)] mt-4 text-sm sm:text-base leading-relaxed">
             The cinematic storytelling operating system — imagine, direct, preserve, present, and evolve emotionally immersive worlds.
           </p>
 
@@ -144,15 +132,15 @@ export default function PricingPage() {
                 initial={{opacity:0, y:18}} animate={{opacity:1, y:0}} transition={{delay: 0.1 + idx*0.08, duration:0.55}}
                 whileHover={{y:-4}}
                 className={cn(
-                  'relative rounded-2xl p-6 sm:p-7 flex flex-col transition-shadow',
+                  'relative rounded-2xl p-6 sm:p-7 flex flex-col transition-shadow duration-150',
                   p.featured
-                    ? 'glass-strong border border-gold-500/40 shadow-gold-glow-lg'
-                    : 'glass border border-white/[0.06] hover:shadow-cinema',
+                    ? 'border-2 border-[var(--v2-gold)]/50 bg-[var(--v2-surface)] shadow-[0_0_48px_-12px_rgba(212,175,55,0.35)]'
+                    : 'border border-[var(--v2-border)] bg-[var(--v2-surface)] hover:border-[var(--v2-gold)]/25',
                 )}
               >
                 {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.25em] uppercase rounded-full bg-gold-gradient text-black font-semibold shadow-gold-glow">
-                    Most popular
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.25em] uppercase rounded-full bg-[var(--v2-gold)] text-black font-semibold">
+                    Recommended
                   </span>
                 )}
                 <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center mb-4',
@@ -223,10 +211,11 @@ export default function PricingPage() {
         <PricingFaq />
 
         {/* Footnote */}
-        <div className="text-center mt-12 text-[11px] tracking-widest uppercase text-muted-foreground">
+        <div className="text-center mt-12 text-[11px] tracking-widest uppercase text-[var(--v2-text-secondary)]">
           All plans billed monthly · Cancel anytime · Built in Ahmedabad
         </div>
       </div>
+      <LuxFooter />
     </div>
   )
 }

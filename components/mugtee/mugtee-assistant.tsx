@@ -266,10 +266,9 @@ export function MugteeAssistant() {
         onClick={() => setOpen(o => !o)}
         aria-label={open ? 'Close Mugtee' : 'Open Mugtee assistant'}
         className={
-          'fixed z-40 right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/40 backdrop-blur-md border border-gold-500/40 shadow-gold-glow flex items-center justify-center transition-transform active:scale-95 hover:scale-105' +
+          'fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/40 backdrop-blur-md border border-gold-500/40 shadow-gold-glow flex items-center justify-center transition-transform active:scale-95 hover:scale-105' +
           (pulse && !open ? ' ring-2 ring-amber-300/50 animate-pulse-gold' : '')
         }
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {open ? (
           <X className="w-5 h-5 text-gold-200" />
@@ -379,9 +378,9 @@ export function MugteeAssistant() {
               {sending && (
                 <div className="flex justify-start">
                   <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-3.5 py-2.5 inline-flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce" style={{ animationDelay: '120ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce" style={{ animationDelay: '240ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce [animation-delay:120ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gold-300 animate-bounce [animation-delay:240ms]" />
                   </div>
                 </div>
               )}

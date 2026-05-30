@@ -1,21 +1,41 @@
-{
-  "extends": ["development"],
-  "hints": {
-    "compat-api/css": [
-      "default",
-      {
-        "ignore": ["text-wrap", "scrollbar-width"]
-      }
-    ]
-  },
-  "ignoredUrls": [
-    {
-      "domain": ".*opengraph-image\\.tsx.*",
-      "hints": ["no-inline-styles"]
-    },
-    {
-      "domain": ".*twitter-image\\.tsx.*",
-      "hints": ["no-inline-styles"]
-    }
-  ]
-}
+{
+  "extends": ["development"],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": ["text-wrap", "scrollbar-width", "-webkit-overflow-scrolling"]
+      }
+    ]
+  },
+  "ignoredUrls": [
+    {
+      "domain": ".*opengraph-image\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*twitter-image\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*cinematic-particles\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*mugtee-orb\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*audio-spectrum-logo\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*ReelComposition\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*ReelScene\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    }
+  ]
+}

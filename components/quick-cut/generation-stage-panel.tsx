@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode, RefObject } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
+import { CinematicGenerationLoader } from '@/components/v2/cinematic-generation-loader'
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-module'
@@ -92,9 +93,8 @@ function SceneBreakdownList({
         )
       )}
       {loading && scenes.length === 0 ? (
-        <li className="flex items-center justify-center gap-2 py-8 text-luxe/45 text-[12px]">
-          <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
-          Structuring beats…
+        <li>
+          <CinematicGenerationLoader step="scenes" message="Structuring beats…" />
         </li>
       ) : null}
     </ul>

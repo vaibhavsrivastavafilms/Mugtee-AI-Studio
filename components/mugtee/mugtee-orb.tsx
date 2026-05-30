@@ -14,6 +14,13 @@ import { cn } from '@/lib/utils'
 
 export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
+const ORB_BARS = [
+  { height: 'h-[34%]', delay: '[animation-delay:0ms]', duration: '[animation-duration:640ms]' },
+  { height: 'h-[48%]', delay: '[animation-delay:110ms]', duration: '[animation-duration:700ms]' },
+  { height: 'h-[56%]', delay: '[animation-delay:220ms]', duration: '[animation-duration:760ms]' },
+  { height: 'h-[42%]', delay: '[animation-delay:330ms]', duration: '[animation-duration:820ms]' },
+] as const
+
 export function MugteeOrb({
   state = 'idle',
   size  = 56,
@@ -23,26 +30,25 @@ export function MugteeOrb({
   const coreSize = Math.round(size * 0.76)
   return (
     <div
-      className={cn('relative inline-flex items-center justify-center select-none', className)}
-      style={{ width: size, height: size }}
+      className={cn(
+        'relative inline-flex items-center justify-center select-none w-[var(--orb-size)] h-[var(--orb-size)]',
+        className
+      )}
+      style={{ ['--orb-size' as string]: `${size}px` }}
       role="img"
       aria-label={`Mugtee orb — ${state}`}
     >
       {/* Outer halo — always-on soft gold ambient glow */}
       <span
         aria-hidden
-        className="absolute inset-[-22%] rounded-full blur-2xl opacity-60"
-        style={{
-          background:
-            'radial-gradient(circle at 50% 50%, hsl(40 92% 60% / 0.45) 0%, hsl(34 88% 38% / 0.18) 45%, transparent 70%)',
-        }}
+        className="orb-halo absolute inset-[-22%] rounded-full blur-2xl opacity-60"
       />
 
       {/* LISTENING — two ripple rings */}
       {state === 'listening' && (
         <>
           <span aria-hidden className="absolute inset-0 rounded-full border-2 border-amber-300/70 animate-orb-ripple" />
-          <span aria-hidden className="absolute inset-0 rounded-full border border-amber-200/40 animate-orb-ripple" style={{ animationDelay: '0.6s' }} />
+          <span aria-hidden className="absolute inset-0 rounded-full border border-amber-200/40 animate-orb-ripple [animation-delay:0.6s]" />
         </>
       )}
 
@@ -50,13 +56,7 @@ export function MugteeOrb({
       {state === 'thinking' && (
         <span
           aria-hidden
-          className="absolute inset-[-8%] rounded-full animate-orb-spin"
-          style={{
-            background:
-              'conic-gradient(from 0deg, transparent 0deg, hsl(40 92% 65%) 90deg, transparent 200deg, hsl(34 88% 50%) 320deg, transparent 360deg)',
-            WebkitMask: 'radial-gradient(circle, transparent 55%, black 56%, black 100%)',
-                    mask: 'radial-gradient(circle, transparent 55%, black 56%, black 100%)',
-          }}
+          className="orb-thinking-shimmer absolute inset-[-8%] rounded-full animate-orb-spin"
         />
       )}
 
@@ -65,10 +65,9 @@ export function MugteeOrb({
         <span
           aria-hidden
           className={cn(
-            'relative flex items-center justify-center rounded-full overflow-hidden shadow-gold-glow',
+            'relative flex items-center justify-center rounded-full overflow-hidden shadow-gold-glow w-[76%] h-[76%]',
             state === 'idle' && 'animate-orb-breathe',
           )}
-          style={{ width: '76%', height: '76%' }}
         >
           <MugteeLogoMark
             size={coreSize}
@@ -79,17 +78,15 @@ export function MugteeOrb({
         <span
           aria-hidden
           className={cn(
-            'relative rounded-full shadow-gold-glow',
+            'relative rounded-full shadow-gold-glow w-[76%] h-[76%]',
             'bg-[radial-gradient(circle_at_30%_25%,hsl(40_95%_75%)_0%,hsl(36_92%_55%)_38%,hsl(28_82%_28%)_82%,hsl(20_70%_14%)_100%)]',
             state === 'idle' && 'animate-orb-breathe',
           )}
-          style={{ width: '76%', height: '76%' }}
         >
           {/* Specular highlight */}
           <span
             aria-hidden
-            className="absolute rounded-full bg-white/35 blur-[2px]"
-            style={{ top: '14%', left: '20%', width: '28%', height: '20%' }}
+            className="absolute rounded-full bg-white/35 blur-[2px] top-[14%] left-[20%] w-[28%] h-[20%]"
           />
           {/* Inner rim */}
           <span aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-amber-200/30" />
@@ -99,15 +96,15 @@ export function MugteeOrb({
       {/* SPEAKING — cinematic 4-bar spectrum overlaid on the core */}
       {state === 'speaking' && (
         <span aria-hidden className="absolute inset-0 flex items-center justify-center gap-[3px]">
-          {[0, 1, 2, 3].map(i => (
+          {ORB_BARS.map((bar, i) => (
             <span
               key={i}
-              className="w-[3px] rounded-full bg-black/75 origin-center animate-orb-bar"
-              style={{
-                height: `${[34, 48, 56, 42][i]}%`,
-                animationDelay: `${i * 110}ms`,
-                animationDuration: `${640 + i * 60}ms`,
-              }}
+              className={cn(
+                'w-[3px] rounded-full bg-black/75 origin-center animate-orb-bar',
+                bar.height,
+                bar.delay,
+                bar.duration,
+              )}
             />
           ))}
         </span>
