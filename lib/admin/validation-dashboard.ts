@@ -1,3 +1,4 @@
+/** Phase 7 — 30-day founder validation metrics (admin-only, service role). */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { aggregateFeatureRequests } from '@/lib/admin/feature-request-aggregation'
 import { topCounts, type RankedCount } from '@/lib/admin/founder-dashboard-metrics'
