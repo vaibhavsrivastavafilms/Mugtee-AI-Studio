@@ -78,7 +78,14 @@ function SectionCard({
   )
 }
 
-function CategoryBar({ row }: { row: CreatorAnalyticsCategoryBreakdown }) {
+function CategoryBar({
+  row,
+  maxCount,
+}: {
+  row: CreatorAnalyticsCategoryBreakdown
+  maxCount: number
+}) {
+  const width = maxCount > 0 ? (row.count / maxCount) * 100 : 0
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3 text-xs">
@@ -88,7 +95,7 @@ function CategoryBar({ row }: { row: CreatorAnalyticsCategoryBreakdown }) {
       <div className="h-1.5 rounded-full bg-black/50 border border-white/[0.06] overflow-hidden">
         <div
           className="h-full rounded-full bg-gold-gradient transition-all duration-500"
-          style={{ width: `${Math.min(100, Math.max(row.count > 0 ? 8 : 0, row.count * 4))}%` }}
+          style={{ width: `${Math.min(100, Math.max(row.count > 0 ? 6 : 0, width))}%` }}
         />
       </div>
     </div>
