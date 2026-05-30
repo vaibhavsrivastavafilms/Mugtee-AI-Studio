@@ -34,6 +34,15 @@ type ProfileUsageRow = {
   generations_count?: number | null
   exports_count?: number | null
   renders_count?: number | null
+  referral_bonus_generations?: number | null
+  referral_creator_plan_bonus?: boolean | null
+}
+
+function referralContext(row: ProfileUsageRow | null | undefined) {
+  return {
+    referralBonusGenerations: Number(row?.referral_bonus_generations ?? 0),
+    referralCreatorPlanBonus: !!row?.referral_creator_plan_bonus,
+  }
 }
 
 const METRIC_COLUMN: Record<UsageMetric, keyof ProfileUsageRow> = {
@@ -66,7 +75,7 @@ async function fetchProfileRow(userId: string): Promise<ProfileUsageRow | null> 
   const { data } = await client
     .from('profiles')
     .select(
-      'plan_type, trial_ends_at, projects_count, generations_count, exports_count, renders_count'
+      'plan_type, trial_ends_at, projects_count, generations_count, exports_count, renders_count, referral_bonus_generations, referral_creator_plan_bonus'
     )
     .eq('id', userId)
     .maybeSingle()
@@ -76,11 +85,17 @@ async function fetchProfileRow(userId: string): Promise<ProfileUsageRow | null> 
 
 export async function getUsage(userId: string): Promise<UsageSnapshot> {
   const limitsEnabled = areLimitsEnabled()
-  const limits = getFreePlanLimits()
   const row = await fetchProfileRow(userId)
   const planType = String(row?.plan_type || 'FREE')
   const unlimited = isUnlimitedPlan(planType, row?.trial_ends_at)
   const used = toUsageCounts(row)
+  const ref = referralContext(row)
+  const limits: PlanLimits = {
+    projects: limitForMetric('projects', planType, row?.trial_ends_at, ref),
+    generations: limitForMetric('generations', planType, row?.trial_ends_at, ref),
+    exports: limitForMetric('exports', planType, row?.trial_ends_at, ref),
+    renders: limitForMetric('renders', planType, row?.trial_ends_at, ref),
+  }
 
   return {
     used,
@@ -109,7 +124,7 @@ export async function checkLimit(
   const planType = String(row?.plan_type || 'FREE')
   const unlimited = isUnlimitedPlan(planType, row?.trial_ends_at)
   const used = readCount(row, metric)
-  const limit = limitForMetric(metric, planType, row?.trial_ends_at)
+  const limit = limitForMetric(metric, planType, row?.trial_ends_at, referralContext(row))
 
   if (!limitsEnabled || unlimited) {
     return { allowed: true, used, limit, unlimited, limits_enabled: limitsEnabled, metric }
