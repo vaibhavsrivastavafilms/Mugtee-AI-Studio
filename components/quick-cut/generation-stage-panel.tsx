@@ -101,10 +101,12 @@ export function GenerationStagePanel({
   tab,
   className,
   audioRef,
+  onRegenerate,
 }: {
   tab: QuickCutStageTab
   className?: string
   audioRef?: RefObject<HTMLAudioElement | null>
+  onRegenerate?: () => void
 }) {
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const title = useQuickCutGenerationStore((s) => s.title)
@@ -357,7 +359,7 @@ export function GenerationStagePanel({
 
     case 'complete':
       return isComplete ? (
-        <ExportPreview actionsOnly />
+        <ExportPreview actionsOnly onRegenerate={onRegenerate} />
       ) : (
         shell(
           'Production',
