@@ -289,14 +289,16 @@ async function tryGeminiScript(
   return null
 }
 
-/** OpenAI → Claude → Gemini (Gemini first when free-tier-only). Throws when no provider succeeds. */
+/** OpenAI (ChatGPT) first when key set → Claude → Gemini (Gemini first only on free tier without OpenAI). */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
   const systemPrompt = buildSystemPrompt()
   const errors: string[] = []
-  const geminiFirst = isFreeTierOnly()
+  const openaiFirst = allowOpenAIScript()
+  const geminiFirst = isFreeTierOnly() && !openaiFirst
   if (process.env.NODE_ENV === 'development') {
     console.log('[generate-script] provider order', {
+      openaiFirst,
       geminiFirst,
       openai: allowOpenAIScript(),
       anthropic: allowAnthropicScript(),
@@ -307,12 +309,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
   const runGemini = () =>
     tryGeminiScript(userPrompt, systemPrompt, input.topic, retryNote, errors)
 
-  if (geminiFirst) {
-    const gemini = await runGemini()
-    if (gemini) return gemini
-  }
-
-  if (allowOpenAIScript()) {
+  if (openaiFirst) {
     try {
       const openai = await generateWithOpenAI(input, userPrompt, systemPrompt, retryNote)
       if (hasUsableLlmScript(openai, input.topic)) return openai
@@ -323,6 +320,11 @@ async function generateScript(input: GenInput, retryNote?: string) {
       }
       errors.push('openai_failed')
     }
+  }
+
+  if (geminiFirst) {
+    const gemini = await runGemini()
+    if (gemini) return gemini
   }
 
   if (allowAnthropicScript()) {
