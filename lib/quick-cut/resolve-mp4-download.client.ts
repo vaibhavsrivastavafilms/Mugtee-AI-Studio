@@ -1,3 +1,4 @@
+import { ASSET_UNAVAILABLE_MSG } from '@/lib/quick-cut/asset-availability'
 import { compileProjectMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
 
@@ -39,6 +40,20 @@ export type ResolveMp4DownloadParams = {
   onProgress?: (label: string) => void
 }
 
+async function compileAndDownload(
+  projectId: string,
+  filename: string,
+  onProgress?: (label: string) => void
+): Promise<string> {
+  const videoUrl = await compileProjectMp4(projectId, { onProgress })
+  if (projectId) {
+    const downloaded = await downloadViaProjectFileEndpoint(projectId, filename)
+    if (downloaded) return videoUrl
+  }
+  await downloadMp4File(videoUrl, filename)
+  return videoUrl
+}
+
 /** Download an existing MP4 or compile then download via same-origin API when possible. */
 export async function resolveMp4Download(
   params: ResolveMp4DownloadParams
@@ -47,7 +62,7 @@ export async function resolveMp4Download(
   let videoUrl = params.videoUrl?.trim() || null
 
   if (!videoUrl && params.compileIfNeeded && projectId) {
-    videoUrl = await compileProjectMp4(projectId, { onProgress })
+    return compileAndDownload(projectId, filename, onProgress)
   }
 
   if (projectId) {
@@ -56,9 +71,20 @@ export async function resolveMp4Download(
   }
 
   if (videoUrl) {
-    await downloadMp4File(videoUrl, filename)
-    return videoUrl
+    try {
+      await downloadMp4File(videoUrl, filename)
+      return videoUrl
+    } catch {
+      if (params.compileIfNeeded && projectId) {
+        return compileAndDownload(projectId, filename, onProgress)
+      }
+      throw new Error(ASSET_UNAVAILABLE_MSG)
+    }
   }
 
-  return null
+  if (params.compileIfNeeded && projectId) {
+    return compileAndDownload(projectId, filename, onProgress)
+  }
+
+  throw new Error(ASSET_UNAVAILABLE_MSG)
 }

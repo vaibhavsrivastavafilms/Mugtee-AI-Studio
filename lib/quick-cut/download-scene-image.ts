@@ -1,5 +1,9 @@
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import {
+  ASSET_UNAVAILABLE_MSG,
+  isRealSceneImageUrl,
+} from '@/lib/quick-cut/asset-availability'
 
 export type SceneImageExportSize = 'vertical' | 'horizontal'
 
@@ -96,24 +100,17 @@ export async function downloadSceneImage(
   format: 'jpg' | 'png' = 'jpg',
   exportSize: SceneImageExportSize = 'vertical'
 ): Promise<void> {
+  const trimmed = url.trim()
+  if (!isRealSceneImageUrl(trimmed)) throw new Error(ASSET_UNAVAILABLE_MSG)
+
   const safeName = filename.includes('.') ? filename : `${filename}.${format}`
 
-  try {
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const blob = await res.blob()
-    const exportBlob = await blobToExportBlob(blob, format, exportSize)
-    triggerBlobDownload(exportBlob, safeName)
-  } catch {
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = safeName
-    anchor.rel = 'noopener'
-    anchor.target = '_blank'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-  }
+  const res = await fetch(trimmed, { mode: 'cors' })
+  if (!res.ok) throw new Error(ASSET_UNAVAILABLE_MSG)
+  const blob = await res.blob()
+  if (!blob.size) throw new Error(ASSET_UNAVAILABLE_MSG)
+  const exportBlob = await blobToExportBlob(blob, format, exportSize)
+  triggerBlobDownload(exportBlob, safeName)
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {
@@ -141,8 +138,8 @@ export async function downloadAllStoryboardImages(
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i]
-    const url = resolveScenePreviewUrl(scene, i)
-    if (!url?.trim()) continue
+    const url = scene.imageUrl?.trim() || resolveScenePreviewUrl(scene, i)
+    if (!isRealSceneImageUrl(url)) continue
     await downloadSceneImage(url, sceneImageFilename(slug, i, 'jpg', exportSize), 'jpg', exportSize)
     count += 1
     if (i < scenes.length - 1) {

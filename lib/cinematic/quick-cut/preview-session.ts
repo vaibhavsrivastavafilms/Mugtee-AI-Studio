@@ -1,7 +1,9 @@
 import type { QuickCutOrchestrationResult } from '@/lib/cinematic/quick-cut/orchestrate-quick-cut'
 
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
-
+import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
+import { ensureScenesHavePreviewUrls } from '@/lib/cinematic/scene-preview-url'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 const PREVIEW_KEY = 'mugtee:quick-cut:preview:v1'
 const PENDING_KEY_SESSION = 'mugtee:quick-cut:pending:session:v1'
 const PENDING_KEY_LOCAL = 'mugtee:quick-cut:pending:local:v1'
@@ -35,6 +37,49 @@ export function loadQuickCutPreview(): QuickCutOrchestrationResult | null {
 export function clearQuickCutPreview() {
   if (typeof window === 'undefined') return
   sessionStorage.removeItem(PREVIEW_KEY)
+}
+
+/** Rehydrate Quick Cut store from session preview after refresh (export poll / downloads). */
+export function restoreQuickCutPreviewSession(): boolean {
+  if (typeof window === 'undefined') return false
+  const preview = loadQuickCutPreview()
+  if (!preview) return false
+
+  const state = useQuickCutGenerationStore.getState()
+  if (state.isGenerating || state.isComplete || state.prompt.trim()) return false
+
+  const scenes = ensureScenesHavePreviewUrls(
+    ensureScenesHaveImagePrompts(preview.output.scenes)
+  )
+  const videoUrl = preview.videoUrl ?? null
+  const renderPollUrl = preview.renderPollUrl ?? null
+  const videoPending = Boolean(renderPollUrl) && !videoUrl
+
+  useQuickCutGenerationStore.setState({
+    prompt: preview.project.prompt,
+    title: preview.project.title,
+    hook: preview.project.hook,
+    script: preview.project.script,
+    scenes,
+    storyboard: scenes,
+    voiceUrl: preview.voiceUrl ?? preview.project.voice?.audioUrl ?? null,
+    videoUrl,
+    renderPollUrl,
+    renderError: preview.renderError ?? null,
+    savedProjectId: preview.savedProjectId ?? null,
+    mock: preview.mock,
+    pipeline: preview.pipeline,
+    isComplete: true,
+    isGenerating: false,
+    generationStep: videoUrl ? 'complete' : videoPending || preview.renderError ? 'render' : 'complete',
+    progress: videoUrl ? 100 : 88,
+    eta: 0,
+    generationStatus: 'completed',
+    studioReviewMode: false,
+  })
+
+  void useQuickCutGenerationStore.getState().syncVideoRenderConfig()
+  return true
 }
 
 export function saveQuickCutPending(pending: QuickCutPending) {

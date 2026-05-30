@@ -6,6 +6,7 @@ import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-cre
 import {
   clearQuickCutPending,
   loadQuickCutPending,
+  restoreQuickCutPreviewSession,
   type QuickCutPending,
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { FullscreenQuickCutCanvas } from '@/components/quick-cut/canvas/fullscreen-quick-cut-canvas'
@@ -26,6 +27,13 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
 
   const resumedRef = useRef(false)
+  const previewRestoredRef = useRef(false)
+
+  useEffect(() => {
+    if (previewRestoredRef.current) return
+    previewRestoredRef.current = true
+    restoreQuickCutPreviewSession()
+  }, [])
 
   useEffect(() => {
     const topic = searchParams?.get('topic') ?? searchParams?.get('prompt')

@@ -23,6 +23,11 @@ import {
 } from '@/lib/quick-cut/download-scene-image'
 import { downloadScriptDoc, downloadScriptTxt } from '@/lib/quick-cut/download-script'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
+import {
+  ASSET_UNAVAILABLE_MSG,
+  resolveQuickCutExportAssets,
+  resolveQuickCutProgressLabel,
+} from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -91,6 +96,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const [downloadingMp3, setDownloadingMp3] = useState(false)
   const [downloadingImagesFormat, setDownloadingImagesFormat] =
     useState<SceneImageExportSize | null>(null)
+  const [assetError, setAssetError] = useState<string | null>(null)
   const pollStartedRef = useRef(false)
   const exportTrackedRef = useRef(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
@@ -111,10 +117,22 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const mp4Name = `${exportBase}.mp4`
   const mp3Name = `${exportBase}-narration.mp3`
 
-  const hasScript = Boolean(script?.trim() || hook?.trim() || title?.trim())
-  const hasImages = !isGenerating && scenes.some((s) => s.imageUrl?.trim())
-  const hasNarration = Boolean(voiceUrl?.trim())
+  const exportAssets = resolveQuickCutExportAssets({
+    title,
+    hook,
+    script,
+    scriptBeats,
+    scenes,
+    voiceUrl,
+    videoUrl,
+    videoRenderEnabled,
+    isGenerating,
+  })
+  const hasScript = exportAssets.script
+  const hasImages = exportAssets.images
+  const hasNarration = exportAssets.narration
   const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
+  const hasMp4 = Boolean(videoUrl?.trim()) || canCompileMp4
   const mp4Compiling =
     isRenderingVideo ||
     (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
@@ -167,28 +185,37 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
 
   const handleDownloadImages = useCallback(
     async (exportSize: SceneImageExportSize) => {
-      if (downloadingImagesFormat || scenes.length < 1) return
+      if (downloadingImagesFormat || !hasImages) return
       trackExportStarted(`images_${exportSize}`)
+      setAssetError(null)
       setDownloadingImagesFormat(exportSize)
       try {
-        await downloadAllStoryboardImages(scenes, title || 'mugtee-storyboard', exportSize)
+        const count = await downloadAllStoryboardImages(scenes, title || 'mugtee-storyboard', exportSize)
+        if (count < 1) throw new Error(ASSET_UNAVAILABLE_MSG)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+        setAssetError(message)
       } finally {
         setDownloadingImagesFormat(null)
       }
     },
-    [downloadingImagesFormat, scenes, title, trackExportStarted]
+    [downloadingImagesFormat, scenes, title, trackExportStarted, hasImages]
   )
 
   const handleDownloadMp3 = useCallback(async () => {
-    if (!voiceUrl?.trim() || downloadingMp3) return
+    if (!hasNarration || downloadingMp3) return
     trackExportStarted('narration_mp3')
+    setAssetError(null)
     setDownloadingMp3(true)
     try {
-      await downloadMp3File(voiceUrl, mp3Name)
+      await downloadMp3File(voiceUrl!, mp3Name)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+      setAssetError(message)
     } finally {
       setDownloadingMp3(false)
     }
-  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted])
+  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted, hasNarration])
 
   const handleShareReel = useCallback(async () => {
     if (!videoUrl?.trim()) return
@@ -234,8 +261,9 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         })
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'MP4 download failed'
+      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
       useQuickCutGenerationStore.setState({ renderError: message })
+      setAssetError(message)
     } finally {
       setDownloadingMp4(false)
     }
@@ -262,10 +290,18 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
       </div>
 
       <div className="space-y-2">
+        {assetError ? (
+          <p className="text-[11px] text-amber-200/80" role="alert">
+            {assetError}
+          </p>
+        ) : null}
+
         <DownloadRow
           icon={<FileText className="w-3 h-3" />}
           label="Script"
-          hint="Full title, hook, and narration script"
+          hint={
+            hasScript ? 'Full title, hook, and narration script' : ASSET_UNAVAILABLE_MSG
+          }
         >
           <button
             type="button"
@@ -290,7 +326,11 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         <DownloadRow
           icon={<ImageIcon className="w-3 h-3" />}
           label="Scene images"
-          hint="All storyboard stills as JPG — vertical or horizontal"
+          hint={
+            hasImages
+              ? 'All storyboard stills as JPG — vertical or horizontal'
+              : ASSET_UNAVAILABLE_MSG
+          }
         >
           {(['vertical', 'horizontal'] as const).map((exportSize) => {
             const { label } = SCENE_IMAGE_EXPORT_DIMENSIONS[exportSize]
@@ -319,7 +359,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
         <DownloadRow
           icon={<Mic className="w-3 h-3" />}
           label="Narration"
-          hint="Synced voiceover audio track"
+          hint={hasNarration ? 'Synced voiceover audio track' : ASSET_UNAVAILABLE_MSG}
         >
           <button
             type="button"
@@ -348,10 +388,12 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
                   ? renderError
                   : canCompileMp4
                     ? 'Ken Burns motion · captions · voiceover'
-                    : 'Available after render completes'
+                    : hasMp4
+                      ? 'Available after render completes'
+                      : ASSET_UNAVAILABLE_MSG
           }
         >
-          {videoUrl || canCompileMp4 ? (
+          {hasMp4 ? (
             <>
               <button
                 type="button"

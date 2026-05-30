@@ -1,3 +1,5 @@
+import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
+
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
 
 export type ReelExportPollStatus =
@@ -53,16 +55,21 @@ export async function pollReelExportJob(
   pollUrl: string,
   options?: {
     maxAttempts?: number
+    projectId?: string | null
     onProgress?: (patch: { label?: string; progress?: number }) => void
   }
 ): Promise<string> {
   const maxAttempts = options?.maxAttempts ?? 120
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 1500))
-    const res = await fetch(pollUrl)
+    const res = await fetch(pollUrl, { credentials: 'include' })
     const raw = (await res.json()) as Record<string, unknown>
 
     if (res.status === 404) {
+      if (options?.projectId) {
+        const recovered = await fetchProjectReelDownload(options.projectId)
+        if (recovered.reelUrl) return recovered.reelUrl
+      }
       throw new Error('Export job expired — retry export')
     }
     if (!res.ok) {

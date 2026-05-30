@@ -3,6 +3,7 @@
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { RenderProgress } from '@/components/quick-cut/render-progress'
+import { resolveQuickCutProgressLabel } from '@/lib/quick-cut/asset-availability'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -14,13 +15,37 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const script = useQuickCutGenerationStore((s) => s.script)
+  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
+  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
+  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
+  const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
 
   const subtitle = hook
     ? 'Hook ready — open Hook tab'
     : generationStep === 'title' || generationStep === 'analyzing'
       ? 'Generating hook…'
       : isComplete
-        ? 'Production complete'
+        ? resolveQuickCutProgressLabel({
+            generationStep,
+            isComplete,
+            videoUrl,
+            videoRenderEnabled,
+            renderError,
+            renderPollUrl,
+            isRenderingVideo,
+            renderStatusLabel,
+            exportPackageReady,
+            hasScript: Boolean(script?.trim() || hook?.trim() || title?.trim() || scriptBeats.length),
+            hasImages: scenes.some((scene) => Boolean(scene.imageUrl?.trim())),
+            hasNarration: Boolean(voiceUrl?.trim()),
+          })
         : 'In production…'
 
   return (

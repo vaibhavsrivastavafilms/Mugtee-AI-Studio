@@ -9,10 +9,8 @@ import {
   isStageTabDone,
   isStageTabReachable,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
-import {
-  STEP_LABELS,
-  useQuickCutGenerationStore,
-} from '@/stores/quick-cut-generation-store'
+import { resolveQuickCutProgressLabel } from '@/lib/quick-cut/asset-availability'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export function RenderProgress({ className }: { className?: string }) {
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
@@ -21,13 +19,41 @@ export function RenderProgress({ className }: { className?: string }) {
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
+  const title = useQuickCutGenerationStore((s) => s.title)
+  const hook = useQuickCutGenerationStore((s) => s.hook)
+  const script = useQuickCutGenerationStore((s) => s.script)
+  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
+  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
+  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
+  const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+
+  const progressLabel = resolveQuickCutProgressLabel({
+    generationStep,
+    isComplete,
+    videoUrl,
+    videoRenderEnabled,
+    renderError,
+    renderPollUrl,
+    isRenderingVideo,
+    renderStatusLabel,
+    exportPackageReady,
+    hasScript: Boolean(script?.trim() || hook?.trim() || title?.trim() || scriptBeats.length),
+    hasImages: scenes.some((scene) => Boolean(scene.imageUrl?.trim())),
+    hasNarration: Boolean(voiceUrl?.trim()),
+  })
 
   return (
     <div className={cn('space-y-4', className)}>
       <div>
         <div className="flex items-center justify-between gap-3 mb-2">
           <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/80">
-            {STEP_LABELS[generationStep] || 'Preparing…'}
+            {progressLabel || 'Preparing…'}
           </p>
           <span className="text-[10px] text-luxe/45 tabular-nums">
             {progress}%{!isComplete && eta > 0 ? ` · ~${eta}s` : ''}
