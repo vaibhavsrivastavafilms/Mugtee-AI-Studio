@@ -147,9 +147,11 @@ export type CinematicProjectSummary = {
   id: string
   title: string
   prompt: string
+  hook: string
   style: string
   duration: number
   script: string
+  niche: string
   scenes: CinematicScene[]
   voice: CinematicVoice | null
   captions: string
@@ -284,16 +286,19 @@ function resolveThumbnail(
 
 export function rowToSummary(row: CinematicProjectRow): CinematicProjectSummary {
   const scenes = resolveProjectScenes(row)
+  const parsedCaptions = parseCaptions(row.captions)
   return {
     id: row.id,
     title: row.title || 'Untitled project',
     prompt: row.prompt || '',
+    hook: parsedCaptions.hook,
     style: row.style || 'cinematic',
     duration: coerceDuration(row.duration),
     script: row.script || '',
+    niche: parsedCaptions.niche || 'storytelling',
     scenes,
     voice: sanitizeVoiceFromPersistence(row.voice),
-    captions: parseCaptions(row.captions).text,
+    captions: parsedCaptions.text,
     status: normalizeProjectStatus(row.status),
     mode: inferProjectMode(row),
     video_url: row.video_url ?? null,

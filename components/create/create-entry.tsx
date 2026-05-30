@@ -12,11 +12,8 @@ import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 import { UnifiedProjectsGrid, type ProjectCardModel } from '@/components/create/unified-projects-grid'
 import { ProjectsInsightsPanel } from '@/components/create/projects-insights-panel'
+import { ProjectsLibrarySection } from '@/components/create/projects-library-section'
 import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-director-cut-mode-card'
-import {
-  ProjectsGalleryChrome,
-  type ProjectGalleryFilter,
-} from '@/components/create/projects-gallery-chrome'
 
 function ModeCard({
   mode,
@@ -65,13 +62,7 @@ function CreateEntryInner() {
   const searchParams = useSearchParams()
   const mode = (searchParams?.get('mode') as CreatorMode | null) ?? null
   const tab = searchParams?.get('tab')
-  const filterParam = searchParams?.get('filter')
   const isProjectsTab = tab === 'projects' || tab === 'exports'
-  const [gallerySearch, setGallerySearch] = useState('')
-  const [galleryFilter, setGalleryFilter] = useState<ProjectGalleryFilter>(() => {
-    if (filterParam === 'downloaded' || tab === 'exports') return 'downloaded'
-    return 'all'
-  })
   const [selectedProject, setSelectedProject] = useState<ProjectCardModel | null>(null)
 
   useEffect(() => {
@@ -80,10 +71,6 @@ function CreateEntryInner() {
     params.set('tab', 'projects')
     router.replace(`${STUDIO.create}?${params.toString()}`)
   }, [tab, router, searchParams])
-
-  useEffect(() => {
-    if (filterParam === 'downloaded') setGalleryFilter('downloaded')
-  }, [filterParam])
 
   useEffect(() => {
     if (mode === 'quick') {
@@ -153,20 +140,10 @@ function CreateEntryInner() {
       {isProjectsTab ? (
         <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
           <div className="flex-1 min-w-0">
-            <ProjectsGalleryChrome
-              title={sectionTitle ?? 'Projects'}
-              subtitle={sectionSubtitle ?? 'Continue, preview, or refine any reel.'}
-              search={gallerySearch}
-              onSearchChange={setGallerySearch}
-              filter={galleryFilter}
-              onFilterChange={setGalleryFilter}
-            />
-            <UnifiedProjectsGrid
+            <ProjectsLibrarySection
               limit={24}
               showActions
               galleryMode
-              searchQuery={gallerySearch}
-              galleryFilter={galleryFilter}
               selectedId={selectedProject?.id ?? null}
               onSelectProject={setSelectedProject}
             />
@@ -174,7 +151,7 @@ function CreateEntryInner() {
           <ProjectsInsightsPanel project={selectedProject} className="xl:w-72 shrink-0" />
         </div>
       ) : (
-        <UnifiedProjectsGrid limit={16} showActions searchQuery={gallerySearch} />
+        <UnifiedProjectsGrid limit={16} showActions />
       )}
     </UnifiedCreatorShell>
   )

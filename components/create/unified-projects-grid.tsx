@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   ArrowRight,
   Clapperboard,
   Film,
-  Play,
-  RefreshCw,
   Zap,
 } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -16,31 +14,53 @@ import { cn } from '@/lib/utils'
 import {
   openProjectHref,
   createEntryHref,
-  previewProjectHref,
-  regenerateProjectHref,
   type CreatorMode,
 } from '@/lib/create/routes'
-import { loadRecentProjects, projectHasPlayablePreview, type CinematicProjectSummary } from '@/lib/cinematic-projects'
+import { projectHasPlayablePreview, type CinematicProjectSummary } from '@/lib/cinematic-projects'
 import { projectCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
 import { ProjectLibraryEmpty } from '@/components/showcase/project-library-empty'
 import { DatabaseMigrationBanner } from '@/components/app/database-migration-banner'
 import type { ProjectGalleryFilter } from '@/components/create/projects-gallery-chrome'
+import { useProjectLibrary } from '@/hooks/use-project-library'
+import {
+  deriveProjectCreationStatus,
+  deriveProjectPreviewSnippet,
+  PROJECT_CREATION_STATUS_LABEL,
+  type ProjectCreationStatus,
+} from '@/lib/project-card-meta'
 
 export type ProjectCardModel = {
   id: string
   title: string
   status: string
   statusLabel: string
+  creationStatus: ProjectCreationStatus
+  creationStatusLabel: string
+  previewSnippet: string | null
+  projectTypeLabel: string
   mode: CreatorMode
   duration: number
   style: string
+  niche: string
   platform: string
+  prompt: string
   thumbnail: string | null
   videoUrl: string | null
   canCompileMp4: boolean
   hasPlayablePreview: boolean
+  createdAt: string
   updatedAt: string
+}
+
+function deriveProjectPlatform(project: CinematicProjectSummary): string {
+  const haystack = [project.title, project.prompt, project.hook, project.script]
+    .join(' ')
+    .toLowerCase()
+  if (haystack.includes('youtube') || project.mode === 'director' || project.duration > 90) {
+    return 'YouTube'
+  }
+  return 'Instagram Reel'
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -50,6 +70,14 @@ const STATUS_LABEL: Record<string, string> = {
   director: 'Directed',
   compile: 'Rendering',
   complete: 'Ready to share',
+}
+
+const CREATION_STATUS_TONE: Record<ProjectCreationStatus, string> = {
+  idea_created: 'bg-amber-500/10 border-amber-500/25 text-amber-200/90',
+  hook_generated: 'bg-gold-500/10 border-gold-500/25 text-gold-200/90',
+  script_generated: 'bg-violet-500/10 border-violet-500/25 text-violet-200/90',
+  storyboard_generated: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-200/90',
+  ready_for_production: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200/90',
 }
 
 const MODE_BADGE: Record<CreatorMode, { label: string; icon: typeof Zap }> = {
@@ -82,15 +110,34 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
         ? 'quick'
         : 'director'
 
+  const modeMeta = MODE_BADGE[mode]
+  const creationStatus = deriveProjectCreationStatus({
+    hook: project.hook,
+    script: project.script,
+    scenes: project.scenes,
+    voice: project.voice,
+    videoUrl: project.video_url,
+    status: project.status,
+  })
+
   return {
     id: project.id,
     title: project.title,
     status: project.status,
     statusLabel: STATUS_LABEL[project.status] || 'In progress',
+    creationStatus,
+    creationStatusLabel: PROJECT_CREATION_STATUS_LABEL[creationStatus],
+    previewSnippet: deriveProjectPreviewSnippet({
+      hook: project.hook,
+      script: project.script,
+    }),
+    projectTypeLabel: modeMeta.label,
     mode,
     duration: project.duration,
     style: project.style || 'cinematic',
-    platform: 'Instagram Reel',
+    niche: project.niche || 'storytelling',
+    platform: deriveProjectPlatform(project),
+    prompt: project.prompt,
     thumbnail,
     videoUrl: project.video_url ?? null,
     canCompileMp4: projectCanCompileMp4(project.scenes, project.voice),
@@ -99,6 +146,7 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
       project.voice,
       project.video_url
     ),
+    createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   }
 }
@@ -110,8 +158,12 @@ export function UnifiedProjectsGrid({
   galleryMode = false,
   searchQuery = '',
   galleryFilter = 'all',
+  projects: externalProjects,
+  loading: externalLoading,
+  tableUnavailable: externalTableUnavailable,
   selectedId = null,
   onSelectProject,
+  onProjectsChange,
 }: {
   limit?: number
   showActions?: boolean
@@ -119,47 +171,22 @@ export function UnifiedProjectsGrid({
   galleryMode?: boolean
   searchQuery?: string
   galleryFilter?: ProjectGalleryFilter
+  projects?: ProjectCardModel[] | null
+  loading?: boolean
+  tableUnavailable?: boolean
   selectedId?: string | null
   onSelectProject?: (project: ProjectCardModel | null) => void
+  onProjectsChange?: Dispatch<SetStateAction<ProjectCardModel[] | null>>
 }) {
-  const [projects, setProjects] = useState<ProjectCardModel[] | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [tableUnavailable, setTableUnavailable] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
+  const internalLibrary = useProjectLibrary(limit, filter)
+  const usesExternalProjects = externalProjects !== undefined
+  const projects = usesExternalProjects ? externalProjects : internalLibrary.projects
+  const loading = usesExternalProjects ? (externalLoading ?? false) : internalLibrary.loading
+  const tableUnavailable = usesExternalProjects
+    ? (externalTableUnavailable ?? false)
+    : internalLibrary.tableUnavailable
+  const setProjects = onProjectsChange ?? internalLibrary.setProjects
   const [hoverId, setHoverId] = useState<string | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    setLoading(true)
-    ;(async () => {
-      try {
-        const { projects: rows, tableUnavailable: missing } = await loadRecentProjects(limit)
-        if (!alive) return
-        setTableUnavailable(missing)
-        let cards = rows.map((row) => summaryToCard(row))
-        if (filter === 'downloaded') {
-          cards = cards.filter(
-            (p) =>
-              p.videoUrl ||
-              p.hasPlayablePreview ||
-              p.status === 'compile' ||
-              p.status === 'complete' ||
-              p.status === 'completed'
-          )
-        }
-        setProjects(cards)
-      } catch {
-        if (alive) setProjects([])
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [limit, filter, reloadKey])
-
-  const retryLoadProjects = () => setReloadKey((k) => k + 1)
 
   if (loading) {
     return (
@@ -179,20 +206,22 @@ export function UnifiedProjectsGrid({
   }
 
   const q = searchQuery.trim().toLowerCase()
-  const visible = (projects ?? []).filter((p) => {
-    if (q && !p.title.toLowerCase().includes(q) && !p.style.toLowerCase().includes(q)) return false
-    if (galleryFilter === 'quick' && p.mode !== 'quick') return false
-    if (galleryFilter === 'director' && p.mode !== 'director') return false
-    if (
-      galleryFilter === 'downloaded' &&
-      !p.videoUrl &&
-      p.status !== 'compile' &&
-      p.status !== 'complete'
-    ) {
-      return false
-    }
-    return true
-  })
+  const visible = usesExternalProjects
+    ? (projects ?? [])
+    : (projects ?? []).filter((p) => {
+        if (q && !p.title.toLowerCase().includes(q) && !p.style.toLowerCase().includes(q)) return false
+        if (galleryFilter === 'quick' && p.mode !== 'quick') return false
+        if (galleryFilter === 'director' && p.mode !== 'director') return false
+        if (
+          galleryFilter === 'downloaded' &&
+          !p.videoUrl &&
+          p.status !== 'compile' &&
+          p.status !== 'complete'
+        ) {
+          return false
+        }
+        return true
+      })
 
   if (tableUnavailable) {
     return (
@@ -207,12 +236,16 @@ export function UnifiedProjectsGrid({
     return <ProjectLibraryEmpty />
   }
 
-  if (visible.length === 0) {
+  if (visible.length === 0 && !usesExternalProjects) {
     return (
       <div className="py-16 text-center text-sm text-muted-foreground">
         No cinematic stories match your filters.
       </div>
     )
+  }
+
+  if (visible.length === 0) {
+    return null
   }
 
   return (
@@ -244,18 +277,13 @@ export function UnifiedProjectsGrid({
           const isSelected = selectedId === p.id
           const modeMeta = MODE_BADGE[p.mode]
           const ModeIcon = modeMeta.icon
-          const previewHref = previewProjectHref({
-            id: p.id,
-            mode: p.mode,
-            status: p.status,
-            videoUrl: p.videoUrl,
-            hasPlayablePreview: p.hasPlayablePreview,
-          })
           const openHref = openProjectHref(p.status, p.id, p.mode, {
             videoUrl: p.videoUrl,
             hasPlayablePreview: p.hasPlayablePreview,
           })
-          const regenerateHref = regenerateProjectHref(p.id, p.mode)
+          const lastEdited = p.updatedAt
+            ? formatDistanceToNow(parseISO(p.updatedAt), { addSuffix: true })
+            : 'recently'
 
           return (
             <motion.article
@@ -324,30 +352,50 @@ export function UnifiedProjectsGrid({
                   </span>
                 </div>
 
-                {/* CENTER — title, subtext */}
-                <div className="p-3 sm:p-4 space-y-1.5 flex-1">
-                  <h3 className="font-display text-[15px] leading-snug line-clamp-2" title={p.title}>
-                    {p.title}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground tracking-wide">
-                    {p.style} · {p.platform} ·{' '}
-                    {p.updatedAt
-                      ? formatDistanceToNow(parseISO(p.updatedAt), { addSuffix: true })
-                      : 'recently'}
+                {/* CENTER — title, type, status, preview */}
+                <div className="p-3 sm:p-4 space-y-2 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-display text-[15px] leading-snug line-clamp-2 flex-1" title={p.title}>
+                      {p.title}
+                    </h3>
+                    <span
+                      className={cn(
+                        'shrink-0 px-2 py-0.5 rounded-full text-[8px] tracking-[0.14em] uppercase border',
+                        CREATION_STATUS_TONE[p.creationStatus]
+                      )}
+                    >
+                      {p.creationStatusLabel}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gold-300/75 tracking-wide">
+                    {p.projectTypeLabel}
                   </p>
-                  <p className="text-[10px] text-gold-300/70 tracking-wide">{p.statusLabel}</p>
+                  <p className="text-[10px] text-muted-foreground tracking-wide">
+                    Last edited {lastEdited}
+                  </p>
+                  {p.previewSnippet ? (
+                    <p className="text-[11px] text-luxe/55 italic leading-relaxed line-clamp-2">
+                      {p.previewSnippet}
+                    </p>
+                  ) : null}
                 </div>
 
-                {/* BOTTOM — actions */}
+                {/* BOTTOM — primary action */}
                 {showActions ? (
-                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex flex-wrap gap-1.5">
-                    <CardAction href={previewHref} icon={Play} label="Preview" />
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-2">
+                    <Link
+                      href={openHref}
+                      className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl bg-gold-500/15 border border-gold-500/30 text-[10px] tracking-[0.18em] uppercase text-gold-200 hover:bg-gold-500/25 hover:border-gold-500/45 transition"
+                    >
+                      Continue Creating
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
                     <ProjectMp4Button
                       projectId={p.id}
                       title={p.title}
                       videoUrl={p.videoUrl}
                       canCompileMp4={p.canCompileMp4}
-                      exportHref={previewHref}
+                      exportHref={openHref}
                       onVideoUrl={(url) => {
                         setProjects((prev) =>
                           prev?.map((card) =>
@@ -356,8 +404,6 @@ export function UnifiedProjectsGrid({
                         )
                       }}
                     />
-                    <CardAction href={openHref} icon={Film} label="Open Project" />
-                    <CardAction href={regenerateHref} icon={RefreshCw} label="Regenerate" />
                   </div>
                 ) : null}
               </div>
@@ -366,24 +412,5 @@ export function UnifiedProjectsGrid({
         })}
       </div>
     </div>
-  )
-}
-
-const cardActionClass =
-  'inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-black/70 backdrop-blur border border-white/10 text-[9px] tracking-wider uppercase text-luxe/90 hover:border-gold-500/40 hover:text-gold-200 transition'
-
-function CardAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string
-  icon: typeof Play
-  label: string
-}) {
-  return (
-    <Link href={href} className={cardActionClass} onClick={(e) => e.stopPropagation()}>
-      <Icon className="w-3 h-3" /> {label}
-    </Link>
   )
 }
