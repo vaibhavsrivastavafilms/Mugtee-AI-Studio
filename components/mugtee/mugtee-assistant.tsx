@@ -20,6 +20,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { MugteeOrb, type OrbState } from '@/components/mugtee/mugtee-orb'
+import { cn } from '@/lib/utils'
 import { useSpeechRecognition, useSpeechSynthesis } from '@/lib/use-voice'
 import {
   MUGTEE_FAQ_CATEGORIES,
@@ -270,7 +271,13 @@ export function MugteeAssistant() {
         }
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {open ? <X className="w-5 h-5 text-gold-200" /> : <MugteeOrb state={orbState} size={40} />}
+        {open ? (
+          <X className="w-5 h-5 text-gold-200" />
+        ) : (
+          <span aria-hidden>
+            <MugteeOrb state={orbState} size={40} useLogo />
+          </span>
+        )}
       </button>
 
       <AnimatePresence>

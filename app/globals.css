@@ -1204,4 +1204,7 @@
   .cinematic-reduced-layers .shimmer-cinematic {
     opacity: 0.65;
   }
+  .cinematic-mobile-mode .immersive-film-viewer .calm-opacity-transition {
+    transition-duration: 420ms;
+  }
 }

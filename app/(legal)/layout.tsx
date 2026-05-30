@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft, Sparkles } from 'lucide-react'
-import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 export const metadata: Metadata = {
   robots: { index: true, follow: true },
@@ -21,7 +20,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <div className="max-w-4xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-luxe/85 hover:text-luxe transition">
             <ChevronLeft className="w-4 h-4 text-gold-300" />
-            <MugteeLogoMark size={24} className="w-6 h-6" />
+            <div className="w-6 h-6 rounded-md bg-gold-gradient flex items-center justify-center">
+              <span className="font-display text-xs font-bold text-black">M</span>
+            </div>
             <span className="font-display"><span className="text-gold-gradient">Mugtee</span></span>
           </Link>
           <div className="flex items-center gap-1 text-[10px] tracking-[0.3em] uppercase text-muted-foreground">

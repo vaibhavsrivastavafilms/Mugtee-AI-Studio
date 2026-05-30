@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import type { CreatorMode } from '@/lib/create/routes'
-import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 type Slide = { src: string; caption: string; eyebrow?: string }
 
@@ -75,7 +74,7 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
       {slides.map((s, i) => (
         <div
           key={i}
-          className="absolute inset-0 transition-opacity duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="absolute inset-0 transition-opacity duration-1400 ease-cinematic"
           style={{ opacity: active === i ? 1 : 0 }}
           aria-hidden={active !== i}
         >
@@ -97,7 +96,9 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
 
       <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
         <div className="flex items-center gap-2.5">
-          <MugteeLogoMark size={36} className="w-9 h-9 shadow-gold-glow" />
+          <div className="w-9 h-9 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow">
+            <span className="font-display text-lg font-bold text-black">M</span>
+          </div>
           <div>
             <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300/80">
               Mugtee

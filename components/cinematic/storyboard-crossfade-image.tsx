@@ -64,7 +64,7 @@ export function StoryboardCrossfadeImage({
           src={previousSrc}
           alt=""
           aria-hidden
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[560ms] ease-out pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out pointer-events-none"
           style={{ opacity: loaded ? 0 : 1 }}
         />
       ) : null}
@@ -75,7 +75,7 @@ export function StoryboardCrossfadeImage({
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         className={cn(
-          'absolute inset-0 w-full h-full object-cover transition-opacity duration-[560ms] ease-out',
+          'absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out',
           loaded ? 'opacity-100 storyboard-focus-zoom' : 'opacity-0'
         )}
       />

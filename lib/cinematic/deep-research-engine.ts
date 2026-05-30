@@ -105,20 +105,27 @@ function buildMockDeepResearch(topic: string, language: ProjectLanguage): DeepRe
 }
 
 async function generateWithOpenAI(userPrompt: string): Promise<DeepResearchReport | null> {
-  const openai = getOpenAIClient()
-  const completion = await openai.chat.completions.create({
-    model: FREE_OPENAI_CHAT_MODEL,
-    temperature: 0.85,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
-  })
-  const content = completion.choices[0]?.message?.content?.trim() || '{}'
-  const parsed = parseLlmJson(content)
-  if (!parsed || typeof parsed !== 'object') return null
-  return normalizeDeepResearchReport(parsed, '')
+  console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, step: 'deep-research' })
+  try {
+    const openai = getOpenAIClient()
+    const completion = await openai.chat.completions.create({
+      model: FREE_OPENAI_CHAT_MODEL,
+      temperature: 0.85,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    })
+    const content = completion.choices[0]?.message?.content?.trim() || '{}'
+    console.log('[OPENAI] REQUEST SUCCESS', { step: 'deep-research' })
+    const parsed = parseLlmJson(content)
+    if (!parsed || typeof parsed !== 'object') return null
+    return normalizeDeepResearchReport(parsed, '')
+  } catch (error) {
+    console.error('[OPENAI] REQUEST FAILED', { step: 'deep-research', error })
+    throw error
+  }
 }
 
 async function generateWithAnthropic(userPrompt: string): Promise<DeepResearchReport | null> {

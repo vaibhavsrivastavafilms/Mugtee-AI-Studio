@@ -94,7 +94,11 @@ import {
   logGenerationStart,
   logStepFailed,
 } from '@/lib/cinematic/generation-logger'
-import { pipelineFetch, pipelineFetchJson } from '@/lib/cinematic/generation-pipeline-fetch'
+import {
+  pipelineFetch,
+  pipelineFetchJson,
+  SCRIPT_GENERATION_TIMEOUT_MS,
+} from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
 import {
   persistGenerationFailed,
@@ -1326,6 +1330,7 @@ export const useQuickCutGenerationStore = create<
             researchDocument: get().researchDocument ?? undefined,
           }),
           maxRetries: 2,
+          timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
         })
         scriptData = scriptResult.data
         if (!scriptResult.res.ok) {
@@ -1986,7 +1991,7 @@ export const useQuickCutGenerationStore = create<
     })
 
     try {
-      const res = await fetch('/api/generate-script', {
+      const { res, data } = await pipelineFetchJson('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2006,9 +2011,10 @@ export const useQuickCutGenerationStore = create<
           previousHook: state.hook?.trim() || undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
           researchDocument: state.researchDocument ?? undefined,
+          skipResearch: true,
         }),
+        timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
       })
-      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
       if (!res.ok) throw new Error(String(data?.error || 'Script regeneration failed'))
 
       const output = data.output as Record<string, unknown> | undefined

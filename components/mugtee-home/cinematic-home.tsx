@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { HeroSection } from '@/components/mugtee-home/hero-section'
-import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 const WorkflowPipeline = dynamic(
   () =>
@@ -65,7 +64,9 @@ function CinematicHomeInner() {
       <header className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.04] bg-[#050505]/80 backdrop-blur-md">
         <div className="container max-w-6xl mx-auto flex items-center justify-between px-5 sm:px-6 py-3">
           <Link href={createHref} className="flex items-center gap-2 min-h-[44px] transition-opacity hover:opacity-90">
-            <MugteeLogoMark size={32} className="w-8 h-8 shadow-gold-glow" />
+            <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
+              <span className="font-display text-sm font-bold text-black">M</span>
+            </div>
             <span className="font-display text-sm tracking-wide text-gold-gradient">Mugtee</span>
           </Link>
           <nav className="flex items-center gap-3 sm:gap-5">

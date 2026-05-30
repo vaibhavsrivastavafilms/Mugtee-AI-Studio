@@ -3,6 +3,7 @@ import {
   allowAnthropicScript,
   allowOpenAIScript,
   FREE_OPENAI_CHAT_MODEL,
+  hasDirectGeminiKey,
   isFreeTierOnly,
 } from '@/lib/ai/free-tier'
 import { generateScriptWithGemini } from '@/lib/ai/gemini-script'
@@ -242,19 +243,26 @@ async function generateWithOpenAI(
   retryNote?: string
 ) {
   const openai = getOpenAIClient()
+  console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, retry: Boolean(retryNote) })
 
-  const completion = await openai.chat.completions.create({
-    model: FREE_OPENAI_CHAT_MODEL,
-    temperature: retryNote ? 0.75 : 0.85,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-  })
+  try {
+    const completion = await openai.chat.completions.create({
+      model: FREE_OPENAI_CHAT_MODEL,
+      temperature: retryNote ? 0.75 : 0.85,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    })
 
-  const content = completion.choices[0]?.message?.content || '{}'
-  return parseLlmJson(content)
+    const content = completion.choices[0]?.message?.content || '{}'
+    console.log('[OPENAI] REQUEST SUCCESS')
+    return parseLlmJson(content)
+  } catch (error) {
+    console.error('[OPENAI] REQUEST FAILED', error)
+    throw error
+  }
 }
 
 async function tryGeminiScript(
@@ -281,6 +289,12 @@ async function generateScript(input: GenInput, retryNote?: string) {
   const systemPrompt = buildSystemPrompt()
   const errors: string[] = []
   const geminiFirst = isFreeTierOnly()
+  console.log('[generate-script] provider order', {
+    geminiFirst,
+    openai: allowOpenAIScript(),
+    anthropic: allowAnthropicScript(),
+    gemini: hasDirectGeminiKey(),
+  })
 
   const runGemini = () =>
     tryGeminiScript(userPrompt, systemPrompt, input.topic, retryNote, errors)
@@ -295,7 +309,8 @@ async function generateScript(input: GenInput, retryNote?: string) {
       const openai = await generateWithOpenAI(input, userPrompt, systemPrompt, retryNote)
       if (hasUsableLlmScript(openai, input.topic)) return openai
       errors.push('openai_echo_or_empty')
-    } catch {
+    } catch (err) {
+      console.error('[OPENAI] REQUEST FAILED (script provider)', err)
       errors.push('openai_failed')
     }
   }

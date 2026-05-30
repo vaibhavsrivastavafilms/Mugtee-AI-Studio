@@ -1,4 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 60_000
+/** Script step runs deep research + up to 3 LLM passes + storyboard SOP — often exceeds 60s. */
+export const SCRIPT_GENERATION_TIMEOUT_MS = 180_000
 const DEFAULT_MAX_RETRIES = 2
 
 function sleep(ms: number) {

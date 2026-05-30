@@ -25,6 +25,8 @@ import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+/** Deep research + SOP regen + storyboard can exceed default serverless limits. */
+export const maxDuration = 120
 
 function parseCreatorMemoryBias(raw: unknown): CreatorMemoryBiasHints | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
@@ -192,8 +194,15 @@ export async function POST(req: NextRequest) {
       titleSeed,
     }
 
+    console.log('[OPENAI] KEY EXISTS', Boolean(process.env.OPENAI_API_KEY?.trim()))
+    console.log('[generate-script] REQUEST START', { topic: topic.slice(0, 48) })
+
     try {
       const result = await runScriptGeneration(input)
+      console.log('[generate-script] REQUEST SUCCESS', {
+        mock: result.mock,
+        sopRegenAttempts: result.sopRegenAttempts,
+      })
       let validation = validateCinematicOutput(result.output, niche, topic)
       if (!validation.valid && result.output.script?.trim()) {
         logStepFailed('script', user.id, validation.issues.join('; '))

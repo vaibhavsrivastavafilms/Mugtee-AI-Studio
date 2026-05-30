@@ -95,7 +95,16 @@ module.exports = {
         'orb-ripple':  'orb-ripple 1.8s ease-out infinite',
         'orb-spin':    'orb-spin 2.4s linear infinite',
         'orb-bar':     'orb-bar 0.8s ease-in-out infinite'
-      }
+      },
+      transitionDuration: {
+        420: '420ms',
+        480: '480ms',
+        560: '560ms',
+        1400: '1400ms',
+      },
+      transitionTimingFunction: {
+        cinematic: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
     }
   },
   plugins: [require("tailwindcss-animate")],
