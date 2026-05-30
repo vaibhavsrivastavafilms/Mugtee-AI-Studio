@@ -1,15 +1,16 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Download, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   compileProjectMp4,
   isCompileProjectMp4Busy,
   quickCutCanCompileMp4,
 } from '@/lib/quick-cut/compile-project-mp4.client'
-import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
+import { resolveMp4Download } from '@/lib/quick-cut/resolve-mp4-download.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const actionClass =
@@ -54,7 +55,15 @@ export function ProjectMp4Button({
       if (resolvedUrl) {
         setBusy(true)
         try {
-          await downloadMp4File(resolvedUrl, downloadName)
+          await resolveMp4Download({
+            projectId,
+            videoUrl: resolvedUrl,
+            filename: downloadName,
+          })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'MP4 download failed'
+          setError(message)
+          toast.error(message)
         } finally {
           setBusy(false)
         }
@@ -67,7 +76,12 @@ export function ProjectMp4Button({
         const url = await compileProjectMp4(projectId)
         setLocalVideoUrl(url)
         onVideoUrl?.(url)
-        await downloadMp4File(url, downloadName)
+        await resolveMp4Download({
+          projectId,
+          videoUrl: url,
+          filename: downloadName,
+        })
+        toast.success('MP4 download started')
       } catch (err) {
         const message = err instanceof Error ? err.message : 'MP4 compile failed'
         if (message.includes('not enabled') || message.includes('FFmpeg')) {
@@ -75,6 +89,7 @@ export function ProjectMp4Button({
           return
         }
         setError(message)
+        toast.error(message)
       } finally {
         setBusy(false)
       }
@@ -157,6 +172,9 @@ export function QuickCutPlayerMp4Download({
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const saveProject = useQuickCutGenerationStore((s) => s.saveProject)
+  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
 
   const title = titleOverride ?? storeTitle
   const videoUrl = videoUrlOverride !== undefined ? videoUrlOverride : storeVideoUrl
@@ -164,6 +182,7 @@ export function QuickCutPlayerMp4Download({
 
   const [busy, setBusy] = useState(false)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const resolvedUrl = localVideoUrl ?? videoUrl
   const canCompileMp4 =
     canCompileMp4Override ??
@@ -174,14 +193,30 @@ export function QuickCutPlayerMp4Download({
     (projectId ? isCompileProjectMp4Busy(projectId) : false)
   const enabled = Boolean(resolvedUrl) || canCompileMp4
   const downloadName = `${(title || 'mugtee-reel').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-reel'}.mp4`
+  const displayError = error ?? renderError
+
+  useEffect(() => {
+    void syncVideoRenderConfig()
+  }, [syncVideoRenderConfig])
 
   const handleClick = useCallback(async () => {
     if (!enabled || compileBusy) return
 
+    setError(null)
+
     if (resolvedUrl) {
       setBusy(true)
       try {
-        await downloadMp4File(resolvedUrl, downloadName)
+        await resolveMp4Download({
+          projectId,
+          videoUrl: resolvedUrl,
+          filename: downloadName,
+        })
+        toast.success('MP4 download started')
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'MP4 download failed'
+        setError(message)
+        toast.error(message)
       } finally {
         setBusy(false)
       }
@@ -190,22 +225,59 @@ export function QuickCutPlayerMp4Download({
 
     setBusy(true)
     try {
+      let activeProjectId = projectId
+      if (!activeProjectId) {
+        activeProjectId = await saveProject()
+      }
+
       let url: string | null = null
-      if (projectId) {
-        url = await compileProjectMp4(projectId)
+      if (activeProjectId) {
+        url = await compileProjectMp4(activeProjectId, {
+          onProgress: (label) => {
+            toast.message(label, { id: 'mp4-compile-progress' })
+          },
+        })
         setLocalVideoUrl(url)
         onVideoUrl?.(url)
         if (!projectIdOverride) {
-          useQuickCutGenerationStore.setState({ videoUrl: url, renderPollUrl: null, renderError: null })
+          useQuickCutGenerationStore.setState({
+            videoUrl: url,
+            renderPollUrl: null,
+            renderError: null,
+          })
         }
       } else {
         await retryVideoRender()
         url = useQuickCutGenerationStore.getState().videoUrl
+        const storeError = useQuickCutGenerationStore.getState().renderError
+        if (!url) {
+          throw new Error(storeError || 'Video compile failed — try again from Export.')
+        }
         if (url) onVideoUrl?.(url)
       }
-      if (url) await downloadMp4File(url, downloadName)
+
+      await resolveMp4Download({
+        projectId: activeProjectId,
+        videoUrl: url,
+        filename: downloadName,
+      })
+      toast.success('MP4 download started')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'MP4 compile failed'
+      if (message.includes('Not signed in') || message.includes('Sign in')) {
+        toast.error('Sign in to compile and download MP4.')
+      } else if (message.includes('not enabled')) {
+        toast.error('MP4 export is not enabled on this server yet.')
+      } else {
+        toast.error(message)
+      }
+      setError(message)
+      if (!projectIdOverride) {
+        useQuickCutGenerationStore.setState({ renderError: message })
+      }
     } finally {
       setBusy(false)
+      toast.dismiss('mp4-compile-progress')
     }
   }, [
     enabled,
@@ -216,6 +288,7 @@ export function QuickCutPlayerMp4Download({
     downloadName,
     onVideoUrl,
     retryVideoRender,
+    saveProject,
   ])
 
   if (!enabled) return null
@@ -232,11 +305,12 @@ export function QuickCutPlayerMp4Download({
         className
       )}
       title={
-        compileBusy
+        displayError ??
+        (compileBusy
           ? 'Compiling MP4…'
           : resolvedUrl
             ? 'Download MP4 (1080p vertical)'
-            : 'Compile and download MP4 (1080p vertical)'
+            : 'Compile and download MP4 (1080p vertical)')
       }
     >
       {compileBusy ? (
