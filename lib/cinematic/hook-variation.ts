@@ -37,12 +37,12 @@ export const HOOK_REGEN_FRAMEWORKS: readonly HookRegenFramework[] = [
       'Start with a precise psychological pattern the viewer recognizes in themselves.',
   },
   {
-    id: 'direct-accusation',
-    name: 'Direct Accusation',
+    id: 'direct-callout',
+    name: 'Direct Callout',
     example:
-      'You are not afraid of failing — you are afraid of what succeeding would demand from you.',
+      'If you keep restarting every Monday, this one habit is why nothing sticks.',
     instruction:
-      'Use second-person direct address; name the fear or contradiction the viewer avoids.',
+      'Use second-person direct address; name a specific stuck behavior, not a poetic fear.',
   },
   {
     id: 'documentary-opening',

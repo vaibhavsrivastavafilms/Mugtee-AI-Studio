@@ -1,6 +1,13 @@
 import { inferNicheFromBrief, type CinematicNiche } from '@/lib/cinematic/niches'
 import { coercePreviousHooks } from '@/lib/cinematic/hook-variation'
 import { coerceDuration, coerceTopic, coerceTone } from '@/lib/workspace/validation'
+import { normalizeProjectLanguage, type ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  parseVisualStyle,
+  parseViralScript,
+  type ViralScript,
+  type VisualStyle,
+} from '@/lib/cinematic/workflow-state'
 
 export type RegenSceneInput = {
   id: string
@@ -25,6 +32,9 @@ export type RegenProjectContext = {
   style: string
   duration: number
   niche: CinematicNiche
+  language: ProjectLanguage
+  visualStyle: VisualStyle | null
+  viralScript: ViralScript | null
   hook: string
   summary: string
   script: string
@@ -100,6 +110,9 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     style,
     niche: typeof raw.niche === 'string' ? raw.niche : undefined,
   })
+  const language = normalizeProjectLanguage(raw.language, topic || prompt)
+  const visualStyle = parseVisualStyle(raw.visualStyle)
+  const viralScript = parseViralScript(raw.viralScript)
 
   return {
     topic: topic || prompt,
@@ -108,6 +121,9 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     style,
     duration,
     niche,
+    language,
+    visualStyle,
+    viralScript,
     hook: coerceString(raw.hook, '', 220),
     summary: coerceString(raw.summary, '', 2000),
     script: coerceString(raw.script, '', 12_000),

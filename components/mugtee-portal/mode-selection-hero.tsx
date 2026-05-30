@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
+import { Suspense, type ReactNode, type RefObject } from 'react'
 import { motion } from 'framer-motion'
 import { Clapperboard } from 'lucide-react'
 import Link from 'next/link'
@@ -20,7 +20,19 @@ const AmbientParticles = dynamic(
   { ssr: false }
 )
 
-export function ModeSelectionHero() {
+type ModeSelectionHeroProps = {
+  ideaTopic?: string
+  onIdeaTopicChange?: (value: string) => void
+  ideaInputRef?: RefObject<HTMLTextAreaElement>
+  inspirationSection?: ReactNode
+}
+
+export function ModeSelectionHero({
+  ideaTopic,
+  onIdeaTopicChange,
+  ideaInputRef,
+  inspirationSection,
+}: ModeSelectionHeroProps = {}) {
   const directorHref = isDirectorCutLocked
     ? authLoginHref('director', { locked: '1' })
     : authLoginHref('director')
@@ -36,8 +48,14 @@ export function ModeSelectionHero() {
 
       <main className="relative z-10 flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
-          <QuickCutCard />
+          <QuickCutCard
+            ideaTopic={ideaTopic}
+            onIdeaTopicChange={onIdeaTopicChange}
+            ideaInputRef={ideaInputRef}
+          />
         </div>
+
+        {inspirationSection}
 
         <motion.aside
           initial={{ opacity: 0 }}

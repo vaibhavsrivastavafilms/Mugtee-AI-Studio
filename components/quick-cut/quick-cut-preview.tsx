@@ -8,8 +8,6 @@ import { QuickCutHome } from '@/components/quick-cut/quick-cut-home'
 
 import { LiveGenerationCanvas } from '@/components/quick-cut/canvas/live-generation-canvas'
 
-import { ReelRenderPreview } from '@/components/quick-cut/canvas/reel-render-preview'
-
 import {
   clearQuickCutPreview,
   loadQuickCutPreview,
@@ -103,7 +101,7 @@ function hydrateFromSession(session: NonNullable<ReturnType<typeof loadQuickCutP
     isComplete: true,
   })
 
-
+  void useQuickCutGenerationStore.getState().syncVideoRenderConfig()
 
   applyGenerationToStore(output)
 
@@ -116,6 +114,7 @@ export function QuickCutPreview({ embedded = true }: { embedded?: boolean }) {
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
 
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const studioReviewMode = useQuickCutGenerationStore((s) => s.studioReviewMode)
 
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
 
@@ -125,7 +124,7 @@ export function QuickCutPreview({ embedded = true }: { embedded?: boolean }) {
 
   useEffect(() => {
 
-    if (isGenerating || isComplete || generationStep !== 'idle') return
+    if (isGenerating || isComplete || generationStep !== 'idle' || studioReviewMode) return
 
     const session = loadQuickCutPreview()
 
@@ -135,7 +134,7 @@ export function QuickCutPreview({ embedded = true }: { embedded?: boolean }) {
 
     }
 
-  }, [isGenerating, isComplete, generationStep])
+  }, [isGenerating, isComplete, generationStep, studioReviewMode])
 
 
 
@@ -149,15 +148,15 @@ export function QuickCutPreview({ embedded = true }: { embedded?: boolean }) {
 
 
 
-  if (isComplete) {
+  if (isComplete && !studioReviewMode) {
 
-    return <ReelRenderPreview onRegenerate={handleRegenerate} embedded={embedded} />
+    return <LiveGenerationCanvas onRegenerate={handleRegenerate} embedded={embedded} complete />
 
   }
 
 
 
-  if (isGenerating || generationStep === 'error') {
+  if (isGenerating || generationStep === 'error' || studioReviewMode) {
 
     return <LiveGenerationCanvas onRegenerate={handleRegenerate} embedded={embedded} />
 

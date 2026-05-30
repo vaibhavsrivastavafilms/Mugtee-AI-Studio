@@ -1,9 +1,12 @@
-export type HeaderNavId = 'create' | 'projects' | 'settings'
+export type HeaderNavId = 'create' | 'video' | 'projects' | 'director' | 'exports' | 'settings'
 
 export const HEADER_NAV = [
-  { id: 'create' as const, label: 'Create', href: '/create?mode=quick' },
-  { id: 'projects' as const, label: 'Projects', href: '/projects' },
-  { id: 'settings' as const, label: 'Settings', href: '/settings' },
+  { id: 'create' as const, label: 'Create', href: '/studio/create?mode=quick' },
+  { id: 'video' as const, label: 'Text To Video', href: '/studio/video' },
+  { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
+  { id: 'director' as const, label: 'Director Mode', href: '/studio/director' },
+  { id: 'exports' as const, label: 'Exports', href: '/studio/exports' },
+  { id: 'settings' as const, label: 'Settings', href: '/studio/settings' },
 ]
 
 export function headerNavActive(
@@ -11,17 +14,36 @@ export function headerNavActive(
   pathname: string,
   tab: string | null
 ): boolean {
-  if (id === 'settings') return pathname.startsWith('/settings')
+  if (id === 'video') {
+    return pathname.startsWith('/studio/video')
+  }
+  if (id === 'settings') {
+    return pathname.startsWith('/studio/settings') || pathname.startsWith('/settings')
+  }
+  if (id === 'exports') {
+    return pathname.startsWith('/studio/exports') || tab === 'exports'
+  }
+  if (id === 'director') {
+    return pathname.startsWith('/studio/director') || pathname.startsWith('/workspace')
+  }
   if (id === 'projects') {
-    return pathname.startsWith('/projects') || tab === 'projects' || tab === 'exports' || /^\/create\/[^/]+/.test(pathname) || /^\/project\//.test(pathname)
+    return (
+      pathname.startsWith('/studio/projects') ||
+      pathname.startsWith('/studio/project/') ||
+      pathname.startsWith('/projects') ||
+      tab === 'projects' ||
+      /^\/studio\/create\/[^/]+/.test(pathname) ||
+      /^\/create\/[^/]+/.test(pathname) ||
+      /^\/project\//.test(pathname)
+    )
   }
   if (id === 'create') {
-    if (pathname.startsWith('/studio/quick-cut')) return true // legacy alias
-    if (pathname === '/dashboard') return true
-    if (pathname.startsWith('/workspace')) return true
-    if (!pathname.startsWith('/create')) return false
-    if (tab === 'projects' || tab === 'exports') return false
-    return true
+    if (pathname === '/studio' || pathname.startsWith('/studio/create')) {
+      if (tab === 'projects' || tab === 'exports') return false
+      return true
+    }
+    if (pathname.startsWith('/create') && tab !== 'projects' && tab !== 'exports') return true
+    return false
   }
   return false
 }

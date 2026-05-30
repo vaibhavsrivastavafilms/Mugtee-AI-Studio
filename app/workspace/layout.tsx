@@ -9,6 +9,6 @@ export const dynamic = 'force-dynamic'
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect(loginRedirectUrl('/workspace'))
+  if (!user) redirect(loginRedirectUrl('/studio/director'))
   return <div className="min-h-screen bg-background text-foreground">{children}</div>
 }

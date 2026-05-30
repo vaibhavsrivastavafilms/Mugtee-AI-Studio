@@ -1,26 +1,37 @@
 import { buildNicheLayer } from '@/lib/cinematic/niches'
 import { sceneVisualJsonFields } from '@/lib/ai/prompts/cinematic/visual-layer'
+import {
+  CREATOR_RETENTION_SCENE_COUNT,
+  RETENTION_SCENE_BEATS,
+  viralStructurePromptFragment,
+  type ViralStructureAnalysis,
+} from '@/lib/cinematic/viral-structure'
 import { pacingPromptFragment } from '@/lib/virlo-engine/pacing-engine'
 import { visualLanguagePromptFragment } from '@/lib/virlo-engine/visual-language'
 import type { VirloContext } from '@/lib/virlo-engine/types'
 
-export function buildVirloScriptPrompt(ctx: VirloContext): string {
+export function buildVirloScriptPrompt(
+  ctx: VirloContext,
+  viralStructure?: ViralStructureAnalysis
+): string {
   const { topicAnalysis, structure, retention, selectedHook, hooks } = ctx
 
   return [
-    `VIRLO ENGINE — unique story blueprint (do NOT use generic templates):`,
+    `VIRLO ENGINE — creator-native retention script (NOT quote mode, NOT cinematic philosophy):`,
     `Creator brief:
 - Idea: "${ctx.idea}"
 - Platform: ${ctx.platform} (vertical 9:16)
 - Tone: ${ctx.tone}
 - Locked niche: ${topicAnalysis.niche}
 - Platform behavior: ${topicAnalysis.platformBehavior}`,
-    buildStructureLayer(structure),
+    viralStructure
+      ? viralStructurePromptFragment(viralStructure)
+      : buildCreatorStructureLayer(),
     buildEmotionLayer(ctx),
     buildRetentionLayer(retention),
     pacingPromptFragment(ctx.pacing),
     buildCreativeSeedLayer(ctx),
-    buildHookDirectiveLayer(selectedHook, hooks),
+    buildHookDirectiveLayer(selectedHook, hooks, viralStructure),
     buildNicheLayer(topicAnalysis.niche),
     buildVisualDirectiveLayer(ctx),
     buildCaptionLayer(),
@@ -42,28 +53,46 @@ export function buildVirloTitlePrompt(ctx: VirloContext): string {
   ].join('\n')
 }
 
-export function buildVirloScenesPrompt(ctx: VirloContext, script: string): string {
+export function buildVirloScenesPrompt(
+  ctx: VirloContext,
+  script: string,
+  viralStructure?: ViralStructureAnalysis
+): string {
+  const sceneMap = RETENTION_SCENE_BEATS.map(
+    (b) => `Scene ${b.sceneIndex} = ${b.label} (${b.instruction})`
+  ).join('\n')
+
   return [
-    `Break this script into ${ctx.sceneTarget} vertical 9:16 cinematic scenes.`,
-    `VIRLO structure: ${ctx.structure.name} (Format ${ctx.structure.formatNumber})`,
+    `Break this script into exactly ${CREATOR_RETENTION_SCENE_COUNT} vertical 9:16 creator scenes.`,
+    `RETENTION SCENE MAP (mandatory titles):`,
+    sceneMap,
+    viralStructure
+      ? `Narration anchor per scene: ${RETENTION_SCENE_BEATS.map((b) => `${b.label}="${viralStructure[b.analysisKey].slice(0, 100)}"`).join(' · ')}`
+      : '',
     `Retention: ${ctx.retention.type} — payoff near ${ctx.retention.payoffTimingSec}s`,
     visualLanguagePromptFragment(ctx.visuals),
     `Use EXACT visual directions above per scene index — do not repeat camera/lighting across scenes.`,
+    `Each scene description = spoken narration (creator voice). visualPrompt = what we SEE.`,
     `Script:\n${script.slice(0, 8000)}`,
     `Return JSON { "scenes": [{ id, title, description, duration, ${sceneVisualJsonFields()} }] }`,
-  ].join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
-function buildStructureLayer(
-  structure: VirloContext['structure']
-): string {
+function buildCreatorStructureLayer(): string {
   return [
-    `STORY STRUCTURE — ${structure.name} (Format ${structure.formatNumber}):`,
-    ...structure.pattern.map((step, i) => `${i + 1}. ${step}`),
-    `Opening move: ${structure.openingMove}`,
-    `Midpoint turn: ${structure.midpointTurn}`,
-    `Closing move: ${structure.closingMove}`,
+    `CREATOR RETENTION STRUCTURE (mandatory beat order):`,
+    `Hook → Problem → Empathy → Solution → Proof → Payoff → CTA`,
+    ...RETENTION_SCENE_BEATS.map(
+      (b) => `Scene ${b.sceneIndex} ${b.label}: ${b.instruction}`
+    ),
+    `Write natural spoken narration — NO quote spam, NO AI poetry, NO philosophical one-liners.`,
   ].join('\n')
+}
+
+function buildStructureLayer(_structure: VirloContext['structure']): string {
+  return buildCreatorStructureLayer()
 }
 
 function buildEmotionLayer(ctx: VirloContext): string {
@@ -100,18 +129,21 @@ function buildCreativeSeedLayer(ctx: VirloContext): string {
 
 function buildHookDirectiveLayer(
   selected: VirloContext['selectedHook'],
-  candidates: VirloContext['hooks']
+  candidates: VirloContext['hooks'],
+  viralStructure?: ViralStructureAnalysis
 ): string {
+  const hookSeed = viralStructure?.hook ?? selected.text
   return [
-    `HOOK ENGINE:`,
-    `- Selected pattern: ${selected.pattern} (${selected.variant}, tension ${selected.tensionScore.toFixed(1)})`,
-    `- Reference hook (adapt — do not copy verbatim): ${selected.text}`,
+    `HOOK ENGINE (creator-native — retention, not quotes):`,
+    `- Opening hook seed: ${hookSeed}`,
+    `- Reference pattern: ${selected.pattern} (tension ${selected.tensionScore.toFixed(1)})`,
     `- Generate 3 variations in hookVariations; strongest becomes "hook".`,
     `- Alternate patterns considered: ${candidates
       .slice(1, 4)
       .map((c) => c.pattern)
       .join(', ')}`,
-    `- Avoid weak openings and niche "avoid" vocabulary.`,
+    `- BANNED: "You're not afraid of…", wrapped quote hooks, motivational poster lines.`,
+    `- REQUIRED: specific, spoken, platform-native — earns the first 2 seconds.`,
   ].join('\n')
 }
 
@@ -159,19 +191,22 @@ OUTPUT FORMAT (exact JSON shape):
 }
 
 Hard rules:
-- Exactly ${sceneTarget} scenes; durations sum ≈ ${duration}s.
+- Exactly ${sceneTarget} scenes mapped to Hook → Problem → Empathy → Solution → Proof → Payoff → CTA.
+- Scene titles MUST use those beat labels.
 - suggestedVoiceStyle must match story niche + tone intentionally.
+- Natural creator narration — never quote-mode or philosophical spam.
 - Every output must feel unique to this topic — no template filler.
 `.trim()
 }
 
 export function buildVirloSystemPrompt(): string {
   return `You are Mugtee — cinematic AI studio powered by the VIRLO engine.
-You think like a film director, reel editor, and retention strategist combined.
+You think like a short-form creator, reel editor, and retention strategist combined.
 
 Rules:
 - Output strict JSON only. No markdown. No extra keys.
-- Follow the VIRLO structure, retention beats, and per-scene visual language exactly.
-- Never reuse generic AI phrasing, motivational clichés, or template story shapes.
+- Follow the creator retention structure and per-scene beat map exactly.
+- Write natural spoken scripts — NOT motivational quotes, NOT AI poetry, NOT philosophy.
+- Never reuse generic AI phrasing or cinematic quote templates.
 - Every line must feel filmable, human, and niche-native.`.trim()
 }

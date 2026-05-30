@@ -1,5 +1,6 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { buildNarrationFromScript } from '@/lib/ai/synthesize-speech'
+import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 
 export type WordTiming = {
   text: string
@@ -72,20 +73,21 @@ export function buildSceneCaptionPlan(
   totalDurationSec: number,
   fallbackText = ''
 ): SceneCaptionPlan[] {
+  const cappedTotal = Math.min(Math.max(0, totalDurationSec), MAX_VIDEO_DURATION_SEC)
   const usable = scenes
     .map((scene, sceneIndex) => ({ scene, sceneIndex }))
     .filter(({ scene }) => Boolean(scene.description?.trim()))
 
   if (usable.length === 0) {
     const text = fallbackText.trim()
-    if (!text || totalDurationSec <= 0) return []
+    if (!text || cappedTotal <= 0) return []
     return [
       {
         sceneIndex: 0,
         text,
         startSec: 0,
-        endSec: totalDurationSec,
-        words: buildWordTimings(text, 0, totalDurationSec),
+        endSec: cappedTotal,
+        words: buildWordTimings(text, 0, cappedTotal),
       },
     ]
   }
@@ -94,14 +96,14 @@ export function buildSceneCaptionPlan(
     (sum, { scene }) => sum + Math.max(2, scene.duration || 4),
     0
   )
-  const scale = totalDurationSec / rawTotal
+  const scale = cappedTotal / rawTotal
   let cursor = 0
   const plan: SceneCaptionPlan[] = []
 
   for (const { scene, sceneIndex } of usable) {
     const dur = Math.max(2, (scene.duration || 4) * scale)
     const startSec = cursor
-    const endSec = Math.min(cursor + dur, totalDurationSec)
+    const endSec = Math.min(cursor + dur, cappedTotal)
     const text = scene.description.replace(/\s+/g, ' ').trim()
     plan.push({
       sceneIndex,
@@ -128,7 +130,8 @@ export function buildFullNarrationTimings(
     buildNarrationFromScript(script) ||
     fallbackText.trim()
   if (!narration || totalDurationSec <= 0) return []
-  return buildWordTimings(narration, 0, totalDurationSec)
+  const cappedTotal = Math.min(totalDurationSec, MAX_VIDEO_DURATION_SEC)
+  return buildWordTimings(narration, 0, cappedTotal)
 }
 
 export function getActiveWordIndex(words: WordTiming[], currentTimeSec: number): number {

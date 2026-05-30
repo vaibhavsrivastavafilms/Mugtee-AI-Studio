@@ -1,5 +1,5 @@
 export function buildPacingLayer(duration: number): string {
-  const sceneTarget = duration <= 30 ? 4 : duration <= 60 ? 6 : 8
+  const sceneTarget = duration <= 30 ? 4 : 6
 
   return `
 CINEMATIC PACING LAYER (vertical short-form):

@@ -1,8 +1,25 @@
 import type { CinematicProjectStatus } from '@/stores/cinematic-project'
+import {
+  isQuickCutStageTab,
+  type QuickCutStageTab,
+} from '@/lib/cinematic/quick-cut/stage-tabs'
+import { isFinishedProjectStatus } from '@/lib/cinematic/project-status'
 
 export type CreatorMode = 'quick' | 'director'
 
 export type CreateSegment = 'generate' | 'director' | 'export'
+
+const STUDIO = {
+  root: '/studio',
+  create: '/studio/create',
+  projects: '/studio/projects',
+  project: '/studio/project',
+  exports: '/studio/exports',
+  director: '/studio/director',
+  settings: '/studio/settings',
+} as const
+
+export { STUDIO }
 
 /** Canonical Quick Cut surface — fast one-click generation. */
 export function quickCutStudioHref(
@@ -15,12 +32,26 @@ export function quickCutStudioHref(
     }
   }
   const q = qs.toString()
-  return `/create?${q}`
+  return `${STUDIO.create}?${q}`
 }
 
-/** Project continuity route — resolves to the correct mode surface. */
+/** Dedicated project workspace — storyboard, scenes, and director output. */
+export function projectWorkspaceHref(
+  projectId: string,
+  options?: { tab?: QuickCutStageTab; regen?: boolean }
+): string {
+  const qs = new URLSearchParams()
+  if (options?.tab) qs.set('tab', options.tab)
+  if (options?.regen) qs.set('regen', '1')
+  const q = qs.toString()
+  return q
+    ? `${STUDIO.project}/${projectId}?${q}`
+    : `${STUDIO.project}/${projectId}`
+}
+
+/** Project continuity route — resolves to the dedicated workspace. */
 export function projectContinuityHref(projectId: string): string {
-  return `/project/${projectId}`
+  return projectWorkspaceHref(projectId)
 }
 
 /** Canonical Director Mode surface — the cinematic workspace canvas. */
@@ -36,7 +67,7 @@ export function directorWorkspaceHref(
     }
   }
   const q = qs.toString()
-  return q ? `/workspace?${q}` : '/workspace'
+  return q ? `${STUDIO.director}?${q}` : STUDIO.director
 }
 
 const DIRECTOR_STATUS_SEGMENT: Record<string, CreateSegment> = {
@@ -68,7 +99,7 @@ export function createEntryHref(
     }
   }
   const q = qs.toString()
-  return q ? `/create?${q}` : '/create'
+  return q ? `${STUDIO.create}?${q}` : STUDIO.create
 }
 
 /** Redirect legacy /create?mode=director to the workspace canvas. Quick Cut stays on /create. */
@@ -87,7 +118,76 @@ export function createProjectHref(
   if (segment === 'director') {
     return directorWorkspaceHref(projectId)
   }
-  return `/create/${projectId}/${segment}`
+  return `${STUDIO.create}/${projectId}/${segment}`
+}
+
+/** PREVIEW action — open export when a reel can play or compile; otherwise resume editing. */
+export function previewProjectHref(input: {
+  id: string
+  mode: CreatorMode
+  status: string
+  videoUrl: string | null
+  hasPlayablePreview: boolean
+}): string {
+  if (input.mode === 'quick') {
+    return createProjectHref(
+      input.id,
+      input.videoUrl || input.hasPlayablePreview ? 'export' : 'generate'
+    )
+  }
+
+  const exportReady =
+    Boolean(input.videoUrl) ||
+    input.hasPlayablePreview ||
+    isFinishedProjectStatus(input.status) ||
+    input.status === 'compile'
+
+  return createProjectHref(input.id, exportReady ? 'export' : 'director')
+}
+
+/** Quick Cut — open saved project in the generation/storyboard studio (not export). */
+export function openQuickCutProjectHref(
+  projectId: string,
+  stageTab: QuickCutStageTab = 'scenes'
+): string {
+  return projectWorkspaceHref(projectId, { tab: stageTab })
+}
+
+/** Parse `?tab=` from a generate URL into a stage tab id. */
+export function stageTabFromSearchParams(
+  searchParams: URLSearchParams | { get: (key: string) => string | null }
+): QuickCutStageTab | undefined {
+  const tab = searchParams.get('tab')
+  return isQuickCutStageTab(tab) ? tab : undefined
+}
+
+/** REGENERATE — re-open the same project (UPDATE row, never a new create entry). */
+export function regenerateProjectHref(
+  projectId: string,
+  mode: CreatorMode,
+  stageTab: QuickCutStageTab = 'title'
+): string {
+  if (mode === 'quick') {
+    return projectWorkspaceHref(projectId, { tab: stageTab, regen: true })
+  }
+  return directorWorkspaceHref(projectId)
+}
+
+/** OPEN action — resume editing in the generation workflow, not export/new create. */
+export function openProjectHref(
+  status: string,
+  projectId: string,
+  mode?: CreatorMode | string | null,
+  stageTab: QuickCutStageTab = 'scenes'
+): string {
+  const resolvedMode: CreatorMode =
+    mode === 'quick' || mode === 'director' ? mode : inferModeFromStatus(status)
+
+  if (resolvedMode === 'quick') {
+    return openQuickCutProjectHref(projectId, stageTab)
+  }
+
+  return projectWorkspaceHref(projectId)
 }
 
 export function hrefForProject(
@@ -99,10 +199,10 @@ export function hrefForProject(
     mode === 'quick' || mode === 'director' ? mode : inferModeFromStatus(status)
 
   if (resolvedMode === 'quick') {
-    if (status === 'compile' || status === 'complete') {
+    if (status === 'compile' || status === 'complete' || isFinishedProjectStatus(status)) {
       return createProjectHref(projectId, 'export')
     }
-    return createProjectHref(projectId, 'generate')
+    return projectWorkspaceHref(projectId)
   }
 
   const segment = DIRECTOR_STATUS_SEGMENT[status] || 'director'
@@ -123,7 +223,7 @@ export function cinematicLegacyRedirectTarget(
   const segment = pathname.split('/').filter(Boolean).pop() || 'create'
 
   if (!projectId) {
-    if (segment === 'compile') return createEntryHref(undefined, { tab: 'projects', filter: 'downloaded' })
+    if (segment === 'compile') return `${STUDIO.exports}`
     return directorWorkspaceHref()
   }
 

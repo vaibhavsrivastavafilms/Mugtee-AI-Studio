@@ -19,9 +19,15 @@ import {
   stateToRowPayload,
   updateProject as updateProjectRow,
 } from '@/lib/cinematic-projects'
+import { coerceDuration } from '@/lib/workspace/validation'
 
 export type CinematicProjectStatus =
   | 'idle'
+  | 'draft'
+  | 'editing'
+  | 'reviewing'
+  | 'completed'
+  | 'exported'
   | 'create'
   | 'generating'
   | 'preview'
@@ -245,7 +251,7 @@ export const useCinematicProjectStore = create<CinematicProjectStore>(
     },
 
     updateDuration: (duration) => {
-      set({ duration, updatedAt: touchUpdatedAt() })
+      set({ duration: coerceDuration(duration), updatedAt: touchUpdatedAt() })
       scheduleAutosave(get)
     },
 

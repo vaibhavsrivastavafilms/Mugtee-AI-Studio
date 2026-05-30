@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { quickCutStudioHref } from '@/lib/create/routes'
 import { useStore } from '@/lib/store'
 import { useUsage } from '@/lib/usage'
 import { useAutomations } from '@/lib/automations-store'
@@ -217,7 +218,7 @@ export function HeaderRightActions({ user }: { user: User }) {
         asChild
         className="hidden sm:inline-flex h-9 gap-1.5 rounded-full bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow"
       >
-        <Link href="/create?mode=quick">
+        <Link href={quickCutStudioHref()}>
           <Plus className="w-4 h-4" /> New Project
         </Link>
       </Button>

@@ -32,6 +32,8 @@ function isStaticAsset(url) {
 function shouldBypass(url) {
   if (url.pathname.startsWith('/api/')) return true;
   if (url.pathname.startsWith('/auth/')) return true;
+  if (url.searchParams.has('code')) return true;
+  if (url.searchParams.has('error')) return true;
   if (url.hostname.includes('supabase')) return true;
   if (url.hostname.includes('posthog')) return true;
   if (url.hostname.includes('googlesyndication')) return true;
@@ -51,7 +53,12 @@ self.addEventListener('fetch', (event) => {
           caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(()=>{});
         }
         return res;
-      }).catch(() => caches.match(req).then((r) => r || caches.match(OFFLINE_URL)))
+      }).catch(() => {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          return caches.match(req).then((r) => r || caches.match(OFFLINE_URL));
+        }
+        return fetch(req).catch(() => caches.match(req));
+      })
     );
     return;
   }

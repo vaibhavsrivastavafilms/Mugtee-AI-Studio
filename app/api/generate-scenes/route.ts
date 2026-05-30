@@ -10,7 +10,17 @@ import {
 } from '@/lib/cinematic/generation'
 
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
-import { buildVirloScenesPrompt, buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
+import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
+import {
+  applyVisualStyleToScene,
+  buildMugteeDirectorPrompt,
+} from '@/lib/cinematic/mugtee-director-engine'
+import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  parseVisualStyle,
+  sceneVisualDefaults,
+  visualStyleFromVirloContext,
+} from '@/lib/cinematic/workflow-state'
 import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
 
 import { coerceTopic, logError } from '@/lib/workspace/validation'
@@ -19,7 +29,11 @@ export const runtime = 'nodejs'
 
 export const dynamic = 'force-dynamic'
 
-function parseScriptIntoScenes(script: string) {
+function parseScriptIntoScenes(
+  script: string,
+  visualStyle: ReturnType<typeof visualStyleFromVirloContext>
+) {
+  const defaults = sceneVisualDefaults(visualStyle)
   const blocks = script.split(/\n\s*\n/).filter((b) => b.trim().length > 8)
 
   if (blocks.length < 2) return null
@@ -35,13 +49,9 @@ function parseScriptIntoScenes(script: string) {
       title,
       description,
       duration: 4,
-      visualPrompt: visual || block.slice(0, 120),
+      visualPrompt: visual || `${visualStyle.label}. ${defaults.cameraAngle}.`,
       imagePrompt: '',
-      cameraAngle: 'Cinematic medium',
-      lightingMood: 'Moody contrast',
-      environment: 'Abstract cinematic',
-      colorPalette: 'Deep shadow, gold highlight',
-      movementStyle: 'Slow push-in',
+      ...defaults,
     }
     return { ...base, imagePrompt: buildSceneImagePrompt(base) }
   })
@@ -61,19 +71,25 @@ export async function POST(req: NextRequest) {
     const virlo = buildVirloContext(idea || script, { sessionSeed })
     const meta = virloMetadataFromContext(virlo)
     const niche = virlo.topicAnalysis.niche
+    const language = normalizeProjectLanguage(raw?.language, idea || script)
+    const visualStyle =
+      parseVisualStyle(raw?.visualStyle, visualStyleFromVirloContext(virlo)) ??
+      visualStyleFromVirloContext(virlo)
 
-    const parsed = parseScriptIntoScenes(script)
+    const parsed = parseScriptIntoScenes(script, visualStyle)
     if (parsed && parsed.length >= 2) {
       const enriched = parsed.map((scene, i) => {
-        const visual = virlo.visuals[i]
-        if (!visual) return scene
-        const fields = sceneVisualFieldsFromVirlo(visual)
-        return { ...scene, ...fields }
+        const virloVisual = virlo.visuals[i]
+        if (!virloVisual) return applyVisualStyleToScene(scene, visualStyle)
+        const fields = sceneVisualFieldsFromVirlo(virloVisual)
+        return applyVisualStyleToScene({ ...scene, ...fields }, visualStyle)
       })
       return NextResponse.json({
         scenes: ensureScenesHaveImagePrompts(enriched),
         mock: false,
         niche,
+        language,
+        visualStyle,
         source: 'script_parse',
         virlo: meta,
       })
@@ -82,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (process.env.OPENAI_API_KEY) {
       try {
         const openai = getOpenAIClient()
-        const userPrompt = buildVirloScenesPrompt(virlo, script)
+        const userPrompt = buildMugteeDirectorPrompt(virlo, script, visualStyle, language)
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -103,10 +119,15 @@ export async function POST(req: NextRequest) {
         )
 
         if (normalized.scenes.length >= 2) {
+          const styled = normalized.scenes.map((scene) =>
+            applyVisualStyleToScene(scene, visualStyle)
+          )
           return NextResponse.json({
-            scenes: ensureScenesHaveImagePrompts(normalized.scenes),
+            scenes: ensureScenesHaveImagePrompts(styled),
             mock: false,
             niche,
+            language,
+            visualStyle,
             source: 'openai',
             virlo: meta,
           })
@@ -125,9 +146,13 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({
-      scenes: ensureScenesHaveImagePrompts(mock.scenes),
+      scenes: ensureScenesHaveImagePrompts(
+        mock.scenes.map((scene) => applyVisualStyleToScene(scene, visualStyle))
+      ),
       mock: true,
       niche,
+      language,
+      visualStyle,
       source: 'fallback',
       virlo: meta,
     })

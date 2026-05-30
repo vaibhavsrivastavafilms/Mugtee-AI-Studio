@@ -48,7 +48,7 @@ export function suggestSceneTarget(
   niche: CinematicNiche
 ): number {
   const memory = readPacingMemory()
-  const base = duration <= 30 ? 4 : duration <= 60 ? 6 : 8
+  const base = duration <= 30 ? 4 : 6
   if (!memory) return base
   if (Math.abs(memory.lastDuration - duration) > 20) return base
   return Math.min(10, Math.max(3, memory.avgSceneCount || base))

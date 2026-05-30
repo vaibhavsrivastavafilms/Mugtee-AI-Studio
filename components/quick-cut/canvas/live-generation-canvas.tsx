@@ -7,10 +7,12 @@ import { cn } from '@/lib/utils'
 export function LiveGenerationCanvas({
   onRegenerate,
   embedded = false,
+  complete = false,
   className,
 }: {
   onRegenerate?: () => void
   embedded?: boolean
+  complete?: boolean
   className?: string
 }) {
   return (
@@ -27,10 +29,10 @@ export function LiveGenerationCanvas({
         <div className="max-w-6xl mx-auto">
           <header className="mb-6 sm:mb-8 text-center">
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-2">
-              Live generation
+              {complete ? 'Production complete' : 'Live generation'}
             </p>
             <h2 className="font-display text-2xl sm:text-3xl text-luxe italic">
-              Your reel is becoming film
+              {complete ? 'Your reel is ready to export' : 'Your reel is becoming film'}
             </h2>
           </header>
 

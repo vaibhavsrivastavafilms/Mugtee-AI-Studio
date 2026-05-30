@@ -6,12 +6,17 @@ import type { RenderSceneInput, SubtitleSegment } from '@/lib/video/types'
 import { resolveFfmpegPath } from '@/lib/video/ffmpeg-path.server'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
 import { segmentsToSrt } from '@/lib/video/subtitles'
+import {
+  clampSceneDurationsToTarget,
+  computeRenderTotalSec,
+} from '@/lib/cinematic/scene-duration'
+import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 
-const WIDTH = 1080
-const HEIGHT = 1920
-const FPS = 30
+export const WIDTH = 1080
+export const HEIGHT = 1920
+export const FPS = 30
 
-function runFfmpeg(args: string[]): Promise<void> {
+export function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const bin = resolveFfmpegPath()
     if (!bin) {
@@ -51,11 +56,16 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mugtee-render-'))
   try {
     const segmentPaths: string[] = []
+    const scaledScenes = clampSceneDurationsToTarget(
+      input.scenes.map((s) => ({ ...s, duration: s.durationSec })),
+      computeRenderTotalSec(input.scenes.map((s) => ({ duration: s.durationSec }))),
+      { maxPerScene: 12 }
+    )
     let totalDuration = 0
 
-    for (let i = 0; i < input.scenes.length; i++) {
-      const scene = input.scenes[i]
-      const dur = Math.max(2, Math.min(12, scene.durationSec))
+    for (let i = 0; i < scaledScenes.length; i++) {
+      const scene = scaledScenes[i]
+      const dur = Math.max(2, Math.min(12, scene.duration))
       totalDuration += dur
       const imgExt = extFromUrl(scene.imageUrl, '.jpg')
       const imgPath = path.join(workDir, `scene_${i}${imgExt}`)
@@ -132,7 +142,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
       args.push('-an')
     }
 
-    args.push(finalPath)
+    args.push('-t', String(MAX_VIDEO_DURATION_SEC), finalPath)
     await runFfmpeg(args)
 
     const thumbWork = path.join(workDir, 'thumb.jpg')
@@ -151,7 +161,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
 
     return {
       outputPath: finalPath,
-      durationSec: totalDuration,
+      durationSec: Math.min(totalDuration, MAX_VIDEO_DURATION_SEC),
       thumbnailPath,
     }
   } finally {
@@ -170,7 +180,9 @@ async function renderMockMp4(input: RenderPipelineInput): Promise<{
     throw new Error('VIDEO_RENDER_MOCK requires ffmpeg-static or FFMPEG_PATH')
   }
   await ensureDir(path.dirname(input.outputPath))
-  const dur = Math.min(60, Math.max(30, input.scenes.reduce((s, sc) => s + sc.durationSec, 0) || 45))
+  const rawTotal =
+    input.scenes.reduce((s, sc) => s + Math.max(2, sc.durationSec), 0) || 45
+  const dur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(15, rawTotal))
   await runFfmpeg([
     '-y',
     '-f',

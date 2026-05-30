@@ -27,6 +27,7 @@ import {
   validateVisualDirection,
   type SceneVisualDirection,
 } from '@/lib/cinematic/visual-direction'
+import { sceneVisualDefaults } from '@/lib/cinematic/workflow-state'
 import {
   coerceVoiceStyle,
   recommendVoiceStyle,
@@ -50,6 +51,28 @@ function normalizeHashtags(raw: unknown): string[] {
     })
     .filter(Boolean)
     .slice(0, 3)
+}
+
+function visualFromContext(
+  ctx: RegenProjectContext,
+  role: string,
+  title?: string
+): SceneVisualDirection {
+  if (ctx.visualStyle) {
+    const defaults = sceneVisualDefaults(ctx.visualStyle)
+    return normalizeVisualDirection(
+      {
+        ...defaults,
+        visualPrompt: `${ctx.visualStyle.label}. ${defaults.cameraAngle}. ${defaults.environment}.`,
+        environment: title
+          ? `${defaults.environment} — ${title}`
+          : defaults.environment,
+      },
+      ctx.niche,
+      role
+    )
+  }
+  return defaultVisualDirection(ctx.niche, role, title)
 }
 
 export function normalizeHookRegen(
@@ -139,8 +162,24 @@ export function normalizeSceneRegen(
 
   const role = scenePacingRole(sceneIndex, ctx.scenes.length || 1)
   const visual = normalizeVisualDirection(raw, ctx.niche, role)
-
-  return { title, description, duration, ...visual }
+  if (validateVisualDirection(visual).valid) {
+    if (ctx.visualStyle) {
+      const locked = sceneVisualDefaults(ctx.visualStyle)
+      return {
+        title,
+        description,
+        duration,
+        ...visual,
+        colorPalette: locked.colorPalette,
+        cameraAngle: visual.cameraAngle || locked.cameraAngle,
+        lightingMood: visual.lightingMood || locked.lightingMood,
+        movementStyle: visual.movementStyle || locked.movementStyle,
+        environment: visual.environment || locked.environment,
+      }
+    }
+    return { title, description, duration, ...visual }
+  }
+  return { title, description, duration, ...visualFromContext(ctx, role, title) }
 }
 
 export function mockSceneRegen(
@@ -152,7 +191,7 @@ export function mockSceneRegen(
   const role = scenePacingRole(sceneIndex, ctx.scenes.length)
   const duration = existing?.duration ?? 4
   const title = existing?.title || `Scene ${sceneIndex}`
-  const visual = defaultVisualDirection(ctx.niche, role, title)
+  const visual = visualFromContext(ctx, role, title)
 
   return {
     title,
@@ -171,7 +210,7 @@ export function normalizeVisualEnhance(
   const role = scenePacingRole(sceneIndex, ctx.scenes.length || 1)
   const visual = normalizeVisualDirection(raw, ctx.niche, role)
   if (validateVisualDirection(visual).valid) return visual
-  return defaultVisualDirection(ctx.niche, role, existing?.title)
+  return visualFromContext(ctx, role, existing?.title)
 }
 
 export function mockVisualEnhance(
@@ -180,7 +219,7 @@ export function mockVisualEnhance(
 ): SceneVisualDirection {
   const existing = ctx.scenes.find((s) => s.index === sceneIndex)
   const role = scenePacingRole(sceneIndex, ctx.scenes.length || 1)
-  return defaultVisualDirection(ctx.niche, role, existing?.title)
+  return visualFromContext(ctx, role, existing?.title)
 }
 
 export { validateVisualDirection }

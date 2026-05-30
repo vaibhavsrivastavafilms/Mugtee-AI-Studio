@@ -9,6 +9,62 @@ import {
   scenePacingRole,
 } from '@/lib/cinematic/regen-context'
 import { rotatedHookFramework } from '@/lib/cinematic/hook-variation'
+import { languageDirective } from '@/lib/cinematic/language-prompt'
+
+export type RegenAction = 'hook' | 'scene' | 'storyboard' | 'caption' | 'all'
+
+function buildVisualStyleLock(ctx: RegenProjectContext): string {
+  const vs = ctx.visualStyle
+  if (!vs) return ''
+  return [
+    `LOCKED VISUAL STYLE (preserve — do NOT switch to generic luxury/gold/cinematic defaults):`,
+    `- Label: ${vs.label}`,
+    `- Palette: ${vs.palette}`,
+    `- Camera: ${vs.camera}`,
+    `- Lighting: ${vs.lighting}`,
+    `- Movement: ${vs.movement}`,
+    `- Environment: ${vs.environment}`,
+  ].join('\n')
+}
+
+function buildViralScriptBlock(ctx: RegenProjectContext): string {
+  const vs = ctx.viralScript
+  if (!vs) return ''
+  const parts = [
+    vs.retention_pattern
+      ? `Locked retention pattern (preserve): ${vs.retention_pattern}`
+      : '',
+    vs.script?.trim() ? `Virlo script anchor: ${vs.script.slice(0, 400)}` : '',
+  ].filter(Boolean)
+  return parts.length ? parts.join('\n') : ''
+}
+
+function buildPreserveBlock(action: RegenAction, ctx: RegenProjectContext): string {
+  const rules: Record<RegenAction, string> = {
+    hook: 'Preserve: language, visual style, full script. Change ONLY the opening hook.',
+    scene: 'Preserve: language, visual style, hook. Change ONLY this scene beat content.',
+    storyboard: 'Preserve: language, script, visual style. Change ONLY visual direction fields.',
+    caption: 'Preserve: language, script. Change ONLY caption pack.',
+    all: 'Preserve: language only. You may refresh hook, script, scenes, and visuals.',
+  }
+  const parts = [rules[action], languageDirective(ctx.language)]
+  const viralBlock = buildViralScriptBlock(ctx)
+  if (viralBlock && action !== 'caption') parts.push(viralBlock)
+  const styleLock = buildVisualStyleLock(ctx)
+  if (styleLock && action !== 'caption' && action !== 'all') {
+    parts.push(styleLock)
+  }
+  if (action === 'hook' && ctx.script.trim()) {
+    parts.push(`Full script (do NOT rewrite): ${ctx.script.slice(0, 1200)}`)
+  }
+  if (action === 'scene' && ctx.hook.trim()) {
+    parts.push(`Locked hook: "${ctx.hook.slice(0, 220)}"`)
+  }
+  if ((action === 'storyboard' || action === 'caption') && ctx.script.trim()) {
+    parts.push(`Script context: ${ctx.script.slice(0, 800)}`)
+  }
+  return parts.filter(Boolean).join('\n\n')
+}
 
 export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
   const avoidHooks = [
@@ -42,6 +98,7 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
       ].join('\n')
 
   return [
+    buildPreserveBlock('hook', ctx),
     `Refine ONLY the opening hook for this vertical cinematic reel.`,
     `Original creator idea: "${ctx.topic || ctx.prompt}"`,
     `Niche: ${ctx.niche}`,
@@ -56,7 +113,6 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
     variationBlock,
     `Current hook (replace entirely): "${ctx.hook || '—'}"`,
     `Summary context: ${ctx.summary.slice(0, 400) || '—'}`,
-    `Script excerpt: ${ctx.script.slice(0, 500) || '—'}`,
     `Output JSON only:
 {
   "hookFramework": "${framework.id}",
@@ -85,6 +141,7 @@ export function buildSceneRegenPrompt(
     .join('\n')
 
   return [
+    buildPreserveBlock('scene', ctx),
     `Regenerate ONE scene beat only. Preserve story sequence and emotional escalation.`,
     `Project: "${ctx.topic || ctx.prompt}" · Niche locked: ${ctx.niche}`,
     buildNicheLayer(ctx.niche),
@@ -92,13 +149,13 @@ export function buildSceneRegenPrompt(
     `Current scene title: "${target.title || `Scene ${sceneIndex}`}"`,
     `Current description: "${sceneDescription(target).slice(0, 400) || '—'}"`,
     `Duration target: ${target.duration ?? Math.max(2, Math.round(ctx.duration / Math.max(total, 1)))}s`,
-    `Hook: "${ctx.hook.slice(0, 160) || '—'}"`,
     `Other scenes (stay distinct — no repetition):
 ${neighbors || '—'}`,
     `Requirements:
 - Vertical 9:16 — specify what we SEE + what we FEEL
 - Match ${role} in the emotional arc
-- Do not duplicate framing or beats from other scenes`,
+- Do not duplicate framing or beats from other scenes
+- Keep locked visual style palette and camera language`,
     `Output JSON only:
 {
   "title": "beat title",
@@ -120,6 +177,7 @@ export function buildVisualEnhancePrompt(
   const role = scenePacingRole(sceneIndex, total)
 
   return [
+    buildPreserveBlock('storyboard', ctx),
     `Enhance ONLY visual direction for Scene ${sceneIndex}. Do NOT change story beat, narration, hook, or pacing role.`,
     `Project: "${ctx.topic || ctx.prompt}" · Niche: ${ctx.niche}`,
     buildNicheLayer(ctx.niche),
@@ -128,7 +186,6 @@ export function buildVisualEnhancePrompt(
     `Beat title: "${target.title || `Scene ${sceneIndex}`}"`,
     `Narration (preserve meaning): "${sceneDescription(target).slice(0, 400) || '—'}"`,
     `Current visual prompt: "${target.visualPrompt?.slice(0, 300) || '—'}"`,
-    `Hook context: "${ctx.hook.slice(0, 120) || '—'}"`,
     `Output JSON only:
 {
   ${sceneVisualJsonFields()}
@@ -140,6 +197,7 @@ export function buildCaptionImprovePrompt(ctx: RegenProjectContext): string {
   const current = captionsFromLines(ctx.captionLines)
 
   return [
+    buildPreserveBlock('caption', ctx),
     `Improve captions only — stronger emotional pull, cleaner short-form phrasing.`,
     `Project: "${ctx.topic || ctx.prompt}" · Niche: ${ctx.niche}`,
     buildNicheLayer(ctx.niche),
@@ -163,6 +221,7 @@ export function buildVoiceSuggestPrompt(ctx: RegenProjectContext): string {
     .join('\n')
 
   return [
+    languageDirective(ctx.language),
     `Recommend the best narrator voice style for this cinematic reel.`,
     `Niche: ${ctx.niche} · Tone: ${ctx.tone}`,
     buildNicheLayer(ctx.niche),

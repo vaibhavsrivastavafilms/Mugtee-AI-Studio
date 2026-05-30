@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, Plus, Search, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { quickCutStudioHref, directorWorkspaceHref } from '@/lib/create/routes'
+import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { HEADER_NAV, headerNavActive } from '@/lib/shell/header-nav'
 import {
   HeaderRightActions,
@@ -75,7 +75,7 @@ function CinematicHeaderInner({
       />
 
       <div className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 h-14 sm:h-16">
-        <Link href="/" className="group flex items-center gap-2.5 shrink-0 min-w-0">
+        <Link href={isApp ? STUDIO.create + '?mode=quick' : '/'} className="group flex items-center gap-2.5 shrink-0 min-w-0">
           <motion.div
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow shrink-0"
             animate={{
@@ -91,11 +91,17 @@ function CinematicHeaderInner({
           </motion.div>
           <div className="hidden sm:block min-w-0">
             <div className="font-display text-sm sm:text-base leading-none text-gold-gradient truncate">
-              Mugtee AI
+              Mugtee
             </div>
-            <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70 mt-0.5">
-              Cinematic Studio
-            </div>
+            {isApp ? (
+              <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/55 mt-0.5">
+                Studio
+              </div>
+            ) : (
+              <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70 mt-0.5">
+                Cinematic reels
+              </div>
+            )}
           </div>
         </Link>
 
@@ -178,13 +184,13 @@ function CinematicHeaderInner({
                 </Link>
               </Button>
               <Link
-                href="/auth/login"
+                href="/auth"
                 className="text-xs sm:text-sm text-muted-foreground hover:text-gold-200 transition px-2 py-1.5"
               >
                 Sign in
               </Link>
               <Button size="sm" asChild className="h-9 rounded-full bg-gold-gradient text-black">
-                <Link href={directorWorkspaceHref()}>Open Studio</Link>
+                <Link href={STUDIO.root}>Open Studio</Link>
               </Button>
             </>
           )}

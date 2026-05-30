@@ -3,22 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import {
-  ArrowRight,
-  Clapperboard,
-  Download,
-  Film,
-  Play,
-  Zap,
-} from 'lucide-react'
+import { ArrowRight, Clapperboard, Film, Play, RefreshCw, Zap } from 'lucide-react'
+import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
 import { formatDistanceToNow, parseISO } from 'date-fns'
-import { cn } from '@/lib/utils'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { loadRecentProjects } from '@/lib/cinematic-projects'
 import {
   createEntryHref,
-  createProjectHref,
-  hrefForProject,
+  openProjectHref,
+  previewProjectHref,
+  regenerateProjectHref,
   type CreatorMode,
 } from '@/lib/create/routes'
 import {
@@ -67,7 +61,7 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
     let alive = true
     ;(async () => {
       try {
-        const rows = await loadRecentProjects(limit)
+        const { projects: rows } = await loadRecentProjects(limit)
         if (!alive) return
         setProjects(rows.map((row) => summaryToCard(row)))
       } catch {
@@ -109,14 +103,15 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
             const isHovered = hoverId === p.id
             const modeMeta = MODE_BADGE[p.mode]
             const ModeIcon = modeMeta.icon
-            const previewHref =
-              p.mode === 'quick'
-                ? createProjectHref(p.id, p.videoUrl ? 'export' : 'generate')
-                : createProjectHref(
-                    p.id,
-                    p.status === 'complete' || p.videoUrl ? 'export' : 'director'
-                  )
-            const openHref = hrefForProject(p.status, p.id, p.mode)
+            const previewHref = previewProjectHref({
+              id: p.id,
+              mode: p.mode,
+              status: p.status,
+              videoUrl: p.videoUrl,
+              hasPlayablePreview: p.hasPlayablePreview,
+            })
+            const openHref = openProjectHref(p.status, p.id, p.mode)
+            const regenerateHref = regenerateProjectHref(p.id, p.mode)
 
             return (
               <motion.article
@@ -174,21 +169,22 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
 
                   <div className="px-2.5 sm:px-3 pb-2.5 sm:pb-3 flex flex-wrap gap-1">
                     <CardAction href={previewHref} icon={Play} label="Preview" />
-                    {p.videoUrl ? (
-                      <a
-                        href={p.videoUrl}
-                        download
-                        className={cardActionClass}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Download className="w-3 h-3" /> MP4
-                      </a>
-                    ) : (
-                      <span className={cn(cardActionClass, 'opacity-40 cursor-not-allowed')}>
-                        <Download className="w-3 h-3" /> MP4
-                      </span>
-                    )}
+                    <ProjectMp4Button
+                      projectId={p.id}
+                      title={p.title}
+                      videoUrl={p.videoUrl}
+                      canCompileMp4={p.canCompileMp4}
+                      exportHref={previewHref}
+                      onVideoUrl={(url) => {
+                        setProjects((prev) =>
+                          prev?.map((card) =>
+                            card.id === p.id ? { ...card, videoUrl: url } : card
+                          ) ?? prev
+                        )
+                      }}
+                    />
                     <CardAction href={openHref} icon={Film} label="Open" />
+                    <CardAction href={regenerateHref} icon={RefreshCw} label="Regenerate" />
                   </div>
                 </div>
               </motion.article>

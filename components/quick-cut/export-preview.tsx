@@ -15,23 +15,38 @@ import { relSavedLabel } from '@/stores/cinematic-project'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator'
+import { VariationHistoryPanel } from '@/components/quick-cut/variation-history-panel'
+import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { formatMissingKeysHint } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
+import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { downloadAllStoryboardImages } from '@/lib/quick-cut/download-scene-image'
 import {
   buildStoryboardExportPayload,
   downloadStoryboardPackage,
 } from '@/lib/quick-cut/download-storyboard-package'
 
-export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () => void; className?: string }) {
+export function ExportPreview({
+  onRegenerate,
+  actionsOnly = false,
+  className,
+}: {
+  onRegenerate?: () => void
+  /** Export actions only — player and stage panel live elsewhere */
+  actionsOnly?: boolean
+  className?: string
+}) {
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
+  const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
+  const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const mock = useQuickCutGenerationStore((s) => s.mock)
@@ -39,6 +54,7 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
   const regenerateHook = useQuickCutGenerationStore((s) => s.regenerateHook)
   const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
   const previousHooks = useQuickCutGenerationStore((s) => s.previousHooks)
@@ -49,19 +65,33 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
   const pollStartedRef = useRef(false)
   const downloadingPackageRef = useRef(false)
 
-  const mp4Compiling = videoRenderEnabled && !videoUrl && !renderError && !isGenerating
-  const storyboardExportReady = !videoRenderEnabled && exportPackageReady && !isGenerating
+  const mp4Compiling =
+    isRenderingVideo ||
+    (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
+  const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
   const hasStoryboardStills = !isGenerating && scenes.length > 0
+  const hasNarration = Boolean(voiceUrl?.trim())
+  const canPlayReelPreview = hasStoryboardStills && (hasNarration || scenes.some((s) => s.imageUrl?.trim()))
+  const storyboardPackageOnly =
+    !videoRenderEnabled && exportPackageReady && !isGenerating && !canPlayReelPreview
 
   const downloadName = `${(title || 'mugtee-reel').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-reel'}.mp4`
   const packageName = `${(title || 'mugtee-storyboard').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-storyboard'}-export`
+
+  useEffect(() => {
+    void syncVideoRenderConfig()
+  }, [syncVideoRenderConfig])
 
   useEffect(() => {
     if (!videoRenderEnabled) {
       pollStartedRef.current = false
       return
     }
-    if (videoUrl || renderError) {
+    if (videoUrl || renderError || isRenderingVideo) {
+      pollStartedRef.current = false
+      return
+    }
+    if (!canCompileMp4 && !renderPollUrl) {
       pollStartedRef.current = false
       return
     }
@@ -77,6 +107,8 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
     videoUrl,
     renderPollUrl,
     renderError,
+    isRenderingVideo,
+    canCompileMp4,
     resumeRenderPoll,
     retryVideoRender,
   ])
@@ -125,17 +157,29 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
         <h3 className="font-display text-2xl text-luxe">
           {videoUrl
             ? 'Your MP4 is ready'
-            : storyboardExportReady
+            : storyboardPackageOnly
               ? 'Storyboard export ready'
-              : 'Preview assembled'}
+              : canPlayReelPreview
+                ? 'Preview ready to play'
+                : 'Preview assembled'}
         </h3>
         {isGenerating ? null : mock && keysHint ? (
           <p className="text-xs text-luxe/45">{keysHint}</p>
         ) : videoUrl ? (
           <p className="text-xs text-gold-300/60">Synced video with narration — download your MP4 below.</p>
-        ) : storyboardExportReady ? (
+        ) : storyboardPackageOnly ? (
           <p className="text-xs text-gold-300/60">
-            MVP preview — download storyboard JPGs or the JSON export package below.
+            Download storyboard JPGs or the JSON export package below.
+          </p>
+        ) : canPlayReelPreview && hasNarration && !videoUrl ? (
+          <p className="text-xs text-gold-300/60">
+            {canCompileMp4
+              ? 'Press play for synced narration — compile MP4 below when ready.'
+              : 'Press play for synced narration with scene crossfades.'}
+          </p>
+        ) : canPlayReelPreview && !videoUrl ? (
+          <p className="text-xs text-gold-300/60">
+            Press play to preview scene crossfades{canCompileMp4 ? ' — compile MP4 below.' : '.'}
           </p>
         ) : hasStoryboardStills && !videoUrl ? (
           <p className="text-xs text-gold-300/60">
@@ -147,46 +191,59 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
           </div>
         ) : mp4Compiling ? (
           <p className="text-xs text-luxe/50">
-            Compiling your synced MP4 — scene preview above until ready.
+            {renderStatusLabel
+              ? `${renderStatusLabel} — compiling all slides into one MP4.`
+              : 'Compiling your synced MP4 — scene preview above until ready.'}
+          </p>
+        ) : canCompileMp4 && !videoUrl ? (
+          <p className="text-xs text-gold-300/60">
+            All storyboard slides are ready — compile them into one synced MP4 below.
           </p>
         ) : null}
       </div>
 
-      <ReelAssemblyPlayer
-        scenes={scenes}
-        title={title}
-        hook={hook}
-        script={script}
-        videoUrl={videoUrl}
-        voiceUrl={voiceUrl}
-        mp4Compiling={mp4Compiling}
-      />
+      {!actionsOnly ? (
+        <>
+          <ReelAssemblyPlayer
+            scenes={scenes}
+            title={title}
+            hook={hook}
+            script={script}
+            videoUrl={videoUrl}
+            voiceUrl={voiceUrl}
+            waveform={waveform}
+            mp4Compiling={mp4Compiling}
+            generationStep="complete"
+            autoPlayPreview={canPlayReelPreview && !videoUrl && !mp4Compiling}
+          />
 
-      {scenes.length > 0 && !isGenerating ? (
-        <StoryboardGenerator scenes={scenes} interactive exportTitle={title} allowDownload />
-      ) : null}
+          {scenes.length > 0 && !isGenerating ? (
+            <StoryboardGenerator scenes={scenes} interactive exportTitle={title} allowDownload />
+          ) : null}
 
-      {hook && !isGenerating ? (
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => void regenerateHook()}
-            disabled={isRegeneratingHook}
-            className="inline-flex min-h-[36px] items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-luxe/65 text-[11px] tracking-[0.14em] uppercase hover:text-luxe hover:border-white/20 transition-colors disabled:opacity-50"
-          >
-            {isRegeneratingHook ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
-            )}
-            Regenerate hook
-            {previousHooks.length > 0 ? (
-              <span className="text-luxe/35 normal-case tracking-normal">
-                · {previousHooks.length} prior
-              </span>
-            ) : null}
-          </button>
-        </div>
+          {hook && !isGenerating ? (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => void regenerateHook()}
+                disabled={isRegeneratingHook}
+                className="inline-flex min-h-[36px] items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-luxe/65 text-[11px] tracking-[0.14em] uppercase hover:text-luxe hover:border-white/20 transition-colors disabled:opacity-50"
+              >
+                {isRegeneratingHook ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                Regenerate hook
+                {previousHooks.length > 0 ? (
+                  <span className="text-luxe/35 normal-case tracking-normal">
+                    · {previousHooks.length} prior
+                  </span>
+                ) : null}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
@@ -215,7 +272,7 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
             disabled={downloadingAllFrames}
             className={cn(
               'inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[12px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-70 w-full sm:w-auto',
-              videoUrl || storyboardExportReady
+              videoUrl || storyboardPackageOnly
                 ? 'border border-gold-500/30 bg-gold-500/[0.06] text-gold-200 hover:bg-gold-500/10'
                 : 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
             )}
@@ -229,7 +286,7 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
           </button>
         ) : null}
 
-        {storyboardExportReady ? (
+        {storyboardPackageOnly ? (
           <button
             type="button"
             onClick={handleDownloadPackage}
@@ -252,6 +309,16 @@ export function ExportPreview({ onRegenerate, className }: { onRegenerate?: () =
             className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-luxe/50 text-[12px] tracking-[0.12em] uppercase cursor-wait w-full sm:w-auto"
           >
             <Loader2 className="w-4 h-4 animate-spin" /> Compiling MP4…
+          </button>
+        ) : canCompileMp4 && !videoUrl ? (
+          <button
+            type="button"
+            onClick={() => void retryVideoRender()}
+            disabled={isRenderingVideo}
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gold-gradient text-black text-[12px] font-semibold tracking-[0.12em] uppercase shadow-gold-glow hover:opacity-90 transition-opacity disabled:opacity-70 w-full sm:w-auto"
+          >
+            <Clapperboard className="w-4 h-4" />
+            Compile Video
           </button>
         ) : null}
 

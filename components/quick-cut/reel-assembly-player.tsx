@@ -33,6 +33,17 @@ import {
 
 import { useMediaPlaybackTime } from '@/hooks/use-media-playback-time'
 
+import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
+
+import {
+  clampPlaybackSec,
+  formatPlaybackTime,
+} from '@/lib/media/format-playback-time'
+
+import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
+
+import { QuickCutProjectTranscriptDialog } from '@/components/quick-cut/project-transcript-dialog'
+
 
 
 const DEFAULT_WAVEFORM = [0.25, 0.45, 0.7, 0.55, 0.85, 0.6, 0.75, 0.4, 0.5, 0.65]
@@ -64,6 +75,8 @@ export function ReelAssemblyPlayer({
   mp4Compiling = false,
 
   generationStep,
+
+  autoPlayPreview = false,
 
   className,
 
@@ -101,6 +114,10 @@ export function ReelAssemblyPlayer({
 
   generationStep?: QuickCutGenerationStep
 
+  /** Start slideshow or narration once on export complete */
+
+  autoPlayPreview?: boolean
+
   className?: string
 
 }) {
@@ -116,7 +133,10 @@ export function ReelAssemblyPlayer({
 
 
   const [frameIndex, setFrameIndex] = useState(0)
-  const [videoPlaying, setVideoPlaying] = useState(false)
+  const [slideshowPlaying, setSlideshowPlaying] = useState(false)
+  const [slideshowTime, setSlideshowTime] = useState(0)
+  const slideshowRafRef = useRef<number | null>(null)
+  const slideshowTimeRef = useRef(0)
 
   const internalAudioRef = useRef<HTMLAudioElement>(null)
 
@@ -128,22 +148,25 @@ export function ReelAssemblyPlayer({
 
   const bars = waveform.length > 0 ? waveform : DEFAULT_WAVEFORM
 
-  const animateFrames = isLive || mp4Compiling
-
-  const showWaveform = animateFrames && frames.length > 0
-
   const hasVideo = Boolean(videoUrl)
 
   const imagesLoading = generationStep === 'images'
   const directingSceneLabel = useQuickCutGenerationStore((s) =>
     isLive ? s.directingSceneLabel : null
   )
+  const reviewReady =
+    generationStep === 'complete' ||
+    generationStep === 'render' ||
+    generationStep === 'voice' ||
+    mp4Compiling
 
   const showLiveTiles =
 
     isLive &&
 
     !hasVideo &&
+
+    !reviewReady &&
 
     (scenes.length === 0 ||
 
@@ -159,29 +182,60 @@ export function ReelAssemblyPlayer({
 
       generationStep === 'images')
 
+  const storyboardPreview =
+    !hasVideo &&
+    !voiceUrl &&
+    frames.length > 0 &&
+    !showLiveTiles &&
+    (!isLive || reviewReady)
+  const animateFrames = isLive || mp4Compiling || storyboardPreview
+
   const syncMediaRef = (hasVideo ? videoRef : audioRef) as RefObject<HTMLMediaElement | null>
 
-  const canSyncCaptions = Boolean(hasVideo || voiceUrl)
+  const canSyncCaptions = Boolean(hasVideo || voiceUrl || (storyboardPreview && slideshowPlaying))
 
+  const trackMediaPlayback = Boolean(hasVideo || voiceUrl)
 
-
-  const { currentTime, duration } = useMediaPlaybackTime(
+  const { currentTime, duration, isPlaying } = useMediaPlaybackTime(
 
     syncMediaRef,
 
-    canSyncCaptions && showSubtitles,
+    trackMediaPlayback,
 
     hasVideo ? videoUrl : voiceUrl
 
   )
 
+  const showWaveform =
+    (slideshowPlaying || (voiceUrl && isPlaying) || isLive || mp4Compiling) &&
+    frames.length > 0 &&
+    !hasVideo
 
+  const estimatedDuration = useMemo(() => {
+
+    const base = duration > 0 ? duration : computeRenderTotalSec(scenes)
+
+    return Math.min(base, MAX_VIDEO_DURATION_SEC)
+
+  }, [duration, scenes])
+
+
+
+  const previewTime =
+
+    storyboardPreview && !voiceUrl ? slideshowTime : currentTime
+
+
+
+  const totalDuration = estimatedDuration
+
+  const timelineTime = clampPlaybackSec(previewTime, totalDuration)
 
   const captionPlan = useMemo(
 
-    () => buildSceneCaptionPlan(scenes, duration || 53, hook || script),
+    () => buildSceneCaptionPlan(scenes, estimatedDuration, hook || script),
 
-    [scenes, duration, hook, script]
+    [scenes, estimatedDuration, hook, script]
 
   )
 
@@ -189,17 +243,20 @@ export function ReelAssemblyPlayer({
 
   const captionState = useMemo(() => {
 
-    if (!showSubtitles || !canSyncCaptions || duration <= 0) return null
+    if (!showSubtitles || !canSyncCaptions) return null
 
-    return getCaptionAtTime(captionPlan, currentTime)
+    return getCaptionAtTime(captionPlan, previewTime)
 
-  }, [showSubtitles, canSyncCaptions, duration, captionPlan, currentTime])
+  }, [showSubtitles, canSyncCaptions, captionPlan, previewTime])
 
 
 
   useEffect(() => {
 
     setFrameIndex(0)
+    setSlideshowPlaying(false)
+    setSlideshowTime(0)
+    slideshowTimeRef.current = 0
 
   }, [frames.length, frames[frames.length - 1]])
 
@@ -207,47 +264,141 @@ export function ReelAssemblyPlayer({
 
   useEffect(() => {
 
-    setVideoPlaying(false)
+    if (!storyboardPreview || !slideshowPlaying) {
 
-    const video = videoRef.current
+      if (slideshowRafRef.current !== null) {
 
-    if (!video || !hasVideo) return
+        cancelAnimationFrame(slideshowRafRef.current)
 
-    const onPlay = () => setVideoPlaying(true)
+        slideshowRafRef.current = null
 
-    const onPause = () => setVideoPlaying(false)
+      }
 
-    const onEnded = () => setVideoPlaying(false)
-
-    video.addEventListener('play', onPlay)
-
-    video.addEventListener('pause', onPause)
-
-    video.addEventListener('ended', onEnded)
-
-    return () => {
-
-      video.removeEventListener('play', onPlay)
-
-      video.removeEventListener('pause', onPause)
-
-      video.removeEventListener('ended', onEnded)
+      return
 
     }
 
-  }, [hasVideo, videoUrl])
+
+
+    const startedAt = performance.now() - slideshowTimeRef.current * 1000
+
+    const tick = (now: number) => {
+
+      const elapsed = (now - startedAt) / 1000
+
+      slideshowTimeRef.current = elapsed
+
+      setSlideshowTime(elapsed)
+
+      slideshowRafRef.current = requestAnimationFrame(tick)
+
+    }
 
 
 
-  const toggleVideoPlayback = () => {
+    slideshowRafRef.current = requestAnimationFrame(tick)
 
-    const video = videoRef.current
+    return () => {
 
-    if (!video) return
+      if (slideshowRafRef.current !== null) cancelAnimationFrame(slideshowRafRef.current)
 
-    if (video.paused) void video.play()
+      slideshowRafRef.current = null
 
-    else video.pause()
+    }
+
+  }, [storyboardPreview, slideshowPlaying])
+
+
+
+  const seekTimeline = (value: number) => {
+
+    if (!Number.isFinite(value)) return
+
+    const clamped = clampPlaybackSec(value, totalDuration)
+
+
+
+    if (hasVideo) {
+
+      const media = videoRef.current
+
+      if (media) media.currentTime = clamped
+
+      return
+
+    }
+
+    if (voiceUrl) {
+
+      const media = audioRef.current
+
+      if (media) media.currentTime = clamped
+
+      return
+
+    }
+
+    if (storyboardPreview) {
+
+      slideshowTimeRef.current = clamped
+
+      setSlideshowTime(clamped)
+
+    }
+
+  }
+
+
+
+  const autoPlayStartedRef = useRef(false)
+
+  useEffect(() => {
+    if (!autoPlayPreview || autoPlayStartedRef.current || hasVideo) return
+    if (frames.length < 1) return
+    autoPlayStartedRef.current = true
+    if (voiceUrl) {
+      const media = audioRef.current
+      if (media) void media.play().catch(() => {})
+      return
+    }
+    if (storyboardPreview) setSlideshowPlaying(true)
+  }, [autoPlayPreview, hasVideo, voiceUrl, frames.length, storyboardPreview, audioRef])
+
+  const togglePlayback = () => {
+
+    if (hasVideo) {
+
+      const media = videoRef.current
+
+      if (!media) return
+
+      if (media.paused) void media.play()
+
+      else media.pause()
+
+      return
+
+    }
+
+    if (voiceUrl) {
+
+      const media = audioRef.current
+
+      if (!media) return
+
+      if (media.paused) void media.play()
+
+      else media.pause()
+
+      return
+
+    }
+
+    if (storyboardPreview) {
+
+      setSlideshowPlaying((playing) => !playing)
+
+    }
 
   }
 
@@ -257,7 +408,7 @@ export function ReelAssemblyPlayer({
 
     if (hasVideo || frames.length < 2) return
 
-    if (voiceUrl && duration > 0 && captionState) {
+    if (voiceUrl && captionState && (isPlaying || !isLive)) {
 
       setFrameIndex(captionState.sceneIndex)
 
@@ -265,11 +416,30 @@ export function ReelAssemblyPlayer({
 
     }
 
+    if (storyboardPreview && slideshowPlaying && captionState) {
+
+      setFrameIndex(captionState.sceneIndex)
+
+      return
+
+    }
+
+    const shouldCycle =
+      mp4Compiling ||
+      (storyboardPreview && slideshowPlaying) ||
+      (voiceUrl && isPlaying) ||
+      (isLive && !voiceUrl && !hasVideo)
+
+    if (!shouldCycle) return
+
+    const intervalMs =
+      slideshowPlaying || isLive || mp4Compiling ? 2800 : storyboardPreview ? 4200 : 3200
+
     const id = window.setInterval(() => {
 
       setFrameIndex((i) => (i + 1) % frames.length)
 
-    }, animateFrames ? 2800 : 3200)
+    }, intervalMs)
 
     return () => window.clearInterval(id)
 
@@ -283,9 +453,17 @@ export function ReelAssemblyPlayer({
 
     voiceUrl,
 
-    duration,
+    isLive,
+
+    isPlaying,
 
     captionState?.sceneIndex,
+
+    storyboardPreview,
+
+    slideshowPlaying,
+
+    mp4Compiling,
 
   ])
 
@@ -295,7 +473,28 @@ export function ReelAssemblyPlayer({
 
   const showKaraoke = showSubtitles && captionState && captionState.words.length > 0
 
-  const showStaticCaption = showSubtitles && hook && !showKaraoke
+  const showStaticCaption = showSubtitles && hook && !showKaraoke && !voiceUrl && !slideshowPlaying
+
+  const previewIsPlaying = hasVideo || voiceUrl ? isPlaying : slideshowPlaying
+
+  const hasPlaybackProgress =
+    hasVideo || voiceUrl ? currentTime > 0.25 : slideshowTime > 0.25
+
+  const playControlLabel = previewIsPlaying
+    ? 'Pause'
+    : hasPlaybackProgress
+      ? 'Resume'
+      : hasVideo
+        ? 'Play video'
+        : 'Play preview'
+
+  const canPlayPreview =
+
+    (hasVideo || Boolean(voiceUrl) || storyboardPreview) &&
+
+    !showLiveTiles &&
+
+    (hasVideo || frames.length > 0)
 
 
 
@@ -329,67 +528,21 @@ export function ReelAssemblyPlayer({
 
         {hasVideo ? (
 
-          <>
+          <video
 
-            <video
+            ref={videoRef}
 
-              ref={videoRef}
+            src={videoUrl!}
 
-              src={videoUrl!}
+            playsInline
 
-              playsInline
+            preload="metadata"
 
-              preload="metadata"
+            className="h-full w-full object-cover"
 
-              className="h-full w-full object-cover"
+            onClick={togglePlayback}
 
-              onClick={toggleVideoPlayback}
-
-            />
-
-            <button
-
-              type="button"
-
-              onClick={toggleVideoPlayback}
-
-              className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
-
-              aria-label={videoPlaying ? 'Pause video' : 'Play video'}
-
-            >
-
-              <span
-
-                className={cn(
-
-                  'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
-
-                  videoPlaying
-
-                    ? 'opacity-0 group-hover:opacity-100'
-
-                    : 'opacity-100'
-
-                )}
-
-              >
-
-                {videoPlaying ? (
-
-                  <Pause className="h-5 w-5" aria-hidden />
-
-                ) : (
-
-                  <Play className="h-5 w-5 ml-0.5" aria-hidden />
-
-                )}
-
-              </span>
-
-            </button>
-
-          </>
+          />
 
         ) : showLiveTiles ? (
 
@@ -416,6 +569,8 @@ export function ReelAssemblyPlayer({
               src={currentFrame}
 
               alt={scenes[frameIndex]?.title || 'Scene preview'}
+
+              parallax={storyboardPreview || isPlaying || slideshowPlaying}
 
             />
 
@@ -464,6 +619,60 @@ export function ReelAssemblyPlayer({
             MP4 compiling…
 
           </div>
+
+        ) : null}
+
+
+
+        {canPlayPreview ? (
+
+          <button
+
+            type="button"
+
+            onClick={togglePlayback}
+
+            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors group"
+
+            aria-label={
+              previewIsPlaying
+                ? hasVideo
+                  ? 'Pause video'
+                  : 'Pause preview'
+                : hasPlaybackProgress
+                  ? 'Resume preview'
+                  : hasVideo
+                    ? 'Play video'
+                    : 'Play preview'
+            }
+
+          >
+
+            <span
+
+              className={cn(
+
+                'flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm transition-opacity',
+
+                previewIsPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+
+              )}
+
+            >
+
+              {previewIsPlaying ? (
+
+                <Pause className="h-5 w-5" aria-hidden />
+
+              ) : (
+
+                <Play className="h-5 w-5 ml-0.5" aria-hidden />
+
+              )}
+
+            </span>
+
+          </button>
 
         ) : null}
 
@@ -539,6 +748,22 @@ export function ReelAssemblyPlayer({
 
               </p>
 
+            ) : voiceUrl && !hasVideo && !previewIsPlaying ? (
+
+              <p className="text-[10px] tracking-[0.12em] uppercase text-gold-300/55">
+
+                Tap to play preview
+
+              </p>
+
+            ) : storyboardPreview && !previewIsPlaying ? (
+
+              <p className="text-[10px] tracking-[0.12em] uppercase text-gold-300/55">
+
+                Tap play to preview reel
+
+              </p>
+
             ) : null}
 
           </div>
@@ -546,6 +771,130 @@ export function ReelAssemblyPlayer({
         )}
 
       </div>
+
+
+
+      {canPlayPreview ? (
+
+        <div className="space-y-1.5 w-full">
+
+          <div className="flex items-center gap-2.5">
+
+            <button
+
+              type="button"
+
+              onClick={togglePlayback}
+
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold-500/35 bg-black/45 text-gold-100/90 hover:bg-black/60 transition-colors"
+
+              aria-label={previewIsPlaying ? 'Pause preview' : playControlLabel}
+
+            >
+
+              {previewIsPlaying ? (
+
+                <Pause className="h-3.5 w-3.5" aria-hidden />
+
+              ) : (
+
+                <Play className="h-3.5 w-3.5 ml-0.5" aria-hidden />
+
+              )}
+
+            </button>
+
+
+
+            <div className="relative flex-1 min-w-0">
+
+              <div
+
+                className="pointer-events-none absolute inset-y-0 left-0 right-0 my-auto h-0.5 rounded-full bg-white/10"
+
+                aria-hidden
+
+              >
+
+                <div
+
+                  className="h-full rounded-full bg-gold-400/85 transition-[width] duration-75"
+
+                  style={{
+
+                    width: `${totalDuration > 0 ? (timelineTime / totalDuration) * 100 : 0}%`,
+
+                  }}
+
+                />
+
+              </div>
+
+              <input
+
+                type="range"
+
+                min={0}
+
+                max={totalDuration || 1}
+
+                step={0.05}
+
+                value={timelineTime}
+
+                onChange={(e) => seekTimeline(Number(e.target.value))}
+
+                className="relative z-[1] w-full h-4 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-gold-400/70 [&::-webkit-slider-thumb]:bg-gold-200 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-gold-400/70 [&::-moz-range-thumb]:bg-gold-200"
+
+                aria-label="Preview timeline"
+
+                aria-valuetext={`${formatPlaybackTime(timelineTime)} of ${formatPlaybackTime(totalDuration)}`}
+
+              />
+
+            </div>
+
+          </div>
+
+
+
+          <div className="flex items-center justify-center gap-3">
+
+            <p className="text-[10px] tabular-nums tracking-wide text-gold-300/55">
+
+              {formatPlaybackTime(timelineTime)} / {formatPlaybackTime(totalDuration)}
+
+            </p>
+
+            <QuickCutProjectTranscriptDialog
+
+              compact
+
+              triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
+
+            />
+
+          </div>
+
+        </div>
+
+      ) : null}
+
+
+
+      {!canPlayPreview && (scenes.length > 0 || hook || script) ? (
+
+        <div className="flex justify-center">
+
+          <QuickCutProjectTranscriptDialog
+
+            triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[32px] px-4 py-1.5 text-gold-100/90 hover:bg-black/60"
+
+          />
+
+        </div>
+
+      ) : null}
 
 
 

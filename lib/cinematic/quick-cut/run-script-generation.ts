@@ -10,9 +10,17 @@ import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
-import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
+import {
+  mergeViralScript,
+  runVirloScriptEngine,
+  type VirloScriptBlueprint,
+} from '@/lib/cinematic/virlo-script-engine'
+import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
+import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import {
   buildMockCinematicOutput,
   finalizeCinematicOutput,
@@ -20,7 +28,7 @@ import {
   validateCinematicOutput,
   type CinematicGenerationOutput,
 } from '@/lib/cinematic/generation'
-import { inferNicheFromBrief, type CinematicNiche } from '@/lib/cinematic/niches'
+import { type CinematicNiche } from '@/lib/cinematic/niches'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
 
 export type ScriptGenerationInput = {
@@ -30,6 +38,11 @@ export type ScriptGenerationInput = {
   duration?: number
   niche?: string
   sessionSeed?: string | number
+  language?: ProjectLanguage | string
+  /** Raw voice transcript (Whisper / browser STT) */
+  transcript?: string
+  /** Optional voice presence note from canvas */
+  voiceNote?: string
 }
 
 type GenInput = {
@@ -39,17 +52,55 @@ type GenInput = {
   duration: number
   niche: CinematicNiche
   sessionSeed?: string | number
+  language: ProjectLanguage
+  blueprint: VirloScriptBlueprint
+  viralStructure: ViralStructureAnalysis
 }
 
 function buildUserPrompt(input: GenInput, retryNote?: string): string {
   return [
-    buildCinematicScriptPrompt(input),
+    buildCinematicScriptPrompt({
+      topic: input.topic,
+      platform: input.platform,
+      tone: input.tone,
+      duration: input.duration,
+      niche: input.niche,
+      sessionSeed: input.sessionSeed,
+      language: input.language,
+      visualStyle: input.blueprint.visualStyle,
+      virloHook: input.blueprint.hook,
+      retentionPattern: input.blueprint.retention_pattern,
+      viralStructure: input.viralStructure,
+    }),
     retryNote
       ? `\nRETRY NOTE: Previous draft failed quality checks (${retryNote}). Fix niche drift, weak hook, repetitive scenes, or empty captions.`
       : '',
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function hasUsableLlmScript(parsed: Record<string, unknown>, topic: string): boolean {
+  const script = typeof parsed.script === 'string' ? parsed.script.trim() : ''
+  if (script.length < 48) return false
+
+  const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : []
+  if (scenes.length >= 2) return true
+
+  const topicNorm = topic.trim().toLowerCase()
+  if (!topicNorm) return true
+  const scriptNorm = script.toLowerCase()
+  if (scriptNorm === topicNorm) return false
+  if (scriptNorm.startsWith(topicNorm) && script.length < topic.length + 24) return false
+
+  const topicWords = topicNorm.split(/\s+/).filter((w) => w.length > 3)
+  if (topicWords.length === 0) return true
+  const matched = topicWords.filter((w) => scriptNorm.includes(w)).length
+  if (matched / topicWords.length > 0.85 && script.split(/\s+/).length <= topicWords.length + 6) {
+    return false
+  }
+
+  return true
 }
 
 function parseLlmJson(content: string): Record<string, unknown> {
@@ -102,31 +153,45 @@ async function generateWithOpenAI(input: GenInput, retryNote?: string) {
   return parseLlmJson(content)
 }
 
-/** Gemini (free) → Claude → OpenAI mini. Throws when no provider succeeds. */
+/** OpenAI (ChatGPT) → Claude → Gemini. Throws when no provider succeeds. */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
   const systemPrompt = buildVirloSystemPrompt()
+  const errors: string[] = []
+
+  if (allowOpenAIScript()) {
+    try {
+      const openai = await generateWithOpenAI(input, retryNote)
+      if (hasUsableLlmScript(openai, input.topic)) return openai
+      errors.push('openai_echo_or_empty')
+    } catch {
+      errors.push('openai_failed')
+    }
+  }
+
+  if (allowAnthropicScript()) {
+    try {
+      const claude = await generateWithClaude(userPrompt, retryNote)
+      if (hasUsableLlmScript(claude, input.topic)) return claude
+      errors.push('claude_echo_or_empty')
+    } catch {
+      errors.push('claude_failed')
+    }
+  }
 
   const gemini = await generateScriptWithGemini({
     systemPrompt,
     userPrompt,
     temperature: retryNote ? 0.75 : 0.85,
   })
-  if (gemini && Object.keys(gemini).length > 0) return gemini
+  if (gemini && hasUsableLlmScript(gemini, input.topic)) return gemini
+  if (gemini && Object.keys(gemini).length > 0) errors.push('gemini_echo_or_empty')
 
-  if (allowAnthropicScript()) {
-    try {
-      return await generateWithClaude(userPrompt, retryNote)
-    } catch {
-      // Fall through when Claude fails.
-    }
-  }
-
-  if (allowOpenAIScript()) {
-    return await generateWithOpenAI(input, retryNote)
-  }
-
-  throw new Error('No script generation provider configured')
+  throw new Error(
+    errors.length > 0
+      ? `No usable script from providers (${errors.join(', ')})`
+      : 'No script generation provider configured'
+  )
 }
 
 /** Shared script shaping used by Quick Cut orchestration and generate-script API. */
@@ -137,35 +202,61 @@ export async function runScriptGeneration(
   mock: boolean
   reason?: string
   virlo?: VirloMetadata
+  language: ProjectLanguage
+  visualStyle: VisualStyle
+  viralScript: ViralScript
+  viralStructure: ViralStructureAnalysis
 }> {
   const topic = input.topic.trim()
   const platform = coercePlatform(input.platform)
   const tone = coerceTone(input.tone)
   const duration = coerceDuration(input.duration)
-  const niche = inferNicheFromBrief({
-    topic,
-    tone,
-    style: input.tone,
-    niche: input.niche,
-  })
+  const language = normalizeProjectLanguage(input.language, input.transcript || topic)
 
-  const virloContext = buildVirloContext(topic, {
+  const blueprint = runVirloScriptEngine({
+    topic,
+    platform,
+    tone,
+    duration,
+    niche: input.niche,
+    sessionSeed: input.sessionSeed,
+    language,
+    transcript: input.transcript,
+    voiceNote: input.voiceNote,
+  })
+  const { niche, virloContext, virlo, visualStyle, viralStructure } = blueprint
+
+  const genInput: GenInput = {
+    topic,
     platform,
     tone,
     duration,
     niche,
     sessionSeed: input.sessionSeed,
-  })
-  const virlo = virloMetadataFromContext(virloContext)
-
-  const genInput = { topic, platform, tone, duration, niche, sessionSeed: input.sessionSeed }
+    language,
+    blueprint,
+    viralStructure,
+  }
 
   if (!hasScriptGenerationKey()) {
+    const output = buildMockCinematicOutput({
+      topic,
+      tone,
+      duration,
+      niche,
+      virloContext,
+      viralStructure,
+    })
+    const viralScript = mergeViralScript(blueprint, output.script, output.hook)
     return {
-      output: buildMockCinematicOutput({ topic, tone, duration, niche, virloContext }),
+      output,
       mock: true,
       reason: 'missing_api_key',
       virlo,
+      language,
+      visualStyle,
+      viralScript,
+      viralStructure,
     }
   }
 
@@ -181,7 +272,7 @@ export async function runScriptGeneration(
       { topic, duration, tone, hookVariations }
     )
 
-    let validation = validateCinematicOutput(output, niche)
+    let validation = validateCinematicOutput(output, niche, topic)
     if (!validation.valid) {
       parsed = await generateScript(genInput, validation.issues.join(', '))
       const retryHookVariations = Array.isArray(parsed.hookVariations)
@@ -192,16 +283,30 @@ export async function runScriptGeneration(
         niche,
         { topic, duration, tone, hookVariations: retryHookVariations }
       )
-      validation = validateCinematicOutput(output, niche)
+      validation = validateCinematicOutput(output, niche, topic)
     }
 
-    return { output, mock: false, virlo }
+    const viralScript = mergeViralScript(blueprint, output.script, output.hook)
+    return { output, mock: false, virlo, language, visualStyle, viralScript, viralStructure }
   } catch {
+    const output = buildMockCinematicOutput({
+      topic,
+      tone,
+      duration,
+      niche,
+      virloContext,
+      viralStructure,
+    })
+    const viralScript = mergeViralScript(blueprint, output.script, output.hook)
     return {
-      output: buildMockCinematicOutput({ topic, tone, duration, niche, virloContext }),
+      output,
       mock: true,
       reason: 'provider_fallback',
       virlo,
+      language,
+      visualStyle,
+      viralScript,
+      viralStructure,
     }
   }
 }

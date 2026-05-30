@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { orchestrateFacelessVideo } from '@/lib/video/orchestrate-faceless-video'
+import { resolveRunwayVideoProvider } from '@/lib/ai/runway-video'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
@@ -20,6 +21,11 @@ export async function POST(req: NextRequest) {
     const voiceUrl = typeof raw?.voiceUrl === 'string' ? raw.voiceUrl : null
     const asyncMode = raw?.async === true
     const projectId = typeof raw?.projectId === 'string' ? raw.projectId : undefined
+    const providerRaw = typeof raw?.provider === 'string' ? raw.provider : 'auto'
+    const provider =
+      providerRaw === 'runway' || providerRaw === 'ffmpeg' || providerRaw === 'auto'
+        ? providerRaw
+        : 'auto'
 
     if (scenes.length < 1) {
       return NextResponse.json({ error: 'At least one scene is required' }, { status: 400 })
@@ -47,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (asyncMode) {
       createRenderJob(jobId)
-      void orchestrateFacelessVideo(input, { jobId, baseUrl }).catch((err) => {
+      void orchestrateFacelessVideo(input, { jobId, baseUrl, provider }).catch((err) => {
         logError('render-video.async', err)
         const message = err instanceof Error ? err.message : 'Video render failed'
         updateRenderJob(jobId, {
@@ -62,10 +68,11 @@ export async function POST(req: NextRequest) {
         jobId,
         status: 'queued',
         pollUrl: `/api/render-video/status/${jobId}`,
+        provider: provider === 'auto' ? resolveRunwayVideoProvider() : provider,
       })
     }
 
-    const result = await orchestrateFacelessVideo(input, { jobId, baseUrl })
+    const result = await orchestrateFacelessVideo(input, { jobId, baseUrl, provider })
     const job = getRenderJob(jobId)
 
     return NextResponse.json({
@@ -75,6 +82,7 @@ export async function POST(req: NextRequest) {
       status: result.status,
       durationSec: result.durationSec,
       mock: result.mock ?? job?.mock,
+      provider: result.provider ?? resolveRunwayVideoProvider(),
       format: 'mp4',
       resolution: '1080x1920',
     })

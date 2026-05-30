@@ -10,6 +10,10 @@ export type QuickCutStageTab =
   | 'render'
   | 'complete'
 
+export function isQuickCutStageTab(value: string | null | undefined): value is QuickCutStageTab {
+  return Boolean(value && STAGE_TAB_ORDER.includes(value as QuickCutStageTab))
+}
+
 export const STAGE_TAB_ORDER: QuickCutStageTab[] = [
   'title',
   'hook',

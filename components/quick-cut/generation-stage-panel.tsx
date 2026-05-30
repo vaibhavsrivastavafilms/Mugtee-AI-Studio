@@ -10,6 +10,7 @@ import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { ExportPreview } from '@/components/quick-cut/export-preview'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -110,7 +111,11 @@ export function GenerationStagePanel({
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
   const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
+  const isRegeneratingTitle = useQuickCutGenerationStore((s) => s.isRegeneratingTitle)
+  const isRegeneratingScript = useQuickCutGenerationStore((s) => s.isRegeneratingScript)
   const regenerateHook = useQuickCutGenerationStore((s) => s.regenerateHook)
+  const regenerateTitle = useQuickCutGenerationStore((s) => s.regenerateTitle)
+  const regenerateScript = useQuickCutGenerationStore((s) => s.regenerateScript)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
@@ -143,18 +148,37 @@ export function GenerationStagePanel({
         'Viral title',
         <Sparkles className="w-3 h-3" />,
         title ? (
-          <CinematicTitleReveal
-            title={title}
-            subtitle={hook ? 'Hook ready — open Hook tab' : 'Generating hook…'}
-            className="!text-left items-start"
-          />
+          <div className="space-y-3">
+            {!isGenerating ? (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void regenerateTitle()}
+                  disabled={isRegeneratingTitle}
+                  className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
+                >
+                  {isRegeneratingTitle ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  Regenerate Title
+                </button>
+              </div>
+            ) : null}
+            <CinematicTitleReveal
+              title={title}
+              subtitle={hook ? 'Hook ready — open Hook tab' : 'Generating hook…'}
+              className="!text-left items-start"
+            />
+          </div>
         ) : (
           <p className="text-[12px] text-luxe/55 italic flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
             Generating viral title…
           </p>
         ),
-        generationStep === 'title' || generationStep === 'analyzing'
+        generationStep === 'title' || generationStep === 'analyzing' || isRegeneratingTitle
       )
 
     case 'hook':
@@ -195,20 +219,39 @@ export function GenerationStagePanel({
 
     case 'script':
       return script ? (
-        <LiveScriptReveal
-          script={script}
-          active={
-            Boolean(script) &&
-            (generationStep === 'script' || generationStep === 'scenes')
-          }
-          className={className}
-        />
+        <div className={cn('space-y-2', className)}>
+          {!isGenerating ? (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => void regenerateScript()}
+                disabled={isRegeneratingScript}
+                className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
+              >
+                {isRegeneratingScript ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Regenerate Script
+              </button>
+            </div>
+          ) : null}
+          <LiveScriptReveal
+            script={script}
+            active={
+              Boolean(script) &&
+              !isRegeneratingScript &&
+              (generationStep === 'script' || generationStep === 'scenes')
+            }
+          />
+        </div>
       ) : (
         shell(
           'Cinematic script',
           <Film className="w-3 h-3" />,
           <p className="text-[12px] text-luxe/55 italic">Writing cinematic script…</p>,
-          generationStep === 'script'
+          generationStep === 'script' || isRegeneratingScript
         )
       )
 
@@ -313,16 +356,12 @@ export function GenerationStagePanel({
       )
 
     case 'complete':
-      return shell(
-        'Production',
-        <Mic className="w-3 h-3" />,
-        isComplete ? (
-          <p className="text-[12px] text-luxe/75">
-            {videoUrl
-              ? 'Your cinematic MP4 is ready to download.'
-              : 'Preview assembled — export may still be compiling.'}
-          </p>
-        ) : (
+      return isComplete ? (
+        <ExportPreview actionsOnly />
+      ) : (
+        shell(
+          'Production',
+          <Mic className="w-3 h-3" />,
           <p className="text-[12px] text-luxe/55 italic">Finishing touches…</p>
         )
       )

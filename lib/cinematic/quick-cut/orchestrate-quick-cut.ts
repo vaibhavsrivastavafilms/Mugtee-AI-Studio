@@ -34,6 +34,7 @@ export type QuickCutInput = {
   imageNote?: string
   voiceNote?: string
   keywords?: string[]
+  transcript?: string
 }
 
 export type QuickCutOrchestrationResult = {
@@ -59,6 +60,11 @@ export type QuickCutOrchestrationResult = {
   mock: boolean
   pipeline: QuickCutPipelineStatus
   sessionId: string
+  savedProjectId?: string | null
+  language?: import('@/lib/cinematic/language-detection').ProjectLanguage
+  visualStyle?: import('@/lib/cinematic/workflow-state').VisualStyle
+  viralScript?: import('@/lib/cinematic/workflow-state').ViralScript
+  variationHistory?: import('@/lib/cinematic/variation-history').VariationHistory
   videoUrl?: string | null
   voiceUrl?: string | null
   renderPollUrl?: string | null
@@ -142,6 +148,9 @@ export async function orchestrateQuickCut(
     duration,
     platform: 'instagram_reel',
     sessionSeed: sessionId,
+    transcript: input.transcript,
+    voiceNote: input.voiceNote,
+    language: undefined,
   })
 
   let scenes = scenesToStore(ensureScenesHaveImagePrompts(rawOutput.scenes))

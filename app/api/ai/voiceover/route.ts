@@ -22,6 +22,7 @@ import {
   prepareCinematicVoiceover,
 } from '@/lib/cinematic/execution/cinematic-voice-engine'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
+import { coerceDuration } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
       })
     }
     const platform: string = String(body?.platform || 'instagram_reel')
-    const duration: number = Number(body?.duration || 60)
+    const duration = coerceDuration(body?.duration)
     const moodLabel: string = String(body?.mood || '').trim()
     const cinematicOutput = body?.cinematic_output as CinematicGenerationOutput | undefined
     const hasCinematicPacing = Boolean(

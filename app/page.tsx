@@ -2,10 +2,10 @@ import nextDynamic from 'next/dynamic'
 
 export const dynamic = 'force-dynamic'
 
-const ModeSelectionHero = nextDynamic(
+const CinematicLandingPage = nextDynamic(
   () =>
-    import('@/components/mugtee-portal/mode-selection-hero').then((m) => ({
-      default: m.ModeSelectionHero,
+    import('@/components/landing/cinematic-landing-page').then((m) => ({
+      default: m.default,
     })),
   {
     ssr: false,
@@ -17,7 +17,7 @@ const ModeSelectionHero = nextDynamic(
   }
 )
 
-/** Root portal — Quick Cut hero entry with Director Mode secondary. */
+/** Public cinematic landing — Quick Cut portal at `/` for all users. */
 export default function Index() {
-  return <ModeSelectionHero />
+  return <CinematicLandingPage />
 }

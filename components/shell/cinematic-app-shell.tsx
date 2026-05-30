@@ -3,6 +3,7 @@
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { CinematicHeader } from '@/components/shell/cinematic-header'
+import { StudioPromptBar } from '@/components/shell/studio-prompt-bar'
 import { StoreProvider } from '@/lib/store'
 import { AutomationsProvider } from '@/lib/automations-store'
 import { ConfirmProvider } from '@/components/ui/confirm'
@@ -45,6 +46,7 @@ export default function CinematicAppShell({
             />
 
             <CinematicHeader user={user} variant="app" />
+            <StudioPromptBar />
 
             <motion.main
               initial={{ opacity: 0 }}

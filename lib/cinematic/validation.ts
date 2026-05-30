@@ -2,6 +2,11 @@ import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { NICHE_PROFILES } from '@/lib/cinematic/niches'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import { hookOverlapRatio, normalizeHookText } from '@/lib/cinematic/hook-variation'
+import {
+  CREATOR_RETENTION_SCENE_COUNT,
+  isQuoteModeText,
+  RETENTION_SCENE_BEATS,
+} from '@/lib/cinematic/viral-structure'
 
 const GENERIC_HOOK_PATTERNS = [
   /^in a world where/i,
@@ -114,14 +119,44 @@ export type ValidationResult = {
   issues: string[]
 }
 
+function scriptEchoesTopic(script: string, topic: string): boolean {
+  const scriptNorm = script.trim().toLowerCase()
+  const topicNorm = topic.trim().toLowerCase()
+  if (!scriptNorm || !topicNorm) return false
+  if (scriptNorm === topicNorm) return true
+  if (scriptNorm.startsWith(topicNorm) && scriptNorm.length < topicNorm.length + 32) return true
+  return overlapRatio(script, topic) > 0.72
+}
+
+function retentionStructureWeak(output: CinematicGenerationOutput): boolean {
+  if (output.scenes.length !== CREATOR_RETENTION_SCENE_COUNT) return true
+  const titles = output.scenes.map((s) => s.title.trim().toLowerCase())
+  const expected = RETENTION_SCENE_BEATS.map((b) => b.label.toLowerCase())
+  const matched = expected.filter((label, i) => titles[i]?.includes(label) || titles[i] === label)
+  return matched.length < 4
+}
+
+function quoteModeDetected(output: CinematicGenerationOutput): boolean {
+  return isQuoteModeText(
+    output.hook,
+    output.script,
+    output.summary,
+    ...output.scenes.map((s) => `${s.title} ${s.description}`)
+  )
+}
+
 export function validateCinematicOutput(
   output: CinematicGenerationOutput,
-  niche: CinematicNiche
+  niche: CinematicNiche,
+  topic?: string
 ): ValidationResult {
   const issues: string[] = []
 
   if (isWeakHook(output.hook)) issues.push('weak_or_generic_hook')
   if (!output.script.trim()) issues.push('empty_script')
+  if (topic && scriptEchoesTopic(output.script, topic)) issues.push('script_echoes_topic')
+  if (quoteModeDetected(output)) issues.push('quote_mode_script')
+  if (retentionStructureWeak(output)) issues.push('weak_retention_structure')
   if (output.scenes.length < 2) issues.push('insufficient_scenes')
   if (scenesAreRepetitive(output.scenes)) issues.push('repetitive_scenes')
   if (captionsWeak(output)) issues.push('weak_captions')

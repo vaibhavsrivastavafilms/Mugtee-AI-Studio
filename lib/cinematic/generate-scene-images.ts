@@ -16,6 +16,11 @@ import {
   persistRemoteImage,
 } from '@/lib/ai/generate-scene-image'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
+import type { VisualStyle } from '@/lib/cinematic/workflow-state'
+import {
+  cameraVariationDirective,
+  variationCompositionDirective,
+} from '@/lib/cinematic/visual-diversity'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -23,12 +28,15 @@ export type GenerateSceneImagesInput = {
   niche?: string
   virlo?: VirloMetadata | null
   style?: string
+  visualStyle?: VisualStyle | null
   hook?: string
   script?: string
   /** Regenerate only these scene ids */
   sceneIds?: string[]
   /** Produce variationImageUrl instead of replacing imageUrl */
   variation?: boolean
+  /** Rotation index for camera/framing diversity on regen */
+  diversityAttempt?: number
   userId?: string
 }
 
@@ -48,11 +56,15 @@ function promptContext(
     characterDescription: input.characterDescription,
     niche: input.niche,
     style: input.style,
+    visualStyleLabel: input.visualStyle?.label,
     emotionalGoal: input.virlo?.emotionalGoal,
     hook: input.hook,
     sceneIndex: index + 1,
     totalScenes: total,
     variation: input.variation,
+    variationDirective: input.variation
+      ? variationCompositionDirective(index, input.diversityAttempt ?? 0)
+      : cameraVariationDirective(index, input.diversityAttempt ?? 0),
   }
 }
 

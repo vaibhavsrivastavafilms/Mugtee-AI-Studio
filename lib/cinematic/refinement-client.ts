@@ -66,6 +66,12 @@ export function buildRegenPayload(
 
     niche: state.niche,
 
+    language: (state as { language?: string }).language ?? 'en',
+
+    visualStyle: (state as { visualStyle?: unknown }).visualStyle ?? undefined,
+
+    viralScript: (state as { viralScript?: unknown }).viralScript ?? undefined,
+
     hook: state.hook,
 
     summary: state.summary,

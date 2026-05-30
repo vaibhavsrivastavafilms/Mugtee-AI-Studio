@@ -24,6 +24,7 @@ import {
   type CinematicProjectSummary,
 } from '@/lib/cinematic-projects'
 import { ProjectLibraryEmpty } from '@/components/showcase/project-library-empty'
+import { DatabaseMigrationBanner } from '@/components/app/database-migration-banner'
 
 type RecentProject = {
   id: string
@@ -91,13 +92,15 @@ function summaryToCard(project: CinematicProjectSummary): RecentProject {
 export function RecentProjectsGrid() {
   const [projects, setProjects] = useState<RecentProject[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tableUnavailable, setTableUnavailable] = useState(false)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
-        const rows = await loadRecentProjects(8)
+        const { projects: rows, tableUnavailable: missing } = await loadRecentProjects(8)
         if (!alive) return
+        setTableUnavailable(missing)
         const unique = Array.from(
           new Map(rows.map((p) => [p.id, summaryToCard(p)])).values()
         ).slice(0, 8)
@@ -120,6 +123,15 @@ export function RecentProjectsGrid() {
             className="aspect-[4/5] rounded-2xl border border-white/[0.04] shimmer-cinematic"
           />
         ))}
+      </div>
+    )
+  }
+
+  if (tableUnavailable) {
+    return (
+      <div className="space-y-4">
+        <DatabaseMigrationBanner />
+        <ProjectLibraryEmpty />
       </div>
     )
   }

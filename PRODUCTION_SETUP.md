@@ -136,10 +136,12 @@ These two SQL files must be run **once** in production's Supabase SQL editor if 
 
 - `supabase/migrations/0014_cinematic_projects.sql` — base `cinematic_projects` table + RLS
 - `supabase/migrations/0015_project_video_urls.sql` — `video_url`, `thumbnail_url` columns
-- `supabase/migrations/0016_unified_projects.sql` — `mode`, `virlo`, `storyboard` columns
-- `supabase/migrations/0017_project_archive_fields.sql` — archive index fields
+- `supabase/migrations/0016_unified_projects.sql` — `mode`, `virlo` columns + mode index
+- `supabase/migrations/0017_project_archive_fields.sql` — `storyboard` column + status index
 
-Without 0014–0017, Quick Cut auto-save and `/projects` will 404 on `cinematic_projects`. The UI degrades gracefully (local preview still works).
+**Shortcut:** copy the consolidated block in `MIGRATION_RUNBOOK.md` (0014–0017 in one paste).
+
+Without 0014–0017, Quick Cut auto-save and recent projects will 404 on `cinematic_projects`. The UI shows a migration hint banner (not offline mode); local preview still works.
 
 Without these, the Razorpay verify endpoint and YouTube upload endpoint will fail with `relation does not exist`.
 

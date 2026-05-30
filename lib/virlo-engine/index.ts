@@ -1,3 +1,4 @@
+import { CREATOR_RETENTION_SCENE_COUNT } from '@/lib/cinematic/viral-structure'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
 import { detectEmotionalGoal, emotionalNotesFor } from '@/lib/virlo-engine/emotion-engine'
 import {
@@ -83,7 +84,7 @@ export function buildVirloContext(idea: string, options?: VirloBuildOptions): Vi
   const platform = coercePlatform(options?.platform) as VirloPlatform
   const tone = coerceTone(options?.tone)
   const duration = coerceDuration(options?.duration)
-  const sceneTarget = duration <= 30 ? 4 : duration <= 60 ? 6 : 8
+  const sceneTarget = CREATOR_RETENTION_SCENE_COUNT
 
   const creativeSeed = buildCreativeSeed(trimmed, options?.sessionSeed)
   const memory = loadRecentMemory(options?.sessionSeed)

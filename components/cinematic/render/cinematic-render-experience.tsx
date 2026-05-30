@@ -131,6 +131,8 @@ export function CinematicRenderExperience({
             <CinematicRenderPreview
               hook={hook}
               caption={caption}
+              script={script}
+              projectId={projectId}
               buildStage={state.buildStage}
               scenes={state.generatedScenes.length ? state.generatedScenes : scenes}
               completedSceneIndices={state.completedSceneIndices}

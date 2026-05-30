@@ -17,6 +17,7 @@ type ModeEntryCtaProps = {
   className?: string
   locked?: boolean
   lockedParams?: Record<string, string | undefined>
+  params?: Record<string, string | undefined>
 }
 
 export function ModeEntryCta({
@@ -25,16 +26,18 @@ export function ModeEntryCta({
   className,
   locked = false,
   lockedParams,
+  params,
 }: ModeEntryCtaProps) {
   const router = useRouter()
   const { ready, user } = useAuthHydration()
 
-  const destination = modeDestinationHref(mode, locked ? lockedParams : undefined)
-  const loginHref = authLoginHref(mode, locked ? lockedParams : undefined)
+  const entryParams = locked ? lockedParams : params
+  const destination = modeDestinationHref(mode, entryParams)
+  const loginHref = authLoginHref(mode, entryParams)
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
-    persistModeEntry(mode, locked ? lockedParams : undefined)
+    persistModeEntry(mode, locked ? lockedParams : params)
 
     if (!ready) return
     if (user) {

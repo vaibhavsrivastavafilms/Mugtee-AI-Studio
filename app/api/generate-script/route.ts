@@ -8,6 +8,7 @@ import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-generation'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
+import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
 import {
   coerceDuration,
   coercePlatform,
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
       typeof raw.sessionSeed === 'string' || typeof raw.sessionSeed === 'number'
         ? raw.sessionSeed
         : user.id
+    const language = normalizeProjectLanguage(raw.language, topic)
     const niche = inferNicheFromBrief({
       topic,
       tone,
@@ -101,7 +103,26 @@ export async function POST(req: NextRequest) {
       niche: typeof raw.niche === 'string' ? raw.niche : undefined,
     })
 
-    const input = { topic, platform, tone, duration, niche, sessionSeed }
+    const transcript =
+      typeof raw.transcript === 'string'
+        ? raw.transcript.slice(0, 12_000)
+        : typeof raw.originalTranscript === 'string'
+          ? raw.originalTranscript.slice(0, 12_000)
+          : undefined
+    const voiceNote =
+      typeof raw.voiceNote === 'string' ? raw.voiceNote.slice(0, 500) : undefined
+
+    const input = {
+      topic,
+      platform,
+      tone,
+      duration,
+      niche,
+      sessionSeed,
+      language,
+      transcript,
+      voiceNote,
+    }
 
     if (!hasScriptGenerationKey()) {
       const virloContext = buildVirloContext(topic, {
@@ -122,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const result = await runScriptGeneration(input)
-      const validation = validateCinematicOutput(result.output, niche)
+      const validation = validateCinematicOutput(result.output, niche, topic)
 
       return NextResponse.json({
         output: result.output,
@@ -130,6 +151,10 @@ export async function POST(req: NextRequest) {
         niche,
         validation,
         virlo: result.virlo,
+        language: result.language,
+        visualStyle: result.visualStyle,
+        viralScript: result.viralScript,
+        viralStructure: result.viralStructure,
       })
     } catch (err) {
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })

@@ -5,25 +5,25 @@
  */
 
 export const SITE_POSITIONING = {
-  title: 'Mugtee — The cinematic storytelling operating system',
+  title: 'Mugtee — Turn one idea into a cinematic reel',
   description:
-    'A cinematic environment for emotional visual storytellers. Direct, preserve, present, and evolve cinematic worlds.',
-  tagline: 'The home of cinematic storytelling worlds.',
+    'Turn one idea into a cinematic reel. AI-powered scripts, visuals, pacing, and export-ready short-form video.',
+  tagline: 'Turn one idea into a cinematic reel.',
 } as const
 
 export const HERO = {
-  badge: 'Cinematic storytelling operating system',
-  headline: 'The cinematic storytelling operating system.',
-  headlineAccent: 'Where emotional cinematic worlds are authored.',
+  badge: 'Cinematic reel studio',
+  headline: 'Turn one idea into a cinematic reel.',
+  headlineAccent: 'From hook to export-ready reel.',
   subheadline:
-    'A cinematic environment for emotional visual storytellers — direct, preserve, present, and evolve worlds with atmosphere and rhythm.',
-  primaryCta: 'Enter the cinematic studio',
-  secondaryCta: 'Experience cinematic stories',
+    'Mugtee shapes scripts, visuals, pacing, captions, and cinematic storytelling into short-form reels you can publish today.',
+  primaryCta: 'Open Studio',
+  secondaryCta: 'See it in action',
   trust: 'Free to begin · No credit card',
   signals: [
-    'Built for emotional visual storytellers',
-    'Editorially restrained · atmospherically immersive',
-    'Stories meant to be experienced',
+    'One idea in, reel out',
+    'Scripts · storyboards · captions',
+    'Export-ready vertical video',
   ],
 } as const
 
@@ -184,29 +184,29 @@ export const PRICING = {
 } as const
 
 export const FINAL_CTA = {
-  headline: 'Begin your cinematic world.',
+  headline: 'Turn one idea into a cinematic reel.',
   subheadline:
-    'Enter a storytelling environment built for emotional direction — hook, storyboard, atmosphere, and immersive presentation in one calm session.',
-  cta: 'Enter the cinematic studio',
+    'Open Studio and start with a single sentence — Mugtee handles script, visuals, pacing, and export.',
+  cta: 'Open Studio',
 } as const
+
+export const MOBILE_CTA = 'Open Studio'
 
 export const FOOTER = {
-  tagline: 'The home of cinematic storytelling worlds.',
+  tagline: 'Turn one idea into a cinematic reel.',
 } as const
-
-export const EMAIL_CAPTURE = {
-  eyebrow: 'Stay in the atmosphere',
-  headline: 'Cinematic storytelling notes — quietly delivered.',
-  subheadline: 'Occasional letters on emotional directing and visual storytelling. No hustle. Unsubscribe anytime.',
-} as const
-
-export const MOBILE_CTA = 'Enter the studio'
 
 export const HOMEPAGE_TRUST_LINES = [
   'Emotionally immersive storytelling',
   'Editorially restrained · atmospherically alive',
   'Creator-owned cinematic worlds',
 ] as const
+
+export const EMAIL_CAPTURE = {
+  eyebrow: 'Stay in the atmosphere',
+  headline: 'Cinematic storytelling notes — quietly delivered.',
+  subheadline: 'Occasional letters on emotional directing and visual storytelling. No hustle. Unsubscribe anytime.',
+} as const
 
 export const CREATOR_TYPE_SHOWCASE = [
   { label: 'Documentary', example: 'Witness & craft' },

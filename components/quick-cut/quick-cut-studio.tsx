@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { ExportPreview } from '@/components/quick-cut/export-preview'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
@@ -55,10 +54,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
     )
   }
 
-  if (isComplete) {
-    return <ExportPreview onRegenerate={onRegenerate} />
-  }
-
   return (
     <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_min(260px,28%)] lg:gap-6">
       {voiceUrl ? (
@@ -81,9 +76,10 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
             voiceUrl={voiceUrl}
             audioRef={voiceAudioRef}
             waveform={waveform}
-            isLive
-            generationStep={generationStep}
-            mp4Compiling={generationStep === 'render'}
+            isLive={!isComplete}
+            generationStep={isComplete ? 'complete' : generationStep}
+            mp4Compiling={generationStep === 'render' && !videoUrl}
+            autoPlayPreview={isComplete && Boolean(voiceUrl) && !videoUrl}
             className="mx-auto"
           />
         </div>

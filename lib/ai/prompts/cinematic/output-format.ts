@@ -4,10 +4,10 @@ export function buildHookLayer(): string {
   return `
 HOOK QUALITY LAYER:
 - Generate 3 internal hook variations in "hookVariations" (never output all 3 as the final hook).
-- Pick the strongest as "hook" — short-form native, cinematic, curiosity + emotional tension.
+- Pick the strongest as "hook" — short-form native, retention-first, creator spoken voice.
 - Hooks must earn the first 2 seconds of retention.
-- Avoid: corporate language, cliché motivation, "you won't believe", "in a world where".
-- Good hooks: specific, visual, emotionally loaded, slightly unfinished.
+- Avoid: corporate language, quote-mode philosophy, "you're not afraid of", cinematic one-liners.
+- Good hooks: specific problem, result tease, direct callout, concrete detail.
 `.trim()
 }
 

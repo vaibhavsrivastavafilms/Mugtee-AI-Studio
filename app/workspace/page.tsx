@@ -42,11 +42,10 @@ const TONES = [
 const DURATIONS = [
   { value: '30', label: '30 sec' },
   { value: '60', label: '60 sec' },
-  { value: '90', label: '90 sec' },
 ]
 const TEMPLATES = [
   { id: 'reel_hook',  label: 'Reel Hook',         seed: 'A 60-second hook-first reel that stops the scroll in 3 seconds.' },
-  { id: 'doc_story',  label: 'Documentary Story', seed: 'A cinematic 90-second documentary-style narration with retention beats.' },
+  { id: 'doc_story',  label: 'Documentary Story', seed: 'A cinematic 60-second documentary-style narration with retention beats.' },
   { id: 'tutorial',   label: 'Mini Tutorial',     seed: 'A punchy 60-second how-to with a clear payoff in the first 3 seconds.' },
   { id: 'before_after', label: 'Before / After',  seed: 'A 30-second transformation reel with a strong contrast hook.' },
 ]
@@ -169,7 +168,7 @@ function deriveStage(output: GenOutput | null, tab: string): CreativeStage {
   return 'storyboard'
 }
 
-export default function WorkspacePage() {
+export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId?: string } = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -289,7 +288,7 @@ export default function WorkspacePage() {
       const updatedMs = data?.updated_at ? new Date(data.updated_at).getTime() : Date.now()
       setLastSavedAt(updatedMs)
       setRevealNonce(n => n + 1)
-      if (opts?.syncUrl !== false) {
+      if (opts?.syncUrl !== false && !embeddedProjectId) {
         const next = new URLSearchParams(searchParams.toString())
         next.set('project', id)
         router.replace(`/workspace?${next.toString()}`, { scroll: false })
@@ -314,7 +313,7 @@ export default function WorkspacePage() {
       setGenerating(false)
       setLoadingProjectId(null)
     }
-  }, [loadingProjectId, router, searchParams])
+  }, [loadingProjectId, router, searchParams, embeddedProjectId])
 
   // Deep-link support: on first mount, if ?project=xyz is present, hydrate it.
   // Phase 3A ΓÇö Creator Memory: if no URL param, silently restore the last project
@@ -322,7 +321,7 @@ export default function WorkspacePage() {
   // Phase 3H ΓÇö `?fresh=1` deep-link from "+ New Project" forces a clean canvas
   // (no localStorage recovery, no stale residue).
   useEffect(() => {
-    const pid = searchParams.get('project')
+    const pid = embeddedProjectId || searchParams.get('project')
     const fresh = searchParams.get('fresh')
     if (fresh) {
       try {
@@ -337,6 +336,7 @@ export default function WorkspacePage() {
       loadProject(pid, { syncUrl: false, tab: recoveredTab || undefined })
       return
     }
+    if (embeddedProjectId) return
     // Try silent recovery from localStorage.
     try {
       const lastId  = window.localStorage.getItem(LAST_PROJECT_KEY)
@@ -427,8 +427,8 @@ export default function WorkspacePage() {
   // initialize with stable fallback values (first 5 prompts, first greeting)
   // and randomize ONLY inside useEffect after mount. This eliminates the
   // server/client HTML mismatch that triggered the hydration warning.
-  const FIRST_SESSION_GREETINGS = ['Welcome to Mugtee AI Studio.', 'Your first cinematic reel starts here.']
-  const RETURNING_GREETINGS = ['Welcome back, Creator.', 'What story are we shaping today?', 'Your next cinematic reel starts here.', 'Pick up where the story left off.']
+  const FIRST_SESSION_GREETINGS = ['Ready when you are.']
+  const RETURNING_GREETINGS = ['Continue your reel.', 'Pick up where you left off.']
   const [starterPrompts, setStarterPrompts] = useState<string[]>(() => STARTER_PROMPTS_POOL.slice(0, 5))
   const [welcomeMessage, setWelcomeMessage] = useState<string>(FIRST_SESSION_GREETINGS[0])
   useEffect(() => {
@@ -648,8 +648,8 @@ export default function WorkspacePage() {
         <div className="space-y-1 mb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/80 flex items-center gap-1.5">
-              <Clapperboard className="w-3 h-3" /> Director Mode
-            </p>
+            <Clapperboard className="w-3 h-3" /> Director Mode
+          </p>
             {/* Phase 3A ΓÇö quiet creator trust signals: recovered + last-saved.
                 Pure derived rendering; no dashboards, no noise. */}
             <div className="flex items-center gap-2.5 text-[10.5px] text-luxe/45">
@@ -675,33 +675,11 @@ export default function WorkspacePage() {
               )}
             </div>
           </div>
-          <h1 className="font-display text-3xl md:text-4xl tracking-tight text-luxe">
-            Direct mood, pacing, and story ΓÇö in one prompt.
-          </h1>
-          {/* Phase 3N ΓÇö Cinematic welcome greeting. Resolves once per mount;
-              rotates among curated phrases. First-session vs returning is
-              derived from existing `recents` state ΓÇö no new flag. */}
-          <p className="text-[10.5px] tracking-[0.32em] uppercase text-gold-400/60 font-medium">
-            {welcomeMessage}
-          </p>
-          <p className="text-[13.5px] text-luxe/55 leading-relaxed max-w-xl">
-            Type your idea, pick a platform, and Mugtee will draft the hook, full script,
-            storyboard beats, captions and a thumbnail concept.
-          </p>
-        </div>
-
-        {/* Phase 3 ΓÇö quiet creative-flow guidance. Two subtle hints, no dashboards.
-            Phase 3D ΓÇö further softened: the Journey row below carries the
-            primary stage signal; these become a faint secondary whisper. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-[10px] text-luxe/30 tracking-[0.04em]">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/40" />
-            Mugtee detects emotional pacing
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-1 h-1 rounded-full bg-gold-400/40" />
-            Optimized for short-form storytelling
-          </span>
+          {welcomeMessage ? (
+            <p className="text-[10.5px] tracking-[0.32em] uppercase text-gold-400/60 font-medium">
+              {welcomeMessage}
+            </p>
+          ) : null}
         </div>
 
         {/* Empty-state inspiration ΓÇö appears until the creator has output or a draft topic. */}

@@ -29,8 +29,8 @@ export function creatorModeFromMugteeMode(
 export function destinationForMugteeMode(
   mode: string | null | undefined
 ): string {
-  if (mode === 'director') return '/workspace'
-  return '/create?mode=quick'
+  if (mode === 'director') return '/studio/director'
+  return '/studio/create?mode=quick'
 }
 
 export function resolvePostLoginRedirect(input: {

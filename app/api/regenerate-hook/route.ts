@@ -9,6 +9,7 @@ import { parseRegenContext, type RegenProjectContext } from '@/lib/cinematic/reg
 import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
 
 import { callCinematicRegen } from '@/lib/cinematic/regen-openai'
+import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
 
 import {
 
@@ -122,7 +123,9 @@ async function generateDistinctHook(
 
         attempt > 0 ? 'Previous output was too similar — use a radically different framework and opening.' : undefined,
 
-        attempt > 0 ? 0.95 : undefined
+        attempt > 0 ? 0.95 : undefined,
+
+        buildVirloSystemPrompt()
 
       )
 
