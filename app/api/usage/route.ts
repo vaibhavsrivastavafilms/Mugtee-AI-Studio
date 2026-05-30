@@ -60,6 +60,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ...check })
   }
 
+  if (action === 'increment_only') {
+    await incrementUsage(user.id, metric)
+    const snapshot = await getUsage(user.id)
+    return NextResponse.json({ ok: true, metric, usage: snapshot })
+  }
+
   if (action !== 'increment') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }

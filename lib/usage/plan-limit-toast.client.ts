@@ -75,3 +75,16 @@ export async function checkClientUsage(metric: 'projects' | 'exports'): Promise<
     return true
   }
 }
+
+/** Increment after a successful server-side or client-side action (no pre-check). */
+export async function incrementClientUsage(metric: 'projects' | 'exports'): Promise<void> {
+  try {
+    await fetch('/api/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ metric, action: 'increment_only' }),
+    })
+  } catch {
+    /* best-effort */
+  }
+}
