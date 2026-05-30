@@ -158,16 +158,10 @@ export function resolveProjectScenes(
 
 export function projectHasPlayablePreview(
   scenes: CinematicScene[],
-  voice: CinematicVoice | null,
+  _voice: CinematicVoice | null,
   videoUrl?: string | null
 ): boolean {
   if (videoUrl?.trim()) return true
-  if (!voice?.audioUrl?.trim() && scenes.length < 1) return false
-  if (voice?.audioUrl?.trim() && scenes.length > 0) {
-    return scenes.some(
-      (scene) => scene.imageUrl?.trim() || scene.storyboardImages?.[0]?.url?.trim()
-    )
-  }
   return scenes.some(
     (scene) => scene.imageUrl?.trim() || scene.storyboardImages?.[0]?.url?.trim()
   )
