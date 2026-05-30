@@ -68,7 +68,7 @@ export function ProjectsInsightsPanel({
           <StatRow icon={Film} label="Tone" value={project.style} />
           <StatRow icon={Target} label="Platform" value={project.platform} />
           <StatRow icon={Gauge} label="Duration" value={`${project.duration}s reel`} />
-          <StatRow icon={Heart} label="Status" value={project.statusLabel} />
+          <StatRow icon={Heart} label="Status" value={project.creationStatusLabel} />
 
           <p className="text-[10px] text-muted-foreground tracking-wide">
             Updated{' '}

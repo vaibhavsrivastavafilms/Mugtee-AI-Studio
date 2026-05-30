@@ -16,7 +16,12 @@ export function ProjectLibraryEmpty() {
 
   return (
     <div className="space-y-8">
-      <V2EmptyState />
+      <V2EmptyState
+        title="Your creative workspace is empty."
+        description="Every generation auto-saves here — start your first reel and it will appear in your library."
+        ctaLabel="Create Your First Project"
+        ctaHref="/create?mode=quick"
+      />
 
       <div className="space-y-2">
         <p className="text-[10px] tracking-[0.24em] uppercase text-[var(--v2-gold)] text-center">
