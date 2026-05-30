@@ -1,4 +1,8 @@
 import {
+  getDefaultElevenLabsModelId,
+  synthesizeElevenLabsSpeech,
+} from '@/lib/ai/elevenlabs'
+import {
   allowElevenLabsVoice,
   allowEmergentTts,
   allowOpenAITts,
@@ -62,64 +66,79 @@ async function synthesizeEmergentTts(text: string): Promise<Buffer | null> {
   }
 }
 
-async function synthesizeElevenLabsTts(text: string): Promise<Buffer | null> {
-  const key = process.env.ELEVENLABS_API_KEY?.trim()
-  if (!allowElevenLabsVoice() || !key || !text.trim()) return null
-
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'
-  const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_turbo_v2_5'
-
-  try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': key,
-        'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text,
-        model_id: modelId,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.35,
-          use_speaker_boost: true,
-        },
-      }),
-    })
-    if (!res.ok) return null
-    return Buffer.from(await res.arrayBuffer())
-  } catch (err) {
-    logError('synthesize-speech.elevenlabs', err)
-    return null
-  }
+async function synthesizeElevenLabsTts(
+  text: string,
+  elevenLabsVoiceId?: string
+): Promise<Buffer | null> {
+  if (!allowElevenLabsVoice() || !text.trim()) return null
+  return synthesizeElevenLabsSpeech(text, {
+    voiceId: elevenLabsVoiceId,
+    modelId: getDefaultElevenLabsModelId(),
+  })
 }
 
 export type SpeechSynthesisResult = {
   buffer: Buffer | null
   provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'none'
+  voiceName?: string
+  fallbackMessage?: string
+}
+
+export type SpeechSynthesisOptions = {
+  elevenLabsVoiceId?: string
+  voiceName?: string
 }
 
 /** Free tier: OpenAI TTS only. Paid: ElevenLabs → OpenAI → Emergent. */
-export async function synthesizeSpeechBuffer(text: string): Promise<SpeechSynthesisResult> {
+export async function synthesizeSpeechBuffer(
+  text: string,
+  options?: SpeechSynthesisOptions
+): Promise<SpeechSynthesisResult> {
   const narration = buildNarrationFromScript(text)
   if (!narration || narration.length < 12) {
     return { buffer: null, provider: 'none' }
   }
 
-  if (allowElevenLabsVoice()) {
-    const eleven = await synthesizeElevenLabsTts(narration)
-    if (eleven) return { buffer: eleven, provider: 'elevenlabs' }
+  const triedEleven = allowElevenLabsVoice()
+  if (triedEleven) {
+    const eleven = await synthesizeElevenLabsTts(narration, options?.elevenLabsVoiceId)
+    if (eleven) {
+      return {
+        buffer: eleven,
+        provider: 'elevenlabs',
+        voiceName: options?.voiceName,
+      }
+    }
   }
 
   const openai = await synthesizeOpenAITts(narration)
-  if (openai) return { buffer: openai, provider: 'openai_tts' }
+  if (openai) {
+    return {
+      buffer: openai,
+      provider: 'openai_tts',
+      voiceName: options?.voiceName || 'OpenAI Narrator',
+      fallbackMessage: triedEleven
+        ? 'ElevenLabs unavailable — using OpenAI TTS.'
+        : 'Using OpenAI voice — add ELEVENLABS_API_KEY for ElevenLabs.',
+    }
+  }
 
   if (allowEmergentTts()) {
     const emergent = await synthesizeEmergentTts(narration)
-    if (emergent) return { buffer: emergent, provider: 'emergent_tts' }
+    if (emergent) {
+      return {
+        buffer: emergent,
+        provider: 'emergent_tts',
+        voiceName: options?.voiceName || 'Emergent Narrator',
+        fallbackMessage: 'Using Emergent TTS fallback.',
+      }
+    }
   }
 
-  return { buffer: null, provider: 'none' }
+  return {
+    buffer: null,
+    provider: 'none',
+    fallbackMessage:
+      'No voice API configured. Set ELEVENLABS_API_KEY or OPENAI_API_KEY in .env.local.',
+  }
 }

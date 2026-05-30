@@ -37,8 +37,11 @@ import { type CinematicNiche } from '@/lib/cinematic/niches'
 import { runDeepResearch } from '@/lib/cinematic/deep-research-engine'
 import type {
   DeepResearchPipelineOptions,
+  DeepResearchReport,
   ScriptGenerationResearchOutput,
 } from '@/types/deep-research'
+import type { StoryboardStoreFields } from '@/types/storyboard'
+import { runStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 
@@ -82,6 +85,7 @@ type GenInput = {
   viralStructure: ViralStructureAnalysis
   referenceScript?: string
   researchDocument?: string
+  researchReport?: DeepResearchReport
   regenFresh?: boolean
   topicChanged?: boolean
   previousTopic?: string
@@ -128,6 +132,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       previousHook: input.previousHook,
       creatorMemoryBias: input.creatorMemoryBias,
       researchDocument: input.researchDocument,
+      researchReport: input.researchReport,
       titleSeed: input.titleSeed,
     }),
     sopSection,
@@ -295,7 +300,8 @@ export type ScriptGenerationResult = {
   visualStyle: VisualStyle
   viralScript: ViralScript
   viralStructure: ViralStructureAnalysis
-} & ScriptGenerationResearchOutput
+} & ScriptGenerationResearchOutput &
+  Partial<StoryboardStoreFields>
 
 export async function runScriptGeneration(
   input: ScriptGenerationInput
@@ -307,10 +313,12 @@ export async function runScriptGeneration(
   const language = normalizeProjectLanguage(input.language, input.transcript || topic)
 
   let researchDocument = input.researchDocument?.trim() || undefined
+  let researchReport = input.researchReport
   let researchMock = false
   if (!input.skipResearch && topic && !researchDocument) {
     const research = await runDeepResearch({ topic, language })
     researchDocument = research.document.trim() || undefined
+    researchReport = research.report
     researchMock = research.mock
   }
 
@@ -326,6 +334,7 @@ export async function runScriptGeneration(
     voiceNote: input.voiceNote,
     hookSeed: input.hookSeed,
     visualStyle: input.visualStyle,
+    researchReport,
   })
   const { niche, virloContext, virlo, viralStructure } = blueprint
   const resolvedVisualStyle = input.visualStyle ?? blueprint.visualStyle
@@ -344,6 +353,7 @@ export async function runScriptGeneration(
     viralStructure,
     referenceScript,
     researchDocument,
+    researchReport,
     regenFresh: input.regenFresh,
     topicChanged: input.topicChanged,
     previousTopic: input.previousTopic,
@@ -374,6 +384,7 @@ export async function runScriptGeneration(
       viralScript,
       viralStructure,
       researchDocument,
+      researchReport,
       researchMock,
     }
   }
@@ -417,6 +428,12 @@ export async function runScriptGeneration(
     }
 
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
+    const storyboard = await runStoryboardSop(output.script, duration, {
+      language,
+      researchDocument,
+      researchReport,
+      retentionMode: duration <= 60,
+    })
     return {
       output,
       mock: false,
@@ -426,7 +443,9 @@ export async function runScriptGeneration(
       viralScript,
       viralStructure,
       researchDocument,
+      researchReport,
       researchMock,
+      ...(storyboard ?? {}),
     }
   } catch (err) {
     if (!hasScriptGenerationKey()) {
@@ -449,6 +468,7 @@ export async function runScriptGeneration(
         viralScript,
         viralStructure,
         researchDocument,
+        researchReport,
         researchMock,
       }
     }

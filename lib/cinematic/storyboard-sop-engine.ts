@@ -2,33 +2,79 @@ import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   buildStoryboardSopPrompt,
   buildStoryboardSopSystemAugment,
+  finalizeStoryboardSceneRecords,
   finalizeStoryboardScenes,
-  mapStoryboardSegmentsToScenes,
+  mapStoryboardSegmentsToStoryboardScenes,
   parseStoryboardSegments,
+  resolveStoryboardSceneCount,
 } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
-import { CREATOR_RETENTION_SCENE_COUNT } from '@/lib/cinematic/viral-structure'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { logError } from '@/lib/workspace/validation'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
+import {
+  buildStoryboardProjectFields,
+  storyboardScenesToGeneratedScenes,
+  type StoryboardProjectFields,
+  type StoryboardScene,
+} from '@/types/storyboard'
 
 export type StoryboardSopGenerationInput = {
   script: string
   language: ProjectLanguage
   durationSec: number
-  /** Quick Cut — merge segments into 7 retention beats */
+  /** Quick Cut — merge segments into retention-scaled beat count */
   retentionMode?: boolean
-} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
+} & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
-/** LLM pass: script → SOP segments → scene records. */
+export type StoryboardSopResult = StoryboardProjectFields
+
+/** LLM pass: script → SOP storyboard scenes with project metadata. */
+export async function runStoryboardSop(
+  script: string,
+  durationSec: number,
+  options: Partial<Omit<StoryboardSopGenerationInput, 'script' | 'durationSec'>> = {}
+): Promise<StoryboardSopResult | null> {
+  const input: StoryboardSopGenerationInput = {
+    script,
+    durationSec,
+    language: options.language ?? 'en',
+    ...options,
+  }
+
+  const scenes = await generateStoryboardScenesInternal(input)
+  if (!scenes || scenes.length < 2) return null
+  return buildStoryboardProjectFields(scenes)
+}
+
+/** LLM pass: script → SOP segments → GeneratedScene records for image gen. */
 export async function generateScenesViaStoryboardSop(
   input: StoryboardSopGenerationInput
 ): Promise<GeneratedScene[] | null> {
+  const result = await runStoryboardSop(input.script, input.durationSec, {
+    language: input.language,
+    researchDocument: input.researchDocument,
+    researchReport: input.researchReport,
+    retentionMode: input.retentionMode,
+  })
+  if (!result) return null
+  const finalized = finalizeStoryboardScenes(
+    storyboardScenesToGeneratedScenes(result.storyboardScenes),
+    input.durationSec
+  )
+  return ensureScenesHaveImagePrompts(finalized)
+}
+
+async function generateStoryboardScenesInternal(
+  input: StoryboardSopGenerationInput
+): Promise<StoryboardScene[] | null> {
   if (!process.env.OPENAI_API_KEY || !input.script.trim()) return null
 
   const retentionMode = input.retentionMode ?? input.durationSec <= 60
-  const sceneTarget = retentionMode ? CREATOR_RETENTION_SCENE_COUNT : undefined
+  const sceneTarget = retentionMode
+    ? resolveStoryboardSceneCount(input.durationSec)
+    : undefined
 
   try {
     const openai = getOpenAIClient()
@@ -47,6 +93,7 @@ export async function generateScenesViaStoryboardSop(
             language: input.language,
             durationSec: input.durationSec,
             researchDocument: input.researchDocument,
+            researchReport: input.researchReport,
             sceneTarget,
             retentionMode,
           }),
@@ -59,16 +106,17 @@ export async function generateScenesViaStoryboardSop(
     const segments = parseStoryboardSegments(json)
     if (segments.length < 2) return null
 
-    const mapped = mapStoryboardSegmentsToScenes(segments, {
+    const mapped = mapStoryboardSegmentsToStoryboardScenes(segments, {
       durationSec: input.durationSec,
       sceneTarget: sceneTarget ?? segments.length,
       mergeToTarget: retentionMode,
     })
 
-    const finalized = finalizeStoryboardScenes(mapped, input.durationSec)
-    return ensureScenesHaveImagePrompts(finalized)
+    return finalizeStoryboardSceneRecords(mapped, input.durationSec)
   } catch (err) {
     logError('storyboard-sop-engine', err)
     return null
   }
 }
+
+export type { StoryboardScene, StoryboardProjectFields }

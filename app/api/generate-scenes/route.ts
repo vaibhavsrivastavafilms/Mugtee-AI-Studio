@@ -15,8 +15,13 @@ import {
   applyVisualStyleToScene,
   buildMugteeDirectorPrompt,
 } from '@/lib/cinematic/mugtee-director-engine'
-import { generateScenesViaStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
+import { runStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  buildStoryboardProjectFields,
+  storyboardScenesToGeneratedScenes,
+  type StoryboardScene,
+} from '@/types/storyboard'
 import {
   parseVisualStyle,
   sceneVisualDefaults,
@@ -58,6 +63,45 @@ function parseScriptIntoScenes(
     }
     return { ...base, imagePrompt: buildSceneImagePrompt(base) }
   })
+}
+
+function parsePrecomputedStoryboard(raw: unknown): StoryboardScene[] | null {
+  if (!Array.isArray(raw) || raw.length < 2) return null
+  const scenes: StoryboardScene[] = []
+  raw.forEach((item, i) => {
+    if (!item || typeof item !== 'object') return
+    const row = item as Record<string, unknown>
+    const scriptLines = String(row.scriptLines ?? row.description ?? '').trim()
+    const imagePrompt = String(row.imagePrompt ?? row.visualPrompt ?? '').trim()
+    if (!scriptLines && !imagePrompt) return
+    const charactersRaw = row.characters
+    scenes.push({
+      id: String(row.id ?? `scene-${i + 1}`),
+      scriptLines,
+      imagePrompt: sanitizeSceneOnlyPrompt(imagePrompt || scriptLines.slice(0, 200)),
+      visualFocus: String(row.visualFocus ?? '').trim(),
+      location: String(row.location ?? '').trim(),
+      characters: Array.isArray(charactersRaw)
+        ? charactersRaw.filter((c): c is string => typeof c === 'string')
+        : [],
+      action: String(row.action ?? '').trim(),
+      emotion: String(row.emotion ?? '').trim(),
+      duration: typeof row.duration === 'number' ? row.duration : 4,
+    })
+  })
+  return scenes.length >= 2 ? scenes : null
+}
+
+function storyboardResponseExtras(
+  sop: Awaited<ReturnType<typeof runStoryboardSop>>
+): Record<string, unknown> {
+  if (!sop) return {}
+  return {
+    storyboardScenes: sop.storyboardScenes,
+    storyboardPrompts: sop.storyboardPrompts,
+    sceneCount: sop.sceneCount,
+    visualTimeline: sop.visualTimeline,
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -102,15 +146,36 @@ export async function POST(req: NextRequest) {
     const researchDocument =
       typeof raw?.researchDocument === 'string' ? raw.researchDocument : undefined
 
-    if (process.env.OPENAI_API_KEY && script.trim().length > 40) {
-      const sopScenes = await generateScenesViaStoryboardSop({
-        script,
+    const precomputed = parsePrecomputedStoryboard(raw?.storyboardScenes)
+    if (precomputed) {
+      const baseScenes = storyboardScenesToGeneratedScenes(precomputed)
+      const styled = baseScenes.map((scene, i) => {
+        const virloVisual = virlo.visuals[i]
+        const withVirlo = virloVisual
+          ? { ...scene, ...sceneVisualFieldsFromVirlo(virloVisual) }
+          : scene
+        return applyVisualStyleToScene(withVirlo, visualStyle)
+      })
+      return NextResponse.json({
+        scenes: ensureScenesHaveImagePrompts(styled),
+        mock: false,
+        niche,
         language,
-        durationSec,
+        visualStyle,
+        source: 'storyboard_sop',
+        ...storyboardResponseExtras(buildStoryboardProjectFields(precomputed)),
+        virlo: meta,
+      })
+    }
+
+    if (process.env.OPENAI_API_KEY && script.trim().length > 40) {
+      const sopResult = await runStoryboardSop(script, durationSec, {
+        language,
         researchDocument,
         retentionMode: durationSec <= 60,
       })
-      if (sopScenes && sopScenes.length >= 2) {
+      if (sopResult && sopResult.storyboardScenes.length >= 2) {
+        const sopScenes = storyboardScenesToGeneratedScenes(sopResult.storyboardScenes)
         const styled = sopScenes.map((scene, i) => {
           const virloVisual = virlo.visuals[i]
           const withVirlo = virloVisual
@@ -125,6 +190,7 @@ export async function POST(req: NextRequest) {
           language,
           visualStyle,
           source: 'storyboard_sop',
+          ...storyboardResponseExtras(sopResult),
           virlo: meta,
         })
       }

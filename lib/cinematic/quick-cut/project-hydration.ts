@@ -56,6 +56,8 @@ export type QuickCutProjectHydrationPatch = {
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
   voiceUrl: string | null
+  elevenLabsVoiceId: string | null
+  voiceName: string | null
   videoUrl: string | null
   generationStep: QuickCutGenerationStep
   isComplete: boolean
@@ -100,6 +102,8 @@ export function buildQuickCutHydrationFromRow(
     scenes,
     storyboard: scenes,
     voiceUrl: state.voice?.audioUrl ?? null,
+    elevenLabsVoiceId: state.voice?.voiceId ?? null,
+    voiceName: state.voice?.voiceName ?? null,
     videoUrl: row.video_url ?? null,
     generationStep: isComplete && row.video_url ? 'complete' : generationStep,
     isComplete: Boolean(row.video_url || (scenes.length > 0 && state.script.trim())),

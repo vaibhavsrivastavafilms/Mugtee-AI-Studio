@@ -50,6 +50,8 @@ export function CinematicVoicePreview({
 
   loading = false,
 
+  voiceName,
+
   className,
 
 }: {
@@ -67,6 +69,8 @@ export function CinematicVoicePreview({
   audioRef?: RefObject<HTMLAudioElement | null>
 
   loading?: boolean
+
+  voiceName?: string | null
 
   className?: string
 
@@ -152,9 +156,19 @@ export function CinematicVoicePreview({
 
       <div className="flex items-center justify-between gap-2 mb-3">
 
-        <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+        <div className="flex flex-col gap-0.5 min-w-0">
 
-          <Mic className="w-3 h-3" /> Voiceover
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+
+            <Mic className="w-3 h-3" /> Voiceover
+
+          </div>
+
+          {voiceName ? (
+
+            <span className="text-[10px] text-luxe/45 truncate">{voiceName}</span>
+
+          ) : null}
 
         </div>
 

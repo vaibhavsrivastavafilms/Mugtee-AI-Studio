@@ -125,7 +125,7 @@ async function generateWithAnthropic(userPrompt: string): Promise<DeepResearchRe
   const anthropic = getAnthropicClient()
   const message = await anthropic.messages.create({
     model: CLAUDE_SCRIPT_MODEL,
-    max_tokens: 8192,
+    max_tokens: 16384,
     temperature: 0.85,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
