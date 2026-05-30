@@ -1,4 +1,9 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import {
+  checkClientUsage,
+  incrementClientUsage,
+} from '@/lib/usage/plan-limit-toast.client'
+import { PLAN_LIMIT_MESSAGE } from '@/lib/usage/usage-tracker'
 
 /** Browser Supabase client or throw when public env is missing. */
 function requireBrowserClient() {
@@ -411,6 +416,7 @@ export async function createProject(
     id?: string
     mode?: 'quick' | 'director'
     directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
+    blueprintId?: string | null
     video_url?: string | null
     thumbnail_url?: string | null
     storyboard?: unknown
@@ -426,6 +432,10 @@ export async function createProject(
 ): Promise<CinematicProjectRow> {
   const supabase = requireBrowserClient()
   const uid = userId ?? (await requireUserId())
+
+  const allowed = await checkClientUsage('projects')
+  if (!allowed) throw new Error(PLAN_LIMIT_MESSAGE)
+
   const payload = stateToRowPayload({
     id: state.id ?? null,
     title: state.title ?? 'Untitled project',
@@ -537,6 +547,7 @@ export async function createProject(
     .single()
 
   if (error) throwIfUnavailable(error)
+  void incrementClientUsage('projects')
   return data as CinematicProjectRow
 }
 
