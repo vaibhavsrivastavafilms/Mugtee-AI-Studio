@@ -111,10 +111,10 @@ export default function LandingClient() {
           >
             <DashboardMock />
             {/* Floating glass cards — subtle CSS float animation */}
-            <FloatingCard className="hidden sm:flex absolute -left-6 lg:-left-16 top-1/4" icon={<Wand2 className="w-3.5 h-3.5 text-gold-300" />} label="Hook held" value="Emotional opener · Scene 1" delay="0s" />
-            <FloatingCard className="hidden sm:flex absolute -right-4 lg:-right-14 top-12" icon={<Film className="w-3.5 h-3.5 text-amber-300" />} label="Storyboard frame" value="9:16 · warm key light" delay="-1.4s" />
-            <FloatingCard className="hidden sm:flex absolute -right-6 lg:-right-20 bottom-14" icon={<Captions className="w-3.5 h-3.5 text-gold-300" />} label="Presentation" value="Atmosphere · captions held" delay="-2.8s" />
-            <FloatingCard className="hidden sm:flex absolute -left-3 lg:-left-12 bottom-8" icon={<Volume2 className="w-3.5 h-3.5 text-gold-300" />} label="Voice direction" value="Warm · documentary pace" delay="-2.1s" />
+            <FloatingCard className="hidden sm:flex absolute -left-6 lg:-left-16 top-1/4 [animation-delay:0s]" icon={<Wand2 className="w-3.5 h-3.5 text-gold-300" />} label="Hook held" value="Emotional opener · Scene 1" />
+            <FloatingCard className="hidden sm:flex absolute -right-4 lg:-right-14 top-12 [animation-delay:-1.4s]" icon={<Film className="w-3.5 h-3.5 text-amber-300" />} label="Storyboard frame" value="9:16 · warm key light" />
+            <FloatingCard className="hidden sm:flex absolute -right-6 lg:-right-20 bottom-14 [animation-delay:-2.8s]" icon={<Captions className="w-3.5 h-3.5 text-gold-300" />} label="Presentation" value="Atmosphere · captions held" />
+            <FloatingCard className="hidden sm:flex absolute -left-3 lg:-left-12 bottom-8 [animation-delay:-2.1s]" icon={<Volume2 className="w-3.5 h-3.5 text-gold-300" />} label="Voice direction" value="Warm · documentary pace" />
           </motion.div>
         </div>
       </section>
@@ -343,11 +343,10 @@ function CreatorTrustStrip() {
   )
 }
 
-function FloatingCard({ icon, label, value, delay, className = '' }: { icon: React.ReactNode; label: string; value: string; delay: string; className?: string }) {
+function FloatingCard({ icon, label, value, className = '' }: { icon: React.ReactNode; label: string; value: string; className?: string }) {
   return (
     <div
       className={`float items-center gap-2.5 rounded-xl glass-strong border border-gold-500/30 shadow-cinema px-3.5 py-2.5 ${className}`}
-      style={{ animationDelay: delay }}
     >
       <div className="w-7 h-7 rounded-md bg-gold-500/15 border border-gold-500/30 flex items-center justify-center shrink-0">
         {icon}
@@ -397,9 +396,9 @@ function DashboardMock() {
           <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3">
             <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-2 flex items-center gap-1.5"><Film className="w-2.5 h-2.5 text-gold-300" /> Scene beats · 4 frames</div>
             <div className="space-y-1.5">
-              {[60, 85, 45, 70, 55].map((w, i) => (
+              {(['w-[60%]', 'w-[85%]', 'w-[45%]', 'w-[70%]', 'w-[55%]'] as const).map((widthClass, i) => (
                 <div key={i} className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                  <div className="h-full bg-gold-gradient" style={{ width: `${w}%` }} />
+                  <div className={`h-full bg-gold-gradient ${widthClass}`} />
                 </div>
               ))}
             </div>

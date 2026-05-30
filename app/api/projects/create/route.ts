@@ -1,40 +1,44 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const supabase = createSupabaseServerClient()
+    const body = await req.json()
 
     const { data, error } = await supabase
-      .from("projects")
+      .from('projects')
       .insert([
         {
           title: body.title,
           prompt: body.prompt,
-          platform: body.platform || "instagram",
-          category: body.category || "cinematic",
+          platform: body.platform || 'instagram',
+          category: body.category || 'cinematic',
         },
       ])
-      .select();
+      .select()
 
     if (error) {
       return NextResponse.json({
         success: false,
         error,
-      });
+      })
     }
 
     return NextResponse.json({
       success: true,
       data,
-    });
+    })
   } catch (err) {
     return NextResponse.json(
       {
         success: false,
-        error: "Server error",
+        error: 'Server error',
       },
       { status: 500 }
-    );
+    )
   }
 }

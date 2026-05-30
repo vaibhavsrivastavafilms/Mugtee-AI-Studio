@@ -1,20 +1,21 @@
-import { supabase } from "./supabase";
+import { createSupabaseBrowserClient } from './supabase/client'
 
 export async function createProject(project: {
-  user_id: string;
-  title: string;
-  niche?: string;
-  platform?: string;
-  tone?: string;
-  goal?: string;
+  user_id: string
+  title: string
+  niche?: string
+  platform?: string
+  tone?: string
+  goal?: string
 }) {
+  const supabase = createSupabaseBrowserClient()
   const { data, error } = await supabase
-    .from("projects")
+    .from('projects')
     .insert([project])
     .select()
-    .single();
+    .single()
 
-  if (error) throw error;
+  if (error) throw error
 
-  return data;
+  return data
 }

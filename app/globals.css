@@ -89,9 +89,9 @@
 @layer components {
   .font-display { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
   .text-gold-gradient { background: linear-gradient(135deg, hsl(var(--accent-h) var(--accent-s) 70%) 0%, hsl(var(--accent-h) var(--accent-s) 52%) 45%, hsl(var(--accent-h) var(--accent-s) 35%) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .glass { background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--card-border); box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 0 rgba(255,255,255,0.04); }
-  .glass-strong { background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 0 rgba(245,208,97,0.08); }
-  .glass-gold { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--card-border); }
+  .glass { background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--card-border); box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 0 rgba(255,255,255,0.04); }
+  .glass-strong { background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 0 rgba(245,208,97,0.08); }
+  .glass-gold { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 100%); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--card-border); }
   .border-gold-soft { border: 1px solid var(--card-border); }
   .text-luxe { color: var(--accent-text); }
   .scrollbar-luxe::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -99,7 +99,6 @@
   .scrollbar-luxe::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 6px; }
   .scrollbar-luxe::-webkit-scrollbar-thumb:hover { background: var(--card-glow); }
   .scroll-touch {
-    -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     touch-action: pan-x;
   }
@@ -202,7 +201,6 @@
   .scroll-snap-storyboard {
     scroll-snap-type: x mandatory;
     scroll-padding-inline: 12px;
-    -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
   }
   .screenplay-spacing {
@@ -806,9 +804,15 @@
 }
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
+  .text-balance { overflow-wrap: break-word; }
+  @supports (text-wrap: balance) {
+    .text-balance { text-wrap: balance; }
+  }
   .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar { -ms-overflow-style: none; }
+  @supports (scrollbar-width: none) {
+    .no-scrollbar { scrollbar-width: none; }
+  }
 
   /* Phase P10 — PWA / Capacitor safe-area handling (notch, status bar, gesture bar) */
   .safe-area-pad {
@@ -1180,6 +1184,7 @@
 }
 
 /* Execution mode — mobile cinematic touch flow */
+/* Intentional for iOS momentum scrolling; Edge Tools compat warning is acceptable. */
 .cinematic-mobile-mode {
   -webkit-overflow-scrolling: touch;
 }
@@ -1198,8 +1203,8 @@
     animation: none !important;
   }
   .cinematic-reduced-layers [class*='backdrop-blur'] {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
   .cinematic-reduced-layers .shimmer-cinematic {
     opacity: 0.65;

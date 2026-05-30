@@ -1,0 +1,21 @@
+{
+  "extends": ["development"],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": ["text-wrap", "scrollbar-width"]
+      }
+    ]
+  },
+  "ignoredUrls": [
+    {
+      "domain": ".*opengraph-image\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    },
+    {
+      "domain": ".*twitter-image\\.tsx.*",
+      "hints": ["no-inline-styles"]
+    }
+  ]
+}

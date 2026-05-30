@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,6 +12,7 @@ const CINEMATIC_PHASE2_SELECT =
 
 /** Probe whether cinematic_projects (migrations 0014–0018) is ready for Quick Cut save. */
 export async function GET() {
+  const supabase = createSupabaseServerClient()
   const { error: baseError } = await supabase
     .from('cinematic_projects')
     .select(CINEMATIC_BASE_SELECT)
