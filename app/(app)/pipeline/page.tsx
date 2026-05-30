@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { AiButton } from '@/components/ai/ai-button'
 import { ViralStudioPanel } from '@/components/ai/viral-studio-panel'
 import { YoutubePublishButton, YoutubeStatusBadge } from '@/components/youtube/publish-button'
+import { BufferQueueButton } from '@/components/integrations/buffer-queue-button'
 import { useAutomations } from '@/lib/automations-store'
 import { NewProjectModal } from '@/components/projects/new-project-modal'
 
@@ -374,6 +375,7 @@ const anySelected = !!sel && sel.selected.size > 0
           <AiButton content={item} variant="icon" />
           {/* Phase P4 — YouTube publish action (only for YouTube-platform pieces) */}
           {item.platform === 'youtube' && <YoutubePublishButton item={item} />}
+          <BufferQueueButton item={item} />
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onSchedule(item) }}
@@ -685,8 +687,9 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
             </label>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="mr-auto text-muted-foreground">Cancel</Button>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <BufferQueueButton item={item} variant="button" className="mr-auto" />
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground">Cancel</Button>
           <Button onClick={save} className="bg-gold-gradient text-black">Save schedule</Button>
         </DialogFooter>
       </DialogContent>
