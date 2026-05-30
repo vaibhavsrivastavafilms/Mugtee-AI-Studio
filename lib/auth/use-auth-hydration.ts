@@ -22,7 +22,7 @@ export function useAuthHydration(): AuthHydrationState {
     ready: false,
     session: null,
     user: null,
-    authConfigured: true,
+    authConfigured: false,
   })
 
   useEffect(() => {

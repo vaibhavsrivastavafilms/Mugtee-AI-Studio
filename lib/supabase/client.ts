@@ -36,6 +36,14 @@ export function createSupabaseBrowserClient(): SupabaseClient | null {
     return null
   }
 
-  browserClient = createBrowserClient(env.url, env.anonKey)
-  return browserClient
+  try {
+    browserClient = createBrowserClient(env.url, env.anonKey)
+    return browserClient
+  } catch (e) {
+    warnMissingEnvOnce()
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[supabase] Browser client init failed:', (e as Error)?.message || e)
+    }
+    return null
+  }
 }

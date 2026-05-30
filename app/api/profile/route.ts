@@ -12,22 +12,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function getSupabase() {
+  const env = getSupabasePublicEnv()
+  if (!env) return null
+
   const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n: string) => cookieStore.get(n)?.value,
-        set: (n: string, v: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: v, ...o }) } catch {} },
-        remove: (n: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: '', ...o }) } catch {} },
-      },
+  return createServerClient(env.url, env.anonKey, {
+    cookies: {
+      get: (n: string) => cookieStore.get(n)?.value,
+      set: (n: string, v: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: v, ...o }) } catch {} },
+      remove: (n: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: '', ...o }) } catch {} },
     },
-  )
+  })
 }
 
 function computeStatus(row: any) {
@@ -51,6 +52,15 @@ function computeStatus(row: any) {
 
 export async function GET() {
   const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({
+      plan_type: 'FREE',
+      is_unlimited: false,
+      is_trial_active: false,
+      trial_days_left: 0,
+      signed_in: false,
+    })
+  }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ plan_type: 'FREE', is_unlimited: false, is_trial_active: false, trial_days_left: 0, signed_in: false })
@@ -75,6 +85,9 @@ export async function GET() {
 // POST /api/profile/claim-trial — server-side helper called by auth callback.
 export async function POST(req: NextRequest) {
   const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
+  }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
