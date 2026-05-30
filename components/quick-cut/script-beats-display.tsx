@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { MugteeScriptBeat } from '@/lib/cinematic/script-sop'
+import type { ScriptBeat } from '@/types/cinematic-script'
 
 function BeatCard({
   label,
@@ -47,7 +47,7 @@ export function ScriptBeatsDisplay({
   className,
 }: {
   hook: string
-  scriptBeats: MugteeScriptBeat[]
+  scriptBeats: ScriptBeat[]
   payoff?: string
   cta?: string
   active?: boolean

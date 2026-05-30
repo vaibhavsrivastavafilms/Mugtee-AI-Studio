@@ -119,6 +119,9 @@ export type CinematicProjectRow = {
   virlo?: VirloMetadata | Record<string, unknown> | null
   video_url?: string | null
   thumbnail_url?: string | null
+  reel_status?: string | null
+  reel_url?: string | null
+  reel_rendered_at?: string | null
   updated_at: string
   created_at: string
   language?: string | null
@@ -166,6 +169,9 @@ export type ArchiveGeneratedProjectInput = {
   status?: CinematicProjectStatus
   video_url?: string | null
   thumbnail_url?: string | null
+  reel_status?: string | null
+  reel_url?: string | null
+  reel_rendered_at?: string | null
   style?: string
   hook?: string
   summary?: string
@@ -301,9 +307,6 @@ export function stateToRowPayload(
     | 'hook'
     | 'summary'
     | 'script'
-    | 'scriptBeats'
-    | 'payoff'
-    | 'cta'
     | 'scenes'
     | 'voice'
     | 'captions'
@@ -311,7 +314,10 @@ export function stateToRowPayload(
     | 'suggestedVoiceStyle'
     | 'niche'
     | 'status'
-  > & { mode?: 'quick' | 'director' }
+  > &
+    Partial<Pick<CinematicProjectState, 'scriptBeats' | 'payoff' | 'cta'>> & {
+      mode?: 'quick' | 'director'
+    }
 ) {
   const cta = state.cta || state.captionLines[1] || ''
   const hashtags = state.captionLines
@@ -323,8 +329,8 @@ export function stateToRowPayload(
     scriptBeats: state.scriptBeats?.length
       ? beatsToPayload({
           scriptBeats: state.scriptBeats,
-          payoff: state.payoff,
-          cta: state.cta,
+          payoff: state.payoff ?? '',
+          cta: state.cta ?? '',
         })
       : null,
     script: state.script,
@@ -368,7 +374,6 @@ export function cinematicHrefForProject(
 ): string {
   return hrefForProject(status, id, mode)
 }
-}
 
 async function requireUserId(): Promise<string> {
   const supabase = createSupabaseBrowserClient()
@@ -409,6 +414,9 @@ export async function createProject(
     hook: state.hook ?? '',
     summary: state.summary ?? '',
     script: state.script ?? '',
+    scriptBeats: state.scriptBeats ?? [],
+    payoff: state.payoff ?? '',
+    cta: state.cta ?? '',
     scenes: state.scenes ?? [],
     voice: state.voice ?? null,
     captions: state.captions ?? '',
@@ -650,6 +658,9 @@ export async function archiveGeneratedProject(
     hook: input.hook ?? '',
     summary: input.summary ?? input.hook ?? '',
     script: input.script ?? '',
+    scriptBeats: input.scriptBeats ? payloadToBeats(input.scriptBeats).beats : [],
+    payoff: input.payoff ?? payloadToBeats(input.scriptBeats).payoff,
+    cta: input.cta ?? payloadToBeats(input.scriptBeats).cta,
     scenes,
     voice: input.voice ?? null,
     captions: input.captionLines?.join('\n') ?? '',
@@ -684,6 +695,11 @@ export async function archiveGeneratedProject(
     style: payload.style,
     duration: payload.duration,
     script: payload.script,
+    scriptBeats: input.scriptBeats
+      ? payloadToBeats(input.scriptBeats).beats
+      : payloadToBeats(payload.script_beats as ScriptBeatsPayload | null).beats,
+    payoff: input.payoff ?? payloadToBeats(input.scriptBeats ?? payload.script_beats).payoff,
+    cta: input.cta ?? payloadToBeats(input.scriptBeats ?? payload.script_beats).cta,
     scenes: payload.scenes as CinematicScene[],
     voice: payload.voice as CinematicVoice | null,
     captions: input.captionLines?.join('\n') ?? '',
@@ -721,6 +737,9 @@ export async function archiveGeneratedProject(
       hook: input.hook ?? '',
       summary: input.summary ?? input.hook ?? '',
       script: payload.script,
+      scriptBeats: payloadToBeats(input.scriptBeats ?? payload.script_beats).beats,
+      payoff: input.payoff ?? '',
+      cta: input.cta ?? '',
       scenes: payload.scenes as CinematicScene[],
       voice: payload.voice as CinematicVoice | null,
       captions: input.captionLines?.join('\n') ?? '',
@@ -756,6 +775,8 @@ export async function saveProjectRenderOutput(
     thumbnail_url?: string | null
     status?: CinematicProjectStatus
     duration?: number
+    reel_url?: string
+    reel_status?: string
   }
 ): Promise<CinematicProjectRow> {
   return await updateProject(projectId, {
@@ -763,8 +784,12 @@ export async function saveProjectRenderOutput(
     duration: input.duration,
     video_url: input.video_url,
     thumbnail_url: input.thumbnail_url ?? null,
+    reel_url: input.reel_url ?? input.video_url,
+    reel_status: input.reel_status ?? 'ready',
   } as Partial<CinematicProjectState> & {
     video_url?: string | null
     thumbnail_url?: string | null
+    reel_url?: string | null
+    reel_status?: string | null
   })
 }

@@ -70,6 +70,9 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
+  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
+  const payoff = useQuickCutGenerationStore((s) => s.payoff)
+  const cta = useQuickCutGenerationStore((s) => s.cta)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
@@ -150,16 +153,16 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     retryVideoRender,
   ])
 
-  const scriptInput = { title, hook, script, isUnlimited }
+  const scriptInput = { title, hook, script, scriptBeats, payoff, cta, isUnlimited }
 
   const handleDownloadTxt = useCallback(() => {
     trackExportStarted('script_txt')
     downloadScriptTxt(scriptInput)
-  }, [title, hook, script, isUnlimited, trackExportStarted])
+  }, [title, hook, script, scriptBeats, payoff, cta, isUnlimited, trackExportStarted])
 
   const handleDownloadDoc = useCallback(() => {
     downloadScriptDoc(scriptInput)
-  }, [title, hook, script, isUnlimited])
+  }, [title, hook, script, scriptBeats, payoff, cta, isUnlimited])
 
   const handleDownloadImages = useCallback(
     async (exportSize: SceneImageExportSize) => {

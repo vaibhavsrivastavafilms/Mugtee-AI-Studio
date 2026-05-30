@@ -94,6 +94,15 @@ alter table public.cinematic_projects
   add column if not exists generation_error text,
   add column if not exists last_completed_step text;
 
+-- ========== 0021_script_beats.sql ==========
+-- Reel-native script beats (canonical cinematic data model).
+
+alter table public.cinematic_projects
+  add column if not exists script_beats jsonb;
+
+comment on column public.cinematic_projects.script_beats is
+  'Reel-native script: { beats: [{narration,duration,emotion}], payoff?, cta? }';
+
 -- ========== VERIFICATION (one-click — run after migrations above) ==========
 -- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
 select
@@ -124,10 +133,11 @@ select
           'generation_status',
           'generation_step',
           'generation_error',
-          'last_completed_step'
+          'last_completed_step',
+          'script_beats'
         )
-    ) < 15
-      then 'FAIL: missing columns from 0015–0019 — re-run the 0015–0019 blocks above'
+    ) < 16
+      then 'FAIL: missing columns from 0015–0021 — re-run the 0015–0021 blocks above'
     when (
       select count(*)
       from pg_policies

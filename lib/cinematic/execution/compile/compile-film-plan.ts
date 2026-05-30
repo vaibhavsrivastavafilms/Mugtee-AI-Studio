@@ -33,7 +33,8 @@ export function projectStateToGenerationOutput(
     | 'captionLines'
     | 'suggestedVoiceStyle'
     | 'niche'
-  >
+  > &
+    Partial<Pick<CinematicProjectState, 'scriptBeats' | 'payoff' | 'cta'>>
 ): CinematicGenerationOutput {
   const pack = captionsFromLines(state.captionLines)
   return {
@@ -41,6 +42,9 @@ export function projectStateToGenerationOutput(
     hook: state.hook,
     summary: state.summary,
     script: state.script,
+    scriptBeats: state.scriptBeats ?? [],
+    payoff: state.payoff ?? '',
+    cta: state.cta ?? pack.cta,
     scenes: storeScenesToGenerated(state.scenes),
     captions: state.captionLines,
     captionPack: pack,
@@ -61,7 +65,8 @@ export function buildCompileFilmPlan(
     | 'suggestedVoiceStyle'
     | 'niche'
     | 'duration'
-  >
+  > &
+    Partial<Pick<CinematicProjectState, 'scriptBeats' | 'payoff' | 'cta'>>
 ): CinematicFilmBlueprint {
   const output = projectStateToGenerationOutput(state)
   const orchestration = orchestrateEmotionalRender(output)
