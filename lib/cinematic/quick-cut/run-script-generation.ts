@@ -78,6 +78,8 @@ export type ScriptGenerationInput = {
   hookSeed?: string
   /** Title from title step — optional LLM seed */
   titleSeed?: string
+  /** Skip storyboard SOP — Quick Cut runs it in /api/generate-scenes instead */
+  skipStoryboard?: boolean
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -513,12 +515,14 @@ export async function runScriptGeneration(
     }
 
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
-    const storyboard = await runStoryboardSop(output.script, duration, {
-      language,
-      researchDocument,
-      researchReport,
-      retentionMode: duration <= 60,
-    })
+    const storyboard = input.skipStoryboard
+      ? null
+      : await runStoryboardSop(output.script, duration, {
+          language,
+          researchDocument,
+          researchReport,
+          retentionMode: duration <= 60,
+        })
     return {
       output,
       mock: false,

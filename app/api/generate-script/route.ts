@@ -25,8 +25,8 @@ import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-/** Deep research + SOP regen + storyboard can exceed default serverless limits. */
-export const maxDuration = 120
+/** Script SOP regen can run long on Pro (up to 300s); research is split to /api/ai/deep-research. */
+export const maxDuration = 300
 
 function parseCreatorMemoryBias(raw: unknown): CreatorMemoryBiasHints | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
       typeof raw.previousHook === 'string' ? raw.previousHook.slice(0, 220) : undefined
     const visualStyle = parseVisualStyle(raw.visualStyle)
     const skipResearch = raw.skipResearch === true
+    const skipStoryboard = raw.skipStoryboard === true
     const researchDocument =
       typeof raw.researchDocument === 'string'
         ? raw.researchDocument.slice(0, 12_000)
@@ -184,6 +185,7 @@ export async function POST(req: NextRequest) {
       voiceNote,
       referenceScript,
       skipResearch: skipResearch || undefined,
+      skipStoryboard: skipStoryboard || undefined,
       researchDocument,
       regenFresh: regenFresh || undefined,
       previousScript: regenFresh ? previousScript : undefined,

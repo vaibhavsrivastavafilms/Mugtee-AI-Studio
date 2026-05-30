@@ -1303,6 +1303,42 @@ export const useQuickCutGenerationStore = create<
 
       if (stepShouldRun(resumeFrom, 'script')) {
         setStep(set, get, 'script')
+
+        let researchDocument = get().researchDocument ?? undefined
+        let researchReport = get().researchReport ?? undefined
+        const skipPreResearch =
+          input.skipResearch === true ||
+          isResume ||
+          Boolean(researchDocument?.trim())
+
+        if (!skipPreResearch) {
+          try {
+            const researchResult = await pipelineFetchJson<
+              import('@/types/deep-research').DeepResearchApiResponse
+            >('/api/ai/deep-research', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ topic: prompt, prompt, language }),
+              maxRetries: 1,
+              timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
+            })
+            if (researchResult.res.ok) {
+              const rd = researchResult.data
+              researchDocument =
+                typeof rd.document === 'string' ? rd.document : undefined
+              researchReport =
+                rd.report && typeof rd.report === 'object' ? rd.report : undefined
+              set({
+                researchDocument: researchDocument ?? null,
+                researchReport: researchReport ?? null,
+                researchMock: rd.mock === true,
+              })
+            }
+          } catch {
+            /* research is optional — script step proceeds without it */
+          }
+        }
+
         const scriptResult = await pipelineFetchJson('/api/generate-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1326,10 +1362,11 @@ export const useQuickCutGenerationStore = create<
             previousScript: regenFresh ? preserved?.previousScript : undefined,
             previousHook: regenFresh ? preserved?.previousHook : undefined,
             creatorMemoryBias: getCreatorMemoryBiasHints(),
-            skipResearch: input.skipResearch === true || isResume || undefined,
-            researchDocument: get().researchDocument ?? undefined,
+            skipResearch: true,
+            skipStoryboard: true,
+            researchDocument,
           }),
-          maxRetries: 2,
+          maxRetries: 1,
           timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
         })
         scriptData = scriptResult.data
@@ -2016,7 +2053,9 @@ export const useQuickCutGenerationStore = create<
           creatorMemoryBias: getCreatorMemoryBiasHints(),
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,
+          skipStoryboard: true,
         }),
+        maxRetries: 1,
         timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
       })
       if (!res.ok) throw new Error(String(data?.error || 'Script regeneration failed'))
