@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { Compass } from 'lucide-react'
 import { toast } from 'sonner'
 import { voiceStyleLabel } from '@/lib/cinematic/generation'
@@ -71,6 +73,12 @@ export function CinematicDirectorScreen() {
     updateStatus,
   } = useCinematicRoute('director')
 
+  useEffect(() => {
+    trackEvent(AnalyticsEvents.DIRECTOR_MODE_OPENED, {
+      metadata: { workflow: 'cinematic' },
+    })
+  }, [])
+
   const onRegenerateHook = useCallback(async () => {
     if (busy) return
     setBusy('hook')
@@ -90,6 +98,7 @@ export function CinematicDirectorScreen() {
         updateHook(data.hook)
       }
       await useCinematicProjectStore.getState().persistProject({ silent: true })
+      trackEvent(AnalyticsEvents.REGENERATE_HOOK, { metadata: { workflow: 'cinematic' } })
       toast.success('Opening beat refined', { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
       toast.error(softenCinematicError(e, SOFT_ERROR_COPY.hookPaused))
@@ -105,6 +114,7 @@ export function CinematicDirectorScreen() {
       const data = await improveCaption(regenPayload())
       if (data.captionLines?.length) updateCaptionLines(data.captionLines)
       await useCinematicProjectStore.getState().persistProject({ silent: true })
+      trackEvent(AnalyticsEvents.REGENERATE_CAPTIONS, { metadata: { workflow: 'cinematic' } })
       toast.success('Caption rhythm polished', { description: REFINEMENT_PACING_LINE })
     } catch (e: unknown) {
       toast.error(softenCinematicError(e, SOFT_ERROR_COPY.captionPaused))

@@ -5,15 +5,15 @@
 // SSR-safe (only fires inside a useEffect).
 
 import { useEffect } from 'react'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 import { initPostHog, track } from '@/lib/posthog'
 
 export function AnalyticsBoot() {
   useEffect(() => {
     initPostHog()
-    // visitor_opened_site — fires on first mount of the root layout per browser tab.
-    track('visitor_opened_site', {
-      first_visit: !document.referrer || !document.referrer.includes(location.host),
-    })
+    const firstVisit = !document.referrer || !document.referrer.includes(location.host)
+    track(AnalyticsEvents.HOMEPAGE_VISIT, { first_visit: firstVisit })
+    track('visitor_opened_site', { first_visit: firstVisit })
   }, [])
   return null
 }

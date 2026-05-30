@@ -19,8 +19,11 @@ import {
   saveQuickCutPreview,
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { quickCutTopicChanged } from '@/lib/cinematic/quick-cut/prompt-key'
-import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
-import { scenesToStore } from '@/lib/cinematic/generation'
+import type { MugteeScriptBeat } from '@/lib/cinematic/script-sop'
+import {
+  scenesToStore,
+  type CinematicGenerationOutput,
+} from '@/lib/cinematic/generation'
 import {
   archiveGeneratedProject,
   CinematicProjectsUnavailableError,
@@ -96,6 +99,14 @@ import {
   persistGenerationFailed,
   persistStepComplete,
 } from '@/lib/cinematic/generation-persist'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
+import type { CinematicGenerationState } from '@/lib/cinematic/quick-cut/cinematic-assembly-timing'
+import { runCinematicAssemblyPresentation } from '@/lib/cinematic/quick-cut/run-cinematic-assembly'
+
+export type { CinematicGenerationState }
+
+let pipelineStartedAt = 0
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -175,6 +186,9 @@ interface QuickCutGenerationStateBase {
   previousHooks: string[]
   hookVariantNumber: number
   script: string
+  scriptBeats: MugteeScriptBeat[]
+  payoff: string
+  cta: string
   characterDescription: string
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
@@ -226,6 +240,10 @@ interface QuickCutGenerationStateBase {
   lastGeneratedPrompt: string | null
   /** Visual reference note from canvas uploader — triggers SOP style prefix at image gen */
   imageNote: string | null
+  /** Post-image cinematic assembly presentation (does not block API steps). */
+  generationState: CinematicGenerationState
+  assemblyLineIndex: number
+  assemblyPreviewAutoplay: boolean
 }
 
 interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
@@ -268,6 +286,9 @@ const INITIAL: QuickCutGenerationState = {
   previousHooks: [],
   hookVariantNumber: 1,
   script: '',
+  scriptBeats: [],
+  payoff: '',
+  cta: '',
   scenes: [],
   storyboard: [],
   characterDescription: '',
@@ -319,6 +340,9 @@ const INITIAL: QuickCutGenerationState = {
   researchReport: null,
   researchMock: false,
   imageNote: null,
+  generationState: 'idle',
+  assemblyLineIndex: 0,
+  assemblyPreviewAutoplay: false,
   ...EMPTY_STORYBOARD_FIELDS,
 }
 
@@ -357,6 +381,9 @@ function buildGenerationOutput(
     hook: state.hook,
     summary: state.hook,
     script: state.script,
+    scriptBeats: state.scriptBeats.length ? state.scriptBeats : undefined,
+    payoff: state.payoff || undefined,
+    cta: state.cta || undefined,
     scenes: state.scenes.map((s, i) => ({
       id: s.id || `scene-${i}`,
       title: s.title || `Scene ${i + 1}`,
@@ -378,7 +405,7 @@ function buildGenerationOutput(
     captions: state.script.split('\n').filter(Boolean).slice(0, 8),
     captionPack: {
       primary: state.hook,
-      cta: 'Follow for more cinematic stories',
+      cta: state.cta || 'Save this for later.',
       hashtags: ['#cinematic', '#storytelling', '#faceless'],
     },
     suggestedVoiceStyle: 'warm_documentary',
@@ -1018,6 +1045,10 @@ export const useQuickCutGenerationStore = create<
 
     if (isResume) {
       logGenerationResumed(preserveProjectId, resumeFrom)
+      trackEvent(AnalyticsEvents.RESUME_GENERATION, {
+        projectId: preserveProjectId,
+        metadata: { resume_from: resumeFrom },
+      })
       set({
         isGenerating: true,
         generationStatus: 'generating',
@@ -1073,6 +1104,16 @@ export const useQuickCutGenerationStore = create<
     }
 
     logGenerationStart(preserveProjectId, prompt)
+    pipelineStartedAt = Date.now()
+    trackEvent(AnalyticsEvents.GENERATION_STARTED, {
+      projectId: preserveProjectId,
+      metadata: {
+        resume: isResume,
+        duration,
+        niche: get().niche,
+        style: tone,
+      },
+    })
 
     let anyMock = false
     const missingKeys = new Set<string>()
@@ -1166,7 +1207,16 @@ export const useQuickCutGenerationStore = create<
           'hook',
           buildArchiveInput(get(), buildGenerationOutput(get()))
         )
-        if (hookId) set({ savedProjectId: hookId, saveState: 'saved' })
+        if (hookId) {
+          const hadProject = Boolean(preserveProjectId)
+          set({ savedProjectId: hookId, saveState: 'saved' })
+          if (!hadProject) {
+            trackEvent(AnalyticsEvents.PROJECT_CREATED, {
+              projectId: hookId,
+              metadata: { source: 'quick_cut' },
+            })
+          }
+        }
       }
 
       let script = get().script
@@ -1217,6 +1267,11 @@ export const useQuickCutGenerationStore = create<
         script = String(output?.script ?? '')
         scriptTitle = String(output?.title ?? title)
         scriptHook = String(output?.hook ?? hook)
+        const parsedBeats = Array.isArray(output?.scriptBeats)
+          ? (output.scriptBeats as MugteeScriptBeat[])
+          : []
+        const parsedPayoff = typeof output?.payoff === 'string' ? output.payoff : ''
+        const parsedCta = typeof output?.cta === 'string' ? output.cta : ''
         if (scriptData.mock === true) {
           anyMock = true
           noteMissing('script')
@@ -1243,6 +1298,9 @@ export const useQuickCutGenerationStore = create<
 
         set({
           script,
+          scriptBeats: parsedBeats,
+          payoff: parsedPayoff,
+          cta: parsedCta,
           title: scriptTitle,
           hook: scriptHook,
           researchDocument:
@@ -1394,6 +1452,10 @@ export const useQuickCutGenerationStore = create<
         if (storyboardId) set({ savedProjectId: storyboardId, saveState: 'saved' })
       }
 
+      const assemblyPresentation = stepShouldRun(resumeFrom, 'storyboard')
+        ? runCinematicAssemblyPresentation(get, set)
+        : null
+
       let voiceUrl: string | null = get().voiceUrl
       let waveform: number[] = get().waveform
       let voiceFallbackMessage: string | null = get().voiceFallbackMessage
@@ -1540,6 +1602,10 @@ export const useQuickCutGenerationStore = create<
         if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
       }
 
+      if (assemblyPresentation) {
+        await assemblyPresentation
+      }
+
       const pipeline: QuickCutPipelineStatus = {
         steps: {
           script:
@@ -1565,6 +1631,9 @@ export const useQuickCutGenerationStore = create<
         isComplete: true,
         generationStatus: 'completed',
         generationStep: 'complete',
+        generationState: 'idle',
+        assemblyPreviewAutoplay: false,
+        assemblyLineIndex: 0,
         lastCompletedStep: 'export',
         failedAtStep: null,
         error: null,
@@ -1588,8 +1657,29 @@ export const useQuickCutGenerationStore = create<
         /* preview session still holds state */
       }
 
+      trackEvent(AnalyticsEvents.GENERATION_COMPLETED, {
+        projectId: get().savedProjectId,
+        metadata: {
+          duration_ms: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
+          niche: get().niche,
+          duration: get().duration,
+          mock: anyMock,
+        },
+      })
+      trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
+        projectId: get().savedProjectId,
+        metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+      })
+
       persistSession(get())
     } catch (err) {
+      trackEvent(AnalyticsEvents.GENERATION_FAILED, {
+        projectId: get().savedProjectId,
+        metadata: {
+          message: toUserGenerationError(err).slice(0, 120),
+          step: get().generationStep,
+        },
+      })
       const failedAt = inferLastCompletedStep(get())
       const nextFailedStep =
         failedAt &&
@@ -1606,6 +1696,8 @@ export const useQuickCutGenerationStore = create<
         error: userMessage,
         generationStep: 'error',
         generationStatus: 'failed',
+        generationState: 'idle',
+        assemblyPreviewAutoplay: false,
         lastCompletedStep: failedAt,
         failedAtStep: nextFailedStep ?? failedAt,
         isGenerating: false,
@@ -1644,6 +1736,10 @@ export const useQuickCutGenerationStore = create<
         variationHistory,
         characterDescription:
           result.characterDescription || state.characterDescription,
+      })
+      trackEvent(AnalyticsEvents.REGENERATE_SCENE, {
+        projectId: get().savedProjectId,
+        metadata: { scene_id: sceneId },
       })
       persistSession(get())
     } catch {
@@ -1764,6 +1860,7 @@ export const useQuickCutGenerationStore = create<
         variationHistory,
       })
 
+      trackEvent(AnalyticsEvents.REGENERATE_HOOK, { projectId: get().savedProjectId })
       persistSession(get())
     } catch {
       /* hook regen is non-blocking — user keeps current hook */
@@ -1849,9 +1946,17 @@ export const useQuickCutGenerationStore = create<
       const output = data.output as Record<string, unknown> | undefined
       const nextScript = String(output?.script ?? '').trim()
       if (!nextScript) throw new Error('Script regeneration returned empty result')
+      const nextBeats = Array.isArray(output?.scriptBeats)
+        ? (output.scriptBeats as MugteeScriptBeat[])
+        : []
+      const nextPayoff = typeof output?.payoff === 'string' ? output.payoff : ''
+      const nextCta = typeof output?.cta === 'string' ? output.cta : ''
 
       set({
         script: nextScript,
+        scriptBeats: nextBeats,
+        payoff: nextPayoff,
+        cta: nextCta,
         viralScript: state.viralScript
           ? { ...state.viralScript, script: nextScript }
           : state.viralScript,

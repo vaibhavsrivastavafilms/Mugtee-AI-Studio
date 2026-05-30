@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackServerEvent } from '@/lib/analytics/track-server-event'
 import { APP_ROUTE_LOGIN_FALLBACK } from '@/lib/auth/public-routes'
 import {
   MUGTEE_MODE_COOKIE,
@@ -83,6 +85,13 @@ export async function GET(request: NextRequest) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      await trackServerEvent({
+        event: AnalyticsEvents.SIGNUP_COMPLETED,
+        userId: user.id,
+        page: '/auth/callback',
+        metadata: { provider: 'google', source: 'auth_callback' },
+      })
+
       const { data: existing } = await supabase.from('profiles').select('trial_claimed').eq('id', user.id).maybeSingle()
       if (!existing?.trial_claimed) {
         const now    = new Date()

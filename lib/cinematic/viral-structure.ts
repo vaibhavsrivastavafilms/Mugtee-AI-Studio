@@ -5,15 +5,14 @@ import {
   type ProjectLanguage,
 } from '@/lib/cinematic/language-detection'
 
-/** Fixed 7-scene creator retention map. */
-export const CREATOR_RETENTION_SCENE_COUNT = 7
+/** Fixed scene count — matches Mugtee Script SOP six phases. */
+export const CREATOR_RETENTION_SCENE_COUNT = 6
 
 export type ViralStructureBeatId =
   | 'hook'
-  | 'problem'
-  | 'empathy'
-  | 'solution'
-  | 'proof'
+  | 'context_setup'
+  | 'escalation'
+  | 'insight_reveal'
   | 'payoff'
   | 'cta'
 
@@ -45,55 +44,50 @@ export const RETENTION_SCENE_BEATS: readonly RetentionSceneBeat[] = [
     sceneIndex: 1,
     beatId: 'hook',
     label: 'Hook',
-    instruction: 'Pattern interrupt — specific claim, not a quote or philosophy.',
+    instruction:
+      'Pattern interrupt, curiosity gap, emotional trigger — never a definition or essay opener.',
     analysisKey: 'hook',
   },
   {
     sceneIndex: 2,
-    beatId: 'problem',
-    label: 'Problem',
-    instruction: 'Name the concrete pain the viewer recognizes.',
+    beatId: 'context_setup',
+    label: 'Context Setup',
+    instruction: 'Establish situation and tension the viewer recognizes.',
     analysisKey: 'pain',
   },
   {
     sceneIndex: 3,
-    beatId: 'empathy',
-    label: 'Empathy',
-    instruction: 'Validate the struggle — spoken like a creator, not a therapist.',
+    beatId: 'escalation',
+    label: 'Escalation',
+    instruction: 'Raise emotional intensity and curiosity — stakes climb.',
     analysisKey: 'emotional_problem',
   },
   {
     sceneIndex: 4,
-    beatId: 'solution',
-    label: 'Solution',
-    instruction: 'One clear method or reframe — actionable, not poetic.',
+    beatId: 'insight_reveal',
+    label: 'Insight/Reveal',
+    instruction:
+      'Key lesson or unexpected realization — weave proof/example into this beat.',
     analysisKey: 'solution',
   },
   {
     sceneIndex: 5,
-    beatId: 'proof',
-    label: 'Proof',
-    instruction: 'Evidence: result, example, before/after, or personal win.',
-    analysisKey: 'proof',
-  },
-  {
-    sceneIndex: 6,
     beatId: 'payoff',
     label: 'Payoff',
-    instruction: 'Tutorial step or result — show what changes when they apply it.',
+    instruction: 'Emotional landing — what changes when they apply the insight.',
     analysisKey: 'payoff',
   },
   {
-    sceneIndex: 7,
+    sceneIndex: 6,
     beatId: 'cta',
     label: 'CTA',
-    instruction: 'Direct creator CTA — save, follow, comment, or try today.',
+    instruction: 'Engagement prompt — save, comment, try today. Creator-native.',
     analysisKey: 'cta',
   },
 ] as const
 
 export const RETENTION_STRUCTURE_CHAIN =
-  'Hook → Problem → Empathy → Solution → Proof → Payoff → CTA'
+  'Hook → Context Setup → Escalation → Insight/Reveal → Payoff → CTA'
 
 const QUOTE_MODE_PATTERNS = [
   /you're not afraid of/i,
@@ -278,7 +272,7 @@ export function isQuoteModeText(...chunks: string[]): boolean {
 export function viralStructurePromptFragment(analysis: ViralStructureAnalysis): string {
   const lang = languageLabel(analysis.detectedLanguage)
   return [
-    `CREATOR RETENTION STRUCTURE (mandatory — NOT quote mode, NOT philosophy):`,
+    `MUGTEE SCRIPT SOP (mandatory — reel beats, NOT quote mode, NOT essay):`,
     `Chain: ${RETENTION_STRUCTURE_CHAIN}`,
     `Input mode: ${analysis.inputMode} · Language: ${lang} (${analysis.detectedLanguage}) — never translate.`,
     `Extracted skeleton (expand into spoken narration — do NOT copy as isolated quotes):`,

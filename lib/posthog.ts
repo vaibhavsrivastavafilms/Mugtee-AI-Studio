@@ -38,7 +38,7 @@ export function initPostHog() {
   const key  = process.env.NEXT_PUBLIC_POSTHOG_KEY
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
   if (!key) {
-    // No PostHog key — first-party logging still runs via /api/analytics/track.
+    // No PostHog key — first-party logging still runs via /api/analytics/event.
     posthogReady = true
     return
   }
@@ -70,18 +70,28 @@ export function track(event: string, properties: Record<string, any> = {}) {
   if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     try { posthog.capture(event, properties) } catch {}
   }
-  // ---- 2. First-party Supabase log via /api/analytics/track ----
+  // ---- 2. First-party Supabase via /api/analytics/event ----
   try {
-    const body = {
-      event_type: event,
-      session_id: session,
-      url:        typeof location !== 'undefined' ? location.pathname + location.search : null,
-      referrer:   typeof document !== 'undefined' ? document.referrer || null : null,
-      device:     typeof navigator !== 'undefined' ? (/mobile/i.test(navigator.userAgent) ? 'mobile' : 'desktop') : null,
-      metadata:   properties || {},
+    const projectId = properties?.projectId ?? properties?.project_id ?? null
+    const { projectId: _p, project_id: _pid, ...rest } = properties || {}
+    const metadata = {
+      ...rest,
+      ...(projectId ? { projectId: String(projectId).slice(0, 36) } : {}),
+      referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+      device:
+        typeof navigator !== 'undefined'
+          ? /mobile/i.test(navigator.userAgent)
+            ? 'mobile'
+            : 'desktop'
+          : null,
     }
-    // Use keepalive so the request survives page navigations (export, redirect, etc).
-    fetch('/api/analytics/track', {
+    const body = {
+      event,
+      page: typeof location !== 'undefined' ? location.pathname + location.search : null,
+      session_id: session,
+      metadata,
+    }
+    fetch('/api/analytics/event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

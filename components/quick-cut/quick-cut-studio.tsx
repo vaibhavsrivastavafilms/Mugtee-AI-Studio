@@ -9,6 +9,7 @@ import {
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
+import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -30,7 +31,10 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const generationState = useQuickCutGenerationStore((s) => s.generationState)
+  const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
+  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
@@ -45,6 +49,11 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
 
   const showRecovery =
     generationStep === 'error' || generationStatus === 'failed'
+
+  const showCinematicAssembly =
+    generationState === 'assembling' ||
+    generationState === 'revealing' ||
+    generationState === 'preview'
 
   if (showRecovery) {
     return (
@@ -66,21 +75,32 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
     <>
       <div className={cn('space-y-5 min-w-0', GENERATION_FOOTER_CLEARANCE)}>
           <div className="flex flex-col items-center">
-            <ReelAssemblyPlayer
-              scenes={scenes}
-              title={title}
-              hook={hook}
-              script={script}
-              videoUrl={videoUrl}
-              voiceUrl={voiceUrl}
-              audioRef={voiceAudioRef}
-              waveform={waveform}
-              isLive={!isComplete}
-              generationStep={isComplete ? 'complete' : generationStep}
-              mp4Compiling={generationStep === 'render' && !videoUrl}
-              autoPlayPreview={isComplete && Boolean(voiceUrl) && !videoUrl}
-              className="mx-auto"
-            />
+            {showCinematicAssembly ? (
+              <CinematicAssemblyScreen
+                audioRef={voiceAudioRef}
+                onSkipToExport={() => setActiveStageTab('complete', true)}
+                className="w-full max-w-md mx-auto"
+              />
+            ) : (
+              <ReelAssemblyPlayer
+                scenes={scenes}
+                title={title}
+                hook={hook}
+                script={script}
+                videoUrl={videoUrl}
+                voiceUrl={voiceUrl}
+                audioRef={voiceAudioRef}
+                waveform={waveform}
+                isLive={!isComplete}
+                generationStep={isComplete ? 'complete' : generationStep}
+                mp4Compiling={generationStep === 'render' && !videoUrl}
+                autoPlayPreview={
+                  (isComplete && Boolean(voiceUrl) && !videoUrl) ||
+                  assemblyPreviewAutoplay
+                }
+                className="mx-auto"
+              />
+            )}
           </div>
 
           <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />

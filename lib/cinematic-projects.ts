@@ -84,6 +84,13 @@ import {
   reviewingStatus,
 } from '@/lib/cinematic/project-status'
 import { coerceDuration } from '@/lib/workspace/validation'
+import {
+  beatsToPayload,
+  payloadToBeats,
+  resolveCinematicScript,
+  deriveScriptText,
+} from '@/lib/cinematic/cinematic-script'
+import type { ScriptBeatsPayload } from '@/types/cinematic-script'
 
 export { FINISHED_PROJECT_STATUSES, normalizeProjectStatus, isFinishedProjectStatus }
 import type {
@@ -101,6 +108,8 @@ export type CinematicProjectRow = {
   style: string
   duration: number
   script: string
+  /** Canonical reel-native beats (jsonb). */
+  script_beats?: ScriptBeatsPayload | null
   scenes: CinematicScene[] | null
   storyboard?: CinematicScene[] | Record<string, unknown>[] | null
   voice: CinematicVoice | null
@@ -147,6 +156,9 @@ export type ArchiveGeneratedProjectInput = {
   prompt: string
   mode: 'quick' | 'director'
   script: string
+  scriptBeats?: ScriptBeatsPayload | null
+  payoff?: string
+  cta?: string
   scenes: CinematicScene[]
   storyboard?: CinematicScene[] | Record<string, unknown>[]
   voice?: CinematicVoice | null
@@ -201,15 +213,29 @@ export function projectHasPlayablePreview(
 
 export function rowToState(row: CinematicProjectRow): CinematicProjectState {
   const parsed = parseCaptions(row.captions)
+  const fromPayload = payloadToBeats(row.script_beats)
+  const cinematicScript = resolveCinematicScript({
+    scriptBeats: row.script_beats,
+    script: row.script,
+    hook: parsed.hook,
+    payoff: fromPayload.payoff || parsed.cta,
+    cta: fromPayload.cta || parsed.cta,
+  })
+  const derivedScript =
+    row.script?.trim() || deriveScriptText(cinematicScript)
+
   return {
     id: row.id,
     title: row.title || 'Untitled project',
     prompt: row.prompt || '',
     style: row.style || 'cinematic',
     duration: coerceDuration(row.duration),
-    hook: parsed.hook,
+    hook: cinematicScript.hook || parsed.hook,
     summary: parsed.summary,
-    script: row.script || '',
+    script: derivedScript,
+    scriptBeats: cinematicScript.scriptBeats,
+    payoff: cinematicScript.payoff,
+    cta: cinematicScript.cta,
     scenes: resolveProjectScenes(row),
     voice: sanitizeVoiceFromPersistence(row.voice),
     captions: parsed.text,
@@ -275,6 +301,9 @@ export function stateToRowPayload(
     | 'hook'
     | 'summary'
     | 'script'
+    | 'scriptBeats'
+    | 'payoff'
+    | 'cta'
     | 'scenes'
     | 'voice'
     | 'captions'
@@ -284,11 +313,25 @@ export function stateToRowPayload(
     | 'status'
   > & { mode?: 'quick' | 'director' }
 ) {
-  const cta = state.captionLines[1] || ''
+  const cta = state.cta || state.captionLines[1] || ''
   const hashtags = state.captionLines
     .slice(2)
     .filter((line) => line.startsWith('#'))
     .slice(0, 3)
+
+  const cinematicScript = resolveCinematicScript({
+    scriptBeats: state.scriptBeats?.length
+      ? beatsToPayload({
+          scriptBeats: state.scriptBeats,
+          payoff: state.payoff,
+          cta: state.cta,
+        })
+      : null,
+    script: state.script,
+    hook: state.hook,
+    payoff: state.payoff,
+    cta: state.cta,
+  })
 
   return {
     id: state.id ?? undefined,
@@ -296,7 +339,10 @@ export function stateToRowPayload(
     prompt: state.prompt || '',
     style: state.style || 'cinematic',
     duration: state.duration || 60,
-    script: state.script || '',
+    script: deriveScriptText(cinematicScript) || state.script || '',
+    script_beats: cinematicScript.scriptBeats.length
+      ? beatsToPayload(cinematicScript)
+      : null,
     scenes: state.scenes || [],
     voice: state.voice,
     captions: captionsToPayload({
@@ -321,6 +367,7 @@ export function cinematicHrefForProject(
   mode?: string | null
 ): string {
   return hrefForProject(status, id, mode)
+}
 }
 
 async function requireUserId(): Promise<string> {
@@ -424,6 +471,27 @@ export async function updateProject(
   if (state.style !== undefined) patch.style = state.style
   if (state.duration !== undefined) patch.duration = state.duration
   if (state.script !== undefined) patch.script = state.script
+  if (state.scriptBeats !== undefined || state.payoff !== undefined || state.cta !== undefined) {
+    const cinematicScript = resolveCinematicScript({
+      scriptBeats: state.scriptBeats?.length
+        ? beatsToPayload({
+            scriptBeats: state.scriptBeats,
+            payoff: state.payoff ?? '',
+            cta: state.cta ?? '',
+          })
+        : null,
+      script: state.script,
+      hook: state.hook ?? '',
+      payoff: state.payoff,
+      cta: state.cta,
+    })
+    patch.script_beats = cinematicScript.scriptBeats.length
+      ? beatsToPayload(cinematicScript)
+      : null
+    if (state.script === undefined && cinematicScript.scriptBeats.length) {
+      patch.script = deriveScriptText(cinematicScript)
+    }
+  }
   if (state.scenes !== undefined) patch.scenes = state.scenes
   if (state.voice !== undefined) patch.voice = state.voice
   if (

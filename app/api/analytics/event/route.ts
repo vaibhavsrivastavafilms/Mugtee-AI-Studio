@@ -1,7 +1,3 @@
-// MUGTEE V4.0 — Legacy analytics ingestion endpoint.
-// Accepts events from older clients and inserts into analytics_events.
-// Anonymous visitors are allowed (user_id stays null).
-
 import { NextResponse } from 'next/server'
 import {
   buildAnalyticsEventRow,

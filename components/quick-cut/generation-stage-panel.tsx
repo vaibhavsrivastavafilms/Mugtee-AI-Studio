@@ -1,6 +1,8 @@
 'use client'
 
-import type { ReactNode, RefObject } from 'react'
+import { useEffect, useRef, type ReactNode, RefObject } from 'react'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
@@ -121,6 +123,9 @@ export function GenerationStagePanel({
   const regenerateTitle = useQuickCutGenerationStore((s) => s.regenerateTitle)
   const regenerateScript = useQuickCutGenerationStore((s) => s.regenerateScript)
   const script = useQuickCutGenerationStore((s) => s.script)
+  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
+  const payoff = useQuickCutGenerationStore((s) => s.payoff)
+  const cta = useQuickCutGenerationStore((s) => s.cta)
   const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
   const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
   const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
@@ -136,6 +141,17 @@ export function GenerationStagePanel({
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const storyboardTracked = useRef(false)
+
+  useEffect(() => {
+    if (tab !== 'scenes' || scenes.length < 1 || storyboardTracked.current) return
+    storyboardTracked.current = true
+    trackEvent(AnalyticsEvents.STORYBOARD_VIEWED, {
+      projectId: savedProjectId,
+      metadata: { scene_count: scenes.length },
+    })
+  }, [tab, scenes.length, savedProjectId])
 
   const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean) => (
     <div
@@ -229,7 +245,7 @@ export function GenerationStagePanel({
       )
 
     case 'script':
-      return script ? (
+      return script || scriptBeats.length || hook ? (
         <div className={cn('space-y-2', className)}>
           <DeepResearchPanel document={researchDocument} report={researchReport} mock={researchMock} />
           {!isGenerating ? (
@@ -251,8 +267,12 @@ export function GenerationStagePanel({
           ) : null}
           <LiveScriptReveal
             script={script}
+            hook={hook}
+            scriptBeats={scriptBeats}
+            payoff={payoff}
+            cta={cta}
             active={
-              Boolean(script) &&
+              Boolean(script || scriptBeats.length) &&
               !isRegeneratingScript &&
               (generationStep === 'script' || generationStep === 'scenes')
             }

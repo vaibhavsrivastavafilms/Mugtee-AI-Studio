@@ -11,9 +11,15 @@ import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
 import {
-  buildScriptWritingSopSystemAugment,
+  buildMugteeScriptSopSystemAugment,
   buildScriptWritingSopUserSection,
 } from '@/lib/ai/prompts/cinematic/script-writing-sop'
+import {
+  buildSopRetryNote,
+  scoreCinematicOutputSop,
+  scriptSopMaxRetries,
+  scriptSopMinScore,
+} from '@/lib/cinematic/script-sop'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloSystemPrompt } from '@/lib/virlo-engine/virlo-prompt'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
@@ -96,10 +102,8 @@ type GenInput = {
   titleSeed?: string
 }
 
-function buildSystemPrompt(referenceScript?: string): string {
-  const base = buildVirloSystemPrompt()
-  if (!referenceScript) return base
-  return `${base}\n\n${buildScriptWritingSopSystemAugment()}`
+function buildSystemPrompt(): string {
+  return `${buildVirloSystemPrompt()}\n\n${buildMugteeScriptSopSystemAugment()}`
 }
 
 function buildUserPrompt(input: GenInput, retryNote?: string): string {
@@ -137,7 +141,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
     }),
     sopSection,
     retryNote
-      ? `\nRETRY NOTE: Previous draft failed quality checks (${retryNote}). Fix niche drift, weak hook, repetitive scenes, or empty captions.`
+      ? `\nRETRY NOTE: ${retryNote}`
       : '',
   ]
     .filter(Boolean)
@@ -145,22 +149,50 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
 }
 
 function hasUsableLlmScript(parsed: Record<string, unknown>, topic: string): boolean {
+  const beats = Array.isArray(parsed.scriptBeats)
+    ? parsed.scriptBeats
+    : Array.isArray(parsed.script_beats)
+      ? parsed.script_beats
+      : []
+  const beatNarration = beats
+    .map((s) =>
+      s && typeof s === 'object' && typeof (s as Record<string, unknown>).narration === 'string'
+        ? ((s as Record<string, unknown>).narration as string).trim()
+        : ''
+    )
+    .filter(Boolean)
+    .join(' ')
+
+  const sections = Array.isArray(parsed.script_sections)
+    ? parsed.script_sections
+    : Array.isArray(parsed.scriptSections)
+      ? parsed.scriptSections
+      : []
+  const sectionNarration = sections
+    .map((s) =>
+      s && typeof s === 'object' && typeof (s as Record<string, unknown>).narration === 'string'
+        ? ((s as Record<string, unknown>).narration as string).trim()
+        : ''
+    )
+    .filter(Boolean)
+    .join(' ')
   const script = typeof parsed.script === 'string' ? parsed.script.trim() : ''
-  if (script.length < 48) return false
+  const body = beatNarration || sectionNarration || script
+  if (body.length < 48) return false
 
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : []
-  if (scenes.length >= 2) return true
+  if (beats.length >= 6 || sections.length >= 4 || scenes.length >= 2) return true
 
   const topicNorm = topic.trim().toLowerCase()
   if (!topicNorm) return true
-  const scriptNorm = script.toLowerCase()
+  const scriptNorm = body.toLowerCase()
   if (scriptNorm === topicNorm) return false
-  if (scriptNorm.startsWith(topicNorm) && script.length < topic.length + 24) return false
+  if (scriptNorm.startsWith(topicNorm) && body.length < topic.length + 24) return false
 
   const topicWords = topicNorm.split(/\s+/).filter((w) => w.length > 3)
   if (topicWords.length === 0) return true
   const matched = topicWords.filter((w) => scriptNorm.includes(w)).length
-  if (matched / topicWords.length > 0.85 && script.split(/\s+/).length <= topicWords.length + 6) {
+  if (matched / topicWords.length > 0.85 && body.split(/\s+/).length <= topicWords.length + 6) {
     return false
   }
 
@@ -246,7 +278,7 @@ async function tryGeminiScript(
 /** OpenAI → Claude → Gemini (Gemini first when free-tier-only). Throws when no provider succeeds. */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
-  const systemPrompt = buildSystemPrompt(input.referenceScript)
+  const systemPrompt = buildSystemPrompt()
   const errors: string[] = []
   const geminiFirst = isFreeTierOnly()
 
@@ -300,6 +332,8 @@ export type ScriptGenerationResult = {
   visualStyle: VisualStyle
   viralScript: ViralScript
   viralStructure: ViralStructureAnalysis
+  sopCompliance?: import('@/lib/cinematic/script-sop').ScriptSopComplianceScore
+  sopRegenAttempts?: number
 } & ScriptGenerationResearchOutput &
   Partial<StoryboardStoreFields>
 
@@ -390,29 +424,42 @@ export async function runScriptGeneration(
   }
 
   try {
-    let parsed = await generateScript(genInput)
-    const hookVariations = Array.isArray(parsed.hookVariations)
-      ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
-      : []
+    const minSopScore = scriptSopMinScore()
+    const maxSopRetries = scriptSopMaxRetries()
+    let sopRegenAttempts = 0
+    let hookVariations: string[] = []
+    let output: CinematicGenerationOutput | undefined
+    let validation: ReturnType<typeof validateCinematicOutput> = {
+      valid: false,
+      issues: [],
+    }
+    let sopCompliance: ReturnType<typeof scoreCinematicOutputSop> = {
+      hookQuality: 0,
+      pacing: 0,
+      emotion: 0,
+      visualReadiness: 0,
+      retentionPotential: 0,
+      overall: 0,
+      issues: [],
+    }
 
-    let output = finalizeCinematicOutput(
-      normalizeCinematicOutput(parsed, {
-        topic,
-        duration,
-        tone,
-        niche,
-        titleSeed: input.titleSeed,
-      }),
-      niche,
-      { topic, duration, tone, hookVariations }
-    )
+    for (let attempt = 0; attempt <= maxSopRetries; attempt++) {
+      let parsed: Record<string, unknown>
+      if (attempt > 0) {
+        sopRegenAttempts += 1
+        const retryNote = !validation.valid
+          ? validation.issues.join(', ')
+          : buildSopRetryNote(sopCompliance, niche)
+        parsed = await generateScript(genInput, retryNote)
+      } else {
+        parsed = await generateScript(genInput)
+      }
 
-    let validation = validateCinematicOutput(output, niche, topic)
-    if (!validation.valid) {
-      parsed = await generateScript(genInput, validation.issues.join(', '))
-      const retryHookVariations = Array.isArray(parsed.hookVariations)
+
+      hookVariations = Array.isArray(parsed.hookVariations)
         ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
         : hookVariations
+
       output = finalizeCinematicOutput(
         normalizeCinematicOutput(parsed, {
           topic,
@@ -422,9 +469,20 @@ export async function runScriptGeneration(
           titleSeed: input.titleSeed,
         }),
         niche,
-        { topic, duration, tone, hookVariations: retryHookVariations }
+        { topic, duration, tone, hookVariations }
       )
+
       validation = validateCinematicOutput(output, niche, topic)
+      sopCompliance = scoreCinematicOutputSop(output)
+
+      const passesValidation = validation.valid
+      const passesSop = sopCompliance.overall >= minSopScore
+      if (passesValidation && passesSop) break
+      if (attempt >= maxSopRetries) break
+    }
+
+    if (!output) {
+      throw new Error('Script generation produced no output')
     }
 
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
@@ -445,6 +503,8 @@ export async function runScriptGeneration(
       researchDocument,
       researchReport,
       researchMock,
+      sopCompliance,
+      sopRegenAttempts,
       ...(storyboard ?? {}),
     }
   } catch (err) {
