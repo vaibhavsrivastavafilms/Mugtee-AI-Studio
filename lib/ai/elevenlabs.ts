@@ -1,4 +1,4 @@
-import { allowElevenLabsVoice } from '@/lib/ai/free-tier'
+import { allowElevenLabsVoice, getElevenLabsApiKey } from '@/lib/ai/free-tier'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { logError } from '@/lib/workspace/validation'
 
@@ -87,11 +87,24 @@ export function getDefaultElevenLabsModelId(): string {
 }
 
 export function isElevenLabsConfigured(): boolean {
-  return allowElevenLabsVoice() && Boolean(process.env.ELEVENLABS_API_KEY?.trim())
+  return allowElevenLabsVoice() && Boolean(getElevenLabsApiKey())
 }
 
 function elevenApiKey(): string | null {
-  return process.env.ELEVENLABS_API_KEY?.trim() || null
+  return getElevenLabsApiKey() ?? null
+}
+
+export function describeElevenLabsApiError(status?: number): string {
+  if (status === 401) {
+    return 'ElevenLabs API key rejected — replace ELEVENLABS_API_KEY with a valid key from elevenlabs.io.'
+  }
+  if (status === 403) {
+    return 'ElevenLabs access denied — check subscription, voice permissions, or API key scope.'
+  }
+  if (status === 429) {
+    return 'ElevenLabs rate limit reached — using OpenAI TTS for now.'
+  }
+  return 'ElevenLabs unavailable — using OpenAI TTS.'
 }
 
 function labelBlob(labels: Record<string, string> | undefined, description?: string): string {
@@ -154,6 +167,7 @@ function mapApiVoice(raw: Record<string, unknown>): ElevenLabsVoiceOption | null
 export async function fetchElevenLabsVoices(): Promise<{
   voices: ElevenLabsVoiceOption[]
   fromApi: boolean
+  apiStatus?: number
 }> {
   const key = elevenApiKey()
   if (!isElevenLabsConfigured() || !key) {
@@ -167,14 +181,14 @@ export async function fetchElevenLabsVoices(): Promise<{
     })
     if (!res.ok) {
       logError('elevenlabs.fetchVoices', new Error(`status ${res.status}`))
-      return { voices: FALLBACK_VOICES, fromApi: false }
+      return { voices: FALLBACK_VOICES, fromApi: false, apiStatus: res.status }
     }
     const json = (await res.json()) as { voices?: Record<string, unknown>[] }
     const mapped = (json.voices ?? [])
       .map((v) => mapApiVoice(v))
       .filter((v): v is ElevenLabsVoiceOption => Boolean(v))
-    if (mapped.length === 0) return { voices: FALLBACK_VOICES, fromApi: false }
-    return { voices: mapped, fromApi: true }
+    if (mapped.length === 0) return { voices: FALLBACK_VOICES, fromApi: false, apiStatus: res.status }
+    return { voices: mapped, fromApi: true, apiStatus: res.status }
   } catch (err) {
     logError('elevenlabs.fetchVoices', err)
     return { voices: FALLBACK_VOICES, fromApi: false }
@@ -212,12 +226,19 @@ export type ElevenLabsSynthesisOptions = {
   modelId?: string
 }
 
+export type ElevenLabsSynthesisResult = {
+  buffer: Buffer | null
+  apiStatus?: number
+}
+
 export async function synthesizeElevenLabsSpeech(
   text: string,
   options?: ElevenLabsSynthesisOptions
-): Promise<Buffer | null> {
+): Promise<ElevenLabsSynthesisResult> {
   const key = elevenApiKey()
-  if (!isElevenLabsConfigured() || !key || !text.trim()) return null
+  if (!isElevenLabsConfigured() || !key || !text.trim()) {
+    return { buffer: null }
+  }
 
   const voiceId = options?.voiceId?.trim() || DEFAULT_VOICE_ID
   const modelId = options?.modelId?.trim() || DEFAULT_MODEL_ID
@@ -241,11 +262,14 @@ export async function synthesizeElevenLabsSpeech(
         },
       }),
     })
-    if (!res.ok) return null
-    return Buffer.from(await res.arrayBuffer())
+    if (!res.ok) {
+      logError('elevenlabs.synthesize', new Error(`status ${res.status}`))
+      return { buffer: null, apiStatus: res.status }
+    }
+    return { buffer: Buffer.from(await res.arrayBuffer()), apiStatus: res.status }
   } catch (err) {
     logError('elevenlabs.synthesize', err)
-    return null
+    return { buffer: null }
   }
 }
 

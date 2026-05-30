@@ -1,4 +1,5 @@
 import {
+  describeElevenLabsApiError,
   getDefaultElevenLabsModelId,
   synthesizeElevenLabsSpeech,
 } from '@/lib/ai/elevenlabs'
@@ -69,12 +70,13 @@ async function synthesizeEmergentTts(text: string): Promise<Buffer | null> {
 async function synthesizeElevenLabsTts(
   text: string,
   elevenLabsVoiceId?: string
-): Promise<Buffer | null> {
-  if (!allowElevenLabsVoice() || !text.trim()) return null
-  return synthesizeElevenLabsSpeech(text, {
+): Promise<{ buffer: Buffer | null; apiStatus?: number }> {
+  if (!allowElevenLabsVoice() || !text.trim()) return { buffer: null }
+  const result = await synthesizeElevenLabsSpeech(text, {
     voiceId: elevenLabsVoiceId,
     modelId: getDefaultElevenLabsModelId(),
   })
+  return result
 }
 
 export type SpeechSynthesisResult = {
@@ -100,11 +102,13 @@ export async function synthesizeSpeechBuffer(
   }
 
   const triedEleven = allowElevenLabsVoice()
+  let elevenApiStatus: number | undefined
   if (triedEleven) {
     const eleven = await synthesizeElevenLabsTts(narration, options?.elevenLabsVoiceId)
-    if (eleven) {
+    elevenApiStatus = eleven.apiStatus
+    if (eleven.buffer) {
       return {
-        buffer: eleven,
+        buffer: eleven.buffer,
         provider: 'elevenlabs',
         voiceName: options?.voiceName,
       }
@@ -118,7 +122,7 @@ export async function synthesizeSpeechBuffer(
       provider: 'openai_tts',
       voiceName: options?.voiceName || 'OpenAI Narrator',
       fallbackMessage: triedEleven
-        ? 'ElevenLabs unavailable — using OpenAI TTS.'
+        ? describeElevenLabsApiError(elevenApiStatus)
         : 'Using OpenAI voice — add ELEVENLABS_API_KEY for ElevenLabs.',
     }
   }

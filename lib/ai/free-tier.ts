@@ -39,6 +39,17 @@ export function getGeminiApiKey(): string | undefined {
   )
 }
 
+/** Primary: ELEVENLABS_API_KEY. Aliases accepted for misnamed Vercel / .env.local entries. */
+export function getElevenLabsApiKey(): string | undefined {
+  return (
+    process.env.ELEVENLABS_API_KEY?.trim() ||
+    process.env.ELEVENLABS_KEY?.trim() ||
+    process.env.ELEVEN_API_KEY?.trim() ||
+    process.env.XI_API_KEY?.trim() ||
+    undefined
+  )
+}
+
 export function hasDirectGeminiKey(): boolean {
   return Boolean(getGeminiApiKey())
 }
@@ -52,7 +63,7 @@ export function isFreeTierOnly(): boolean {
     Boolean(process.env.ANTHROPIC_API_KEY?.trim()) ||
     Boolean(process.env.OPENAI_API_KEY?.trim())
   const hasEmergent = Boolean(process.env.EMERGENT_LLM_KEY?.trim())
-  const hasEleven = Boolean(process.env.ELEVENLABS_API_KEY?.trim())
+  const hasEleven = Boolean(getElevenLabsApiKey())
   const hasReplicate = Boolean(process.env.REPLICATE_API_TOKEN?.trim())
 
   if (hasGemini && !hasPaidScript && !hasEmergent && !hasEleven && !hasReplicate) {
@@ -85,7 +96,7 @@ export function allowReplicateImages(): boolean {
 
 export function allowElevenLabsVoice(): boolean {
   if (isFreeTierOnly()) return false
-  return Boolean(process.env.ELEVENLABS_API_KEY?.trim())
+  return Boolean(getElevenLabsApiKey())
 }
 
 export function allowEmergentTts(): boolean {

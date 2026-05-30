@@ -14,12 +14,13 @@
 // EXTREME LOW CREDIT MODE: no SDKs.
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getElevenLabsApiKey } from '@/lib/ai/free-tier'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY
+const ELEVEN_KEY = getElevenLabsApiKey()
 const DEFAULT_VOICE = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM' // "Rachel" — cinematic
 const DEFAULT_MODEL = process.env.ELEVENLABS_MODEL_ID || 'eleven_turbo_v2_5'
 const BUCKET = 'project-assets'
