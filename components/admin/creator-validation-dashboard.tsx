@@ -72,6 +72,12 @@ export function CreatorValidationDashboard() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
+            href="/admin/growth-signals"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-xs text-luxe/80 hover:border-white/25 transition"
+          >
+            Growth signals
+          </Link>
+          <Link
             href="/admin/launch-readiness"
             className="inline-flex items-center gap-1.5 rounded-lg border border-gold-500/25 bg-gold-500/[0.08] px-3 py-2 text-xs text-gold-200 hover:border-gold-500/40 transition"
           >
@@ -81,6 +87,7 @@ export function CreatorValidationDashboard() {
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
+            aria-label="Analysis window in days"
             className="rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-luxe"
           >
             {[7, 14, 30, 90].map((d) => (
