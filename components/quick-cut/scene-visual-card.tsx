@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Camera, Download, Loader2, Pause, Pencil, Play, Sparkles } from 'lucide-react'
-import { downloadSceneImage, sceneImageFilename } from '@/lib/quick-cut/download-scene-image'
+import {
+  downloadSceneImage,
+  sceneImageFilename,
+  SCENE_IMAGE_EXPORT_DIMENSIONS,
+  type SceneImageExportSize,
+} from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
@@ -40,7 +45,7 @@ export function SceneVisualCard({
 }) {
   const [editing, setEditing] = useState(false)
   const [draftPrompt, setDraftPrompt] = useState(scene.imagePrompt || '')
-  const [downloading, setDownloading] = useState(false)
+  const [downloadingFormat, setDownloadingFormat] = useState<SceneImageExportSize | null>(null)
 
   const generatedUrl = scene.imageUrl?.trim()
   const variationUrl = scene.variationImageUrl?.trim()
@@ -181,29 +186,39 @@ export function SceneVisualCard({
           </div>
         ) : (
           <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 border-t border-white/[0.06]">
-            {allowDownload && previewUrl ? (
-              <button
-                type="button"
-                disabled={downloading}
-                onClick={() => {
-                  if (downloading) return
-                  setDownloading(true)
-                  void downloadSceneImage(
-                    previewUrl,
-                    sceneImageFilename(exportBaseName, index),
-                    'jpg'
-                  ).finally(() => setDownloading(false))
-                }}
-                className="inline-flex items-center gap-1 text-[10px] tracking-wide uppercase text-luxe/55 hover:text-gold-200 disabled:opacity-40"
-              >
-                {downloading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Download className="w-3 h-3" />
-                )}
-                Download JPG
-              </button>
-            ) : null}
+            {allowDownload && previewUrl
+              ? (['vertical', 'horizontal'] as const).map((exportSize) => {
+                  const { label } = SCENE_IMAGE_EXPORT_DIMENSIONS[exportSize]
+                  const aspectLabel = exportSize === 'vertical' ? '9:16' : '16:9'
+                  const isDownloading = downloadingFormat === exportSize
+                  return (
+                    <button
+                      key={exportSize}
+                      type="button"
+                      disabled={downloadingFormat !== null}
+                      title={`Download JPG at ${label} (${aspectLabel})`}
+                      onClick={() => {
+                        if (downloadingFormat) return
+                        setDownloadingFormat(exportSize)
+                        void downloadSceneImage(
+                          previewUrl,
+                          sceneImageFilename(exportBaseName, index, 'jpg', exportSize),
+                          'jpg',
+                          exportSize
+                        ).finally(() => setDownloadingFormat(null))
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] tracking-wide uppercase text-luxe/55 hover:text-gold-200 disabled:opacity-40"
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3" />
+                      )}
+                      {aspectLabel}
+                    </button>
+                  )
+                })
+              : null}
             {onSavePrompt ? (
               <button
                 type="button"

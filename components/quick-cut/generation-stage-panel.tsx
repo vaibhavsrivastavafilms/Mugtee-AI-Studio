@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode, RefObject } from 'react'
-import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video } from 'lucide-react'
+import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
@@ -10,7 +10,7 @@ import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
-import { ExportPreview } from '@/components/quick-cut/export-preview'
+import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
@@ -363,11 +363,11 @@ export function GenerationStagePanel({
 
     case 'complete':
       return isComplete ? (
-        <ExportPreview actionsOnly onRegenerate={onRegenerate} />
+        <QuickCutDownloadPanel className={className} />
       ) : (
         shell(
-          'Production',
-          <Mic className="w-3 h-3" />,
+          'Download',
+          <Download className="w-3 h-3" />,
           <p className="text-[12px] text-luxe/55 italic">Finishing touches…</p>
         )
       )

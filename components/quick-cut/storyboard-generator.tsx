@@ -4,7 +4,9 @@ import { useCallback, useState } from 'react'
 import { Clapperboard, Download, Film, Loader2 } from 'lucide-react'
 import {
   downloadAllStoryboardImages,
+  SCENE_IMAGE_EXPORT_DIMENSIONS,
   slugifyExportBase,
+  type SceneImageExportSize,
 } from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
@@ -56,7 +58,9 @@ export function StoryboardGenerator({
 
   const batchLoading = loading && generationStep === 'images'
   const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
-  const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadingAllFormat, setDownloadingAllFormat] = useState<SceneImageExportSize | null>(
+    null
+  )
   const canDownloadAll = allowDownload && !batchLoading && scenes.length > 0
   const canCompileMp4 =
     interactive &&
@@ -64,15 +68,22 @@ export function StoryboardGenerator({
     quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled) &&
     !videoUrl
 
-  const handleDownloadAll = useCallback(async () => {
-    if (downloadingAll || scenes.length < 1) return
-    setDownloadingAll(true)
-    try {
-      await downloadAllStoryboardImages(scenes, exportTitle || 'mugtee-storyboard')
-    } finally {
-      setDownloadingAll(false)
-    }
-  }, [downloadingAll, scenes, exportTitle])
+  const handleDownloadAll = useCallback(
+    async (exportSize: SceneImageExportSize) => {
+      if (downloadingAllFormat || scenes.length < 1) return
+      setDownloadingAllFormat(exportSize)
+      try {
+        await downloadAllStoryboardImages(
+          scenes,
+          exportTitle || 'mugtee-storyboard',
+          exportSize
+        )
+      } finally {
+        setDownloadingAllFormat(null)
+      }
+    },
+    [downloadingAllFormat, scenes, exportTitle]
+  )
 
   return (
     <div
@@ -150,21 +161,30 @@ export function StoryboardGenerator({
           {isRenderingVideo && renderStatusLabel ? (
             <span className="text-[10px] text-luxe/45 italic">{renderStatusLabel}</span>
           ) : null}
-          {canDownloadAll ? (
-            <button
-              type="button"
-              onClick={() => void handleDownloadAll()}
-              disabled={downloadingAll}
-              className="inline-flex min-h-[36px] items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-luxe/65 text-[10px] tracking-[0.14em] uppercase hover:text-luxe hover:border-white/20 transition-colors disabled:opacity-50"
-            >
-              {downloadingAll ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5" />
-              )}
-              {downloadingAll ? 'Downloading…' : 'Download all JPG'}
-            </button>
-          ) : null}
+          {canDownloadAll
+            ? (['vertical', 'horizontal'] as const).map((exportSize) => {
+                const { label } = SCENE_IMAGE_EXPORT_DIMENSIONS[exportSize]
+                const aspectLabel = exportSize === 'vertical' ? '9:16' : '16:9'
+                const isDownloading = downloadingAllFormat === exportSize
+                return (
+                  <button
+                    key={exportSize}
+                    type="button"
+                    title={`Download all scenes at ${label} (${aspectLabel})`}
+                    onClick={() => void handleDownloadAll(exportSize)}
+                    disabled={downloadingAllFormat !== null}
+                    className="inline-flex min-h-[36px] items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-luxe/65 text-[10px] tracking-[0.14em] uppercase hover:text-luxe hover:border-white/20 transition-colors disabled:opacity-50"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    {isDownloading ? 'Downloading…' : `All ${aspectLabel}`}
+                  </button>
+                )
+              })
+            : null}
         </div>
       ) : null}
     </div>

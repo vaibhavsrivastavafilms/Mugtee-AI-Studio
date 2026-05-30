@@ -11,6 +11,7 @@ import {
   sceneVisualDefaults,
   type VisualStyle,
 } from '@/lib/cinematic/workflow-state'
+import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
 /**
  * Mugtee Director — converts Virlo viral script into scene beats with camera + lighting.
@@ -18,9 +19,7 @@ import {
  */
 export type MugteeDirectorPromptOptions = {
   viralStructure?: ViralStructureAnalysis
-  /** Deep research doc — optional factual context for storyboard beats */
-  researchDocument?: string
-}
+} & Pick<DeepResearchPipelineOptions, 'researchDocument'>
 
 export function buildMugteeDirectorPrompt(
   ctx: VirloContext,

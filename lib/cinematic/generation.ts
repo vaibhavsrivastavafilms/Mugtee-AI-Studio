@@ -399,6 +399,7 @@ export function normalizeCinematicOutput(
     duration: number
     tone?: string
     niche?: CinematicNiche
+    titleSeed?: string
   }
 ): CinematicGenerationOutput {
   const src =
@@ -433,7 +434,7 @@ export function normalizeCinematicOutput(
   )
   const title = coerceString(
     src.title,
-    fallback.topic.slice(0, 80) || 'Untitled project',
+    fallback.titleSeed?.trim() || fallback.topic.slice(0, 80) || 'Untitled project',
     120
   )
   const scenes = coerceSceneList(src.scenes, fallback.duration, niche)

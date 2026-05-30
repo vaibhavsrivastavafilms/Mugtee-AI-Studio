@@ -26,7 +26,6 @@ import {
   type ImageReference,
 } from '@/components/quick-cut/canvas/image-reference-uploader'
 import { KeywordMoodSelector } from '@/components/quick-cut/canvas/keyword-mood-selector'
-import { AIAtmosphereDetector } from '@/components/quick-cut/canvas/ai-atmosphere-detector'
 import {
   buildStyleFromKeywords,
   detectInputMode,
@@ -198,7 +197,7 @@ export function FullscreenQuickCutCanvas({
         </header>
       ) : null}
 
-      <main className="relative z-10 flex flex-col lg:flex-row gap-6 lg:gap-8 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
+      <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
         <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
           <motion.p
             key={promptIndex}
@@ -329,26 +328,6 @@ export function FullscreenQuickCutCanvas({
           {!isGenerating ? (
             <CreatorInspiration onSelectTopic={handleInspirationSelect} />
           ) : null}
-        </div>
-
-        <div className="hidden lg:block w-full max-w-[300px] shrink-0 lg:sticky lg:top-24 lg:self-start">
-          <AIAtmosphereDetector
-            prompt={prompt}
-            keywords={keywords}
-            imageNote={imageNote}
-            voiceNote={voiceNote}
-            hasImage={Boolean(imageRef)}
-          />
-        </div>
-
-        <div className="lg:hidden">
-          <AIAtmosphereDetector
-            prompt={prompt}
-            keywords={keywords}
-            imageNote={imageNote}
-            voiceNote={voiceNote}
-            hasImage={Boolean(imageRef)}
-          />
         </div>
       </main>
     </div>

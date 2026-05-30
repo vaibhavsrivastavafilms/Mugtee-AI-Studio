@@ -1,8 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Clapperboard, Download, FolderOpen, Loader2, Lock, RefreshCw, Share2 } from 'lucide-react'
+import { Clapperboard, FolderOpen, Loader2, Lock, RefreshCw, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { directorWorkspaceHref, projectContinuityHref } from '@/lib/create/routes'
@@ -15,16 +14,9 @@ import { relSavedLabel } from '@/stores/cinematic-project'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator'
-import { VariationHistoryPanel } from '@/components/quick-cut/variation-history-panel'
-import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { formatMissingKeysHint } from '@/lib/cinematic/quick-cut/pipeline-status'
-import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
-import { downloadAllStoryboardImages } from '@/lib/quick-cut/download-scene-image'
-import {
-  buildStoryboardExportPayload,
-  downloadStoryboardPackage,
-} from '@/lib/quick-cut/download-storyboard-package'
+import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
 
 export function ExportPreview({
   onRegenerate,
@@ -52,18 +44,9 @@ export function ExportPreview({
   const mock = useQuickCutGenerationStore((s) => s.mock)
   const missingKeys = useQuickCutGenerationStore((s) => s.missingKeys)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
-  const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
-  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
   const regenerateHook = useQuickCutGenerationStore((s) => s.regenerateHook)
   const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
   const previousHooks = useQuickCutGenerationStore((s) => s.previousHooks)
-
-  const [downloading, setDownloading] = useState(false)
-  const [downloadingPackage, setDownloadingPackage] = useState(false)
-  const [downloadingAllFrames, setDownloadingAllFrames] = useState(false)
-  const pollStartedRef = useRef(false)
-  const downloadingPackageRef = useRef(false)
 
   const mp4Compiling =
     isRenderingVideo ||
@@ -71,82 +54,10 @@ export function ExportPreview({
   const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
   const hasStoryboardStills = !isGenerating && scenes.length > 0
   const hasNarration = Boolean(voiceUrl?.trim())
-  const canPlayReelPreview = hasStoryboardStills && (hasNarration || scenes.some((s) => s.imageUrl?.trim()))
+  const canPlayReelPreview =
+    hasStoryboardStills && (hasNarration || scenes.some((s) => s.imageUrl?.trim()))
   const storyboardPackageOnly =
     !videoRenderEnabled && exportPackageReady && !isGenerating && !canPlayReelPreview
-
-  const downloadName = `${(title || 'mugtee-reel').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-reel'}.mp4`
-  const packageName = `${(title || 'mugtee-storyboard').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'mugtee-storyboard'}-export`
-
-  useEffect(() => {
-    void syncVideoRenderConfig()
-  }, [syncVideoRenderConfig])
-
-  useEffect(() => {
-    if (!videoRenderEnabled) {
-      pollStartedRef.current = false
-      return
-    }
-    if (videoUrl || renderError || isRenderingVideo) {
-      pollStartedRef.current = false
-      return
-    }
-    if (!canCompileMp4 && !renderPollUrl) {
-      pollStartedRef.current = false
-      return
-    }
-    if (pollStartedRef.current) return
-
-    pollStartedRef.current = true
-    const run = renderPollUrl ? resumeRenderPoll() : retryVideoRender()
-    void run.finally(() => {
-      pollStartedRef.current = false
-    })
-  }, [
-    videoRenderEnabled,
-    videoUrl,
-    renderPollUrl,
-    renderError,
-    isRenderingVideo,
-    canCompileMp4,
-    resumeRenderPoll,
-    retryVideoRender,
-  ])
-
-  const handleDownload = useCallback(async () => {
-    if (!videoUrl || downloading) return
-    setDownloading(true)
-    try {
-      await downloadMp4File(videoUrl, downloadName)
-    } finally {
-      setDownloading(false)
-    }
-  }, [videoUrl, downloadName, downloading])
-
-  const handleDownloadPackage = useCallback(() => {
-    if (downloadingPackageRef.current || scenes.length < 1) return
-    downloadingPackageRef.current = true
-    setDownloadingPackage(true)
-    try {
-      downloadStoryboardPackage(
-        buildStoryboardExportPayload({ title, hook, script, scenes, voiceUrl }),
-        packageName
-      )
-    } finally {
-      downloadingPackageRef.current = false
-      setDownloadingPackage(false)
-    }
-  }, [scenes, title, hook, script, voiceUrl, packageName])
-
-  const handleDownloadAllFrames = useCallback(async () => {
-    if (downloadingAllFrames || scenes.length < 1) return
-    setDownloadingAllFrames(true)
-    try {
-      await downloadAllStoryboardImages(scenes, title || 'mugtee-storyboard')
-    } finally {
-      setDownloadingAllFrames(false)
-    }
-  }, [downloadingAllFrames, scenes, title])
 
   const keysHint = formatMissingKeysHint(missingKeys)
 
@@ -166,20 +77,18 @@ export function ExportPreview({
         {isGenerating ? null : mock && keysHint ? (
           <p className="text-xs text-luxe/45">{keysHint}</p>
         ) : videoUrl ? (
-          <p className="text-xs text-gold-300/60">Synced video with narration — download your MP4 below.</p>
+          <p className="text-xs text-gold-300/60">Download script, images, narration, and MP4 below.</p>
         ) : storyboardPackageOnly ? (
-          <p className="text-xs text-gold-300/60">
-            Download storyboard JPGs or the JSON export package below.
-          </p>
+          <p className="text-xs text-gold-300/60">Download your storyboard assets below.</p>
         ) : canPlayReelPreview && hasNarration && !videoUrl ? (
           <p className="text-xs text-gold-300/60">
             {canCompileMp4
-              ? 'Press play for synced narration — compile MP4 below when ready.'
+              ? 'Press play for synced narration — compile MP4 in Download when ready.'
               : 'Press play for synced narration with scene crossfades.'}
           </p>
         ) : canPlayReelPreview && !videoUrl ? (
           <p className="text-xs text-gold-300/60">
-            Press play to preview scene crossfades{canCompileMp4 ? ' — compile MP4 below.' : '.'}
+            Press play to preview scene crossfades{canCompileMp4 ? ' — compile MP4 in Download.' : '.'}
           </p>
         ) : hasStoryboardStills && !videoUrl ? (
           <p className="text-xs text-gold-300/60">
@@ -197,7 +106,7 @@ export function ExportPreview({
           </p>
         ) : canCompileMp4 && !videoUrl ? (
           <p className="text-xs text-gold-300/60">
-            All storyboard slides are ready — compile them into one synced MP4 below.
+            All storyboard slides are ready — compile them into one synced MP4 in Download.
           </p>
         ) : null}
       </div>
@@ -246,92 +155,10 @@ export function ExportPreview({
         </>
       ) : null}
 
+      <QuickCutDownloadPanel />
+
       <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
         <QuickCutSaveProjectButton variant="prominent" showViewLink={false} />
-
-        {videoUrl ? (
-          <button
-            type="button"
-            onClick={() => void handleDownload()}
-            disabled={downloading}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gold-gradient text-black text-[12px] font-semibold tracking-[0.12em] uppercase shadow-gold-glow hover:opacity-90 transition-opacity disabled:opacity-70 w-full sm:w-auto"
-          >
-            {downloading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {downloading ? 'Downloading…' : 'Download MP4'}
-          </button>
-        ) : null}
-
-        {hasStoryboardStills ? (
-          <button
-            type="button"
-            onClick={() => void handleDownloadAllFrames()}
-            disabled={downloadingAllFrames}
-            className={cn(
-              'inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[12px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-70 w-full sm:w-auto',
-              videoUrl || storyboardPackageOnly
-                ? 'border border-gold-500/30 bg-gold-500/[0.06] text-gold-200 hover:bg-gold-500/10'
-                : 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
-            )}
-          >
-            {downloadingAllFrames ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {downloadingAllFrames ? 'Downloading…' : 'Download all JPG'}
-          </button>
-        ) : null}
-
-        {storyboardPackageOnly ? (
-          <button
-            type="button"
-            onClick={handleDownloadPackage}
-            disabled={downloadingPackage}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-luxe/70 text-[12px] tracking-[0.12em] uppercase hover:text-luxe hover:border-white/20 transition-colors disabled:opacity-70 w-full sm:w-auto"
-          >
-            {downloadingPackage ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {downloadingPackage ? 'Preparing…' : 'Export JSON'}
-          </button>
-        ) : null}
-
-        {mp4Compiling ? (
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-luxe/50 text-[12px] tracking-[0.12em] uppercase cursor-wait w-full sm:w-auto"
-          >
-            <Loader2 className="w-4 h-4 animate-spin" /> Compiling MP4…
-          </button>
-        ) : canCompileMp4 && !videoUrl ? (
-          <button
-            type="button"
-            onClick={() => void retryVideoRender()}
-            disabled={isRenderingVideo}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gold-gradient text-black text-[12px] font-semibold tracking-[0.12em] uppercase shadow-gold-glow hover:opacity-90 transition-opacity disabled:opacity-70 w-full sm:w-auto"
-          >
-            <Clapperboard className="w-4 h-4" />
-            Compile Video
-          </button>
-        ) : null}
-
-        {renderError && !videoUrl ? (
-          <button
-            type="button"
-            onClick={() => void retryVideoRender()}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-luxe/70 text-[12px] tracking-[0.12em] uppercase hover:text-luxe hover:border-white/20 transition-colors w-full sm:w-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {videoRenderEnabled ? 'Retry compile' : 'Retry export'}
-          </button>
-        ) : null}
 
         {videoUrl ? (
           <button

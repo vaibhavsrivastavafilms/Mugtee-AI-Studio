@@ -33,7 +33,7 @@ export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
   visuals: 'Visuals',
   voice: 'Voice',
   render: 'Render',
-  complete: 'Complete',
+  complete: 'Download',
 }
 
 export function generationStepToTab(

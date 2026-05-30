@@ -3,6 +3,7 @@ import {
   allowAnthropicScript,
   allowOpenAIScript,
   FREE_OPENAI_CHAT_MODEL,
+  isFreeTierOnly,
 } from '@/lib/ai/free-tier'
 import { generateScriptWithGemini } from '@/lib/ai/gemini-script'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
@@ -33,7 +34,11 @@ import {
   type CinematicGenerationOutput,
 } from '@/lib/cinematic/generation'
 import { type CinematicNiche } from '@/lib/cinematic/niches'
-import { runYoutubeDeepResearch } from '@/lib/cinematic/youtube-deep-research'
+import { runDeepResearch } from '@/lib/cinematic/deep-research-engine'
+import type {
+  DeepResearchPipelineOptions,
+  ScriptGenerationResearchOutput,
+} from '@/types/deep-research'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
 
@@ -51,10 +56,6 @@ export type ScriptGenerationInput = {
   voiceNote?: string
   /** Optional reference script — triggers faceless YouTube SOP style matching */
   referenceScript?: string
-  /** Skip pre-script deep research pass (faster generation) */
-  skipResearch?: boolean
-  /** Pre-computed research doc — skips internal research call when provided */
-  researchDocument?: string
   /** Full project regen — fresh script, same locked context */
   regenFresh?: boolean
   topicChanged?: boolean
@@ -63,7 +64,11 @@ export type ScriptGenerationInput = {
   previousHook?: string
   visualStyle?: VisualStyle | null
   creatorMemoryBias?: CreatorMemoryBiasHints | null
-}
+  /** Hook from title step — avoids topic-template echo in script engine */
+  hookSeed?: string
+  /** Title from title step — optional LLM seed */
+  titleSeed?: string
+} & DeepResearchPipelineOptions
 
 type GenInput = {
   topic: string
@@ -84,6 +89,7 @@ type GenInput = {
   previousHook?: string
   lockedVisualStyle?: VisualStyle | null
   creatorMemoryBias?: CreatorMemoryBiasHints | null
+  titleSeed?: string
 }
 
 function buildSystemPrompt(referenceScript?: string): string {
@@ -122,6 +128,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       previousHook: input.previousHook,
       creatorMemoryBias: input.creatorMemoryBias,
       researchDocument: input.researchDocument,
+      titleSeed: input.titleSeed,
     }),
     sopSection,
     retryNote
@@ -213,11 +220,38 @@ async function generateWithOpenAI(
   return parseLlmJson(content)
 }
 
-/** OpenAI (ChatGPT) → Claude → Gemini. Throws when no provider succeeds. */
+async function tryGeminiScript(
+  userPrompt: string,
+  systemPrompt: string,
+  topic: string,
+  retryNote?: string,
+  errors?: string[]
+): Promise<Record<string, unknown> | null> {
+  const gemini = await generateScriptWithGemini({
+    systemPrompt,
+    userPrompt,
+    temperature: retryNote ? 0.75 : 0.85,
+  })
+  if (gemini && hasUsableLlmScript(gemini, topic)) return gemini
+  if (gemini && Object.keys(gemini).length > 0) errors?.push('gemini_echo_or_empty')
+  else if (errors) errors.push('gemini_failed')
+  return null
+}
+
+/** OpenAI → Claude → Gemini (Gemini first when free-tier-only). Throws when no provider succeeds. */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
   const systemPrompt = buildSystemPrompt(input.referenceScript)
   const errors: string[] = []
+  const geminiFirst = isFreeTierOnly()
+
+  const runGemini = () =>
+    tryGeminiScript(userPrompt, systemPrompt, input.topic, retryNote, errors)
+
+  if (geminiFirst) {
+    const gemini = await runGemini()
+    if (gemini) return gemini
+  }
 
   if (allowOpenAIScript()) {
     try {
@@ -239,13 +273,10 @@ async function generateScript(input: GenInput, retryNote?: string) {
     }
   }
 
-  const gemini = await generateScriptWithGemini({
-    systemPrompt,
-    userPrompt,
-    temperature: retryNote ? 0.75 : 0.85,
-  })
-  if (gemini && hasUsableLlmScript(gemini, input.topic)) return gemini
-  if (gemini && Object.keys(gemini).length > 0) errors.push('gemini_echo_or_empty')
+  if (!geminiFirst) {
+    const gemini = await runGemini()
+    if (gemini) return gemini
+  }
 
   throw new Error(
     errors.length > 0
@@ -255,9 +286,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
 }
 
 /** Shared script shaping used by Quick Cut orchestration and generate-script API. */
-export async function runScriptGeneration(
-  input: ScriptGenerationInput
-): Promise<{
+export type ScriptGenerationResult = {
   output: CinematicGenerationOutput
   mock: boolean
   reason?: string
@@ -266,9 +295,11 @@ export async function runScriptGeneration(
   visualStyle: VisualStyle
   viralScript: ViralScript
   viralStructure: ViralStructureAnalysis
-  researchDocument?: string
-  researchMock?: boolean
-}> {
+} & ScriptGenerationResearchOutput
+
+export async function runScriptGeneration(
+  input: ScriptGenerationInput
+): Promise<ScriptGenerationResult> {
   const topic = input.topic.trim()
   const platform = coercePlatform(input.platform)
   const tone = coerceTone(input.tone)
@@ -278,7 +309,7 @@ export async function runScriptGeneration(
   let researchDocument = input.researchDocument?.trim() || undefined
   let researchMock = false
   if (!input.skipResearch && topic && !researchDocument) {
-    const research = await runYoutubeDeepResearch({ topic, language })
+    const research = await runDeepResearch({ topic, language })
     researchDocument = research.document.trim() || undefined
     researchMock = research.mock
   }
@@ -293,6 +324,7 @@ export async function runScriptGeneration(
     language,
     transcript: input.transcript,
     voiceNote: input.voiceNote,
+    hookSeed: input.hookSeed,
     visualStyle: input.visualStyle,
   })
   const { niche, virloContext, virlo, viralStructure } = blueprint
@@ -319,6 +351,7 @@ export async function runScriptGeneration(
     previousHook: input.previousHook,
     lockedVisualStyle: input.visualStyle ?? blueprint.visualStyle,
     creatorMemoryBias: input.creatorMemoryBias,
+    titleSeed: input.titleSeed,
   }
 
   if (!hasScriptGenerationKey()) {
@@ -352,7 +385,13 @@ export async function runScriptGeneration(
       : []
 
     let output = finalizeCinematicOutput(
-      normalizeCinematicOutput(parsed, { topic, duration, tone, niche }),
+      normalizeCinematicOutput(parsed, {
+        topic,
+        duration,
+        tone,
+        niche,
+        titleSeed: input.titleSeed,
+      }),
       niche,
       { topic, duration, tone, hookVariations }
     )
@@ -364,7 +403,13 @@ export async function runScriptGeneration(
         ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
         : hookVariations
       output = finalizeCinematicOutput(
-        normalizeCinematicOutput(parsed, { topic, duration, tone, niche }),
+        normalizeCinematicOutput(parsed, {
+          topic,
+          duration,
+          tone,
+          niche,
+          titleSeed: input.titleSeed,
+        }),
         niche,
         { topic, duration, tone, hookVariations: retryHookVariations }
       )
@@ -383,27 +428,30 @@ export async function runScriptGeneration(
       researchDocument,
       researchMock,
     }
-  } catch {
-    const output = buildMockCinematicOutput({
-      topic,
-      tone,
-      duration,
-      niche,
-      virloContext,
-      viralStructure,
-    })
-    const viralScript = mergeViralScript(blueprint, output.script, output.hook)
-    return {
-      output,
-      mock: true,
-      reason: 'provider_fallback',
-      virlo,
-      language,
-      visualStyle: resolvedVisualStyle,
-      viralScript,
-      viralStructure,
-      researchDocument,
-      researchMock,
+  } catch (err) {
+    if (!hasScriptGenerationKey()) {
+      const output = buildMockCinematicOutput({
+        topic,
+        tone,
+        duration,
+        niche,
+        virloContext,
+        viralStructure,
+      })
+      const viralScript = mergeViralScript(blueprint, output.script, output.hook)
+      return {
+        output,
+        mock: true,
+        reason: 'provider_fallback',
+        virlo,
+        language,
+        visualStyle: resolvedVisualStyle,
+        viralScript,
+        viralStructure,
+        researchDocument,
+        researchMock,
+      }
     }
+    throw err instanceof Error ? err : new Error('Script generation failed')
   }
 }

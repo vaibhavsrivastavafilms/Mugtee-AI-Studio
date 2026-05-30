@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STUDIO, type CreatorMode } from '@/lib/create/routes'
-import { AiDirectorPanel } from '@/components/create/ai-director-panel'
 
 type NavItem = {
   id: string
@@ -45,14 +44,12 @@ export function UnifiedCreatorShell({
   mode = 'director',
   title,
   subtitle,
-  showDirectorPanel = true,
 }: {
   children: React.ReactNode
   projectId?: string | null
   mode?: CreatorMode
   title?: string
   subtitle?: string
-  showDirectorPanel?: boolean
 }) {
   const pathname = usePathname() ?? ''
   const workflowNav = projectId ? projectWorkflowNav(projectId, mode) : null
@@ -100,23 +97,10 @@ export function UnifiedCreatorShell({
         </div>
       )}
 
-      <div
-        className={cn(
-          'flex-1 grid gap-4 lg:gap-6 min-h-0',
-          showDirectorPanel
-            ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(300px,28vw)]'
-            : 'grid-cols-1'
-        )}
-      >
+      <div className="flex-1 grid grid-cols-1 gap-4 lg:gap-6 min-h-0">
         <main className="min-w-0 rounded-2xl border border-white/[0.06] bg-black/25 backdrop-blur-sm p-4 sm:p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
           {children}
         </main>
-
-        {showDirectorPanel ? (
-          <aside className="hidden lg:block min-w-0">
-            <AiDirectorPanel className="sticky top-[5.5rem]" />
-          </aside>
-        ) : null}
       </div>
     </div>
   )

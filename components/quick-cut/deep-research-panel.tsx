@@ -8,16 +8,13 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
+import type { DeepResearchPanelProps } from '@/types/deep-research'
 
 export function DeepResearchPanel({
   document,
   mock = false,
   className,
-}: {
-  document: string | null | undefined
-  mock?: boolean
-  className?: string
-}) {
+}: DeepResearchPanelProps) {
   const [open, setOpen] = useState(false)
   const trimmed = document?.trim()
   if (!trimmed) return null
