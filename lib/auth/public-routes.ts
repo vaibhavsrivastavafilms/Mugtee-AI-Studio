@@ -11,6 +11,8 @@ const PUBLIC_EXACT = new Set([
   '/signin',
   '/pricing',
   '/offline',
+  '/made-with-mugtee',
+  '/showcase',
 ])
 
 const PUBLIC_PREFIXES = [
