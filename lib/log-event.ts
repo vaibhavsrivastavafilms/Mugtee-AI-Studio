@@ -58,6 +58,7 @@ export async function logEvent(input: LogEventInput): Promise<void> {
   if (typeof window === 'undefined') return  // client-only
   try {
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const actor =

@@ -1,5 +1,6 @@
 'use client'
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef, useMemo } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseBrowserClient } from './supabase/client'
 import { toast } from 'sonner'
 import type { ContentPiece, CrewMember, Shoot, MediaAsset, ActivityItem, ContentStatus } from './types'
@@ -87,9 +88,101 @@ function titleOf(table: string, row: any): string {
   return row.title || 'Untitled'
 }
 
+function createOfflineStore(userId: string, userName: string): Store {
+  const noop = async () => {}
+  const noopId = async () => undefined as string | undefined
+  const noopTrash = async () => [] as TrashItem[]
+  const idleLoading: Loading = {
+    content: false,
+    crew: false,
+    shoots: false,
+    media: false,
+    activity: false,
+    initial: false,
+  }
+  return {
+    userId,
+    userName,
+    workspace: { name: 'Mugtee AI Studio', logo_url: null, theme: 'gold' },
+    loading: idleLoading,
+    content: [],
+    crew: [],
+    shoots: [],
+    media: [],
+    activity: [],
+    archivedContent: [],
+    archivedCrew: [],
+    archivedShoots: [],
+    archivedMedia: [],
+    addContent: noopId,
+    updateContent: noop,
+    removeContent: noop,
+    archiveContent: noop,
+    restoreContent: noop,
+    setStatus: noop,
+    addCrew: noop,
+    updateCrew: noop,
+    removeCrew: noop,
+    archiveCrew: noop,
+    restoreCrew: noop,
+    addShoot: noop,
+    updateShoot: noop,
+    removeShoot: noop,
+    archiveShoot: noop,
+    restoreShoot: noop,
+    addMedia: noop,
+    removeMedia: noop,
+    archiveMedia: noop,
+    restoreMedia: noop,
+    updateWorkspace: noop,
+    restoreDefaults: noop,
+    loadTrash: noopTrash,
+    restoreFromTrash: noop,
+    permanentlyDelete: noop,
+    clearTrash: noop,
+  }
+}
+
+function StoreProviderOffline({
+  userId,
+  userName,
+  children,
+}: {
+  userId: string
+  userName: string
+  children: ReactNode
+}) {
+  const value = useMemo(() => createOfflineStore(userId, userName), [userId, userName])
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+}
+
 export function StoreProvider({ userId, userName, children }: { userId: string; userName: string; children: ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  if (!supabase) {
+    return (
+      <StoreProviderOffline userId={userId} userName={userName}>
+        {children}
+      </StoreProviderOffline>
+    )
+  }
+  return (
+    <StoreProviderConnected supabase={supabase} userId={userId} userName={userName}>
+      {children}
+    </StoreProviderConnected>
+  )
+}
 
+function StoreProviderConnected({
+  supabase,
+  userId,
+  userName,
+  children,
+}: {
+  supabase: SupabaseClient
+  userId: string
+  userName: string
+  children: ReactNode
+}) {
   const [content, setContent] = useState<ContentPiece[]>([])
   const [crew, setCrew]       = useState<CrewMember[]>([])
   const [shoots, setShoots]   = useState<Shoot[]>([])

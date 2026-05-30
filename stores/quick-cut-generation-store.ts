@@ -2223,9 +2223,14 @@ export const useQuickCutGenerationStore = create<
     if (state.saveState === 'saving') return state.savedProjectId
     if (!state.script && state.scenes.length < 1) return null
 
+    const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      set({ saveState: 'error', saveError: 'Sign in to save' })
+      return null
+    }
     const {
       data: { user },
-    } = await createSupabaseBrowserClient().auth.getUser()
+    } = await supabase.auth.getUser()
     if (!user) {
       set({ saveState: 'error', saveError: 'Sign in to save' })
       return null

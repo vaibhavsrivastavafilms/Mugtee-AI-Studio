@@ -128,6 +128,10 @@ export default function ScriptWorkspace() {
     setDirectState('fetching')
     let cancelled = false
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      setDirectState('done')
+      return
+    }
 
     const tryFetch = async (attempt: number): Promise<void> => {
       // 4s per-attempt timeout via AbortController — the Supabase JS client respects
@@ -764,6 +768,7 @@ function RecoveryFlow({ lostId }: { lostId: string | null }) {
       if (last && last.project_id && last.project_id !== lostId) {
         try {
           const sup = createSupabaseBrowserClient()
+          if (!sup) throw new Error('Authentication not configured')
           const { data } = await sup.from('content_pieces').select('id').eq('id', last.project_id).is('deleted_at', null).maybeSingle()
           if (!cancelled && data?.id) {
             toast.success('Recovered your latest workspace')
@@ -775,6 +780,7 @@ function RecoveryFlow({ lostId }: { lostId: string | null }) {
       // Attempt 2 — most recent content_piece in the user's account.
       try {
         const sup = createSupabaseBrowserClient()
+        if (!sup) { router.replace('/login'); return }
         const { data: { user } } = await sup.auth.getUser()
         if (!user) { router.replace('/login'); return }
         const { data } = await sup.from('content_pieces').select('id, title')

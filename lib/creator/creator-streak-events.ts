@@ -10,6 +10,10 @@ async function resolveUserId(): Promise<string | null> {
   if (cachedUserId !== undefined) return cachedUserId
   try {
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      cachedUserId = null
+      return null
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser()

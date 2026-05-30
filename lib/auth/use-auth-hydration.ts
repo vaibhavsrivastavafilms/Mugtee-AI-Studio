@@ -9,6 +9,8 @@ export type AuthHydrationState = {
   ready: boolean
   session: Session | null
   user: User | null
+  /** False when Supabase public env vars are not configured. */
+  authConfigured: boolean
 }
 
 /**
@@ -20,10 +22,20 @@ export function useAuthHydration(): AuthHydrationState {
     ready: false,
     session: null,
     user: null,
+    authConfigured: true,
   })
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      setState({
+        ready: true,
+        session: null,
+        user: null,
+        authConfigured: false,
+      })
+      return
+    }
 
     const {
       data: { subscription },
@@ -45,6 +57,7 @@ export function useAuthHydration(): AuthHydrationState {
           ready: true,
           session,
           user: session?.user ?? null,
+          authConfigured: true,
         })
       }
     })

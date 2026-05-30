@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const loadIg = async () => {
     setIgLoading(true)
     try {
+      if (!supabase) { setIgAccount(null); return }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIgAccount(null); return }
       const { data } = await supabase.from('instagram_accounts').select('username, ig_business_id, page_id, connected_at, expires_at').eq('user_id', user.id).maybeSingle()
@@ -69,12 +70,13 @@ export default function SettingsPage() {
     let channel: any
     ;(async () => {
       try {
+        if (!supabase) return
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
         channel = supabase.channel(`ig-acct-${user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'instagram_accounts', filter: `user_id=eq.${user.id}` }, () => loadIg()).subscribe()
       } catch {}
     })()
-    return () => { if (channel) supabase.removeChannel(channel) }
+    return () => { if (channel && supabase) supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -118,6 +120,7 @@ export default function SettingsPage() {
     if (!['image/png','image/jpeg','image/svg+xml','image/webp'].includes(file.type)) { toast.error('Use PNG / JPG / SVG / WebP'); return }
     setUploading(true)
     try {
+      if (!supabase) throw new Error('Authentication not configured')
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
       const ext = file.name.split('.').pop() || 'png'
@@ -518,6 +521,11 @@ function SponsorAnalyticsCard() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      if (!supabase) {
+        if (!cancelled) setStats({ total: 0, rewards: 0, credits: 0, top: null })
+        setLoading(false)
+        return
+      }
       try {
         const { data, error } = await supabase
           .from('sponsor_clicks')
