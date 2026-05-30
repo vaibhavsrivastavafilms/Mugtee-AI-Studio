@@ -1764,7 +1764,11 @@ export const useQuickCutGenerationStore = create<
         ]
       const userMessage = toUserGenerationError(err)
       const state = get()
-      await saveCompletedStages(state, userMessage)
+      try {
+        await saveCompletedStages(state, userMessage)
+      } catch {
+        /* recovery UI still shown */
+      }
       set({
         error: userMessage,
         generationStep: 'error',
