@@ -12,6 +12,16 @@ import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { type ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { loadContentLanguagePreference } from '@/lib/cinematic/content-languages'
+import {
+  DEFAULT_DIRECTOR_MODE,
+  loadDirectorModePreference,
+  normalizeDirectorMode,
+  type DirectorMode,
+} from '@/lib/cinematic/director-modes'
+import {
+  creatorBlueprintById,
+  normalizeCreatorBlueprintId,
+} from '@/lib/cinematic/creator-blueprints'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
@@ -47,6 +57,11 @@ import {
   selectStoryboardVersion as applyStoryboardVersionSelection,
   type VariationHistory,
 } from '@/lib/cinematic/variation-history'
+import type {
+  RepurposedAssetEntry,
+  RepurposedAssetsMap,
+  RepurposeOutputType,
+} from '@/lib/cinematic/content-repurpose'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
@@ -71,7 +86,11 @@ import {
 } from '@/lib/creator/creator-streak-events'
 import {
   getCreatorMemoryBiasHints,
+  getEffectiveCreatorProfile,
   rememberCreativeSession,
+  fetchCreatorMemoryProfile,
+  type CreatorMemoryProfile,
+  type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
@@ -102,6 +121,8 @@ import {
   SCRIPT_GENERATION_TIMEOUT_MS,
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
+import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
+import { showPlanLimitToast } from '@/lib/usage/plan-limit-toast.client'
 import {
   persistGenerationFailed,
   persistStepComplete,
@@ -179,6 +200,12 @@ export type QuickCutInput = {
   skipResearch?: boolean
   /** Explicit output language — defaults to English or saved preference */
   language?: ProjectLanguage
+  /** AI Director Mode — creative direction for generation */
+  directorMode?: DirectorMode
+  /** Creator Project Template id selected on canvas */
+  blueprintId?: string | null
+  /** Per-project creator profile overrides (project settings win over global profile) */
+  creatorProfileOverride?: CreatorProfileOverride
   /** Resume pipeline after last_completed_step (skips completed steps) */
   resumeFrom?: PersistedGenerationStep | null
 }
@@ -226,6 +253,8 @@ interface QuickCutGenerationStateBase {
   videoRenderEnabled: boolean
   virlo: VirloMetadata | null
   language: ProjectLanguage
+  directorMode: DirectorMode
+  blueprintId: string | null
   niche: CinematicNiche
   style: string
   duration: number
@@ -260,6 +289,11 @@ interface QuickCutGenerationStateBase {
   generationState: CinematicGenerationState
   assemblyLineIndex: number
   assemblyPreviewAutoplay: boolean
+  /** Global creator profile loaded at pipeline start */
+  creatorProfile: CreatorMemoryProfile | null
+  /** Optional per-project overrides — merged over creatorProfile for generation */
+  creatorProfileOverride: CreatorProfileOverride | null
+  repurposedAssets: RepurposedAssetsMap
 }
 
 interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
@@ -284,12 +318,15 @@ interface QuickCutGenerationActions {
   /** Refresh server video-render flag (VIDEO_RENDER_ENABLED) for export/compile UI. */
   syncVideoRenderConfig: () => Promise<void>
   saveProject: () => Promise<string | null>
+  setCreatorBlueprint: (blueprintId: string | null) => void
   loadSavedProject: (
     projectId: string,
     options?: { stageTab?: QuickCutStageTab }
   ) => Promise<boolean>
+  setRepurposedAsset: (type: RepurposeOutputType, entry: RepurposedAssetEntry) => void
   setSelectedElevenLabsVoice: (voiceId: string, name: string) => void
   ensureRecommendedElevenLabsVoice: () => Promise<void>
+  setCreatorProfileOverride: (override: CreatorProfileOverride | null) => void
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -327,6 +364,8 @@ const INITIAL: QuickCutGenerationState = {
   videoRenderEnabled: false,
   virlo: null,
   language: 'en',
+  directorMode: DEFAULT_DIRECTOR_MODE,
+  blueprintId: null,
   niche: 'storytelling',
   style: 'cinematic',
   duration: 60,
@@ -360,6 +399,9 @@ const INITIAL: QuickCutGenerationState = {
   generationState: 'idle',
   assemblyLineIndex: 0,
   assemblyPreviewAutoplay: false,
+  creatorProfile: null,
+  creatorProfileOverride: null,
+  repurposedAssets: {},
   ...EMPTY_STORYBOARD_FIELDS,
 }
 
@@ -372,6 +414,15 @@ function flashSavedState() {
       useQuickCutGenerationStore.setState({ saveState: 'idle' })
     }
   }, SAVE_FLASH_MS)
+}
+
+function resolveCreatorProfilePayload(
+  state: Pick<QuickCutGenerationState, 'creatorProfile' | 'creatorProfileOverride'>
+): CreatorMemoryProfile | undefined {
+  return getEffectiveCreatorProfile(
+    state.creatorProfile,
+    state.creatorProfileOverride
+  ) ?? undefined
 }
 
 function applyScriptOutput(
@@ -550,6 +601,8 @@ function buildArchiveInput(
     niche: state.niche,
     virlo: state.virlo,
     language: state.language,
+    directorMode: state.directorMode,
+    blueprintId: state.blueprintId ?? undefined,
     input_type: state.inputType,
     original_transcript: state.originalTranscript || state.prompt,
     variation_history: state.variationHistory,
@@ -560,6 +613,7 @@ function buildArchiveInput(
     last_completed_step: state.lastCompletedStep,
     generation_error:
       state.generationStatus === 'failed' ? state.error : null,
+    repurposedAssets: state.repurposedAssets,
   }
 }
 
@@ -1022,6 +1076,10 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  setCreatorProfileOverride: (override) => {
+    set({ creatorProfileOverride: override })
+  },
+
   ensureRecommendedElevenLabsVoice: async () => {
     const recommended = await ensureRecommendedElevenLabsVoiceForState(get())
     if (recommended) {
@@ -1044,6 +1102,9 @@ export const useQuickCutGenerationStore = create<
   setActiveStageTab: (tab, pinned = true) =>
     set({ activeStageTab: tab, stageTabPinned: pinned }),
 
+  setCreatorBlueprint: (blueprintId) =>
+    set({ blueprintId: normalizeCreatorBlueprintId(blueprintId) }),
+
   followPipelineStage: () => {
     const tab = generationStepToTab(get().generationStep)
     if (tab) set({ activeStageTab: tab, stageTabPinned: false })
@@ -1060,6 +1121,8 @@ export const useQuickCutGenerationStore = create<
       style: state.style,
       duration: state.duration,
       imageNote: state.imageNote ?? undefined,
+      directorMode: state.directorMode,
+      blueprintId: state.blueprintId ?? undefined,
       reuseProject: true,
       resumeFrom,
       skipResearch: true,
@@ -1099,6 +1162,8 @@ export const useQuickCutGenerationStore = create<
           visualStyle: prior.visualStyle,
           niche: prior.niche,
           language: prior.language,
+          directorMode: prior.directorMode,
+          blueprintId: prior.blueprintId,
           elevenLabsVoiceId: prior.elevenLabsVoiceId,
           voiceName: prior.voiceName,
           originalTranscript: prior.originalTranscript,
@@ -1113,6 +1178,13 @@ export const useQuickCutGenerationStore = create<
     const language = regenFresh
       ? preserved?.language ?? input.language ?? loadContentLanguagePreference()
       : input.language ?? loadContentLanguagePreference()
+    const directorMode = regenFresh
+      ? preserved?.directorMode ?? input.directorMode ?? loadDirectorModePreference()
+      : input.directorMode ?? loadDirectorModePreference()
+    const blueprintId = regenFresh
+      ? preserved?.blueprintId ?? normalizeCreatorBlueprintId(input.blueprintId)
+      : normalizeCreatorBlueprintId(input.blueprintId)
+    const blueprintPlatform = creatorBlueprintById(blueprintId)?.suggestedPlatform
     const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
     const duration = coerceDuration(input.duration ?? prior.duration ?? 60)
     const preserveProjectId =
@@ -1146,6 +1218,8 @@ export const useQuickCutGenerationStore = create<
         studioReviewMode: false,
         prompt,
         language,
+        directorMode,
+        blueprintId,
         style: tone,
         duration,
         imageNote: input.imageNote?.trim() || prior.imageNote,
@@ -1158,6 +1232,8 @@ export const useQuickCutGenerationStore = create<
         studioReviewMode: false,
         prompt,
         language,
+        directorMode,
+        blueprintId,
         style: tone,
         duration,
         niche:
@@ -1192,6 +1268,14 @@ export const useQuickCutGenerationStore = create<
 
     logGenerationStart(preserveProjectId, prompt)
     pipelineStartedAt = Date.now()
+
+    const loadedCreatorProfile = await fetchCreatorMemoryProfile()
+    const creatorProfileOverride =
+      input.creatorProfileOverride ??
+      (regenFresh ? prior.creatorProfileOverride : null) ??
+      null
+    set({ creatorProfile: loadedCreatorProfile, creatorProfileOverride })
+
     trackEvent(AnalyticsEvents.GENERATION_STARTED, {
       projectId: preserveProjectId,
       metadata: {
@@ -1331,7 +1415,7 @@ export const useQuickCutGenerationStore = create<
             >('/api/ai/deep-research', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ topic: prompt, prompt, language }),
+              body: JSON.stringify({ topic: prompt, prompt, language, directorMode }),
               maxRetries: 0,
               timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
             })
@@ -1362,8 +1446,11 @@ export const useQuickCutGenerationStore = create<
             duration,
             sessionSeed,
             language,
+            directorMode,
+            blueprintId,
             title,
             hook,
+            ...(blueprintPlatform ? { platform: blueprintPlatform } : {}),
             niche: preserved?.topicChanged ? undefined : preserved?.niche,
             visualStyle: preserved?.topicChanged
               ? undefined
@@ -1375,6 +1462,7 @@ export const useQuickCutGenerationStore = create<
             previousScript: regenFresh ? preserved?.previousScript : undefined,
             previousHook: regenFresh ? preserved?.previousHook : undefined,
             creatorMemoryBias: getCreatorMemoryBiasHints(),
+            creatorProfile: resolveCreatorProfilePayload(get()),
             skipResearch: true,
             skipStoryboard: true,
             researchDocument,
@@ -1476,6 +1564,7 @@ export const useQuickCutGenerationStore = create<
               script,
               sessionSeed,
               language,
+              directorMode,
               visualStyle,
               niche: scriptNiche,
               duration,
@@ -1806,6 +1895,9 @@ export const useQuickCutGenerationStore = create<
 
       persistSession(get())
     } catch (err) {
+      if (err instanceof PlanLimitError) {
+        showPlanLimitToast(err.message)
+      }
       trackEvent(AnalyticsEvents.GENERATION_FAILED, {
         projectId: get().savedProjectId,
         metadata: {
@@ -2065,6 +2157,8 @@ export const useQuickCutGenerationStore = create<
           duration: state.duration,
           sessionSeed: `${state.prompt}-script-${Date.now()}`,
           language: state.language,
+          directorMode: state.directorMode,
+          blueprintId: state.blueprintId,
           title: state.title,
           hook: state.hook,
           niche: state.niche,
@@ -2074,6 +2168,7 @@ export const useQuickCutGenerationStore = create<
           previousScript: state.script?.trim() || undefined,
           previousHook: state.hook?.trim() || undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
+          creatorProfile: resolveCreatorProfilePayload(state),
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,
           skipStoryboard: true,
@@ -2326,6 +2421,15 @@ export const useQuickCutGenerationStore = create<
     } catch {
       return false
     }
+  },
+
+  setRepurposedAsset: (type, entry) => {
+    set((state) => ({
+      repurposedAssets: {
+        ...state.repurposedAssets,
+        [type]: entry,
+      },
+    }))
   },
 
   saveProject: async () => {

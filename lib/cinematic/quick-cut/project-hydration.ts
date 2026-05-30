@@ -1,5 +1,6 @@
 import {
   ensureScenesHaveImagePrompts,
+  parseCaptionsPayload,
   storeScenesToGenerated,
   type GeneratedScene,
 } from '@/lib/cinematic/generation'
@@ -13,6 +14,15 @@ import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  normalizeDirectorMode,
+  extractDirectorModeFromCaptions,
+  type DirectorMode,
+} from '@/lib/cinematic/director-modes'
+import {
+  extractCreatorBlueprintFromCaptions,
+  normalizeCreatorBlueprintId,
+} from '@/lib/cinematic/creator-blueprints'
 import {
   emptyVariationHistory,
   type VariationHistory,
@@ -84,6 +94,8 @@ export type QuickCutProjectHydrationPatch = {
   duration: number
   niche: CinematicNiche
   language: ProjectLanguage
+  directorMode: DirectorMode
+  blueprintId: string | null
   visualStyle: VisualStyle | null
   viralScript: ViralScript | null
   variationHistory: VariationHistory
@@ -94,6 +106,7 @@ export type QuickCutProjectHydrationPatch = {
   generationStatus: GenerationStatus
   lastCompletedStep: PersistedGenerationStep | null
   failedAtStep: PersistedGenerationStep | null
+  repurposedAssets: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -101,6 +114,7 @@ export function buildQuickCutHydrationFromRow(
   stageTab?: QuickCutStageTab
 ): QuickCutProjectHydrationPatch {
   const state = rowToState(row)
+  const parsedCaptions = parseCaptionsPayload(row.captions)
   const scenes = ensureScenesHavePreviewUrls(
     ensureScenesHaveImagePrompts(storeScenesToGenerated(state.scenes))
   )
@@ -157,6 +171,12 @@ export function buildQuickCutHydrationFromRow(
     duration: state.duration,
     niche: (state.niche as CinematicNiche) || 'storytelling',
     language: (row.language as ProjectLanguage) || 'en',
+    directorMode: normalizeDirectorMode(
+      extractDirectorModeFromCaptions(row.captions)
+    ),
+    blueprintId: normalizeCreatorBlueprintId(
+      extractCreatorBlueprintFromCaptions(row.captions)
+    ),
     visualStyle: (row.visual_style as VisualStyle | null) ?? null,
     viralScript: (row.viral_script as ViralScript | null) ?? null,
     variationHistory:
@@ -173,5 +193,6 @@ export function buildQuickCutHydrationFromRow(
       row.generation_status === 'failed'
         ? normalizePersistedStep(row.generation_step)
         : null,
+    repurposedAssets: parsedCaptions.repurposedAssets ?? {},
   }
 }

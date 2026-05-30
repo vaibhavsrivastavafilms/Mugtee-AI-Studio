@@ -50,7 +50,9 @@ import type {
 import type { StoryboardStoreFields } from '@/types/storyboard'
 import { runStoryboardSop } from '@/lib/cinematic/storyboard-sop-engine'
 import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/validation'
-import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
+import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
+import { normalizeCreatorBlueprintId } from '@/lib/cinematic/creator-blueprints'
 
 export type ScriptGenerationInput = {
   topic: string
@@ -74,12 +76,17 @@ export type ScriptGenerationInput = {
   previousHook?: string
   visualStyle?: VisualStyle | null
   creatorMemoryBias?: CreatorMemoryBiasHints | null
+  creatorProfile?: CreatorMemoryProfile | null
   /** Hook from title step — avoids topic-template echo in script engine */
   hookSeed?: string
   /** Title from title step — optional LLM seed */
   titleSeed?: string
   /** Skip storyboard SOP — Quick Cut runs it in /api/generate-scenes instead */
   skipStoryboard?: boolean
+  /** AI Director Mode — creative direction for script tone and structure */
+  directorMode?: DirectorMode
+  /** Creator Project Template id — injects blueprint directive into prompts */
+  blueprintId?: string | null
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -102,7 +109,10 @@ type GenInput = {
   previousHook?: string
   lockedVisualStyle?: VisualStyle | null
   creatorMemoryBias?: CreatorMemoryBiasHints | null
+  creatorProfile?: CreatorMemoryProfile | null
   titleSeed?: string
+  directorMode?: DirectorMode
+  blueprintId?: string | null
 }
 
 function buildSystemPrompt(): string {
@@ -138,9 +148,12 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       previousScript: input.previousScript,
       previousHook: input.previousHook,
       creatorMemoryBias: input.creatorMemoryBias,
+      creatorProfile: input.creatorProfile,
       researchDocument: input.researchDocument,
       researchReport: input.researchReport,
       titleSeed: input.titleSeed,
+      directorMode: input.directorMode,
+      blueprintId: input.blueprintId,
     }),
     sopSection,
     retryNote
@@ -424,7 +437,10 @@ export async function runScriptGeneration(
     previousHook: input.previousHook,
     lockedVisualStyle: input.visualStyle ?? blueprint.visualStyle,
     creatorMemoryBias: input.creatorMemoryBias,
+    creatorProfile: input.creatorProfile,
     titleSeed: input.titleSeed,
+    directorMode: input.directorMode,
+    blueprintId: input.blueprintId,
   }
 
   if (!hasScriptGenerationKey()) {
@@ -522,6 +538,7 @@ export async function runScriptGeneration(
           researchDocument,
           researchReport,
           retentionMode: duration <= 60,
+          directorMode: input.directorMode,
         })
     return {
       output,

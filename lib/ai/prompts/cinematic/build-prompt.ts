@@ -8,11 +8,14 @@ import {
 } from '@/lib/cinematic/language-detection'
 import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
-import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
-import { buildCreatorMemoryPromptSection } from '@/lib/creator/creator-memory'
+import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import { buildCreatorMemoryPromptSection, creatorProfileDirective } from '@/lib/creator/creator-memory'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
 import { scriptWordCountHint } from '@/lib/ai/prompts/cinematic/script-writing-sop'
+import { buildDirectorModePromptSection } from '@/lib/ai/prompts/cinematic/director-mode-prompt'
+import { buildCreatorBlueprintPromptSection } from '@/lib/ai/prompts/cinematic/creator-blueprint-prompt'
+import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 
 export type CinematicPromptInput = {
@@ -35,8 +38,13 @@ export type CinematicPromptInput = {
   previousScript?: string
   previousHook?: string
   creatorMemoryBias?: CreatorMemoryBiasHints | null
+  creatorProfile?: CreatorMemoryProfile | null
   /** Title from /api/generate-title */
   titleSeed?: string
+  /** AI Director Mode — creative direction for script tone and structure */
+  directorMode?: DirectorMode
+  /** Creator Project Template — blueprint-specific generation directive */
+  blueprintId?: string | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -129,11 +137,14 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.creatorMemoryBias
       ? buildCreatorMemoryPromptSection(input.creatorMemoryBias)
       : '',
+    input.creatorProfile ? creatorProfileDirective(input.creatorProfile) : '',
     input.researchReport
       ? buildDeepResearchReportScriptContext(input.researchReport)
       : input.researchDocument
         ? buildDeepResearchScriptContextSection(input.researchDocument)
         : '',
+    input.directorMode ? buildDirectorModePromptSection(input.directorMode) : '',
+    input.blueprintId ? buildCreatorBlueprintPromptSection(input.blueprintId) : '',
   ]
     .filter(Boolean)
     .join('\n')

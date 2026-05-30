@@ -10,6 +10,8 @@ import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-genera
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import { normalizeDirectorMode } from '@/lib/cinematic/director-modes'
+import { normalizeCreatorBlueprintId } from '@/lib/cinematic/creator-blueprints'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import {
   coerceDuration,
@@ -18,10 +20,12 @@ import {
   coerceTone,
   logError,
 } from '@/lib/workspace/validation'
-import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
+import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import type { GenerateScriptApiResearchResponse } from '@/types/deep-research'
 import { logStepComplete, logStepFailed } from '@/lib/cinematic/generation-logger'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
+import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,6 +51,11 @@ function parseCreatorMemoryBias(raw: unknown): CreatorMemoryBiasHints | undefine
     recentTones: recentTones?.length ? recentTones : undefined,
   }
   return Object.values(hints).some(Boolean) ? hints : undefined
+}
+
+function parseCreatorProfile(raw: unknown): CreatorMemoryProfile | undefined {
+  const profile = normalizeCreatorMemoryProfile(raw)
+  return Object.values(profile).some(Boolean) ? profile : undefined
 }
 
 export async function POST(req: NextRequest) {
@@ -102,6 +111,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
+
+    const limitBlocked = await guardUsageLimit(user.id, 'generations')
+    if (limitBlocked) return limitBlocked
+
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return NextResponse.json(
         { error: 'Body must be a JSON object' },
@@ -160,6 +173,17 @@ export async function POST(req: NextRequest) {
 
     const creatorMemoryBias = parseCreatorMemoryBias(raw.creatorMemoryBias)
 
+    let creatorProfile =
+      parseCreatorProfile(raw.creatorProfile ?? raw.creator_profile) ?? undefined
+    if (!creatorProfile) {
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('creator_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+      creatorProfile = parseCreatorProfile(profileRow?.creator_profile)
+    }
+
     const hookSeed =
       typeof raw.hookSeed === 'string'
         ? raw.hookSeed.slice(0, 220)
@@ -172,6 +196,8 @@ export async function POST(req: NextRequest) {
         : typeof raw.title === 'string'
           ? raw.title.slice(0, 120)
           : undefined
+    const directorMode = normalizeDirectorMode(raw.directorMode)
+    const blueprintId = normalizeCreatorBlueprintId(raw.blueprintId)
 
     const input = {
       topic,
@@ -192,8 +218,11 @@ export async function POST(req: NextRequest) {
       previousHook: regenFresh ? previousHook : undefined,
       visualStyle,
       creatorMemoryBias,
+      creatorProfile,
       hookSeed,
       titleSeed,
+      directorMode,
+      blueprintId,
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -220,6 +249,8 @@ export async function POST(req: NextRequest) {
       }
 
       logStepComplete('script', user.id)
+
+      await trackUsageMetric(user.id, 'generations')
 
       return NextResponse.json({
         output: result.output,
