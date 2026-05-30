@@ -87,6 +87,8 @@ export type ScriptGenerationInput = {
   directorMode?: DirectorMode
   /** Creator Project Template id — injects blueprint directive into prompts */
   blueprintId?: string | null
+  recentTopics?: string[]
+  creatorHistoryStyle?: string
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -113,6 +115,8 @@ type GenInput = {
   titleSeed?: string
   directorMode?: DirectorMode
   blueprintId?: string | null
+  recentTopics?: string[]
+  creatorHistoryStyle?: string
 }
 
 function buildSystemPrompt(): string {
@@ -154,6 +158,8 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       titleSeed: input.titleSeed,
       directorMode: input.directorMode,
       blueprintId: input.blueprintId,
+      recentTopics: input.recentTopics,
+      creatorHistoryStyle: input.creatorHistoryStyle,
     }),
     sopSection,
     retryNote
@@ -441,6 +447,8 @@ export async function runScriptGeneration(
     titleSeed: input.titleSeed,
     directorMode: input.directorMode,
     blueprintId: input.blueprintId,
+    recentTopics: input.recentTopics,
+    creatorHistoryStyle: input.creatorHistoryStyle,
   }
 
   if (!hasScriptGenerationKey()) {

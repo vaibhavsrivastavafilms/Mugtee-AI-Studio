@@ -93,6 +93,7 @@ import {
   type CreatorMemoryProfile,
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
+import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
 import { recommendVoiceStyle } from '@/lib/cinematic/voice-match'
@@ -1469,6 +1470,7 @@ export const useQuickCutGenerationStore = create<
             previousHook: regenFresh ? preserved?.previousHook : undefined,
             creatorMemoryBias: getCreatorMemoryBiasHints(),
             creatorProfile: resolveCreatorProfilePayload(get()),
+            ...creatorHistoryPayload(directorMode),
             skipResearch: true,
             skipStoryboard: true,
             researchDocument,
@@ -2175,6 +2177,7 @@ export const useQuickCutGenerationStore = create<
           previousHook: state.hook?.trim() || undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
           creatorProfile: resolveCreatorProfilePayload(state),
+          ...creatorHistoryPayload(state.directorMode),
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,
           skipStoryboard: true,
