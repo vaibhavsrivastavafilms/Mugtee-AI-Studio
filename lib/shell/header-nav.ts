@@ -41,6 +41,9 @@ export function headerNavActive(
       pathname.startsWith('/create/knowledge')
     )
   }
+  if (id === 'analytics') {
+    return pathname.startsWith('/studio/analytics') || tab === 'analytics'
+  }
   if (id === 'projects') {
     return (
       pathname.startsWith('/studio/projects') ||
@@ -54,14 +57,15 @@ export function headerNavActive(
   }
   if (id === 'create') {
     if (pathname === '/studio' || pathname.startsWith('/studio/create')) {
-      if (tab === 'projects' || tab === 'exports' || tab === 'knowledge') return false
+      if (tab === 'projects' || tab === 'exports' || tab === 'knowledge' || tab === 'analytics') return false
       return true
     }
     if (
       pathname.startsWith('/create') &&
       tab !== 'projects' &&
       tab !== 'exports' &&
-      tab !== 'knowledge'
+      tab !== 'knowledge' &&
+      tab !== 'analytics'
     ) {
       return true
     }
