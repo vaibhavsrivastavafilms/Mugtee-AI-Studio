@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { QuickCutStudio } from '@/components/quick-cut/quick-cut-studio'
 import { ExportFeedbackModal } from '@/components/quick-cut/export-feedback-modal'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
+import { CinematicTimeline } from '@/components/v2/cinematic-timeline'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { cn } from '@/lib/utils'
 
 export function LiveGenerationCanvas({
@@ -19,6 +21,7 @@ export function LiveGenerationCanvas({
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const promptedRef = useRef(false)
+  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
 
   useEffect(() => {
     if (!complete || promptedRef.current) return
@@ -43,9 +46,14 @@ export function LiveGenerationCanvas({
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-2">
               {complete ? 'Production complete' : 'Live generation'}
             </p>
-            <h2 className="font-display text-2xl sm:text-3xl text-luxe italic">
+            <h2 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)] italic">
               {complete ? 'Your reel is ready to export' : 'Your reel is becoming film'}
             </h2>
+            {!complete ? (
+              <div className="mt-6 max-w-lg mx-auto">
+                <CinematicTimeline currentStep={generationStep} />
+              </div>
+            ) : null}
           </header>
 
           <QuickCutStudio onRegenerate={onRegenerate} />

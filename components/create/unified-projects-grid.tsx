@@ -286,7 +286,7 @@ export function UnifiedProjectsGrid({
                 className={cn(
                   'relative z-[1] flex flex-col rounded-2xl overflow-hidden border transition bg-zinc-900/40',
                   galleryMode
-                    ? 'border-white/[0.08] hover:border-gold-500/50 hover:shadow-[0_0_40px_-12px_rgba(212,175,55,0.45)]'
+                    ? 'border-[var(--v2-border)] bg-[var(--v2-surface)] hover:border-[var(--v2-gold)]/45 hover:shadow-[0_0_40px_-12px_rgba(212,175,55,0.35)]'
                     : 'border-gold-soft hover:border-gold-500/40',
                   isSelected && 'border-gold-500/45'
                 )}

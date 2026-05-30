@@ -2711,7 +2711,7 @@ function AIDirectorCard({
           so it never crowds the mobile workspace. */}
       <RotatingDirectorWisdom />
 
-      <dl className={'space-y-1.5 transition-all ' + (hasStoryboard ? 'opacity-100 max-h-[360px]' : 'opacity-0 max-h-0 overflow-hidden')}>
+      <dl className={'grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 transition-all ' + (hasStoryboard ? 'opacity-100 max-h-[360px]' : 'opacity-0 max-h-0 overflow-hidden')}>
         <DirectorRow label="Mood"           value={toneLabel} />
         <DirectorRow label="Cinematic Tone" value={moodLabel} />
         <DirectorRow label="Visual Style"   value={cameraLabel} />
@@ -2737,12 +2737,12 @@ function AIDirectorCard({
 
 function DirectorRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <>
       <dt className="text-[9.5px] tracking-[0.22em] uppercase text-luxe/35">{label}</dt>
       <dd className={`text-[11px] tracking-[0.02em] text-right ${muted ? 'text-luxe/30' : 'text-luxe/75'}`}>
         {value}
       </dd>
-    </div>
+    </>
   )
 }
 
