@@ -7,7 +7,7 @@ import { ProjectWorkspaceHeader } from '@/components/create/project-workspace-he
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
 import { loadProject } from '@/lib/cinematic-projects'
 import { STUDIO, type CreatorMode } from '@/lib/create/routes'
-import WorkspacePage from '@/app/workspace/page'
+import WorkspacePage from '@/components/workspace/workspace-page'
 
 type ProjectMeta = {
   title: string
@@ -130,3 +130,5 @@ export function ProjectWorkspacePage() {
     </Suspense>
   )
 }
+
+
