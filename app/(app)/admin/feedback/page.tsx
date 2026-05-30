@@ -55,12 +55,18 @@ export default function AdminFeedbackPage() {
 
   return (
     <div className="max-w-5xl mx-auto w-full">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <Link
-          href="/settings"
+          href="/admin"
           className="inline-flex items-center gap-1.5 text-xs text-luxe/60 hover:text-luxe transition"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Settings
+          <ArrowLeft className="w-3.5 h-3.5" /> Founder Dashboard
+        </Link>
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1.5 text-xs text-luxe/45 hover:text-luxe transition"
+        >
+          Settings
         </Link>
       </div>
 
