@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import {
+  describeElevenLabsApiError,
   fetchElevenLabsVoices,
   getDefaultElevenLabsVoiceId,
   isElevenLabsConfigured,
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const configured = isElevenLabsConfigured()
-    const { voices, fromApi } = await fetchElevenLabsVoices()
+    const { voices, fromApi, apiStatus } = await fetchElevenLabsVoices()
 
     const byCategory = {} as Record<ElevenLabsVoiceCategory, typeof voices>
     for (const voice of voices) {
@@ -35,7 +36,9 @@ export async function GET() {
       message: configured
         ? fromApi
           ? undefined
-          : 'Could not reach ElevenLabs — showing curated voice list.'
+          : apiStatus
+            ? `${describeElevenLabsApiError(apiStatus)} Showing curated voice list.`
+            : 'Could not reach ElevenLabs — showing curated voice list.'
         : allowElevenLabsVoice()
           ? 'ElevenLabs key missing.'
           : 'Free tier uses OpenAI TTS. Set FREE_TIER_ONLY=false and ELEVENLABS_API_KEY for ElevenLabs.',

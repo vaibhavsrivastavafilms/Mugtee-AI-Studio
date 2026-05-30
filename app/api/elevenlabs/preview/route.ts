@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (isElevenLabsConfigured()) {
-      const buffer = await synthesizeElevenLabsSpeech(text, { voiceId })
+      const { buffer } = await synthesizeElevenLabsSpeech(text, { voiceId })
       if (buffer && buffer.length > 200) {
         return NextResponse.json({
           audioUrl: `data:audio/mpeg;base64,${buffer.toString('base64')}`,
