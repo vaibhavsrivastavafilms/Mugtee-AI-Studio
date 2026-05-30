@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       typeof raw.sessionSeed === 'string' || typeof raw.sessionSeed === 'number'
         ? raw.sessionSeed
         : user.id
-    const language = normalizeProjectLanguage(raw.language, topic)
+    const language = normalizeProjectLanguage(raw.language)
     const niche = inferNicheFromBrief({
       topic,
       tone,

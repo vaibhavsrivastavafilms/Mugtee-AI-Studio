@@ -110,7 +110,7 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     style,
     niche: typeof raw.niche === 'string' ? raw.niche : undefined,
   })
-  const language = normalizeProjectLanguage(raw.language, topic || prompt)
+  const language = normalizeProjectLanguage(raw.language)
   const visualStyle = parseVisualStyle(raw.visualStyle)
   const viralScript = parseViralScript(raw.viralScript)
 

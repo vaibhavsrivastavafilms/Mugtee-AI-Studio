@@ -7,18 +7,16 @@ import {
 /** Mandatory language lock injected into every generation / regeneration prompt. */
 export function languageDirective(language: ProjectLanguage): string {
   const label = languageLabel(language)
-  if (language === 'en') {
-    return `LANGUAGE: Generate all output in English. Do not switch languages unless the creator brief explicitly mixes languages.`
-  }
   return [
     `LANGUAGE LOCK (${language} / ${label}):`,
-    `Generate ALL output in ${label} (${language}).`,
-    `Never translate to English.`,
-    `Preserve the original language of the creator brief, hook, script, captions, and scene narration.`,
-    `If the brief is multilingual, keep the same language mix — do not anglicize.`,
+    `Write ALL output in ${label}. Do not use any other language.`,
+    `This applies to title, hook, script beats, narration, captions, scene descriptions, and CTA.`,
+    language === 'en'
+      ? `Use natural English. Never switch to German, Spanish, French, or any other language unless the creator brief explicitly mixes languages.`
+      : `Never translate to English or any language other than ${label}.`,
   ].join(' ')
 }
 
-export function languageDirectiveFromCode(raw: unknown, fallbackText?: string): string {
-  return languageDirective(normalizeProjectLanguage(raw, fallbackText))
+export function languageDirectiveFromCode(raw: unknown): string {
+  return languageDirective(normalizeProjectLanguage(raw))
 }

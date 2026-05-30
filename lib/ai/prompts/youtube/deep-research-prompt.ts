@@ -1,5 +1,8 @@
 import { languageDirective } from '@/lib/cinematic/language-prompt'
-import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  normalizeProjectLanguage,
+  type ProjectLanguage,
+} from '@/lib/cinematic/language-detection'
 
 export const DEEP_RESEARCH_SECTION_HEADINGS = [
   'Core explanation',
@@ -14,7 +17,7 @@ export const DEEP_RESEARCH_SECTION_HEADINGS = [
 /** Faceless YouTube deep-research prompt — structured headings + bullets for script writing. */
 export function buildDeepResearchPrompt(topic: string, language?: ProjectLanguage): string {
   const trimmed = topic.trim()
-  const langLock = language ? `\n${languageDirective(language)}\n` : ''
+  const langLock = `\n${languageDirective(normalizeProjectLanguage(language))}\n`
 
   return `You are a viral faceless YouTube research analyst. Produce surprising, retention-ready research — NOT generic encyclopedia summaries.
 

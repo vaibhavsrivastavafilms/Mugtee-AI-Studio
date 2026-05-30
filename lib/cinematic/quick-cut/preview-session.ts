@@ -1,5 +1,7 @@
 import type { QuickCutOrchestrationResult } from '@/lib/cinematic/quick-cut/orchestrate-quick-cut'
 
+import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+
 const PREVIEW_KEY = 'mugtee:quick-cut:preview:v1'
 const PENDING_KEY_SESSION = 'mugtee:quick-cut:pending:session:v1'
 const PENDING_KEY_LOCAL = 'mugtee:quick-cut:pending:local:v1'
@@ -11,6 +13,7 @@ export type QuickCutPending = {
   imageNote?: string
   voiceNote?: string
   keywords?: string[]
+  language?: ProjectLanguage
 }
 
 export function saveQuickCutPreview(result: QuickCutOrchestrationResult) {

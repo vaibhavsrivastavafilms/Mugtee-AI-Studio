@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     const virlo = buildVirloContext(idea || script, { sessionSeed })
     const meta = virloMetadataFromContext(virlo)
     const niche = virlo.topicAnalysis.niche
-    const language = normalizeProjectLanguage(raw?.language, idea || script)
+    const language = normalizeProjectLanguage(raw?.language)
     const visualStyle =
       parseVisualStyle(raw?.visualStyle, visualStyleFromVirloContext(virlo)) ??
       visualStyleFromVirloContext(virlo)

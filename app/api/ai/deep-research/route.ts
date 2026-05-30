@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const language = normalizeProjectLanguage(raw.language, topic)
+    const language = normalizeProjectLanguage(raw.language)
     const result = await runDeepResearch({ topic, language })
 
     const body: DeepResearchApiResponse = {

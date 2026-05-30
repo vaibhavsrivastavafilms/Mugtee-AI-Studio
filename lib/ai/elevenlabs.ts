@@ -32,8 +32,14 @@ const LANGUAGE_ALIASES: Record<ProjectLanguage, string[]> = {
   ur: ['ur', 'urdu'],
   es: ['es', 'spanish', 'latino'],
   fr: ['fr', 'french'],
+  de: ['de', 'german', 'deutsch'],
+  pt: ['pt', 'portuguese', 'brazilian'],
+  it: ['it', 'italian'],
   gu: ['gu', 'gujarati', 'indian'],
   ar: ['ar', 'arabic'],
+  ja: ['ja', 'japanese'],
+  ko: ['ko', 'korean'],
+  zh: ['zh', 'chinese', 'mandarin'],
   other: [],
 }
 

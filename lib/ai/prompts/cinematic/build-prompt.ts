@@ -2,7 +2,10 @@ import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { buildVirloContext } from '@/lib/virlo-engine'
 import { buildVirloScriptPrompt } from '@/lib/virlo-engine/virlo-prompt'
 import { languageDirective } from '@/lib/cinematic/language-prompt'
-import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  normalizeProjectLanguage,
+  type ProjectLanguage,
+} from '@/lib/cinematic/language-detection'
 import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints } from '@/lib/creator/creator-memory'
@@ -98,7 +101,7 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     `PLATFORM: ${input.platform}`,
     `DURATION: ${input.duration}s`,
     scriptWordCountHint(input.duration),
-    input.language ? languageDirective(input.language) : '',
+    languageDirective(normalizeProjectLanguage(input.language)),
     input.virloHook
       ? `VIRLO HOOK SEED (expand into spoken hook — not a quote): ${input.virloHook}`
       : '',

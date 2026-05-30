@@ -42,6 +42,7 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
         imageNote: payload.imageNote,
         voiceNote: payload.voiceNote,
         keywords: payload.keywords,
+        language: payload.language,
         reuseProject: Boolean(savedProjectId),
       })
       clearQuickCutPending()

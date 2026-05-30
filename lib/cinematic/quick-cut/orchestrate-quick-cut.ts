@@ -35,6 +35,7 @@ export type QuickCutInput = {
   voiceNote?: string
   keywords?: string[]
   transcript?: string
+  language?: import('@/lib/cinematic/language-detection').ProjectLanguage
 }
 
 export type QuickCutOrchestrationResult = {
@@ -142,7 +143,7 @@ export async function orchestrateQuickCut(
   const prompt = appendContextNotes(input.prompt, input.imageNote, input.voiceNote, input.keywords)
   const sessionId = `quick-cut-${uuidv4()}`
 
-  const { output: rawOutput, mock: scriptMock, virlo } = await runScriptGeneration({
+  const { output: rawOutput, mock: scriptMock, virlo, language } = await runScriptGeneration({
     topic: prompt,
     tone: style,
     duration,
@@ -150,7 +151,7 @@ export async function orchestrateQuickCut(
     sessionSeed: sessionId,
     transcript: input.transcript,
     voiceNote: input.voiceNote,
-    language: undefined,
+    language: input.language,
   })
 
   let scenes = scenesToStore(ensureScenesHaveImagePrompts(rawOutput.scenes))
@@ -262,6 +263,7 @@ export async function orchestrateQuickCut(
     pipeline,
     sessionId,
     virlo,
+    language,
     videoUrl,
     voiceUrl: voiceSynth.audioUrl,
   }

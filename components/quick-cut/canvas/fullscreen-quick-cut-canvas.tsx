@@ -26,11 +26,17 @@ import {
   type ImageReference,
 } from '@/components/quick-cut/canvas/image-reference-uploader'
 import { KeywordMoodSelector } from '@/components/quick-cut/canvas/keyword-mood-selector'
+import { ContentLanguageSelector } from '@/components/quick-cut/canvas/content-language-selector'
 import {
   buildStyleFromKeywords,
   detectInputMode,
   type MoodKeyword,
 } from '@/components/quick-cut/canvas/types'
+import {
+  loadContentLanguagePreference,
+  saveContentLanguagePreference,
+} from '@/lib/cinematic/content-languages'
+import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
 import { CreatorTemplatesSection } from '@/components/create/creator-templates-section'
@@ -50,6 +56,7 @@ export function FullscreenQuickCutCanvas({
   const [voiceTranscript, setVoiceTranscript] = useState('')
   const [voiceNote, setVoiceNote] = useState('')
   const [deepResearchEnabled, setDeepResearchEnabled] = useState(true)
+  const [contentLanguage, setContentLanguage] = useState<ProjectLanguage>('en')
   const [promptFocused, setPromptFocused] = useState(false)
   const [promptIndex, setPromptIndex] = useState(0)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -90,6 +97,10 @@ export function FullscreenQuickCutCanvas({
   )
 
   const imageNote = imageRef?.note
+
+  useEffect(() => {
+    setContentLanguage(loadContentLanguagePreference())
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => setPromptIndex((i) => i + 1), 5200)
@@ -134,6 +145,11 @@ export function FullscreenQuickCutCanvas({
     setPromptFocused(true)
   }, [])
 
+  const handleLanguageChange = useCallback((language: ProjectLanguage) => {
+    setContentLanguage(language)
+    saveContentLanguagePreference(language)
+  }, [])
+
   const buildPending = useCallback((): QuickCutPending => {
     const style = buildStyleFromKeywords(keywords)
     return {
@@ -143,8 +159,9 @@ export function FullscreenQuickCutCanvas({
       imageNote: imageNote?.trim() || undefined,
       voiceNote: voiceNote.trim() || undefined,
       keywords: keywords.length ? [...keywords] : undefined,
+      language: contentLanguage,
     }
-  }, [prompt, keywords, imageNote, voiceNote, voiceTranscript])
+  }, [prompt, keywords, imageNote, voiceNote, voiceTranscript, contentLanguage])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -166,6 +183,7 @@ export function FullscreenQuickCutCanvas({
       imageNote: pending.imageNote,
       voiceNote: pending.voiceNote,
       keywords: pending.keywords,
+      language: pending.language,
       reuseProject: Boolean(savedProjectId),
       skipResearch: !deepResearchEnabled,
     })
@@ -223,6 +241,11 @@ export function FullscreenQuickCutCanvas({
               focused={promptFocused}
               onFocus={() => setPromptFocused(true)}
               onBlur={() => setPromptFocused(false)}
+            />
+
+            <ContentLanguageSelector
+              value={contentLanguage}
+              onChange={handleLanguageChange}
             />
 
             <div className="flex items-start gap-3">
