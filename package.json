@@ -50,6 +50,7 @@
         "@radix-ui/react-toggle-group": "^1.1.10",
         "@radix-ui/react-tooltip": "^1.2.7",
         "@remotion/bundler": "^4.0.469",
+        "@remotion/player": "^4.0.469",
         "@remotion/renderer": "^4.0.469",
         "@supabase/ssr": "^0.10.3",
         "@supabase/supabase-js": "^2.106.2",
