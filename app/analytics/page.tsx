@@ -1,7 +1,6 @@
-export default function AnalyticsPage() {
-  return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center">
-      <h1 className="text-3xl">Analytics Coming Soon</h1>
-    </main>
-  );
+import { redirect } from 'next/navigation'
+import { STUDIO } from '@/lib/create/routes'
+
+export default function AnalyticsRedirectPage() {
+  redirect(STUDIO.analytics)
 }
