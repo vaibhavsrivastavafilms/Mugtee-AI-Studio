@@ -10,6 +10,8 @@ const RAW_USER_MESSAGES = new Set([
   'Script generation failed',
   'Scene generation failed',
   'Generation paused — try again.',
+  'Connection lost — your work is saved. Try again.',
+  'This step took too long — your work is saved. Try again.',
 ])
 
 /** Never surface provider/JSON/stack details in the UI. */

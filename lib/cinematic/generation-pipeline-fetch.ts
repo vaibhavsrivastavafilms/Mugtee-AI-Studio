@@ -3,8 +3,33 @@ const DEFAULT_TIMEOUT_MS = 60_000
 export const SCRIPT_GENERATION_TIMEOUT_MS = 180_000
 const DEFAULT_MAX_RETRIES = 2
 
+const NETWORK_RECOVERY_MESSAGE =
+  'Connection lost — your work is saved. Try again.'
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isNetworkFetchError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return (
+    err.name === 'TypeError' &&
+    (msg.includes('failed to fetch') ||
+      msg.includes('networkerror') ||
+      msg.includes('network error') ||
+      msg.includes('load failed'))
+  )
+}
+
+function toPipelineFetchError(err: unknown): Error {
+  if (err instanceof Error && err.name === 'AbortError') {
+    return new Error('This step took too long — your work is saved. Try again.')
+  }
+  if (isNetworkFetchError(err)) {
+    return new Error(NETWORK_RECOVERY_MESSAGE)
+  }
+  return err instanceof Error ? err : new Error('Request failed')
 }
 
 export type PipelineFetchOptions = RequestInit & {
@@ -54,19 +79,15 @@ export async function pipelineFetch(
     } catch (err) {
       clearTimeout(timer)
       lastError = err
-      const aborted = err instanceof Error && err.name === 'AbortError'
       if (attempt < maxRetries) {
         await sleep(400 * Math.pow(2, attempt))
         continue
       }
-      if (aborted) {
-        throw new Error('This step took too long — your work is saved. Try again.')
-      }
-      throw err
+      throw toPipelineFetchError(err)
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Request failed')
+  throw toPipelineFetchError(lastError)
 }
 
 export async function pipelineFetchJson<T = Record<string, unknown>>(
