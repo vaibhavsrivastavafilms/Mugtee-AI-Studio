@@ -8,7 +8,7 @@ function QuickCutCreateEntryInner() {
   useQuickCutFreshCreateEntry()
 
   return (
-    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
+    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)] min-w-0 overflow-x-hidden">
       <QuickCutCreator />
     </div>
   )

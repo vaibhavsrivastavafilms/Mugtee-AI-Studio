@@ -11,7 +11,7 @@ import {
   saveCreatorMemoryProfile,
   type CreatorMemoryProfile,
 } from '@/lib/creator/creator-memory'
-import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles } from 'lucide-react'
+import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles, Mail } from 'lucide-react'
 import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { UsageOverview } from '@/components/settings/usage-overview'
 import { FoundingCreatorProgramSection } from '@/components/settings/founding-creator-program'
+import { InviteCreatorsSection } from '@/components/settings/invite-creators-section'
 
 const THEMES = [
   { key: 'gold',     label: 'Gold',          hue: 43,  sat: 60, css: 'linear-gradient(135deg, hsl(43 60% 70%), hsl(43 60% 50%), hsl(43 60% 30%))' },
@@ -219,6 +220,28 @@ export default function SettingsPage() {
         <p className="text-luxe/70 mt-2">Personalize how your studio appears.</p>
       </motion.div>
 
+      {/* Help & support */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.02 }}
+        className="glass rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-1">Help & support</div>
+          <p className="text-sm text-luxe/70">
+            Questions, bugs, or launch feedback — we read every message.
+          </p>
+        </div>
+        <a
+          href="mailto:hello@mugtee.in"
+          className="inline-flex items-center justify-center gap-2 shrink-0 px-4 py-2 rounded-lg border border-gold-500/25 bg-gold-500/[0.08] text-xs text-gold-200 hover:border-gold-500/40 transition"
+        >
+          <Mail className="w-3.5 h-3.5" />
+          hello@mugtee.in
+        </a>
+      </motion.div>
+
       {/* Phase V1.1 — Free Trial card */}
       <TrialCard />
 
@@ -227,6 +250,9 @@ export default function SettingsPage() {
 
       {/* Phase 3.1 — Founding Creator Beta Program */}
       <FoundingCreatorProgramSection />
+
+      {/* Phase 3.5 — Creator Referral Program */}
+      <InviteCreatorsSection />
 
       {/* Identity ============================================================== */}
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.05}}

@@ -14,6 +14,7 @@ import {
   HeaderSearchDropdown,
 } from '@/components/shell/cinematic-header-app-actions'
 import { Button } from '@/components/ui/button'
+import { PublicBetaBadge } from '@/components/shell/public-beta-badge'
 type User = { email?: string | null; user_metadata?: Record<string, unknown> }
 
 export function CinematicHeader({
@@ -93,15 +94,18 @@ function CinematicHeaderInner({
             <div className="font-display text-sm sm:text-base leading-none text-gold-gradient truncate">
               Mugtee
             </div>
-            {isApp ? (
-              <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/55 mt-0.5">
-                Studio
-              </div>
-            ) : (
-              <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70 mt-0.5">
-                Cinematic reels
-              </div>
-            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              {isApp ? (
+                <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/55">
+                  Studio
+                </div>
+              ) : (
+                <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70">
+                  Cinematic reels
+                </div>
+              )}
+              <PublicBetaBadge />
+            </div>
           </div>
         </Link>
 

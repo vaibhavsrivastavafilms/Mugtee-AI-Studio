@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Rocket } from 'lucide-react'
 import type { CreatorValidationMetrics } from '@/lib/analytics/compute-metrics'
 
 function MetricCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
@@ -69,17 +70,26 @@ export function CreatorValidationDashboard() {
           <h1 className="font-display text-2xl text-luxe">Creator validation</h1>
           <p className="text-sm text-luxe/50 mt-1">Funnel, quality, and trust signals — last {days} days</p>
         </div>
-        <select
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-          className="rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-luxe"
-        >
-          {[7, 14, 30, 90].map((d) => (
-            <option key={d} value={d}>
-              {d} days
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/launch-readiness"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gold-500/25 bg-gold-500/[0.08] px-3 py-2 text-xs text-gold-200 hover:border-gold-500/40 transition"
+          >
+            <Rocket className="w-3.5 h-3.5" />
+            Launch readiness
+          </Link>
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-luxe"
+          >
+            {[7, 14, 30, 90].map((d) => (
+              <option key={d} value={d}>
+                {d} days
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
