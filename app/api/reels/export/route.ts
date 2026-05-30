@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { requireCinematicUser, parseJsonBody } from '@/lib/cinematic/regen-auth'
+import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
+import {
+  loadOwnedCinematicProject,
+  projectCanExportReel,
+  queueReelExportForProject,
+} from '@/lib/reels/export-api'
+import { logError } from '@/lib/workspace/validation'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300
+
+export async function POST(req: NextRequest) {
+  try {
+    if (!isVideoRenderEnabled()) {
+      return NextResponse.json(
+        { error: 'Reel MP4 export is not enabled on this server.', status: 'failed' },
+        { status: 503 }
+      )
+    }
+
+    const auth = await requireCinematicUser()
+    if (auth.response) return auth.response
+
+    const parsed = parseJsonBody(await req.json().catch(() => null))
+    if (parsed.response) return parsed.response
+
+    const projectId = String(parsed.body!.projectId || '').trim()
+    const quality = String(parsed.body!.quality || '1080p').trim()
+    const includeVoiceover = parsed.body!.includeVoiceover !== false
+    const includeCaptions = parsed.body!.includeCaptions !== false
+
+    if (!projectId) {
+      return NextResponse.json({ error: 'projectId required' }, { status: 400 })
+    }
+
+    if (quality !== '1080p') {
+      return NextResponse.json(
+        { error: 'Only 1080p vertical export is supported.' },
+        { status: 400 }
+      )
+    }
+
+    const row = await loadOwnedCinematicProject(projectId, auth.user!.id)
+    if (!row) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    if (row.reel_url?.trim()) {
+      return NextResponse.json({
+        jobId: null,
+        status: 'completed',
+        reelUrl: row.reel_url.trim(),
+      })
+    }
+
+    if (!projectCanExportReel(row)) {
+      return NextResponse.json(
+        {
+          error:
+            'Add storyboard images and voice narration before exporting a reel.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const { jobId, status } = await queueReelExportForProject({
+      row,
+      userId: auth.user!.id,
+      baseUrl: req.nextUrl.origin,
+      includeVoiceover,
+      includeCaptions,
+    })
+
+    return NextResponse.json({ jobId, status })
+  } catch (err) {
+    logError('reels.export.post', err)
+    const message = err instanceof Error ? err.message : 'Reel export failed'
+    return NextResponse.json({ error: message, status: 'failed' }, { status: 500 })
+  }
+}

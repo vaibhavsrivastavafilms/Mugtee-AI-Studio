@@ -44,6 +44,8 @@ export type RenderJobStatus = {
   status: 'queued' | 'running' | 'done' | 'failed'
   error: string | null
   mock?: boolean
+  projectId?: string | null
+  userId?: string | null
 }
 
 export type RenderVideoResult = {
@@ -52,5 +54,5 @@ export type RenderVideoResult = {
   status: 'ready' | 'failed'
   durationSec: number
   mock?: boolean
-  provider?: 'runway' | 'ffmpeg'
+  provider?: 'runway' | 'ffmpeg' | 'remotion'
 }

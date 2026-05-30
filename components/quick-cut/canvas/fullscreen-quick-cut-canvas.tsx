@@ -18,6 +18,7 @@ import {
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 import { CinematicPromptInput } from '@/components/quick-cut/canvas/cinematic-prompt-input'
 import { FloatingMicButton } from '@/components/quick-cut/canvas/floating-mic-button'
 import { VoiceTranscriptPanel } from '@/components/quick-cut/canvas/voice-transcript-panel'
@@ -181,9 +182,7 @@ export function FullscreenQuickCutCanvas({
             href="/create?mode=quick"
             className="flex items-center gap-2 min-h-[44px] transition-opacity hover:opacity-90"
           >
-            <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
-              <span className="font-display text-sm text-black font-black">M</span>
-            </div>
+            <MugteeLogoMark size={32} className="w-8 h-8 shadow-gold-glow" />
             <span className="font-display text-sm tracking-wide text-gold-gradient">Mugtee</span>
           </Link>
           {signedIn === false ? (

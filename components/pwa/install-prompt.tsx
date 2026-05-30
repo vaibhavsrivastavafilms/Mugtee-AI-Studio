@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from 'react'
 import { track } from '@/lib/posthog'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
 
 type BIPEvent = Event & {
   prompt: () => Promise<void>
@@ -118,13 +119,7 @@ export function InstallPrompt() {
         style={{ boxShadow: '0 12px 40px -8px rgba(212,175,55,0.18), 0 20px 60px -12px rgba(0,0,0,0.6)' }}
       >
         {/* Brand tile — reuses /icons asset, no new image dep */}
-        <div
-          aria-hidden
-          className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-bold text-[#0B0B0B] text-lg"
-          style={{ background: 'linear-gradient(180deg,#E0C06E,#B48E3C)' }}
-        >
-          M
-        </div>
+        <MugteeLogoMark size={44} className="w-11 h-11" />
 
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium text-[#E8D9A8] leading-tight">

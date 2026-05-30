@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { Button } from '@/components/ui/button'
-import { Film, ArrowRight } from 'lucide-react'
+import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
+import { ArrowRight } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -130,8 +131,8 @@ export function LoginContent() {
           <div className="absolute -inset-px rounded-3xl bg-gold-gradient opacity-20 blur-xl" />
           <div className="glass-strong rounded-3xl p-7 sm:p-10 relative border border-gold-500/10">
             <div className="text-center mb-7">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gold-gradient shadow-gold-glow mb-4">
-                <Film className="w-7 h-7 sm:w-8 sm:h-8 text-black" />
+              <div className="inline-flex items-center justify-center mb-4">
+                <MugteeLogoMark size={64} className="w-14 h-14 sm:w-16 sm:h-16 shadow-gold-glow" />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl mb-1.5">
                 {activeMode === 'director' ? (

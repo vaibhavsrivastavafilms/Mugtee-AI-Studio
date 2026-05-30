@@ -170,7 +170,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
 }
 
 /** Dev-only: VIDEO_RENDER_MOCK=true writes a minimal valid MP4 via ffmpeg color source. */
-async function renderMockMp4(input: RenderPipelineInput): Promise<{
+export async function renderMockMp4(input: RenderPipelineInput): Promise<{
   outputPath: string
   durationSec: number
   thumbnailPath: string | null

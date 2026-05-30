@@ -4,30 +4,41 @@ This document is a **one-shot operator checklist** for finalizing the production
 
 ---
 
-## 1. DNS + SSL (Domain side — your registrar + Emergent)
+## 1. DNS + SSL + Vercel domains (registrar + Vercel)
+
+**Primary domain:** `https://mugtee.in`  
+**Redirect:** `www.mugtee.in` → `mugtee.in` (301 permanent)
 
 **At your registrar** (where `mugtee.in` is purchased):
 
 | Record | Host | Value | TTL |
 |---|---|---|---|
-| `A`     | `@`   | _Emergent's IPv4 from the deployment dashboard_ | 3600 |
-| `CNAME` | `www` | `mugtee.in` (or the Emergent target) | 3600 |
+| `A`     | `@`   | Vercel apex (`76.76.21.21`) or registrar CNAME flattening to Vercel | 3600 |
+| `CNAME` | `www` | `cname.vercel-dns.com` | 3600 |
 
-**In Emergent's dashboard** (production deployment):
+### Vercel dashboard — **mugtee-ai-studio** project (required)
 
-- [ ] Add `mugtee.in` and `www.mugtee.in` as custom domains for the deployment
-- [ ] Enforce **HTTPS-only** (HTTP → HTTPS 301 redirect)
-- [ ] Enforce **canonical** redirect: `www.mugtee.in` → `mugtee.in` (or vice versa — pick one)
-- [ ] Wait for Let's Encrypt SSL certificate to be issued (usually < 5 min after DNS propagation)
-- [ ] Verify at `https://mugtee.in` — green padlock, no mixed-content warnings
+Both hostnames must live on the **same** Vercel project. Split assignments cause wrong deploys, broken auth cookies, and duplicate SEO.
 
-If the SSL cert doesn't issue automatically, contact **Emergent Support** — this is a managed-platform task you can't fix in code.
+1. Open [Vercel → mugtee-ai-studio → Settings → Domains](https://vercel.com/dashboard).
+2. Confirm **`mugtee.in`** is attached to **mugtee-ai-studio** (production).
+3. **Remove `www.mugtee.in` from the old `mugtee` project** (Settings → Domains → remove).
+4. **Add `www.mugtee.in` to mugtee-ai-studio** (Add → enter `www.mugtee.in`).
+5. Prefer Vercel’s domain UI: set **`www.mugtee.in` → Redirect to `mugtee.in`** (301).  
+   Repo `vercel.json` also defines this redirect as a belt-and-suspenders rule once both domains hit this project.
+6. Set **`mugtee.in` as Primary** (not www).
+7. Wait for DNS + SSL (usually &lt; 5 min after propagation).
+8. Verify:
+   - `curl -I https://mugtee.in` → `200`
+   - `curl -I https://www.mugtee.in` → `301` with `Location: https://mugtee.in/...`
+
+If SSL does not issue, re-check DNS records in Vercel’s domain panel — this is platform/DNS work, not app code.
 
 ---
 
 ## 2. Production Environment Variables
 
-In the **Emergent deployment dashboard → Environment variables**, set / update these for the production environment. **Do not** modify the preview `.env` — code already prefers `process.env.NEXT_PUBLIC_BASE_URL` and falls back to `https://mugtee.in` if absent.
+In **Vercel → mugtee-ai-studio → Settings → Environment Variables**, set / update these for **Production**. Code reads `NEXT_PUBLIC_BASE_URL` via `getCanonicalSiteUrl()` and falls back to `https://mugtee.in` if unset.
 
 ```
 NEXT_PUBLIC_BASE_URL=https://mugtee.in
@@ -193,7 +204,8 @@ Visit `https://mugtee.in` and run through:
 |---|---|---|
 | Google sign-in → `redirect_uri_mismatch` | Cloud Console missing the Supabase callback URL | Add `https://<ref>.supabase.co/auth/v1/callback` |
 | YouTube connect → `redirect_uri_mismatch` | Cloud Console missing `https://mugtee.in/api/youtube/callback` | Add it; Save; retry |
-| OAuth lands on `/login` repeatedly | Supabase **Site URL** still points to preview | Update Site URL to `https://mugtee.in` |
+| OAuth lands on `/login` repeatedly | Supabase **Site URL** still points to preview, or www hits wrong Vercel project | Set Site URL to `https://mugtee.in`; move `www.mugtee.in` to mugtee-ai-studio |
+| `www.mugtee.in` shows old/wrong site | www attached to **mugtee** project instead of **mugtee-ai-studio** | Remove from `mugtee`; add to mugtee-ai-studio; 301 to apex |
 | OG card on social shares is blank | `metadataBase` mis-set | Confirm `NEXT_PUBLIC_BASE_URL=https://mugtee.in` in prod env |
 | Razorpay test mode in production | Still using `rzp_test_*` keys | Switch to live keys when ready; see §5 |
 | Sitemap / robots show wrong domain | Env var not picked up | Re-deploy after updating env |
@@ -202,8 +214,9 @@ Visit `https://mugtee.in` and run through:
 
 ## Final checklist before going public
 
-- [ ] DNS resolves `mugtee.in` to Emergent
-- [ ] SSL active (green padlock)
+- [ ] DNS resolves `mugtee.in` and `www.mugtee.in` to Vercel
+- [ ] Both domains on **mugtee-ai-studio**; `www` 301 → `mugtee.in`
+- [ ] SSL active (green padlock) on apex
 - [ ] Production env vars set, deploy re-triggered
 - [ ] Google Cloud OAuth — origins + redirect URIs updated
 - [ ] Supabase — Site URL + Redirect URLs updated
