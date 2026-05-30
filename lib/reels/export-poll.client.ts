@@ -82,7 +82,18 @@ export async function pollReelExportJob(
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 1500))
     const res = await fetch(resolvedPollUrl, { credentials: 'include' })
-    const raw = (await res.json()) as Record<string, unknown>
+    let raw: Record<string, unknown> = {}
+    try {
+      raw = (await res.json()) as Record<string, unknown>
+    } catch {
+      if (res.status === 404 && options?.projectId) {
+        const recovered = await fetchProjectReelDownload(options.projectId)
+        if (recovered.reelUrl) return recovered.reelUrl
+      }
+      throw new Error(
+        res.status === 404 ? 'Export job expired — retry export' : 'Export status unavailable'
+      )
+    }
 
     if (res.status === 404) {
       if (options?.projectId) {
