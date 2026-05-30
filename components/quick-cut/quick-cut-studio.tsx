@@ -84,7 +84,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
           />
         </div>
 
-        <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} />
+        <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
 
         <RenderProgress />
 
