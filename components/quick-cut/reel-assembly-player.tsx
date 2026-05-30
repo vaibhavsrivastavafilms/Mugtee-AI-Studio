@@ -926,6 +926,8 @@ export function ReelAssemblyPlayer({
 
               onClick={() => setFrameIndex(i)}
 
+              aria-label={`Show frame ${i + 1} of ${frames.length}`}
+
               className={cn(
 
                 'relative w-10 aspect-[9/16] rounded-md overflow-hidden border transition-all',

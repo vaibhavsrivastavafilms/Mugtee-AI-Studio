@@ -1,6 +1,13 @@
 'use client'
 
 import { toast } from 'sonner'
+import { CREATOR_UPGRADE_BENEFITS } from '@/lib/billing/plan-catalog'
+import { requestExitFeedback } from '@/lib/creator/exit-feedback'
+import { track } from '@/lib/posthog'
+import {
+  RevenueEventTypes,
+  trackRevenueValidation,
+} from '@/lib/analytics/revenue-validation.client'
 import { PLAN_LIMIT_MESSAGE } from '@/lib/usage/usage-tracker'
 
 export type PlanLimitPayload = {
@@ -17,12 +24,30 @@ export function isPlanLimitPayload(data: unknown): data is PlanLimitPayload {
   return (data as PlanLimitPayload).code === 'plan_limit'
 }
 
+function upgradeBenefitsDescription(): string {
+  return CREATOR_UPGRADE_BENEFITS.map((b) => `• ${b}`).join('\n')
+}
+
+function trackLimitUpgrade(source: string) {
+  track('upgrade_click', { source, plan: 'creator' })
+  trackRevenueValidation({
+    eventType: RevenueEventTypes.UPGRADE_CLICKS,
+    planInterest: 'creator',
+    source,
+  })
+}
+
 export function showPlanLimitToast(message = PLAN_LIMIT_MESSAGE) {
+  trackLimitUpgrade('plan_limit_toast')
+  requestExitFeedback('usage_limit')
   toast.error(message, {
+    description: `Upgrade to Creator Plan:\n${upgradeBenefitsDescription()}`,
+    duration: 10000,
     action: {
-      label: 'Upgrade Coming Soon',
+      label: 'Join Waitlist',
       onClick: () => {
-        window.location.hash = 'upgrade'
+        trackLimitUpgrade('plan_limit_toast_cta')
+        window.location.href = '/pricing#creator'
       },
     },
   })

@@ -1,49 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ShowcaseProject } from '@/lib/showcase/public-projects'
-import { GalleryCard, MadeWithMugteeStaticGrid } from '@/components/v2/made-with-mugtee-static'
-
-function PreviewLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] tracking-[0.22em] uppercase text-[var(--v2-text-secondary)] mb-2">
-      {children}
-    </p>
-  )
-}
-
-function DynamicShowcaseCard({ project }: { project: ShowcaseProject }) {
-  return (
-    <GalleryCard badge={project.category} prompt={project.title}>
-      <PreviewLabel>Hook</PreviewLabel>
-      <p className="font-display text-lg italic text-[var(--v2-text-primary)] leading-snug line-clamp-4">
-        &ldquo;{project.hookPreview}&rdquo;
-      </p>
-      {project.thumbnailUrl ? (
-        <div className="mt-4">
-          <PreviewLabel>Thumbnail</PreviewLabel>
-          <div className="relative aspect-[9/16] max-h-48 w-full overflow-hidden rounded-lg border border-[var(--v2-border)] bg-black/40">
-            <Image
-              src={project.thumbnailUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 33vw"
-              unoptimized
-            />
-          </div>
-        </div>
-      ) : null}
-      {project.description ? (
-        <p className="mt-4 text-sm text-[var(--v2-text-secondary)] leading-relaxed line-clamp-3">
-          {project.description}
-        </p>
-      ) : null}
-    </GalleryCard>
-  )
-}
+import { MadeWithMugteeCard } from '@/components/showcase/made-with-mugtee-card'
+import { MadeWithMugteeStaticGrid } from '@/components/v2/made-with-mugtee-static'
 
 export function MadeWithMugteeSection({ className }: { className?: string }) {
   const [projects, setProjects] = useState<ShowcaseProject[] | null>(null)
@@ -95,13 +58,23 @@ export function MadeWithMugteeSection({ className }: { className?: string }) {
 
         {showDynamic ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <DynamicShowcaseCard key={project.id} project={project} />
+            {projects.slice(0, 6).map((project) => (
+              <MadeWithMugteeCard key={project.id} project={project} />
             ))}
           </div>
         ) : null}
 
         {showStatic ? <MadeWithMugteeStaticGrid /> : null}
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/made-with-mugtee"
+            className="inline-flex items-center gap-2 text-sm tracking-[0.12em] uppercase text-[var(--v2-gold)] hover:text-[var(--v2-text-primary)] transition"
+          >
+            View all
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
     </section>
   )

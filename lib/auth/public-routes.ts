@@ -15,6 +15,7 @@ const PUBLIC_EXACT = new Set([
 
 const PUBLIC_PREFIXES = [
   '/auth/',
+  '/invite/',
   '/quick-cut',
   '/blog',
   '/about',

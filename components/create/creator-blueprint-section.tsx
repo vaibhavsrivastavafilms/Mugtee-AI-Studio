@@ -43,7 +43,9 @@ export function CreatorBlueprintSection({
                     key={blueprint.id}
                     type="button"
                     onClick={() => onSelectBlueprint(blueprint)}
-                    aria-pressed={selected ? 'true' : 'false'}
+                    {...(selected
+                      ? { 'aria-pressed': 'true' as const }
+                      : { 'aria-pressed': 'false' as const })}
                     className={cn(
                       'inline-flex items-center px-3 py-1.5 rounded-full border text-[11px] sm:text-[11.5px] tracking-wide transition',
                       selected

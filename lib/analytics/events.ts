@@ -28,6 +28,14 @@ export const AnalyticsEvents = {
 
   FEEDBACK_SUBMITTED: 'feedback_submitted',
 
+  PRICING_PAGE_VIEW: 'pricing_page_view',
+
+  UPGRADE_CLICK: 'upgrade_click',
+
+  UPGRADE_WAITLIST_JOINED: 'upgrade_waitlist_joined',
+
+  PAYMENT_ATTEMPT: 'payment_attempt',
+
   REGENERATE_HOOK: 'regenerate_hook',
 
   REGENERATE_SCENE: 'regenerate_scene',

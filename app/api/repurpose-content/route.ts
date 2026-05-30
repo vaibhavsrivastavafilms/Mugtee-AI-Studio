@@ -10,6 +10,11 @@ import {
   type RepurposeProjectInput,
 } from '@/lib/cinematic/content-repurpose'
 import { creatorProfileDirective, normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { logError } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
@@ -56,8 +61,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const projectId = parseFeatureUsageProjectId(body)
+
     if (!process.env.OPENAI_API_KEY) {
       const content = normalizeRepurposeContent(outputType, {}, input)
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.REPURPOSING, projectId)
       return NextResponse.json({
         outputType,
         content,
@@ -78,6 +86,7 @@ export async function POST(req: NextRequest) {
         `${CINEMATIC_SYSTEM_PROMPT}\nYou repurpose reel content into platform-native formats. Output JSON only.`
       )
       const content = normalizeRepurposeContent(outputType, raw, input)
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.REPURPOSING, projectId)
       return NextResponse.json({
         outputType,
         content,
@@ -87,6 +96,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       logError('repurpose-content.openai', err)
       const content = normalizeRepurposeContent(outputType, {}, input)
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.REPURPOSING, projectId)
       return NextResponse.json({
         outputType,
         content,

@@ -21,7 +21,9 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('founding_creator_applications')
-    .select('name, email, platform, creator_type, volume, created_at, updated_at')
+    .select(
+      'name, email, platform, creator_type, volume, pain_points, requested_features, feedback, created_at, updated_at'
+    )
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -61,6 +63,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid content volume' }, { status: 400 })
   }
 
+  const painPoints = String(body.pain_points ?? body.painPoints ?? '')
+    .trim()
+    .slice(0, 2000)
+  const requestedFeatures = String(body.requested_features ?? body.requestedFeatures ?? '')
+    .trim()
+    .slice(0, 2000)
+  const feedbackText = String(body.feedback ?? '')
+    .trim()
+    .slice(0, 2000)
+
   const row = {
     user_id: user.id,
     name,
@@ -68,13 +80,18 @@ export async function POST(req: NextRequest) {
     platform,
     creator_type: creatorType,
     volume,
+    pain_points: painPoints || null,
+    requested_features: requestedFeatures || null,
+    feedback: feedbackText || null,
     updated_at: new Date().toISOString(),
   }
 
   const { data, error } = await supabase
     .from('founding_creator_applications')
     .upsert(row, { onConflict: 'user_id' })
-    .select('name, email, platform, creator_type, volume, created_at, updated_at')
+    .select(
+      'name, email, platform, creator_type, volume, pain_points, requested_features, feedback, created_at, updated_at'
+    )
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

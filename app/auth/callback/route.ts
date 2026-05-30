@@ -9,6 +9,8 @@ import {
   resolvePostLoginRedirect,
 } from '@/lib/auth/post-login-redirect'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import { claimReferral } from '@/lib/referral/referral-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,6 +115,18 @@ export async function GET(request: NextRequest) {
     }
   } catch (e) {
     console.warn('[auth/callback] trial-grant skipped:', (e as any)?.message || e)
+  }
+
+  // Phase 3.5 — Attribute referral from invite cookie (best-effort).
+  try {
+    const { data: { user: sessionUser } } = await supabase.auth.getUser()
+    const referralCode = request.cookies.get('mugtee_referral_code')?.value?.trim()
+    const service = createSupabaseServiceClient()
+    if (sessionUser && referralCode && service) {
+      await claimReferral(service, sessionUser.id, referralCode)
+    }
+  } catch (e) {
+    console.warn('[auth/callback] referral-claim skipped:', (e as any)?.message || e)
   }
 
   clearPostLoginCookies(response)

@@ -30,7 +30,7 @@ export function LiveGenerationCanvas({
       <CinematicCanvasBackground />
 
       <div className="relative z-10 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] py-6 sm:py-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto min-w-0 w-full overflow-x-hidden">
           <header className="mb-6 sm:mb-8 text-center">
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-2">
               {complete ? 'Production complete' : 'Live generation'}

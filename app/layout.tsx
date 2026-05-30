@@ -2,8 +2,8 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
-import { ServiceWorkerUnregister } from '@/components/pwa/sw-register'
-import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
+import { InstallMugteeBanner } from '@/components/pwa/install-mugtee-banner'
 import { OfflineGate } from '@/components/app/offline-gate'
 import { AppBootstrapProvider } from '@/components/app/app-bootstrap-provider'
 import { getCanonicalSiteUrl } from '@/lib/url'
@@ -118,10 +118,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-background text-foreground antialiased scrollbar-luxe">
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
-        {/* PWA — unregister legacy service workers (prevents stale chunk caches). */}
-        <ServiceWorkerUnregister />
-        {/* PWA — Branded "Install App" prompt (Android Chrome only, auto-hides elsewhere). */}
-        <InstallPrompt />
+        {/* PWA — offline shell + static precache (production only). */}
+        <ServiceWorkerRegister />
+        {/* PWA — Android install banner (Chrome / Edge). */}
+        <InstallMugteeBanner />
         <OfflineGate>
           <AppBootstrapProvider>{children}</AppBootstrapProvider>
         </OfflineGate>

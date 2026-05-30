@@ -32,6 +32,11 @@ import {
 } from '@/lib/cinematic/hook-variation'
 
 import { logError } from '@/lib/workspace/validation'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 
@@ -230,6 +235,7 @@ export async function POST(req: NextRequest) {
 
 
     const ctx = parseRegenContext(parsed.body!)
+    const projectId = parseFeatureUsageProjectId(parsed.body)
 
     if (!ctx.hook && !ctx.summary && !ctx.script) {
 
@@ -266,6 +272,7 @@ export async function POST(req: NextRequest) {
       const mock = mockHookRegen(ctx)
 
       await trackUsageMetric(auth.user!.id, 'generations')
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.HOOK_GENERATION, projectId)
 
       return NextResponse.json({
 
@@ -296,6 +303,7 @@ export async function POST(req: NextRequest) {
 
 
       await trackUsageMetric(auth.user!.id, 'generations')
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.HOOK_GENERATION, projectId)
 
       return NextResponse.json({
 
@@ -320,6 +328,7 @@ export async function POST(req: NextRequest) {
       const mock = mockHookRegen(ctx)
 
       await trackUsageMetric(auth.user!.id, 'generations')
+      void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.HOOK_GENERATION, projectId)
 
       return NextResponse.json({
 

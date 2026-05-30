@@ -20,7 +20,7 @@ export function PlatformExportCards({ cards }: { cards: ExportPlatformCard[] }) 
                 {card.aspectRatio}
               </span>
             </div>
-            <dl className="space-y-2 text-[11px]">
+            <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 items-center text-[11px]">
               <Row label="Duration" value={card.durationLabel} />
               <Row label="Visual" value={card.visualStyle} />
               <Row label="Voice" value={card.voiceStyle} />
@@ -37,9 +37,9 @@ export function PlatformExportCards({ cards }: { cards: ExportPlatformCard[] }) 
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-3">
+    <>
       <dt className="text-white/40 uppercase tracking-wider">{label}</dt>
       <dd className="text-white/70 text-right truncate max-w-[130px]">{value}</dd>
-    </div>
+    </>
   )
 }

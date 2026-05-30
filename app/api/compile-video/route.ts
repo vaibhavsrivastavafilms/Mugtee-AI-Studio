@@ -3,6 +3,11 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { orchestrateFacelessVideo } from '@/lib/video/orchestrate-faceless-video'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
+import {
+  FeatureUsageFeatures,
+  parseFeatureUsageProjectId,
+  trackFeatureUsage,
+} from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -46,6 +51,11 @@ export async function POST(req: NextRequest) {
 
     if (user && result.status !== 'failed') {
       await trackUsageMetric(user.id, 'renders')
+      void trackFeatureUsage(
+        user.id,
+        FeatureUsageFeatures.VIDEO_GENERATION,
+        parseFeatureUsageProjectId(raw)
+      )
     }
 
     return NextResponse.json({

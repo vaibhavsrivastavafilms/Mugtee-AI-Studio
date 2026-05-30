@@ -3,8 +3,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { BarChart3, Crown, Loader2 } from 'lucide-react'
+import { ArrowUpRight, BarChart3, Crown, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { track } from '@/lib/posthog'
+import {
+  RevenueEventTypes,
+  trackRevenueValidation,
+} from '@/lib/analytics/revenue-validation.client'
 import type { UsageSnapshot } from '@/lib/usage/usage-tracker'
 
 type MetricKey = keyof UsageSnapshot['used']
@@ -19,6 +24,25 @@ const ROWS: { key: MetricKey; label: string }[] = [
 function pct(used: number, limit: number, unlimited: boolean): number {
   if (unlimited || !Number.isFinite(limit) || limit <= 0) return 0
   return Math.min(100, Math.round((used / limit) * 100))
+}
+
+function planDisplayName(planType: string, unlimited: boolean): string {
+  if (unlimited) return 'Pro (Unlimited)'
+  const normalized = planType.toUpperCase()
+  if (normalized === 'PRO' || normalized === 'PRO_TRIAL') return 'Pro'
+  if (normalized === 'CREATOR') return 'Creator'
+  return 'Free'
+}
+
+function remainingSummary(data: UsageSnapshot): string {
+  if (data.unlimited) return 'Unlimited usage on your current plan.'
+  const parts = ROWS.map(({ key, label }) => {
+    const used = data.used[key]
+    const limit = data.limits[key]
+    const left = Math.max(0, limit - used)
+    return `${left} ${label.toLowerCase()}`
+  })
+  return `Remaining this period: ${parts.join(' · ')}`
 }
 
 export function UsageOverview() {
@@ -61,14 +85,16 @@ export function UsageOverview() {
   if (!data) return null
 
   const unlimited = data.unlimited
-  const planLabel = unlimited ? 'Unlimited' : data.plan_type || 'FREE'
+  const planLabel = planDisplayName(data.plan_type, unlimited)
+  const showUpgrade = !unlimited
 
   return (
     <motion.div
+      id="upgrade"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.04 }}
-      className="glass-strong rounded-2xl p-6 sm:p-7 border border-gold-soft"
+      className="glass-strong rounded-2xl p-6 sm:p-7 border border-gold-soft scroll-mt-24"
     >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
         <div>
@@ -79,22 +105,26 @@ export function UsageOverview() {
             </div>
           </div>
           <h2 className="font-display text-2xl">
-            Plan <span className="text-gold-gradient">{planLabel}</span>
+            Current plan{' '}
+            <span className="text-gold-gradient">{planLabel}</span>
           </h2>
-          <p className="text-[12px] text-luxe/65 mt-1">
-            {unlimited
-              ? 'Your trial or paid plan includes unlimited usage.'
-              : 'Track your FREE plan usage. Upgrade coming soon for higher limits.'}
-          </p>
+          <p className="text-[12px] text-luxe/65 mt-1">{remainingSummary(data)}</p>
         </div>
-        {!unlimited ? (
+        {showUpgrade ? (
           <Link
-            href="#upgrade"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium tracking-wide bg-white/[0.04] border border-white/[0.08] text-luxe/70 cursor-not-allowed opacity-80 shrink-0"
-            aria-disabled
-            onClick={(e) => e.preventDefault()}
+            href="/pricing#creator"
+            onClick={() => {
+              track('upgrade_click', { source: 'settings_usage', plan: 'creator' })
+              trackRevenueValidation({
+                eventType: RevenueEventTypes.UPGRADE_CLICKS,
+                planInterest: 'creator',
+                source: 'settings_usage',
+              })
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium tracking-wide bg-gold-gradient text-black hover:opacity-90 shadow-gold-glow shrink-0"
           >
-            <Crown className="w-3.5 h-3.5" /> Upgrade Coming Soon
+            <Crown className="w-3.5 h-3.5" /> Upgrade to Creator
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         ) : null}
       </div>
@@ -105,6 +135,7 @@ export function UsageOverview() {
           const limit = data.limits[key]
           const atCap = !unlimited && used >= limit
           const bar = pct(used, limit, unlimited)
+          const remaining = unlimited ? null : Math.max(0, limit - used)
 
           return (
             <div
@@ -126,6 +157,11 @@ export function UsageOverview() {
                   ) : (
                     <>
                       {used} / {limit}
+                      {remaining !== null ? (
+                        <span className="text-muted-foreground text-xs ml-1.5">
+                          ({remaining} left)
+                        </span>
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -145,6 +181,19 @@ export function UsageOverview() {
           )
         })}
       </div>
+
+      {showUpgrade ? (
+        <p className="text-[11px] text-muted-foreground mt-4">
+          Need higher limits?{' '}
+          <Link
+            href="/pricing"
+            className="text-gold-300/90 hover:text-gold-200 underline-offset-2 hover:underline"
+          >
+            Compare plans
+          </Link>{' '}
+          and join the Creator or Pro waitlist — no checkout required yet.
+        </p>
+      ) : null}
 
       {!data.limits_enabled ? (
         <p className="text-[11px] text-muted-foreground mt-4">
