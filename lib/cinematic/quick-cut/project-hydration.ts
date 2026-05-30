@@ -32,7 +32,7 @@ export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const hasImages = scenes.some(
     (scene) => scene.imageUrl || scene.storyboardImages?.[0]?.url
   )
-  if (row.video_url) return 'complete'
+  if (row.reel_url || row.video_url) return 'complete'
   if (hasImages) return 'visuals'
   if (scenes.length > 0) return 'scenes'
   if (row.script_beats || row.script?.trim()) return 'script'
@@ -45,7 +45,7 @@ function inferGenerationStep(
   row: CinematicProjectRow,
   scenes: GeneratedScene[]
 ): QuickCutGenerationStep {
-  if (row.video_url) return 'complete'
+  if (row.reel_url || row.video_url) return 'complete'
   const hasImages = scenes.some((scene) => scene.imageUrl)
   if (hasImages) return 'voice'
   if (scenes.length > 0) return 'scenes'
@@ -108,7 +108,7 @@ export function buildQuickCutHydrationFromRow(
       : inferGenerationStep(row, scenes)
   const isComplete =
     row.generation_status !== 'failed' &&
-    (generationStep === 'complete' || Boolean(row.video_url))
+    (generationStep === 'complete' || Boolean(row.reel_url || row.video_url))
 
   return {
     savedProjectId: row.id,
@@ -125,10 +125,11 @@ export function buildQuickCutHydrationFromRow(
     voiceUrl: state.voice?.audioUrl ?? null,
     elevenLabsVoiceId: state.voice?.voiceId ?? null,
     voiceName: state.voice?.voiceName ?? null,
-    videoUrl: row.video_url ?? null,
-    generationStep: isComplete && row.video_url ? 'complete' : generationStep,
+    videoUrl: row.reel_url ?? row.video_url ?? null,
+    generationStep: isComplete && (row.reel_url || row.video_url) ? 'complete' : generationStep,
     isComplete: Boolean(
-      row.video_url ||
+      row.reel_url ||
+        row.video_url ||
         (scenes.length > 0 && (state.scriptBeats.length > 0 || state.script.trim()))
     ),
     isGenerating: false,

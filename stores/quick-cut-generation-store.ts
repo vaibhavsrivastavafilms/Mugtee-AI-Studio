@@ -48,6 +48,7 @@ import {
 } from '@/lib/cinematic/variation-history'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
+import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
 import {
@@ -528,6 +529,8 @@ function buildArchiveInput(
         ? reviewingStatus()
         : editingStatus(),
     video_url: state.videoUrl,
+    reel_url: state.videoUrl,
+    reel_status: state.videoUrl ? 'ready' : undefined,
     thumbnail_url: thumbnail,
     hook: state.hook,
     summary: state.hook,
@@ -802,43 +805,51 @@ async function pollRenderJob(
   onUpdate?: (patch: { videoUrl?: string; label?: string }) => void,
   maxAttempts = 120
 ): Promise<string> {
-  for (let i = 0; i < maxAttempts; i++) {
-    await delay(1500)
-    const res = await fetch(pollUrl)
-    const job = (await res.json()) as Record<string, unknown>
-
-    if (res.status === 404) {
-      throw new Error('Render job expired — retrying compile')
-    }
-    if (!res.ok) {
-      throw new Error(String(job?.error || 'Render status unavailable'))
-    }
-
-    if (typeof job.label === 'string' && job.label) {
-      onUpdate?.({ label: job.label })
-    }
-
-    if (job.status === 'failed') {
-      throw new Error(String(job.error || 'Video render failed'))
-    }
-
-    const url =
-      typeof job.videoUrl === 'string' && job.videoUrl
-        ? job.videoUrl
-        : job.status === 'done' && typeof job.videoUrl === 'string'
-          ? job.videoUrl
-          : null
-
-    if (url) {
-      onUpdate?.({ videoUrl: url })
-      return url
-    }
-  }
-  throw new Error('Video render timed out — try again')
+  const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+  return pollReelExportJob(pollUrl, {
+    maxAttempts,
+    onProgress: (patch) => {
+      if (patch.label) onUpdate?.({ label: patch.label })
+    },
+  }).then((url) => {
+    onUpdate?.({ videoUrl: url })
+    return url
+  })
 }
 
 async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boolean) {
-  const renderRes = await fetch('/api/render-video', {
+  if (state.savedProjectId && asyncMode) {
+    const exportRes = await fetch('/api/reels/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: state.savedProjectId,
+        quality: '1080p',
+        includeVoiceover: true,
+        includeCaptions: true,
+      }),
+    })
+    const exportData = (await exportRes.json()) as Record<string, unknown>
+    if (exportRes.ok && exportData.status === 'completed' && typeof exportData.reelUrl === 'string') {
+      return {
+        renderRes: exportRes,
+        renderData: { videoUrl: exportData.reelUrl, status: 'completed' },
+      }
+    }
+    if (exportRes.ok && typeof exportData.jobId === 'string') {
+      return {
+        renderRes: exportRes,
+        renderData: {
+          jobId: exportData.jobId,
+          status: exportData.status ?? 'queued',
+          pollUrl: `/api/reels/export/${exportData.jobId}`,
+        },
+      }
+    }
+    return { renderRes: exportRes, renderData: exportData }
+  }
+
+  const renderRes = await fetch('/api/render/reel', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1617,19 +1628,21 @@ export const useQuickCutGenerationStore = create<
                     }
                   })
                 } catch (pollErr) {
-                  renderError =
+                  renderError = friendlyReelRenderError(
                     pollErr instanceof Error ? pollErr.message : 'Video render timed out'
+                  )
                 }
               }
               if (renderData.mock === true) anyMock = true
             } else {
-              renderError = String(renderData?.error || 'Video render unavailable')
+              renderError = friendlyReelRenderError(String(renderData?.error || 'Video render unavailable'))
               anyMock = true
               noteMissing('video')
             }
           } catch (renderErr) {
-            renderError =
+            renderError = friendlyReelRenderError(
               renderErr instanceof Error ? renderErr.message : 'Video render unavailable'
+            )
             anyMock = true
             noteMissing('video')
           } finally {
