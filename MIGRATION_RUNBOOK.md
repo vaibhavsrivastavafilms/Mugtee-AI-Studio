@@ -23,6 +23,7 @@ Apply migrations **in numeric order** in the Supabase SQL editor (Dashboard → 
 | **`0015_project_video_urls.sql`** | `video_url`, `thumbnail_url` |
 | **`0016_unified_projects.sql`** | `mode`, `virlo` + index |
 | **`0017_project_archive_fields.sql`** | `storyboard` + status index |
+| **`0018_cinematic_phase2_fields.sql`** | `language`, `input_type`, `original_transcript`, `variation_history`, `visual_style`, `viral_script` |
 
 ## Root-level one-offs (`migrations/`)
 
@@ -33,7 +34,7 @@ Apply migrations **in numeric order** in the Supabase SQL editor (Dashboard → 
 
 ## Symptom: `[cinematic_projects] Table missing` / 404 on project save
 
-Production is missing **0014–0017**. Run the consolidated block below once (idempotent).
+Production is missing **0014–0018**. Run the consolidated block below once (idempotent).
 
 ## Symptom: billing or YouTube errors
 
@@ -43,9 +44,9 @@ Run `migrations/0001_billing.sql` and `migrations/0002_youtube.sql` if not alrea
 
 `lib/projects.ts` and `/api/projects/*` reference a legacy `projects` table with **no migration in this repo**. The unified creator library uses **`cinematic_projects`** (0014+). Prefer `/create` and `cinematic_projects` for new work.
 
-## Consolidated SQL — cinematic_projects (0014–0017)
+## Consolidated SQL — cinematic_projects (0014–0018)
 
-Copy into Supabase SQL editor and run once:
+Copy **`supabase/RUN_IN_SQL_EDITOR.sql`** into Supabase SQL editor and run once (or use the inline block below):
 
 ```sql
 -- 0014 — base table
@@ -106,6 +107,15 @@ alter table public.cinematic_projects
 
 create index if not exists cinematic_projects_user_status_idx
   on public.cinematic_projects (user_id, status, updated_at desc);
+
+-- 0018 — Phase 2 Quick Cut fields
+alter table public.cinematic_projects
+  add column if not exists language text,
+  add column if not exists input_type text,
+  add column if not exists original_transcript text,
+  add column if not exists variation_history jsonb,
+  add column if not exists visual_style jsonb,
+  add column if not exists viral_script jsonb;
 ```
 
-After running, reload the app. Recent projects and Quick Cut auto-save should work without a full redeploy.
+After running, reload the app. Verify at `/api/test-db` (`success: true`). Recent projects and Quick Cut auto-save should work without a full redeploy.

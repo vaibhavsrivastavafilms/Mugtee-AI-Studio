@@ -6,6 +6,10 @@ import { cn } from '@/lib/utils'
 import { projectContinuityHref } from '@/lib/create/routes'
 import { relSavedLabel } from '@/stores/cinematic-project'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import {
+  getSupabaseSqlEditorUrl,
+  isMigrationSaveError,
+} from '@/lib/cinematic-projects'
 
 type QuickCutSaveProjectButtonProps = {
   variant?: 'prominent' | 'compact'
@@ -57,6 +61,8 @@ export function QuickCutSaveProjectButton({
         : Save
 
   const prominentSaved = hasSaved && !isSaving && !isError && !justSaved
+  const migrationError = isMigrationSaveError(saveError)
+  const sqlEditorUrl = getSupabaseSqlEditorUrl()
 
   return (
     <div className={cn('flex flex-col items-center gap-2', className)}>
@@ -87,9 +93,32 @@ export function QuickCutSaveProjectButton({
       </button>
 
       {saveError && isError ? (
-        <p className="max-w-xs text-center text-[10px] leading-relaxed tracking-wide text-amber-200/80">
-          {saveError}
-        </p>
+        <div className="max-w-sm text-center text-[10px] leading-relaxed tracking-wide text-amber-200/80">
+          <p>{saveError}</p>
+          {migrationError ? (
+            <p className="mt-2 space-x-2">
+              {sqlEditorUrl ? (
+                <a
+                  href={sqlEditorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
+                >
+                  Open SQL Editor
+                </a>
+              ) : null}
+              <a
+                href="/api/test-db"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
+              >
+                Verify setup
+              </a>
+              <span className="text-amber-100/50">· run RUN_IN_SQL_EDITOR.sql</span>
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {lastSavedAt && saveState === 'idle' && hasSaved ? (

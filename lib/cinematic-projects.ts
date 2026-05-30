@@ -1,10 +1,33 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
-/** User-facing hint when migrations 0014–0017 have not been applied. */
+/** User-facing hint when migrations 0014–0018 have not been applied. */
 export const CINEMATIC_PROJECTS_MIGRATION_HINT =
-  'Project library is not set up yet. Run Supabase migrations 0014–0017 (cinematic_projects) in the SQL editor, then retry save.'
+  'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql (migrations 0014–0018) in the Supabase SQL editor, then retry save.'
 
-/** Thrown when migrations 0014–0017 have not been applied (table missing). */
+/** Supabase Dashboard → SQL Editor link derived from NEXT_PUBLIC_SUPABASE_URL. */
+export function getSupabaseSqlEditorUrl(): string | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return null
+  try {
+    const ref = new URL(url).hostname.split('.')[0]
+    if (!ref) return null
+    return `https://supabase.com/dashboard/project/${ref}/sql/new`
+  } catch {
+    return null
+  }
+}
+
+/** True when save failed because cinematic_projects migrations are missing. */
+export function isMigrationSaveError(message: string | null | undefined): boolean {
+  if (!message) return false
+  return (
+    message === CINEMATIC_PROJECTS_MIGRATION_HINT ||
+    message.includes('RUN_IN_SQL_EDITOR.sql') ||
+    message.includes('migrations 0014')
+  )
+}
+
+/** Thrown when migrations 0014–0018 have not been applied (table or columns missing). */
 export class CinematicProjectsUnavailableError extends Error {
   constructor(message = CINEMATIC_PROJECTS_MIGRATION_HINT) {
     super(message)
@@ -16,7 +39,7 @@ export class CinematicProjectsUnavailableError extends Error {
 export function isCinematicProjectsUnavailable(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const e = error as { code?: string; message?: string; status?: number; details?: string }
-  if (e.code === '42P01' || e.code === 'PGRST205' || e.code === 'PGRST204') return true
+  if (e.code === '42P01' || e.code === 'PGRST205' || e.code === 'PGRST204' || e.code === '42703') return true
   if (e.status === 404) return true
   const msg = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
   return (
@@ -31,7 +54,7 @@ export function isCinematicProjectsUnavailable(error: unknown): boolean {
 function throwIfUnavailable(error: unknown): never {
   if (isCinematicProjectsUnavailable(error)) {
     console.warn(
-      '[cinematic-projects] Table missing — apply supabase/migrations/0014_cinematic_projects.sql through 0017_project_archive_fields.sql (see MIGRATION_RUNBOOK.md)'
+      '[cinematic-projects] Table missing — apply supabase/RUN_IN_SQL_EDITOR.sql (0014–0018, see MIGRATION_RUNBOOK.md)'
     )
     throw new CinematicProjectsUnavailableError()
   }
@@ -47,6 +70,7 @@ import {
   sanitizeVoiceFromPersistence,
 } from '@/lib/cinematic/sanitize-persisted-assets'
 import { hrefForProject } from '@/lib/create/routes'
+import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
@@ -224,7 +248,7 @@ export function rowToSummary(row: CinematicProjectRow): CinematicProjectSummary 
     voice: sanitizeVoiceFromPersistence(row.voice),
     captions: parseCaptions(row.captions).text,
     status: normalizeProjectStatus(row.status),
-    mode: row.mode === 'quick' ? 'quick' : 'director',
+    mode: inferProjectMode(row),
     video_url: row.video_url ?? null,
     thumbnail_url: resolveThumbnail(row.thumbnail_url, scenes),
     updatedAt: row.updated_at,
@@ -461,7 +485,7 @@ export async function loadProject(id: string): Promise<CinematicProjectRow> {
 
 export type RecentProjectsLoadResult = {
   projects: CinematicProjectSummary[]
-  /** True when migrations 0014–0017 have not been applied (missing table). */
+  /** True when migrations 0014–0018 have not been applied (missing table). */
   tableUnavailable: boolean
 }
 
@@ -496,7 +520,7 @@ export async function loadRecentProjects(
   if (error) {
     if (isCinematicProjectsUnavailable(error)) {
       console.warn(
-        '[cinematic-projects] Table missing — apply supabase/migrations/0014_cinematic_projects.sql through 0017_project_archive_fields.sql (see MIGRATION_RUNBOOK.md)'
+        '[cinematic-projects] Table missing — apply supabase/RUN_IN_SQL_EDITOR.sql (0014–0018, see MIGRATION_RUNBOOK.md)'
       )
       return { projects: [], tableUnavailable: true }
     }

@@ -59,6 +59,7 @@ import {
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
 import { loadProject } from '@/lib/cinematic-projects'
+import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import {
   streakRecordExportCompleted,
   streakRecordWorkflowCreated,
@@ -1650,7 +1651,7 @@ export const useQuickCutGenerationStore = create<
 
     try {
       const row = await loadProject(projectId)
-      if (row.mode === 'director') return false
+      if (inferProjectMode(row) === 'director') return false
 
       const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
       set({

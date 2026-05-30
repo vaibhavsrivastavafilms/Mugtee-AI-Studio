@@ -6,12 +6,17 @@
 export const FREE_GEMINI_TEXT_MODEL =
   process.env.GEMINI_TEXT_MODEL?.trim() || 'gemini-2.0-flash'
 
-/** Direct Google API image model (AI Studio free tier when available). */
+/** Direct Google API image model (AI Studio — Nano Banana / Flash Image). */
 export const FREE_GEMINI_IMAGE_MODEL =
-  process.env.GEMINI_IMAGE_MODEL?.trim() || 'gemini-2.0-flash-preview-image-generation'
+  process.env.GEMINI_IMAGE_MODEL?.trim() || 'gemini-2.5-flash-image'
 
 /** Emergent gateway namespaced model (paid gateway — skipped when free-tier only). */
-export const EMERGENT_GEMINI_IMAGE_MODEL = 'gemini/gemini-2.5-flash-image'
+export const EMERGENT_GEMINI_IMAGE_MODEL =
+  process.env.EMERGENT_GEMINI_IMAGE_MODEL?.trim() || 'gemini/gemini-2.5-flash-image'
+
+/** OpenAI image model — gpt-image-1 replaces dall-e-3 on newer API keys. */
+export const FREE_OPENAI_IMAGE_MODEL =
+  process.env.OPENAI_IMAGE_MODEL?.trim() || 'gpt-image-1'
 
 export const FREE_OPENAI_CHAT_MODEL =
   process.env.OPENAI_MODEL?.trim() || 'gpt-4o-mini'

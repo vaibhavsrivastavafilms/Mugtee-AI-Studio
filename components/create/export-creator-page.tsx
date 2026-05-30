@@ -249,6 +249,12 @@ function ExportInner() {
 
             autoPlayPreview={false}
 
+            projectId={projectId}
+
+            canCompileMp4={canCompileMp4}
+
+            onVideoUrl={setVideoUrl}
+
           />
 
         ) : null}

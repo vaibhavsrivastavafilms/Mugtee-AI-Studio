@@ -159,7 +159,13 @@ export function QuickCutPreview({ embedded = true }: { embedded?: boolean }) {
 
   if (isGenerating || generationStep === 'error' || studioReviewMode) {
 
-    return <LiveGenerationCanvas onRegenerate={handleRegenerate} embedded={embedded} />
+    return (
+      <LiveGenerationCanvas
+        onRegenerate={handleRegenerate}
+        embedded={embedded}
+        complete={isComplete}
+      />
+    )
 
   }
 

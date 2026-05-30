@@ -110,7 +110,10 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
               videoUrl: p.videoUrl,
               hasPlayablePreview: p.hasPlayablePreview,
             })
-            const openHref = openProjectHref(p.status, p.id, p.mode)
+            const openHref = openProjectHref(p.status, p.id, p.mode, {
+              videoUrl: p.videoUrl,
+              hasPlayablePreview: p.hasPlayablePreview,
+            })
             const regenerateHref = regenerateProjectHref(p.id, p.mode)
 
             return (

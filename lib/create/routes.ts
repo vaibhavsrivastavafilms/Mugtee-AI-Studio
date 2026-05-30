@@ -145,12 +145,32 @@ export function previewProjectHref(input: {
   return createProjectHref(input.id, exportReady ? 'export' : 'director')
 }
 
+/** Infer stage tab for OPEN from card/list metadata (full row uses project-hydration). */
+export function inferOpenStageTabFromCard(input: {
+  status: string
+  videoUrl?: string | null
+  hasPlayablePreview?: boolean
+}): QuickCutStageTab | undefined {
+  if (input.videoUrl) return 'complete'
+  if (
+    input.status === 'compile' ||
+    input.status === 'complete' ||
+    isFinishedProjectStatus(input.status)
+  ) {
+    return 'complete'
+  }
+  if (input.hasPlayablePreview) return 'visuals'
+  return undefined
+}
+
 /** Quick Cut — open saved project in the generation/storyboard studio (not export). */
 export function openQuickCutProjectHref(
   projectId: string,
-  stageTab: QuickCutStageTab = 'scenes'
+  stageTab?: QuickCutStageTab
 ): string {
-  return projectWorkspaceHref(projectId, { tab: stageTab })
+  return stageTab
+    ? projectWorkspaceHref(projectId, { tab: stageTab })
+    : projectWorkspaceHref(projectId)
 }
 
 /** Parse `?tab=` from a generate URL into a stage tab id. */
@@ -173,18 +193,31 @@ export function regenerateProjectHref(
   return directorWorkspaceHref(projectId)
 }
 
+export type OpenProjectHrefOptions = {
+  stageTab?: QuickCutStageTab
+  videoUrl?: string | null
+  hasPlayablePreview?: boolean
+}
+
 /** OPEN action — resume editing in the generation workflow, not export/new create. */
 export function openProjectHref(
   status: string,
   projectId: string,
   mode?: CreatorMode | string | null,
-  stageTab: QuickCutStageTab = 'scenes'
+  options?: OpenProjectHrefOptions
 ): string {
   const resolvedMode: CreatorMode =
     mode === 'quick' || mode === 'director' ? mode : inferModeFromStatus(status)
 
   if (resolvedMode === 'quick') {
-    return openQuickCutProjectHref(projectId, stageTab)
+    const tab =
+      options?.stageTab ??
+      inferOpenStageTabFromCard({
+        status,
+        videoUrl: options?.videoUrl,
+        hasPlayablePreview: options?.hasPlayablePreview,
+      })
+    return openQuickCutProjectHref(projectId, tab)
   }
 
   return projectWorkspaceHref(projectId)
@@ -210,7 +243,16 @@ export function hrefForProject(
 }
 
 export function inferModeFromStatus(status: string): CreatorMode {
-  if (status === 'preview' || status === 'generating') return 'quick'
+  if (
+    status === 'preview' ||
+    status === 'generating' ||
+    status === 'create' ||
+    status === 'compile' ||
+    status === 'complete' ||
+    isFinishedProjectStatus(status)
+  ) {
+    return 'quick'
+  }
   return 'director'
 }
 

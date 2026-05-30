@@ -72,7 +72,13 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
   const mode: CreatorMode =
     project.mode === 'quick' || project.mode === 'director'
       ? project.mode
-      : project.status === 'preview'
+      : project.status === 'preview' ||
+          project.status === 'reviewing' ||
+          project.status === 'generating' ||
+          project.status === 'editing' ||
+          project.status === 'compile' ||
+          project.status === 'complete' ||
+          project.status === 'completed'
         ? 'quick'
         : 'director'
 
@@ -119,10 +125,12 @@ export function UnifiedProjectsGrid({
   const [projects, setProjects] = useState<ProjectCardModel[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [tableUnavailable, setTableUnavailable] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
+    setLoading(true)
     ;(async () => {
       try {
         const { projects: rows, tableUnavailable: missing } = await loadRecentProjects(limit)
@@ -149,7 +157,9 @@ export function UnifiedProjectsGrid({
     return () => {
       alive = false
     }
-  }, [limit, filter])
+  }, [limit, filter, reloadKey])
+
+  const retryLoadProjects = () => setReloadKey((k) => k + 1)
 
   if (loading) {
     return (
@@ -241,7 +251,10 @@ export function UnifiedProjectsGrid({
             videoUrl: p.videoUrl,
             hasPlayablePreview: p.hasPlayablePreview,
           })
-          const openHref = openProjectHref(p.status, p.id, p.mode)
+          const openHref = openProjectHref(p.status, p.id, p.mode, {
+            videoUrl: p.videoUrl,
+            hasPlayablePreview: p.hasPlayablePreview,
+          })
           const regenerateHref = regenerateProjectHref(p.id, p.mode)
 
           return (

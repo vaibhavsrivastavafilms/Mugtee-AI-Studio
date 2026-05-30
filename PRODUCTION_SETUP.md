@@ -139,9 +139,9 @@ These two SQL files must be run **once** in production's Supabase SQL editor if 
 - `supabase/migrations/0016_unified_projects.sql` — `mode`, `virlo` columns + mode index
 - `supabase/migrations/0017_project_archive_fields.sql` — `storyboard` column + status index
 
-**Shortcut:** copy the consolidated block in `MIGRATION_RUNBOOK.md` (0014–0017 in one paste).
+**Shortcut:** copy `supabase/RUN_IN_SQL_EDITOR.sql` (0014–0018 in one paste).
 
-Without 0014–0017, Quick Cut auto-save and recent projects will 404 on `cinematic_projects`. The UI shows a migration hint banner (not offline mode); local preview still works.
+Without 0014–0018, Quick Cut auto-save fails on `cinematic_projects` (missing table or Phase 2 columns). The UI shows a migration hint banner (not offline mode); local preview still works. Verify with `/api/test-db`.
 
 Without these, the Razorpay verify endpoint and YouTube upload endpoint will fail with `relation does not exist`.
 

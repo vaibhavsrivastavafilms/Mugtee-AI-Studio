@@ -1,4 +1,4 @@
--- Consolidated cinematic_projects migrations (0014-0017)
+-- Consolidated cinematic_projects migrations (0014-0018)
 -- Run once in Supabase Dashboard -> SQL Editor -> New query
 -- Idempotent: safe to re-run (IF NOT EXISTS / drop policy if exists)
 -- ========== 0014_cinematic_projects.sql ==========
@@ -74,6 +74,17 @@ alter table public.cinematic_projects
 create index if not exists cinematic_projects_user_status_idx
   on public.cinematic_projects (user_id, status, updated_at desc);
 
+-- ========== 0018_cinematic_phase2_fields.sql ==========
+-- Phase 2 Quick Cut: language lock, transcript, variation history, Virlo script/style.
+
+alter table public.cinematic_projects
+  add column if not exists language text,
+  add column if not exists input_type text,
+  add column if not exists original_transcript text,
+  add column if not exists variation_history jsonb,
+  add column if not exists visual_style jsonb,
+  add column if not exists viral_script jsonb;
+
 -- ========== VERIFICATION (one-click — run after migrations above) ==========
 -- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
 select
@@ -94,10 +105,16 @@ select
           'thumbnail_url',
           'mode',
           'virlo',
-          'storyboard'
+          'storyboard',
+          'language',
+          'input_type',
+          'original_transcript',
+          'variation_history',
+          'visual_style',
+          'viral_script'
         )
-    ) < 5
-      then 'FAIL: missing columns from 0015–0017 — re-run the 0015–0017 blocks above'
+    ) < 11
+      then 'FAIL: missing columns from 0015–0018 — re-run the 0015–0018 blocks above'
     when (
       select count(*)
       from pg_policies
