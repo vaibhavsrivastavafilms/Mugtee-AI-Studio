@@ -1,5 +1,12 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
+/** Browser Supabase client or throw when public env is missing. */
+function requireBrowserClient() {
+  const client = createSupabaseBrowserClient()
+  if (!client) throw new Error('Authentication is not configured')
+  return client
+}
+
 /** User-facing hint when migrations 0014–0018 have not been applied. */
 export const CINEMATIC_PROJECTS_MIGRATION_HINT =
   'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql (migrations 0014–0018) in the Supabase SQL editor, then retry save.'
@@ -376,7 +383,7 @@ export function cinematicHrefForProject(
 }
 
 async function requireUserId(): Promise<string> {
-  const supabase = createSupabaseBrowserClient()
+  const supabase = requireBrowserClient()
   const {
     data: { user },
     error,
@@ -403,7 +410,7 @@ export async function createProject(
   },
   userId?: string
 ): Promise<CinematicProjectRow> {
-  const supabase = createSupabaseBrowserClient()
+  const supabase = requireBrowserClient()
   const uid = userId ?? (await requireUserId())
   const payload = stateToRowPayload({
     id: state.id ?? null,
@@ -469,7 +476,7 @@ export async function updateProject(
   id: string,
   state: Partial<CinematicProjectState>
 ): Promise<CinematicProjectRow> {
-  const supabase = createSupabaseBrowserClient()
+  const supabase = requireBrowserClient()
   const patch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   }
@@ -580,7 +587,7 @@ export async function updateProject(
 }
 
 export async function loadProject(id: string): Promise<CinematicProjectRow> {
-  const supabase = createSupabaseBrowserClient()
+  const supabase = requireBrowserClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
     .select('*')
@@ -611,7 +618,7 @@ export async function loadRecentProjects(
     typeof options === 'number' ? { limit: options } : options
   const limit = opts.limit ?? 8
 
-  const supabase = createSupabaseBrowserClient()
+  const supabase = requireBrowserClient()
   let query = supabase.from('cinematic_projects').select('*')
 
   if (opts.statuses?.length) {

@@ -9,6 +9,7 @@ export async function createProject(project: {
   goal?: string
 }) {
   const supabase = createSupabaseBrowserClient()
+  if (!supabase) throw new Error('Authentication is not configured')
   const { data, error } = await supabase
     .from('projects')
     .insert([project])

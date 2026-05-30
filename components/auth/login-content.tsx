@@ -29,7 +29,7 @@ function parseMode(value: string | null): CreatorMode | null {
 
 export function LoginContent() {
   const [loading, setLoading] = useState(false)
-  const { ready, user } = useAuthHydration()
+  const { ready, user, authConfigured } = useAuthHydration()
   const params = useSearchParams()
   const router = useRouter()
   const queryNext = params?.get('next')
@@ -76,6 +76,11 @@ export function LoginContent() {
     persistModeEntry(activeMode)
 
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      toast.error('Sign-in is unavailable — authentication is not configured.')
+      setLoading(false)
+      return
+    }
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -126,10 +131,15 @@ export function LoginContent() {
         </div>
 
         <div className="rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-8 sm:p-10">
+          {!authConfigured ? (
+            <p className="mb-4 text-center text-sm text-red-300/80">
+              Sign-in is unavailable — authentication is not configured on this deployment.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={loading}
+            disabled={loading || !authConfigured}
             className="w-full flex items-center justify-center gap-3 h-14 rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 transition-opacity duration-150 font-medium text-sm disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>

@@ -36,6 +36,11 @@ export default function HeroGoogleCta({
     try {
       persistPostLoginRedirect(next)
       const supabase = createSupabaseBrowserClient()
+      if (!supabase) {
+        toast.error('Sign-in is unavailable — authentication is not configured.')
+        setLoading(false)
+        return
+      }
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}&welcome=1`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

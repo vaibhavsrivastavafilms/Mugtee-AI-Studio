@@ -96,6 +96,10 @@ export function ProjectActivityTimeline({
   useEffect(() => {
     if (!projectId) return
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
     ;(async () => {
       setLoading(true)

@@ -98,6 +98,12 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
 
     setStatus((s) => ({ ...s, workspace: 'loading' }))
     const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      setStatus((s) => ({ ...s, workspace: 'error' }))
+      return () => {
+        cancelled = true
+      }
+    }
     supabase
       .from('workspaces')
       .select('id, name')

@@ -31,7 +31,6 @@ function validate(file: File): string | null {
 
 export function UploadDropzone() {
   const { userId } = useStore()
-  const supabase = createSupabaseBrowserClient()
   const [uploads, setUploads] = useState<FileUpload[]>([])
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -43,6 +42,12 @@ export function UploadDropzone() {
   const startUpload = useCallback(async (upload: FileUpload) => {
     const { file } = upload
     updateOne(upload.id, { status: 'uploading' })
+
+    const supabase = createSupabaseBrowserClient()
+    if (!supabase) {
+      updateOne(upload.id, { status: 'error', error: 'Authentication not configured' })
+      return
+    }
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
@@ -107,7 +112,7 @@ export function UploadDropzone() {
 
     updateOne(upload.id, { status: 'done', progress: 100 })
     toast.success(`${file.name} uploaded`)
-  }, [supabase, userId, updateOne])
+  }, [userId, updateOne])
 
   const handleFiles = useCallback((files: FileList | File[]) => {
     const items: FileUpload[] = []

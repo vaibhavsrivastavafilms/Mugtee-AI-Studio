@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, ReactNode } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseBrowserClient } from './supabase/client'
 import { useStore } from './store'
 import { toast } from 'sonner'
@@ -47,8 +48,53 @@ export function computeNextRun(freq: string, from: Date): string {
 const CONTENT_TERMINAL = new Set(['published'])
 const SHOOT_TERMINAL   = new Set(['wrapped'])
 
+function createOfflineAutomations(): AutomationsAPI {
+  const noop = async () => {}
+  return {
+    notifications: [],
+    unreadCount: 0,
+    queue: [],
+    workflows: [],
+    loading: false,
+    markAsRead: noop,
+    markAllRead: noop,
+    deleteNotification: noop,
+    addWorkflow: noop,
+    updateWorkflow: noop,
+    removeWorkflow: noop,
+    toggleWorkflow: noop,
+    enqueue: noop,
+    setQueueStatus: noop,
+    removeQueueItem: noop,
+  }
+}
+
+function AutomationsProviderOffline({ children }: { children: ReactNode }) {
+  const value = useMemo(() => createOfflineAutomations(), [])
+  return <AutomationsContext.Provider value={value}>{children}</AutomationsContext.Provider>
+}
+
 export function AutomationsProvider({ userId, children }: { userId: string; children: ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  if (!supabase) {
+    return <AutomationsProviderOffline>{children}</AutomationsProviderOffline>
+  }
+  return (
+    <AutomationsProviderConnected supabase={supabase} userId={userId}>
+      {children}
+    </AutomationsProviderConnected>
+  )
+}
+
+function AutomationsProviderConnected({
+  supabase,
+  userId,
+  children,
+}: {
+  supabase: SupabaseClient
+  userId: string
+  children: ReactNode
+}) {
   const { content, shoots } = useStore()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [queue, setQueue]                 = useState<QueueItem[]>([])
