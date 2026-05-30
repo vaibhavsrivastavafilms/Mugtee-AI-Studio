@@ -14,6 +14,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import type { ContentPiece, Platform } from '@/lib/types'
 import { AiButton } from '@/components/ai/ai-button'
 import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
+import { NotionCalendarSync } from '@/components/integrations/notion-calendar-sync'
 
 export default function CalendarPage() {
   const { content, addContent, updateContent, removeContent } = useStore()
@@ -94,6 +95,8 @@ export default function CalendarPage() {
           </div>
         </div>
       </motion.div>
+
+      <NotionCalendarSync />
 
       <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}}
         className="glass rounded-2xl p-3 sm:p-5"

@@ -4,6 +4,8 @@ import { Check, Circle, Package, Radio, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolvePublishReadiness } from '@/lib/quick-cut/asset-availability'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { BufferQueueButton } from '@/components/integrations/buffer-queue-button'
+import { useStore } from '@/lib/store'
 
 function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
   return (
@@ -98,6 +100,22 @@ export function PublishCenter({ className }: { className?: string }) {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const { content } = useStore()
+
+  const bufferItem =
+    savedProjectId != null
+      ? content.find((c) => c.id === savedProjectId) ||
+        ({
+          id: savedProjectId,
+          title: title || 'Quick Cut export',
+          description: [hook, script].filter(Boolean).join('\n\n') || null,
+          platform: 'instagram' as const,
+          media_url: videoUrl || null,
+          scheduled_at: null,
+          status: 'scheduled',
+        } as const)
+      : null
 
   const readiness = resolvePublishReadiness({
     title,
@@ -209,6 +227,26 @@ export function PublishCenter({ className }: { className?: string }) {
           )}
         </div>
       </SectionCard>
+
+      {bufferItem && readiness.project.scriptGenerated ? (
+        <SectionCard icon={<Share2 className="w-3 h-3" />} title="Buffer Publishing">
+          <p className="text-[11px] text-luxe/70 leading-relaxed">
+            Queue this project&apos;s caption and media to Buffer for cross-platform scheduling.
+          </p>
+          <BufferQueueButton
+            item={{
+              id: savedProjectId || bufferItem.id,
+              title: title || bufferItem.title,
+              description: [hook, script].filter(Boolean).join('\n\n') || bufferItem.description,
+              platform: bufferItem.platform || 'instagram',
+              media_url: videoUrl || bufferItem.media_url,
+              scheduled_at: bufferItem.scheduled_at,
+              status: bufferItem.status,
+            }}
+            variant="button"
+          />
+        </SectionCard>
+      ) : null}
     </div>
   )
 }
