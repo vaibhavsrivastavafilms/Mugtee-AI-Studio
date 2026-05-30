@@ -78,7 +78,9 @@ async function generateStoryboardScenesInternal(
 
   try {
     const openai = getOpenAIClient()
-    console.log('[OPENAI] REQUEST START', { model: 'gpt-4o-mini', step: 'storyboard-sop' })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OPENAI] REQUEST START', { model: 'gpt-4o-mini', step: 'storyboard-sop' })
+    }
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       temperature: 0.65,
@@ -103,7 +105,9 @@ async function generateStoryboardScenesInternal(
     })
 
     const content = completion.choices[0]?.message?.content || '{}'
-    console.log('[OPENAI] REQUEST SUCCESS', { step: 'storyboard-sop' })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OPENAI] REQUEST SUCCESS', { step: 'storyboard-sop' })
+    }
     const json = JSON.parse(content) as Record<string, unknown>
     const segments = parseStoryboardSegments(json)
     if (segments.length < 2) return null
@@ -116,7 +120,6 @@ async function generateStoryboardScenesInternal(
 
     return finalizeStoryboardSceneRecords(mapped, input.durationSec)
   } catch (err) {
-    console.error('[OPENAI] REQUEST FAILED', { step: 'storyboard-sop', err })
     logError('storyboard-sop-engine', err)
     return null
   }
