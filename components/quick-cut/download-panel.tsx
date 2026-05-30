@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Clapperboard,
   Download,
   ExternalLink,
   FileText,
@@ -15,7 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useUsage } from '@/lib/usage'
 import { downloadMp3File } from '@/lib/quick-cut/download-audio'
-import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
+import { resolveMp4Download } from '@/lib/quick-cut/resolve-mp4-download.client'
 import {
   downloadAllStoryboardImages,
   SCENE_IMAGE_EXPORT_DIMENSIONS,
@@ -211,15 +210,44 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
   }, [videoUrl])
 
   const handleDownloadMp4 = useCallback(async () => {
-    if (!videoUrl?.trim() || downloadingMp4) return
+    if (downloadingMp4) return
+    if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
     trackExportStarted('video_mp4')
     setDownloadingMp4(true)
     try {
-      await downloadMp4File(videoUrl, mp4Name)
+      if (videoUrl?.trim() || savedProjectId) {
+        await resolveMp4Download({
+          projectId: savedProjectId,
+          videoUrl,
+          filename: mp4Name,
+          compileIfNeeded: canCompileMp4 && !videoUrl,
+        })
+      } else {
+        await retryVideoRender()
+        const url = useQuickCutGenerationStore.getState().videoUrl
+        const err = useQuickCutGenerationStore.getState().renderError
+        if (!url) throw new Error(err || 'Video compile failed')
+        await resolveMp4Download({
+          projectId: savedProjectId,
+          videoUrl: url,
+          filename: mp4Name,
+        })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'MP4 download failed'
+      useQuickCutGenerationStore.setState({ renderError: message })
     } finally {
       setDownloadingMp4(false)
     }
-  }, [videoUrl, mp4Name, downloadingMp4, trackExportStarted])
+  }, [
+    videoUrl,
+    mp4Name,
+    downloadingMp4,
+    trackExportStarted,
+    savedProjectId,
+    canCompileMp4,
+    retryVideoRender,
+  ])
 
   return (
     <div
@@ -323,12 +351,12 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
                     : 'Available after render completes'
           }
         >
-          {videoUrl ? (
+          {videoUrl || canCompileMp4 ? (
             <>
               <button
                 type="button"
                 onClick={() => void handleDownloadMp4()}
-                disabled={downloadingMp4}
+                disabled={downloadingMp4 || mp4Compiling}
                 className={primaryButtonClass}
               >
                 {downloadingMp4 ? (
@@ -336,39 +364,37 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
                 ) : (
                   <Download className="w-3 h-3" />
                 )}
-                {downloadingMp4 ? 'Downloading…' : '.mp4'}
+                {downloadingMp4
+                  ? 'Downloading…'
+                  : videoUrl
+                    ? '.mp4'
+                    : 'Compile .mp4'}
               </button>
-              <button
-                type="button"
-                onClick={handlePreviewReel}
-                className={secondaryButtonClass}
-              >
-                <ExternalLink className="w-3 h-3" />
-                Preview
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleShareReel()}
-                className={secondaryButtonClass}
-              >
-                <Share2 className="w-3 h-3" />
-                Share
-              </button>
+              {videoUrl ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePreviewReel}
+                    className={secondaryButtonClass}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleShareReel()}
+                    className={secondaryButtonClass}
+                  >
+                    <Share2 className="w-3 h-3" />
+                    Share
+                  </button>
+                </>
+              ) : null}
             </>
           ) : mp4Compiling ? (
             <button type="button" disabled className={ghostButtonClass}>
               <Loader2 className="w-3 h-3 animate-spin" />
               Rendering reel…
-            </button>
-          ) : canCompileMp4 ? (
-            <button
-              type="button"
-              onClick={() => void retryVideoRender()}
-              disabled={isRenderingVideo}
-              className={primaryButtonClass}
-            >
-              <Clapperboard className="w-3 h-3" />
-              Compile .mp4
             </button>
           ) : renderError ? (
             <button
