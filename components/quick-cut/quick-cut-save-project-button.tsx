@@ -42,15 +42,18 @@ export function QuickCutSaveProjectButton({
     void saveProject()
   }
 
+  const saveStateResumed = saveState === 'resumed'
   const label = isSaving
     ? 'Saving…'
-    : justSaved
-      ? 'Saved'
-      : isError
-        ? 'Retry save'
-        : hasSaved
-          ? 'Saved to Library'
-          : 'Save Project'
+    : saveStateResumed
+      ? 'Generation resumed'
+      : justSaved
+        ? 'Saved'
+        : isError
+          ? 'Retry save'
+          : hasSaved
+            ? 'Saved to Library'
+            : 'Save Project'
 
   const Icon = isSaving
     ? Loader2

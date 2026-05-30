@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import {
   clearQuickCutPending,
   loadQuickCutPending,
@@ -23,7 +24,6 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
-  const reset = useQuickCutGenerationStore((s) => s.reset)
 
   const resumedRef = useRef(false)
 
@@ -73,8 +73,8 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
   }, [tryResumePending])
 
   const handleRegenerate = useCallback(() => {
-    reset()
-  }, [reset])
+    resetQuickCutForFreshCreate()
+  }, [])
 
   if (isComplete) {
     return <LiveGenerationCanvas onRegenerate={handleRegenerate} embedded={embedded} complete />

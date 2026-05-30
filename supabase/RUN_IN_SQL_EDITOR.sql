@@ -1,4 +1,4 @@
--- Consolidated cinematic_projects migrations (0014-0018)
+-- Consolidated cinematic_projects migrations (0014-0019)
 -- Run once in Supabase Dashboard -> SQL Editor -> New query
 -- Idempotent: safe to re-run (IF NOT EXISTS / drop policy if exists)
 -- ========== 0014_cinematic_projects.sql ==========
@@ -85,6 +85,15 @@ alter table public.cinematic_projects
   add column if not exists visual_style jsonb,
   add column if not exists viral_script jsonb;
 
+-- ========== 0019_generation_recovery.sql ==========
+-- Pipeline recovery: resume after failed generation steps.
+
+alter table public.cinematic_projects
+  add column if not exists generation_status text,
+  add column if not exists generation_step text,
+  add column if not exists generation_error text,
+  add column if not exists last_completed_step text;
+
 -- ========== VERIFICATION (one-click — run after migrations above) ==========
 -- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
 select
@@ -111,10 +120,14 @@ select
           'original_transcript',
           'variation_history',
           'visual_style',
-          'viral_script'
+          'viral_script',
+          'generation_status',
+          'generation_step',
+          'generation_error',
+          'last_completed_step'
         )
-    ) < 11
-      then 'FAIL: missing columns from 0015–0018 — re-run the 0015–0018 blocks above'
+    ) < 15
+      then 'FAIL: missing columns from 0015–0019 — re-run the 0015–0019 blocks above'
     when (
       select count(*)
       from pg_policies

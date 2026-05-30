@@ -1,6 +1,7 @@
 'use client'
 
 import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
+import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { RenderProgress } from '@/components/quick-cut/render-progress'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -46,7 +47,10 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
             className="!text-left items-start !space-y-1"
           />
         ) : null}
-        <RenderProgress />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <GenerationSaveIndicator />
+          <RenderProgress className="flex-1" />
+        </div>
       </div>
     </footer>
   )

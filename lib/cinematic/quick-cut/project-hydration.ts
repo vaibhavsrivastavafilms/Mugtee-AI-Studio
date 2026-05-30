@@ -19,6 +19,13 @@ import {
 } from '@/lib/cinematic/variation-history'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
+import {
+  normalizeGenerationStatus,
+  normalizePersistedStep,
+  type GenerationStatus,
+  type PersistedGenerationStep,
+} from '@/lib/cinematic/generation-state'
+import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -66,7 +73,7 @@ export type QuickCutProjectHydrationPatch = {
   stageTabPinned: true
   progress: number
   eta: 0
-  error: null
+  error: string | null
   style: string
   duration: number
   niche: CinematicNiche
@@ -78,6 +85,9 @@ export type QuickCutProjectHydrationPatch = {
   lastSavedAt: number
   originalTranscript: string
   lastGeneratedPrompt: string
+  generationStatus: GenerationStatus
+  lastCompletedStep: PersistedGenerationStep | null
+  failedAtStep: PersistedGenerationStep | null
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -89,8 +99,13 @@ export function buildQuickCutHydrationFromRow(
     ensureScenesHaveImagePrompts(storeScenesToGenerated(state.scenes))
   )
   const resolvedTab = stageTab ?? inferOpenStageTab(row)
-  const generationStep = inferGenerationStep(row, scenes)
-  const isComplete = generationStep === 'complete' || scenes.length > 0
+  const generationStep =
+    row.generation_status === 'failed'
+      ? ('error' as QuickCutGenerationStep)
+      : inferGenerationStep(row, scenes)
+  const isComplete =
+    row.generation_status !== 'failed' &&
+    (generationStep === 'complete' || Boolean(row.video_url))
 
   return {
     savedProjectId: row.id,
@@ -112,7 +127,10 @@ export function buildQuickCutHydrationFromRow(
     stageTabPinned: true,
     progress: 100,
     eta: 0,
-    error: null,
+    error:
+      row.generation_status === 'failed'
+        ? row.generation_error?.trim() || SOFT_ERROR_COPY.storyPaused
+        : null,
     style: state.style,
     duration: state.duration,
     niche: (state.niche as CinematicNiche) || 'storytelling',
@@ -125,5 +143,13 @@ export function buildQuickCutHydrationFromRow(
     lastSavedAt: new Date(row.updated_at).getTime(),
     originalTranscript: row.original_transcript?.trim() || state.prompt || '',
     lastGeneratedPrompt: state.prompt?.trim() || '',
+    generationStatus:
+      normalizeGenerationStatus(row.generation_status) ??
+      (row.generation_error ? 'failed' : 'completed'),
+    lastCompletedStep: normalizePersistedStep(row.last_completed_step),
+    failedAtStep:
+      row.generation_status === 'failed'
+        ? normalizePersistedStep(row.generation_step)
+        : null,
   }
 }

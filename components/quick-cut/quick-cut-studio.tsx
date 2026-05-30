@@ -1,18 +1,22 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   GENERATION_FOOTER_CLEARANCE,
   QuickCutGenerationFooter,
 } from '@/components/quick-cut/generation-footer'
+import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) {
+  const router = useRouter()
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const stageTabPinned = useQuickCutGenerationStore((s) => s.stageTabPinned)
@@ -25,7 +29,11 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
-  const error = useQuickCutGenerationStore((s) => s.error)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
+  const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
+  const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
+  const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
 
   useEffect(() => {
     if (stageTabPinned) return
@@ -35,22 +43,22 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
     }
   }, [generationStep, stageTabPinned])
 
-  if (error) {
+  const showRecovery =
+    generationStep === 'error' || generationStatus === 'failed'
+
+  if (showRecovery) {
     return (
-      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-center space-y-3">
-        <p className="text-amber-200/90 text-sm" role="alert">
-          {error}
-        </p>
-        {onRegenerate ? (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            className="text-[11px] tracking-[0.14em] uppercase text-luxe/60 hover:text-gold-200 transition-colors"
-          >
-            Try again
-          </button>
-        ) : null}
-      </div>
+      <GenerationRecoveryPanel
+        lastCompletedStep={lastCompletedStep}
+        failedAtStep={failedAtStep}
+        isResuming={isGenerating}
+        onContinue={() => void resumeGeneration()}
+        onReturnToWorkspace={() => {
+          resetQuickCutForFreshCreate()
+          router.push('/studio/quick-cut')
+        }}
+        workspaceHref="/studio/quick-cut"
+      />
     )
   }
 
