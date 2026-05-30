@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
 
 import {
   APP_ROUTE_LOGIN_FALLBACK,
@@ -17,6 +16,10 @@ import {
   cloneWithPathname,
   legacyStudioPathname,
 } from '@/lib/shell/legacy-studio-redirect'
+import {
+  createMiddlewareSupabaseClient,
+  mergeSupabaseResponseCookies,
+} from '@/lib/supabase/middleware'
 
 /** Supabase PKCE code must be exchanged at /auth/callback — never on app routes. */
 function oauthCodeRedirect(request: NextRequest): NextResponse | null {
@@ -53,6 +56,12 @@ function legacyStudioPathRedirect(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(url)
 }
 
+function passThroughWithPathname(request: NextRequest, pathname: string): NextResponse {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+  return NextResponse.next({ request: { headers: requestHeaders } })
+}
+
 export async function middleware(request: NextRequest) {
   const legacyRedirect = legacyStudioPathRedirect(request)
   if (legacyRedirect) return legacyRedirect
@@ -61,76 +70,62 @@ export async function middleware(request: NextRequest) {
   if (oauthRedirect) return oauthRedirect
 
   const pathname = request.nextUrl.pathname
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-pathname', pathname)
 
-  let supabaseResponse = NextResponse.next({
-    request: { headers: requestHeaders },
-  })
+  try {
+    const { supabase, response: supabaseResponse } = createMiddlewareSupabaseClient(
+      request,
+      pathname
+    )
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet, headers) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({
-            request: { headers: requestHeaders },
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-          Object.entries(headers).forEach(([key, value]) => {
-            supabaseResponse.headers.set(key, value)
-          })
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Signed-in users should not see the login form again after OAuth.
-  if (user && (pathname === '/login' || pathname === '/signin' || pathname === '/auth/login')) {
-    const next = resolvePostLoginRedirect({
-      nextParam: request.nextUrl.searchParams.get('next'),
-      redirectCookie: request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value,
-      modeCookie: request.cookies.get(MUGTEE_MODE_COOKIE)?.value,
-      fallback: APP_ROUTE_LOGIN_FALLBACK,
-    })
-    const redirectResponse = NextResponse.redirect(new URL(next, request.url))
-    redirectResponse.cookies.set(POST_LOGIN_REDIRECT_COOKIE, '', { path: '/', maxAge: 0 })
-    redirectResponse.cookies.set(MUGTEE_MODE_COOKIE, '', { path: '/', maxAge: 0 })
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie)
-    })
-    for (const [key, value] of supabaseResponse.headers) {
-      const lower = key.toLowerCase()
-      if (lower === 'cache-control' || lower === 'expires' || lower === 'pragma') {
-        redirectResponse.headers.set(key, value)
+    let user: { id: string } | null = null
+    if (supabase) {
+      const { data, error } = await supabase.auth.getUser()
+      if (error && process.env.NODE_ENV !== 'production') {
+        console.warn('[middleware] supabase.auth.getUser:', error.message)
       }
+      user = data.user
     }
-    return redirectResponse
-  }
 
-  if (isPublicPath(pathname)) {
+    // Signed-in users should not see the login form again after OAuth.
+    if (user && (pathname === '/login' || pathname === '/signin' || pathname === '/auth/login')) {
+      const next = resolvePostLoginRedirect({
+        nextParam: request.nextUrl.searchParams.get('next'),
+        redirectCookie: request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value,
+        modeCookie: request.cookies.get(MUGTEE_MODE_COOKIE)?.value,
+        fallback: APP_ROUTE_LOGIN_FALLBACK,
+      })
+      const redirectResponse = NextResponse.redirect(new URL(next, request.url))
+      redirectResponse.cookies.set(POST_LOGIN_REDIRECT_COOKIE, '', { path: '/', maxAge: 0 })
+      redirectResponse.cookies.set(MUGTEE_MODE_COOKIE, '', { path: '/', maxAge: 0 })
+      mergeSupabaseResponseCookies(redirectResponse, supabaseResponse)
+      return redirectResponse
+    }
+
+    if (isPublicPath(pathname)) {
+      return supabaseResponse
+    }
+
+    if (!user && isProtectedPath(pathname)) {
+      const loginUrl = new URL(loginRedirectUrl(pathname), request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+
     return supabaseResponse
-  }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[middleware] invocation failed:', message)
 
-  if (!user && isProtectedPath(pathname)) {
-    const loginUrl = new URL(loginRedirectUrl(pathname), request.url)
-    return NextResponse.redirect(loginUrl)
-  }
+    if (isPublicPath(pathname)) {
+      return passThroughWithPathname(request, pathname)
+    }
 
-  return supabaseResponse
+    if (isProtectedPath(pathname)) {
+      const loginUrl = new URL(loginRedirectUrl(pathname), request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    return passThroughWithPathname(request, pathname)
+  }
 }
 
 export const config = {
