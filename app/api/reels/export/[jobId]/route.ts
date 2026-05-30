@@ -3,6 +3,7 @@ import { requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import {
   jobToExportPollResponse,
   loadOwnedCinematicProject,
+  mapProjectReelStatus,
 } from '@/lib/reels/export-api'
 import { getRenderJob } from '@/lib/video/job-store'
 
@@ -10,7 +11,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ jobId: string }> }
 ) {
   const auth = await requireCinematicUser()
@@ -23,6 +24,27 @@ export async function GET(
 
   const job = getRenderJob(jobId)
   if (!job) {
+    const projectId = req.nextUrl.searchParams.get('projectId')?.trim()
+    if (projectId) {
+      const row = await loadOwnedCinematicProject(projectId, auth.user!.id)
+      if (row) {
+        const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
+        const status = mapProjectReelStatus(row.reel_status, reelUrl)
+        const body = {
+          status,
+          progress: status === 'completed' ? 100 : status === 'failed' ? 0 : 50,
+          label:
+            status === 'completed'
+              ? 'Download ready'
+              : status === 'failed'
+                ? 'Reel export failed'
+                : 'Rendering reel…',
+          reelUrl: status === 'completed' ? reelUrl : null,
+          error: status === 'failed' ? 'Reel export failed' : null,
+        }
+        return NextResponse.json(body)
+      }
+    }
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 

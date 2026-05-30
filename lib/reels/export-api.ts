@@ -30,9 +30,7 @@ export type ReelExportRequest = {
   includeCaptions?: boolean
 }
 
-export function reelExportPollPath(jobId: string): string {
-  return `/api/reels/export/${encodeURIComponent(jobId)}`
-}
+export { reelExportPollPath } from '@/lib/reels/export-paths'
 
 export function mapJobToExportStatus(job: RenderJobStatus): ReelExportStatus {
   if (job.status === 'failed') return 'failed'

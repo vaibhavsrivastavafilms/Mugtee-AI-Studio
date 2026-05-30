@@ -98,6 +98,7 @@ import {
 import {
   pipelineFetch,
   pipelineFetchJson,
+  DEEP_RESEARCH_TIMEOUT_MS,
   SCRIPT_GENERATION_TIMEOUT_MS,
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
@@ -220,6 +221,8 @@ interface QuickCutGenerationStateBase {
   renderStatusLabel: string | null
   isRenderingVideo: boolean
   exportPackageReady: boolean
+  /** MP4 URL missing or download failed — user must re-export. */
+  exportExpired: boolean
   videoRenderEnabled: boolean
   virlo: VirloMetadata | null
   language: ProjectLanguage
@@ -320,6 +323,7 @@ const INITIAL: QuickCutGenerationState = {
   renderStatusLabel: null,
   isRenderingVideo: false,
   exportPackageReady: false,
+  exportExpired: false,
   videoRenderEnabled: false,
   virlo: null,
   language: 'en',
@@ -846,12 +850,16 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       }
     }
     if (exportRes.ok && typeof exportData.jobId === 'string') {
+      const { reelExportPollPath } = await import('@/lib/reels/export-paths')
       return {
         renderRes: exportRes,
         renderData: {
           jobId: exportData.jobId,
           status: exportData.status ?? 'queued',
-          pollUrl: `/api/reels/export/${exportData.jobId}`,
+          pollUrl: reelExportPollPath(
+            exportData.jobId,
+            state.savedProjectId ?? undefined
+          ),
         },
       }
     }
@@ -1324,8 +1332,8 @@ export const useQuickCutGenerationStore = create<
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ topic: prompt, prompt, language }),
-              maxRetries: 1,
-              timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
+              maxRetries: 0,
+              timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
             })
             if (researchResult.res.ok) {
               const rd = researchResult.data
@@ -1656,14 +1664,14 @@ export const useQuickCutGenerationStore = create<
         }
 
         if (videoRenderEnabled) {
-          set({ isRenderingVideo: true, renderError: null })
+          set({ isRenderingVideo: true, renderError: null, exportExpired: false })
           try {
             const { renderRes, renderData } = await requestVideoRender(get(), true)
 
             if (renderRes.ok) {
               if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
                 videoUrl = renderData.videoUrl
-                set({ videoUrl, renderPollUrl: null, renderError: null })
+                set({ videoUrl, renderPollUrl: null, renderError: null, exportExpired: false })
               } else if (typeof renderData.pollUrl === 'string') {
                 renderPollUrl = renderData.pollUrl
                 set({ renderPollUrl, renderError: null })
@@ -1680,9 +1688,13 @@ export const useQuickCutGenerationStore = create<
                     get().savedProjectId
                   )
                 } catch (pollErr) {
-                  renderError = friendlyReelRenderError(
+                  const pollMessage =
                     pollErr instanceof Error ? pollErr.message : 'Video render timed out'
-                  )
+                  renderError = friendlyReelRenderError(pollMessage)
+                  if (pollMessage.includes('Export job expired')) {
+                    set({ exportExpired: true, videoUrl: null })
+                    videoUrl = null
+                  }
                 }
               }
               if (renderData.mock === true) anyMock = true
@@ -2146,7 +2158,7 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
-    set({ renderError: null, isRenderingVideo: true })
+    set({ renderError: null, isRenderingVideo: true, exportExpired: false })
 
     try {
       try {
@@ -2169,6 +2181,7 @@ export const useQuickCutGenerationStore = create<
           videoUrl: renderData.videoUrl,
           renderPollUrl: null,
           renderError: null,
+          exportExpired: false,
           generationStep: 'complete',
         })
         persistSession(get())
@@ -2176,7 +2189,7 @@ export const useQuickCutGenerationStore = create<
       }
 
       if (typeof renderData.pollUrl === 'string') {
-        set({ renderPollUrl: renderData.pollUrl, renderError: null })
+        set({ renderPollUrl: renderData.pollUrl, renderError: null, exportExpired: false })
         await get().resumeRenderPoll()
         return
       }
@@ -2234,23 +2247,41 @@ export const useQuickCutGenerationStore = create<
         240,
         savedProjectId
       )
-      set({ videoUrl: url, renderPollUrl: null, renderError: null, generationStep: 'complete' })
+      set({
+        videoUrl: url,
+        renderPollUrl: null,
+        renderError: null,
+        exportExpired: false,
+        generationStep: 'complete',
+      })
       persistSession(get())
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Video render timed out'
       if (message.includes('Export job expired') && savedProjectId) {
-        const { fetchProjectReelDownload } = await import('@/lib/quick-cut/asset-availability')
+        const { fetchProjectReelDownload, EXPORT_EXPIRED_MSG } = await import(
+          '@/lib/quick-cut/asset-availability'
+        )
         const recovered = await fetchProjectReelDownload(savedProjectId)
         if (recovered.reelUrl) {
           set({
             videoUrl: recovered.reelUrl,
             renderPollUrl: null,
             renderError: null,
+            exportExpired: false,
             generationStep: 'complete',
           })
           persistSession(get())
           return
         }
+        set({
+          videoUrl: null,
+          renderError: EXPORT_EXPIRED_MSG,
+          renderPollUrl: null,
+          exportExpired: true,
+          generationStep: 'render',
+        })
+        persistSession(get())
+        return
       }
       set({
         renderError: message,

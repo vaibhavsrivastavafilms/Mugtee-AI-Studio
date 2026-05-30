@@ -71,6 +71,7 @@ export type QuickCutProjectHydrationPatch = {
   videoUrl: string | null
   renderPollUrl: null
   renderError: string | null
+  exportExpired: boolean
   generationStep: QuickCutGenerationStep
   isComplete: boolean
   isGenerating: false
@@ -126,10 +127,11 @@ export function buildQuickCutHydrationFromRow(
     voiceName: state.voice?.voiceName ?? null,
     videoUrl: reelUrl,
     renderPollUrl: null,
+    exportExpired: reelFailed && !videoReady,
     renderError: videoReady
       ? null
       : reelFailed
-        ? 'Export failed — retry compile'
+        ? 'Export expired. Regenerate export.'
         : null,
     generationStep:
       row.generation_status === 'failed'

@@ -1,6 +1,24 @@
 import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
+import { reelExportPollPath } from '@/lib/reels/export-paths'
 
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
+
+export function normalizeReelExportPollUrl(
+  pollUrl: string,
+  projectId?: string | null
+): string {
+  if (!projectId?.trim()) return pollUrl
+  try {
+    const url = new URL(pollUrl, 'http://local')
+    if (!url.searchParams.has('projectId')) {
+      url.searchParams.set('projectId', projectId.trim())
+    }
+    return `${url.pathname}${url.search}`
+  } catch {
+    const jobId = pollUrl.split('/').pop()?.split('?')[0]
+    return jobId ? reelExportPollPath(jobId, projectId) : pollUrl
+  }
+}
 
 export type ReelExportPollStatus =
   | 'pending'
@@ -60,9 +78,10 @@ export async function pollReelExportJob(
   }
 ): Promise<string> {
   const maxAttempts = options?.maxAttempts ?? 120
+  const resolvedPollUrl = normalizeReelExportPollUrl(pollUrl, options?.projectId)
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 1500))
-    const res = await fetch(pollUrl, { credentials: 'include' })
+    const res = await fetch(resolvedPollUrl, { credentials: 'include' })
     const raw = (await res.json()) as Record<string, unknown>
 
     if (res.status === 404) {
