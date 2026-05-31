@@ -45,10 +45,6 @@ import { QuickCutPlayerMp4Download } from '@/components/quick-cut/project-mp4-bu
 
 
 
-const DEFAULT_WAVEFORM = [0.25, 0.45, 0.7, 0.55, 0.85, 0.6, 0.75, 0.4, 0.5, 0.65]
-
-
-
 export function ReelAssemblyPlayer({
 
   scenes,
@@ -64,8 +60,6 @@ export function ReelAssemblyPlayer({
   voiceUrl,
 
   audioRef: externalAudioRef,
-
-  waveform = [],
 
   showSubtitles = false,
 
@@ -102,8 +96,6 @@ export function ReelAssemblyPlayer({
   /** Shared narration audio — when set, captions sync to this element */
 
   audioRef?: RefObject<HTMLAudioElement | null>
-
-  waveform?: number[]
 
   showSubtitles?: boolean
 
@@ -157,8 +149,6 @@ export function ReelAssemblyPlayer({
   const audioRef = externalAudioRef ?? internalAudioRef
 
 
-
-  const bars = waveform.length > 0 ? waveform : DEFAULT_WAVEFORM
 
   const hasVideo = Boolean(videoUrl)
 
@@ -222,11 +212,6 @@ export function ReelAssemblyPlayer({
     hasVideo ? videoUrl : voiceUrl
 
   )
-
-  const showWaveform =
-    (slideshowPlaying || (voiceUrl && isPlaying) || isLive || mp4Compiling) &&
-    frames.length > 0 &&
-    !hasVideo
 
   const estimatedDuration = useMemo(() => {
     const sceneEstimate = computeRenderTotalSec(scenes)
@@ -615,86 +600,6 @@ export function ReelAssemblyPlayer({
             <Loader2 className="w-3 h-3 animate-spin" />
 
             MP4 compiling…
-
-          </div>
-
-        ) : null}
-
-
-
-        {canPlayPreview && !previewIsPlaying ? (
-
-          <button
-
-            type="button"
-
-            onClick={togglePlayback}
-
-            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors"
-
-            aria-label={playControlLabel}
-
-          >
-
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm">
-
-              <Play className="h-5 w-5 ml-0.5" aria-hidden />
-
-            </span>
-
-          </button>
-
-        ) : canPlayPreview && previewIsPlaying ? (
-
-          <button
-
-            type="button"
-
-            onClick={togglePlayback}
-
-            className="absolute bottom-3 right-3 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-black/60 text-gold-100 shadow-lg backdrop-blur-sm opacity-90 hover:opacity-100 transition-opacity"
-
-            aria-label={hasVideo ? 'Pause video' : 'Pause preview'}
-
-          >
-
-            <Pause className="h-4 w-4" aria-hidden />
-
-          </button>
-
-        ) : null}
-
-
-
-        {showWaveform && !hasVideo ? (
-
-          <div
-
-            className="absolute inset-x-0 bottom-14 flex items-end justify-center gap-[3px] h-7 px-8 pointer-events-none"
-
-            aria-hidden
-
-          >
-
-            {bars.slice(0, 12).map((h, i) => (
-
-              <span
-
-                key={i}
-
-                className="w-1 rounded-full bg-gold-400/75 origin-bottom animate-pulse"
-
-                style={{
-
-                  height: `${Math.round(h * 28)}px`,
-
-                  animationDelay: `${i * 70}ms`,
-
-                }}
-
-              />
-
-            ))}
 
           </div>
 

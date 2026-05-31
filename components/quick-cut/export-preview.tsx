@@ -33,7 +33,6 @@ export function ExportPreview({
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
@@ -120,7 +119,6 @@ export function ExportPreview({
             script={script}
             videoUrl={videoUrl}
             voiceUrl={voiceUrl}
-            waveform={waveform}
             mp4Compiling={mp4Compiling}
             generationStep="complete"
             autoPlayPreview={canPlayReelPreview && !videoUrl && !mp4Compiling}
