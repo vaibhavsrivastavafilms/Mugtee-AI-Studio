@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -244,6 +243,7 @@ export function HeaderRightActions({ user }: { user: User }) {
       <button
         type="button"
         onClick={() => router.push('/pricing')}
+        aria-label={isUnlimited ? 'Unlimited plan' : `${creditsLabel} remaining`}
         title={isUnlimited ? 'Unlimited plan' : `${creditsLabel} left`}
         className={cn(
           'hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-full border text-[11px] tracking-wide',
@@ -368,34 +368,34 @@ function NotificationPanel({
                 notifications.slice(0, 30).map((n) => (
                   <div
                     key={n.id}
-                    role="button"
-                    tabIndex={0}
                     className={cn(
-                      'flex items-start gap-2 px-3 py-2.5 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.03]',
+                      'flex items-start gap-2 px-3 py-2.5 border-b border-white/[0.04]',
                       !n.read && 'bg-gold-500/[0.04]'
                     )}
-                    onClick={() => onNotifClick(n)}
-                    onKeyDown={(e) => e.key === 'Enter' && onNotifClick(n)}
                   >
-                    <div
-                      className={cn(
-                        'mt-1 w-1.5 h-1.5 rounded-full shrink-0',
-                        n.read ? 'bg-transparent' : 'bg-gold-400'
-                      )}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{n.title}</div>
-                      {n.message ? (
-                        <div className="text-xs text-muted-foreground line-clamp-2">{n.message}</div>
-                      ) : null}
-                    </div>
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteNotification(n.id)
-                      }}
-                      className="p-2 rounded hover:bg-white/5 text-muted-foreground hover:text-red-300"
+                      onClick={() => onNotifClick(n)}
+                      className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-white/[0.03] -my-2.5 py-2.5 -ml-3 pl-3 rounded-none"
+                    >
+                      <div
+                        className={cn(
+                          'mt-1 w-1.5 h-1.5 rounded-full shrink-0',
+                          n.read ? 'bg-transparent' : 'bg-gold-400'
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{n.title}</div>
+                        {n.message ? (
+                          <div className="text-xs text-muted-foreground line-clamp-2">{n.message}</div>
+                        ) : null}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete notification"
+                      onClick={() => deleteNotification(n.id)}
+                      className="p-2 rounded hover:bg-white/5 text-muted-foreground hover:text-red-300 shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
