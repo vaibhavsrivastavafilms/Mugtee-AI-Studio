@@ -188,8 +188,14 @@ export async function buildPlatformPackZip(
       } catch {
         warnings.push('thumbnail.jpg skipped — image fetch failed')
       }
+    } else if (input.thumbnailConcept?.trim()) {
+      entries.push({
+        path: 'thumbnail-concept.txt',
+        data: textToUint8Array(input.thumbnailConcept.trim()),
+      })
+      included.push('thumbnail-concept.txt')
     } else {
-      warnings.push('thumbnail.jpg skipped — no scene image available')
+      warnings.push('thumbnail skipped — no scene image or concept available')
     }
   }
 
