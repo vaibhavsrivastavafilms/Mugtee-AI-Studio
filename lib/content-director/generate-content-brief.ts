@@ -8,6 +8,7 @@ import {
   type ContentBrief,
   type ContentBriefInput,
 } from '@/lib/content-director/content-brief'
+import { resolveGenerationTopic, type ParsedCreatorIntent } from '@/lib/input-understanding'
 
 const AUDIENCE_BY_NICHE: Record<string, string> = {
   storytelling: 'Curious scrollers who love emotional micro-stories',
@@ -28,8 +29,8 @@ function defaultAudience(niche?: string, platform?: string): string {
   return `${base} on ${platform || 'short-form video'}`
 }
 
-function rulesBasedBrief(input: ContentBriefInput): ContentBrief {
-  const topic = input.topic.trim()
+function rulesBasedBrief(input: ContentBriefInput, parsedIntent?: ParsedCreatorIntent | null): ContentBrief {
+  const topic = resolveGenerationTopic(parsedIntent, input.topic.trim())
   const niche = input.niche || inferNicheFromBrief({ topic })
   const platform = coercePlatform(input.platform ?? 'shorts')
   const tone = coerceTone(input.tone ?? 'cinematic')
@@ -116,10 +117,10 @@ export type GenerateContentBriefResult = {
 /** Fast brief synthesis — rules first, optional single OpenAI pass when configured. */
 export async function generateContentBrief(
   input: ContentBriefInput,
-  options?: { useAi?: boolean }
+  options?: { useAi?: boolean; parsedIntent?: ParsedCreatorIntent | null }
 ): Promise<GenerateContentBriefResult> {
   const started = performance.now()
-  const rules = rulesBasedBrief(input)
+  const rules = rulesBasedBrief(input, options?.parsedIntent)
   const useAi = options?.useAi !== false
 
   if (!useAi) {

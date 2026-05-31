@@ -110,6 +110,12 @@ import {
 import { useCompanionStore } from '@/stores/companion-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
+import {
+  logParsedIntent,
+  parseCreatorIntentSync,
+  serializeParsedIntent,
+  type ParsedCreatorIntent,
+} from '@/lib/input-understanding'
 import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
@@ -374,6 +380,10 @@ interface QuickCutGenerationStateBase {
   contentSeries: ContentSeries | null
   /** Session-only Content Director brief — aligns hook/script/visuals */
   contentBrief: ContentBrief | null
+  /** Parsed creator intent — clean topic for generation */
+  parsedIntent: ParsedCreatorIntent | null
+  /** Recent titles this session — originality validation */
+  recentTitles: string[]
   /** Per-output-card status for progressive UI */
   sectionStatus: SectionStatusMap
   /** Prevents duplicate pipeline starts from rapid clicks */
@@ -507,6 +517,8 @@ const INITIAL: QuickCutGenerationState = {
   repurposedAssets: {},
   contentSeries: null,
   contentBrief: null,
+  parsedIntent: null,
+  recentTitles: [],
   sectionStatus: resetSectionStatus(),
   generationInFlight: false,
   ...EMPTY_STORYBOARD_FIELDS,
@@ -535,20 +547,28 @@ function resolveCreatorProfilePayload(
 function contentBriefApiPayload(
   state: Pick<
     QuickCutGenerationState,
-    'prompt' | 'style' | 'duration' | 'niche' | 'language' | 'directorMode'
+    'prompt' | 'style' | 'duration' | 'niche' | 'language' | 'directorMode' | 'parsedIntent'
   >,
   platform?: string
 ) {
   return {
     topic: state.prompt,
+    parsedIntent: state.parsedIntent ? serializeParsedIntent(state.parsedIntent) : undefined,
     platform,
     tone: state.style,
     duration: state.duration,
-    niche: state.niche,
+    niche: state.parsedIntent?.niche ?? state.niche,
     language: state.language,
     directorMode: state.directorMode,
     creativeBrief: useCompanionStore.getState().creativeBrief,
   }
+}
+
+function recordRecentTitle(titles: string[], next: string): string[] {
+  const trimmed = next.trim()
+  if (!trimmed) return titles
+  const filtered = titles.filter((t) => t.trim().toLowerCase() !== trimmed.toLowerCase())
+  return [trimmed, ...filtered].slice(0, 8)
 }
 
 function parseContentAngleFromResponse(data?: Record<string, unknown> | null): {
@@ -959,11 +979,15 @@ async function requestHookRegeneration(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         idea: state.prompt,
+        parsedIntent: state.parsedIntent
+          ? serializeParsedIntent(state.parsedIntent)
+          : serializeParsedIntent(parseCreatorIntentSync(state.prompt)),
         sessionSeed: `${state.prompt}-${state.previousHooks.length}-${Date.now()}`,
         previousHooks: [...state.previousHooks, state.hook].filter(Boolean),
         hookVariantIndex: state.previousHooks.length + (strongVariation ? 1 : 0),
         language: state.language,
         recentContentAngles: loadRecentContentAngles(),
+        recentTitles: state.recentTitles,
         contentAngleId: state.contentAngleId ?? undefined,
       }),
     })
@@ -1388,6 +1412,9 @@ export const useQuickCutGenerationStore = create<
     const prompt = appendNotes(rawPrompt, input.imageNote, input.voiceNote, input.keywords)
     if (prompt.length < 6) return
 
+    const parsedIntent = parseCreatorIntentSync(prompt)
+    logParsedIntent(parsedIntent)
+
     const now = Date.now()
     if (get().generationInFlight || get().isGenerating) return
     if (now - lastPipelineInvokeAt < PIPELINE_DEBOUNCE_MS) return
@@ -1483,6 +1510,7 @@ export const useQuickCutGenerationStore = create<
         saveState: 'resumed',
         studioReviewMode: false,
         prompt,
+        parsedIntent,
         language,
         directorMode,
         blueprintId,
@@ -1497,13 +1525,16 @@ export const useQuickCutGenerationStore = create<
         savedProjectId: preserveProjectId,
         studioReviewMode: false,
         prompt,
+        parsedIntent,
         language,
         directorMode,
         blueprintId,
         style: tone,
         duration,
         niche:
-          regenFresh && !topicChanged ? preserved?.niche ?? 'storytelling' : 'storytelling',
+          regenFresh && !topicChanged
+            ? preserved?.niche ?? (parsedIntent.niche as CinematicNiche | undefined) ?? 'storytelling'
+            : (parsedIntent.niche as CinematicNiche | undefined) ?? 'storytelling',
           visualStyle:
           regenFresh && !topicChanged ? preserved?.visualStyle ?? null : null,
         storyBible:
@@ -1610,6 +1641,7 @@ export const useQuickCutGenerationStore = create<
               contentBriefApiPayload(
                 {
                   prompt,
+                  parsedIntent,
                   style: tone,
                   duration,
                   niche: get().niche,
@@ -1674,11 +1706,12 @@ export const useQuickCutGenerationStore = create<
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  topic: prompt,
+                  topic: parsedIntent.cleanTopic,
                   prompt,
                   language,
                   languageMixed,
                   directorMode,
+                  parsedIntent: serializeParsedIntent(parsedIntent),
                 }),
                 maxRetries: 0,
                 timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
@@ -1713,9 +1746,11 @@ export const useQuickCutGenerationStore = create<
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     idea: prompt,
+                    parsedIntent: serializeParsedIntent(parsedIntent),
                     sessionSeed,
                     language,
                     recentContentAngles: loadRecentContentAngles(),
+                    recentTitles: get().recentTitles,
                     contentBrief: sessionContentBrief ?? undefined,
                     ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
                   }),
@@ -1741,6 +1776,7 @@ export const useQuickCutGenerationStore = create<
                 title,
                 hook,
                 virlo,
+                recentTitles: recordRecentTitle(get().recentTitles, title),
                 ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
                 storyboard: isResume ? get().storyboard : [],
                 previousHooks: regenFresh ? regenAvoidHooks : [],
@@ -1772,8 +1808,10 @@ export const useQuickCutGenerationStore = create<
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  topic: prompt,
+                  topic: parsedIntent.cleanTopic,
                   prompt,
+                  rawInput: prompt,
+                  parsedIntent: serializeParsedIntent(parsedIntent),
                   tone,
                   duration,
                   sessionSeed,
@@ -2726,10 +2764,14 @@ export const useQuickCutGenerationStore = create<
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           idea: state.prompt,
+          parsedIntent: state.parsedIntent
+            ? serializeParsedIntent(state.parsedIntent)
+            : serializeParsedIntent(parseCreatorIntentSync(state.prompt)),
           sessionSeed: `${state.prompt}-title-${Date.now()}`,
           previousHooks: [state.title, state.hook].filter(Boolean),
           language: state.language,
           recentContentAngles: loadRecentContentAngles(),
+          recentTitles: state.recentTitles,
           contentBrief: state.contentBrief ?? undefined,
         }),
       })
@@ -2741,6 +2783,7 @@ export const useQuickCutGenerationStore = create<
 
       set({
         title: nextTitle,
+        recentTitles: recordRecentTitle(get().recentTitles, nextTitle),
         ...trackContentAngleFromResponse(data),
       })
       persistSession(get())
@@ -2766,8 +2809,12 @@ export const useQuickCutGenerationStore = create<
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: state.prompt,
+          topic: state.parsedIntent?.cleanTopic ?? state.prompt,
           prompt: state.prompt,
+          rawInput: state.prompt,
+          parsedIntent: state.parsedIntent
+            ? serializeParsedIntent(state.parsedIntent)
+            : serializeParsedIntent(parseCreatorIntentSync(state.prompt)),
           tone: state.style,
           duration: state.duration,
           sessionSeed: `${state.prompt}-script-${Date.now()}`,

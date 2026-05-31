@@ -39,6 +39,7 @@ import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { QUICK_CUT_SIGN_IN } from '@/lib/cinematic/quick-cut/copy'
 import { companionCopy } from '@/lib/companion/microcopy'
 import { mergeBriefWithConversation } from '@/lib/companion/creative-discovery'
+import { parseCreatorIntentSync } from '@/lib/input-understanding'
 import { CreativeDiscoveryFlow } from '@/components/companion/creative-discovery-flow'
 import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -174,7 +175,7 @@ export function MugteeConversationEntry({
         const toneLabel = TONE_OPTIONS.find((t) => t.id === finalCtx.tone)?.label
         setCreativeBrief(
           mergeBriefWithConversation(useCompanionStore.getState().creativeBrief, {
-            topic: finalCtx.topic,
+            topic: parseCreatorIntentSync(finalCtx.topic).cleanTopic,
             tone: toneLabel,
           })
         )

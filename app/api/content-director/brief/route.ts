@@ -4,6 +4,7 @@ import { generateContentBrief } from '@/lib/content-director/generate-content-br
 import { coerceTopic, logError } from '@/lib/workspace/validation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import { logParsedIntent, resolveParsedIntentAsync } from '@/lib/input-understanding'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Topic must be at least 3 characters' }, { status: 400 })
     }
 
+    const parsedIntent = await resolveParsedIntentAsync(raw, topic)
+    logParsedIntent(parsedIntent)
+
     const creativeBrief = normalizeCreativeBrief(raw?.creativeBrief ?? raw?.creative_brief)
     const useAi = raw?.rulesOnly !== true
 
@@ -34,13 +38,13 @@ export async function POST(req: NextRequest) {
         topic,
         platform: typeof raw?.platform === 'string' ? raw.platform : undefined,
         tone: typeof raw?.tone === 'string' ? raw.tone : typeof raw?.style === 'string' ? raw.style : undefined,
-        niche: typeof raw?.niche === 'string' ? raw.niche : undefined,
+        niche: parsedIntent.niche ?? (typeof raw?.niche === 'string' ? raw.niche : undefined),
         duration: typeof raw?.duration === 'number' ? raw.duration : undefined,
         language: typeof raw?.language === 'string' ? raw.language : undefined,
         directorMode: typeof raw?.directorMode === 'string' ? raw.directorMode : undefined,
         creativeBrief: Object.values(creativeBrief).some(Boolean) ? creativeBrief : undefined,
       },
-      { useAi }
+      { useAi, parsedIntent }
     )
 
     if (process.env.NODE_ENV === 'development') {

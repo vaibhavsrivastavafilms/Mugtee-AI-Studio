@@ -36,6 +36,12 @@ import { normalizeCreativeBrief } from '@/lib/companion/creative-discovery'
 import { normalizeCreatorMemory } from '@/lib/companion/creator-memory'
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import {
+  logParsedIntent,
+  resolveGenerationTopic,
+  resolveParsedIntentAsync,
+  serializeParsedIntent,
+} from '@/lib/input-understanding'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -133,13 +139,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const topic = coerceTopic(raw.topic ?? raw.prompt ?? raw.idea)
-    if (topic.length < 6) {
+    const rawInput = coerceTopic(raw.topic ?? raw.prompt ?? raw.idea)
+    if (rawInput.length < 6) {
       return NextResponse.json(
         { error: 'Topic must be at least 6 characters' },
         { status: 400 }
       )
     }
+
+    const parsedIntent = await resolveParsedIntentAsync(raw, rawInput)
+    logParsedIntent(parsedIntent)
+    const topic = resolveGenerationTopic(parsedIntent, rawInput)
 
     const platform = coercePlatform(raw.platform)
     const tone = coerceTone(raw.tone ?? raw.style)
@@ -161,7 +171,7 @@ export async function POST(req: NextRequest) {
       topic,
       tone,
       style: typeof raw.style === 'string' ? raw.style : tone,
-      niche: typeof raw.niche === 'string' ? raw.niche : undefined,
+      niche: parsedIntent.niche ?? (typeof raw.niche === 'string' ? raw.niche : undefined),
     })
 
     const transcript =
@@ -270,6 +280,8 @@ export async function POST(req: NextRequest) {
 
     const input = {
       topic,
+      rawInput,
+      parsedIntent,
       platform,
       tone,
       duration,

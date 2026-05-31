@@ -75,6 +75,9 @@ import {
 
 export type ScriptGenerationInput = {
   topic: string
+  /** Original user prompt before clean-topic extraction */
+  rawInput?: string
+  parsedIntent?: import('@/lib/input-understanding').ParsedCreatorIntent | null
   platform?: string
   tone?: string
   duration?: number
@@ -150,6 +153,7 @@ type GenInput = {
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
+  parsedIntent?: import('@/lib/input-understanding').ParsedCreatorIntent | null
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -200,6 +204,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       creativeBrief: input.creativeBrief,
       companionMemory: input.companionMemory,
       contentBrief: input.contentBrief,
+      parsedIntent: input.parsedIntent,
     }),
     sopSection,
     retryNote
@@ -580,6 +585,7 @@ export async function runScriptGeneration(
     creativeBrief: input.creativeBrief,
     companionMemory: input.companionMemory,
     contentBrief: input.contentBrief,
+    parsedIntent: input.parsedIntent,
   }
 
   if (!hasScriptGenerationKey()) {

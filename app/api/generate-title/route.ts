@@ -2,18 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import {
   generateTitleCandidates,
-  pickStrongestHookCandidate,
   generateHookCandidates,
   pickRotatedHookCandidate,
-  pickTitle,
 } from '@/lib/virlo-engine/hook-engine'
 import { coercePreviousHooks, isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import {
   coerceRecentContentAngles,
   contentAngleMetaFromSelection,
   isBannedHookOpening,
-  isBannedTitle,
-  sanitizeTitleCandidate,
   selectContentAngle,
   selectHookFramework,
 } from '@/lib/cinematic/content-angle-engine'
@@ -23,9 +19,26 @@ import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import {
+  logParsedIntent,
+  pickValidatedHook,
+  pickValidatedTitle,
+  resolveGenerationTopic,
+  resolveParsedIntentAsync,
+  serializeParsedIntent,
+} from '@/lib/input-understanding'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function coerceRecentTitles(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((v): v is string => typeof v === 'string')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 12)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,17 +53,22 @@ export async function POST(req: NextRequest) {
       if (blocked) return blocked
     }
 
-    const idea = coerceTopic(raw?.idea ?? raw?.prompt ?? raw?.topic)
-    if (idea.length < 3) {
+    const rawInput = coerceTopic(raw?.idea ?? raw?.prompt ?? raw?.topic)
+    if (rawInput.length < 3) {
       return NextResponse.json({ error: 'Idea must be at least 3 characters' }, { status: 400 })
     }
+
+    const parsedIntent = await resolveParsedIntentAsync(raw, rawInput)
+    logParsedIntent(parsedIntent)
+    const generationTopic = resolveGenerationTopic(parsedIntent, rawInput)
 
     const sessionSeed =
       typeof raw?.sessionSeed === 'string' || typeof raw?.sessionSeed === 'number'
         ? raw.sessionSeed
-        : idea
+        : generationTopic
 
     const previousHooks = coercePreviousHooks(raw?.previousHooks)
+    const recentTitles = coerceRecentTitles(raw?.recentTitles)
     const recentAngles = coerceRecentContentAngles(raw?.recentContentAngles)
     const attemptIndex =
       typeof raw?.hookVariantIndex === 'number' && raw.hookVariantIndex >= 0
@@ -59,10 +77,13 @@ export async function POST(req: NextRequest) {
 
     const contentBrief = normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief)
 
-    const niche = inferNicheFromBrief({ topic: idea })
+    const niche = inferNicheFromBrief({
+      topic: generationTopic,
+      niche: parsedIntent.niche,
+    })
     const contentAngle = selectContentAngle({
       niche,
-      topic: idea,
+      topic: generationTopic,
       sessionSeed,
       recentAngles,
       contentAngleId: typeof raw?.contentAngleId === 'string' ? raw.contentAngleId : undefined,
@@ -72,52 +93,55 @@ export async function POST(req: NextRequest) {
       attemptIndex,
     })
 
-    const virlo = buildVirloContext(idea, {
+    const virlo = buildVirloContext(generationTopic, {
       sessionSeed: `${sessionSeed}-${attemptIndex}`,
     })
     const meta = virloMetadataFromContext(virlo)
 
-    const titleCandidates = generateTitleCandidates(
-      idea,
-      virlo.topicAnalysis.niche,
-      virlo.creativeSeed.seed + attemptIndex * 17,
-      contentAngle
-    )
-    const hooks = generateHookCandidates(
-      idea,
-      virlo.topicAnalysis.niche,
-      virlo.emotionalGoal,
-      virlo.creativeSeed.seed + attemptIndex * 23,
-      5,
-      hookFramework
+    const titleResult = pickValidatedTitle(
+      (attempt) =>
+        generateTitleCandidates(
+          generationTopic,
+          virlo.topicAnalysis.niche,
+          virlo.creativeSeed.seed + (attemptIndex + attempt) * 17,
+          contentAngle
+        ),
+      parsedIntent.rawInput,
+      recentTitles
     )
 
     const avoid = previousHooks
-    const rotated = pickRotatedHookCandidate(
-      idea,
-      virlo.topicAnalysis.niche,
-      virlo.emotionalGoal,
-      virlo.creativeSeed.seed,
-      attemptIndex,
-      (text) => isHookTooSimilar(text, avoid) || isBannedHookOpening(text),
-      hookFramework
+    const hookResult = pickValidatedHook(
+      (attempt) => {
+        const seed = virlo.creativeSeed.seed + (attemptIndex + attempt) * 23
+        const hooks = generateHookCandidates(
+          generationTopic,
+          virlo.topicAnalysis.niche,
+          virlo.emotionalGoal,
+          seed,
+          5,
+          hookFramework
+        )
+        const rotated = pickRotatedHookCandidate(
+          generationTopic,
+          virlo.topicAnalysis.niche,
+          virlo.emotionalGoal,
+          virlo.creativeSeed.seed,
+          attemptIndex + attempt,
+          (text) => isHookTooSimilar(text, avoid) || isBannedHookOpening(text),
+          hookFramework
+        )
+        const fresh = hooks.find(
+          (h) => !isHookTooSimilar(h.text, avoid) && !isBannedHookOpening(h.text)
+        )
+        return fresh ? [fresh, ...hooks.filter((h) => h !== fresh)] : [rotated, ...hooks]
+      },
+      parsedIntent.rawInput,
+      recentTitles
     )
 
-    const freshCandidate =
-      hooks.find((h) => !isHookTooSimilar(h.text, avoid) && !isBannedHookOpening(h.text)) ??
-      rotated
-    const selectedHook =
-      freshCandidate.tensionScore >= pickStrongestHookCandidate(hooks).tensionScore - 1
-        ? freshCandidate
-        : pickStrongestHookCandidate(hooks)
-
-    let title = pickTitle(titleCandidates, virlo.creativeSeed.seed + attemptIndex)
-    if (isBannedTitle(title)) {
-      title = sanitizeTitleCandidate(title, virlo.creativeSeed.seed + attemptIndex)
-    }
-    let hook = isBannedHookOpening(selectedHook.text)
-      ? rotated.text
-      : selectedHook.text
+    let title = titleResult.value
+    let hook = hookResult.value.text
 
     if (contentBrief) {
       hook = alignOutputToBrief(hook, contentBrief, 'hook').text
@@ -133,11 +157,13 @@ export async function POST(req: NextRequest) {
       niche: virlo.topicAnalysis.niche,
       mock: false,
       source: 'virlo',
+      parsedIntent: serializeParsedIntent(parsedIntent),
+      validationRetries: titleResult.retries + hookResult.retries,
       virlo: {
         ...meta,
-        hookVariant: selectedHook.variant,
+        hookVariant: hookResult.value.variant,
       },
-      hookVariant: selectedHook.variant,
+      hookVariant: hookResult.value.variant,
       structureName: meta.structureName,
       ...angleMeta,
     })
