@@ -1,3 +1,4 @@
+import { creatorFriendlyMessage } from '@/lib/errors/creator-friendly-errors'
 import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { reelExportPollPath } from '@/lib/reels/export-paths'
@@ -112,7 +113,9 @@ async function fetchPollJson(
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Export status unavailable')
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(creatorFriendlyMessage(lastError, 'export'))
 }
 
 async function recoverFromDb(projectId?: string | null): Promise<string | null> {
@@ -149,14 +152,14 @@ export async function pollReelExportJob(
     if (!res.ok) {
       const url = await recoverFromDb(options?.projectId)
       if (url) return url
-      throw new Error(String(raw?.error || 'Export status unavailable'))
+      throw new Error(creatorFriendlyMessage({ status: res.status }, 'export'))
     }
 
     const job = parseReelExportPoll(raw)
     options?.onProgress?.({ label: job.label, progress: job.progress })
 
     if (job.status === 'failed') {
-      throw new Error(job.error || 'Reel export failed')
+      throw new Error(creatorFriendlyMessage(job.error, 'export'))
     }
 
     if (job.status === 'completed' && job.reelUrl) {
