@@ -23,7 +23,7 @@ import {
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import type { GenerateScriptApiResearchResponse } from '@/types/deep-research'
-import { logStepComplete, logStepFailed } from '@/lib/cinematic/generation-logger'
+import { logGenerationError, logStepComplete, logStepFailed } from '@/lib/cinematic/generation-logger'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 import {
   FeatureUsageFeatures,
@@ -317,11 +317,11 @@ export async function POST(req: NextRequest) {
       const message =
         err instanceof Error ? err.message : 'Script generation failed'
       logStepFailed('script', user.id, message)
+      logGenerationError(user.id, 'script', message, { reason: 'provider_failed' })
       return NextResponse.json(
         {
           error: SOFT_ERROR_COPY.storyPaused,
           reason: 'provider_failed',
-          detail: message,
         },
         { status: 502 }
       )

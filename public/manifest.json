@@ -27,7 +27,7 @@
     { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Quick Cut", "short_name": "Create", "url": "/create?mode=quick" },
-    { "name": "Projects", "short_name": "Projects", "url": "/create?tab=projects" }
+    { "name": "Enter studio", "short_name": "Studio", "url": "/create?mode=quick" },
+    { "name": "Your worlds", "short_name": "Worlds", "url": "/create" }
   ]
 }

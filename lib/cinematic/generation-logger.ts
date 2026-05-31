@@ -45,3 +45,26 @@ export function logGenerationResumed(
 ) {
   console.info('[GENERATION_RESUMED]', payload(projectId, { resumeFrom }))
 }
+
+export function logGenerationSuccess(
+  projectId: string | null | undefined,
+  extra?: LogPayload
+) {
+  console.info('[GENERATION_SUCCESS]', payload(projectId, extra))
+}
+
+export function logGenerationError(
+  projectId: string | null | undefined,
+  step: string | null | undefined,
+  serverDetail: string,
+  extra?: LogPayload
+) {
+  console.error(
+    '[GENERATION_ERROR]',
+    payload(projectId, {
+      step,
+      detail: serverDetail.slice(0, 500),
+      ...extra,
+    })
+  )
+}

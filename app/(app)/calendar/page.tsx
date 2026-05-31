@@ -77,9 +77,25 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">{format(cursor, 'MMMM')}</span> {format(cursor, 'yyyy')}</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => setCursor(subMonths(cursor, 1))} className="p-2 rounded-lg glass"><ChevronLeft className="w-4 h-4" /></button>
+            <button
+              type="button"
+              onClick={() => setCursor(subMonths(cursor, 1))}
+              className="p-2 rounded-lg glass"
+              aria-label="Previous month"
+              title="Previous month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
             <button onClick={() => setCursor(new Date())} className="px-3 py-2 text-xs rounded-lg glass">Today</button>
-            <button onClick={() => setCursor(addMonths(cursor, 1))} className="p-2 rounded-lg glass"><ChevronRight className="w-4 h-4" /></button>
+            <button
+              type="button"
+              onClick={() => setCursor(addMonths(cursor, 1))}
+              className="p-2 rounded-lg glass"
+              aria-label="Next month"
+              title="Next month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
             <Button onClick={() => setPlannerOpen(true)} variant="outline" className="ml-2 h-9 gap-2 border-gold-500/30 hover:border-gold-500/60 hover:bg-gold-500/10 text-gold-300">
               <Sparkles className="w-4 h-4" /> Plan Week
             </Button>

@@ -111,9 +111,11 @@ import {
   type PersistedGenerationStep,
 } from '@/lib/cinematic/generation-state'
 import {
+  logGenerationError,
   logGenerationRecoverable,
   logGenerationResumed,
   logGenerationStart,
+  logGenerationSuccess,
   logStepFailed,
 } from '@/lib/cinematic/generation-logger'
 import {
@@ -1325,12 +1327,7 @@ export const useQuickCutGenerationStore = create<
         }
       }
       if (step === 'images' && !config.images) {
-        if (freeTier || config.geminiDirect) {
-          missingKeys.add('GEMINI_API_KEY')
-        } else {
-          if (!config.emergent && !config.gemini) missingKeys.add('EMERGENT_LLM_KEY')
-          if (!config.openai) missingKeys.add('OPENAI_API_KEY')
-        }
+        missingKeys.add('TOGETHER_API_KEY')
       }
       if (step === 'voice' && !config.elevenlabs && !config.openai && !config.emergent) {
         if (freeTier) {
@@ -1928,6 +1925,11 @@ export const useQuickCutGenerationStore = create<
       }
 
       if (exportDoneFinal) {
+        logGenerationSuccess(get().savedProjectId, {
+          durationMs: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
+          mock: anyMock,
+          niche: get().niche,
+        })
         trackEvent(AnalyticsEvents.GENERATION_COMPLETED, {
           projectId: get().savedProjectId,
           metadata: {
@@ -1942,6 +1944,12 @@ export const useQuickCutGenerationStore = create<
           metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
         })
       } else if (exportFailedFinal) {
+        logGenerationError(
+          get().savedProjectId,
+          'export',
+          renderError ?? 'Export failed',
+          { recoverable: true }
+        )
         trackEvent(AnalyticsEvents.GENERATION_FAILED, {
           projectId: get().savedProjectId,
           metadata: {
@@ -1953,6 +1961,11 @@ export const useQuickCutGenerationStore = create<
 
       persistSession(get())
     } catch (err) {
+      const serverDetail =
+        err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error'
+      logGenerationError(get().savedProjectId, get().generationStep, serverDetail, {
+        recoverable: true,
+      })
       if (err instanceof PlanLimitError) {
         showPlanLimitToast(err.message)
       }
