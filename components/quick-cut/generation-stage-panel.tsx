@@ -370,7 +370,7 @@ export function GenerationStagePanel({
         shell(
           'Cinematic script',
           <Film className="w-3 h-3" />,
-          <p className="text-[12px] text-luxe/55 italic">Writing cinematic script…</p>,
+          <p className="text-[12px] text-luxe/55 italic">Mugtee is directing your next viral story.</p>,
           generationStep === 'script' || isRegeneratingScript
         )
       )
