@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import type { StoryBible } from '@/lib/cinematic/story-bible'
 import {
   Camera,
   Clapperboard,
@@ -23,6 +24,7 @@ export type RewriteContentType =
   | 'script'
   | 'scene'
   | 'caption'
+  | 'cta'
   | 'visual_direction'
 
 /** API variant sent as `rewrite_variant` — maps to server-side prompt directives. */
@@ -65,6 +67,8 @@ export type RewriteContext = {
   /** Full parent text — gives the model surrounding context. */
   full_text?: string
   content_type?: RewriteContentType
+  storyBible?: StoryBible | null
+  language?: string
 }
 
 export type RewriteApiPayload = {
@@ -108,10 +112,18 @@ const SCENE_ACTIONS: RewriteAction[] = [
 ]
 
 const CAPTION_ACTIONS: RewriteAction[] = [
-  { id: 'cta', label: 'Better CTA', icon: Megaphone, tone: 'text-emerald-300' },
   { id: 'more_engagement', label: 'More Engagement', icon: TrendingUp, tone: 'text-gold-300' },
   { id: 'platform_native', label: 'Platform Native', icon: Target, tone: 'text-sky-300' },
   { id: 'cleaner_copy', label: 'Cleaner Copy', icon: Type, tone: 'text-luxe/80' },
+  { id: 'emotional', label: 'More Emotional', icon: Heart, tone: 'text-pink-300' },
+]
+
+const CTA_ACTIONS: RewriteAction[] = [
+  { id: 'cta', label: 'Stronger CTA', icon: Megaphone, tone: 'text-emerald-300' },
+  { id: 'more_engagement', label: 'More Engagement', icon: TrendingUp, tone: 'text-gold-300' },
+  { id: 'platform_native', label: 'Platform Native', icon: Target, tone: 'text-sky-300' },
+  { id: 'cleaner_copy', label: 'Cleaner Copy', icon: Type, tone: 'text-luxe/80' },
+  { id: 'stronger_opening', label: 'More Urgent', icon: Flame, tone: 'text-orange-300' },
 ]
 
 const VISUAL_ACTIONS: RewriteAction[] = [
@@ -125,6 +137,7 @@ export const REWRITE_ACTIONS_BY_TYPE: Record<RewriteContentType, RewriteAction[]
   script: SCRIPT_ACTIONS,
   scene: SCENE_ACTIONS,
   caption: CAPTION_ACTIONS,
+  cta: CTA_ACTIONS,
   visual_direction: VISUAL_ACTIONS,
 }
 

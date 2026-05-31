@@ -32,6 +32,10 @@ export function locateQuickCutRewriteTarget(input: {
     if (input.payoff.includes(original)) return { field: 'payoff' }
   }
 
+  if (contentType === 'cta' && input.cta.includes(original)) {
+    return { field: 'cta' }
+  }
+
   if (contentType === 'scene' || contentType === 'visual_direction') {
     for (let i = 0; i < input.scenes.length; i++) {
       const scene = input.scenes[i]

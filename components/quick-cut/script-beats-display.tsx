@@ -157,7 +157,7 @@ export function ScriptBeatsDisplay({
       {showCta && cta ? (
         <BeatCard label="CTA">
           <p
-            data-rewrite-type="caption"
+            data-rewrite-type="cta"
             className={cn('text-sm text-gold-200/85 leading-snug font-medium', selectClass)}
           >
             {cta}
