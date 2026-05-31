@@ -357,3 +357,7 @@ from steps;
 comment on view public.creator_funnel_daily is 'Daily funnel stage counts for creator validation admin.';
 comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggregated for conversion / dropoff metrics.';
 
+-- Mugtee V5 Creator Multiverse (0044) — run supabase/migrations/0044_creator_multiverse.sql
+-- Extends creator_profiles: creator_world, creator_reputation, creator_hq_level,
+-- sidekick_personality, sidekick_evolution_tier, legendary_projects, story_vault_entries, hall_of_fame.
+

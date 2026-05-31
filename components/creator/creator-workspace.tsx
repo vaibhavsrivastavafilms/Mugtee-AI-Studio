@@ -30,6 +30,11 @@ import { InspirationFeed } from '@/components/retention/inspiration-feed'
 import { RetentionEmptyStateRecovery } from '@/components/retention/empty-state-recovery'
 import { useCreatorStreakTracker } from '@/hooks/use-creator-streak'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
+import { DynamicHomeHero } from '@/components/multiverse/dynamic-home-hero'
+import { StoryVaultTimeline } from '@/components/multiverse/story-vault-timeline'
+import { HallOfFamePanel } from '@/components/multiverse/hall-of-fame-panel'
+import { AiTeamRosterLoader } from '@/components/multiverse/ai-team-roster'
+import { CommunityComingSoonCard } from '@/components/multiverse/community-coming-soon-card'
 
 function QuickModeLink() {
   return (
@@ -95,24 +100,33 @@ export function CreatorWorkspace() {
     <div className="max-w-[1200px] mx-auto w-full space-y-8 sm:space-y-10">
       <CreatorWelcomeModal />
       <WelcomeBackBanner />
-      <motion.header
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 px-0.5"
-      >
-        <div>
-          <p className="text-[10px] tracking-[0.32em] uppercase text-[var(--v2-gold)] mb-1">
-            Studio
-          </p>
-          <h1 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)]">
-            What are we creating today?
-          </h1>
-          <p className="text-xs text-luxe/50 mt-1 italic">
-            I&apos;ll carry your idea from hook to export — just tell me where we&apos;re headed.
-          </p>
-        </div>
-        {user?.id ? <CreatorStreakBadge userId={user.id} /> : null}
-      </motion.header>
+
+      {user?.id ? (
+        <>
+          <DynamicHomeHero />
+          <div className="flex items-center justify-end px-0.5">
+            <CreatorStreakBadge userId={user.id} />
+          </div>
+        </>
+      ) : (
+        <motion.header
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 px-0.5"
+        >
+          <div>
+            <p className="text-[10px] tracking-[0.32em] uppercase text-[var(--v2-gold)] mb-1">
+              Studio
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)]">
+              What are we creating today?
+            </h1>
+            <p className="text-xs text-luxe/50 mt-1 italic">
+              I&apos;ll carry your idea from hook to export — just tell me where we&apos;re headed.
+            </p>
+          </div>
+        </motion.header>
+      )}
 
       <ContinueCreatingSection limit={6} onProjectsLoaded={onProjectsLoaded} />
 
@@ -148,6 +162,15 @@ export function CreatorWorkspace() {
       <PipelineFeatures className="pt-2" />
 
       <CreatorQueue />
+
+      {user?.id ? (
+        <>
+          <StoryVaultTimeline />
+          <HallOfFamePanel />
+          <AiTeamRosterLoader />
+          <CommunityComingSoonCard />
+        </>
+      ) : null}
 
       <ExampleChannelsSection />
 
