@@ -54,7 +54,7 @@ export function CreatorExperienceSelector({
               key={option.id}
               type="button"
               role="radio"
-              aria-checked={active ? 'true' : 'false'}
+              aria-checked={active}
               aria-label={`${option.label} mode — ${option.description}`}
               title={option.description}
               onClick={() => onChange(option.id)}

@@ -38,6 +38,13 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
 
+  async rewrites() {
+    return [
+      // Standalone deploys omit /public — serve Next metadata manifest at /manifest.json.
+      { source: '/manifest.json', destination: '/manifest.webmanifest' },
+    ]
+  },
+
   async headers() {
     return [
       {
