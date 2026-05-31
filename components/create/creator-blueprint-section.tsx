@@ -4,7 +4,22 @@ import { cn } from '@/lib/utils'
 import {
   CREATOR_BLUEPRINT_CATEGORIES,
   type CreatorBlueprint,
+  type CreatorBlueprintCategory,
 } from '@/lib/cinematic/creator-blueprints'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+const triggerClassName =
+  'h-9 text-xs bg-black/30 border-white/[0.08] text-luxe/85 hover:border-gold-500/25 focus:ring-gold-500/20'
+
+function categorySelectId(name: CreatorBlueprintCategory): string {
+  return `creator-blueprint-${name.toLowerCase().replace(/\s+/g, '-')}`
+}
 
 export function CreatorBlueprintSection({
   onSelectBlueprint,
@@ -16,7 +31,7 @@ export function CreatorBlueprintSection({
   className?: string
 }) {
   return (
-    <section className={cn('space-y-4', className)} aria-labelledby="creator-blueprint-heading">
+    <section className={cn('space-y-3', className)} aria-labelledby="creator-blueprint-heading">
       <div className="text-center px-1">
         <h2
           id="creator-blueprint-heading"
@@ -29,37 +44,57 @@ export function CreatorBlueprintSection({
         </p>
       </div>
 
-      <div className="space-y-4">
-        {CREATOR_BLUEPRINT_CATEGORIES.map((category) => (
-          <div key={category.name} className="space-y-2">
-            <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/60 px-0.5">
-              {category.name}
-            </p>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {category.blueprints.map((blueprint) => {
-                const selected = selectedBlueprintId === blueprint.id
-                return (
-                  <button
-                    key={blueprint.id}
-                    type="button"
-                    onClick={() => onSelectBlueprint(blueprint)}
-                    {...(selected
-                      ? { 'aria-pressed': 'true' as const }
-                      : { 'aria-pressed': 'false' as const })}
-                    className={cn(
-                      'inline-flex items-center px-3 py-1.5 rounded-full border text-[11px] sm:text-[11.5px] tracking-wide transition',
-                      selected
-                        ? 'bg-gold-500/15 border-gold-500/50 text-gold-200'
-                        : 'bg-white/[0.025] border-white/[0.06] hover:bg-gold-500/10 hover:border-gold-500/40 text-luxe/80 hover:text-gold-200'
-                    )}
-                  >
-                    {blueprint.label}
-                  </button>
-                )
-              })}
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+        role="group"
+        aria-label="Creator blueprint categories"
+      >
+        {CREATOR_BLUEPRINT_CATEGORIES.map((category) => {
+          const selectId = categorySelectId(category.name)
+          const selectedInCategory = category.blueprints.find(
+            (blueprint) => blueprint.id === selectedBlueprintId
+          )
+
+          return (
+            <div key={category.name} className="space-y-1.5 min-w-0">
+              <label
+                htmlFor={selectId}
+                className="text-[9px] tracking-[0.24em] uppercase text-luxe/45"
+              >
+                {category.name}
+              </label>
+              <Select
+                value={selectedInCategory?.id}
+                onValueChange={(id) => {
+                  const blueprint = category.blueprints.find((item) => item.id === id)
+                  if (blueprint) onSelectBlueprint(blueprint)
+                }}
+              >
+                <SelectTrigger
+                  id={selectId}
+                  aria-label={`${category.name} blueprint`}
+                  className={cn(
+                    triggerClassName,
+                    selectedInCategory && 'border-gold-500/50 text-gold-200'
+                  )}
+                >
+                  <SelectValue placeholder="Choose workflow" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0a0a0a] border-white/[0.08] text-luxe/90">
+                  {category.blueprints.map((blueprint) => (
+                    <SelectItem
+                      key={blueprint.id}
+                      value={blueprint.id}
+                      className="text-xs focus:bg-gold-500/10 focus:text-gold-200"
+                    >
+                      {blueprint.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
