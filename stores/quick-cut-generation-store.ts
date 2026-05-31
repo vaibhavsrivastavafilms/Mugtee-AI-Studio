@@ -124,7 +124,9 @@ import {
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
-import { showPlanLimitToast } from '@/lib/usage/plan-limit-toast.client'
+import { showPlanLimitToast, handlePlanLimitResponse } from '@/lib/usage/plan-limit-toast.client'
+import { handleImageGenerationUnavailableResponse } from '@/lib/cinematic/image-generation-unavailable.client'
+import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
 import {
   persistGenerationFailed,
   persistStepComplete,
@@ -804,6 +806,16 @@ async function fetchSceneImages(
     }),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  if (handlePlanLimitResponse(res, data)) {
+    throw new PlanLimitError(
+      typeof data.error === 'string' ? data.error : undefined
+    )
+  }
+  if (handleImageGenerationUnavailableResponse(res, data)) {
+    throw new ImageGenerationUnavailableError(
+      typeof data.message === 'string' ? data.message : undefined
+    )
+  }
   if (!res.ok) {
     throw new Error(String(data?.error || 'Scene image generation failed'))
   }
@@ -1654,7 +1666,8 @@ export const useQuickCutGenerationStore = create<
               noteMissing('images')
             }
             set({ scenes, storyboard: scenes })
-          } catch {
+          } catch (err) {
+            if (err instanceof ImageGenerationUnavailableError) throw err
             imgMock = true
             anyMock = true
             noteMissing('images')
@@ -1977,6 +1990,7 @@ export const useQuickCutGenerationStore = create<
         isGenerating: false,
         isComplete: false,
         saveState: 'saved',
+        directingSceneLabel: null,
       })
     }
   },

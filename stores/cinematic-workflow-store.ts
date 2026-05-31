@@ -2,6 +2,8 @@
 
 import { create } from 'zustand'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { handlePlanLimitResponse } from '@/lib/usage/plan-limit-toast.client'
+import { handleImageGenerationUnavailableResponse } from '@/lib/cinematic/image-generation-unavailable.client'
 
 export type WorkflowStep =
   | 'idle'
@@ -320,7 +322,9 @@ export const useCinematicWorkflowStore = create<
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ scenes: get().outputs.scenes }),
           })
-          const imgData = (await imgRes.json()) as Record<string, unknown>
+          const imgData = (await imgRes.json().catch(() => ({}))) as Record<string, unknown>
+          handlePlanLimitResponse(imgRes, imgData)
+          handleImageGenerationUnavailableResponse(imgRes, imgData)
           if (imgRes.ok && Array.isArray(imgData.scenes)) {
             set({
               outputs: {

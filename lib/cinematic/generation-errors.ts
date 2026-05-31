@@ -1,6 +1,10 @@
 import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import { PLAN_LIMIT_MESSAGE } from '@/lib/usage/usage-tracker'
+import {
+  IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
+  ImageGenerationUnavailableError,
+} from '@/lib/ai/image-provider-errors'
 
 const RAW_USER_MESSAGES = new Set([
   SOFT_ERROR_COPY.storyPaused,
@@ -14,10 +18,14 @@ const RAW_USER_MESSAGES = new Set([
   'Generation paused — try again.',
   'Connection lost — your work is saved. Try again.',
   'This step took too long — your work is saved. Try again.',
+  IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
 ])
 
 /** Never surface provider/JSON/stack details in the UI. */
 export function toUserGenerationError(err: unknown): string {
+  if (err instanceof ImageGenerationUnavailableError) {
+    return err.message || IMAGE_GENERATION_UNAVAILABLE_MESSAGE
+  }
   if (err instanceof PlanLimitError) {
     return err.message || PLAN_LIMIT_MESSAGE
   }
