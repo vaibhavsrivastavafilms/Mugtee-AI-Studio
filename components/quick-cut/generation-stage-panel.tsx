@@ -232,7 +232,7 @@ export function GenerationStagePanel({
                   ) : (
                     <RefreshCw className="w-3 h-3" />
                   )}
-                  Regenerate Hook
+                  Mugtee&apos;s Hook
                 </button>
               ) : null}
             </div>
@@ -263,7 +263,7 @@ export function GenerationStagePanel({
                 ) : (
                   <RefreshCw className="w-3 h-3" />
                 )}
-                Regenerate Script
+                Mugtee&apos;s Script
               </button>
             </div>
           ) : null}

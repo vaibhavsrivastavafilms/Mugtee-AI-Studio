@@ -14,11 +14,23 @@ export function ExampleChannelsSection({ className }: { className?: string }) {
 
   const handleCopy = async () => {
     if (!active) return
-    const text = `Topic: ${active.topic}\nHook: ${active.hook}\n\n${active.scriptSnippet}`
+    const text = [
+      `Topic: ${active.topic}`,
+      `Hook: ${active.hook}`,
+      '',
+      'Script:',
+      active.scriptSnippet,
+      '',
+      'Storyboard:',
+      active.storyboard,
+      '',
+      'Captions:',
+      active.captions,
+    ].join('\n')
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      toast.success('Snippet copied')
+      toast.success('Full template copied')
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
       toast.error('Could not copy')
@@ -58,18 +70,33 @@ export function ExampleChannelsSection({ className }: { className?: string }) {
         key={active.id}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-white/[0.08] bg-black/35 p-4 sm:p-5 space-y-3"
+        className="rounded-2xl border border-white/[0.08] bg-black/35 p-4 sm:p-5 space-y-4"
       >
-        <p className="text-sm font-medium text-luxe">{active.topic}</p>
-        <p className="text-sm text-gold-200/90 italic">&ldquo;{active.hook}&rdquo;</p>
-        <p className="text-[12px] text-luxe/60 leading-relaxed">{active.scriptSnippet}</p>
+        <div>
+          <p className="text-sm font-medium text-luxe">{active.topic}</p>
+          <p className="text-sm text-gold-200/90 italic mt-1">&ldquo;{active.hook}&rdquo;</p>
+        </div>
+        <div className="space-y-3 text-[12px] text-luxe/60 leading-relaxed">
+          <div>
+            <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/40 mb-1">Script</p>
+            <p>{active.scriptSnippet}</p>
+          </div>
+          <div>
+            <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/40 mb-1">Storyboard</p>
+            <p>{active.storyboard}</p>
+          </div>
+          <div>
+            <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/40 mb-1">Captions</p>
+            <p>{active.captions}</p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => void handleCopy()}
           className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/70 hover:text-gold-200 transition"
         >
           {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-          {copied ? 'Copied' : 'Copy snippet'}
+          {copied ? 'Copied' : 'Copy full template'}
         </button>
       </motion.div>
     </section>

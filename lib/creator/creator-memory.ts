@@ -408,16 +408,36 @@ function writeCachedCreatorProfile(profile: CreatorMemoryProfile): void {
   }
 }
 
-/** Load creator profile — API when signed in, local cache fallback. */
+export type CreatorProfileStatus = {
+  hasProfile: boolean
+  profile: CreatorMemoryProfile
+}
+
+function parseCreatorProfileResponse(data: Record<string, unknown>): CreatorMemoryProfile {
+  return normalizeCreatorMemoryProfile(data.creator_profile ?? data.creatorProfile)
+}
+
+/** Load creator profile — creator_profiles table API, profile API fallback, then cache. */
 export async function fetchCreatorMemoryProfile(): Promise<CreatorMemoryProfile> {
   if (typeof window === 'undefined') return {}
+  try {
+    const res = await fetch('/api/creator-profile', { cache: 'no-store' })
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, unknown>
+      const profile = parseCreatorProfileResponse(data)
+      if (hasCreatorProfileContent(profile)) {
+        writeCachedCreatorProfile(profile)
+        return profile
+      }
+    }
+  } catch {
+    /* fall through */
+  }
   try {
     const res = await fetch('/api/profile', { cache: 'no-store' })
     if (res.ok) {
       const data = (await res.json()) as Record<string, unknown>
-      const profile = normalizeCreatorMemoryProfile(
-        data.creator_profile ?? data.creatorProfile
-      )
+      const profile = parseCreatorProfileResponse(data)
       if (hasCreatorProfileContent(profile)) {
         writeCachedCreatorProfile(profile)
         return profile
@@ -429,7 +449,35 @@ export async function fetchCreatorMemoryProfile(): Promise<CreatorMemoryProfile>
   return readCachedCreatorProfile()
 }
 
-/** Persist creator profile via profile API + local cache. */
+/** Whether the user has a creator_profiles table row (onboarding complete). */
+export async function fetchCreatorProfileStatus(): Promise<CreatorProfileStatus> {
+  if (typeof window === 'undefined') {
+    return { hasProfile: false, profile: {} }
+  }
+  try {
+    const res = await fetch('/api/creator-profile', { cache: 'no-store' })
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, unknown>
+      const profile = parseCreatorProfileResponse(data)
+      if (hasCreatorProfileContent(profile)) {
+        writeCachedCreatorProfile(profile)
+      }
+      return {
+        hasProfile: Boolean(data.has_profile),
+        profile,
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+  const cached = readCachedCreatorProfile()
+  return {
+    hasProfile: hasCreatorProfileContent(cached),
+    profile: cached,
+  }
+}
+
+/** Persist creator profile via creator_profiles API + local cache. */
 export async function saveCreatorMemoryProfile(
   patch: CreatorProfileOverride
 ): Promise<CreatorMemoryProfile> {
@@ -440,16 +488,14 @@ export async function saveCreatorMemoryProfile(
   })
   writeCachedCreatorProfile(next)
   try {
-    const res = await fetch('/api/profile', {
+    const res = await fetch('/api/creator-profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ creator_profile: next }),
     })
     if (res.ok) {
       const data = (await res.json()) as Record<string, unknown>
-      const saved = normalizeCreatorMemoryProfile(
-        data.creator_profile ?? data.creatorProfile ?? next
-      )
+      const saved = parseCreatorProfileResponse(data) ?? next
       writeCachedCreatorProfile(saved)
       return saved
     }

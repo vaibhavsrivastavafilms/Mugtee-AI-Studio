@@ -68,7 +68,7 @@ export const MUGTEE_QUICK_ACTIONS: MugteeQuickAction[] = [
     chatFirst: true,
   },
   {
-    label: 'Generate Captions',
+    label: "Mugtee's Captions",
     prompt: 'Generate Instagram captions and hashtags for my reel — hook-first, platform-native.',
     chatFirst: true,
   },
