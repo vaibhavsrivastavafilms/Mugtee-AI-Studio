@@ -9,8 +9,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <head>
-        <style>{`
+      <head><style>{`
               .ge-body {
                 margin: 0;
                 min-height: 100vh;
@@ -59,8 +58,7 @@ export default function GlobalError({
                 color: #0B0B0B;
                 background: linear-gradient(135deg, #D4AF37 0%, #F5E6A8 100%);
               }
-        `}</style>
-      </head>
+        `}</style></head>
       <body className="ge-body">
         <div className="ge-logo" aria-hidden>
           M
