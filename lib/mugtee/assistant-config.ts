@@ -1,4 +1,5 @@
 import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
+import { MUGTEE_PERSONALITY } from '@/lib/mugtee/personality'
 
 export type MugteeQuickAction = {
   label: string
@@ -26,14 +27,14 @@ export type MugteeFaqCategory = {
 }
 
 export const MUGTEE_GREETING =
-  'Welcome to Mugtee Studio.\n\nTurn an idea into a cinematic reel, storyboard, script, or creator workflow in minutes.\n\nWhat are we creating today?'
+  "Bhai, welcome to Mugtee Studio.\n\nI'm Mugtee — your creative best friend, not another boring chatbot. One idea → hook → script → storyboard → export. Fast.\n\nWhat are we building today? Yaar, don't overthink — just tell me."
 
-export const MUGTEE_TAGLINE = 'Direct stories. Build reels. Create cinematic moments.'
+export const MUGTEE_TAGLINE = MUGTEE_PERSONALITY.tagline
 
-export const MUGTEE_INPUT_PLACEHOLDER = 'Describe your idea…'
+export const MUGTEE_INPUT_PLACEHOLDER = 'Bol — what's the idea?'
 
 export const MUGTEE_INPUT_EXAMPLE =
-  'Example: "Create a cinematic reel about discipline and success."'
+  'Example: "Bhai, ek faceless reel on discipline — hook should slap in 1.5 seconds."'
 
 export const MUGTEE_QUICK_ACTIONS: MugteeQuickAction[] = [
   {
