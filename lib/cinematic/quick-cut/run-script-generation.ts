@@ -526,7 +526,7 @@ export async function runScriptGeneration(
       )
 
       validation = validateCinematicOutput(output, niche, topic)
-      sopCompliance = scoreCinematicOutputSop(output)
+      sopCompliance = scoreCinematicOutputSop(output, topic)
 
       const passesValidation = validation.valid
       const passesSop = sopCompliance.overall >= minSopScore

@@ -710,7 +710,7 @@ export function buildMockCinematicOutput(input: {
 
   const viralStructure =
     input.viralStructure ??
-    analyzeViralStructure({ text: input.topic })
+    analyzeViralStructure({ text: input.topic, sessionSeed: virlo.creativeSeed.seed })
 
   const hook = viralStructure.hook
   const titleCandidates = generateTitleCandidates(

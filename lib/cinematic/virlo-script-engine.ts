@@ -65,6 +65,7 @@ export function runVirloScriptEngine(input: VirloScriptEngineInput): VirloScript
     language: input.language,
     transcript: input.transcript,
     voiceNote: input.voiceNote,
+    sessionSeed: input.sessionSeed,
   })
 
   const virloContext = buildVirloContext(topic, {

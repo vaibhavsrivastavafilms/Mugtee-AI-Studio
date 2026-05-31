@@ -4,7 +4,7 @@
 
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
-import { isQuoteModeText } from '@/lib/cinematic/viral-structure'
+import { isGenericPayoffOrCta, isQuoteModeText } from '@/lib/cinematic/viral-structure'
 
 /** Reel-native beat count range (voiceover-ready, documentary style). */
 export const SCRIPT_BEAT_MIN = 8
@@ -213,6 +213,7 @@ export function validateScriptBeatsStructure(input: {
   beats: MugteeScriptBeat[]
   payoff: string
   cta: string
+  topic?: string
 }): ScriptSopValidationResult {
   const issues: string[] = []
   const hook = input.hook.trim()
@@ -242,6 +243,8 @@ export function validateScriptBeatsStructure(input: {
 
   if (!input.payoff.trim() || input.payoff.trim().length < 6) issues.push('missing_payoff')
   if (!input.cta.trim() || input.cta.trim().length < 4) issues.push('missing_cta')
+  if (isGenericPayoffOrCta(input.payoff, input.topic)) issues.push('generic_payoff')
+  if (isGenericPayoffOrCta(input.cta, input.topic)) issues.push('generic_cta')
 
   const narrations = input.beats.map((b) => b.narration).join('\n')
   if (hasEssayVoice(`${hook}\n${narrations}`)) issues.push('essay_or_robotic_voice')
@@ -408,6 +411,7 @@ export function scoreScriptBeatsCompliance(input: {
   beats: MugteeScriptBeat[]
   payoff: string
   cta: string
+  topic?: string
 }): ScriptSopComplianceScore {
   const structure = validateScriptBeatsStructure(input)
   const issues = [...structure.issues]
@@ -461,6 +465,7 @@ export function scoreScriptSopCompliance(input: {
   sections: MugteeScriptSection[]
   payoff: string
   cta: string
+  topic?: string
 }): ScriptSopComplianceScore {
   const beats = input.sections
     .filter((s) => s.narration.trim())
@@ -474,11 +479,13 @@ export function scoreScriptSopCompliance(input: {
     beats,
     payoff: input.payoff,
     cta: input.cta,
+    topic: input.topic,
   })
 }
 
 export function scoreCinematicOutputSop(
-  output: CinematicGenerationOutput
+  output: CinematicGenerationOutput,
+  topic?: string
 ): ScriptSopComplianceScore {
   if (output.scriptBeats?.length) {
     return scoreScriptBeatsCompliance({
@@ -486,6 +493,7 @@ export function scoreCinematicOutputSop(
       beats: output.scriptBeats,
       payoff: output.payoff ?? '',
       cta: output.cta ?? output.captionPack?.cta ?? '',
+      topic,
     })
   }
 
@@ -506,6 +514,7 @@ export function scoreCinematicOutputSop(
     sections,
     payoff: output.payoff || sections[4]?.narration || '',
     cta: output.cta || output.captionPack?.cta || sections[5]?.narration || '',
+    topic,
   })
 }
 
@@ -542,16 +551,21 @@ export function buildSopRetryNote(
       'missing_beat_duration',
       'beat_too_many_sentences',
       'essay_or_robotic_voice',
+      'generic_payoff',
+      'generic_cta',
     ].includes(i)
   )
   return [
     `SOP compliance ${score.overall}/100 (need ${scriptSopMinScore()}+).`,
     weak.length ? `Strengthen: ${weak.join('; ')}.` : '',
     structural.length ? `Fix structure: ${structural.join(', ')}.` : '',
+    score.issues.includes('generic_payoff') || score.issues.includes('generic_cta')
+      ? 'Write topic-specific payoff + CTA — name the brief, ban generic "save and try step one" lines.'
+      : '',
     'Output Mugtee JSON: { hook, scriptBeats[{narration,duration,emotion}]×8-12, payoff, cta, scenes, captions }.',
     'NO blog/essay/GPT tone. YES reel-native one-sentence beats with duration badges.',
   ]
     .filter(Boolean)
     .join(' ')
 }
-
+

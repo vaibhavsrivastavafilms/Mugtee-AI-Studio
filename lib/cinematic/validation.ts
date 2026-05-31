@@ -135,7 +135,7 @@ function scriptEchoesTopic(script: string, topic: string): boolean {
   return overlapRatio(script, topic) > 0.72
 }
 
-function beatsStructureWeak(output: CinematicGenerationOutput): boolean {
+function beatsStructureWeak(output: CinematicGenerationOutput, topic?: string): boolean {
   const beats =
     output.scriptBeats?.length
       ? output.scriptBeats
@@ -161,6 +161,7 @@ function beatsStructureWeak(output: CinematicGenerationOutput): boolean {
       beats,
       payoff: output.payoff ?? '',
       cta: output.cta ?? output.captionPack?.cta ?? '',
+      topic,
     })
     return !check.valid
   }
@@ -197,7 +198,7 @@ export function validateCinematicOutput(
   if (!output.script.trim()) issues.push('empty_script')
   if (topic && scriptEchoesTopic(output.script, topic)) issues.push('script_echoes_topic')
   if (quoteModeDetected(output)) issues.push('quote_mode_script')
-  if (beatsStructureWeak(output)) issues.push('weak_sop_structure')
+  if (beatsStructureWeak(output, topic)) issues.push('weak_sop_structure')
   if (output.scenes.length < 2) issues.push('insufficient_scenes')
   if (scenesAreRepetitive(output.scenes)) issues.push('repetitive_scenes')
   if (captionsWeak(output)) issues.push('weak_captions')

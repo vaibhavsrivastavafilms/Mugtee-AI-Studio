@@ -89,6 +89,7 @@ function buildCreatorStructureLayer(): string {
       (b) => `Beat arc ${b.sceneIndex} "${b.label}": ${b.instruction}`
     ),
     `Populate scriptBeats[] with narration (1 sentence), duration ("4s"), emotion per beat.`,
+    `Payoff + CTA must be original every generation — reference the creator brief topic, not reusable motivational templates.`,
     `Write spoken cinematic beats — NO blog tone, NO quote spam, NO AI poetry, NO paragraphs.`,
   ].join('\n')
 }
