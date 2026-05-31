@@ -1,12 +1,20 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   CONTENT_LANGUAGES,
-  type ContentLanguageOption,
 } from '@/lib/cinematic/content-languages'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+const triggerClassName =
+  'h-9 text-xs bg-black/30 border-white/[0.08] text-luxe/85 hover:border-gold-500/25 focus:ring-gold-500/20'
 
 export function ContentLanguageSelector({
   value,
@@ -17,49 +25,38 @@ export function ContentLanguageSelector({
   onChange: (language: ProjectLanguage) => void
   className?: string
 }) {
-  return (
-    <div className={cn('relative', className)}>
-      <p className="text-[9px] tracking-[0.24em] uppercase text-luxe/45 mb-2.5">
-        Output language
-      </p>
-      <div className="flex gap-2 overflow-x-auto scroll-touch pb-1 -mx-1 px-1 snap-x snap-mandatory">
-        {CONTENT_LANGUAGES.map((option) => (
-          <LanguageChip
-            key={option.code}
-            option={option}
-            active={value === option.code}
-            onSelect={() => onChange(option.code)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
+  const selected = CONTENT_LANGUAGES.find((option) => option.code === value)
 
-function LanguageChip({
-  option,
-  active,
-  onSelect,
-}: {
-  option: ContentLanguageOption
-  active: boolean
-  onSelect: () => void
-}) {
-  const display = option.native ? `${option.label}` : option.label
   return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      whileTap={{ scale: 0.96 }}
-      title={option.native ? `${option.label} (${option.native})` : option.label}
-      className={cn(
-        'snap-start shrink-0 min-h-[36px] px-3.5 rounded-full text-[11px] tracking-wide transition-all border',
-        active
-          ? 'border-gold-400/50 bg-gold-gradient text-black shadow-gold-glow font-medium'
-          : 'border-white/[0.08] bg-black/30 text-luxe/65 hover:border-gold-500/25 hover:text-gold-200'
-      )}
-    >
-      {display}
-    </motion.button>
+    <div className={cn('space-y-1.5', className)}>
+      <label
+        htmlFor="quick-cut-content-language"
+        className="text-[9px] tracking-[0.24em] uppercase text-luxe/45"
+      >
+        Output language
+      </label>
+      <Select value={value} onValueChange={(code) => onChange(code as ProjectLanguage)}>
+        <SelectTrigger
+          id="quick-cut-content-language"
+          aria-label="Output language"
+          className={triggerClassName}
+        >
+          <SelectValue placeholder="Select language">
+            {selected?.label ?? 'English'}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="bg-[#0a0a0a] border-white/[0.08] text-luxe/90">
+          {CONTENT_LANGUAGES.map((option) => (
+            <SelectItem
+              key={option.code}
+              value={option.code}
+              className="text-xs focus:bg-gold-500/10 focus:text-gold-200"
+            >
+              {option.native ? `${option.label} (${option.native})` : option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   )
 }
