@@ -24,6 +24,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
+import { MotionStagePanel, MotionStageShell } from '@/components/quick-cut/motion-stage-panel'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 
 function SceneBreakdownList({
@@ -32,12 +33,14 @@ function SceneBreakdownList({
   showImages,
   exportTitle,
   allowDownload,
+  onMotionPresetChange,
 }: {
   scenes: GeneratedScene[]
   loading?: boolean
   showImages?: boolean
   exportTitle?: string
   allowDownload?: boolean
+  onMotionPresetChange?: (sceneId: string, presetId: import('@/lib/motion/motion-presets').MotionPresetId) => void
 }) {
   const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
   if (scenes.length === 0 && !loading) {
@@ -59,6 +62,11 @@ function SceneBreakdownList({
               compact
               exportBaseName={exportBase}
               allowDownload={allowDownload}
+              onMotionPresetChange={
+                onMotionPresetChange
+                  ? (presetId) => onMotionPresetChange(scene.id, presetId)
+                  : undefined
+              }
             />
           </li>
         ) : (
@@ -158,6 +166,7 @@ export function GenerationStagePanel({
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
+  const setSceneMotionPreset = useQuickCutGenerationStore((s) => s.setSceneMotionPreset)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const storyboardTracked = useRef(false)
@@ -368,6 +377,7 @@ export function GenerationStagePanel({
                 showImages={scenes.some((s) => s.imageUrl?.trim())}
                 exportTitle={title}
                 allowDownload={isComplete}
+                onMotionPresetChange={setSceneMotionPreset}
               />
             </RewriteProvider>,
             generationStep === 'scenes'
@@ -438,6 +448,13 @@ export function GenerationStagePanel({
         </div>
       )
     }
+
+    case 'motion':
+      return (
+        <MotionStageShell className={className}>
+          <MotionStagePanel scenes={scenes} />
+        </MotionStageShell>
+      )
 
     case 'voice':
       return (

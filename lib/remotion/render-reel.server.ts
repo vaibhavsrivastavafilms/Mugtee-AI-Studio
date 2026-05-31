@@ -13,16 +13,12 @@ import {
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
 import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/constants'
-import type {
-  ReelCompositionProps,
-  ReelSceneInput,
-  ReelSceneMotion,
-} from '@/lib/remotion/compositions/types'
+import { buildReelSceneInput } from '@/lib/motion/apply-scene-motion'
+import type { SceneMotionMap } from '@/lib/motion/motion-presets'
+import type { ReelCompositionProps, ReelSceneInput } from '@/lib/remotion/compositions/types'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
-
-const MOTIONS: ReelSceneMotion[] = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left']
 
 async function getServeUrl(): Promise<string> {
   if (cachedBundleLocation) return cachedBundleLocation
@@ -45,6 +41,7 @@ export type RenderRemotionReelInput = {
   musicUrl?: string | null
   title: string
   outputPath: string
+  sceneMotion?: SceneMotionMap | null
   onProgress?: (label: string, percent: number) => void
 }
 
@@ -78,13 +75,14 @@ export async function renderRemotionReel(
         ? imageUrl
         : await localPathToDataUrl(localImage)
 
-      reelScenes.push({
-        id: scene.id || `scene-${i}`,
-        imageSrc,
-        durationSec: Math.max(2, scene.duration || 4),
-        caption: '',
-        motion: MOTIONS[i % MOTIONS.length],
-      })
+      reelScenes.push(
+        buildReelSceneInput(scene, i, {
+          imageSrc,
+          caption: '',
+          sceneMotion: input.sceneMotion,
+          totalScenes: timedScenes.length,
+        })
+      )
     }
 
     let voiceAudioSrc: string | null = null

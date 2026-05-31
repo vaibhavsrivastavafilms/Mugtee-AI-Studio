@@ -6,6 +6,7 @@ export type QuickCutStageTab =
   | 'script'
   | 'scenes'
   | 'visuals'
+  | 'motion'
   | 'voice'
   | 'render'
   | 'complete'
@@ -22,6 +23,7 @@ export const STAGE_TAB_ORDER: QuickCutStageTab[] = [
   'script',
   'scenes',
   'visuals',
+  'motion',
   'voice',
   'render',
   'complete',
@@ -35,6 +37,7 @@ export const STAGE_TAB_LABELS: Record<QuickCutStageTab, string> = {
   script: 'Script',
   scenes: 'Scenes',
   visuals: 'Visuals',
+  motion: 'Motion',
   voice: 'Voice',
   render: 'Render',
   complete: 'Download',
@@ -48,6 +51,7 @@ export function generationStepToTab(
   if (step === 'idle' || step === 'error') return null
   if (step === 'analyzing') return 'title'
   if (step === 'images') return 'visuals'
+  if (step === 'motion') return 'motion'
   if (
     step === 'title' ||
     step === 'hook' ||

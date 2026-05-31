@@ -29,6 +29,7 @@ const STAGE_ICONS: Record<WorkspaceStage, typeof Lightbulb> = {
   script: FileText,
   scenes: Clapperboard,
   storyboard: Clapperboard,
+  motion: Sparkles,
   voice: Mic,
   export: Download,
 }
@@ -59,6 +60,7 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
       script: 'script',
       scenes: 'scenes',
       storyboard: 'visuals',
+      motion: 'visuals',
       voice: 'voice',
       export: 'complete',
     } as const

@@ -13,6 +13,7 @@ export type WorkspaceStage =
   | 'script'
   | 'scenes'
   | 'storyboard'
+  | 'motion'
   | 'voice'
   | 'export'
 
@@ -24,6 +25,7 @@ export const WORKSPACE_STAGE_ORDER: WorkspaceStage[] = [
   'script',
   'scenes',
   'storyboard',
+  'motion',
   'voice',
   'export',
 ]
@@ -34,6 +36,7 @@ export const WORKSPACE_STAGE_LABELS: Record<WorkspaceStage, string> = {
   script: 'Script',
   scenes: 'Scenes',
   storyboard: 'Storyboard',
+  motion: 'Motion',
   voice: 'Voice',
   export: 'Export',
 }
@@ -67,6 +70,8 @@ export function workspaceStageToTab(stage: WorkspaceStage): QuickCutStageTab {
       return 'scenes'
     case 'storyboard':
       return 'visuals'
+    case 'motion':
+      return 'motion'
     case 'voice':
       return 'voice'
     case 'export':
@@ -86,6 +91,8 @@ export function tabToWorkspaceStage(tab: QuickCutStageTab): WorkspaceStage | nul
       return 'scenes'
     case 'visuals':
       return 'storyboard'
+    case 'motion':
+      return 'motion'
     case 'voice':
       return 'voice'
     case 'render':
@@ -115,6 +122,7 @@ export function inferActiveWorkspaceStage(input: {
   prompt: string
 }): WorkspaceStage {
   if (input.isComplete) return 'export'
+  if (input.generationStep === 'motion') return 'motion'
   const tab = generationStepToTab(input.generationStep)
   if (tab) {
     const fromStep = tabToWorkspaceStage(tab)

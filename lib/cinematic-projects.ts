@@ -149,6 +149,8 @@ export type CinematicProjectRow = {
   generation_error?: string | null
   last_completed_step?: string | null
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | Record<string, unknown> | null
+  /** Per-scene motion preset map (migration 0038). */
+  scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | Record<string, unknown> | null
   /** Opt-in public homepage gallery (default false). */
   share_as_showcase?: boolean
 }
@@ -214,6 +216,7 @@ export type ArchiveGeneratedProjectInput = {
   generation_error?: string | null
   last_completed_step?: string | null
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | null
+  scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | null
   repurposedAssets?: RepurposedAssetsMap
   archetypeId?: string | null
   archetypeLabel?: string | null
@@ -490,6 +493,9 @@ export async function createProject(
   if ((state as { story_bible?: unknown }).story_bible !== undefined) {
     insertRow.story_bible = (state as { story_bible?: unknown }).story_bible
   }
+  if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
+    insertRow.scene_motion = (state as { scene_motion?: unknown }).scene_motion
+  }
   if (state.viral_script !== undefined) insertRow.viral_script = state.viral_script
   if ((state as { generation_status?: string }).generation_status !== undefined) {
     insertRow.generation_status = (state as { generation_status?: string }).generation_status
@@ -574,6 +580,7 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   series?: import('@/lib/cinematic/content-series').ContentSeries | null
   repurposedAssets?: RepurposedAssetsMap
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | null
+  scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | null
   visual_style?: VisualStyle | Record<string, unknown> | null
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
@@ -709,6 +716,9 @@ export async function updateProject(
   }
   if ((state as { story_bible?: unknown }).story_bible !== undefined) {
     patch.story_bible = (state as { story_bible?: unknown }).story_bible
+  }
+  if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
+    patch.scene_motion = (state as { scene_motion?: unknown }).scene_motion
   }
   if ((state as { viral_script?: unknown }).viral_script !== undefined) {
     patch.viral_script = (state as { viral_script?: unknown }).viral_script
@@ -919,6 +929,7 @@ export async function archiveGeneratedProject(
     variation_history?: unknown
     visual_style?: unknown
     story_bible?: import('@/lib/cinematic/story-bible').StoryBible | null
+    scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | null
     viral_script?: unknown
     generation_status?: string | null
     generation_step?: string | null
@@ -966,6 +977,7 @@ export async function archiveGeneratedProject(
     variation_history: input.variation_history ?? null,
     visual_style: input.visual_style ?? null,
     story_bible: input.story_bible ?? null,
+    scene_motion: input.scene_motion ?? null,
     viral_script: input.viral_script ?? null,
     generation_status: input.generation_status ?? null,
     generation_step: input.generation_step ?? null,
@@ -1021,6 +1033,7 @@ export async function archiveGeneratedProject(
       variation_history: input.variation_history ?? null,
       visual_style: input.visual_style ?? null,
       story_bible: input.story_bible ?? null,
+      scene_motion: input.scene_motion ?? null,
       viral_script: input.viral_script ?? null,
       generation_status: input.generation_status ?? null,
       generation_step: input.generation_step ?? null,

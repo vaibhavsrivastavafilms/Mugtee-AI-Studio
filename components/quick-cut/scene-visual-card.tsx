@@ -12,6 +12,8 @@ import {
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
+import { MotionPresetSelect } from '@/components/quick-cut/motion-preset-control'
+import type { MotionPresetId } from '@/lib/motion/motion-presets'
 
 export function SceneVisualCard({
   scene,
@@ -27,6 +29,7 @@ export function SceneVisualCard({
   compact = false,
   exportBaseName = 'mugtee-scene',
   allowDownload = true,
+  onMotionPresetChange,
 }: {
   scene: GeneratedScene
   index: number
@@ -42,6 +45,7 @@ export function SceneVisualCard({
   /** Slug used for downloaded still filenames */
   exportBaseName?: string
   allowDownload?: boolean
+  onMotionPresetChange?: (presetId: MotionPresetId) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draftPrompt, setDraftPrompt] = useState(scene.imagePrompt || '')
@@ -112,6 +116,12 @@ export function SceneVisualCard({
             {sceneLabel}
           </span>
           <div className="flex items-center gap-2">
+            {scene.motionPresetId ? (
+              <MotionPresetSelect
+                value={scene.motionPresetId}
+                onChange={onMotionPresetChange}
+              />
+            ) : null}
             {onToggleAudio ? (
               <button
                 type="button"
