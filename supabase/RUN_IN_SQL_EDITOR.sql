@@ -1,6 +1,7 @@
--- Consolidated cinematic_projects migrations (0014-0019)
+-- Consolidated cinematic_projects migrations (0014-0038)
 -- Run once in Supabase Dashboard -> SQL Editor -> New query
 -- Idempotent: safe to re-run (IF NOT EXISTS / drop policy if exists)
+-- Creator tables 0034-0045: run individual files under supabase/migrations/ when needed.
 -- ========== 0014_cinematic_projects.sql ==========
 -- MUGTEE â€” Lightweight cinematic creator project persistence.
 -- Single table, no over-normalization. Owner-only via RLS.
@@ -133,6 +134,50 @@ create policy "reels authenticated update"
   on storage.objects for update
   using (bucket_id = 'reels' and auth.role() = 'authenticated');
 
+-- ========== 0023_showcase_share.sql ==========
+-- Opt-in public homepage gallery (default private).
+
+alter table public.cinematic_projects
+  add column if not exists share_as_showcase boolean not null default false;
+
+comment on column public.cinematic_projects.share_as_showcase is
+  'When true, project may appear on the public Made With Mugtee homepage gallery (sanitized fields only).';
+
+create index if not exists cinematic_projects_showcase_idx
+  on public.cinematic_projects (share_as_showcase, updated_at desc)
+  where share_as_showcase = true;
+
+-- ========== 0032_reel_job_id.sql ==========
+-- Track active Remotion reel export job id for serverless poll recovery.
+
+alter table public.cinematic_projects
+  add column if not exists reel_job_id text;
+
+comment on column public.cinematic_projects.reel_job_id is
+  'In-flight reel export job id (reel-{uuid}-{ts}); cleared when reel_url is written';
+
+create index if not exists cinematic_projects_reel_job_id_idx
+  on public.cinematic_projects (reel_job_id)
+  where reel_job_id is not null;
+
+-- ========== 0035_story_bible.sql ==========
+-- Storyboard continuity engine — persistent visual bible per project.
+
+alter table public.cinematic_projects
+  add column if not exists story_bible jsonb;
+
+comment on column public.cinematic_projects.story_bible is
+  'StoryBible continuity: character, palette, environment, camera, mood, locks';
+
+-- ========== 0038_motion_engine.sql (column only) ==========
+-- Per-scene motion preset map. Full motion_presets seed: migrations/0038_motion_engine.sql
+
+alter table public.cinematic_projects
+  add column if not exists scene_motion jsonb not null default '{}'::jsonb;
+
+comment on column public.cinematic_projects.scene_motion is
+  'Per-scene motion preset assignments: { "<sceneId>": { "presetId": "push_in", "params": {}, "source": "auto|manual" } }';
+
 -- ========== VERIFICATION (one-click — run after migrations above) ==========
 -- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
 select
@@ -167,10 +212,14 @@ select
           'script_beats',
           'reel_status',
           'reel_url',
-          'reel_rendered_at'
+          'reel_rendered_at',
+          'share_as_showcase',
+          'reel_job_id',
+          'story_bible',
+          'scene_motion'
         )
-    ) < 19
-      then 'FAIL: missing columns from 0015–0022 — re-run the 0015–0022 blocks above'
+    ) < 23
+      then 'FAIL: missing columns from 0015–0038 — re-run the 0015–0038 blocks above'
     when (
       select count(*)
       from pg_policies
@@ -364,3 +413,6 @@ comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggr
 -- Mugtee V6 Creator Decision Engine (0045) — run supabase/migrations/0045_creator_decisions.sql
 -- decision_history jsonb on creator_profiles for decision_shown / decision_accepted tuning.
 
+-- Optional follow-ups (not required for Quick Cut save):
+-- 0034_creator_profiles.sql, 0036_project_edits.sql, 0037_workspace_preferences.sql,
+-- 0039_creative_companion.sql, 0040–0043 creator agent / companion tables.
