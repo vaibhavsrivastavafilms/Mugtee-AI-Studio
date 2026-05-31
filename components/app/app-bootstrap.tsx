@@ -95,6 +95,9 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
         void import('@/stores/creator-memory-store').then(({ useCreatorMemoryStore }) => {
           void useCreatorMemoryStore.getState().hydrate()
         })
+        void import('@/stores/creator-decision-store').then(({ useCreatorDecisionStore }) => {
+          void useCreatorDecisionStore.getState().fetchRecommended({ log: false })
+        })
       })
       .catch((e) => {
         if (cancelled) return

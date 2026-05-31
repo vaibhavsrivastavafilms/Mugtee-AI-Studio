@@ -361,3 +361,6 @@ comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggr
 -- Extends creator_profiles: creator_world, creator_reputation, creator_hq_level,
 -- sidekick_personality, sidekick_evolution_tier, legendary_projects, story_vault_entries, hall_of_fame.
 
+-- Mugtee V6 Creator Decision Engine (0045) — run supabase/migrations/0045_creator_decisions.sql
+-- decision_history jsonb on creator_profiles for decision_shown / decision_accepted tuning.
+
