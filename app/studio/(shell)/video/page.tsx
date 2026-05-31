@@ -8,7 +8,7 @@ export default function StudioVideoPage() {
     <Suspense
       fallback={
         <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-          Loading Text To Video Studio…
+          Loading Demo Studio…
         </div>
       }
     >

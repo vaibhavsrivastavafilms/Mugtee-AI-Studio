@@ -10,7 +10,7 @@ export type HeaderNavId =
 
 export const HEADER_NAV = [
   { id: 'create' as const, label: 'Create', href: '/studio/create?mode=quick' },
-  { id: 'video' as const, label: 'Text To Video', href: '/studio/video' },
+  { id: 'video' as const, label: 'Demo', href: '/studio/video' },
   { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
   { id: 'knowledge' as const, label: 'Knowledge', href: '/studio/knowledge' },
   { id: 'analytics' as const, label: 'Analytics', href: '/studio/analytics' },
