@@ -11,6 +11,11 @@ import {
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import {
+  IMAGE_GENERATION_UNAVAILABLE,
+  IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
+  ImageGenerationUnavailableError,
+} from '@/lib/ai/image-provider-errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -94,6 +99,15 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError('generate-images', err)
+    if (err instanceof ImageGenerationUnavailableError) {
+      return NextResponse.json(
+        {
+          error: IMAGE_GENERATION_UNAVAILABLE,
+          message: err.message || IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
+        },
+        { status: 503 }
+      )
+    }
     return NextResponse.json({ error: 'Image generation paused' }, { status: 500 })
   }
 }

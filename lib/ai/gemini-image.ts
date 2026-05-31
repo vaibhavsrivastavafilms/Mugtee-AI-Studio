@@ -6,6 +6,10 @@ import {
   getGeminiApiKey,
   hasDirectGeminiKey,
 } from '@/lib/ai/free-tier'
+import {
+  ImageGenerationUnavailableError,
+  isImageProviderUnavailable,
+} from '@/lib/ai/image-provider-errors'
 import { logError } from '@/lib/workspace/validation'
 
 export type GeminiImagePromptOptions = {
@@ -142,18 +146,32 @@ async function generateGeminiSceneImageDirect(
       logProviderHttpError('gemini-image.direct', res.status, body, {
         model,
       })
+      if (isImageProviderUnavailable(res.status, body)) {
+        throw new ImageGenerationUnavailableError()
+      }
       return null
     }
 
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
     const b64 = extractGeminiImageB64(json)
     if (!b64) {
+      const nestedErr =
+        typeof json?.error === 'object' && json.error !== null
+          ? String((json.error as { message?: string }).message || JSON.stringify(json.error))
+          : typeof json?.error === 'string'
+            ? json.error
+            : ''
+      if (nestedErr && isImageProviderUnavailable(0, nestedErr)) {
+        logProviderHttpError('gemini-image.direct.nested', 0, nestedErr, { model })
+        throw new ImageGenerationUnavailableError()
+      }
       logError('gemini-image.direct.no-image', new Error('No image in Gemini response'))
       return null
     }
 
     return { buffer: Buffer.from(b64, 'base64'), b64 }
   } catch (err) {
+    if (err instanceof ImageGenerationUnavailableError) throw err
     logError('gemini-image.direct', err)
     return null
   }
@@ -187,18 +205,34 @@ async function generateGeminiSceneImageEmergent(
       logProviderHttpError('gemini-image.emergent', res.status, body, {
         model: GEMINI_IMAGE_MODEL,
       })
+      if (isImageProviderUnavailable(res.status, body)) {
+        throw new ImageGenerationUnavailableError()
+      }
       return null
     }
 
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
     const b64 = extractGeminiImageB64(json)
     if (!b64) {
+      const nestedErr =
+        typeof json?.error === 'object' && json.error !== null
+          ? String((json.error as { message?: string }).message || JSON.stringify(json.error))
+          : typeof json?.error === 'string'
+            ? json.error
+            : ''
+      if (nestedErr && isImageProviderUnavailable(0, nestedErr)) {
+        logProviderHttpError('gemini-image.emergent.nested', 0, nestedErr, {
+          model: GEMINI_IMAGE_MODEL,
+        })
+        throw new ImageGenerationUnavailableError()
+      }
       logError('gemini-image.emergent.no-image', new Error('No image in Gemini response'))
       return null
     }
 
     return { buffer: Buffer.from(b64, 'base64'), b64 }
   } catch (err) {
+    if (err instanceof ImageGenerationUnavailableError) throw err
     logError('gemini-image.emergent', err)
     return null
   }
@@ -210,8 +244,12 @@ export async function generateGeminiSceneImageBuffer(
   opts: GeminiImagePromptOptions = {}
 ): Promise<GeminiSceneImageResult | null> {
   if (hasDirectGeminiKey()) {
-    const direct = await generateGeminiSceneImageDirect(prompt, opts)
-    if (direct) return direct
+    try {
+      const direct = await generateGeminiSceneImageDirect(prompt, opts)
+      if (direct) return direct
+    } catch (err) {
+      if (err instanceof ImageGenerationUnavailableError) throw err
+    }
   }
 
   if (allowEmergentGateway()) {

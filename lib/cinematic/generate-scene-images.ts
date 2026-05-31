@@ -8,6 +8,7 @@ import {
 } from '@/lib/cinematic/generation'
 import { placeholderSceneImageUrl } from '@/lib/cinematic/scene-preview-url'
 import { allowDalleImages } from '@/lib/ai/free-tier'
+import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
 import {
   generateGeminiSceneImage,
   generateOpenAISceneImage,
@@ -129,10 +130,14 @@ export async function generateSceneImages(
     // Primary: Gemini (direct AI Studio key first, then Emergent gateway when allowed)
     if (hasGeminiImageKey()) {
       attempted.push('gemini')
-      imageUrl = await generateGeminiSceneImage(scenePrompt, {
-        filename,
-        hasReferenceStyle: ctx.hasReferenceStyle,
-      })
+      try {
+        imageUrl = await generateGeminiSceneImage(scenePrompt, {
+          filename,
+          hasReferenceStyle: ctx.hasReferenceStyle,
+        })
+      } catch (err) {
+        if (err instanceof ImageGenerationUnavailableError) throw err
+      }
     }
 
     // Fallback: OpenAI Images API (disabled in free-tier-only mode)
