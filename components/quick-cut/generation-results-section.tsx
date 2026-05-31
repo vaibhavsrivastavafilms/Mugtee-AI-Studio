@@ -43,6 +43,7 @@ import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
+import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
@@ -282,6 +283,8 @@ export function GenerationResultsSection({
         hasScenes={scenes.length > 0}
         hasVoice={Boolean(voiceUrl?.trim())}
       />
+
+      <MugteeFollowUpActions />
 
       <div className="flex flex-wrap items-stretch justify-center gap-2">
         <button
