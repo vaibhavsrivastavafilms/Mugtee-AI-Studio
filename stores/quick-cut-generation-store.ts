@@ -103,6 +103,7 @@ import {
   type CreatorMemoryProfile,
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
+import { useCompanionStore } from '@/stores/companion-store'
 import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
@@ -1652,6 +1653,8 @@ export const useQuickCutGenerationStore = create<
             previousHook: regenFresh ? preserved?.previousHook : undefined,
             creatorMemoryBias: getCreatorMemoryBiasHints(),
             creatorProfile: resolveCreatorProfilePayload(get()),
+            creativeBrief: useCompanionStore.getState().creativeBrief,
+            companionMemory: useCompanionStore.getState().creatorMemory,
             ...creatorHistoryPayload(directorMode),
             skipResearch: true,
             skipStoryboard: true,
@@ -2467,6 +2470,8 @@ export const useQuickCutGenerationStore = create<
           previousHook: state.hook?.trim() || undefined,
           creatorMemoryBias: getCreatorMemoryBiasHints(),
           creatorProfile: resolveCreatorProfilePayload(state),
+          creativeBrief: useCompanionStore.getState().creativeBrief,
+          companionMemory: useCompanionStore.getState().creatorMemory,
           ...creatorHistoryPayload(state.directorMode),
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,

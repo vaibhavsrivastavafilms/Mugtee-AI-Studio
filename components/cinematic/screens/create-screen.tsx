@@ -8,6 +8,7 @@ import {
   getRecentCreativePatterns,
   rememberCreativeSession,
 } from '@/lib/creator/creator-memory'
+import { companionCopy } from '@/lib/companion/microcopy'
 import { useCinematicRoute } from '@/hooks/use-cinematic-route'
 import {
   hasCreatorMilestone,
@@ -207,7 +208,7 @@ export function CinematicCreateScreen() {
             className="h-14 sm:h-16 rounded-2xl bg-[#D4AF37] hover:bg-[#E7C56A] transition text-black font-semibold flex items-center justify-center gap-2 shadow-xl shadow-yellow-500/10 disabled:opacity-50 min-h-[48px]"
           >
             <Sparkles className="w-5 h-5" />
-            Let your story take form
+            {companionCopy('create')} your story
           </button>
         </div>
       </div>
