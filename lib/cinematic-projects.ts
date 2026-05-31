@@ -12,9 +12,66 @@ function requireBrowserClient() {
   return client
 }
 
-/** User-facing hint when migrations 0014–0018 have not been applied. */
-export const CINEMATIC_PROJECTS_MIGRATION_HINT =
-  'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql (migrations 0014–0018) in the Supabase SQL editor, then retry save.'
+/** User-facing hint when the cinematic_projects table has not been created. */
+export const CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE =
+  'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql in the Supabase SQL editor (cinematic_projects migrations 0014–0038), then retry save.'
+
+/** @deprecated Use {@link CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE} or {@link getCinematicProjectsMigrationHint}. */
+export const CINEMATIC_PROJECTS_MIGRATION_HINT = CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE
+
+export type CinematicProjectsErrorKind = 'table' | 'column' | 'rls' | 'other'
+
+export type CinematicProjectsErrorInfo = {
+  kind: CinematicProjectsErrorKind
+  column?: string
+  hint: string
+}
+
+/** Columns added after core 0014–0022 — safe to omit on retry when schema is behind. */
+const OPTIONAL_CINEMATIC_PROJECT_COLUMNS = new Set([
+  'story_bible',
+  'scene_motion',
+  'reel_job_id',
+  'share_as_showcase',
+  'creative_brief',
+  'director_notes',
+  'director_session_counts',
+  'workspace_layout',
+  'timeline_state',
+  'panel_preferences',
+])
+
+const COLUMN_MIGRATION: Record<string, string> = {
+  video_url: '0015',
+  thumbnail_url: '0015',
+  mode: '0016',
+  virlo: '0016',
+  storyboard: '0017',
+  language: '0018',
+  input_type: '0018',
+  original_transcript: '0018',
+  variation_history: '0018',
+  visual_style: '0018',
+  viral_script: '0018',
+  generation_status: '0019',
+  generation_step: '0019',
+  generation_error: '0019',
+  last_completed_step: '0019',
+  script_beats: '0021',
+  reel_status: '0022',
+  reel_url: '0022',
+  reel_rendered_at: '0022',
+  share_as_showcase: '0023',
+  reel_job_id: '0032',
+  story_bible: '0035',
+  scene_motion: '0038',
+  creative_brief: '0039',
+  director_notes: '0039',
+  director_session_counts: '0039',
+  workspace_layout: '0037',
+  timeline_state: '0037',
+  panel_preferences: '0037',
+}
 
 /** Supabase Dashboard → SQL Editor link derived from NEXT_PUBLIC_SUPABASE_URL. */
 export function getSupabaseSqlEditorUrl(): string | null {
@@ -29,48 +86,162 @@ export function getSupabaseSqlEditorUrl(): string | null {
   }
 }
 
+function extractMissingColumn(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined
+  const e = error as { message?: string; details?: string; hint?: string }
+  const msg = `${e.message ?? ''} ${e.details ?? ''} ${e.hint ?? ''}`
+  const schemaCache = msg.match(/Could not find the '([^']+)' column/i)
+  if (schemaCache?.[1]) return schemaCache[1]
+  const pgCol = msg.match(/column "([^"]+)" (?:of relation|does not exist)/i)
+  if (pgCol?.[1]) return pgCol[1]
+  return undefined
+}
+
+function buildColumnMigrationHint(column: string): string {
+  const migration = COLUMN_MIGRATION[column]
+  const migrationNote = migration ? ` (migration ${migration})` : ''
+  return `Project library needs a database update. Re-run supabase/RUN_IN_SQL_EDITOR.sql in the Supabase SQL editor — missing column: ${column}${migrationNote}. Local preview still works.`
+}
+
+/** Classify Supabase/PostgREST errors for cinematic_projects save/load. */
+export function classifyCinematicProjectsError(
+  error: unknown
+): CinematicProjectsErrorInfo | null {
+  if (!error || typeof error !== 'object') return null
+  const e = error as { code?: string; message?: string; status?: number; details?: string }
+  const msg = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
+
+  if (
+    e.code === '42501' ||
+    msg.includes('row-level security') ||
+    msg.includes('rls policy') ||
+    msg.includes('violates row-level security')
+  ) {
+    return {
+      kind: 'rls',
+      hint:
+        'Project save blocked by database permissions. Re-run the RLS policy block in supabase/RUN_IN_SQL_EDITOR.sql (migration 0014), then retry save.',
+    }
+  }
+
+  const missingColumn = extractMissingColumn(error)
+  if (e.code === 'PGRST204' || e.code === '42703' || missingColumn) {
+    const column = missingColumn ?? 'unknown'
+    return {
+      kind: 'column',
+      column,
+      hint: buildColumnMigrationHint(column),
+    }
+  }
+
+  if (
+    e.code === '42P01' ||
+    e.code === 'PGRST205' ||
+    e.status === 404 ||
+    (msg.includes('cinematic_projects') &&
+      (msg.includes('does not exist') ||
+        msg.includes('could not find') ||
+        msg.includes('schema cache') ||
+        msg.includes('relation')))
+  ) {
+    return {
+      kind: 'table',
+      hint: CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE,
+    }
+  }
+
+  return null
+}
+
+/** User-facing migration hint for a cinematic_projects save failure. */
+export function getCinematicProjectsMigrationHint(error: unknown): string {
+  return classifyCinematicProjectsError(error)?.hint ?? CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE
+}
+
 /** True when save failed because cinematic_projects migrations are missing. */
 export function isMigrationSaveError(message: string | null | undefined): boolean {
   if (!message) return false
   return (
+    message === CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE ||
     message === CINEMATIC_PROJECTS_MIGRATION_HINT ||
     message.includes('RUN_IN_SQL_EDITOR.sql') ||
-    message.includes('migrations 0014')
+    message.includes('Project library')
   )
 }
 
-/** Thrown when migrations 0014–0018 have not been applied (table or columns missing). */
+/** Thrown when cinematic_projects schema is not ready for save. */
 export class CinematicProjectsUnavailableError extends Error {
-  constructor(message = CINEMATIC_PROJECTS_MIGRATION_HINT) {
-    super(message)
+  readonly kind: CinematicProjectsErrorKind
+  readonly column?: string
+
+  constructor(info: CinematicProjectsErrorInfo | string = CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE) {
+    if (typeof info === 'string') {
+      super(info)
+      this.kind = 'table'
+    } else {
+      super(info.hint)
+      this.kind = info.kind
+      this.column = info.column
+    }
     this.name = 'CinematicProjectsUnavailableError'
   }
 }
 
-/** Detect Supabase/PostgREST errors for a missing cinematic_projects table. */
+/** Detect Supabase/PostgREST errors when cinematic_projects is unavailable. */
 export function isCinematicProjectsUnavailable(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const e = error as { code?: string; message?: string; status?: number; details?: string }
-  if (e.code === '42P01' || e.code === 'PGRST205' || e.code === 'PGRST204' || e.code === '42703') return true
-  if (e.status === 404) return true
-  const msg = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
-  return (
-    msg.includes('cinematic_projects') &&
-    (msg.includes('does not exist') ||
-      msg.includes('could not find') ||
-      msg.includes('schema cache') ||
-      msg.includes('relation'))
-  )
+  const info = classifyCinematicProjectsError(error)
+  return info !== null && info.kind !== 'other'
 }
 
 function throwIfUnavailable(error: unknown): never {
-  if (isCinematicProjectsUnavailable(error)) {
-    console.warn(
-      '[cinematic-projects] Table missing — apply supabase/RUN_IN_SQL_EDITOR.sql (0014–0018, see MIGRATION_RUNBOOK.md)'
-    )
-    throw new CinematicProjectsUnavailableError()
+  const info = classifyCinematicProjectsError(error)
+  if (info) {
+    console.warn('[cinematic-projects]', info.kind, info.column ?? '', '— apply supabase/RUN_IN_SQL_EDITOR.sql')
+    throw new CinematicProjectsUnavailableError(info)
   }
   throw error
+}
+
+async function mutateCinematicProjectRow(
+  operation: 'insert' | 'update',
+  row: Record<string, unknown>,
+  updateId?: string
+): Promise<CinematicProjectRow> {
+  const supabase = requireBrowserClient()
+  let payload = { ...row }
+  const maxAttempts = OPTIONAL_CINEMATIC_PROJECT_COLUMNS.size + 2
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const result =
+      operation === 'insert'
+        ? await supabase.from('cinematic_projects').insert(payload).select('*').single()
+        : await supabase
+            .from('cinematic_projects')
+            .update(payload)
+            .eq('id', updateId!)
+            .select('*')
+            .single()
+
+    if (!result.error) return result.data as CinematicProjectRow
+
+    const info = classifyCinematicProjectsError(result.error)
+    if (
+      info?.kind === 'column' &&
+      info.column &&
+      OPTIONAL_CINEMATIC_PROJECT_COLUMNS.has(info.column) &&
+      info.column in payload
+    ) {
+      delete payload[info.column]
+      console.warn(
+        `[cinematic-projects] Retrying save without optional column: ${info.column}`
+      )
+      continue
+    }
+
+    throwIfUnavailable(result.error)
+  }
+
+  throw new Error('Could not save project after retrying without optional columns')
 }
 import {
   captionsToPayload,
@@ -448,7 +619,6 @@ export async function createProject(
   },
   userId?: string
 ): Promise<CinematicProjectRow> {
-  const supabase = requireBrowserClient()
   const uid = userId ?? (await requireUserId())
 
   const allowed = await checkClientUsage('projects')
@@ -564,15 +734,9 @@ export async function createProject(
     })
   }
 
-  const { data, error } = await supabase
-    .from('cinematic_projects')
-    .insert(insertRow)
-    .select('*')
-    .single()
-
-  if (error) throwIfUnavailable(error)
+  const data = await mutateCinematicProjectRow('insert', insertRow)
   void incrementClientUsage('projects')
-  return data as CinematicProjectRow
+  return data
 }
 
 export type CinematicProjectPatch = Partial<CinematicProjectState> & {
@@ -593,7 +757,6 @@ export async function updateProject(
   id: string,
   state: CinematicProjectPatch
 ): Promise<CinematicProjectRow> {
-  const supabase = requireBrowserClient()
   const patch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   }
@@ -741,15 +904,7 @@ export async function updateProject(
     )
   }
 
-  const { data, error } = await supabase
-    .from('cinematic_projects')
-    .update(patch)
-    .eq('id', id)
-    .select('*')
-    .single()
-
-  if (error) throwIfUnavailable(error)
-  return data as CinematicProjectRow
+  return await mutateCinematicProjectRow('update', patch, id)
 }
 
 export async function loadProject(id: string): Promise<CinematicProjectRow> {
@@ -810,7 +965,7 @@ export async function duplicateProject(id: string): Promise<CinematicProjectRow>
 
 export type RecentProjectsLoadResult = {
   projects: CinematicProjectSummary[]
-  /** True when migrations 0014–0018 have not been applied (missing table). */
+  /** True when the cinematic_projects table has not been created. */
   tableUnavailable: boolean
 }
 
@@ -844,8 +999,11 @@ export async function loadRecentProjects(
 
   if (error) {
     if (isCinematicProjectsUnavailable(error)) {
+      const info = classifyCinematicProjectsError(error)
       console.warn(
-        '[cinematic-projects] Table missing — apply supabase/RUN_IN_SQL_EDITOR.sql (0014–0018, see MIGRATION_RUNBOOK.md)'
+        '[cinematic-projects]',
+        info?.kind ?? 'unknown',
+        '— apply supabase/RUN_IN_SQL_EDITOR.sql'
       )
       return { projects: [], tableUnavailable: true }
     }

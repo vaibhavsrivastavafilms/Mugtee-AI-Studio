@@ -48,7 +48,7 @@ import {
 import {
   archiveGeneratedProject,
   CinematicProjectsUnavailableError,
-  CINEMATIC_PROJECTS_MIGRATION_HINT,
+  getCinematicProjectsMigrationHint,
   isCinematicProjectsUnavailable,
   updateProject,
   type ArchiveGeneratedProjectInput,
@@ -937,7 +937,7 @@ async function saveCompletedStages(
 
 function resolveSaveError(err: unknown): string {
   if (err instanceof CinematicProjectsUnavailableError) return err.message
-  if (isCinematicProjectsUnavailable(err)) return CINEMATIC_PROJECTS_MIGRATION_HINT
+  if (isCinematicProjectsUnavailable(err)) return getCinematicProjectsMigrationHint(err)
   if (err instanceof Error && err.message === 'Not signed in') {
     return 'Sign in to save'
   }
@@ -1388,7 +1388,7 @@ function persistSession(state: QuickCutGenerationState) {
       saveState: 'error',
       saveError:
         isCinematicProjectsUnavailable(err) || err instanceof CinematicProjectsUnavailableError
-          ? CINEMATIC_PROJECTS_MIGRATION_HINT
+          ? getCinematicProjectsMigrationHint(err)
           : resolveSaveError(err),
     })
   })
