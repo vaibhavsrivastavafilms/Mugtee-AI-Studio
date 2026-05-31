@@ -1,5 +1,5 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
-import type { ScriptArchetypeId } from '@/lib/cinematic/script-archetypes'
+import type { NarrativeArchetypeId } from '@/lib/cinematic/narrative-structure-engine'
 
 export const RECENT_CONTENT_ANGLES_KEY = 'mugtee:recent-content-angles:v1'
 export const RECENT_CONTENT_ANGLES_MAX = 5
@@ -28,7 +28,7 @@ export type ContentAngle = {
   id: ContentAngleId
   label: string
   directive: string
-  archetypePrefs: ScriptArchetypeId[]
+  narrativeArchetypePrefs: NarrativeArchetypeId[]
 }
 
 export const CONTENT_ANGLES: Record<ContentAngleId, ContentAngle> = {
@@ -37,105 +37,105 @@ export const CONTENT_ANGLES: Record<ContentAngleId, ContentAngle> = {
     label: 'Story',
     directive:
       'Lead with a personal or character-driven narrative — setup, turn, and lesson. Avoid listicle framing.',
-    archetypePrefs: ['story', 'documentary', 'case_study'],
+    narrativeArchetypePrefs: ['personal_transformation', 'character_journey', 'origin_story'],
   },
   documentary: {
     id: 'documentary',
     label: 'Documentary',
     directive:
       'Observational vérité tone — witness detail, evidence, quiet revelation. Not preachy or hype.',
-    archetypePrefs: ['documentary', 'story', 'myth_busting'],
+    narrativeArchetypePrefs: ['documentary', 'historical_narrative', 'timeline_story'],
   },
   contrarian: {
     id: 'contrarian',
     label: 'Contrarian',
     directive:
       'Challenge the dominant belief with grounded evidence — provocative but not clickbait.',
-    archetypePrefs: ['contrarian', 'myth_busting', 'dark_psychology'],
+    narrativeArchetypePrefs: ['contrarian_argument', 'myth_busting', 'psychological_breakdown'],
   },
   investigation: {
     id: 'investigation',
     label: 'Investigation',
     directive:
       'Reporter energy — follow clues, surface what was overlooked, build toward a reveal.',
-    archetypePrefs: ['documentary', 'case_study', 'myth_busting'],
+    narrativeArchetypePrefs: ['investigation', 'documentary', 'case_study'],
   },
   myth_busting: {
     id: 'myth_busting',
     label: 'Myth Busting',
     directive:
       'Name a widely held belief, dismantle it layer by layer, land a sharper truth.',
-    archetypePrefs: ['myth_busting', 'contrarian', 'educational'],
+    narrativeArchetypePrefs: ['myth_busting', 'contrarian_argument', 'investigation'],
   },
   dark_psychology: {
     id: 'dark_psychology',
     label: 'Dark Psychology',
     directive:
       'Expose hidden mechanisms — manipulation, bias, or power dynamics. Clinical, not sensational.',
-    archetypePrefs: ['dark_psychology', 'contrarian', 'story'],
+    narrativeArchetypePrefs: ['psychological_breakdown', 'warning', 'contrarian_argument'],
   },
   emotional: {
     id: 'emotional',
     label: 'Emotional',
     directive:
       'Lead with felt experience — inner conflict, recognition, catharsis. Specific beats over vague inspiration.',
-    archetypePrefs: ['story', 'documentary', 'case_study'],
+    narrativeArchetypePrefs: ['personal_transformation', 'character_journey', 'origin_story'],
   },
   authority: {
     id: 'authority',
     label: 'Authority',
     directive:
       'Expert lens — credible insight, mechanism, proof. Teach without lecturing.',
-    archetypePrefs: ['educational', 'case_study', 'documentary'],
+    narrativeArchetypePrefs: ['case_study', 'psychological_breakdown', 'documentary'],
   },
   case_study: {
     id: 'case_study',
     label: 'Case Study',
     directive:
       'One subject, real specifics — situation, decision, outcome, extracted lesson.',
-    archetypePrefs: ['case_study', 'story', 'documentary'],
+    narrativeArchetypePrefs: ['case_study', 'experiment', 'timeline_story'],
   },
   challenge: {
     id: 'challenge',
     label: 'Challenge',
     directive:
       'Issue a direct dare or stakes-based test — what changes if the viewer acts (or ignores) this.',
-    archetypePrefs: ['list_format', 'contrarian', 'story'],
+    narrativeArchetypePrefs: ['challenge', 'experiment', 'personal_transformation'],
   },
   prediction: {
     id: 'prediction',
     label: 'Prediction',
     directive:
       'Forecast a shift, trend, or consequence — make the future feel inevitable or urgent.',
-    archetypePrefs: ['contrarian', 'educational', 'documentary'],
+    narrativeArchetypePrefs: ['prediction', 'warning', 'timeline_story'],
   },
   historical_parallel: {
     id: 'historical_parallel',
     label: 'Historical Parallel',
     directive:
       'Connect past event or era to present behavior — pattern recognition across time.',
-    archetypePrefs: ['documentary', 'story', 'myth_busting'],
+    narrativeArchetypePrefs: ['historical_narrative', 'timeline_story', 'documentary'],
   },
   personal_revelation: {
     id: 'personal_revelation',
     label: 'Personal Revelation',
     directive:
       'Confessional entry — what you learned, failed at, or finally admitted. First-person specificity.',
-    archetypePrefs: ['story', 'case_study', 'documentary'],
+    narrativeArchetypePrefs: ['personal_transformation', 'origin_story', 'character_journey'],
   },
   warning: {
     id: 'warning',
     label: 'Warning',
     directive:
       'Signal risk, cost, or trap — what goes wrong when people ignore this pattern.',
-    archetypePrefs: ['dark_psychology', 'contrarian', 'myth_busting'],
+    narrativeArchetypePrefs: ['warning', 'psychological_breakdown', 'contrarian_argument'],
   },
   unexpected_truth: {
     id: 'unexpected_truth',
     label: 'Unexpected Truth',
     directive:
       'Subvert assumptions — the real cause/effect is the opposite of what the audience expects.',
-    archetypePrefs: ['myth_busting', 'contrarian', 'story'],
+    narrativeArchetypePrefs: ['myth_busting', 'contrarian_argument', 'investigation'],
   },
 }
 
@@ -387,9 +387,14 @@ export function rotatedHookFrameworkByIndex(attemptIndex: number): HookFramework
   return selectHookFramework({ attemptIndex })
 }
 
-/** Archetype preference boost from selected content angle — merges into script-archetypes pool. */
-export function contentAngleArchetypePrefs(angle: SelectedContentAngle): ScriptArchetypeId[] {
-  return angle.archetypePrefs
+/** Narrative archetype preference boost from selected content angle. */
+export function contentAngleNarrativePrefs(angle: SelectedContentAngle): NarrativeArchetypeId[] {
+  return angle.narrativeArchetypePrefs
+}
+
+/** @deprecated Use contentAngleNarrativePrefs */
+export function contentAngleArchetypePrefs(angle: SelectedContentAngle): NarrativeArchetypeId[] {
+  return contentAngleNarrativePrefs(angle)
 }
 
 export function isBannedTitle(title: string): boolean {

@@ -105,6 +105,10 @@ export type QuickCutProjectHydrationPatch = {
   scriptArchetypeId: string | null
   scriptArchetypeLabel: string | null
   scriptArchetypeDisplay: string | null
+  narrativeArchetype: string | null
+  narrativeArchetypeLabel: string | null
+  narrativeStructureLabels: string[] | null
+  narrativeFlowDisplay: string | null
   contentAngleId: string | null
   contentAngleLabel: string | null
   hookFramework: string | null
@@ -184,9 +188,15 @@ export function buildQuickCutHydrationFromRow(
     directorMode: normalizeDirectorMode(
       extractDirectorModeFromCaptions(row.captions)
     ),
-    scriptArchetypeId: parsedCaptions.archetypeId ?? null,
-    scriptArchetypeLabel: parsedCaptions.archetypeLabel ?? null,
+    scriptArchetypeId: parsedCaptions.narrativeArchetype ?? parsedCaptions.archetypeId ?? null,
+    scriptArchetypeLabel:
+      parsedCaptions.narrativeArchetypeLabel ?? parsedCaptions.archetypeLabel ?? null,
     scriptArchetypeDisplay: parsedCaptions.archetypeDisplay ?? null,
+    narrativeArchetype: parsedCaptions.narrativeArchetype ?? parsedCaptions.archetypeId ?? null,
+    narrativeArchetypeLabel:
+      parsedCaptions.narrativeArchetypeLabel ?? parsedCaptions.archetypeLabel ?? null,
+    narrativeStructureLabels: parsedCaptions.narrativeStructureLabels ?? null,
+    narrativeFlowDisplay: parsedCaptions.narrativeFlowDisplay ?? null,
     contentAngleId: parsedCaptions.contentAngleId ?? null,
     contentAngleLabel: parsedCaptions.contentAngleLabel ?? null,
     hookFramework: parsedCaptions.hookFramework ?? null,

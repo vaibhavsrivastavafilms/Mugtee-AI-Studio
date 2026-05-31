@@ -245,6 +245,10 @@ interface QuickCutGenerationStateBase {
   scriptArchetypeId: string | null
   scriptArchetypeLabel: string | null
   scriptArchetypeDisplay: string | null
+  narrativeArchetype: string | null
+  narrativeArchetypeLabel: string | null
+  narrativeStructureLabels: string[] | null
+  narrativeFlowDisplay: string | null
   contentAngleId: string | null
   contentAngleLabel: string | null
   hookFramework: string | null
@@ -367,6 +371,10 @@ const INITIAL: QuickCutGenerationState = {
   scriptArchetypeId: null,
   scriptArchetypeLabel: null,
   scriptArchetypeDisplay: null,
+  narrativeArchetype: null,
+  narrativeArchetypeLabel: null,
+  narrativeStructureLabels: null,
+  narrativeFlowDisplay: null,
   contentAngleId: null,
   contentAngleLabel: null,
   hookFramework: null,
@@ -477,14 +485,40 @@ function parseScriptArchetypeFromOutput(output?: Record<string, unknown> | null)
   scriptArchetypeId: string | null
   scriptArchetypeLabel: string | null
   scriptArchetypeDisplay: string | null
+  narrativeArchetype: string | null
+  narrativeArchetypeLabel: string | null
+  narrativeStructureLabels: string[] | null
+  narrativeFlowDisplay: string | null
 } {
+  const narrativeArchetype =
+    typeof output?.narrativeArchetype === 'string'
+      ? output.narrativeArchetype
+      : typeof output?.archetypeId === 'string'
+        ? output.archetypeId
+        : null
+  const narrativeArchetypeLabel =
+    typeof output?.narrativeArchetypeLabel === 'string'
+      ? output.narrativeArchetypeLabel
+      : typeof output?.archetypeLabel === 'string'
+        ? output.archetypeLabel
+        : null
+  const narrativeStructureLabels = Array.isArray(output?.narrativeStructureLabels)
+    ? output.narrativeStructureLabels.filter(
+        (l): l is string => typeof l === 'string' && l.trim().length > 0
+      )
+    : null
+  const narrativeFlowDisplay =
+    typeof output?.narrativeFlowDisplay === 'string' ? output.narrativeFlowDisplay : null
+
   return {
-    scriptArchetypeId:
-      typeof output?.archetypeId === 'string' ? output.archetypeId : null,
-    scriptArchetypeLabel:
-      typeof output?.archetypeLabel === 'string' ? output.archetypeLabel : null,
+    scriptArchetypeId: narrativeArchetype,
+    scriptArchetypeLabel: narrativeArchetypeLabel,
     scriptArchetypeDisplay:
       typeof output?.archetypeDisplay === 'string' ? output.archetypeDisplay : null,
+    narrativeArchetype,
+    narrativeArchetypeLabel,
+    narrativeStructureLabels,
+    narrativeFlowDisplay,
   }
 }
 
@@ -578,6 +612,11 @@ function buildGenerationOutput(
           archetypeId: state.scriptArchetypeId as ScriptArchetypeId,
           archetypeLabel: state.scriptArchetypeLabel ?? undefined,
           archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
+          narrativeArchetype: state.narrativeArchetype ?? state.scriptArchetypeId ?? undefined,
+          narrativeArchetypeLabel:
+            state.narrativeArchetypeLabel ?? state.scriptArchetypeLabel ?? undefined,
+          narrativeStructureLabels: state.narrativeStructureLabels ?? undefined,
+          narrativeFlowDisplay: state.narrativeFlowDisplay ?? undefined,
         }
       : {}),
     ...(state.contentAngleId
@@ -684,6 +723,11 @@ function buildArchiveInput(
     archetypeId: state.scriptArchetypeId ?? undefined,
     archetypeLabel: state.scriptArchetypeLabel ?? undefined,
     archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
+    narrativeArchetype: state.narrativeArchetype ?? state.scriptArchetypeId ?? undefined,
+    narrativeArchetypeLabel:
+      state.narrativeArchetypeLabel ?? state.scriptArchetypeLabel ?? undefined,
+    narrativeStructureLabels: state.narrativeStructureLabels ?? undefined,
+    narrativeFlowDisplay: state.narrativeFlowDisplay ?? undefined,
     contentAngleId: state.contentAngleId ?? undefined,
     contentAngleLabel: state.contentAngleLabel ?? undefined,
     hookFramework: state.hookFramework ?? undefined,

@@ -24,7 +24,7 @@ import {
 import type { ScriptBeat } from '@/types/cinematic-script'
 import type { StoryboardScene, VisualTimelineEntry } from '@/types/storyboard'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 export type ProjectScriptViewDialogProps = {
@@ -44,6 +44,8 @@ export type ProjectScriptViewDialogProps = {
   captionLines?: string[] | null
   scriptArchetypeLabel?: string | null
   scriptArchetypeDisplay?: string | null
+  narrativeArchetypeLabel?: string | null
+  narrativeFlowDisplay?: string | null
   projectId?: string | null
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -89,6 +91,8 @@ export function ProjectScriptViewDialog({
   captionLines,
   scriptArchetypeLabel,
   scriptArchetypeDisplay,
+  narrativeArchetypeLabel,
+  narrativeFlowDisplay,
   projectId,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -114,6 +118,8 @@ export function ProjectScriptViewDialog({
     captionLines?: string[]
     scriptArchetypeLabel?: string
     scriptArchetypeDisplay?: string
+    narrativeArchetypeLabel?: string
+    narrativeFlowDisplay?: string
     contentAngleLabel?: string
     hookFrameworkLabel?: string
   } | null>(null)
@@ -145,8 +151,12 @@ export function ProjectScriptViewDialog({
           voiceUrl: state.voice?.audioUrl ?? null,
           captions: state.captions,
           captionLines: state.captionLines,
-          scriptArchetypeLabel: parsedCaptions.archetypeLabel,
+          scriptArchetypeLabel:
+            parsedCaptions.narrativeArchetypeLabel ?? parsedCaptions.archetypeLabel,
           scriptArchetypeDisplay: parsedCaptions.archetypeDisplay,
+          narrativeArchetypeLabel:
+            parsedCaptions.narrativeArchetypeLabel ?? parsedCaptions.archetypeLabel,
+          narrativeFlowDisplay: parsedCaptions.narrativeFlowDisplay,
           contentAngleLabel: parsedCaptions.contentAngleLabel,
           hookFrameworkLabel: parsedCaptions.hookFrameworkLabel,
         })
@@ -181,9 +191,19 @@ export function ProjectScriptViewDialog({
       captions: nonEmptyProp(captions) ?? nonEmptyProp(persisted?.captions),
       captionLines: captionLines?.length ? captionLines : persisted?.captionLines,
       scriptArchetypeLabel:
-        nonEmptyProp(scriptArchetypeLabel) ?? nonEmptyProp(persisted?.scriptArchetypeLabel),
+        nonEmptyProp(narrativeArchetypeLabel) ??
+        nonEmptyProp(scriptArchetypeLabel) ??
+        nonEmptyProp(persisted?.narrativeArchetypeLabel) ??
+        nonEmptyProp(persisted?.scriptArchetypeLabel),
       scriptArchetypeDisplay:
         nonEmptyProp(scriptArchetypeDisplay) ?? nonEmptyProp(persisted?.scriptArchetypeDisplay),
+      narrativeArchetypeLabel:
+        nonEmptyProp(narrativeArchetypeLabel) ??
+        nonEmptyProp(scriptArchetypeLabel) ??
+        nonEmptyProp(persisted?.narrativeArchetypeLabel) ??
+        nonEmptyProp(persisted?.scriptArchetypeLabel),
+      narrativeFlowDisplay:
+        nonEmptyProp(narrativeFlowDisplay) ?? nonEmptyProp(persisted?.narrativeFlowDisplay),
       contentAngleLabel:
         storeContentAngleLabel ?? nonEmptyProp(persisted?.contentAngleLabel),
       hookFrameworkLabel:
@@ -206,6 +226,8 @@ export function ProjectScriptViewDialog({
       captionLines,
       scriptArchetypeLabel,
       scriptArchetypeDisplay,
+      narrativeArchetypeLabel,
+      narrativeFlowDisplay,
       storeContentAngleLabel,
       storeHookFrameworkLabel,
       persisted,
@@ -271,8 +293,9 @@ export function ProjectScriptViewDialog({
           <DialogDescription className="text-[11px] text-luxe/50">
             Title, hook, full script, storyboard, and narration from this project
           </DialogDescription>
-          <ScriptTypeLabel
-            label={merged.scriptArchetypeDisplay ?? merged.scriptArchetypeLabel}
+          <NarrativeStructureLabel
+            archetypeLabel={merged.narrativeArchetypeLabel ?? merged.scriptArchetypeLabel}
+            narrativeFlowDisplay={merged.narrativeFlowDisplay}
             className="pt-1"
           />
           <ContentAngleLabel
@@ -390,7 +413,8 @@ export function QuickCutProjectScriptViewDialog({
   const originalTranscript = useQuickCutGenerationStore((s) => s.originalTranscript)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
-  const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
+  const narrativeArchetypeLabel = useQuickCutGenerationStore((s) => s.narrativeArchetypeLabel)
+  const narrativeFlowDisplay = useQuickCutGenerationStore((s) => s.narrativeFlowDisplay)
 
   const title = titleProp ?? titleStore
   const hook = hookProp ?? hookStore
@@ -418,7 +442,8 @@ export function QuickCutProjectScriptViewDialog({
       captionLines={captionLines}
       projectId={savedProjectId}
       scriptArchetypeLabel={scriptArchetypeLabel}
-      scriptArchetypeDisplay={scriptArchetypeDisplay}
+      narrativeArchetypeLabel={narrativeArchetypeLabel}
+      narrativeFlowDisplay={narrativeFlowDisplay}
       className={className}
       triggerClassName={triggerClassName}
       compact={compact}

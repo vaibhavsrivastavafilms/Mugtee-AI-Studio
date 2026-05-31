@@ -55,6 +55,8 @@ import {
   cinematicScriptFromGenerationOutput,
 } from '@/lib/cinematic/cinematic-script'
 import type { ScriptArchetypeMeta } from '@/lib/cinematic/script-archetypes'
+import type { NarrativeStructureMeta } from '@/lib/cinematic/narrative-structure-engine'
+import { assignBeatLabels } from '@/lib/cinematic/narrative-structure-engine'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -314,6 +316,10 @@ export type CinematicGenerationOutput = {
   archetypeId?: ScriptArchetypeMeta['archetypeId']
   archetypeLabel?: string
   archetypeDisplay?: string
+  narrativeArchetype?: string
+  narrativeArchetypeLabel?: string
+  narrativeStructureLabels?: string[]
+  narrativeFlowDisplay?: string
   contentAngleId?: string
   contentAngleLabel?: string
   hookFramework?: string
@@ -470,6 +476,22 @@ export function normalizeCinematicOutput(
   let script = coerceString(src.script, '')
 
   let scriptBeats = scriptBeatsRaw
+  const structureLabelsFromSrc = Array.isArray(src.narrativeStructureLabels)
+    ? src.narrativeStructureLabels.filter(
+        (l): l is string => typeof l === 'string' && l.trim().length > 0
+      )
+    : []
+  const structureLabels =
+    structureLabelsFromSrc.length > 0
+      ? structureLabelsFromSrc
+      : fallback.scriptArchetype?.narrativeStructureLabels
+  if (scriptBeats.length && structureLabels?.length) {
+    const assigned = assignBeatLabels(scriptBeats.length, structureLabels)
+    scriptBeats = scriptBeats.map((beat, i) => ({
+      ...beat,
+      label: beat.label?.trim() || assigned[i] || undefined,
+    }))
+  }
   if (!scriptBeats.length && scriptSections.some((s) => s.narration.trim())) {
     scriptBeats = scriptSections
       .filter((s) => s.narration.trim())
@@ -532,17 +554,41 @@ export function normalizeCinematicOutput(
   })
 
   const archetypeFromModel =
-    typeof src.archetypeId === 'string' || typeof src.archetype_id === 'string'
+    typeof src.archetypeId === 'string' ||
+    typeof src.archetype_id === 'string' ||
+    typeof src.narrativeArchetype === 'string'
       ? {
-          archetypeId: (src.archetypeId ?? src.archetype_id) as ScriptArchetypeMeta['archetypeId'],
+          archetypeId: (src.narrativeArchetype ??
+            src.archetypeId ??
+            src.archetype_id) as ScriptArchetypeMeta['archetypeId'],
           archetypeLabel:
-            typeof src.archetypeLabel === 'string'
-              ? src.archetypeLabel
-              : fallback.scriptArchetype?.archetypeLabel,
+            typeof src.narrativeArchetypeLabel === 'string'
+              ? src.narrativeArchetypeLabel
+              : typeof src.archetypeLabel === 'string'
+                ? src.archetypeLabel
+                : fallback.scriptArchetype?.archetypeLabel,
           archetypeDisplay:
             typeof src.archetypeDisplay === 'string'
               ? src.archetypeDisplay
               : fallback.scriptArchetype?.archetypeDisplay,
+          narrativeArchetype: (src.narrativeArchetype ??
+            src.archetypeId ??
+            src.archetype_id) as NarrativeStructureMeta['narrativeArchetype'],
+          narrativeArchetypeLabel:
+            typeof src.narrativeArchetypeLabel === 'string'
+              ? src.narrativeArchetypeLabel
+              : typeof src.archetypeLabel === 'string'
+                ? src.archetypeLabel
+                : fallback.scriptArchetype?.narrativeArchetypeLabel,
+          narrativeStructureLabels: Array.isArray(src.narrativeStructureLabels)
+            ? src.narrativeStructureLabels.filter(
+                (l): l is string => typeof l === 'string' && l.trim().length > 0
+              )
+            : fallback.scriptArchetype?.narrativeStructureLabels,
+          narrativeFlowDisplay:
+            typeof src.narrativeFlowDisplay === 'string'
+              ? src.narrativeFlowDisplay
+              : fallback.scriptArchetype?.narrativeFlowDisplay,
         }
       : fallback.scriptArchetype
 
@@ -562,11 +608,17 @@ export function normalizeCinematicOutput(
     captionPack,
     suggestedVoiceStyle,
     niche,
-    ...(archetypeFromModel?.archetypeId
+    ...(archetypeFromModel?.archetypeId || archetypeFromModel?.narrativeArchetype
       ? {
-          archetypeId: archetypeFromModel.archetypeId,
-          archetypeLabel: archetypeFromModel.archetypeLabel,
+          archetypeId: archetypeFromModel.archetypeId ?? archetypeFromModel.narrativeArchetype,
+          archetypeLabel:
+            archetypeFromModel.archetypeLabel ?? archetypeFromModel.narrativeArchetypeLabel,
           archetypeDisplay: archetypeFromModel.archetypeDisplay,
+          narrativeArchetype: archetypeFromModel.narrativeArchetype ?? archetypeFromModel.archetypeId,
+          narrativeArchetypeLabel:
+            archetypeFromModel.narrativeArchetypeLabel ?? archetypeFromModel.archetypeLabel,
+          narrativeStructureLabels: archetypeFromModel.narrativeStructureLabels,
+          narrativeFlowDisplay: archetypeFromModel.narrativeFlowDisplay,
         }
       : {}),
   }
@@ -584,7 +636,7 @@ function beatsToScenes(
     const durSec = parseBeatDurationSec(beat.duration) ?? 4
     return ensureSceneImagePrompt({
       id: `scene-${sceneIndex}`,
-      title: `Beat ${sceneIndex}`,
+      title: beat.label?.trim() || `Beat ${sceneIndex}`,
       description: beat.narration,
       duration: Math.min(Math.max(durSec, 2), 8),
       imagePrompt: '',
@@ -829,6 +881,10 @@ export function buildMockCinematicOutput(input: {
             archetypeId: input.scriptArchetype.archetypeId,
             archetypeLabel: input.scriptArchetype.archetypeLabel,
             archetypeDisplay: input.scriptArchetype.archetypeDisplay,
+            narrativeArchetype: input.scriptArchetype.narrativeArchetype,
+            narrativeArchetypeLabel: input.scriptArchetype.narrativeArchetypeLabel,
+            narrativeStructureLabels: input.scriptArchetype.narrativeStructureLabels,
+            narrativeFlowDisplay: input.scriptArchetype.narrativeFlowDisplay,
           }
         : {}),
     },
@@ -850,6 +906,10 @@ export type CaptionsPayload = {
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  narrativeArchetype?: string
+  narrativeArchetypeLabel?: string
+  narrativeStructureLabels?: string[]
+  narrativeFlowDisplay?: string
   contentAngleId?: string
   contentAngleLabel?: string
   hookFramework?: string
@@ -881,6 +941,10 @@ export function captionsToPayload(state: {
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  narrativeArchetype?: string
+  narrativeArchetypeLabel?: string
+  narrativeStructureLabels?: string[]
+  narrativeFlowDisplay?: string
   contentAngleId?: string
   contentAngleLabel?: string
   hookFramework?: string
@@ -902,6 +966,10 @@ export function captionsToPayload(state: {
     archetypeId: state.archetypeId,
     archetypeLabel: state.archetypeLabel,
     archetypeDisplay: state.archetypeDisplay,
+    narrativeArchetype: state.narrativeArchetype ?? state.archetypeId,
+    narrativeArchetypeLabel: state.narrativeArchetypeLabel ?? state.archetypeLabel,
+    narrativeStructureLabels: state.narrativeStructureLabels,
+    narrativeFlowDisplay: state.narrativeFlowDisplay,
     contentAngleId: state.contentAngleId,
     contentAngleLabel: state.contentAngleLabel,
     hookFramework: state.hookFramework,
@@ -927,6 +995,10 @@ export function parseCaptionsPayload(
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  narrativeArchetype?: string
+  narrativeArchetypeLabel?: string
+  narrativeStructureLabels?: string[]
+  narrativeFlowDisplay?: string
   contentAngleId?: string
   contentAngleLabel?: string
   hookFramework?: string
@@ -994,6 +1066,24 @@ export function parseCaptionsPayload(
     typeof value?.archetypeDisplay === 'string' && value.archetypeDisplay.trim()
       ? value.archetypeDisplay.trim()
       : undefined
+  const narrativeArchetype =
+    typeof value?.narrativeArchetype === 'string' && value.narrativeArchetype.trim()
+      ? value.narrativeArchetype.trim()
+      : archetypeId
+  const narrativeArchetypeLabel =
+    typeof value?.narrativeArchetypeLabel === 'string' &&
+    value.narrativeArchetypeLabel.trim()
+      ? value.narrativeArchetypeLabel.trim()
+      : archetypeLabel
+  const narrativeStructureLabels = Array.isArray(value?.narrativeStructureLabels)
+    ? value.narrativeStructureLabels.filter(
+        (l): l is string => typeof l === 'string' && l.trim().length > 0
+      )
+    : undefined
+  const narrativeFlowDisplay =
+    typeof value?.narrativeFlowDisplay === 'string' && value.narrativeFlowDisplay.trim()
+      ? value.narrativeFlowDisplay.trim()
+      : undefined
   const contentAngleId =
     typeof value?.contentAngleId === 'string' && value.contentAngleId.trim()
       ? value.contentAngleId.trim()
@@ -1039,6 +1129,10 @@ export function parseCaptionsPayload(
     archetypeId,
     archetypeLabel,
     archetypeDisplay,
+    narrativeArchetype,
+    narrativeArchetypeLabel,
+    narrativeStructureLabels,
+    narrativeFlowDisplay,
     contentAngleId,
     contentAngleLabel,
     hookFramework,

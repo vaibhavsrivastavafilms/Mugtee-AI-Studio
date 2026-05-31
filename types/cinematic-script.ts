@@ -7,6 +7,8 @@ export type ScriptBeat = {
   narration: string
   duration: string
   emotion: string
+  /** Narrative structure scene label (e.g. "Breaking Point", not "Beat 1"). */
+  label?: string
 }
 
 export type CinematicScript = {

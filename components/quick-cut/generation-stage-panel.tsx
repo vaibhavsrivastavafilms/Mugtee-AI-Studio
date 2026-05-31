@@ -21,7 +21,7 @@ import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 function SceneBreakdownList({
@@ -131,7 +131,8 @@ export function GenerationStagePanel({
   const payoff = useQuickCutGenerationStore((s) => s.payoff)
   const cta = useQuickCutGenerationStore((s) => s.cta)
   const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
-  const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
+  const narrativeArchetypeLabel = useQuickCutGenerationStore((s) => s.narrativeArchetypeLabel)
+  const narrativeFlowDisplay = useQuickCutGenerationStore((s) => s.narrativeFlowDisplay)
   const contentAngleLabel = useQuickCutGenerationStore((s) => s.contentAngleLabel)
   const hookFrameworkLabel = useQuickCutGenerationStore((s) => s.hookFrameworkLabel)
   const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
@@ -281,8 +282,9 @@ export function GenerationStagePanel({
               </button>
             </div>
           ) : null}
-          <ScriptTypeLabel
-            label={scriptArchetypeDisplay ?? scriptArchetypeLabel}
+          <NarrativeStructureLabel
+            archetypeLabel={narrativeArchetypeLabel ?? scriptArchetypeLabel}
+            narrativeFlowDisplay={narrativeFlowDisplay}
             className="px-0.5"
           />
           <ContentAngleLabel

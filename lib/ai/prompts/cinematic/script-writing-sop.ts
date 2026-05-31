@@ -11,6 +11,7 @@ import {
   BEAT_DURATION_MAX_SEC,
 } from '@/lib/cinematic/script-sop'
 import type { SelectedScriptArchetype } from '@/lib/cinematic/script-archetypes'
+import { buildBannedScriptPhrasesSection } from '@/lib/cinematic/narrative-structure-engine'
 
 export const REFERENCE_SCRIPT_MAX_CHARS = 24_000
 export const REFERENCE_SCRIPT_MIN_CHARS = 80
@@ -81,18 +82,21 @@ export function buildMugteeScriptSopSystemAugment(
 
   return `
 MUGTEE SCRIPT SOP (mandatory — reel-native cinematic beats, NOT essays):
-${scriptArchetype ? `\nACTIVE ARCHETYPE: ${scriptArchetype.label} — follow its beat arc, not generic CTSH beats.\n` : ''}
+${scriptArchetype ? `\nACTIVE NARRATIVE ARCHETYPE: ${scriptArchetype.label} — use its named scene labels, not generic CTSH beats.\n` : ''}
 OUTPUT STRUCTURE:
 HOOK (max ${HOOK_MAX_WORDS} words, single powerful opening line)
 
 SCRIPT BEATS (${SCRIPT_BEAT_MIN}–${SCRIPT_BEAT_MAX} beats):
-Each beat: { narration, duration, emotion }
+Each beat: { label, narration, duration, emotion }
+- label: mandatory scene label from narrative structure (NOT "Beat 1", "Problem", "Solution")
 - narration: exactly ONE sentence, voiceover-ready, documentary style
 - duration: "${BEAT_DURATION_MIN_SEC}s"–"${BEAT_DURATION_MAX_SEC}s" per beat (e.g. "4s")
 - ${emotionHint}
 
 PAYOFF: single emotional landing line — must name the specific topic/outcome (never generic "take one small step" / "witness the change")
 CTA: short creator CTA tied to this topic (save, comment, try a concrete move — never "save this and try step one today")
+
+${buildBannedScriptPhrasesSection()}
 
 Voice rules:
 - Reel-native: short sentences, emotional pacing, visual storytelling
@@ -103,17 +107,17 @@ Required JSON shape (primary):
 {
   "title": string (optional — derive from hook if omitted),
   "hook": string,
-  "scriptBeats": [{ "narration", "duration", "emotion" }] × ${SCRIPT_BEAT_MIN}–${SCRIPT_BEAT_MAX},
+  "scriptBeats": [{ "label", "narration", "duration", "emotion" }] × ${SCRIPT_BEAT_MIN}–${SCRIPT_BEAT_MAX},
   "payoff": string,
   "cta": string,
   "summary": string,
   "hookVariations": string[3],
   "scenes": [{ "id", "title", "description", "duration", ...visual fields }],
   "captions": { "primary", "cta", "hashtags" },
-  "suggestedVoiceStyle": string${scriptArchetype ? `,\n  "archetypeId": "${scriptArchetype.id}",\n  "archetypeLabel": "${scriptArchetype.label}"` : ''}
+  "suggestedVoiceStyle": string${scriptArchetype ? `,\n  "narrativeArchetype": "${scriptArchetype.id}",\n  "narrativeArchetypeLabel": "${scriptArchetype.label}",\n  "narrativeStructureLabels": ${JSON.stringify([...scriptArchetype.sceneLabels])},\n  "narrativeFlowDisplay": "${scriptArchetype.sceneLabels.join(' → ')}"` : ''}
 }
 
-Also populate "scenes" (one per beat) from scriptBeats — same narration in description, numeric duration from beat.
+Also populate "scenes" (one per beat) from scriptBeats — title = beat label, description = narration, numeric duration from beat.
 `.trim()
 }
 

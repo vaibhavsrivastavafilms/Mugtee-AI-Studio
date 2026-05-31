@@ -112,7 +112,7 @@ export function ScriptBeatsDisplay({
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="text-[10px] tracking-[0.18em] uppercase text-luxe/45">
-                    Beat {i + 1}
+                    {beat.label?.trim() || `Beat ${i + 1}`}
                   </span>
                   {beat.duration ? <DurationBadge duration={beat.duration} /> : null}
                 </div>
