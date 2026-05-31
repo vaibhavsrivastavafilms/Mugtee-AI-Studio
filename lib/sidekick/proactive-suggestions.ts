@@ -62,3 +62,22 @@ export function resolveProactiveSuggestions(input: SuggestionInput): ProactiveSu
 
   return out.slice(0, 3)
 }
+
+const DASHBOARD_NUDGES: ProactiveSuggestion[] = [
+  {
+    id: 'hook-focus',
+    title: 'Start with a tension-first hook',
+    body: 'Pick one topic from Today\'s Brief — I\'ll shape hook, script, and storyboard from there.',
+    actionLabel: 'Ask Mugtee',
+  },
+  {
+    id: 'consistency',
+    title: 'Keep the rhythm alive',
+    body: 'One finished reel this week beats three drafts sitting in projects.',
+    actionLabel: 'Open projects',
+  },
+]
+
+export function resolveDashboardProactiveSuggestions(): ProactiveSuggestion[] {
+  return DASHBOARD_NUDGES
+}

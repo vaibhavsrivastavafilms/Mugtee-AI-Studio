@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
-import { resolveProactiveSuggestions } from '@/lib/sidekick/proactive-suggestions'
+import { resolveProactiveSuggestions, resolveDashboardProactiveSuggestions } from '@/lib/sidekick/proactive-suggestions'
 import { cn } from '@/lib/utils'
 
 export function ProactiveSuggestions({
@@ -11,6 +11,7 @@ export function ProactiveSuggestions({
   title,
   hasScenes,
   hasVoice,
+  variant = 'contextual',
   className,
 }: {
   hook?: string | null
@@ -18,18 +19,21 @@ export function ProactiveSuggestions({
   title?: string | null
   hasScenes?: boolean
   hasVoice?: boolean
+  variant?: 'contextual' | 'dashboard'
   className?: string
 }) {
   const suggestions = useMemo(
     () =>
-      resolveProactiveSuggestions({
-        hook,
-        script,
-        title,
-        hasScenes,
-        hasVoice,
-      }),
-    [hook, script, title, hasScenes, hasVoice]
+      variant === 'dashboard'
+        ? resolveDashboardProactiveSuggestions()
+        : resolveProactiveSuggestions({
+            hook,
+            script,
+            title,
+            hasScenes,
+            hasVoice,
+          }),
+    [variant, hook, script, title, hasScenes, hasVoice]
   )
 
   if (!suggestions.length) return null
