@@ -80,6 +80,17 @@ function promptContext(
       : cameraVariationDirective(index, input.diversityAttempt ?? 0),
     hasReferenceStyle,
     storyBible: input.storyBible ?? undefined,
+    previousScene:
+      index > 0
+        ? {
+            title: input.scenes[index - 1]?.title,
+            description: input.scenes[index - 1]?.description,
+            visualPrompt: input.scenes[index - 1]?.visualPrompt,
+            imagePrompt: input.scenes[index - 1]?.imagePrompt,
+            environment: input.scenes[index - 1]?.environment,
+            colorPalette: input.scenes[index - 1]?.colorPalette,
+          }
+        : null,
   }
 }
 

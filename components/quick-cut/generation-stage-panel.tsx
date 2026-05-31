@@ -320,10 +320,20 @@ export function GenerationStagePanel({
       )
 
     case 'scenes':
-      return shell(
-        'Scene breakdown',
-        <Film className="w-3 h-3" />,
-        <SceneBreakdownList
+      return (
+        <div className={cn('space-y-2', className)}>
+          {storyBible ? (
+            <p
+              className="text-[10px] tracking-[0.18em] uppercase text-emerald-400/75 px-0.5"
+              title={`${storyBible.visualStyle} · ${storyBible.colorPalette}`}
+            >
+              Cinematic continuity active
+            </p>
+          ) : null}
+          {shell(
+            'Scene breakdown',
+            <Film className="w-3 h-3" />,
+            <SceneBreakdownList
           scenes={scenes}
           loading={generationStep === 'scenes'}
           showImages={scenes.some((s) => s.imageUrl?.trim())}
@@ -331,6 +341,8 @@ export function GenerationStagePanel({
           allowDownload={isComplete}
         />,
         generationStep === 'scenes'
+          )}
+        </div>
       )
 
     case 'visuals': {
