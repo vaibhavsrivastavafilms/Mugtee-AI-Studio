@@ -23,6 +23,7 @@ import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
+import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 
 function SceneBreakdownList({
   scenes,
@@ -304,6 +305,9 @@ export function GenerationStagePanel({
               (generationStep === 'script' || generationStep === 'scenes')
             }
           />
+          {!isGenerating && (script?.trim() || hook?.trim()) ? (
+            <MugteeFollowUpActions className="pt-2" />
+          ) : null}
         </div>
       ) : (
         shell(

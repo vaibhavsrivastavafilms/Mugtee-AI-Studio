@@ -58,9 +58,36 @@ import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generation
 import { CreatorInspiration } from '@/components/creator-inspiration'
 import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
 import { KnowledgeSuggestions } from '@/components/create/knowledge-suggestions'
+import {
+  MugteeConversationEntry,
+  type MugteeConversationLaunchPayload,
+} from '@/components/create/mugtee-conversation-entry'
 import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
+const CONVERSATION_ENTRY_KEY = 'mugtee:conversation-entry:v1'
+
+function loadConversationEntryPreference(directorUi: boolean): boolean {
+  if (directorUi) return false
+  if (typeof window === 'undefined') return true
+  try {
+    const raw = localStorage.getItem(CONVERSATION_ENTRY_KEY)
+    if (raw === 'classic') return false
+    if (raw === 'conversation') return true
+  } catch {
+    /* ignore */
+  }
+  return true
+}
+
+function saveConversationEntryPreference(mode: 'conversation' | 'classic'): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CONVERSATION_ENTRY_KEY, mode)
+  } catch {
+    /* ignore */
+  }
+}
 
 export function FullscreenQuickCutCanvas({
   embedded = false,
@@ -86,6 +113,7 @@ export function FullscreenQuickCutCanvas({
   const [promptIndex, setPromptIndex] = useState(0)
   const [showSignIn, setShowSignIn] = useState(false)
   const [mobileImageOpen, setMobileImageOpen] = useState(false)
+  const [useConversationEntry, setUseConversationEntry] = useState(true)
 
   const { ready: authReady, user } = useAuthHydration()
   const signedIn = authReady ? Boolean(user) : null
@@ -130,10 +158,18 @@ export function FullscreenQuickCutCanvas({
   useEffect(() => {
     setContentLanguage(loadContentLanguagePreference())
     setDirectorMode(loadDirectorModePreference())
-    setExperienceLevel(
-      initialExperience ?? loadCreatorExperiencePreference()
-    )
+    const level = initialExperience ?? loadCreatorExperiencePreference()
+    setExperienceLevel(level)
+    setUseConversationEntry(loadConversationEntryPreference(isDirectorExperience(level)))
   }, [initialExperience])
+
+  useEffect(() => {
+    if (directorUi) {
+      setUseConversationEntry(false)
+      return
+    }
+    setUseConversationEntry(loadConversationEntryPreference(false))
+  }, [directorUi])
 
   useEffect(() => {
     const timer = setInterval(() => setPromptIndex((i) => i + 1), 5200)
@@ -224,34 +260,70 @@ export function FullscreenQuickCutCanvas({
     }
   }, [prompt, keywords, imageNote, voiceNote, voiceTranscript, contentLanguage, directorMode, blueprintId])
 
+  const launchPipeline = useCallback(
+    async (pending: QuickCutPending) => {
+      if (isGenerating || !authReady) return
+
+      if (signedIn === false) {
+        saveQuickCutPending(pending)
+        setShowSignIn(true)
+        return
+      }
+
+      const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
+      await runPipeline({
+        prompt: pending.prompt,
+        style: pending.style,
+        duration: pending.duration,
+        imageNote: pending.imageNote,
+        voiceNote: pending.voiceNote,
+        keywords: pending.keywords,
+        language: pending.language,
+        directorMode: pending.directorMode,
+        blueprintId: pending.blueprintId,
+        reuseProject: Boolean(savedProjectId),
+        skipResearch: directorUi ? !deepResearchEnabled : true,
+      })
+      clearQuickCutPending()
+    },
+    [authReady, deepResearchEnabled, directorUi, isGenerating, runPipeline, signedIn]
+  )
+
+  const handleConversationLaunch = useCallback(
+    async (payload: MugteeConversationLaunchPayload) => {
+      setPrompt(payload.prompt)
+      setKeywords(payload.keywords)
+      setDirectorMode(payload.directorMode)
+      saveDirectorModePreference(payload.directorMode)
+      setContentLanguage(payload.language)
+
+      const pending: QuickCutPending = {
+        prompt: payload.prompt,
+        style: payload.style,
+        duration: 60,
+        keywords: payload.keywords.length ? [...payload.keywords] : undefined,
+        language: payload.language,
+        directorMode: payload.directorMode,
+      }
+
+      if (signedIn === false) {
+        saveQuickCutPending(pending)
+        setShowSignIn(true)
+        return
+      }
+
+      await launchPipeline(pending)
+    },
+    [launchPipeline, signedIn]
+  )
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!canGenerate || isGenerating || !authReady) return
-
-    const pending = buildPending()
-
-    if (signedIn === false) {
-      saveQuickCutPending(pending)
-      setShowSignIn(true)
-      return
-    }
-
-    const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
-    await runPipeline({
-      prompt: pending.prompt,
-      style: pending.style,
-      duration: pending.duration,
-      imageNote: pending.imageNote,
-      voiceNote: pending.voiceNote,
-      keywords: pending.keywords,
-      language: pending.language,
-      directorMode: pending.directorMode,
-      blueprintId: pending.blueprintId,
-      reuseProject: Boolean(savedProjectId),
-      skipResearch: directorUi ? !deepResearchEnabled : true,
-    })
-    clearQuickCutPending()
+    await launchPipeline(buildPending())
   }
+
+  const showConversation = !directorUi && useConversationEntry
 
   return (
     <div
@@ -294,6 +366,22 @@ export function FullscreenQuickCutCanvas({
 
       <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
         <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
+          {showConversation ? (
+            <MugteeConversationEntry
+              embedded={embedded}
+              language={contentLanguage}
+              signedIn={signedIn}
+              authReady={authReady}
+              onLaunch={handleConversationLaunch}
+              onSwitchClassic={() => {
+                saveConversationEntryPreference('classic')
+                setUseConversationEntry(false)
+              }}
+              showSignIn={showSignIn}
+              loginHref={loginHref}
+            />
+          ) : (
+            <>
           <motion.p
             key={promptIndex}
             initial={{ opacity: 0, y: 6 }}
@@ -310,6 +398,21 @@ export function FullscreenQuickCutCanvas({
           >
             {question}
           </motion.p>
+
+          {!directorUi ? (
+            <div className="flex justify-center mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  saveConversationEntryPreference('conversation')
+                  setUseConversationEntry(true)
+                }}
+                className="text-[10px] tracking-[0.16em] uppercase text-gold-300/65 hover:text-gold-200 transition min-h-[44px] px-3"
+              >
+                Switch to Mugtee chat
+              </button>
+            </div>
+          ) : null}
 
           <form ref={promptFormRef} onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             <CreatorExperienceSelector
@@ -511,6 +614,8 @@ export function FullscreenQuickCutCanvas({
           {directorUi && !isGenerating ? (
             <CreatorInspiration onSelectTopic={handleInspirationSelect} />
           ) : null}
+            </>
+          )}
         </div>
       </main>
     </div>
