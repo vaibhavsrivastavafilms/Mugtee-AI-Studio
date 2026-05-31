@@ -30,9 +30,16 @@ import {
   type SelectedScriptArchetype,
 } from '@/lib/cinematic/script-archetypes'
 import type { SelectedContentAngle, HookFramework } from '@/lib/cinematic/content-angle-engine'
+import {
+  formatIntentForPrompt,
+  resolveGenerationTopic,
+  type ParsedCreatorIntent,
+} from '@/lib/input-understanding'
 
 export type CinematicPromptInput = {
   topic: string
+  /** Parsed input understanding — clean topic for generation */
+  parsedIntent?: ParsedCreatorIntent | null
   platform: string
   tone: string
   duration: number
@@ -125,7 +132,10 @@ export function buildTopicChangeDirective(input: {
 }
 
 export function buildCinematicScriptPrompt(input: CinematicPromptInput): string {
-  const virlo = buildVirloContext(input.topic, {
+  const generationTopic = resolveGenerationTopic(input.parsedIntent, input.topic)
+  const intentBlock = input.parsedIntent ? formatIntentForPrompt(input.parsedIntent) : ''
+
+  const virlo = buildVirloContext(generationTopic, {
     platform: input.platform,
     tone: input.tone,
     duration: input.duration,
@@ -134,10 +144,14 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
   })
   const directorBrief = formatContentBriefForPrompt(input.contentBrief)
   const briefHeader = [
+    intentBlock,
     directorBrief ||
-      ['CREATOR BRIEF (use exactly):', `TOPIC: ${input.topic}`, `STYLE: ${input.tone}`, `PLATFORM: ${input.platform}`].join(
-        '\n'
-      ),
+      [
+        'CREATOR BRIEF (use exactly):',
+        `TOPIC: ${generationTopic}`,
+        `STYLE: ${input.tone}`,
+        `PLATFORM: ${input.platform}`,
+      ].join('\n'),
     `MODE: quick_cut`,
     `DURATION: ${input.duration}s`,
     scriptWordCountHint(input.duration),

@@ -19,6 +19,11 @@ import {
   normalizeContentAngleId,
   type SelectedContentAngle,
 } from '@/lib/cinematic/content-angle-engine'
+import {
+  formatIntentForPrompt,
+  parseCreatorIntentSync,
+  resolveGenerationTopic,
+} from '@/lib/input-understanding'
 
 export type RegenAction = 'hook' | 'scene' | 'storyboard' | 'caption' | 'all'
 
@@ -93,6 +98,9 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
   const emotionalTone = ctx.emotionalGoal || ctx.tone
   const angleId = normalizeContentAngleId(ctx.contentAngleId)
   const contentAngle: SelectedContentAngle | null = angleId ? getContentAngle(angleId) : null
+  const parsedIntent = parseCreatorIntentSync(ctx.prompt || ctx.topic)
+  const generationTopic = resolveGenerationTopic(parsedIntent, ctx.topic || ctx.prompt)
+  const intentBlock = formatIntentForPrompt(parsedIntent)
 
   const avoidBlock =
     avoidHooks.length > 0
@@ -117,10 +125,11 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
       ].join('\n')
 
   return [
+    intentBlock,
     formatContentBriefForPrompt(ctx.contentBrief),
     buildPreserveBlock('hook', ctx),
     `Refine ONLY the opening hook for this vertical cinematic reel.`,
-    `Original creator idea: "${ctx.topic || ctx.prompt}"`,
+    `Subject (not a quote — write about this): ${generationTopic}`,
     `Niche: ${ctx.niche}`,
     `Emotional tone: ${emotionalTone}`,
     `Tone / style: ${ctx.tone} · Duration: ${ctx.duration}s`,
