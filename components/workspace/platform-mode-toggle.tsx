@@ -55,7 +55,7 @@ export function PlatformModeToggle({ className }: PlatformModeToggleProps) {
             key={platform.id}
             type="button"
             role="radio"
-            aria-checked={active ? 'true' : 'false'}
+            aria-checked={active}
             aria-label={`${platform.label} platform mode`}
             onClick={() => handleChange(platform.id)}
             className={cn(

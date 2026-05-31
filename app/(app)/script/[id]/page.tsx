@@ -432,7 +432,7 @@ export default function ScriptWorkspace() {
                 type="button"
                 role="radio"
                 onClick={() => setViewMode('full')}
-                aria-checked={viewMode === 'full' ? 'true' : 'false'}
+                aria-checked={viewMode === 'full'}
                 aria-label="Full script view"
                 className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition ${viewMode === 'full' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
               >Full</button>
@@ -440,7 +440,7 @@ export default function ScriptWorkspace() {
                 type="button"
                 role="radio"
                 onClick={() => setViewMode('narration')}
-                aria-checked={viewMode === 'narration' ? 'true' : 'false'}
+                aria-checked={viewMode === 'narration'}
                 aria-label="Narration only — spoken lines without scene labels"
                 className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 ${viewMode === 'narration' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
                 title="Show only the spoken narration (no scene labels)"
