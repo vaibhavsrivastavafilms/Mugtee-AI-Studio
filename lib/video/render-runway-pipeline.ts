@@ -19,6 +19,8 @@ export type RenderRunwayPipelineInput = {
   subtitles: SubtitleSegment[]
   outputPath: string
   onSceneProgress?: (index: number, total: number, label: string) => void
+  /** When true, burn subtitle segments into the exported video. Defaults to off. */
+  burnSubtitles?: boolean
 }
 
 function sceneMotionPrompt(scene: RenderSceneInput, motion?: string): string {
@@ -108,20 +110,22 @@ export async function renderRunwayMp4(input: RenderRunwayPipelineInput): Promise
       mergedVideo,
     ])
 
-    const srtPath = path.join(workDir, 'subs.srt')
-    await fs.writeFile(srtPath, segmentsToSrt(input.subtitles), 'utf8')
-
-    const srtForFilter = srtPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")
     const finalPath = input.outputPath
     await ensureDir(path.dirname(finalPath))
 
     const args = ['-y', '-i', mergedVideo]
     if (input.audioPath) args.push('-i', input.audioPath)
 
-    const vfParts = [
-      `subtitles='${srtForFilter}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=80'`,
-    ]
-    args.push('-vf', vfParts.join(','))
+    const burnSubtitles = input.burnSubtitles === true && input.subtitles.length > 0
+    if (burnSubtitles) {
+      const srtPath = path.join(workDir, 'subs.srt')
+      await fs.writeFile(srtPath, segmentsToSrt(input.subtitles), 'utf8')
+      const srtForFilter = srtPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")
+      args.push(
+        '-vf',
+        `subtitles='${srtForFilter}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=80'`
+      )
+    }
     args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS))
 
     if (input.audioPath) {

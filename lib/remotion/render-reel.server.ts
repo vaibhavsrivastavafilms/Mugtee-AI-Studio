@@ -6,7 +6,6 @@ import path from 'path'
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import type { SubtitleSegment } from '@/lib/video/types'
 import {
   clampSceneDurationsToTarget,
   computeRenderTotalSec,
@@ -40,24 +39,11 @@ async function getServeUrl(): Promise<string> {
   return bundlePromise
 }
 
-function captionForScene(
-  scene: GeneratedScene,
-  index: number,
-  subtitles: SubtitleSegment[]
-): string {
-  const byTime = subtitles[index]?.text?.trim()
-  if (byTime) return byTime
-  const beat = scene.description?.trim() || scene.title?.trim()
-  if (beat) return beat.slice(0, 140)
-  return `Scene ${index + 1}`
-}
-
 export type RenderRemotionReelInput = {
   scenes: GeneratedScene[]
   voiceUrl: string | null
   musicUrl?: string | null
   title: string
-  subtitles: SubtitleSegment[]
   outputPath: string
   onProgress?: (label: string, percent: number) => void
 }
@@ -96,7 +82,7 @@ export async function renderRemotionReel(
         id: scene.id || `scene-${i}`,
         imageSrc,
         durationSec: Math.max(2, scene.duration || 4),
-        caption: captionForScene(scene, i, input.subtitles),
+        caption: '',
         motion: MOTIONS[i % MOTIONS.length],
       })
     }
@@ -122,7 +108,7 @@ export async function renderRemotionReel(
     }
 
     const compositionProps: ReelCompositionProps = {
-      title: input.title,
+      title: '',
       scenes: reelScenes,
       voiceAudioSrc,
       musicAudioSrc,

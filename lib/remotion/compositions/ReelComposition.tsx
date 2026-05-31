@@ -6,7 +6,6 @@ import type { ReelCompositionProps } from './types'
 import { REEL_FPS } from './constants'
 
 export function ReelComposition({
-  title,
   scenes,
   voiceAudioSrc,
   musicAudioSrc,
@@ -37,30 +36,6 @@ export function ReelComposition({
           </Sequence>
         )
       })}
-
-      {title ? (
-        <AbsoluteFill
-          style={{
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-            paddingTop: 72,
-            pointerEvents: 'none',
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              color: 'rgba(212,175,55,0.85)',
-              fontSize: 22,
-              letterSpacing: '0.28em',
-              textTransform: 'uppercase',
-              fontFamily: 'system-ui, sans-serif',
-            }}
-          >
-            {title.slice(0, 48)}
-          </p>
-        </AbsoluteFill>
-      ) : null}
 
       {voiceAudioSrc ? (
         <Audio src={voiceAudioSrc} volume={voiceVolume} startFrom={0} endAt={durationInFrames} />

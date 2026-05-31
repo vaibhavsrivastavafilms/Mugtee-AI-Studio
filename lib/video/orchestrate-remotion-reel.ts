@@ -8,7 +8,6 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { FacelessRenderInput, RenderProgressStage, RenderVideoResult } from '@/lib/video/types'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
 import { logError } from '@/lib/workspace/validation'
-import { buildSubtitleSegmentsFromScenes } from '@/lib/video/subtitles'
 import {
   clampSceneDurationsToTarget,
   computeRenderTotalSec,
@@ -104,7 +103,6 @@ export async function orchestrateRemotionReel(
 
     const totalDuration = computeRenderTotalSec(scenes)
     const timedScenes = clampSceneDurationsToTarget(scenes, totalDuration)
-    const subtitles = buildSubtitleSegmentsFromScenes(timedScenes, totalDuration)
     const outputPath = path.join(os.tmpdir(), `mugtee-reel-${jobId}.mp4`)
 
     report('download_assets')
@@ -133,7 +131,6 @@ export async function orchestrateRemotionReel(
         voiceUrl: input.voiceUrl,
         musicUrl: options?.musicUrl ?? null,
         title: input.title,
-        subtitles,
         outputPath,
         onProgress: (label, percent) => {
           updateRenderJob(jobId, {
