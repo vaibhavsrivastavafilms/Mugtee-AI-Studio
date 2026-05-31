@@ -298,16 +298,16 @@ export default function SettingsPage() {
       </motion.div>
 
       {/* Creator Profile (Phase 6F + 2.3) ====================================== */}
-      <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.09}}
+      <motion.div id="creator-profile" initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.09}}
         className="glass rounded-2xl p-6 sm:p-8"
       >
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-4 h-4 text-gold-400" />
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80">Creator Profile</div>
         </div>
-        <h2 className="font-display text-2xl mb-1">Creator memory</h2>
+        <h2 className="font-display text-2xl mb-1">Creator profile</h2>
         <p className="text-luxe/70 text-sm mb-5">
-          Mugtee remembers your voice, platform, and audience — injected into every script and hook automatically.
+          Tell Mugtee your voice, platform, and goals — I&apos;ll inject them into every script and hook automatically.
         </p>
 
         <div className="space-y-4">
@@ -373,6 +373,39 @@ export default function SettingsPage() {
                 <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {NICHES.map(n => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Creator goal</label>
+              <Select
+                value={memoryProfile.creatorGoal ?? ''}
+                onValueChange={(v) => updateMemoryProfile({ creatorGoal: v })}
+              >
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue placeholder="What are you building toward?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consistency">Stay consistent</SelectItem>
+                  <SelectItem value="grow">Grow audience</SelectItem>
+                  <SelectItem value="authority">Build authority</SelectItem>
+                  <SelectItem value="monetize">Monetize</SelectItem>
+                  <SelectItem value="learn">Learn the pipeline</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] tracking-wider uppercase text-muted-foreground">Experience</label>
+              <Select
+                value={memoryProfile.experience ?? ''}
+                onValueChange={(v) => updateMemoryProfile({ experience: v })}
+              >
+                <SelectTrigger className="bg-white/[0.03] h-10"><SelectValue placeholder="Your level" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { CinematicHeader } from '@/components/shell/cinematic-header'
 import { StudioPromptBar } from '@/components/shell/studio-prompt-bar'
+import { MugteeSidekickPanel } from '@/components/sidekick/mugtee-sidekick-panel'
 import { StoreProvider } from '@/lib/store'
 import { AutomationsProvider } from '@/lib/automations-store'
 import { ConfirmProvider } from '@/components/ui/confirm'
@@ -52,9 +53,12 @@ export default function CinematicAppShell({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-0 flex-1 flex flex-col min-w-0 w-full px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6"
+              className="relative z-0 flex-1 flex flex-col lg:flex-row min-w-0 w-full min-h-0"
             >
-              {children}
+              <div className="flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-24 lg:pb-6">
+                {children}
+              </div>
+              <MugteeSidekickPanel />
             </motion.main>
           </div>
         </ConfirmProvider>

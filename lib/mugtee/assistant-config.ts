@@ -26,7 +26,7 @@ export type MugteeFaqCategory = {
 }
 
 export const MUGTEE_GREETING =
-  'Welcome to Mugtee Studio.\n\nTurn an idea into a cinematic reel, storyboard, script, or creator workflow in minutes.\n\nWhat would you like to create today?'
+  'Welcome to Mugtee Studio.\n\nTurn an idea into a cinematic reel, storyboard, script, or creator workflow in minutes.\n\nWhat are we creating today?'
 
 export const MUGTEE_TAGLINE = 'Direct stories. Build reels. Create cinematic moments.'
 
@@ -52,7 +52,7 @@ export const MUGTEE_QUICK_ACTIONS: MugteeQuickAction[] = [
     href: quickCutStudioHref({ tab: 'scenes' }),
   },
   {
-    label: 'Generate Hook',
+    label: "Mugtee's Hook",
     prompt: 'Write 5 pattern-interrupt hooks for my reel topic. Make them specific and cinematic.',
     href: quickCutStudioHref({ tab: 'hook' }),
   },
