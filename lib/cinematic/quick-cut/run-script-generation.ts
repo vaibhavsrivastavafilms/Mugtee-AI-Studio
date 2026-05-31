@@ -81,6 +81,7 @@ export type ScriptGenerationInput = {
   niche?: string
   sessionSeed?: string | number
   language?: ProjectLanguage | string
+  languageMixed?: boolean
   /** Raw voice transcript (Whisper / browser STT) */
   transcript?: string
   /** Optional voice presence note from canvas */
@@ -121,6 +122,7 @@ type GenInput = {
   niche: CinematicNiche
   sessionSeed?: string | number
   language: ProjectLanguage
+  languageMixed?: boolean
   blueprint: VirloScriptBlueprint
   viralStructure: ViralStructureAnalysis
   referenceScript?: string
@@ -167,6 +169,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       niche: input.niche,
       sessionSeed: input.sessionSeed,
       language: input.language,
+      languageMixed: input.languageMixed,
       visualStyle: input.lockedVisualStyle ?? input.blueprint.visualStyle,
       virloHook: input.blueprint.hook,
       retentionPattern: input.blueprint.retention_pattern,
@@ -479,6 +482,7 @@ export async function runScriptGeneration(
   const tone = coerceTone(input.tone)
   const duration = coerceDuration(input.duration)
   const language = normalizeProjectLanguage(input.language)
+  const languageMixed = input.languageMixed === true
 
   let researchDocument = input.researchDocument?.trim() || undefined
   let researchReport = input.researchReport
@@ -542,6 +546,7 @@ export async function runScriptGeneration(
     niche,
     sessionSeed: input.sessionSeed,
     language,
+    languageMixed,
     blueprint,
     viralStructure,
     referenceScript,

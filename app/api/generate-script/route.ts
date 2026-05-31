@@ -10,6 +10,7 @@ import { runScriptGeneration } from '@/lib/cinematic/quick-cut/run-script-genera
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildVirloContext, virloMetadataFromContext } from '@/lib/virlo-engine'
 import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
+import { detectCreatorLanguage } from '@/lib/i18n/detect-creator-language'
 import { normalizeDirectorMode } from '@/lib/cinematic/director-modes'
 import { normalizeCreatorBlueprintId } from '@/lib/cinematic/creator-blueprints'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
@@ -143,7 +144,15 @@ export async function POST(req: NextRequest) {
       typeof raw.sessionSeed === 'string' || typeof raw.sessionSeed === 'number'
         ? raw.sessionSeed
         : user.id
-    const language = normalizeProjectLanguage(raw.language)
+    let language = normalizeProjectLanguage(raw.language)
+    let languageMixed = raw.languageMixed === true
+    if ((!raw.language || language === 'en') && topic.length >= 6) {
+      const detected = detectCreatorLanguage(topic)
+      if (detected.languageCode !== 'en' || detected.isMixed) {
+        language = detected.projectLanguage
+        languageMixed = detected.isMixed
+      }
+    }
     const niche = inferNicheFromBrief({
       topic,
       tone,
@@ -257,6 +266,7 @@ export async function POST(req: NextRequest) {
       niche,
       sessionSeed,
       language,
+      languageMixed: languageMixed || undefined,
       transcript,
       voiceNote,
       referenceScript,

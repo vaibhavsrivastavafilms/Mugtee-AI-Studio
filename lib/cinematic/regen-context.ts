@@ -33,6 +33,7 @@ export type RegenProjectContext = {
   duration: number
   niche: CinematicNiche
   language: ProjectLanguage
+  languageMixed?: boolean
   visualStyle: VisualStyle | null
   viralScript: ViralScript | null
   hook: string
@@ -112,6 +113,7 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     niche: typeof raw.niche === 'string' ? raw.niche : undefined,
   })
   const language = normalizeProjectLanguage(raw.language)
+  const languageMixed = raw.languageMixed === true
   const visualStyle = parseVisualStyle(raw.visualStyle)
   const viralScript = parseViralScript(raw.viralScript)
 
@@ -123,6 +125,7 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     duration,
     niche,
     language,
+    languageMixed: languageMixed || undefined,
     visualStyle,
     viralScript,
     hook: coerceString(raw.hook, '', 220),

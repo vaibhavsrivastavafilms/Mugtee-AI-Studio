@@ -13,6 +13,10 @@ import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { type ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { loadContentLanguagePreference } from '@/lib/cinematic/content-languages'
 import {
+  loadCreatorLanguageSession,
+  sessionLanguageMixed,
+} from '@/lib/i18n/creator-language-session'
+import {
   DEFAULT_DIRECTOR_MODE,
   loadDirectorModePreference,
   normalizeDirectorMode,
@@ -1326,9 +1330,14 @@ export const useQuickCutGenerationStore = create<
         }
       : null
 
+    const sessionLang = loadCreatorLanguageSession()
     const language = regenFresh
-      ? preserved?.language ?? input.language ?? loadContentLanguagePreference()
-      : input.language ?? loadContentLanguagePreference()
+      ? preserved?.language ??
+        input.language ??
+        sessionLang?.projectLanguage ??
+        loadContentLanguagePreference()
+      : input.language ?? sessionLang?.projectLanguage ?? loadContentLanguagePreference()
+    const languageMixed = sessionLang?.isMixed ?? sessionLanguageMixed()
     const directorMode = regenFresh
       ? preserved?.directorMode ?? input.directorMode ?? loadDirectorModePreference()
       : input.directorMode ?? loadDirectorModePreference()
@@ -1563,7 +1572,7 @@ export const useQuickCutGenerationStore = create<
             >('/api/ai/deep-research', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ topic: prompt, prompt, language, directorMode }),
+              body: JSON.stringify({ topic: prompt, prompt, language, languageMixed, directorMode }),
               maxRetries: 0,
               timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
             })
@@ -1594,6 +1603,7 @@ export const useQuickCutGenerationStore = create<
             duration,
             sessionSeed,
             language,
+            languageMixed,
             directorMode,
             blueprintId,
             title,
@@ -1718,6 +1728,7 @@ export const useQuickCutGenerationStore = create<
               script,
               sessionSeed,
               language,
+              languageMixed,
               directorMode,
               visualStyle,
               niche: scriptNiche,

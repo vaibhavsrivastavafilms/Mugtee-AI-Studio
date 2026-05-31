@@ -38,6 +38,8 @@ export type CinematicPromptInput = {
   niche: CinematicNiche
   sessionSeed?: string | number
   language?: ProjectLanguage
+  /** Hinglish / mixed Hindi-English output lock */
+  languageMixed?: boolean
   visualStyle?: VisualStyle | null
   virloHook?: string
   retentionPattern?: string
@@ -131,7 +133,9 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     `PLATFORM: ${input.platform}`,
     `DURATION: ${input.duration}s`,
     scriptWordCountHint(input.duration),
-    languageDirective(normalizeProjectLanguage(input.language)),
+    languageDirective(normalizeProjectLanguage(input.language), {
+      isMixed: input.languageMixed,
+    }),
     input.virloHook
       ? `VIRLO HOOK SEED (expand into spoken hook — not a quote): ${input.virloHook}`
       : '',

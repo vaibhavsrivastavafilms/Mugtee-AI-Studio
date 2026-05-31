@@ -33,6 +33,12 @@ import {
   type MugteeFaqItem,
   type MugteeQuickAction,
 } from '@/lib/mugtee/assistant-config'
+import { CreatorLanguageIndicator } from '@/components/i18n/creator-language-indicator'
+import {
+  persistCreatorLanguageFromText,
+  loadCreatorLanguageSession,
+} from '@/lib/i18n/creator-language-session'
+import type { DetectedCreatorLanguage } from '@/lib/i18n/detect-creator-language'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -58,6 +64,7 @@ export function MugteeAssistant() {
   const [pulse, setPulse] = useState(false)
   const [voiceOn, setVoiceOn] = useState(false)
   const [expandedFaq, setExpandedFaq] = useState<string | null>('popular')
+  const [creatorLanguage, setCreatorLanguage] = useState<DetectedCreatorLanguage | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const pathname = usePathname()
@@ -103,6 +110,10 @@ export function MugteeAssistant() {
     } catch {
       setMsgs([GREETING])
     }
+  }, [])
+
+  useEffect(() => {
+    setCreatorLanguage(loadCreatorLanguageSession())
   }, [])
 
   useEffect(() => {
@@ -165,6 +176,8 @@ export function MugteeAssistant() {
     if (!trimmed || sending) return
     setSending(true)
     setInput('')
+    const detected = persistCreatorLanguageFromText(trimmed)
+    setCreatorLanguage(detected)
     const next: Msg[] = [...messages, { role: 'user', content: trimmed }]
     setMsgs(next)
     try {
@@ -174,6 +187,10 @@ export function MugteeAssistant() {
         body: JSON.stringify({
           messages: next.filter(m => m.content !== GREETING.content).slice(-MAX_HISTORY),
           route: pathname,
+          detectedLanguage: {
+            languageCode: detected.languageCode,
+            isMixed: detected.isMixed,
+          },
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -319,6 +336,9 @@ export function MugteeAssistant() {
                   <p className="mt-2.5 text-[11px] leading-relaxed text-luxe/70 pl-[42px]">
                     {MUGTEE_TAGLINE}
                   </p>
+                  <div className="mt-2 pl-[42px]">
+                    <CreatorLanguageIndicator detected={creatorLanguage} />
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {tts.supported && (

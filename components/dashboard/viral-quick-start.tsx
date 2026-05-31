@@ -32,6 +32,7 @@ import { MugteeOrb, type OrbState } from '@/components/mugtee/mugtee-orb'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PLATFORM_META } from '@/lib/dummy-data'
+import { persistCreatorLanguageFromText } from '@/lib/i18n/creator-language-session'
 import { useViralIdeas, IdeaCard, TONES, NICHES, AUDIENCES, placeholderForNiche } from '@/components/ai/viral-studio-panel'
 import { WeeklyPlannerDialog } from '@/components/ai/weekly-planner-dialog'
 import { FacelessStudioDialog } from '@/components/ai/faceless-studio-dialog'
@@ -114,6 +115,11 @@ export function ViralQuickStart() {
     }, 2400)
     return () => clearInterval(id)
   }, [v.loading])
+
+  useEffect(() => {
+    const topic = v.topic.trim()
+    if (topic.length >= 3) persistCreatorLanguageFromText(topic)
+  }, [v.topic])
 
   // ─── Auto-prefill from query params (New Project → ?topic=…&autorun=1) ─
   const searchParams = useSearchParams()
