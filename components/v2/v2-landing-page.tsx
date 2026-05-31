@@ -11,6 +11,7 @@ import { WhatYouGetSection } from '@/components/marketing/what-you-get-section'
 import { HowItWorksSection } from '@/components/marketing/how-it-works-section'
 import { FinalCtaSection } from '@/components/marketing/final-cta-section'
 import { TrustMetricsStrip } from '@/components/proof/trust-metrics-strip'
+import { BeforeAfterTransformation } from '@/components/proof/before-after-transformation'
 import { HomepageJsonLd } from '@/components/seo/homepage-json-ld'
 
 const ShowcaseSection = nextDynamic(
@@ -31,6 +32,7 @@ export default function V2LandingPage() {
         <CreatorAudienceSection />
         <WhatYouGetSection />
         <ShowcaseSection />
+        <BeforeAfterTransformation />
         <TrustMetricsStrip variant="homepage" />
         <HowItWorksSection />
         <FinalCtaSection />
