@@ -112,49 +112,49 @@ export function TodaysBriefSection() {
 
 
 
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
 
         <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
 
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Focus</dt>
+          <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Focus</p>
 
-          <dd className="text-luxe/85">{brief.goalLine}</dd>
+          <p className="text-luxe/85">{brief.goalLine}</p>
 
         </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
 
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Niche</dt>
+          <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Niche</p>
 
-          <dd className="text-luxe/85 capitalize">{brief.nicheLine}</dd>
-
-        </div>
-
-        <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
-
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Experience</dt>
-
-          <dd className="text-luxe/85">{brief.experienceLine}</dd>
+          <p className="text-luxe/85 capitalize">{brief.nicheLine}</p>
 
         </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
 
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Platform</dt>
+          <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Experience</p>
 
-          <dd className="text-luxe/85">{brief.platformLine}</dd>
+          <p className="text-luxe/85">{brief.experienceLine}</p>
+
+        </div>
+
+        <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
+
+          <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">Platform</p>
+
+          <p className="text-luxe/85">{brief.platformLine}</p>
 
         </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5 sm:col-span-2">
 
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">
+          <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/45 mb-0.5">
 
             Recommended topic
 
-          </dt>
+          </p>
 
-          <dd className="text-luxe/90 font-medium">{brief.recommendedTopic}</dd>
+          <p className="text-luxe/90 font-medium">{brief.recommendedTopic}</p>
 
           <p className="text-[11px] text-gold-200/80 italic mt-1.5">&ldquo;{brief.recommendedHook}&rdquo;</p>
 
@@ -166,17 +166,17 @@ export function TodaysBriefSection() {
 
         <div className="rounded-xl border border-gold-500/15 bg-gold-500/[0.04] px-3 py-2.5 sm:col-span-2">
 
-          <dt className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70 mb-0.5">
+          <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70 mb-0.5">
 
             Next milestone
 
-          </dt>
+          </p>
 
-          <dd className="text-luxe/85">{brief.nextMilestone}</dd>
+          <p className="text-luxe/85">{brief.nextMilestone}</p>
 
         </div>
 
-      </dl>
+      </div>
 
 
 

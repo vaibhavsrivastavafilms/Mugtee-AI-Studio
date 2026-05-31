@@ -234,7 +234,15 @@ export function ViralQuickStart() {
               >
                 <Paperclip className="w-4 h-4" />
               </button>
-              <input ref={fileRef} type="file" className="hidden" accept="image/*,video/*,text/plain,application/pdf" onChange={onFile} />
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept="image/*,video/*,text/plain,application/pdf"
+                onChange={onFile}
+                aria-label="Attach reference file"
+                title="Attach a reference image, script or asset"
+              />
 
               {/* CENTER — text input */}
               <div className="flex-1 min-w-0">
