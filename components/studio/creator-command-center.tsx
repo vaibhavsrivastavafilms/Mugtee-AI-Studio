@@ -78,7 +78,7 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         <StoryTimeline />
 
         <div className="flex flex-col min-h-0 min-w-0 border-t lg:border-t-0 border-white/[0.06]">
-          <StudioMainWorkspace />
+          <StudioMainWorkspace projectId={projectId} />
         </div>
 
         <StudioDirectorPanel />

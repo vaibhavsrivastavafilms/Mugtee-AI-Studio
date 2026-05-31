@@ -10,15 +10,20 @@ export type PanelPreferences = {
   continuityExpanded: boolean
 }
 
+/** Target distribution platform for output workspace tone hints. */
+export type WorkspaceTargetPlatform = 'youtube' | 'instagram' | 'tiktok'
+
 type StudioWorkspaceState = {
   activeStage: WorkspaceStage
   activeSceneIndex: number
   timelineCollapsed: boolean
   panelPreferences: PanelPreferences
+  targetPlatform: WorkspaceTargetPlatform
   setActiveStage: (stage: WorkspaceStage) => void
   setActiveSceneIndex: (index: number) => void
   setTimelineCollapsed: (collapsed: boolean) => void
   setPanelPreferences: (prefs: Partial<PanelPreferences>) => void
+  setTargetPlatform: (platform: WorkspaceTargetPlatform) => void
   resetForProject: (stage?: WorkspaceStage) => void
 }
 
@@ -35,6 +40,7 @@ export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
       activeSceneIndex: 0,
       timelineCollapsed: false,
       panelPreferences: DEFAULT_PANEL_PREFERENCES,
+      targetPlatform: 'instagram',
       setActiveStage: (stage) => set({ activeStage: stage }),
       setActiveSceneIndex: (index) => set({ activeSceneIndex: Math.max(0, index) }),
       setTimelineCollapsed: (collapsed) => set({ timelineCollapsed: collapsed }),
@@ -42,6 +48,7 @@ export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
         set((state) => ({
           panelPreferences: { ...state.panelPreferences, ...prefs },
         })),
+      setTargetPlatform: (platform) => set({ targetPlatform: platform }),
       resetForProject: (stage = 'idea') =>
         set({
           activeStage: stage,
@@ -53,6 +60,7 @@ export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
       partialize: (state) => ({
         panelPreferences: state.panelPreferences,
         timelineCollapsed: state.timelineCollapsed,
+        targetPlatform: state.targetPlatform,
       }),
     }
   )
