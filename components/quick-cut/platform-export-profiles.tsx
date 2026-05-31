@@ -193,6 +193,7 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const visualStyle = useQuickCutGenerationStore((s) => s.visualStyle)
+  const thumbnailImageUrl = useQuickCutGenerationStore((s) => s.thumbnailImageUrl)
 
   const [assetError, setAssetError] = useState<string | null>(null)
 
@@ -258,6 +259,7 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
       videoValidating: reelReadiness.validating,
       mp4CanCompile: canCompileMp4,
       thumbnailConcept,
+      thumbnailImageUrl,
     }),
     [
       title,
@@ -284,6 +286,7 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
       reelReadiness.validating,
       canCompileMp4,
       thumbnailConcept,
+      thumbnailImageUrl,
     ]
   )
 

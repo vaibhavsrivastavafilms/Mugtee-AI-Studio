@@ -57,6 +57,8 @@ export type PlatformExportInput = {
   mp4CanCompile?: boolean
   /** Derived thumbnail concept when no scene still is exportable yet. */
   thumbnailConcept?: string
+  /** Dedicated cover image URL (persisted thumbnail_url). */
+  thumbnailImageUrl?: string | null
 }
 
 export type PlatformAssetStatus = {
@@ -165,8 +167,10 @@ export function resolveThumbnailSceneIndex(scenes: GeneratedScene[]): number {
 
 export function resolveThumbnailImageUrl(
   scenes: GeneratedScene[],
-  isGenerating = false
+  isGenerating = false,
+  thumbnailImageUrl?: string | null
 ): string | null {
+  if (isRealSceneImageUrl(thumbnailImageUrl)) return thumbnailImageUrl!.trim()
   if (!hasExportableThumbnailImage(scenes, isGenerating)) return null
   const index = resolveThumbnailSceneIndex(scenes)
   const scene = scenes[index]
@@ -207,7 +211,12 @@ export function hasExportablePlatformVideo(input: PlatformExportInput): boolean 
 }
 
 function resolveThumbnailAssetState(input: PlatformExportInput): PlatformAssetState {
-  if (hasExportableThumbnailImage(input.scenes, input.isGenerating)) return 'ready'
+  if (
+    isRealSceneImageUrl(input.thumbnailImageUrl) ||
+    hasExportableThumbnailImage(input.scenes, input.isGenerating)
+  ) {
+    return 'ready'
+  }
   if (input.thumbnailConcept?.trim()) return 'ready'
   return 'missing'
 }

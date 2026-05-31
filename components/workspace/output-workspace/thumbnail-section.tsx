@@ -1,11 +1,14 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { copyTextToClipboard, deriveThumbnailConcept } from '@/lib/workspace/output-workspace-utils'
+import { resolveActiveThumbnailUrl } from '@/lib/cinematic/thumbnail-cover'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { WorkspaceSectionShell } from '@/components/workspace/output-workspace/workspace-section-shell'
 import { SectionActionButton } from '@/components/workspace/output-workspace/section-action-button'
+import { cn } from '@/lib/utils'
 
 type ThumbnailSectionProps = {
   loading?: boolean
@@ -16,23 +19,31 @@ export function ThumbnailSection({ loading }: ThumbnailSectionProps) {
   const title = useQuickCutGenerationStore((s) => s.title)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const visualStyle = useQuickCutGenerationStore((s) => s.visualStyle)
-  const regenerateSceneImage = useQuickCutGenerationStore((s) => s.regenerateSceneImage)
+  const thumbnailImageUrl = useQuickCutGenerationStore((s) => s.thumbnailImageUrl)
+  const isRegeneratingThumbnail = useQuickCutGenerationStore((s) => s.isRegeneratingThumbnail)
+  const regenerateThumbnailImage = useQuickCutGenerationStore((s) => s.regenerateThumbnailImage)
 
-  const [localConcept, setLocalConcept] = useState<string | null>(null)
-  const [busyAction, setBusyAction] = useState<'copy' | 'regen' | null>(null)
+  const [busyAction, setBusyAction] = useState<'copy' | null>(null)
 
-  const thumbnailConcept = useMemo(() => {
-    if (localConcept?.trim()) return localConcept
-    return deriveThumbnailConcept({
-      hook,
-      title,
-      scenes,
-      visualStyleLabel: visualStyle?.label ?? null,
-    })
-  }, [localConcept, hook, title, scenes, visualStyle?.label])
+  const thumbnailConcept = useMemo(
+    () =>
+      deriveThumbnailConcept({
+        hook,
+        title,
+        scenes,
+        visualStyleLabel: visualStyle?.label ?? null,
+      }),
+    [hook, title, scenes, visualStyle?.label]
+  )
+
+  const displayImageUrl = useMemo(
+    () => resolveActiveThumbnailUrl(thumbnailImageUrl, scenes),
+    [thumbnailImageUrl, scenes]
+  )
 
   const hasConcept = Boolean(thumbnailConcept.trim())
-  const firstSceneId = scenes[0]?.id
+  const hasImage = Boolean(displayImageUrl)
+  const hasContent = hasImage || hasConcept
 
   const runCopy = useCallback(async () => {
     if (!hasConcept) return
@@ -43,34 +54,20 @@ export function ThumbnailSection({ loading }: ThumbnailSectionProps) {
   }, [hasConcept, thumbnailConcept])
 
   const runRegenerate = useCallback(async () => {
-    setBusyAction('regen')
-    if (firstSceneId) {
-      try {
-        await regenerateSceneImage(firstSceneId)
-        const next = deriveThumbnailConcept({
-          hook: useQuickCutGenerationStore.getState().hook,
-          title,
-          scenes: useQuickCutGenerationStore.getState().scenes,
-          visualStyleLabel: visualStyle?.label ?? null,
-        })
-        setLocalConcept(next)
-        toast.success('Thumbnail frame refreshed from scene 1')
-      } catch {
-        toast.message('Platform updated — regenerate storyboard to refresh thumbnail')
-      }
-    } else {
-      toast.message('Generate storyboard first — thumbnail derives from scene 1')
+    try {
+      await regenerateThumbnailImage()
+    } catch {
+      toast.message('Could not regenerate thumbnail — try again')
     }
-    setBusyAction(null)
-  }, [firstSceneId, regenerateSceneImage, title, visualStyle?.label])
+  }, [regenerateThumbnailImage])
 
   return (
     <WorkspaceSectionShell
       title="Thumbnail"
-      subtitle="Cover frame concept"
+      subtitle="Cover frame · 9:16"
       loading={loading}
-      empty={!hasConcept}
-      emptyMessage="Thumbnail concept appears once hook or storyboard exists."
+      empty={!hasContent}
+      emptyMessage="Thumbnail appears once hook or storyboard exists."
       actions={
         <>
           <SectionActionButton
@@ -81,13 +78,39 @@ export function ThumbnailSection({ loading }: ThumbnailSectionProps) {
           />
           <SectionActionButton
             label="Regenerate"
-            loading={busyAction === 'regen'}
+            loading={isRegeneratingThumbnail}
             onClick={() => void runRegenerate()}
           />
         </>
       }
     >
-      <p className="text-sm text-luxe/85 leading-relaxed">{thumbnailConcept}</p>
+      <div className="space-y-3">
+        {hasImage ? (
+          <div
+            className={cn(
+              'relative mx-auto w-full max-w-[220px] overflow-hidden rounded-lg border border-white/[0.08]',
+              'aspect-[9/16] bg-black/50'
+            )}
+          >
+            <Image
+              src={displayImageUrl!}
+              alt={thumbnailConcept || 'Cover thumbnail'}
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="220px"
+            />
+          </div>
+        ) : null}
+        {hasConcept ? (
+          <p className="text-xs text-luxe/55 leading-relaxed">
+            <span className="text-[9px] uppercase tracking-[0.18em] text-gold-300/60 block mb-1">
+              Cover concept
+            </span>
+            {thumbnailConcept}
+          </p>
+        ) : null}
+      </div>
     </WorkspaceSectionShell>
   )
 }
