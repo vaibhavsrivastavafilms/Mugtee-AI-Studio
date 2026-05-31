@@ -761,7 +761,7 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
             }
           >
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {generating ? 'Mugtee is creating...' : (output ? 'Regenerate from new idea' : 'Generate with Mugtee')}
+            {generating ? 'Mugtee is creating...' : (output ? 'Regenerate from new idea' : 'Ask Mugtee')}
           </Button>
 
           {/* Phase 3H ╬ô├ç├╢ Creative Journey moved to BELOW the primary CTA so it

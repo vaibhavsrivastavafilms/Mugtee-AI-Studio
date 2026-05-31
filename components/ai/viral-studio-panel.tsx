@@ -295,7 +295,7 @@ export function ViralStudioPanel() {
                   <Sparkles className="w-3 h-3" /> Mugtee
                 </div>
                 <h3 className="font-display text-xl mt-1 text-gold-gradient truncate">Studio</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Generate viral idea seeds for the pipeline.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Mugtee seeds viral ideas for your pipeline.</p>
               </div>
               <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-gold-300 transition" aria-label="Collapse">
                 <ChevronRight className="w-4 h-4" />
@@ -359,7 +359,7 @@ export function ViralStudioPanel() {
               <Button onClick={v.generate} disabled={v.loading || !v.topic.trim()}
                 className="w-full h-10 bg-gold-gradient text-black gap-2 shadow-gold-glow hover:opacity-90">
                 {v.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {v.loading ? 'Generating…' : 'Generate Ideas'}
+                {v.loading ? 'Mugtee is thinking…' : "Ask Mugtee for ideas"}
               </Button>
 
               {v.loading && (
@@ -535,7 +535,7 @@ export function IdeaCard({
             scriptReady ? 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 ring-violet-500/40'
                         : 'bg-gold-gradient text-black hover:opacity-90 ring-transparent shadow-gold-glow',
           )}
-          title="Generate cinematic script"
+          title="Mugtee's cinematic script"
         >
           {scriptBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clapperboard className="w-3 h-3" />}
           {scriptBusy ? 'Generating…' : scriptReady ? 'Regenerate' : 'Script'}

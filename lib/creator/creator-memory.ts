@@ -269,6 +269,10 @@ export type CreatorMemoryProfile = {
   channelDescription?: string
   /** Legacy niche id — synced from viral studio localStorage */
   niche?: string
+  /** Sidekick profile — grow, monetize, authority, consistency, learn */
+  creatorGoal?: string
+  /** Sidekick profile — beginner, intermediate, advanced */
+  experience?: string
   updatedAt?: string
 }
 
@@ -314,6 +318,8 @@ export function normalizeCreatorMemoryProfile(
       PROFILE_FIELD_LIMITS.channelDescription
     ),
     niche: pick('niche'),
+    creatorGoal: pick('creatorGoal'),
+    experience: pick('experience'),
     updatedAt:
       typeof o.updatedAt === 'string' && o.updatedAt.trim()
         ? o.updatedAt.trim()
@@ -332,7 +338,9 @@ export function hasCreatorProfileContent(
       profile.tone ||
       profile.audience ||
       profile.channelDescription ||
-      profile.niche
+      profile.niche ||
+      profile.creatorGoal ||
+      profile.experience
   )
 }
 

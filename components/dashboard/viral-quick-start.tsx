@@ -209,7 +209,7 @@ export function ViralQuickStart() {
           </span>
         </h1>
         <p className="mt-3 text-center text-[13px] sm:text-[14px] text-luxe/70 max-w-xl mx-auto leading-relaxed">
-          Turn one idea into a cinematic production pipeline — script, storyboard, voiceover, export.
+          I&apos;ll turn one idea into script, storyboard, voice, and export — your cinematic pipeline in one place.
         </p>
 
         {/* ─── Centered conversational input ─── */}
@@ -297,8 +297,8 @@ export function ViralQuickStart() {
                   type="button"
                   onClick={() => v.topic.trim() && v.generate()}
                   disabled={v.loading || !v.topic.trim()}
-                  aria-label="Generate"
-                  title="Generate (Enter)"
+                  aria-label="Ask Mugtee"
+                  title="Ask Mugtee (Enter)"
                   className="w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-xl bg-gold-gradient text-black shadow-gold-glow disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 transition"
                 >
                   {v.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}

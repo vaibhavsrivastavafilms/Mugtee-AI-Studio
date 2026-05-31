@@ -1,4 +1,5 @@
 export const QUICK_CUT_PROMPTS = [
+  'What are we creating today?',
   'What cinematic world do you want to shape?',
   'Which moment should become film first?',
   'What truth does your imagination keep returning to?',

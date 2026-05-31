@@ -24,7 +24,7 @@ function projectWorkflowNav(projectId: string, mode: CreatorMode): NavItem[] {
   const base = `${STUDIO.create}/${projectId}`
   if (mode === 'quick') {
     return [
-      { id: 'generate', label: 'Generate', icon: Sparkles, href: `${base}/generate` },
+      { id: 'generate', label: 'Ask Mugtee', icon: Sparkles, href: `${base}/generate` },
       { id: 'preview', label: 'Preview', icon: LayoutPanelTop, href: `${base}/generate` },
       { id: 'export', label: 'Export', icon: Download, href: `${base}/export` },
     ]

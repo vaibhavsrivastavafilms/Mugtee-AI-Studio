@@ -45,7 +45,7 @@ export function CinematicPromptInput({
         onFocus={onFocus}
         onBlur={onBlur}
         rows={5}
-        placeholder="Describe a story, emotion, memory, atmosphere, or visual idea..."
+        placeholder="Tell Mugtee what you're trying to achieve."
         className={cn(
           'relative w-full min-h-[140px] sm:min-h-[180px] resize-none rounded-[1.5rem]',
           'border border-white/[0.1] bg-black/35 backdrop-blur-md',

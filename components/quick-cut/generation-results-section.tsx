@@ -42,6 +42,7 @@ import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
+import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const actionButtonClass =
@@ -266,6 +267,14 @@ export function GenerationResultsSection({
           {assetError}
         </p>
       ) : null}
+
+      <ProactiveSuggestions
+        hook={hook}
+        script={script}
+        title={title}
+        hasScenes={scenes.length > 0}
+        hasVoice={Boolean(voiceUrl?.trim())}
+      />
 
       <div className="flex flex-wrap items-stretch justify-center gap-2">
         <button

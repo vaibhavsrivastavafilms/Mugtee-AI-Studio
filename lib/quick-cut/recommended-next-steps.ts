@@ -65,7 +65,7 @@ export function resolveRecommendedNextSteps(
   if (scriptGenerated && !project.sceneImagesGenerated) {
     candidates.push({
       id: 'storyboard-images',
-      title: 'Generate Storyboard Images',
+      title: "Mugtee's Storyboard Images",
       explanation: 'Cinematic stills unlock exports, thumbnails, and MP4 compile.',
       actionType: 'navigate-tab',
       tabTarget: 'visuals',
@@ -76,7 +76,7 @@ export function resolveRecommendedNextSteps(
   if (scriptGenerated && project.sceneImagesGenerated && !project.voiceGenerated) {
     candidates.push({
       id: 'voice',
-      title: 'Generate Voice',
+      title: "Mugtee's Voice",
       explanation: 'Add narration so you can compile the final MP4 reel.',
       actionType: 'navigate-tab',
       tabTarget: 'voice',

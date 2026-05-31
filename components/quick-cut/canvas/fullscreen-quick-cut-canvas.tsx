@@ -296,6 +296,14 @@ export function FullscreenQuickCutCanvas({
             key={promptIndex}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
+            className="text-center text-[10px] tracking-[0.28em] uppercase text-gold-300/70 mb-2"
+          >
+            Ask Mugtee
+          </motion.p>
+          <motion.p
+            key={`q-${promptIndex}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-center font-display text-lg sm:text-xl md:text-2xl text-[#F4E7C1]/90 leading-snug italic mb-6 sm:mb-8 px-2"
           >
             {question}
@@ -455,7 +463,7 @@ export function FullscreenQuickCutCanvas({
               )}
             >
               <Sparkles className="w-4 h-4" />
-              Generate Cinematic Reel
+              Ask Mugtee
               {inputMode !== 'idle' && inputMode !== 'text' ? (
                 <span className="text-[10px] opacity-70 normal-case tracking-normal">
                   · {inputMode}

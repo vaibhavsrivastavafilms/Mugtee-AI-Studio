@@ -8,6 +8,10 @@ import { createEntryHref } from '@/lib/create/routes'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-director-cut-mode-card'
 import { DailyPromptCard } from '@/components/creator/daily-prompt-card'
+import { TodaysBriefSection } from '@/components/sidekick/todays-brief-section'
+import { CreatorOsNav } from '@/components/sidekick/creator-os-nav'
+import { ExampleChannelsSection } from '@/components/sidekick/example-channels-section'
+import { ComingSoonCards } from '@/components/sidekick/coming-soon-cards'
 import { ContinueCreatingWidget } from '@/components/creator/continue-creating-widget'
 import { CreatorQueue } from '@/components/creator/creator-queue'
 import { CreatorStreakBadge } from '@/components/creator/creator-streak-badge'
@@ -81,11 +85,18 @@ export function CreatorWorkspace() {
             Studio
           </p>
           <h1 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)]">
-            Your cinematic workspace
+            What are we creating today?
           </h1>
+          <p className="text-xs text-luxe/50 mt-1 italic">
+            I&apos;ll carry your idea from hook to export — just tell me where we&apos;re headed.
+          </p>
         </div>
         {user?.id ? <CreatorStreakBadge userId={user.id} /> : null}
       </motion.header>
+
+      <CreatorOsNav />
+
+      <TodaysBriefSection />
 
       <DailyPromptCard />
 
@@ -99,6 +110,10 @@ export function CreatorWorkspace() {
       <PipelineFeatures className="pt-2" />
 
       <CreatorQueue />
+
+      <ExampleChannelsSection />
+
+      <ComingSoonCards className="pt-2" />
     </div>
   )
 }

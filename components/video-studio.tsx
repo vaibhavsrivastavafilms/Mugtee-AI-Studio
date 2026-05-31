@@ -404,7 +404,7 @@ export function VideoStudio() {
       <div className="flex items-center justify-center gap-2 sm:gap-4 mb-8">
         {[
           { n: 1 as const, label: 'Input' },
-          { n: 2 as const, label: 'Generate' },
+          { n: 2 as const, label: 'Ask Mugtee' },
           { n: 3 as const, label: 'Video' },
         ].map(({ n, label }, i) => (
           <div key={n} className="flex items-center gap-2 sm:gap-4">
@@ -493,7 +493,7 @@ export function VideoStudio() {
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                Generate Cinematic Package
+                Ask Mugtee for a cinematic package
               </>
             )}
           </button>

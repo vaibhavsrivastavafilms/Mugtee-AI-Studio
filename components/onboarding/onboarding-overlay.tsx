@@ -26,14 +26,14 @@ const SLIDES: Slide[] = [
   {
     step: 'STEP 1 · Welcome',
     title: <>Build your <span className="text-gold-gradient">faceless creator</span> system with AI.</>,
-    sub: 'Generate ideas, scripts, visuals, scheduling and publishing — all in one cinematic workflow.',
+    sub: 'I help with ideas, scripts, visuals, scheduling and publishing — all in one cinematic workflow.',
     image: 'https://images.pexels.com/photos/11063292/pexels-photo-11063292.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     cta: { label: 'Next: Find viral ideas', href: '#' },
     icon: Sparkles,
   },
   {
     step: 'STEP 2 · Ideas',
-    title: <>Generate <span className="text-gold-gradient">viral ideas</span> in seconds.</>,
+    title: <>Mugtee finds <span className="text-gold-gradient">viral ideas</span> in seconds.</>,
     sub: 'AI Studio · YouTube Intelligence · Deep Research — niche-native hooks tuned to your audience.',
     chips: ['AI Studio', 'YouTube Intel', 'Deep Research', 'Reference Analyzer'],
     image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwyfHxyZXNlYXJjaGluZyUyMHRyZW5kcyUyMHNjcmVlbnxlbnwwfHx8YmxhY2t8MTc3OTE5MzE1OXww&ixlib=rb-4.1.0&q=85',
