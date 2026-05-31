@@ -5,6 +5,7 @@ import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   loadCreatorLanguageSession,
+  toCreatorLanguageSession,
   type CreatorLanguageSession,
 } from '@/lib/i18n/creator-language-session'
 import type { DetectedCreatorLanguage } from '@/lib/i18n/detect-creator-language'
@@ -29,7 +30,7 @@ export function CreatorLanguageIndicator({
   const [session, setSession] = useState<CreatorLanguageSession | null>(null)
 
   useEffect(() => {
-    setSession(detected ?? loadCreatorLanguageSession())
+    setSession(detected ? toCreatorLanguageSession(detected) : loadCreatorLanguageSession())
   }, [detected?.languageCode, detected?.isMixed, detected?.displayName])
 
   const active = detected ?? session
