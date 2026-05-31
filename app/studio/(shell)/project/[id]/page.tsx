@@ -1,11 +1,21 @@
-import { ProjectWorkspacePage } from '@/components/create/project-workspace-page'
+import { redirect } from 'next/navigation'
+import { commandCenterWorkspaceHref } from '@/lib/create/routes'
 
 export const dynamic = 'force-dynamic'
 
-export default function StudioProjectWorkspacePage() {
-  return (
-    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)]">
-      <ProjectWorkspacePage />
-    </div>
+type Props = {
+  params: { id: string }
+  searchParams: Record<string, string | string[] | undefined>
+}
+
+/** Legacy project route — forwards to unified Command Center workspace. */
+export default function StudioProjectRedirectPage({ params, searchParams }: Props) {
+  const tab = typeof searchParams.tab === 'string' ? searchParams.tab : undefined
+  const regen = searchParams.regen === '1'
+  redirect(
+    commandCenterWorkspaceHref(params.id, {
+      tab: tab as import('@/lib/cinematic/quick-cut/stage-tabs').QuickCutStageTab | undefined,
+      regen,
+    })
   )
 }
