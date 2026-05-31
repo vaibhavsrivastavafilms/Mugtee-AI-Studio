@@ -291,10 +291,13 @@ export function FullscreenQuickCutCanvas({
               />
             ) : null}
 
-            <ContentLanguageSelector
-              value={contentLanguage}
-              onChange={handleLanguageChange}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ContentLanguageSelector
+                value={contentLanguage}
+                onChange={handleLanguageChange}
+              />
+              <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
+            </div>
 
             <div className="flex items-start gap-3">
               <FloatingMicButton
@@ -303,14 +306,13 @@ export function FullscreenQuickCutCanvas({
                 onToggle={stt.toggle}
                 className="shrink-0 mt-1"
               />
-              <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex-1 min-w-0">
                 <VoiceTranscriptPanel
                   transcript={voiceTranscript}
                   interim={stt.interim}
                   listening={stt.listening}
                   supported={stt.supported}
                 />
-                <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
               </div>
             </div>
 
