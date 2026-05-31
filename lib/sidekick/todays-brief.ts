@@ -5,9 +5,12 @@ export type TodaysBrief = {
   greeting: string
   goalLine: string
   nicheLine: string
+  experienceLine: string
   recommendedTopic: string
   recommendedHook: string
   contentType: string
+  platformLine: string
+  reason: string
   nextMilestone: string
 }
 
@@ -60,6 +63,19 @@ const GOAL_MILESTONES: Record<string, string> = {
   learn: 'Finish your first full pipeline export',
 }
 
+const EXPERIENCE_LABELS: Record<string, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+}
+
+function timeGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
 function labelPlatform(id?: string): string {
   if (!id) return 'your platform'
   return CREATOR_PLATFORMS.find((p) => p.id === id)?.label ?? id
@@ -76,18 +92,25 @@ export function buildTodaysBrief(profile: CreatorMemoryProfile, name?: string | 
   const displayName = profile.creatorName?.trim() || name?.trim() || 'Creator'
   const goal = profile.creatorGoal?.trim() || 'consistency'
   const milestone = GOAL_MILESTONES[goal] ?? GOAL_MILESTONES.consistency
+  const platform = labelPlatform(profile.primaryPlatform)
+  const experience = profile.experience
+    ? EXPERIENCE_LABELS[profile.experience] ?? profile.experience
+    : 'Getting started'
 
   return {
-    greeting: `Good session, ${displayName}. Here's what I'd focus on today.`,
+    greeting: `${timeGreeting()}, ${displayName}. Here's your brief.`,
     goalLine: profile.creatorGoal
       ? `Goal: ${GOAL_LABELS[profile.creatorGoal] ?? profile.creatorGoal.replace(/_/g, ' ')}`
       : 'Goal: build a consistent publishing rhythm',
     nicheLine: profile.niche
-      ? `Niche: ${nicheKey.replace(/_/g, ' ')} · ${labelPlatform(profile.primaryPlatform)}`
-      : `Platform: ${labelPlatform(profile.primaryPlatform)} · ${labelStyle(profile.contentStyle)} style`,
+      ? `Niche: ${nicheKey.replace(/_/g, ' ')}`
+      : `Style: ${labelStyle(profile.contentStyle)}`,
+    experienceLine: `Level: ${experience}`,
     recommendedTopic: nichePack.topic,
     recommendedHook: nichePack.hook,
-    contentType: nichePack.type,
+    contentType: `${nichePack.type} · ${platform}`,
+    platformLine: `Best on ${platform}`,
+    reason: `Matches your ${nicheKey.replace(/_/g, ' ')} lane and ${GOAL_LABELS[goal] ?? 'consistency'} goal.`,
     nextMilestone: milestone,
   }
 }

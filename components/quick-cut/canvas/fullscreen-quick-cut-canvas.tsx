@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Film, Sparkles } from 'lucide-react'
+import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { cn } from '@/lib/utils'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { useSpeechRecognition } from '@/lib/use-voice'
 import {
   QUICK_CUT_PROMPTS,
   QUICK_CUT_SIGN_IN,
+  ASK_MUGTEE_PROMPT_CHIPS,
 } from '@/lib/cinematic/quick-cut/copy'
 import {
   clearQuickCutPending,
@@ -330,13 +332,38 @@ export function FullscreenQuickCutCanvas({
               />
             ) : null}
 
-            <CinematicPromptInput
-              value={prompt}
-              onChange={setPrompt}
-              focused={promptFocused}
-              onFocus={() => setPromptFocused(true)}
-              onBlur={() => setPromptFocused(false)}
-            />
+            <div className="relative">
+              <MugteeOrb
+                state={promptFocused || prompt.trim() ? 'thinking' : 'idle'}
+                size={32}
+                useLogo
+                className="absolute -left-1 sm:left-0 top-4 z-10 hidden sm:block"
+              />
+              <CinematicPromptInput
+                value={prompt}
+                onChange={setPrompt}
+                focused={promptFocused}
+                onFocus={() => setPromptFocused(true)}
+                onBlur={() => setPromptFocused(false)}
+                className="sm:pl-10"
+              />
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2">
+              {ASK_MUGTEE_PROMPT_CHIPS.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => {
+                    setPrompt(chip)
+                    setPromptFocused(true)
+                  }}
+                  className="rounded-full border border-white/[0.08] bg-black/30 px-3 py-1.5 text-[11px] text-luxe/55 hover:border-gold-500/30 hover:text-gold-200 transition"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
 
             {directorUi && signedIn ? (
               <KnowledgeSuggestions

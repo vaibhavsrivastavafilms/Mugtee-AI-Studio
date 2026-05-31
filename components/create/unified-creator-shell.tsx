@@ -24,14 +24,17 @@ function projectWorkflowNav(projectId: string, mode: CreatorMode): NavItem[] {
   const base = `${STUDIO.create}/${projectId}`
   if (mode === 'quick') {
     return [
-      { id: 'generate', label: 'Ask Mugtee', icon: Sparkles, href: `${base}/generate` },
-      { id: 'preview', label: 'Preview', icon: LayoutPanelTop, href: `${base}/generate` },
+      { id: 'idea', label: 'Idea', icon: Sparkles, href: `${base}/generate` },
+      { id: 'hook', label: 'Hook', icon: Sparkles, href: `${base}/generate` },
+      { id: 'script', label: 'Script', icon: Film, href: `${base}/generate` },
+      { id: 'storyboard', label: 'Storyboard', icon: LayoutPanelTop, href: `${base}/generate` },
+      { id: 'voice', label: 'Voice', icon: Mic, href: `${base}/generate` },
       { id: 'export', label: 'Export', icon: Download, href: `${base}/export` },
     ]
   }
 
   return [
-    { id: 'director', label: 'Direct', icon: Clapperboard, href: `${base}/director` },
+    { id: 'direct', label: 'Direct', icon: Clapperboard, href: `${base}/director` },
     { id: 'scenes', label: 'Scenes', icon: Film, href: `${base}/director` },
     { id: 'voice', label: 'Voice', icon: Mic, href: `${base}/director` },
     { id: 'export', label: 'Export', icon: Download, href: `${base}/export` },

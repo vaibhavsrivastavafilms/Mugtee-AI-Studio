@@ -1,7 +1,8 @@
 'use client'
 
-import { Check, Circle, Package, Radio, Share2 } from 'lucide-react'
+import { Check, Circle, Package, Radio, Share2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { resolvePublishReadiness } from '@/lib/quick-cut/asset-availability'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { BufferQueueButton } from '@/components/integrations/buffer-queue-button'
@@ -146,6 +147,23 @@ export function PublishCenter({ className }: { className?: string }) {
 
   return (
     <div className={cn('space-y-3', className)}>
+      <div className="rounded-xl border border-gold-500/15 bg-gold-500/[0.04] px-4 py-3 flex items-start gap-3">
+        <MugteeOrb state="idle" size={28} useLogo className="shrink-0 mt-0.5" />
+        <div>
+          <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/75 flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            Mugtee · Publish
+          </p>
+          <p className="text-xs text-luxe/70 mt-1 leading-relaxed italic">
+            {readiness.projectReadyForPublishing
+              ? 'Everything\'s lined up — export, queue, and ship when you\'re ready.'
+              : readiness.project.hookGenerated && !readiness.project.videoRendered
+                ? 'Strong draft — finish voice or render, then we\'ll prep platform assets.'
+                : 'I\'ll walk you through what\'s missing before you hit publish.'}
+          </p>
+        </div>
+      </div>
+
       {readiness.projectReadyForPublishing ? (
         <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/[0.08] px-4 py-3 flex items-center gap-2.5">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 shrink-0">

@@ -10,6 +10,7 @@ import { LockedDirectorCutModeCard } from '@/components/mugtee-portal/locked-dir
 import { DailyPromptCard } from '@/components/creator/daily-prompt-card'
 import { TodaysBriefSection } from '@/components/sidekick/todays-brief-section'
 import { CreatorOsNav } from '@/components/sidekick/creator-os-nav'
+import { CreatorWorkflowRail } from '@/components/sidekick/creator-workflow-rail'
 import { ExampleChannelsSection } from '@/components/sidekick/example-channels-section'
 import { ComingSoonCards } from '@/components/sidekick/coming-soon-cards'
 import { ContinueCreatingWidget } from '@/components/creator/continue-creating-widget'
@@ -95,6 +96,8 @@ export function CreatorWorkspace() {
       </motion.header>
 
       <CreatorOsNav />
+
+      <CreatorWorkflowRail activeIndex={0} />
 
       <TodaysBriefSection />
 

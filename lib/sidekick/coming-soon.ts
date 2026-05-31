@@ -25,4 +25,9 @@ export const COMING_SOON_FEATURES: ComingSoonFeature[] = [
     title: 'Creator Marketplace',
     description: 'Templates, voices, and packs from top creators.',
   },
+  {
+    id: 'video-production',
+    title: 'AI Video Production',
+    description: 'Full generative video scenes — beyond storyboard stills.',
+  },
 ]

@@ -239,6 +239,7 @@ export const CREATOR_PLATFORMS = [
   { id: 'youtube', label: 'YouTube' },
   { id: 'instagram', label: 'Instagram' },
   { id: 'tiktok', label: 'TikTok' },
+  { id: 'linkedin', label: 'LinkedIn' },
   { id: 'multi', label: 'Multi-platform' },
 ] as const
 

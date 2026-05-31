@@ -6,6 +6,14 @@ export const QUICK_CUT_PROMPTS = [
   'What feeling should the viewer carry after the last frame?',
 ] as const
 
+/** Suggested chips below the Ask Mugtee composer. */
+export const ASK_MUGTEE_PROMPT_CHIPS = [
+  '60s reel on a myth everyone believes',
+  'Documentary hook about a forgotten moment',
+  'Authority take on a trending topic in my niche',
+  'Emotional story with a pattern-interrupt open',
+] as const
+
 export const QUICK_CUT_LOADING_LINES = [
   'Your world is taking form…',
   'Rhythm is finding its breath…',
