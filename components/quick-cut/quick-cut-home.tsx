@@ -9,6 +9,7 @@ import {
   restoreQuickCutPreviewSession,
   type QuickCutPending,
 } from '@/lib/cinematic/quick-cut/preview-session'
+import { normalizeCreatorExperience, saveCreatorExperiencePreference } from '@/lib/cinematic/creator-experience-level'
 import { FullscreenQuickCutCanvas } from '@/components/quick-cut/canvas/fullscreen-quick-cut-canvas'
 import { LiveGenerationCanvas } from '@/components/quick-cut/canvas/live-generation-canvas'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -17,6 +18,10 @@ import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
   const searchParams = useSearchParams()
   const [initialPrompt, setInitialPrompt] = useState('')
+  const experienceParam = searchParams?.get('experience')
+  const initialExperience = experienceParam
+    ? normalizeCreatorExperience(experienceParam)
+    : undefined
 
   const { ready: authReady, user } = useAuthHydration()
   const signedIn = authReady ? Boolean(user) : null
@@ -39,6 +44,12 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
     const topic = searchParams?.get('topic') ?? searchParams?.get('prompt')
     if (topic) setInitialPrompt(topic)
   }, [searchParams])
+
+  useEffect(() => {
+    if (experienceParam) {
+      saveCreatorExperiencePreference(normalizeCreatorExperience(experienceParam))
+    }
+  }, [experienceParam])
 
   const runOrchestration = useCallback(
     async (payload: QuickCutPending) => {
@@ -94,7 +105,13 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
     return <LiveGenerationCanvas onRegenerate={handleRegenerate} embedded={embedded} />
   }
 
-  return <FullscreenQuickCutCanvas embedded={embedded} initialPrompt={initialPrompt} />
+  return (
+    <FullscreenQuickCutCanvas
+      embedded={embedded}
+      initialPrompt={initialPrompt}
+      initialExperience={initialExperience}
+    />
+  )
 }
 
 export function QuickCutHome({ embedded = false }: { embedded?: boolean }) {

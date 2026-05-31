@@ -42,7 +42,15 @@ import {
   saveDirectorModePreference,
   type DirectorMode,
 } from '@/lib/cinematic/director-modes'
+import {
+  DEFAULT_CREATOR_EXPERIENCE,
+  isDirectorExperience,
+  loadCreatorExperiencePreference,
+  saveCreatorExperiencePreference,
+  type CreatorExperienceLevel,
+} from '@/lib/cinematic/creator-experience-level'
 import { DirectorModeSelector } from '@/components/quick-cut/canvas/director-mode-selector'
+import { CreatorExperienceSelector } from '@/components/create/creator-experience-selector'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
@@ -55,9 +63,11 @@ const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
 export function FullscreenQuickCutCanvas({
   embedded = false,
   initialPrompt = '',
+  initialExperience,
 }: {
   embedded?: boolean
   initialPrompt?: string
+  initialExperience?: CreatorExperienceLevel
 }) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [keywords, setKeywords] = useState<MoodKeyword[]>([])
@@ -67,6 +77,9 @@ export function FullscreenQuickCutCanvas({
   const [deepResearchEnabled, setDeepResearchEnabled] = useState(true)
   const [contentLanguage, setContentLanguage] = useState<ProjectLanguage>('en')
   const [directorMode, setDirectorMode] = useState<DirectorMode>(DEFAULT_DIRECTOR_MODE)
+  const [experienceLevel, setExperienceLevel] = useState<CreatorExperienceLevel>(
+    initialExperience ?? DEFAULT_CREATOR_EXPERIENCE
+  )
   const [promptFocused, setPromptFocused] = useState(false)
   const [promptIndex, setPromptIndex] = useState(0)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -110,10 +123,15 @@ export function FullscreenQuickCutCanvas({
 
   const imageNote = imageRef?.note
 
+  const directorUi = isDirectorExperience(experienceLevel)
+
   useEffect(() => {
     setContentLanguage(loadContentLanguagePreference())
     setDirectorMode(loadDirectorModePreference())
-  }, [])
+    setExperienceLevel(
+      initialExperience ?? loadCreatorExperiencePreference()
+    )
+  }, [initialExperience])
 
   useEffect(() => {
     const timer = setInterval(() => setPromptIndex((i) => i + 1), 5200)
@@ -176,6 +194,19 @@ export function FullscreenQuickCutCanvas({
     saveDirectorModePreference(mode)
   }, [])
 
+  const handleExperienceChange = useCallback((level: CreatorExperienceLevel) => {
+    setExperienceLevel(level)
+    saveCreatorExperiencePreference(level)
+    if (!isDirectorExperience(level)) {
+      setKeywords([])
+      setImageRef(null)
+      setVoiceTranscript('')
+      setVoiceNote('')
+      setDeepResearchEnabled(false)
+      setMobileImageOpen(false)
+    }
+  }, [])
+
   const buildPending = useCallback((): QuickCutPending => {
     const style = buildStyleFromKeywords(keywords)
     return {
@@ -215,7 +246,7 @@ export function FullscreenQuickCutCanvas({
       directorMode: pending.directorMode,
       blueprintId: pending.blueprintId,
       reuseProject: Boolean(savedProjectId),
-      skipResearch: !deepResearchEnabled,
+      skipResearch: directorUi ? !deepResearchEnabled : true,
     })
     clearQuickCutPending()
   }
@@ -240,14 +271,22 @@ export function FullscreenQuickCutCanvas({
             </div>
             <span className="font-display text-sm tracking-wide text-gold-gradient">Mugtee</span>
           </Link>
-          {signedIn === false ? (
-            <Link
-              href={loginHref}
-              className="text-[11px] tracking-[0.2em] uppercase text-luxe/60 hover:text-gold-300 transition min-h-[44px] inline-flex items-center px-2"
-            >
-              Sign in
-            </Link>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <CreatorExperienceSelector
+              value={experienceLevel}
+              onChange={handleExperienceChange}
+              compact
+              className="hidden sm:block"
+            />
+            {signedIn === false ? (
+              <Link
+                href={loginHref}
+                className="text-[11px] tracking-[0.2em] uppercase text-luxe/60 hover:text-gold-300 transition min-h-[44px] inline-flex items-center px-2"
+              >
+                Sign in
+              </Link>
+            ) : null}
+          </div>
         </header>
       ) : null}
 
@@ -263,15 +302,25 @@ export function FullscreenQuickCutCanvas({
           </motion.p>
 
           <form ref={promptFormRef} onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-            <CreatorBlueprintSection
-              selectedBlueprintId={blueprintId}
-              onSelectBlueprint={handleBlueprintSelect}
+            <CreatorExperienceSelector
+              value={experienceLevel}
+              onChange={handleExperienceChange}
+              className="sm:hidden mx-auto"
             />
 
-            <DirectorModeSelector
-              value={directorMode}
-              onChange={handleDirectorModeChange}
-            />
+            {directorUi ? (
+              <CreatorBlueprintSection
+                selectedBlueprintId={blueprintId}
+                onSelectBlueprint={handleBlueprintSelect}
+              />
+            ) : null}
+
+            {directorUi ? (
+              <DirectorModeSelector
+                value={directorMode}
+                onChange={handleDirectorModeChange}
+              />
+            ) : null}
 
             <CinematicPromptInput
               value={prompt}
@@ -281,7 +330,7 @@ export function FullscreenQuickCutCanvas({
               onBlur={() => setPromptFocused(false)}
             />
 
-            {signedIn ? (
+            {directorUi && signedIn ? (
               <KnowledgeSuggestions
                 prompt={prompt}
                 onSelectTopic={(topic) => {
@@ -291,49 +340,65 @@ export function FullscreenQuickCutCanvas({
               />
             ) : null}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+              className={cn(
+                'grid gap-3',
+                directorUi ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+              )}
+            >
               <ContentLanguageSelector
                 value={contentLanguage}
                 onChange={handleLanguageChange}
               />
-              <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
-            </div>
-
-            <div className="flex items-start gap-3">
-              <FloatingMicButton
-                listening={stt.listening}
-                supported={stt.supported}
-                onToggle={stt.toggle}
-                className="shrink-0 mt-1"
-              />
-              <div className="flex-1 min-w-0">
-                <VoiceTranscriptPanel
-                  transcript={voiceTranscript}
-                  interim={stt.interim}
-                  listening={stt.listening}
-                  supported={stt.supported}
-                />
-              </div>
-            </div>
-
-            <div className="hidden sm:block">
-              <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
-            </div>
-
-            <div className="sm:hidden">
-              <button
-                type="button"
-                onClick={() => setMobileImageOpen((v) => !v)}
-                className="w-full min-h-[44px] rounded-xl border border-white/[0.08] bg-black/30 text-[11px] tracking-[0.16em] uppercase text-luxe/70"
-              >
-                {mobileImageOpen ? 'Hide reference frame' : 'Add reference frame'}
-              </button>
-              {mobileImageOpen ? (
-                <div className="mt-3">
-                  <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
-                </div>
+              {directorUi ? (
+                <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
               ) : null}
             </div>
+
+            {directorUi ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <FloatingMicButton
+                    listening={stt.listening}
+                    supported={stt.supported}
+                    onToggle={stt.toggle}
+                    className="shrink-0 mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <VoiceTranscriptPanel
+                      transcript={voiceTranscript}
+                      interim={stt.interim}
+                      listening={stt.listening}
+                      supported={stt.supported}
+                    />
+                  </div>
+                </div>
+
+                <div className="hidden sm:block">
+                  <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
+                </div>
+
+                <div className="sm:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMobileImageOpen((v) => !v)}
+                    className="w-full min-h-[44px] rounded-xl border border-white/[0.08] bg-black/30 text-[11px] tracking-[0.16em] uppercase text-luxe/70"
+                  >
+                    {mobileImageOpen ? 'Hide reference frame' : 'Add reference frame'}
+                  </button>
+                  {mobileImageOpen ? (
+                    <div className="mt-3">
+                      <ImageReferenceUploader reference={imageRef} onChange={setImageRef} />
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-[11px] text-luxe/45 leading-relaxed px-2">
+                Noob mode uses guided defaults. Switch to Director for blueprints, mood, voice, and
+                deep research.
+              </p>
+            )}
 
             {error ? (
               <p className="text-center text-sm text-amber-200/90" role="alert">
@@ -354,15 +419,17 @@ export function FullscreenQuickCutCanvas({
               </div>
             ) : null}
 
-            <label className="flex items-center justify-center gap-2 text-[11px] text-luxe/55 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={deepResearchEnabled}
-                onChange={(e) => setDeepResearchEnabled(e.target.checked)}
-                className="rounded border-gold-500/40 bg-black/40 text-gold-500 focus:ring-gold-500/30"
-              />
-              Deep Research before script (slower, richer facts)
-            </label>
+            {directorUi ? (
+              <label className="flex items-center justify-center gap-2 text-[11px] text-luxe/55 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={deepResearchEnabled}
+                  onChange={(e) => setDeepResearchEnabled(e.target.checked)}
+                  className="rounded border-gold-500/40 bg-black/40 text-gold-500 focus:ring-gold-500/30"
+                />
+                Deep Research before script (slower, richer facts)
+              </label>
+            ) : null}
 
             <motion.button
               type="submit"
@@ -404,9 +471,9 @@ export function FullscreenQuickCutCanvas({
             ) : null}
           </form>
 
-          {!isGenerating ? <RecentGenerationsStrip limit={8} /> : null}
+          {directorUi && !isGenerating ? <RecentGenerationsStrip limit={8} /> : null}
 
-          {!isGenerating ? (
+          {directorUi && !isGenerating ? (
             <CreatorInspiration onSelectTopic={handleInspirationSelect} />
           ) : null}
         </div>

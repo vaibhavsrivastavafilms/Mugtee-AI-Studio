@@ -1,10 +1,18 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Play } from 'lucide-react'
 import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { LuxButton } from '@/components/v2/lux-button'
+import { CreatorExperienceSelector } from '@/components/create/creator-experience-selector'
+import {
+  DEFAULT_CREATOR_EXPERIENCE,
+  loadCreatorExperiencePreference,
+  saveCreatorExperiencePreference,
+  type CreatorExperienceLevel,
+} from '@/lib/cinematic/creator-experience-level'
 import { cn } from '@/lib/utils'
 
 const HERO_MAIN =
@@ -18,6 +26,21 @@ const THUMBNAILS = [
 const DEMO_HREF = '/cinematic/examples/psychology-attention'
 
 export function LandingHeroSplit({ className }: { className?: string }) {
+  const [experienceLevel, setExperienceLevel] = useState<CreatorExperienceLevel>(
+    DEFAULT_CREATOR_EXPERIENCE
+  )
+
+  useEffect(() => {
+    setExperienceLevel(loadCreatorExperiencePreference())
+  }, [])
+
+  const handleExperienceChange = (level: CreatorExperienceLevel) => {
+    setExperienceLevel(level)
+    saveCreatorExperiencePreference(level)
+  }
+
+  const createHref = `/create?mode=quick&experience=${experienceLevel}`
+
   return (
     <section
       className={cn(
@@ -38,14 +61,21 @@ export function LandingHeroSplit({ className }: { className?: string }) {
             Script, storyboard, voice, and export — one cinematic pipeline for Shorts,
             reels, and faceless storytelling.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <LuxButton href="/create?mode=quick" size="lg" className="rounded-full">
-              Start Creating <ArrowRight className="h-4 w-4" />
-            </LuxButton>
-            <LuxButton href={DEMO_HREF} variant="secondary" size="lg" className="rounded-full">
-              <Play className="h-4 w-4 fill-current" />
-              Watch Demo
-            </LuxButton>
+          <div className="space-y-4 pt-2">
+            <CreatorExperienceSelector
+              value={experienceLevel}
+              onChange={handleExperienceChange}
+              variant="landing"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <LuxButton href={createHref} size="lg" className="rounded-full">
+                Start Creating <ArrowRight className="h-4 w-4" />
+              </LuxButton>
+              <LuxButton href={DEMO_HREF} variant="secondary" size="lg" className="rounded-full">
+                <Play className="h-4 w-4 fill-current" />
+                Watch Demo
+              </LuxButton>
+            </div>
           </div>
         </div>
 
