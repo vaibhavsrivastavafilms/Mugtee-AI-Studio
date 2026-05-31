@@ -50,6 +50,7 @@ import { hasCompletedFirstGeneration } from '@/lib/onboarding/onboarding-state'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
 import { StoryExpansionCard } from '@/components/companion/story-expansion-card'
 import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
+import { ContentQualityCard } from '@/components/quality/content-quality-card'
 import { companionCopy } from '@/lib/companion/microcopy'
 import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -345,6 +346,8 @@ export function GenerationResultsSection({
       <MugteeFollowUpActions />
 
       <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
+
+      <ContentQualityCard />
 
       <StoryExpansionCard title={title} hook={hook} script={script} niche={niche} />
 
