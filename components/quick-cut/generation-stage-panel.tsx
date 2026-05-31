@@ -29,6 +29,8 @@ import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-prev
 import { companionCopy } from '@/lib/companion/microcopy'
 import { MotionStagePanel, MotionStageShell } from '@/components/quick-cut/motion-stage-panel'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
+import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
+import type { SectionId } from '@/lib/cinematic/section-generation-status'
 
 function SceneBreakdownList({
   scenes,
@@ -171,6 +173,7 @@ export function GenerationStagePanel({
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const setSceneMotionPreset = useQuickCutGenerationStore((s) => s.setSceneMotionPreset)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const duration = useQuickCutGenerationStore((s) => s.duration)
   const storyboardTracked = useRef(false)
@@ -189,7 +192,7 @@ export function GenerationStagePanel({
     })
   }, [tab, scenes.length, savedProjectId])
 
-  const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean) => (
+  const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean, section?: SectionId) => (
     <div
       className={cn(
         'rounded-xl border border-white/[0.08] bg-black/30 p-4 min-h-[120px]',
@@ -197,9 +200,14 @@ export function GenerationStagePanel({
         className
       )}
     >
-      <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85 mb-3">
-        {icon}
-        {label}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+          {icon}
+          {label}
+        </div>
+        {section ? (
+          <SectionStatusBadge section={section} status={sectionStatus[section]} />
+        ) : null}
       </div>
       {children}
     </div>
@@ -245,7 +253,8 @@ export function GenerationStagePanel({
             Generating viral title…
           </p>
         ),
-        generationStep === 'title' || generationStep === 'analyzing' || isRegeneratingTitle
+        generationStep === 'title' || generationStep === 'analyzing' || isRegeneratingTitle,
+        'hook'
       )
 
     case 'hook':
@@ -295,12 +304,17 @@ export function GenerationStagePanel({
         ) : (
           <p className="text-[12px] text-luxe/55 italic">Crafting hook…</p>
         ),
-        generationStep === 'hook' || isRegeneratingHook
+        generationStep === 'hook' || isRegeneratingHook,
+        'hook'
       )
 
     case 'script':
       return script || scriptBeats.length || hook ? (
         <div className={cn('space-y-2', className)}>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SectionStatusBadge section="script" status={sectionStatus.script} />
+            <SectionStatusBadge section="captions" status={sectionStatus.captions} />
+          </div>
           <DeepResearchPanel document={researchDocument} report={researchReport} mock={researchMock} />
           {!isGenerating ? (
             <div className="flex justify-end">
@@ -390,7 +404,8 @@ export function GenerationStagePanel({
                 onMotionPresetChange={setSceneMotionPreset}
               />
             </RewriteProvider>,
-            generationStep === 'scenes'
+            generationStep === 'scenes',
+            'visualDirection'
           )}
         </div>
       )
@@ -407,6 +422,10 @@ export function GenerationStagePanel({
 
       return (
         <div className={cn('space-y-3', className)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <SectionStatusBadge section="storyboard" status={sectionStatus.storyboard} />
+            <SectionStatusBadge section="thumbnail" status={sectionStatus.thumbnail} />
+          </div>
           {storyBible ? (
             <p
               className="text-[10px] tracking-[0.18em] uppercase text-emerald-400/75"
@@ -469,6 +488,7 @@ export function GenerationStagePanel({
     case 'voice':
       return (
         <div className={cn('space-y-3', className)}>
+          <SectionStatusBadge section="voice" status={sectionStatus.voice} className="justify-end" />
           <VoiceSelectionModule />
           <CinematicVoicePreview
             waveform={waveform}
@@ -502,7 +522,8 @@ export function GenerationStagePanel({
             </>
           )}
         </div>,
-        generationStep === 'render' && !videoUrl
+        generationStep === 'render' && !videoUrl,
+        'export'
       )
 
     case 'complete':

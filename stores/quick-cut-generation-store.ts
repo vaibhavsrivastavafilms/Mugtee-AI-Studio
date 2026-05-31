@@ -108,6 +108,8 @@ import {
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
 import { useCompanionStore } from '@/stores/companion-store'
+import type { ContentBrief } from '@/lib/content-director/content-brief'
+import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
@@ -171,10 +173,27 @@ import {
   type MotionPresetId,
   type SceneMotionMap,
 } from '@/lib/motion/motion-presets'
+import { genPerf } from '@/lib/cinematic/generation-perf'
+import {
+  resetSectionStatus,
+  type SectionId,
+  type SectionStatusMap,
+} from '@/lib/cinematic/section-generation-status'
 
 export type { CinematicGenerationState }
 
 let pipelineStartedAt = 0
+let lastPipelineInvokeAt = 0
+const PIPELINE_DEBOUNCE_MS = 800
+
+function patchSectionStatus(
+  set: (patch: Partial<QuickCutGenerationState>) => void,
+  get: () => QuickCutGenerationState,
+  section: SectionId,
+  status: SectionStatusMap[SectionId]
+) {
+  set({ sectionStatus: { ...get().sectionStatus, [section]: status } })
+}
 
 export type QuickCutGenerationStep =
   | 'idle'
@@ -346,6 +365,12 @@ interface QuickCutGenerationStateBase {
   creatorProfileOverride: CreatorProfileOverride | null
   repurposedAssets: RepurposedAssetsMap
   contentSeries: ContentSeries | null
+  /** Session-only Content Director brief — aligns hook/script/visuals */
+  contentBrief: ContentBrief | null
+  /** Per-output-card status for progressive UI */
+  sectionStatus: SectionStatusMap
+  /** Prevents duplicate pipeline starts from rapid clicks */
+  generationInFlight: boolean
 }
 
 interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
@@ -474,6 +499,9 @@ const INITIAL: QuickCutGenerationState = {
   creatorProfileOverride: null,
   repurposedAssets: {},
   contentSeries: null,
+  contentBrief: null,
+  sectionStatus: resetSectionStatus(),
+  generationInFlight: false,
   ...EMPTY_STORYBOARD_FIELDS,
 }
 
@@ -495,6 +523,25 @@ function resolveCreatorProfilePayload(
     state.creatorProfile,
     state.creatorProfileOverride
   ) ?? undefined
+}
+
+function contentBriefApiPayload(
+  state: Pick<
+    QuickCutGenerationState,
+    'prompt' | 'style' | 'duration' | 'niche' | 'language' | 'directorMode'
+  >,
+  platform?: string
+) {
+  return {
+    topic: state.prompt,
+    platform,
+    tone: state.style,
+    duration: state.duration,
+    niche: state.niche,
+    language: state.language,
+    directorMode: state.directorMode,
+    creativeBrief: useCompanionStore.getState().creativeBrief,
+  }
 }
 
 function parseContentAngleFromResponse(data?: Record<string, unknown> | null): {
@@ -945,6 +992,7 @@ async function fetchSceneImages(
     | 'storyBible'
     | 'language'
     | 'imageNote'
+    | 'contentBrief'
   >,
   sceneIds?: string[],
   variation = false,
@@ -973,6 +1021,7 @@ async function fetchSceneImages(
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
       diversityAttempt,
+      contentBrief: state.contentBrief ?? undefined,
     }),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -1302,7 +1351,7 @@ export const useQuickCutGenerationStore = create<
 
   resumeGeneration: async () => {
     const state = get()
-    if (state.isGenerating || !state.prompt.trim()) return
+    if (state.isGenerating || state.generationInFlight || !state.prompt.trim()) return
     const resumeFrom = state.lastCompletedStep
     if (!resumeFrom && state.generationStatus !== 'failed') return
 
@@ -1320,9 +1369,23 @@ export const useQuickCutGenerationStore = create<
   },
 
   runPipeline: async (input) => {
+    /*
+     * Quick Cut pipeline order:
+     * 1. Content Director brief (sequential — gates all outputs)
+     * 2. Parallel: hook/title + deep research + script (script uses brief, not hook)
+     * 3. Parallel: visual direction (scenes) + voice
+     * 4. Storyboard images (parallel per scene; thumbnail = scene 1)
+     * 5. Motion + export
+     */
     const rawPrompt = input.prompt.trim()
     const prompt = appendNotes(rawPrompt, input.imageNote, input.voiceNote, input.keywords)
     if (prompt.length < 6) return
+
+    const now = Date.now()
+    if (get().generationInFlight || get().isGenerating) return
+    if (now - lastPipelineInvokeAt < PIPELINE_DEBOUNCE_MS) return
+    lastPipelineInvokeAt = now
+    set({ generationInFlight: true })
 
     const prior = get()
     const resumeFrom = input.resumeFrom ?? null
@@ -1461,11 +1524,13 @@ export const useQuickCutGenerationStore = create<
         eta: 14,
         lastCompletedStep: null,
         failedAtStep: null,
+        sectionStatus: resetSectionStatus(),
       })
     }
 
     logGenerationStart(preserveProjectId, prompt)
     pipelineStartedAt = Date.now()
+    genPerf.start('pipeline')
 
     const loadedCreatorProfile = await fetchCreatorMemoryProfile()
     const creatorProfileOverride =
@@ -1522,52 +1587,321 @@ export const useQuickCutGenerationStore = create<
     try {
       setStep(set, get, 'analyzing')
 
+      if (!isResume || !get().contentBrief) {
+        patchSectionStatus(set, get, 'contentDirectorBrief', 'generating')
+        genPerf.start('content_brief')
+        try {
+          const briefResult = await pipelineFetchJson<{
+            brief?: ContentBrief
+            durationMs?: number
+            source?: string
+          }>('/api/content-director/brief', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+              contentBriefApiPayload(
+                {
+                  prompt,
+                  style: tone,
+                  duration,
+                  niche: get().niche,
+                  language,
+                  directorMode,
+                },
+                blueprintPlatform
+              )
+            ),
+            maxRetries: 1,
+          })
+          if (briefResult.res.ok && briefResult.data.brief) {
+            set({ contentBrief: briefResult.data.brief })
+            genPerf.log('content_brief', briefResult.data.source ?? 'generated', {
+              durationMs: briefResult.data.durationMs,
+            })
+          }
+        } catch {
+          /* brief is best-effort — downstream prompts still have topic/style */
+        }
+        patchSectionStatus(
+          set,
+          get,
+          'contentDirectorBrief',
+          get().contentBrief ? 'completed' : 'failed'
+        )
+        genPerf.end('content_brief')
+      } else {
+        patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
+      }
+
+      const sessionContentBrief = get().contentBrief
+
       let title = get().title
       let hook = get().hook
       let virlo = get().virlo
 
-      if (stepShouldRun(resumeFrom, 'hook')) {
-        setStep(set, get, 'title')
-        const { res: titleRes, data: titleData } = await pipelineFetchJson(
-          '/api/generate-title',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              idea: prompt,
-              sessionSeed,
-              language,
-              recentContentAngles: loadRecentContentAngles(),
-              ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
-            }),
-            maxRetries: 2,
-          }
-        )
-        if (!titleRes.ok) {
-          logStepFailed('hook', get().savedProjectId, 'title')
-          throw new Error(String(titleData?.error || 'Title generation failed'))
-        }
+      const skipPreResearch =
+        input.skipResearch === true ||
+        isResume ||
+        Boolean(get().researchDocument?.trim())
 
-        title = String(titleData.title ?? '')
-        hook = String(titleData.hook ?? '')
-        virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
-        if (titleData.mock === true) anyMock = true
+      const needsHook = stepShouldRun(resumeFrom, 'hook')
+      const needsResearch = !skipPreResearch && stepShouldRun(resumeFrom, 'script')
+      const needsScript = stepShouldRun(resumeFrom, 'script')
 
-        setStep(set, get, 'hook')
-        set({
-          title,
-          hook,
-          virlo,
-          ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
-          storyboard: isResume ? get().storyboard : [],
-          previousHooks: regenFresh ? regenAvoidHooks : [],
-          hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
-          variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
-            select: true,
-          }),
-        })
-        persistHookSession(get())
+      let script = get().script
+      let scriptData: Record<string, unknown> = {}
+      let scriptTitle = title
+      let scriptHook = hook
+      let scriptNiche = get().niche
+      let lockedVisualStyle = get().visualStyle
+      let viralScript = get().viralScript
 
+      const researchTask = needsResearch
+        ? (async () => {
+            genPerf.start('research')
+            try {
+              const researchResult = await pipelineFetchJson<
+                import('@/types/deep-research').DeepResearchApiResponse
+              >('/api/ai/deep-research', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  topic: prompt,
+                  prompt,
+                  language,
+                  languageMixed,
+                  directorMode,
+                }),
+                maxRetries: 0,
+                timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
+              })
+              if (researchResult.res.ok) {
+                const rd = researchResult.data
+                set({
+                  researchDocument:
+                    typeof rd.document === 'string' ? rd.document : null,
+                  researchReport:
+                    rd.report && typeof rd.report === 'object' ? rd.report : null,
+                  researchMock: rd.mock === true,
+                })
+              }
+            } catch {
+              /* research is optional */
+            }
+            genPerf.end('research')
+          })()
+        : null
+
+      await Promise.all([
+        needsHook
+          ? (async () => {
+              patchSectionStatus(set, get, 'hook', 'generating')
+              genPerf.start('hook')
+              setStep(set, get, 'title')
+              const { res: titleRes, data: titleData } = await pipelineFetchJson(
+                '/api/generate-title',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    idea: prompt,
+                    sessionSeed,
+                    language,
+                    recentContentAngles: loadRecentContentAngles(),
+                    contentBrief: sessionContentBrief ?? undefined,
+                    ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
+                  }),
+                  maxRetries: 2,
+                }
+              )
+              if (!titleRes.ok) {
+                patchSectionStatus(set, get, 'hook', 'failed')
+                logStepFailed('hook', get().savedProjectId, 'title')
+                throw new Error(String(titleData?.error || 'Title generation failed'))
+              }
+
+              title = String(titleData.title ?? '')
+              hook = String(titleData.hook ?? '')
+              if (sessionContentBrief && hook) {
+                hook = alignOutputToBrief(hook, sessionContentBrief, 'hook').text
+              }
+              virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
+              if (titleData.mock === true) anyMock = true
+
+              setStep(set, get, 'hook')
+              set({
+                title,
+                hook,
+                virlo,
+                ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
+                storyboard: isResume ? get().storyboard : [],
+                previousHooks: regenFresh ? regenAvoidHooks : [],
+                hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
+                variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
+                  select: true,
+                }),
+              })
+              persistHookSession(get())
+              patchSectionStatus(set, get, 'hook', 'completed')
+              genPerf.end('hook')
+            })()
+          : Promise.resolve(),
+        needsScript
+          ? (async () => {
+              if (researchTask) await researchTask
+
+              setStep(set, get, 'script')
+              patchSectionStatus(set, get, 'script', 'generating')
+              patchSectionStatus(set, get, 'captions', 'generating')
+              genPerf.start('script')
+
+              const researchDocument = get().researchDocument ?? undefined
+              const researchReport = get().researchReport ?? undefined
+              const hookSeed = needsHook ? undefined : hook || undefined
+              const titleSeed = needsHook ? undefined : title || undefined
+
+              const scriptResult = await pipelineFetchJson('/api/generate-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  topic: prompt,
+                  prompt,
+                  tone,
+                  duration,
+                  sessionSeed,
+                  language,
+                  languageMixed,
+                  directorMode,
+                  blueprintId,
+                  ...(hookSeed ? { hook: hookSeed } : {}),
+                  ...(titleSeed ? { title: titleSeed } : {}),
+                  ...(blueprintPlatform ? { platform: blueprintPlatform } : {}),
+                  niche: preserved?.topicChanged ? undefined : preserved?.niche,
+                  visualStyle: preserved?.topicChanged
+                    ? undefined
+                    : preserved?.visualStyle ?? undefined,
+                  transcript:
+                    input.originalTranscript?.trim() ||
+                    preserved?.originalTranscript ||
+                    undefined,
+                  voiceNote: input.voiceNote?.trim() || undefined,
+                  regenFresh: regenFresh || undefined,
+                  previousScript: regenFresh ? preserved?.previousScript : undefined,
+                  previousHook: regenFresh ? preserved?.previousHook : undefined,
+                  creatorMemoryBias: getCreatorMemoryBiasHints(),
+                  creatorProfile: resolveCreatorProfilePayload(get()),
+                  creativeBrief: useCompanionStore.getState().creativeBrief,
+                  companionMemory: useCompanionStore.getState().creatorMemory,
+                  contentBrief: sessionContentBrief ?? undefined,
+                  ...creatorHistoryPayload(directorMode),
+                  skipResearch: true,
+                  skipStoryboard: true,
+                  researchDocument,
+                  researchReport,
+                  contentAngleId: get().contentAngleId ?? undefined,
+                  recentContentAngles: loadRecentContentAngles(),
+                  hookFrameworkId: get().hookFramework ?? undefined,
+                }),
+                maxRetries: 1,
+                timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
+              })
+              scriptData = scriptResult.data
+              if (!scriptResult.res.ok) {
+                patchSectionStatus(set, get, 'script', 'failed')
+                patchSectionStatus(set, get, 'captions', 'failed')
+                logStepFailed('script', get().savedProjectId, 'script')
+                throw new Error(String(scriptData?.error || 'Script generation failed'))
+              }
+
+              const output = scriptData.output as Record<string, unknown> | undefined
+              const appliedHook = get().hook || hook
+              const applied = applyScriptOutput(output, appliedHook)
+              script = applied.script
+              if (sessionContentBrief && script) {
+                script = alignOutputToBrief(script, sessionContentBrief, 'script').text
+              }
+              scriptTitle = String(output?.title ?? get().title ?? title)
+              scriptHook = String(output?.hook ?? get().hook ?? hook)
+              if (sessionContentBrief && scriptHook) {
+                scriptHook = alignOutputToBrief(scriptHook, sessionContentBrief, 'hook').text
+              }
+              if (scriptData.mock === true) {
+                anyMock = true
+                noteMissing('script')
+              }
+
+              const hookHistory =
+                scriptHook && scriptHook !== appliedHook
+                  ? appendPreviousHook([], appliedHook)
+                  : []
+              lockedVisualStyle =
+                regenFresh && preserved?.visualStyle
+                  ? preserved.visualStyle
+                  : scriptData.visualStyle && typeof scriptData.visualStyle === 'object'
+                    ? (scriptData.visualStyle as VisualStyle)
+                    : null
+              viralScript =
+                scriptData.viralScript && typeof scriptData.viralScript === 'object'
+                  ? (scriptData.viralScript as ViralScript)
+                  : null
+              scriptNiche =
+                regenFresh && preserved?.niche
+                  ? preserved.niche
+                  : typeof scriptData.niche === 'string'
+                    ? (scriptData.niche as CinematicNiche)
+                    : 'storytelling'
+
+              set({
+                script,
+                scriptBeats: applied.scriptBeats,
+                payoff: applied.payoff,
+                cta: applied.cta,
+                ...parseScriptArchetypeFromOutput(output),
+                ...parseContentAngleFromResponse(output),
+                title: scriptTitle,
+                hook: scriptHook,
+                researchDocument:
+                  typeof scriptData.researchDocument === 'string'
+                    ? scriptData.researchDocument
+                    : get().researchDocument,
+                researchReport:
+                  scriptData.researchReport && typeof scriptData.researchReport === 'object'
+                    ? (scriptData.researchReport as import('@/types/deep-research').DeepResearchReport)
+                    : get().researchReport,
+                researchMock: scriptData.researchMock === true,
+                ...parseStoryboardFromApi(scriptData),
+                previousHooks:
+                  regenFresh && appliedHook
+                    ? appendPreviousHook(regenAvoidHooks, appliedHook)
+                    : hookHistory,
+                virlo: (scriptData.virlo as VirloMetadata | undefined) ?? get().virlo ?? virlo,
+                visualStyle: lockedVisualStyle,
+                viralScript,
+                niche: scriptNiche,
+                variationHistory: appendHookVersion(get().variationHistory, scriptHook, {
+                  select: true,
+                }),
+                lastCompletedStep: 'script',
+              })
+              patchSectionStatus(set, get, 'script', 'completed')
+              patchSectionStatus(set, get, 'captions', 'completed')
+              genPerf.end('script')
+            })()
+          : Promise.resolve(),
+        needsResearch && !needsScript ? researchTask ?? Promise.resolve() : Promise.resolve(),
+      ])
+
+      title = get().title || title
+      hook = get().hook || hook
+      virlo = get().virlo ?? virlo
+      script = get().script || script
+      scriptTitle = get().title || scriptTitle
+      scriptHook = get().hook || scriptHook
+      scriptNiche = get().niche || scriptNiche
+      lockedVisualStyle = get().visualStyle ?? lockedVisualStyle
+      viralScript = get().viralScript ?? viralScript
+
+      if (needsHook && hook.trim()) {
         const hookId = await persistStepComplete(
           get(),
           'hook',
@@ -1585,161 +1919,7 @@ export const useQuickCutGenerationStore = create<
         }
       }
 
-      let script = get().script
-      let scriptData: Record<string, unknown> = {}
-      let scriptTitle = title
-      let scriptHook = hook
-      let scriptNiche = get().niche
-      let lockedVisualStyle = get().visualStyle
-      let viralScript = get().viralScript
-
-      if (stepShouldRun(resumeFrom, 'script')) {
-        setStep(set, get, 'script')
-
-        let researchDocument = get().researchDocument ?? undefined
-        let researchReport = get().researchReport ?? undefined
-        const skipPreResearch =
-          input.skipResearch === true ||
-          isResume ||
-          Boolean(researchDocument?.trim())
-
-        if (!skipPreResearch) {
-          try {
-            const researchResult = await pipelineFetchJson<
-              import('@/types/deep-research').DeepResearchApiResponse
-            >('/api/ai/deep-research', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ topic: prompt, prompt, language, languageMixed, directorMode }),
-              maxRetries: 0,
-              timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
-            })
-            if (researchResult.res.ok) {
-              const rd = researchResult.data
-              researchDocument =
-                typeof rd.document === 'string' ? rd.document : undefined
-              researchReport =
-                rd.report && typeof rd.report === 'object' ? rd.report : undefined
-              set({
-                researchDocument: researchDocument ?? null,
-                researchReport: researchReport ?? null,
-                researchMock: rd.mock === true,
-              })
-            }
-          } catch {
-            /* research is optional — script step proceeds without it */
-          }
-        }
-
-        const scriptResult = await pipelineFetchJson('/api/generate-script', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: prompt,
-            prompt,
-            tone,
-            duration,
-            sessionSeed,
-            language,
-            languageMixed,
-            directorMode,
-            blueprintId,
-            title,
-            hook,
-            ...(blueprintPlatform ? { platform: blueprintPlatform } : {}),
-            niche: preserved?.topicChanged ? undefined : preserved?.niche,
-            visualStyle: preserved?.topicChanged
-              ? undefined
-              : preserved?.visualStyle ?? undefined,
-            transcript:
-              input.originalTranscript?.trim() || preserved?.originalTranscript || undefined,
-            voiceNote: input.voiceNote?.trim() || undefined,
-            regenFresh: regenFresh || undefined,
-            previousScript: regenFresh ? preserved?.previousScript : undefined,
-            previousHook: regenFresh ? preserved?.previousHook : undefined,
-            creatorMemoryBias: getCreatorMemoryBiasHints(),
-            creatorProfile: resolveCreatorProfilePayload(get()),
-            creativeBrief: useCompanionStore.getState().creativeBrief,
-            companionMemory: useCompanionStore.getState().creatorMemory,
-            ...creatorHistoryPayload(directorMode),
-            skipResearch: true,
-            skipStoryboard: true,
-            researchDocument,
-            contentAngleId: get().contentAngleId ?? undefined,
-            recentContentAngles: loadRecentContentAngles(),
-            hookFrameworkId: get().hookFramework ?? undefined,
-          }),
-          maxRetries: 1,
-          timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
-        })
-        scriptData = scriptResult.data
-        if (!scriptResult.res.ok) {
-          logStepFailed('script', get().savedProjectId, 'script')
-          throw new Error(String(scriptData?.error || 'Script generation failed'))
-        }
-
-        const output = scriptData.output as Record<string, unknown> | undefined
-        const applied = applyScriptOutput(output, hook)
-        script = applied.script
-        scriptTitle = String(output?.title ?? title)
-        scriptHook = String(output?.hook ?? hook)
-        if (scriptData.mock === true) {
-          anyMock = true
-          noteMissing('script')
-        }
-
-        const hookHistory =
-          scriptHook && scriptHook !== hook ? appendPreviousHook([], hook) : []
-        lockedVisualStyle =
-          regenFresh && preserved?.visualStyle
-            ? preserved.visualStyle
-            : scriptData.visualStyle && typeof scriptData.visualStyle === 'object'
-              ? (scriptData.visualStyle as VisualStyle)
-              : null
-        viralScript =
-          scriptData.viralScript && typeof scriptData.viralScript === 'object'
-            ? (scriptData.viralScript as ViralScript)
-            : null
-        scriptNiche =
-          regenFresh && preserved?.niche
-            ? preserved.niche
-            : typeof scriptData.niche === 'string'
-              ? (scriptData.niche as CinematicNiche)
-              : 'storytelling'
-
-        set({
-          script,
-          scriptBeats: applied.scriptBeats,
-          payoff: applied.payoff,
-          cta: applied.cta,
-          ...parseScriptArchetypeFromOutput(output),
-          ...parseContentAngleFromResponse(output),
-          title: scriptTitle,
-          hook: scriptHook,
-          researchDocument:
-            typeof scriptData.researchDocument === 'string'
-              ? scriptData.researchDocument
-              : null,
-          researchReport:
-            scriptData.researchReport && typeof scriptData.researchReport === 'object'
-              ? (scriptData.researchReport as import('@/types/deep-research').DeepResearchReport)
-              : null,
-          researchMock: scriptData.researchMock === true,
-          ...parseStoryboardFromApi(scriptData),
-          previousHooks:
-            regenFresh && hook
-              ? appendPreviousHook(regenAvoidHooks, hook)
-              : hookHistory,
-          virlo: (scriptData.virlo as VirloMetadata | undefined) ?? virlo,
-          visualStyle: lockedVisualStyle,
-          viralScript,
-          niche: scriptNiche,
-          variationHistory: appendHookVersion(get().variationHistory, scriptHook, {
-            select: true,
-          }),
-          lastCompletedStep: 'script',
-        })
-
+      if (needsScript && script.trim()) {
         const scriptId = await persistStepComplete(
           get(),
           'script',
@@ -1755,80 +1935,169 @@ export const useQuickCutGenerationStore = create<
       const scriptVirlo =
         (scriptData.virlo as VirloMetadata | undefined) ?? get().virlo ?? virlo
 
-      if (stepShouldRun(resumeFrom, 'visual_direction')) {
-        setStep(set, get, 'scenes')
-        const storyboardFromScript = get().storyboardScenes
-        const { res: scenesRes, data: scenesData } = await pipelineFetchJson(
-          '/api/generate-scenes',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              idea: prompt,
-              script,
-              sessionSeed,
-              language,
-              languageMixed,
-              directorMode,
-              visualStyle,
-              niche: scriptNiche,
-              duration,
-              researchDocument: get().researchDocument ?? undefined,
-              ...(storyboardFromScript.length >= 2
-                ? { storyboardScenes: storyboardFromScript }
-                : {}),
-            }),
-            maxRetries: 2,
-          }
-        )
-        if (!scenesRes.ok) {
-          logStepFailed('visual_direction', get().savedProjectId, 'scenes')
-          throw new Error(String(scenesData?.error || 'Scene generation failed'))
-        }
+      let voiceUrl: string | null = get().voiceUrl
+      let waveform: number[] = get().waveform
+      let voiceFallbackMessage: string | null = get().voiceFallbackMessage
 
-        scenes = ensureScenesHaveImagePrompts(
-          Array.isArray(scenesData.scenes)
-            ? (scenesData.scenes as GeneratedScene[])
-            : []
-        )
-        if (scenesData.mock === true) anyMock = true
+      await Promise.all([
+        stepShouldRun(resumeFrom, 'visual_direction')
+          ? (async () => {
+              patchSectionStatus(set, get, 'visualDirection', 'generating')
+              genPerf.start('visual_direction')
+              setStep(set, get, 'scenes')
+              const storyboardFromScript = get().storyboardScenes
+              const { res: scenesRes, data: scenesData } = await pipelineFetchJson(
+                '/api/generate-scenes',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    idea: prompt,
+                    script,
+                    sessionSeed,
+                    language,
+                    languageMixed,
+                    directorMode,
+                    visualStyle,
+                    niche: scriptNiche,
+                    duration,
+                    researchDocument: get().researchDocument ?? undefined,
+                    contentBrief: get().contentBrief ?? undefined,
+                    ...(storyboardFromScript.length >= 2
+                      ? { storyboardScenes: storyboardFromScript }
+                      : {}),
+                  }),
+                  maxRetries: 2,
+                }
+              )
+              if (!scenesRes.ok) {
+                patchSectionStatus(set, get, 'visualDirection', 'failed')
+                logStepFailed('visual_direction', get().savedProjectId, 'scenes')
+                throw new Error(String(scenesData?.error || 'Scene generation failed'))
+              }
 
-        characterDescription = extractCharacterDescription(script, scenes)
-        scenes = scenesWithCharacterImagePrompts(scenes, {
-          characterDescription,
-          hook: scriptHook,
-          emotionalGoal: scriptVirlo?.emotionalGoal,
-          total: scenes.length,
-        })
+              scenes = ensureScenesHaveImagePrompts(
+                Array.isArray(scenesData.scenes)
+                  ? (scenesData.scenes as GeneratedScene[])
+                  : []
+              )
+              if (scenesData.mock === true) anyMock = true
 
-        const storyBible = buildStoryBibleFromVisualDirection({
-          scenes,
-          script,
-          characterDescription,
-          visualStyle: visualStyle ?? lockedVisualStyle,
-          style: tone,
-          niche: scriptNiche,
-          emotionalGoal: scriptVirlo?.emotionalGoal,
-          existing: get().storyBible,
-        })
+              characterDescription = extractCharacterDescription(script, scenes)
+              scenes = scenesWithCharacterImagePrompts(scenes, {
+                characterDescription,
+                hook: scriptHook,
+                emotionalGoal: scriptVirlo?.emotionalGoal,
+                total: scenes.length,
+              })
 
-        set({
-          scenes,
-          storyboard: scenes,
-          characterDescription,
-          storyBible,
-          niche: scriptNiche,
-          ...parseStoryboardFromApi(scenesData),
-          lastCompletedStep: 'visual_direction',
-        })
+              const storyBible = buildStoryBibleFromVisualDirection({
+                scenes,
+                script,
+                characterDescription,
+                visualStyle: visualStyle ?? lockedVisualStyle,
+                style: tone,
+                niche: scriptNiche,
+                emotionalGoal: scriptVirlo?.emotionalGoal,
+                existing: get().storyBible,
+              })
 
-        const scenesId = await persistStepComplete(
-          get(),
-          'visual_direction',
-          buildArchiveInput(get(), buildGenerationOutput(get()))
-        )
-        if (scenesId) set({ savedProjectId: scenesId, saveState: 'saved' })
-      }
+              set({
+                scenes,
+                storyboard: scenes,
+                characterDescription,
+                storyBible,
+                niche: scriptNiche,
+                ...parseStoryboardFromApi(scenesData),
+                lastCompletedStep: 'visual_direction',
+              })
+
+              const scenesId = await persistStepComplete(
+                get(),
+                'visual_direction',
+                buildArchiveInput(get(), buildGenerationOutput(get()))
+              )
+              if (scenesId) set({ savedProjectId: scenesId, saveState: 'saved' })
+              patchSectionStatus(set, get, 'visualDirection', 'completed')
+              genPerf.end('visual_direction')
+            })()
+          : Promise.resolve(),
+        stepShouldRun(resumeFrom, 'voice')
+          ? (async () => {
+              patchSectionStatus(set, get, 'voice', 'generating')
+              genPerf.start('voice')
+              setStep(set, get, 'voice')
+
+              const voiceState = get()
+              if (!voiceState.elevenLabsVoiceId) {
+                const recommended = await ensureRecommendedElevenLabsVoiceForState(voiceState)
+                if (recommended) {
+                  set({
+                    elevenLabsVoiceId: recommended.voiceId,
+                    voiceName: recommended.name,
+                  })
+                }
+              }
+
+              const { elevenLabsVoiceId, voiceName: selectedVoiceName } = get()
+              const { res: voiceRes, data: voiceData } = await pipelineFetchJson(
+                '/api/generate-voice',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    script,
+                    elevenLabsVoiceId: elevenLabsVoiceId ?? undefined,
+                    voiceName: selectedVoiceName ?? undefined,
+                  }),
+                }
+              )
+              if (voiceRes.ok) {
+                voiceUrl = typeof voiceData.audioUrl === 'string' ? voiceData.audioUrl : null
+                waveform = Array.isArray(voiceData.waveform)
+                  ? (voiceData.waveform as number[])
+                  : []
+                if (typeof voiceData.fallbackMessage === 'string' && voiceData.fallbackMessage) {
+                  voiceFallbackMessage = voiceData.fallbackMessage
+                }
+                if (typeof voiceData.voiceName === 'string' && voiceData.voiceName) {
+                  set({ voiceName: voiceData.voiceName })
+                }
+                if (
+                  typeof voiceData.elevenLabsVoiceId === 'string' &&
+                  voiceData.elevenLabsVoiceId
+                ) {
+                  set({ elevenLabsVoiceId: voiceData.elevenLabsVoiceId })
+                }
+                if (voiceData.mock === true) {
+                  anyMock = true
+                  noteMissing('voice')
+                }
+              } else {
+                anyMock = true
+                noteMissing('voice')
+                if (typeof voiceData.fallbackMessage === 'string') {
+                  voiceFallbackMessage = voiceData.fallbackMessage
+                }
+              }
+
+              set({
+                voiceUrl,
+                waveform,
+                voiceFallbackMessage,
+                lastCompletedStep: 'voice',
+              })
+              const voiceId = await persistStepComplete(
+                get(),
+                'voice',
+                buildArchiveInput(get(), buildGenerationOutput(get()))
+              )
+              if (voiceId) set({ savedProjectId: voiceId, saveState: 'saved' })
+              patchSectionStatus(set, get, 'voice', voiceRes.ok ? 'completed' : 'failed')
+              genPerf.end('voice')
+            })()
+          : Promise.resolve(),
+      ])
 
       if (!get().storyBible && scenes.length > 0) {
         const fallbackBible = buildStoryBibleFromVisualDirection({
@@ -1850,41 +2119,70 @@ export const useQuickCutGenerationStore = create<
       let imgMock = false
       if (stepShouldRun(resumeFrom, 'storyboard')) {
         setStep(set, get, 'images')
+        patchSectionStatus(set, get, 'storyboard', 'generating')
+        patchSectionStatus(set, get, 'thumbnail', 'generating')
+        genPerf.start('storyboard')
         set({ directingSceneLabel: 'Composing visuals…' })
 
-        for (let i = 0; i < scenes.length; i++) {
-          const scene = scenes[i]
-          if (!scene?.id) continue
-          if (isResume && scene.imageUrl) continue
+        const scenesToRender = scenes
+          .map((scene, index) => ({ scene, index }))
+          .filter(({ scene }) => scene?.id && !(isResume && scene.imageUrl))
 
-          set({ directingSceneLabel: `Directing Scene ${i + 1}…` })
-
-          try {
-            const imgResult = await fetchSceneImages(
-              { ...get(), scenes, characterDescription, hook: scriptHook, script, storyBible: get().storyBible },
-              [scene.id],
-              false,
-              regenFresh ? i + 1 : 0
-            )
-            scenes = mergeScenesById(scenes, imgResult.scenes, [scene.id])
-            if (imgResult.characterDescription) {
-              set({ characterDescription: imgResult.characterDescription })
-            }
-            if (imgResult.mock) {
+        await Promise.all(
+          scenesToRender.map(async ({ scene, index }) => {
+            set({ directingSceneLabel: `Directing Scene ${index + 1}…` })
+            try {
+              const imgResult = await fetchSceneImages(
+                {
+                  ...get(),
+                  scenes: get().scenes.length ? get().scenes : scenes,
+                  characterDescription,
+                  hook: scriptHook,
+                  script,
+                  storyBible: get().storyBible,
+                },
+                [scene.id],
+                false,
+                regenFresh ? index + 1 : 0
+              )
+              useQuickCutGenerationStore.setState((state) => {
+                const baseScenes = state.scenes.length ? state.scenes : scenes
+                const merged = mergeScenesById(baseScenes, imgResult.scenes, [scene.id])
+                const firstHasImage = Boolean(merged[0]?.imageUrl?.trim())
+                return {
+                  scenes: merged,
+                  storyboard: merged,
+                  characterDescription:
+                    imgResult.characterDescription || state.characterDescription,
+                  sectionStatus: {
+                    ...state.sectionStatus,
+                    thumbnail: firstHasImage ? 'completed' : state.sectionStatus.thumbnail,
+                  },
+                }
+              })
+              scenes = get().scenes
+              if (imgResult.mock) {
+                imgMock = true
+                anyMock = true
+                noteMissing('images')
+              }
+            } catch (err) {
+              if (err instanceof ImageGenerationUnavailableError) throw err
               imgMock = true
               anyMock = true
               noteMissing('images')
             }
-            set({ scenes, storyboard: scenes })
-          } catch (err) {
-            if (err instanceof ImageGenerationUnavailableError) throw err
-            imgMock = true
-            anyMock = true
-            noteMissing('images')
-          }
-        }
+          })
+        )
 
+        scenes = get().scenes.length ? get().scenes : scenes
         set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
+        patchSectionStatus(set, get, 'storyboard', 'completed')
+        if (scenes[0]?.imageUrl?.trim()) {
+          patchSectionStatus(set, get, 'thumbnail', 'completed')
+        }
+        genPerf.end('storyboard')
+
         const storyboardId = await persistStepComplete(
           get(),
           'storyboard',
@@ -1916,74 +2214,9 @@ export const useQuickCutGenerationStore = create<
         ? runCinematicAssemblyPresentation(get, set)
         : null
 
-      let voiceUrl: string | null = get().voiceUrl
-      let waveform: number[] = get().waveform
-      let voiceFallbackMessage: string | null = get().voiceFallbackMessage
-
-      if (stepShouldRun(resumeFrom, 'voice')) {
-        setStep(set, get, 'voice')
-
-        const voiceState = get()
-        if (!voiceState.elevenLabsVoiceId) {
-          const recommended = await ensureRecommendedElevenLabsVoiceForState(voiceState)
-          if (recommended) {
-            set({
-              elevenLabsVoiceId: recommended.voiceId,
-              voiceName: recommended.name,
-            })
-          }
-        }
-
-        const { elevenLabsVoiceId, voiceName: selectedVoiceName } = get()
-        const { res: voiceRes, data: voiceData } = await pipelineFetchJson(
-          '/api/generate-voice',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              script,
-              elevenLabsVoiceId: elevenLabsVoiceId ?? undefined,
-              voiceName: selectedVoiceName ?? undefined,
-            }),
-          }
-        )
-        if (voiceRes.ok) {
-          voiceUrl = typeof voiceData.audioUrl === 'string' ? voiceData.audioUrl : null
-          waveform = Array.isArray(voiceData.waveform)
-            ? (voiceData.waveform as number[])
-            : []
-          if (typeof voiceData.fallbackMessage === 'string' && voiceData.fallbackMessage) {
-            voiceFallbackMessage = voiceData.fallbackMessage
-          }
-          if (typeof voiceData.voiceName === 'string' && voiceData.voiceName) {
-            set({ voiceName: voiceData.voiceName })
-          }
-          if (
-            typeof voiceData.elevenLabsVoiceId === 'string' &&
-            voiceData.elevenLabsVoiceId
-          ) {
-            set({ elevenLabsVoiceId: voiceData.elevenLabsVoiceId })
-          }
-          if (voiceData.mock === true) {
-            anyMock = true
-            noteMissing('voice')
-          }
-        } else {
-          anyMock = true
-          noteMissing('voice')
-          if (typeof voiceData.fallbackMessage === 'string') {
-            voiceFallbackMessage = voiceData.fallbackMessage
-          }
-        }
-
-        set({ voiceUrl, waveform, voiceFallbackMessage, lastCompletedStep: 'voice' })
-        const voiceId = await persistStepComplete(
-          get(),
-          'voice',
-          buildArchiveInput(get(), buildGenerationOutput(get()))
-        )
-        if (voiceId) set({ savedProjectId: voiceId, saveState: 'saved' })
-      }
+      voiceUrl = get().voiceUrl
+      waveform = get().waveform
+      voiceFallbackMessage = get().voiceFallbackMessage
 
       let videoUrl: string | null = get().videoUrl
       let renderPollUrl: string | null = get().renderPollUrl
@@ -1992,6 +2225,8 @@ export const useQuickCutGenerationStore = create<
 
       if (stepShouldRun(resumeFrom, 'export')) {
         setStep(set, get, 'render')
+        patchSectionStatus(set, get, 'export', 'generating')
+        genPerf.start('export')
 
         try {
           await ensureProjectArchived(get())
@@ -2069,6 +2304,7 @@ export const useQuickCutGenerationStore = create<
 
         if (exportDone) {
           set({ lastCompletedStep: 'export' })
+          patchSectionStatus(set, get, 'export', 'completed')
           const exportId = await persistStepComplete(
             get(),
             'export',
@@ -2076,8 +2312,10 @@ export const useQuickCutGenerationStore = create<
           )
           if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
         } else if (exportFailed && renderError) {
+          patchSectionStatus(set, get, 'export', 'failed')
           logStepFailed('export', get().savedProjectId, renderError)
         }
+        genPerf.end('export')
       }
 
       if (assemblyPresentation) {
@@ -2137,6 +2375,12 @@ export const useQuickCutGenerationStore = create<
         lastGeneratedPrompt: prompt,
         studioReviewMode: false,
         saveState: 'saved',
+        generationInFlight: false,
+      })
+
+      genPerf.end('pipeline')
+      genPerf.log('pipeline', 'completed', {
+        durationMs: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
       })
 
       const completedArchive = buildArchiveInput(get(), buildGenerationOutput(get()))
@@ -2236,7 +2480,9 @@ export const useQuickCutGenerationStore = create<
         isComplete: false,
         saveState: 'saved',
         directingSceneLabel: null,
+        generationInFlight: false,
       })
+      genPerf.end('pipeline')
     }
   },
 
@@ -2461,6 +2707,7 @@ export const useQuickCutGenerationStore = create<
           previousHooks: [state.title, state.hook].filter(Boolean),
           language: state.language,
           recentContentAngles: loadRecentContentAngles(),
+          contentBrief: state.contentBrief ?? undefined,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -2516,6 +2763,7 @@ export const useQuickCutGenerationStore = create<
           creatorProfile: resolveCreatorProfilePayload(state),
           creativeBrief: useCompanionStore.getState().creativeBrief,
           companionMemory: useCompanionStore.getState().creatorMemory,
+          contentBrief: state.contentBrief ?? undefined,
           ...creatorHistoryPayload(state.directorMode),
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,

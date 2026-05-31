@@ -19,6 +19,8 @@ import {
 } from '@/lib/cinematic/content-angle-engine'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
+import { normalizeContentBrief } from '@/lib/content-director/content-brief'
+import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
       typeof raw?.hookVariantIndex === 'number' && raw.hookVariantIndex >= 0
         ? Math.floor(raw.hookVariantIndex)
         : previousHooks.length
+
+    const contentBrief = normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief)
 
     const niche = inferNicheFromBrief({ topic: idea })
     const contentAngle = selectContentAngle({
@@ -111,13 +115,15 @@ export async function POST(req: NextRequest) {
     if (isBannedTitle(title)) {
       title = sanitizeTitleCandidate(title, virlo.creativeSeed.seed + attemptIndex)
     }
-    const hook = isBannedHookOpening(selectedHook.text)
+    let hook = isBannedHookOpening(selectedHook.text)
       ? rotated.text
       : selectedHook.text
 
-    const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
+    if (contentBrief) {
+      hook = alignOutputToBrief(hook, contentBrief, 'hook').text
+    }
 
-    await delay(320)
+    const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
 
     if (user) await trackUsageMetric(user.id, 'generations')
 
@@ -139,8 +145,4 @@ export async function POST(req: NextRequest) {
     logError('generate-title', err)
     return NextResponse.json({ error: 'Title generation paused' }, { status: 500 })
   }
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }

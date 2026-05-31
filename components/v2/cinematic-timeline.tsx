@@ -1,23 +1,26 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import type { SectionStatusMap } from '@/lib/cinematic/section-generation-status'
 
 const STEPS = [
-  { id: 'analyzing', label: 'Analyze' },
-  { id: 'script', label: 'Script' },
-  { id: 'scenes', label: 'Scenes' },
-  { id: 'visuals', label: 'Visuals' },
-  { id: 'voice', label: 'Voice' },
-  { id: 'render', label: 'Reel' },
+  { id: 'analyzing', label: 'Analyze', section: null as keyof SectionStatusMap | null },
+  { id: 'script', label: 'Script', section: 'script' as const },
+  { id: 'scenes', label: 'Scenes', section: 'visualDirection' as const },
+  { id: 'visuals', label: 'Visuals', section: 'storyboard' as const },
+  { id: 'voice', label: 'Voice', section: 'voice' as const },
+  { id: 'render', label: 'Reel', section: 'export' as const },
 ] as const
 
 const STEP_ORDER = STEPS.map((s) => s.id)
 
 export function CinematicTimeline({
   currentStep,
+  sectionStatus,
   className,
 }: {
   currentStep: string
+  sectionStatus?: SectionStatusMap
   className?: string
 }) {
   const currentIndex = STEP_ORDER.indexOf(currentStep as (typeof STEP_ORDER)[number])
@@ -27,8 +30,13 @@ export function CinematicTimeline({
     <div className={cn('w-full', className)}>
       <div className="flex items-center justify-between gap-1">
         {STEPS.map((step, i) => {
-          const done = i < activeIndex
-          const active = i === activeIndex
+          const sectionDone =
+            step.section && sectionStatus?.[step.section] === 'completed'
+          const done = sectionDone || i < activeIndex
+          const active =
+            !sectionDone &&
+            (i === activeIndex ||
+              (step.section && sectionStatus?.[step.section] === 'generating'))
           return (
             <div key={step.id} className="flex-1 flex flex-col items-center gap-2">
               <div
@@ -42,10 +50,12 @@ export function CinematicTimeline({
               <span
                 className={cn(
                   'text-[9px] tracking-[0.18em] uppercase hidden sm:block',
-                  active ? 'text-[var(--v2-gold)]' : 'text-[var(--v2-text-secondary)]'
+                  done || active ? 'text-[var(--v2-gold)]' : 'text-[var(--v2-text-secondary)]'
                 )}
               >
-                {step.label}
+                {sectionDone && step.section
+                  ? `${step.label} ✓`
+                  : step.label}
               </span>
             </div>
           )
