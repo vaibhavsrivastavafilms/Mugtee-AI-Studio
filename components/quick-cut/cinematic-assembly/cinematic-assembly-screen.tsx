@@ -51,7 +51,6 @@ export function CinematicAssemblyScreen({
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
@@ -160,7 +159,6 @@ export function CinematicAssemblyScreen({
                 videoUrl={videoUrl}
                 voiceUrl={voiceUrl}
                 audioRef={audioRef}
-                waveform={waveform}
                 isLive
                 generationStep={generationStep}
                 autoPlayPreview={assemblyPreviewAutoplay}

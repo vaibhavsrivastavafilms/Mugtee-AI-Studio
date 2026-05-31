@@ -33,7 +33,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
-  const waveform = useQuickCutGenerationStore((s) => s.waveform)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
@@ -111,7 +110,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
                 videoUrl={videoUrl}
                 voiceUrl={voiceUrl}
                 audioRef={voiceAudioRef}
-                waveform={waveform}
                 isLive={!isComplete}
                 generationStep={isComplete ? 'complete' : generationStep}
                 mp4Compiling={generationStep === 'render' && !videoUrl}
