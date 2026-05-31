@@ -154,7 +154,7 @@ import type { CinematicGenerationState } from '@/lib/cinematic/quick-cut/cinemat
 import { runCinematicAssemblyPresentation } from '@/lib/cinematic/quick-cut/run-cinematic-assembly'
 import {
   buildStoryBibleFromVisualDirection,
-  embedStoryBibleInVisualStyle,
+  mergeStoryBible,
   type StoryBible,
 } from '@/lib/cinematic/story-bible'
 
@@ -363,6 +363,8 @@ interface QuickCutGenerationActions {
   setCreatorProfileOverride: (override: CreatorProfileOverride | null) => void
   setContentSeries: (series: ContentSeries | null) => void
   persistContentSeries: (series: ContentSeries) => Promise<void>
+  setStoryBible: (bible: StoryBible | null) => void
+  updateStoryBible: (patch: Partial<StoryBible>) => void
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -746,7 +748,8 @@ function buildArchiveInput(
     input_type: state.inputType,
     original_transcript: state.originalTranscript || state.prompt,
     variation_history: state.variationHistory,
-    visual_style: embedStoryBibleInVisualStyle(state.visualStyle, state.storyBible),
+    visual_style: state.visualStyle,
+    story_bible: state.storyBible,
     viral_script: state.viralScript,
     generation_status: state.generationStatus,
     generation_step: state.lastCompletedStep ?? undefined,
@@ -1781,6 +1784,7 @@ export const useQuickCutGenerationStore = create<
           style: tone,
           niche: scriptNiche,
           emotionalGoal: scriptVirlo?.emotionalGoal,
+          existing: get().storyBible,
         })
 
         set({
@@ -2718,6 +2722,20 @@ export const useQuickCutGenerationStore = create<
     } catch {
       /* keep in-memory series if save fails */
     }
+  },
+
+  setStoryBible: (bible) => {
+    set({ storyBible: bible })
+    const state = get()
+    if (!state.savedProjectId) return
+    void updateProject(state.savedProjectId, {
+      story_bible: bible,
+    }).catch(() => {})
+  },
+
+  updateStoryBible: (patch) => {
+    const next = mergeStoryBible(get().storyBible, patch)
+    get().setStoryBible(next)
   },
 
   saveProject: async () => {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseRegenContext } from '@/lib/cinematic/regen-context'
 import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import { generateSceneStoryboardImages } from '@/lib/cinematic/storyboard-generator'
-import { extractStoryBibleFromVisualStyle } from '@/lib/cinematic/story-bible'
+import { parseStoryBible, resolveStoryBibleFromRow } from '@/lib/cinematic/story-bible'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
@@ -14,7 +14,7 @@ async function verifyProject(projectId: string, userId: string) {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
-    .select('id, user_id, visual_style')
+    .select('id, user_id, visual_style, story_bible')
     .eq('id', projectId)
     .single()
 
@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Scene not found' }, { status: 404 })
     }
 
-    const storyBible = extractStoryBibleFromVisualStyle(project.visual_style)
+    const storyBible =
+      parseStoryBible(parsed.body!.storyBible) ?? resolveStoryBibleFromRow(project)
 
     const { images, mock } = await generateSceneStoryboardImages({
       input: {

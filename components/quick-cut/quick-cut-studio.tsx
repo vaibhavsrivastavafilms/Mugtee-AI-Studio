@@ -21,6 +21,7 @@ import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { cn } from '@/lib/utils'
+import { StoryboardContinuityPanel } from '@/components/cinematic/storyboard-continuity-panel'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) {
@@ -48,6 +49,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
   const contentSeries = useQuickCutGenerationStore((s) => s.contentSeries)
+  const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
 
   useEffect(() => {
@@ -133,6 +135,13 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
           ) : null}
 
           <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
+
+          {(scenes.length > 0 || storyBible) &&
+          (activeStageTab === 'scenes' ||
+            activeStageTab === 'visuals' ||
+            isComplete) ? (
+            <StoryboardContinuityPanel className="max-w-2xl mx-auto w-full" />
+          ) : null}
 
           {contentSeries ? (
             <SeriesContextPanel

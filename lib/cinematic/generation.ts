@@ -102,6 +102,15 @@ export type SceneImagePromptContext = {
   hasReferenceStyle?: boolean
   /** Project-wide visual continuity lock from story bible */
   storyBible?: StoryBible | null
+  previousScene?: Pick<
+    GeneratedScene,
+    | 'title'
+    | 'description'
+    | 'visualPrompt'
+    | 'imagePrompt'
+    | 'environment'
+    | 'colorPalette'
+  > | null
 }
 
 /** Extract protagonist / subject description for visual consistency across scenes. */
@@ -231,6 +240,17 @@ export function buildSceneImagePrompt(
   const parts: string[] = []
   const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
   if (continuity) parts.push(continuity)
+  if (ctx?.previousScene && ctx?.storyBible) {
+    const prior =
+      ctx.previousScene.imagePrompt ||
+      ctx.previousScene.visualPrompt ||
+      ctx.previousScene.description ||
+      ctx.previousScene.title ||
+      ''
+    if (prior.trim()) {
+      parts.push(`PREVIOUS SCENE (continuity): ${prior.trim().slice(0, 240)}`)
+    }
+  }
   const withRef = prependReferenceStylePrefix(
     sceneBody,
     Boolean(ctx?.hasReferenceStyle)

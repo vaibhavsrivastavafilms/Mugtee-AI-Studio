@@ -246,7 +246,11 @@ export function logStoryBible(
   console.info('[STORY_BIBLE]', event, detail)
 }
 
-export function formatStoryBibleForPrompt(bible: StoryBible): string {
+export function formatStoryBibleForPrompt(
+  bible: StoryBible | null | undefined,
+  opts?: { log?: boolean }
+): string {
+  if (!bible) return ''
   const character = formatCharacterForPrompt(bible.characterProfile)
   const lines = [
     'CINEMATIC CONTINUITY (Story Bible):',
@@ -257,7 +261,43 @@ export function formatStoryBibleForPrompt(bible: StoryBible): string {
     bible.cameraLanguage ? `CAMERA: ${bible.cameraLanguage}` : null,
     bible.mood ? `MOOD: ${bible.mood}` : null,
   ].filter(Boolean)
-  return lines.join('\n')
+  const block = lines.join('\n')
+  if (opts?.log && block) {
+    logStoryBible('applied', { fields: lines.length - 1 })
+  }
+  return block
+}
+
+const STORY_BIBLE_VISUAL_KEY = '__storyBible'
+
+/** Legacy embed — bible also persisted on `cinematic_projects.story_bible`. */
+export function embedStoryBibleInVisualStyle(
+  visualStyle: VisualStyle | null,
+  bible: StoryBible | null
+): VisualStyle | Record<string, unknown> | null {
+  if (!bible) return visualStyle
+  const base =
+    visualStyle && typeof visualStyle === 'object'
+      ? { ...visualStyle }
+      : ({} as Record<string, unknown>)
+  return { ...base, [STORY_BIBLE_VISUAL_KEY]: bible }
+}
+
+/** Read bible from dedicated column payload or legacy visual_style embed. */
+export function extractStoryBibleFromVisualStyle(
+  visualStyle: unknown
+): StoryBible | null {
+  if (!visualStyle || typeof visualStyle !== 'object') return null
+  const row = visualStyle as Record<string, unknown>
+  const embedded = row[STORY_BIBLE_VISUAL_KEY]
+  return parseStoryBible(embedded)
+}
+
+export function resolveStoryBibleFromRow(row: {
+  story_bible?: unknown
+  visual_style?: unknown
+}): StoryBible | null {
+  return parseStoryBible(row.story_bible) ?? extractStoryBibleFromVisualStyle(row.visual_style)
 }
 
 export type ContinuityPromptScene = Pick<

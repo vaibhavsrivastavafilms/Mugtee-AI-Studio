@@ -12,6 +12,7 @@ import type { StoryboardImage } from '@/stores/cinematic-project'
 import { buildStoryboardContinuityBlock } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
 import { cinematicWorldLighting } from '@/lib/cinematic/execution/cinematic-lighting-engine'
 import {
+  buildContinuityStoryboardPrompt,
   formatStoryBibleForPrompt,
   type StoryBible,
 } from '@/lib/cinematic/story-bible'
@@ -128,6 +129,52 @@ export function buildStoryboardPrompt(
   const narration =
     input.scene.narration || input.scene.description || input.scene.title || ''
 
+  const previousScene =
+    input.allScenes && input.sceneIndex > 1
+      ? input.allScenes[input.sceneIndex - 2] ?? null
+      : null
+
+  if (input.storyBible) {
+    const scene = {
+      title: input.scene.title || `Scene ${input.sceneIndex}`,
+      description: input.scene.narration || input.scene.description || '',
+      visualPrompt: input.scene.visualPrompt || visual.visualPrompt,
+      imagePrompt: input.scene.imagePrompt || '',
+      cameraAngle: visual.cameraAngle,
+      lightingMood: visual.lightingMood,
+      environment: visual.environment,
+      colorPalette: visual.colorPalette,
+      movementStyle: visual.movementStyle,
+    }
+    const prompt = buildContinuityStoryboardPrompt({
+      bible: input.storyBible,
+      scene,
+      sceneIndex: input.sceneIndex,
+      totalScenes: input.totalScenes || 1,
+      previousScene: previousScene
+        ? {
+            title: previousScene.title || `Scene ${input.sceneIndex - 1}`,
+            description: previousScene.narration || previousScene.description || '',
+            visualPrompt: previousScene.visualPrompt || '',
+            imagePrompt: previousScene.imagePrompt || '',
+            cameraAngle: previousScene.cameraAngle || visual.cameraAngle,
+            lightingMood: previousScene.lightingMood || visual.lightingMood,
+            environment: previousScene.environment || visual.environment,
+            colorPalette: previousScene.colorPalette || visual.colorPalette,
+            movementStyle: previousScene.movementStyle || visual.movementStyle,
+          }
+        : null,
+      variantFraming: variant.framing,
+      role,
+    })
+    const extras = [
+      narration ? `Emotional subtext: ${narration.slice(0, 180)}.` : '',
+      input.hook ? `Story hook context: ${input.hook.slice(0, 120)}.` : '',
+      `Lighting direction: ${cinematicWorldLighting(input.niche, role)}.`,
+    ].filter(Boolean)
+    return sanitizeStoryboardPrompt([prompt, ...extras].join('\n'))
+  }
+
   const lines = [
     'Cinematic director storyboard frame for a vertical creator reel.',
   ]
@@ -144,7 +191,7 @@ export function buildStoryboardPrompt(
     `Environment: ${visual.environment}.`,
     `Palette: ${visual.colorPalette}.`,
     `Movement energy: ${visual.movementStyle}.`,
-  ]
+  )
 
   if (narration) lines.push(`Emotional subtext: ${narration.slice(0, 180)}.`)
   if (input.hook) lines.push(`Story hook context: ${input.hook.slice(0, 120)}.`)
