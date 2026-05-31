@@ -59,6 +59,7 @@ import {
   selectScriptArchetype,
   type ScriptArchetypeMeta,
   type SelectedScriptArchetype,
+  parseNarrativeMetaFromArchetypeOutput,
 } from '@/lib/cinematic/script-archetypes'
 import {
   coerceRecentContentAngles,
@@ -424,7 +425,8 @@ function shapeScriptFromLlm(
     : []
 
   const resolvedArchetype = resolveArchetypeFromOutput(parsed, ctx.scriptArchetype)
-  const archetypeMeta = archetypeMetaFromSelection(resolvedArchetype)
+  const narrativeMeta = parseNarrativeMetaFromArchetypeOutput(parsed, ctx.scriptArchetype)
+  const archetypeMeta = { ...archetypeMetaFromSelection(resolvedArchetype), ...narrativeMeta }
 
   const output = {
     ...finalizeCinematicOutput(

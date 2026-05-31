@@ -10,6 +10,10 @@ import { pacingPromptFragment } from '@/lib/virlo-engine/pacing-engine'
 import { visualLanguagePromptFragment } from '@/lib/virlo-engine/visual-language'
 import type { VirloContext } from '@/lib/virlo-engine/types'
 import type { SelectedScriptArchetype } from '@/lib/cinematic/script-archetypes'
+import {
+  buildBannedScriptPhrasesSection,
+  buildNarrativeStructurePromptSection,
+} from '@/lib/cinematic/narrative-structure-engine'
 import type { HookFramework, SelectedContentAngle } from '@/lib/cinematic/content-angle-engine'
 import {
   buildContentAnglePromptSection,
@@ -103,11 +107,9 @@ export function buildVirloScenesPrompt(
 function buildCreatorStructureLayer(scriptArchetype?: SelectedScriptArchetype): string {
   if (scriptArchetype) {
     return [
-      `MUGTEE SCRIPT SOP (${scriptArchetype.label} archetype — NOT generic CTSH template):`,
-      `HOOK (max 20 words) → SCRIPT BEATS (8–12 one-sentence beats, 3–8s each) → PAYOFF → CTA`,
-      scriptArchetype.beatInstructions,
-      `Populate scriptBeats[] with narration (1 sentence), duration ("4s"), emotion per beat.`,
-      `Emotion labels: archetype-native (e.g. ${scriptArchetype.emotionExamples.slice(0, 5).join(', ')}) — avoid repeating curiosity/tension/shock/hope every time.`,
+      buildNarrativeStructurePromptSection(scriptArchetype),
+      `Populate scriptBeats[] with: label (mandatory scene label from structure), narration (1 sentence), duration ("4s"), emotion per beat.`,
+      `scenes[].title MUST match scriptBeats[].label — never "Beat 1", "Problem", "Solution", or "Outcome".`,
       `Payoff + CTA must be original every generation — reference the creator brief topic, not reusable motivational templates.`,
       `Write spoken cinematic beats — NO blog tone, NO quote spam, NO AI poetry, NO paragraphs.`,
     ].join('\n')
@@ -116,11 +118,12 @@ function buildCreatorStructureLayer(scriptArchetype?: SelectedScriptArchetype): 
   return [
     `MUGTEE SCRIPT SOP (reel-native beats — NOT essay):`,
     `HOOK (max 20 words) → SCRIPT BEATS (8–12 one-sentence beats, 3–8s each) → PAYOFF → CTA`,
+    buildBannedScriptPhrasesSection(),
     `Arc guidance: spread hook → context → escalation → insight → payoff → CTA across beats — vary emotion labels per beat.`,
     ...RETENTION_SCENE_BEATS.map(
       (b) => `Beat arc ${b.sceneIndex} "${b.label}": ${b.instruction}`
     ),
-    `Populate scriptBeats[] with narration (1 sentence), duration ("4s"), emotion per beat.`,
+    `Populate scriptBeats[] with label, narration (1 sentence), duration ("4s"), emotion per beat.`,
     `Payoff + CTA must be original every generation — reference the creator brief topic, not reusable motivational templates.`,
     `Write spoken cinematic beats — NO blog tone, NO quote spam, NO AI poetry, NO paragraphs.`,
   ].join('\n')
@@ -212,15 +215,15 @@ OUTPUT FORMAT (exact JSON shape — scriptBeats is PRIMARY):
   "hookVariations": ["variation 1", "variation 2", "variation 3"],
   "hook": "strongest hook only — max 20 words, pattern interrupt",
   "scriptBeats": [
-    { "narration": "one sentence voiceover line", "duration": "4s", "emotion": "curiosity" },
-    { "narration": "...", "duration": "5s", "emotion": "tension" }
+    { "label": "Cold Open", "narration": "one sentence voiceover line", "duration": "4s", "emotion": "stillness" },
+    { "label": "Context", "narration": "...", "duration": "5s", "emotion": "curiosity" }
   ],
   "payoff": "single emotional landing line",
   "cta": "short creator engagement prompt",
   "summary": "1-2 sentence reel summary",
   "script": "optional flat voiceover — auto-derived from beats if omitted",
   "scenes": [
-    { "id": "scene-1", "title": "Beat 1", "description": "same as scriptBeats[0].narration", "duration": 4,
+    { "id": "scene-1", "title": "Cold Open", "description": "same as scriptBeats[0].narration", "duration": 4,
       ${sceneVisualJsonFields()} }
   ],
   "captions": {
@@ -232,9 +235,9 @@ OUTPUT FORMAT (exact JSON shape — scriptBeats is PRIMARY):
 }
 
 Hard rules:
-- Exactly 8–12 scriptBeats; one sentence per beat; duration 3s–8s each (e.g. "4s").
+- Exactly 8–12 scriptBeats; one sentence per beat; duration 3s–8s each (e.g. "4s"); label required from narrative structure.
 - hook max 20 words. payoff and cta required.
-- Populate scenes (one per beat, up to ${sceneTarget}) from scriptBeats narration.
+- Populate scenes (one per beat, up to ${sceneTarget}) from scriptBeats — title = beat label, description = narration.
 - ${duration}s runtime — beat durations should sum near target.
 - suggestedVoiceStyle must match niche + tone.
 - Unique to this topic — no template filler or essay voice.

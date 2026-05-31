@@ -44,7 +44,7 @@ import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 const actionButtonClass =
@@ -74,7 +74,8 @@ export function GenerationResultsSection({
   const payoff = useQuickCutGenerationStore((s) => s.payoff)
   const cta = useQuickCutGenerationStore((s) => s.cta)
   const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
-  const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
+  const narrativeArchetypeLabel = useQuickCutGenerationStore((s) => s.narrativeArchetypeLabel)
+  const narrativeFlowDisplay = useQuickCutGenerationStore((s) => s.narrativeFlowDisplay)
   const contentAngleLabel = useQuickCutGenerationStore((s) => s.contentAngleLabel)
   const hookFrameworkLabel = useQuickCutGenerationStore((s) => s.hookFrameworkLabel)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
@@ -362,7 +363,10 @@ export function GenerationResultsSection({
             />
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3 space-y-2">
-            <ScriptTypeLabel label={scriptArchetypeDisplay ?? scriptArchetypeLabel} />
+            <NarrativeStructureLabel
+              archetypeLabel={narrativeArchetypeLabel ?? scriptArchetypeLabel}
+              narrativeFlowDisplay={narrativeFlowDisplay}
+            />
             <ContentAngleLabel
               angleLabel={contentAngleLabel}
               hookFrameworkLabel={hookFrameworkLabel}

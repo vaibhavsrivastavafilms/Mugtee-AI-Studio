@@ -34,6 +34,7 @@ export type MugteeScriptBeat = {
   narration: string
   duration: string
   emotion: string
+  label?: string
 }
 
 /** Legacy phased section — kept for backward compat and downstream mapping. */
@@ -165,6 +166,7 @@ export function parseScriptBeats(raw: unknown): MugteeScriptBeat[] {
       narration,
       duration: normalizeDurationLabel(durSec),
       emotion: coerceSectionText(row.emotion ?? row.emotionalGoal, 80),
+      label: coerceSectionText(row.label ?? row.sceneLabel ?? row.title, 80) || undefined,
     })
   }
 

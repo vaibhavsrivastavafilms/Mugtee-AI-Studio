@@ -216,6 +216,10 @@ export type ArchiveGeneratedProjectInput = {
   archetypeId?: string | null
   archetypeLabel?: string | null
   archetypeDisplay?: string | null
+  narrativeArchetype?: string | null
+  narrativeArchetypeLabel?: string | null
+  narrativeStructureLabels?: string[] | null
+  narrativeFlowDisplay?: string | null
   contentAngleId?: string | null
   contentAngleLabel?: string | null
   hookFramework?: string | null
@@ -618,6 +622,7 @@ export async function updateProject(
     (state as { directorMode?: string }).directorMode !== undefined ||
     (state as { blueprintId?: string | null }).blueprintId !== undefined ||
     (state as { archetypeId?: string | null }).archetypeId !== undefined ||
+    (state as { narrativeArchetype?: string | null }).narrativeArchetype !== undefined ||
     (state as { contentAngleId?: string | null }).contentAngleId !== undefined ||
     state.series !== undefined ||
     state.repurposedAssets !== undefined
@@ -639,6 +644,19 @@ export async function updateProject(
         (state as { archetypeLabel?: string | null }).archetypeLabel ?? undefined,
       archetypeDisplay:
         (state as { archetypeDisplay?: string | null }).archetypeDisplay ?? undefined,
+      narrativeArchetype:
+        (state as { narrativeArchetype?: string | null }).narrativeArchetype ??
+        (state as { archetypeId?: string | null }).archetypeId ??
+        undefined,
+      narrativeArchetypeLabel:
+        (state as { narrativeArchetypeLabel?: string | null }).narrativeArchetypeLabel ??
+        (state as { archetypeLabel?: string | null }).archetypeLabel ??
+        undefined,
+      narrativeStructureLabels:
+        (state as { narrativeStructureLabels?: string[] | null }).narrativeStructureLabels ??
+        undefined,
+      narrativeFlowDisplay:
+        (state as { narrativeFlowDisplay?: string | null }).narrativeFlowDisplay ?? undefined,
       contentAngleId:
         (state as { contentAngleId?: string | null }).contentAngleId ?? undefined,
       contentAngleLabel:
@@ -833,6 +851,10 @@ export async function archiveGeneratedProject(
     archetypeId?: string | null
     archetypeLabel?: string | null
     archetypeDisplay?: string | null
+    narrativeArchetype?: string | null
+    narrativeArchetypeLabel?: string | null
+    narrativeStructureLabels?: string[] | null
+    narrativeFlowDisplay?: string | null
     video_url?: string | null
     thumbnail_url?: string | null
     storyboard?: unknown
@@ -875,6 +897,10 @@ export async function archiveGeneratedProject(
     archetypeId: input.archetypeId ?? undefined,
     archetypeLabel: input.archetypeLabel ?? undefined,
     archetypeDisplay: input.archetypeDisplay ?? undefined,
+    narrativeArchetype: input.narrativeArchetype ?? input.archetypeId ?? undefined,
+    narrativeArchetypeLabel: input.narrativeArchetypeLabel ?? input.archetypeLabel ?? undefined,
+    narrativeStructureLabels: input.narrativeStructureLabels ?? undefined,
+    narrativeFlowDisplay: input.narrativeFlowDisplay ?? undefined,
     video_url: input.video_url ?? null,
     thumbnail_url: thumbnail,
     storyboard: input.storyboard ?? scenes,
@@ -922,6 +948,10 @@ export async function archiveGeneratedProject(
       archetypeId: input.archetypeId ?? undefined,
       archetypeLabel: input.archetypeLabel ?? undefined,
       archetypeDisplay: input.archetypeDisplay ?? undefined,
+      narrativeArchetype: input.narrativeArchetype ?? input.archetypeId ?? undefined,
+      narrativeArchetypeLabel: input.narrativeArchetypeLabel ?? input.archetypeLabel ?? undefined,
+      narrativeStructureLabels: input.narrativeStructureLabels ?? undefined,
+      narrativeFlowDisplay: input.narrativeFlowDisplay ?? undefined,
       video_url: input.video_url ?? null,
       thumbnail_url: thumbnail,
       storyboard: input.storyboard ?? scenes,
