@@ -7,6 +7,7 @@ import { CreatorMissionBoard } from '@/components/agent/creator-mission-board'
 import { IdeaCaptureInput } from '@/components/agent/idea-capture-input'
 import { OpportunityFeed } from '@/components/agent/opportunity-feed'
 import { WeeklyPlannerCard } from '@/components/agent/weekly-planner-card'
+import { RecommendedNextMoveCard } from '@/components/decision/recommended-next-move-card'
 import { useCreatorAgentStore } from '@/stores/creator-agent-store'
 
 export function GrowthCommandCenter() {
@@ -39,6 +40,8 @@ export function GrowthCommandCenter() {
           CEO briefing
         </button>
       </header>
+
+      <RecommendedNextMoveCard />
 
       <IdeaCaptureInput />
 

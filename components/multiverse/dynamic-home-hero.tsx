@@ -11,6 +11,7 @@ import { WorldSelector } from '@/components/multiverse/world-selector'
 import { quickCutStudioHref } from '@/lib/create/routes'
 import type { CreatorWorldId, CreatorReputation } from '@/lib/multiverse/types'
 import type { HomeBriefing } from '@/lib/multiverse/dynamic-home-copy'
+import { RecommendedNextMoveCard } from '@/components/decision/recommended-next-move-card'
 import { cn } from '@/lib/utils'
 
 type HomeBriefingResponse = {
@@ -80,6 +81,8 @@ export function DynamicHomeHero({ className }: { className?: string }) {
           {briefing.headline}
         </h1>
         <p className="text-sm text-luxe/65 leading-relaxed max-w-2xl">{briefing.subline}</p>
+
+        <RecommendedNextMoveCard className="mt-4" compact />
 
         {briefing.nextUnlock ? (
           <p className="text-[10px] text-gold-300/60 mt-2 tracking-wide">{briefing.nextUnlock}</p>
