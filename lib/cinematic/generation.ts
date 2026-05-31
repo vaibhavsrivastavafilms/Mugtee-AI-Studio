@@ -40,6 +40,10 @@ import {
 } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import {
+  formatStoryBibleForPrompt,
+  type StoryBible,
+} from '@/lib/cinematic/story-bible'
+import {
   parseScriptSections,
   parseScriptBeats,
   scriptTextFromSections,
@@ -96,6 +100,8 @@ export type SceneImagePromptContext = {
   variationDirective?: string
   /** Reference style image attached — prepends SOP prefix at Gemini call */
   hasReferenceStyle?: boolean
+  /** Project-wide visual continuity lock from story bible */
+  storyBible?: StoryBible | null
 }
 
 /** Extract protagonist / subject description for visual consistency across scenes. */
@@ -223,6 +229,8 @@ export function buildSceneImagePrompt(
     ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
 
   const parts: string[] = []
+  const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
+  if (continuity) parts.push(continuity)
   const withRef = prependReferenceStylePrefix(
     sceneBody,
     Boolean(ctx?.hasReferenceStyle)
