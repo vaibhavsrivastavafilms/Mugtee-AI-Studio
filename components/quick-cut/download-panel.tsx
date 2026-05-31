@@ -85,7 +85,14 @@ function DownloadRow({
   )
 }
 
-export function QuickCutDownloadPanel({ className }: { className?: string }) {
+export function QuickCutDownloadPanel({
+  className,
+  supplementaryOnly = false,
+}: {
+  className?: string
+  /** Hide script, narration, and MP4 rows when primary actions live in GenerationResultsSection */
+  supplementaryOnly?: boolean
+}) {
   const { isUnlimited } = useUsage()
 
   const title = useQuickCutGenerationStore((s) => s.title)
@@ -398,7 +405,7 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
     >
       <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
         <Download className="w-3 h-3" />
-        Download assets
+        {supplementaryOnly ? 'More export assets' : 'Download assets'}
       </div>
 
       <div className="space-y-2">
@@ -408,6 +415,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
           </p>
         ) : null}
 
+        {!supplementaryOnly ? (
+          <>
         <DownloadRow
           icon={<FileText className="w-3 h-3" />}
           label="Script"
@@ -434,6 +443,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
             .doc
           </button>
         </DownloadRow>
+          </>
+        ) : null}
 
         <DownloadRow
           icon={<ImageIcon className="w-3 h-3" />}
@@ -468,6 +479,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
           })}
         </DownloadRow>
 
+        {!supplementaryOnly ? (
+          <>
         <DownloadRow
           icon={<Mic className="w-3 h-3" />}
           label="Narration"
@@ -575,6 +588,8 @@ export function QuickCutDownloadPanel({ className }: { className?: string }) {
             </button>
           )}
         </DownloadRow>
+          </>
+        ) : null}
 
         <DownloadRow
           icon={<Package className="w-3 h-3" />}

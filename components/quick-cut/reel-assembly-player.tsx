@@ -77,6 +77,9 @@ export function ReelAssemblyPlayer({
 
   onVideoUrl,
 
+  /** Hide View Script / Download MP4 controls (used in structured results section) */
+  hideInlineActions = false,
+
   className,
 
 }: {
@@ -121,6 +124,8 @@ export function ReelAssemblyPlayer({
   canCompileMp4?: boolean
 
   onVideoUrl?: (url: string) => void
+
+  hideInlineActions?: boolean
 
   className?: string
 
@@ -809,22 +814,26 @@ export function ReelAssemblyPlayer({
 
             </p>
 
-            <QuickCutProjectScriptViewDialog
-              compact
-              title={title}
-              script={script}
-              hook={hook}
-              scenes={scenes}
-              triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
-            />
+            {!hideInlineActions ? (
+              <>
+                <QuickCutProjectScriptViewDialog
+                  compact
+                  title={title}
+                  script={script}
+                  hook={hook}
+                  scenes={scenes}
+                  triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
+                />
 
-            <QuickCutPlayerMp4Download
-              projectId={projectId}
-              videoUrl={videoUrl}
-              title={title}
-              canCompileMp4={canCompileMp4}
-              onVideoUrl={onVideoUrl}
-            />
+                <QuickCutPlayerMp4Download
+                  projectId={projectId}
+                  videoUrl={videoUrl}
+                  title={title}
+                  canCompileMp4={canCompileMp4}
+                  onVideoUrl={onVideoUrl}
+                />
+              </>
+            ) : null}
 
           </div>
 
@@ -834,7 +843,7 @@ export function ReelAssemblyPlayer({
 
 
 
-      {!canPlayPreview && (scenes.length > 0 || hook || script) ? (
+      {!hideInlineActions && !canPlayPreview && (scenes.length > 0 || hook || script) ? (
 
         <div className="flex items-center justify-center gap-2 flex-wrap">
 

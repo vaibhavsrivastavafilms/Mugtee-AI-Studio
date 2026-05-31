@@ -400,7 +400,7 @@ export function GenerationStagePanel({
 
     case 'complete':
       return isComplete ? (
-        <QuickCutDownloadPanel className={className} />
+        <QuickCutDownloadPanel className={className} supplementaryOnly />
       ) : (
         shell(
           'Download',
