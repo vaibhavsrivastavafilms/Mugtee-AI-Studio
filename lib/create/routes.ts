@@ -51,6 +51,20 @@ export function projectWorkspaceHref(
     : `${STUDIO.project}/${projectId}`
 }
 
+/** Flagship Creator Command Center workspace — unified pipeline shell. */
+export function commandCenterWorkspaceHref(
+  projectId?: string | null,
+  options?: { tab?: QuickCutStageTab; regen?: boolean }
+): string {
+  const base = `${STUDIO.root}/workspace`
+  const qs = new URLSearchParams()
+  if (projectId) qs.set('project', projectId)
+  if (options?.tab) qs.set('tab', options.tab)
+  if (options?.regen) qs.set('regen', '1')
+  const q = qs.toString()
+  return q ? `${base}?${q}` : base
+}
+
 /** Project continuity route — resolves to the dedicated workspace. */
 export function projectContinuityHref(projectId: string): string {
   return projectWorkspaceHref(projectId)

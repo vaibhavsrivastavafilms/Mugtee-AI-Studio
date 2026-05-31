@@ -754,6 +754,50 @@ export async function loadProject(id: string): Promise<CinematicProjectRow> {
   return data as CinematicProjectRow
 }
 
+/** Permanently remove a project from the library (owner-only via RLS). */
+export async function deleteProject(id: string): Promise<void> {
+  const supabase = requireBrowserClient()
+  const { error } = await supabase.from('cinematic_projects').delete().eq('id', id)
+  if (error) throwIfUnavailable(error)
+}
+
+/** Clone a project row into a new draft (no video/reel output copied). */
+export async function duplicateProject(id: string): Promise<CinematicProjectRow> {
+  const source = await loadProject(id)
+  const captions = source.captions
+  const hook =
+    typeof captions === 'object' && captions && 'hook' in captions
+      ? String((captions as { hook?: string }).hook ?? '')
+      : ''
+  const summary =
+    typeof captions === 'object' && captions && 'summary' in captions
+      ? String((captions as { summary?: string }).summary ?? '')
+      : ''
+
+  return createProject({
+    title: `${source.title} (copy)`.slice(0, 120),
+    prompt: source.prompt,
+    style: source.style,
+    duration: source.duration,
+    hook,
+    summary,
+    script: source.script,
+    scenes: source.scenes ?? [],
+    voice: source.voice,
+    captions: typeof captions === 'string' ? captions : '',
+    status: 'create',
+    mode: source.mode === 'director' ? 'director' : 'quick',
+    language: source.language ?? undefined,
+    input_type: source.input_type ?? undefined,
+    original_transcript: source.original_transcript ?? undefined,
+    variation_history: source.variation_history ?? undefined,
+    visual_style: source.visual_style ?? undefined,
+    storyboard: source.storyboard ?? undefined,
+    virlo: source.virlo ?? undefined,
+    viral_script: source.viral_script ?? undefined,
+  })
+}
+
 export type RecentProjectsLoadResult = {
   projects: CinematicProjectSummary[]
   /** True when migrations 0014–0018 have not been applied (missing table). */
