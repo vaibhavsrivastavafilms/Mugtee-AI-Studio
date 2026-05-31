@@ -27,6 +27,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { UsageOverview } from '@/components/settings/usage-overview'
 import { FoundingCreatorProgramSection } from '@/components/settings/founding-creator-program'
 import { InviteCreatorsSection } from '@/components/settings/invite-creators-section'
+import { MemoryDashboardPanel } from '@/components/memory/memory-dashboard-panel'
 
 const THEMES = [
   { key: 'gold',     label: 'Gold',          hue: 43,  sat: 60, css: 'linear-gradient(135deg, hsl(43 60% 70%), hsl(43 60% 50%), hsl(43 60% 30%))' },
@@ -453,6 +454,13 @@ export default function SettingsPage() {
             <Save className="w-4 h-4" /> {profileSaving ? 'Saving…' : 'Save profile'}
           </Button>
         </div>
+      </motion.div>
+
+      {/* Companion Memory OS ================================================== */}
+      <motion.div id="memory" initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.085}}
+        className="glass rounded-2xl p-6 sm:p-8"
+      >
+        <MemoryDashboardPanel />
       </motion.div>
 
       {/* Theme ================================================================= */}

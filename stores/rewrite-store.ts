@@ -8,6 +8,7 @@ import {
 import { persistProjectEdit } from '@/lib/rewrite/persist-project-edit'
 import type { RewriteContentType, RewriteVariant } from '@/lib/rewrite/rewrite-actions'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { logRewrite } from '@/lib/memory/learning-loop'
 
 export type RewriteHistoryEntry = {
   id: string
@@ -106,6 +107,11 @@ export const useRewriteStore = create<RewriteStore>((set, get) => ({
     trackEvent(AnalyticsEvents.REWRITE_ACCEPT, {
       projectId: pid,
       metadata: { content_type: contentType, rewrite_action: variant },
+    })
+
+    logRewrite({
+      projectId: pid ?? undefined,
+      aspect: contentType,
     })
 
     if (pid) {

@@ -9,6 +9,7 @@ import {
   type ImprovementReason,
   type OutputRating,
 } from '@/lib/creator/moment-feedback'
+import { logFeedbackNegative, logFeedbackPositive } from '@/lib/memory/learning-loop'
 import { useFeedbackStore } from '@/stores/feedback-store'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +41,14 @@ export function OutputRatingCard({
         rating: value,
         improvement_reason: improvementReason ?? null,
       })
+      if (value === 'needs_improvement') {
+        logFeedbackNegative({
+          projectId: projectId ?? undefined,
+          aspect: improvementReason ?? 'output',
+        })
+      } else {
+        logFeedbackPositive({ projectId: projectId ?? undefined })
+      }
       markSubmitted('output_rating')
       setDone(true)
     } catch {

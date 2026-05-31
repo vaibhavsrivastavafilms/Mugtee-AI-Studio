@@ -10,7 +10,8 @@ import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection, creatorProfileDirective } from '@/lib/creator/creator-memory'
-import { buildCreatorMemoryPromptSection as buildCompanionMemorySection } from '@/lib/companion/creator-memory'
+import { formatCreatorMemoryForPrompt } from '@/lib/memory/memory-prompt-injection'
+import type { MemoryProfile } from '@/lib/memory/types'
 import type { CreativeBrief, CreatorMemory } from '@/lib/companion/types'
 import {
   formatCompanionBriefFallback,
@@ -88,6 +89,8 @@ export type CinematicPromptInput = {
   narrativeFramework?: SelectedNarrativeFramework | null
   /** Companion creator memory from reflections */
   companionMemory?: CreatorMemory | null
+  /** V3 Memory OS — DNA, graph, relationship */
+  memoryProfile?: MemoryProfile | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -148,7 +151,13 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     niche: input.niche,
     sessionSeed: input.sessionSeed,
   })
-  const directorBrief = formatContentBriefForPrompt(input.contentBrief)
+  const directorBrief = formatContentBriefForPrompt(
+    input.contentBrief,
+    formatCreatorMemoryForPrompt({
+      profile: input.memoryProfile,
+      companionMemory: input.companionMemory,
+    })
+  )
   const briefHeader = [
     intentBlock,
     directorBrief ||
@@ -191,7 +200,10 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.creatorMemoryBias
       ? buildCreatorMemoryPromptSection(input.creatorMemoryBias)
       : '',
-    input.companionMemory ? buildCompanionMemorySection(input.companionMemory) : '',
+    formatCreatorMemoryForPrompt({
+      profile: input.memoryProfile,
+      companionMemory: input.companionMemory,
+    }),
     formatCompanionBriefFallback(input.contentBrief, input.creativeBrief),
     input.creatorProfile ? creatorProfileDirective(input.creatorProfile) : '',
     input.researchReport

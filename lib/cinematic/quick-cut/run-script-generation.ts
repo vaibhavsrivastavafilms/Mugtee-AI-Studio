@@ -124,6 +124,7 @@ export type ScriptGenerationInput = {
   hookFrameworkId?: string
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
+  memoryProfile?: import('@/lib/memory/types').MemoryProfile | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
   recentNarrativeFrameworks?: string[]
 } & DeepResearchPipelineOptions
@@ -160,6 +161,7 @@ type GenInput = {
   hookFramework?: HookFramework
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
+  memoryProfile?: import('@/lib/memory/types').MemoryProfile | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
   parsedIntent?: import('@/lib/input-understanding').ParsedCreatorIntent | null
   narrativeFramework?: SelectedNarrativeFramework
@@ -212,6 +214,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       hookFramework: input.hookFramework,
       creativeBrief: input.creativeBrief,
       companionMemory: input.companionMemory,
+      memoryProfile: input.memoryProfile,
       contentBrief: input.contentBrief,
       parsedIntent: input.parsedIntent,
       narrativeFramework: input.narrativeFramework,
@@ -601,6 +604,7 @@ export async function runScriptGeneration(
     hookFramework,
     creativeBrief: input.creativeBrief,
     companionMemory: input.companionMemory,
+    memoryProfile: input.memoryProfile,
     contentBrief: input.contentBrief,
     parsedIntent: input.parsedIntent,
     narrativeFramework,

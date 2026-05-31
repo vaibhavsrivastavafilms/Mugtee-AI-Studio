@@ -11,12 +11,15 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
 import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
+import { CreatorLevelBadge } from '@/components/mission/creator-level-badge'
 
 import { buildTodaysBrief } from '@/lib/sidekick/todays-brief'
 
 import { computeGoalProgress } from '@/lib/sidekick/creator-journey'
 
 import { fetchCreatorMemoryProfile } from '@/lib/creator/creator-memory'
+import { useCreatorMemoryStore } from '@/stores/creator-memory-store'
+import { RelationshipBadge } from '@/components/memory/relationship-badge'
 
 import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 
@@ -32,7 +35,10 @@ export function TodaysBriefSection() {
 
   const [projectsCount, setProjectsCount] = useState(0)
 
-
+  const memoryProfile = useCreatorMemoryStore((s) => s.profile)
+  const hydrateMemory = useCreatorMemoryStore((s) => s.hydrate)
+  const companionMessage = useCreatorMemoryStore((s) => s.companionMessage)
+  const refreshCompanionMessage = useCreatorMemoryStore((s) => s.refreshCompanionMessage)
 
   useEffect(() => {
 
@@ -43,6 +49,9 @@ export function TodaysBriefSection() {
     } catch {}
 
     void fetchCreatorMemoryProfile().then(setProfile)
+
+    void hydrateMemory()
+    void refreshCompanionMessage()
 
     void fetch('/api/usage', { cache: 'no-store' })
 
@@ -96,15 +105,32 @@ export function TodaysBriefSection() {
 
         <MugteeSidekickAvatar size="md" className="shrink-0" />
 
-        <div>
+        <div className="min-w-0 flex-1">
 
-          <p className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
 
-            Today&apos;s Brief
+            <p className="text-[10px] tracking-[0.32em] uppercase text-gold-300/80">
 
-          </p>
+              Today&apos;s Brief
+
+            </p>
+
+            <RelationshipBadge
+              level={memoryProfile.relationshipLevel}
+              score={memoryProfile.relationshipScore}
+            />
+
+          </div>
+
+          <CreatorLevelBadge className="mb-1.5" />
 
           <p className="text-sm text-luxe/80 leading-relaxed">{brief.greeting}</p>
+
+          {companionMessage?.insight ? (
+
+            <p className="text-xs text-luxe/55 mt-1.5 italic">{companionMessage.insight}</p>
+
+          ) : null}
 
         </div>
 
