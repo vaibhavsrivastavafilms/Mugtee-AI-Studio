@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Clapperboard,
@@ -15,11 +16,30 @@ import {
   Video,
   Check,
   ExternalLink,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { quickCutStudioHref } from '@/lib/create/routes'
-import { CreatorInspiration } from '@/components/creator-inspiration'
 import type { VideoGeneratorOutput, VideoScene } from '@/app/api/ai/video-generator/route'
+import {
+  TEXT_TO_VIDEO_DEMO_TEMPLATES,
+  TEXT_TO_VIDEO_STUDIO_DEMO_ONLY,
+  type TextToVideoDemoTemplate,
+  type TextToVideoDemoTemplateId,
+} from '@/lib/demo/text-to-video-templates'
+import {
+  runTextToVideoDemoPipeline,
+  type TextToVideoDemoProgress,
+  type TextToVideoTimelineStep,
+} from '@/lib/demo/run-text-to-video-demo'
+import { CinematicTimeline } from '@/components/v2/cinematic-timeline'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type PreviewSection = 'hook' | 'voiceover' | 'storyboard' | 'visuals' | 'thumbnail' | 'export'
 
@@ -31,6 +51,9 @@ const SECTIONS: { id: PreviewSection; label: string; icon: typeof Film }[] = [
   { id: 'thumbnail', label: 'Thumbnail', icon: Sparkles },
   { id: 'export', label: 'Export', icon: Download },
 ]
+
+const triggerClassName =
+  'h-9 text-xs bg-black/30 border-white/[0.08] text-luxe/85 hover:border-gold-500/25 focus:ring-gold-500/20'
 
 function slugify(title: string): string {
   return (
@@ -128,77 +151,177 @@ function GlassPanel({
   )
 }
 
-function SceneCard({ scene }: { scene: VideoScene }) {
+function SceneCard({
+  scene,
+  imageUrl,
+}: {
+  scene: VideoScene
+  imageUrl?: string
+}) {
   return (
-    <article className="rounded-xl border border-white/[0.06] bg-black/30 p-4 sm:p-5 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[10px] tracking-[0.28em] uppercase text-gold-300/90">
-          Scene {scene.sceneNumber}
-        </span>
-        <span className="text-[10px] tracking-[0.18em] uppercase text-luxe/45">
-          {scene.duration}
-        </span>
-      </div>
-      <p className="text-sm text-luxe/90 leading-relaxed">{scene.narration}</p>
-      <div className="flex flex-wrap gap-1.5">
-        <span className="px-2 py-0.5 rounded-md border border-white/[0.06] bg-black/25 text-[9px] tracking-[0.14em] uppercase text-luxe/45">
-          {scene.cameraMovement}
-        </span>
+    <article className="rounded-xl border border-white/[0.06] bg-black/30 overflow-hidden">
+      {imageUrl ? (
+        <div className="relative aspect-video bg-black/50">
+          <Image
+            src={imageUrl}
+            alt={`Scene ${scene.sceneNumber} storyboard frame`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 640px"
+            unoptimized
+          />
+        </div>
+      ) : null}
+      <div className="p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[10px] tracking-[0.28em] uppercase text-gold-300/90">
+            Scene {scene.sceneNumber}
+          </span>
+          <span className="text-[10px] tracking-[0.18em] uppercase text-luxe/45">
+            {scene.duration}
+          </span>
+        </div>
+        <p className="text-sm text-luxe/90 leading-relaxed">{scene.narration}</p>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="px-2 py-0.5 rounded-md border border-white/[0.06] bg-black/25 text-[9px] tracking-[0.14em] uppercase text-luxe/45">
+            {scene.cameraMovement}
+          </span>
+        </div>
       </div>
     </article>
   )
 }
 
+function DemoTemplateSelector({
+  value,
+  onChange,
+}: {
+  value: TextToVideoDemoTemplateId
+  onChange: (id: TextToVideoDemoTemplateId) => void
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label
+        htmlFor="text-to-video-template"
+        className="text-[9px] tracking-[0.24em] uppercase text-luxe/45"
+      >
+        Demo template
+      </label>
+      <Select value={value} onValueChange={(id) => onChange(id as TextToVideoDemoTemplateId)}>
+        <SelectTrigger
+          id="text-to-video-template"
+          aria-label="Text to video demo template"
+          className={cn(triggerClassName, 'border-gold-500/35 text-gold-200')}
+        >
+          <SelectValue placeholder="Choose template" />
+        </SelectTrigger>
+        <SelectContent className="bg-[#0a0a0a] border-white/[0.08] text-luxe/90">
+          {TEXT_TO_VIDEO_DEMO_TEMPLATES.map((template) => (
+            <SelectItem
+              key={template.id}
+              value={template.id}
+              className="text-xs focus:bg-gold-500/10 focus:text-gold-200"
+            >
+              {template.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 export function VideoStudio() {
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<TextToVideoDemoTemplateId>('ancient-egypt-daily-life')
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [output, setOutput] = useState<(VideoGeneratorOutput & { mock?: boolean }) | null>(null)
+  const [output, setOutput] = useState<VideoGeneratorOutput | null>(null)
+  const [activeTemplate, setActiveTemplate] = useState<TextToVideoDemoTemplate | null>(null)
   const [activeSection, setActiveSection] = useState<PreviewSection>('hook')
   const [copied, setCopied] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [pipelineProgress, setPipelineProgress] = useState<TextToVideoDemoProgress | null>(null)
+  const [timelineStep, setTimelineStep] = useState<TextToVideoTimelineStep>('analyzing')
 
-  const canGenerate = input.trim().length >= 6 && !loading
-  const quickCutHref = useMemo(
-    () => quickCutStudioHref({ topic: output?.title || input.trim() }),
-    [output?.title, input]
+  const abortRef = useRef<AbortController | null>(null)
+
+  const selectedTemplate = useMemo(
+    () => TEXT_TO_VIDEO_DEMO_TEMPLATES.find((t) => t.id === selectedTemplateId) ?? TEXT_TO_VIDEO_DEMO_TEMPLATES[0],
+    [selectedTemplateId]
   )
 
-  const handleGenerate = useCallback(async () => {
-    const trimmed = input.trim()
-    if (trimmed.length < 6) {
-      setError('Enter a topic (6+ characters) or paste a full script.')
-      return
+  useEffect(() => {
+    setInput(selectedTemplate.topic)
+  }, [selectedTemplate])
+
+  const canGenerate =
+    (input.trim().length >= 6 || Boolean(selectedTemplateId)) && !loading
+
+  const quickCutHref = useMemo(
+    () =>
+      quickCutStudioHref({
+        topic: output?.title || input.trim() || selectedTemplate.topic,
+      }),
+    [output?.title, input, selectedTemplate.topic]
+  )
+
+  const handleTemplateChange = useCallback((id: TextToVideoDemoTemplateId) => {
+    setSelectedTemplateId(id)
+    const template = TEXT_TO_VIDEO_DEMO_TEMPLATES.find((t) => t.id === id)
+    if (template) {
+      setInput(template.topic)
+      setOutput(null)
+      setActiveTemplate(null)
+      setStep(1)
+      setError(null)
     }
+  }, [])
+
+  const handleGenerate = useCallback(async () => {
+    if (!TEXT_TO_VIDEO_STUDIO_DEMO_ONLY) return
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setLoading(true)
     setError(null)
     setCopied(false)
+    setOutput(null)
+    setActiveTemplate(null)
     setStep(2)
-
-    const isScript = trimmed.length >= 120 || trimmed.includes('\n\n')
-    const body = isScript ? { script: trimmed } : { topic: trimmed }
+    setPipelineProgress(null)
+    setTimelineStep('analyzing')
 
     try {
-      const res = await fetch('/api/ai/video-generator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      const template = await runTextToVideoDemoPipeline(selectedTemplateId, {
+        topic: input.trim() || selectedTemplate.topic,
+        signal: controller.signal,
+        onProgress: (progress) => {
+          setPipelineProgress(progress)
+          setTimelineStep(progress.timelineStep)
+        },
       })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(typeof data.error === 'string' ? data.error : 'Generation failed')
-      }
-      setOutput(data as VideoGeneratorOutput & { mock?: boolean })
-      setStep(2)
+
+      setActiveTemplate(template)
+      setOutput(template.output)
+      setStep(3)
       setActiveSection('hook')
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setStep(1)
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(err instanceof Error ? err.message : 'Demo pipeline failed')
     } finally {
       setLoading(false)
+      setPipelineProgress(null)
     }
-  }, [input])
+  }, [input, selectedTemplateId, selectedTemplate.topic])
+
+  useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
 
   const handleCopyScript = useCallback(async () => {
     if (!output) return
@@ -225,11 +348,17 @@ export function VideoStudio() {
     if (!output) return
     const payload = {
       format: 'mugtee-video-studio-v1',
+      demo: true,
+      templateId: activeTemplate?.id ?? selectedTemplateId,
       exportedAt: new Date().toISOString(),
       ...output,
     }
-    downloadText(JSON.stringify(payload, null, 2), `${slugify(output.title)}-storyboard.json`, 'application/json')
-  }, [output])
+    downloadText(
+      JSON.stringify(payload, null, 2),
+      `${slugify(output.title)}-storyboard.json`,
+      'application/json'
+    )
+  }, [output, activeTemplate?.id, selectedTemplateId])
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] max-w-5xl mx-auto w-full px-1 sm:px-0 py-6 sm:py-8 pb-[max(5rem,env(safe-area-inset-bottom))]">
@@ -243,9 +372,14 @@ export function VideoStudio() {
           <span className="text-gold-gradient">Cinematic Video</span>
         </h1>
         <p className="mt-3 text-sm sm:text-base text-luxe/60 max-w-xl mx-auto leading-relaxed">
-          Enter a topic or full script. Mugtee shapes hook, voiceover, storyboard scenes, visual
-          prompts, and export-ready package.
+          Pick a demo template or enter a topic. Mugtee replays the full pipeline — hook, script,
+          storyboard, voice, and export — with cached cinematic output. No API spend in demo mode.
         </p>
+        {TEXT_TO_VIDEO_STUDIO_DEMO_ONLY ? (
+          <p className="mt-2 text-[10px] tracking-[0.22em] uppercase text-gold-400/60">
+            Demo mode · cached templates only
+          </p>
+        ) : null}
       </header>
 
       {/* Step indicator */}
@@ -288,7 +422,16 @@ export function VideoStudio() {
       </div>
 
       {/* Step 1: Input */}
-      <GlassPanel className="p-4 sm:p-6 mb-8">
+      <GlassPanel className="p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4 sm:gap-6 mb-4">
+          <DemoTemplateSelector value={selectedTemplateId} onChange={handleTemplateChange} />
+          <div className="flex items-end">
+            <p className="text-xs text-luxe/50 leading-relaxed pb-1">
+              {selectedTemplate.tagline}
+            </p>
+          </div>
+        </div>
+
         <label htmlFor="video-studio-input" className="block text-[10px] tracking-[0.28em] uppercase text-gold-300/85 mb-3">
           Topic or Script
         </label>
@@ -299,7 +442,7 @@ export function VideoStudio() {
             setInput(e.target.value)
             if (step > 1 && !output) setStep(1)
           }}
-          placeholder="What Ancient Rome Looked Like At Its Peak — or paste your full narration script…"
+          placeholder="What daily life looked like in Ancient Egypt along the Nile…"
           rows={5}
           className={cn(
             'w-full rounded-xl px-4 py-3 text-sm leading-relaxed resize-y min-h-[120px]',
@@ -327,7 +470,7 @@ export function VideoStudio() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Shaping cinematic package…
+                {pipelineProgress?.label ?? 'Shaping cinematic package…'}
               </>
             ) : (
               <>
@@ -339,37 +482,82 @@ export function VideoStudio() {
         </div>
       </GlassPanel>
 
-      <CreatorInspiration
-        onSelectTopic={(topic) => {
-          setInput(topic)
-          setStep(1)
-        }}
-      />
+      {/* Step 2: Live pipeline */}
+      <AnimatePresence>
+        {loading ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-8"
+          >
+            <GlassPanel className="p-4 sm:p-6 space-y-5">
+              <div className="text-center">
+                <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-2">
+                  Mugtee engine · demo replay
+                </p>
+                <p className="font-display text-lg sm:text-xl text-luxe/90 italic">
+                  {pipelineProgress?.label ?? 'Starting pipeline…'}
+                </p>
+              </div>
+              <CinematicTimeline currentStep={timelineStep} />
+              {pipelineProgress ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-luxe/45">
+                  <ChevronDown className="w-3.5 h-3.5 animate-bounce text-gold-400/70" />
+                  <span>{pipelineProgress.progress}% complete</span>
+                </div>
+              ) : null}
+            </GlassPanel>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {/* Step 2 & 3: Output */}
       <AnimatePresence>
-        {output ? (
+        {output && activeTemplate ? (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="mt-10 sm:mt-12 pt-8 sm:pt-10 border-t border-white/[0.06] space-y-6"
+            className="mt-6 sm:mt-8 pt-8 sm:pt-10 border-t border-white/[0.06] space-y-6"
           >
+            {/* Video preview poster — step 3 */}
+            {step >= 3 ? (
+              <GlassPanel className="overflow-hidden p-0">
+                <div className="relative aspect-video bg-black/60">
+                  <Image
+                    src={activeTemplate.previewVideoPoster}
+                    alt={`${output.title} preview`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 896px"
+                    unoptimized
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                    <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/85 mb-1">
+                      Demo preview · {activeTemplate.voicePreview.voiceName}
+                    </p>
+                    <p className="font-display text-lg sm:text-xl text-luxe">{output.title}</p>
+                  </div>
+                </div>
+              </GlassPanel>
+            ) : null}
+
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div>
                 <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-1">
                   Generated Package
                 </p>
                 <h2 className="font-display text-xl sm:text-2xl text-luxe">{output.title}</h2>
-                {output.mock ? (
-                  <p className="mt-1 text-xs text-luxe/45 italic">
-                    Preview mode — configure OPENAI_API_KEY for live generation.
-                  </p>
-                ) : null}
+                <p className="mt-1 text-xs text-luxe/45 italic">
+                  Demo mode — cached template &ldquo;{activeTemplate.title}&rdquo;. Sign in to Quick
+                  Cut for live generation.
+                </p>
               </div>
               <Link
                 href={quickCutHref}
-                onClick={() => setStep(3)}
                 className={cn(
                   'inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl',
                   'border border-gold-500/35 bg-gold-500/[0.08] text-gold-200',
@@ -382,6 +570,33 @@ export function VideoStudio() {
                 <ExternalLink className="w-3.5 h-3.5 opacity-60" />
               </Link>
             </div>
+
+            {/* Voice preview metadata */}
+            <GlassPanel className="p-4 sm:p-5">
+              <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/85 mb-3">
+                Voice preview
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-luxe/75">
+                <span>{activeTemplate.voicePreview.voiceName}</span>
+                <span className="text-luxe/30">·</span>
+                <span className="text-xs uppercase tracking-wider text-luxe/45">
+                  {activeTemplate.voicePreview.style.replace(/_/g, ' ')}
+                </span>
+                <span className="text-luxe/30">·</span>
+                <span className="text-xs text-luxe/45">
+                  ~{activeTemplate.voicePreview.durationSec}s narration
+                </span>
+              </div>
+              <div className="mt-4 flex items-end gap-0.5 h-8">
+                {activeTemplate.voicePreview.waveform.map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-full bg-gold-500/40"
+                    style={{ height: `${Math.max(12, h * 100)}%` }}
+                  />
+                ))}
+              </div>
+            </GlassPanel>
 
             {/* Section tabs */}
             <nav className="flex gap-1 overflow-x-auto pb-1 scroll-touch scrollbar-luxe -mx-0.5 px-0.5">
@@ -433,8 +648,12 @@ export function VideoStudio() {
                     Storyboard — {output.scenes.length} scenes
                   </p>
                   <div className="grid gap-3 sm:gap-4">
-                    {output.scenes.map((scene) => (
-                      <SceneCard key={scene.sceneNumber} scene={scene} />
+                    {output.scenes.map((scene, index) => (
+                      <SceneCard
+                        key={scene.sceneNumber}
+                        scene={scene}
+                        imageUrl={activeTemplate.sceneImageUrls[index]}
+                      />
                     ))}
                   </div>
                 </div>
@@ -500,8 +719,8 @@ export function VideoStudio() {
                     Export Package
                   </p>
                   <p className="text-sm text-luxe/60 leading-relaxed">
-                    Download or copy your cinematic package. For full video render with voice and
-                    storyboard frames, continue in Quick Cut.
+                    Download or copy your cinematic demo package. For full video render with voice and
+                    storyboard frames, continue in Quick Cut (live generation for signed-in users).
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
