@@ -81,6 +81,9 @@ export type GeneratedScene = {
   imageUrl?: string | null
   /** Optional alt frame from Generate Variations */
   variationImageUrl?: string | null
+  /** Motion Engine preset — assigned after storyboard */
+  motionPresetId?: import('@/lib/motion/motion-presets').MotionPresetId
+  motionParams?: Partial<import('@/lib/motion/motion-presets').RemotionMotionConfig>
 }
 
 export type SceneImagePromptContext = {
@@ -761,6 +764,8 @@ export function scenesToStore(scenes: GeneratedScene[]): CinematicScene[] {
     ...(scene.variationImageUrl
       ? { variationImageUrl: scene.variationImageUrl }
       : {}),
+    ...(scene.motionPresetId ? { motionPresetId: scene.motionPresetId } : {}),
+    ...(scene.motionParams ? { motionParams: scene.motionParams } : {}),
   }))
 }
 

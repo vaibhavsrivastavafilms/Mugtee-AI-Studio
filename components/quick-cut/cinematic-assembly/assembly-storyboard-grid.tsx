@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
+import { MotionPresetBadge } from '@/components/quick-cut/motion-preset-control'
 import { cn } from '@/lib/utils'
 
 export function AssemblyStoryboardGrid({
@@ -78,6 +79,11 @@ export function AssemblyStoryboardGrid({
               <span className="absolute bottom-1.5 left-1.5 text-[8px] tracking-[0.18em] uppercase text-gold-300/80">
                 {String(i + 1).padStart(2, '0')}
               </span>
+              {scene.motionPresetId ? (
+                <div className="absolute top-1.5 right-1.5">
+                  <MotionPresetBadge presetId={scene.motionPresetId} />
+                </div>
+              ) : null}
             </motion.div>
           </motion.li>
         )

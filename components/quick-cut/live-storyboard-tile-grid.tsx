@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
+import { MotionPresetBadge } from '@/components/quick-cut/motion-preset-control'
 
 const SLOT_COUNT = 4
 
@@ -86,10 +87,13 @@ export function LiveStoryboardTileGrid({
                 <div className="absolute inset-0 bg-gradient-to-br from-[#1a1208] via-[#0d0a06] to-black" />
               )}
 
-              <div className="absolute inset-x-0 top-0 p-1 bg-gradient-to-b from-black/70 to-transparent">
+              <div className="absolute inset-x-0 top-0 p-1 bg-gradient-to-b from-black/70 to-transparent flex items-start justify-between gap-0.5">
                 <span className="text-[7px] tracking-[0.16em] uppercase text-gold-300/80">
                   {String(i + 1).padStart(2, '0')}
                 </span>
+                {scene?.motionPresetId ? (
+                  <MotionPresetBadge presetId={scene.motionPresetId} className="scale-90 origin-top-right" />
+                ) : null}
               </div>
 
               {waitingForImage ? (

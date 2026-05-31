@@ -5,6 +5,8 @@ import { ReelScene } from './ReelScene'
 import type { ReelCompositionProps } from './types'
 import { REEL_FPS } from './constants'
 
+const CROSS_DISSOLVE_OVERLAP = 18
+
 export function ReelComposition({
   scenes,
   voiceAudioSrc,
@@ -23,8 +25,15 @@ export function ReelComposition({
           REEL_FPS * 2,
           Math.round(scene.durationSec * REEL_FPS)
         )
-        const from = cursor
-        cursor += durationInSceneFrames
+        const prev = scenes[index - 1]
+        const overlap =
+          index > 0 &&
+          (scene.motionConfig?.transitionType === 'cross_dissolve' ||
+            prev?.motionConfig?.transitionType === 'cross_dissolve')
+            ? CROSS_DISSOLVE_OVERLAP
+            : 0
+        const from = index === 0 ? 0 : Math.max(0, cursor - overlap)
+        cursor = from + durationInSceneFrames
 
         return (
           <Sequence

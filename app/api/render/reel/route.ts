@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
     const scenes = Array.isArray(raw?.scenes) ? (raw.scenes as GeneratedScene[]) : []
     const voiceUrl = typeof raw?.voiceUrl === 'string' ? raw.voiceUrl : null
     const musicUrl = typeof raw?.musicUrl === 'string' ? raw.musicUrl : null
+    const sceneMotion = parseSceneMotionMap(raw?.sceneMotion)
     const asyncMode = raw?.async === true
     const projectId = typeof raw?.projectId === 'string' ? raw.projectId : undefined
 
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     if (asyncMode) {
       createRenderJob(jobId)
-      void orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl }).catch((err) => {
+      void orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl, sceneMotion }).catch((err) => {
         logError('render-reel.async', err)
         updateRenderJob(jobId, {
           status: 'failed',
@@ -87,7 +89,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const result = await orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl })
+    const result = await orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl, sceneMotion })
     const job = getRenderJob(jobId)
 
     return NextResponse.json({

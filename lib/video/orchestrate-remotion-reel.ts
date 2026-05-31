@@ -6,6 +6,7 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { FacelessRenderInput, RenderProgressStage, RenderVideoResult } from '@/lib/video/types'
+import type { SceneMotionMap } from '@/lib/motion/motion-presets'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
 import { logError } from '@/lib/workspace/validation'
 import {
@@ -65,6 +66,7 @@ export async function orchestrateRemotionReel(
     onProgress?: ReelProgressCallback
     baseUrl?: string
     musicUrl?: string | null
+    sceneMotion?: SceneMotionMap | null
   }
 ): Promise<RenderVideoResult> {
   const jobId = options?.jobId ?? `reel-${uuidv4()}-${Date.now()}`
@@ -132,6 +134,7 @@ export async function orchestrateRemotionReel(
         musicUrl: options?.musicUrl ?? null,
         title: input.title,
         outputPath,
+        sceneMotion: options?.sceneMotion ?? null,
         onProgress: (label, percent) => {
           updateRenderJob(jobId, {
             percent,

@@ -39,6 +39,12 @@ import {
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
 import { extractContentSeriesFromCaptions } from '@/lib/cinematic/content-series'
 import type { ContentSeries } from '@/lib/cinematic/content-series'
+import {
+  applySceneMotionToScenes,
+  assignSceneMotion,
+  parseSceneMotionMap,
+} from '@/lib/motion/motion-presets'
+import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -123,6 +129,7 @@ export type QuickCutProjectHydrationPatch = {
   failedAtStep: PersistedGenerationStep | null
   repurposedAssets: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   contentSeries: ContentSeries | null
+  sceneMotion: SceneMotionMap
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -131,9 +138,15 @@ export function buildQuickCutHydrationFromRow(
 ): QuickCutProjectHydrationPatch {
   const state = rowToState(row)
   const parsedCaptions = parseCaptionsPayload(row.captions)
-  const scenes = ensureScenesHavePreviewUrls(
+  const storyBible = resolveStoryBibleFromRow(row)
+  let sceneMotion = parseSceneMotionMap(row.scene_motion)
+  const baseScenes = ensureScenesHavePreviewUrls(
     ensureScenesHaveImagePrompts(storeScenesToGenerated(state.scenes))
   )
+  if (Object.keys(sceneMotion).length < 1 && baseScenes.some((s) => s.imageUrl)) {
+    sceneMotion = assignSceneMotion(baseScenes, storyBible, null)
+  }
+  const scenes = applySceneMotionToScenes(baseScenes, sceneMotion)
   const resolvedTab = stageTab ?? inferOpenStageTab(row)
 
   const reelUrl = row.reel_url ?? row.video_url ?? null
@@ -207,7 +220,8 @@ export function buildQuickCutHydrationFromRow(
       extractCreatorBlueprintFromCaptions(row.captions)
     ),
     visualStyle: (row.visual_style as VisualStyle | null) ?? null,
-    storyBible: resolveStoryBibleFromRow(row),
+    storyBible,
+    sceneMotion,
     viralScript: (row.viral_script as ViralScript | null) ?? null,
     variationHistory:
       (row.variation_history as VariationHistory | null) ?? emptyVariationHistory(),

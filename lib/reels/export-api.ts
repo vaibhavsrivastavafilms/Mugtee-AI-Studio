@@ -11,6 +11,7 @@ import type { CinematicScene } from '@/stores/cinematic-project'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { RenderJobStatus } from '@/lib/video/types'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
+import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { updateProjectReelStatus } from '@/lib/video/reel-storage-upload'
 import { logError } from '@/lib/workspace/validation'
@@ -226,6 +227,7 @@ export async function queueReelExportForProject(params: {
     jobId,
     baseUrl: params.baseUrl,
     musicUrl: null,
+    sceneMotion: parseSceneMotionMap(params.row.scene_motion),
   }).catch((err) => {
     logError('reels.export.async', err)
     updateRenderJob(jobId, {

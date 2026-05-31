@@ -157,6 +157,14 @@ import {
   mergeStoryBible,
   type StoryBible,
 } from '@/lib/cinematic/story-bible'
+import {
+  assignSceneMotion,
+  applySceneMotionToScenes,
+  isMotionPresetId,
+  parseSceneMotionMap,
+  type MotionPresetId,
+  type SceneMotionMap,
+} from '@/lib/motion/motion-presets'
 
 export type { CinematicGenerationState }
 
@@ -170,6 +178,7 @@ export type QuickCutGenerationStep =
   | 'script'
   | 'scenes'
   | 'images'
+  | 'motion'
   | 'voice'
   | 'render'
   | 'complete'
@@ -182,7 +191,8 @@ export const STEP_PROGRESS: Record<QuickCutGenerationStep, number> = {
   hook: 15,
   script: 30,
   scenes: 45,
-  images: 60,
+  images: 58,
+  motion: 68,
   voice: 75,
   render: 88,
   complete: 100,
@@ -197,6 +207,7 @@ export const STEP_LABELS: Record<QuickCutGenerationStep, string> = {
   script: 'Writing cinematic script…',
   scenes: 'Building emotional pacing…',
   images: 'Generating cinematic visuals…',
+  motion: 'Applying cinematic motion…',
   voice: 'Synthesizing voiceover…',
   render: 'Packaging storyboard export…',
   complete: 'Your cinematic video is ready',
@@ -292,6 +303,7 @@ interface QuickCutGenerationStateBase {
   duration: number
   visualStyle: VisualStyle | null
   storyBible: StoryBible | null
+  sceneMotion: SceneMotionMap
   viralScript: ViralScript | null
   inputType: 'text' | 'voice' | 'mixed'
   originalTranscript: string
@@ -365,6 +377,7 @@ interface QuickCutGenerationActions {
   persistContentSeries: (series: ContentSeries) => Promise<void>
   setStoryBible: (bible: StoryBible | null) => void
   updateStoryBible: (patch: Partial<StoryBible>) => void
+  setSceneMotionPreset: (sceneId: string, presetId: MotionPresetId) => void
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -420,6 +433,7 @@ const INITIAL: QuickCutGenerationState = {
   duration: 60,
   visualStyle: null,
   storyBible: null,
+  sceneMotion: {},
   viralScript: null,
   inputType: 'text',
   originalTranscript: '',
@@ -750,6 +764,7 @@ function buildArchiveInput(
     variation_history: state.variationHistory,
     visual_style: state.visualStyle,
     story_bible: state.storyBible,
+    scene_motion: state.sceneMotion,
     viral_script: state.viralScript,
     generation_status: state.generationStatus,
     generation_step: state.lastCompletedStep ?? undefined,
@@ -1096,6 +1111,7 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       script: state.script,
       scenes: state.scenes,
       voiceUrl: state.voiceUrl,
+      sceneMotion: state.sceneMotion,
       async: asyncMode,
       projectId: state.savedProjectId ?? undefined,
     }),
@@ -1866,6 +1882,25 @@ export const useQuickCutGenerationStore = create<
           buildArchiveInput(get(), buildGenerationOutput(get()))
         )
         if (storyboardId) set({ savedProjectId: storyboardId, saveState: 'saved' })
+
+        setStep(set, get, 'motion')
+        set({ directingSceneLabel: 'Applying cinematic motion…' })
+        const motionMap = assignSceneMotion(scenes, get().storyBible, get().sceneMotion)
+        scenes = applySceneMotionToScenes(scenes, motionMap)
+        set({
+          sceneMotion: motionMap,
+          scenes,
+          storyboard: scenes,
+        })
+        const motionProjectId = get().savedProjectId
+        if (motionProjectId) {
+          void updateProject(motionProjectId, {
+            scene_motion: motionMap,
+            scenes: scenesToStore(scenes),
+          }).catch(() => undefined)
+        }
+        await delay(350)
+        set({ directingSceneLabel: null })
       }
 
       const assemblyPresentation = stepShouldRun(resumeFrom, 'storyboard')
@@ -2736,6 +2771,23 @@ export const useQuickCutGenerationStore = create<
   updateStoryBible: (patch) => {
     const next = mergeStoryBible(get().storyBible, patch)
     get().setStoryBible(next)
+  },
+
+  setSceneMotionPreset: (sceneId, presetId) => {
+    if (!isMotionPresetId(presetId)) return
+    const state = get()
+    const nextMap: SceneMotionMap = {
+      ...state.sceneMotion,
+      [sceneId]: { presetId, source: 'manual' },
+    }
+    const scenes = applySceneMotionToScenes(state.scenes, nextMap)
+    set({ sceneMotion: nextMap, scenes, storyboard: scenes })
+    if (state.savedProjectId) {
+      void updateProject(state.savedProjectId, {
+        scenes: scenesToStore(scenes),
+        scene_motion: nextMap,
+      }).catch(() => {})
+    }
   },
 
   saveProject: async () => {
