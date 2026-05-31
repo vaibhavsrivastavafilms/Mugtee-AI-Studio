@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUp, Film, Loader2, Sparkles } from 'lucide-react'
+import { ArrowUp, Brain, Clapperboard, Film, LineChart, Loader2, Megaphone, Sparkles } from 'lucide-react'
 import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
+import { CircuitInputFrame } from '@/components/quick-cut/canvas/circuit-input-frame'
 import { cn } from '@/lib/utils'
 import {
   buildConversationPrompt,
-  CONVERSATION_EXAMPLE_CHIPS,
   createMessage,
   emptyConversationContext,
   mapToneToDirectorMode,
@@ -31,6 +31,7 @@ import {
   type ConversationStep,
   type ConversationTone,
 } from '@/lib/create/mugtee-conversation-flow'
+import { ASK_MUGTEE_PROMPT_CHIPS } from '@/lib/cinematic/quick-cut/copy'
 import { buildStyleFromKeywords } from '@/components/quick-cut/canvas/types'
 import type { MoodKeyword } from '@/components/quick-cut/canvas/types'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
@@ -277,6 +278,24 @@ export function MugteeConversationEntry({
         embedded ? 'min-h-[calc(100dvh-6rem)]' : 'min-h-[calc(100dvh-8rem)]'
       )}
     >
+      <div className="text-center mb-5 sm:mb-6">
+        <p className="text-[10px] sm:text-[11px] tracking-[0.32em] uppercase text-gold-300/80 mb-2">
+          Ask Mugtee
+        </p>
+        <h1 className="font-display text-2xl sm:text-3xl text-gold-gradient leading-tight">
+          What are we creating today?
+        </h1>
+        {onSwitchClassic ? (
+          <button
+            type="button"
+            onClick={onSwitchClassic}
+            className="mt-3 text-[10px] tracking-[0.2em] uppercase text-cyan-300/70 hover:text-cyan-200/90 transition min-h-[44px] px-3"
+          >
+            Switch to classic form
+          </button>
+        ) : null}
+      </div>
+
       <div className="flex items-center justify-between gap-3 mb-4 px-1">
         <div className="flex items-center gap-2.5">
           <MugteeSidekickAvatar size="sm" animated={!busy} />
@@ -289,15 +308,6 @@ export function MugteeConversationEntry({
             />
           </div>
         </div>
-        {onSwitchClassic ? (
-          <button
-            type="button"
-            onClick={onSwitchClassic}
-            className="text-[10px] tracking-[0.16em] uppercase text-luxe/50 hover:text-gold-200 transition min-h-[44px] px-2"
-          >
-            Classic form
-          </button>
-        ) : null}
       </div>
 
       <div
@@ -380,41 +390,52 @@ export function MugteeConversationEntry({
         ) : null}
 
         {(step === 'welcome' || step === 'topic') && !busy ? (
-          <div className="flex flex-wrap justify-center gap-2">
-            {CONVERSATION_EXAMPLE_CHIPS.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => handleChipClick(chip)}
-                className="rounded-full border border-white/[0.08] bg-black/30 px-3 py-1.5 text-[11px] text-luxe/55 hover:border-gold-500/30 hover:text-gold-200 transition"
-              >
-                {chip}
-              </button>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ASK_MUGTEE_PROMPT_CHIPS.map((chip, i) => {
+              const icons = [Brain, Clapperboard, LineChart, Megaphone] as const
+              const Icon = icons[i] ?? Brain
+              return (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => handleChipClick(chip)}
+                  className="group flex items-start gap-2 rounded-xl border border-white/[0.08] bg-black/35 backdrop-blur-md px-3 py-2.5 text-left hover:border-gold-500/35 hover:bg-gold-500/[0.06] transition"
+                >
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gold-500/20 bg-gold-500/[0.08] text-gold-300/90">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-[11px] leading-snug text-luxe/65 group-hover:text-gold-100/90">
+                    {chip}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         ) : null}
 
         {showComposer ? (
           <form onSubmit={handleFormSubmit} className="relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your video idea…"
-              rows={2}
-              disabled={busy}
-              className={cn(
-                'w-full resize-none rounded-2xl border border-white/[0.1] bg-black/45',
-                'px-4 py-3 pr-14 text-sm text-luxe placeholder:text-luxe/35',
-                'focus:outline-none focus:border-gold-500/35 focus:ring-1 focus:ring-gold-500/20',
-                'disabled:opacity-50'
-              )}
-            />
+            <CircuitInputFrame active={input.trim().length > 0}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Tell Mugtee what you're trying to create."
+                rows={3}
+                disabled={busy}
+                className={cn(
+                  'w-full resize-none rounded-[1.5rem] border border-transparent bg-black/55 backdrop-blur-xl',
+                  'px-4 py-3 pr-14 text-sm text-luxe placeholder:text-luxe/35 placeholder:italic',
+                  'focus:outline-none focus:ring-0',
+                  'disabled:opacity-50'
+                )}
+              />
+            </CircuitInputFrame>
             <button
               type="submit"
               disabled={input.trim().length < 6 || busy || !authReady}
               className={cn(
-                'absolute right-2 bottom-2 inline-flex h-10 w-10 items-center justify-center rounded-xl',
+                'absolute right-3 bottom-3 inline-flex h-10 w-10 items-center justify-center rounded-xl',
                 'bg-gold-gradient text-black shadow-gold-glow disabled:opacity-40 transition-opacity'
               )}
               aria-label="Send"
