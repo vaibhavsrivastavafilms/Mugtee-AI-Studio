@@ -21,6 +21,7 @@ import {
   cameraVariationDirective,
   variationCompositionDirective,
 } from '@/lib/cinematic/visual-diversity'
+import { formatStoryBibleForPrompt, type StoryBible } from '@/lib/cinematic/story-bible'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -41,6 +42,7 @@ export type GenerateSceneImagesInput = {
   /** Reference style image or note present — SOP prefix on image prompt */
   hasReferenceStyle?: boolean
   referenceStyleNote?: string
+  storyBible?: StoryBible | null
 }
 
 export type GenerateSceneImagesResult = {
@@ -77,6 +79,7 @@ function promptContext(
       ? variationCompositionDirective(index, input.diversityAttempt ?? 0)
       : cameraVariationDirective(index, input.diversityAttempt ?? 0),
     hasReferenceStyle,
+    storyBible: input.storyBible ?? undefined,
   }
 }
 
@@ -100,6 +103,7 @@ export async function generateSceneImages(
   let anyMock = !canGenerate
   const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
   const updated = input.scenes.map((scene) => ({ ...scene }))
+  let storyBibleLogged = false
 
   for (let i = 0; i < updated.length; i++) {
     const scene = updated[i]
@@ -107,6 +111,10 @@ export async function generateSceneImages(
     if (idFilter && !idFilter.has(scene.id)) continue
 
     const ctx = promptContext(input, scene, i, updated.length)
+    if (input.storyBible && !storyBibleLogged) {
+      formatStoryBibleForPrompt(input.storyBible, { log: true })
+      storyBibleLogged = true
+    }
     if (!scene.imagePrompt?.trim()) {
       scene.imagePrompt = buildSceneImagePrompt(scene, {
         ...ctx,

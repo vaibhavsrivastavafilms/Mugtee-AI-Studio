@@ -150,6 +150,7 @@ export function GenerationStagePanel({
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
+  const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const storyboardTracked = useRef(false)
@@ -344,6 +345,14 @@ export function GenerationStagePanel({
 
       return (
         <div className={cn('space-y-3', className)}>
+          {storyBible ? (
+            <p
+              className="text-[10px] tracking-[0.18em] uppercase text-emerald-400/75"
+              title={`${storyBible.visualStyle} · ${storyBible.colorPalette}`}
+            >
+              Visual continuity locked
+            </p>
+          ) : null}
           {imagesLoading && !firstGeneratedUrl ? (
             <div className="rounded-xl border border-gold-500/20 bg-black/30 p-3 flex items-center gap-3 shimmer-cinematic">
               <div className="w-14 aspect-[9/16] rounded-md border border-white/10 shrink-0 bg-white/[0.03] flex items-center justify-center">

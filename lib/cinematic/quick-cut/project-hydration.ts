@@ -28,6 +28,7 @@ import {
   type VariationHistory,
 } from '@/lib/cinematic/variation-history'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
+import { extractStoryBibleFromVisualStyle, type StoryBible } from '@/lib/cinematic/story-bible'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import {
   normalizeGenerationStatus,
@@ -99,6 +100,7 @@ export type QuickCutProjectHydrationPatch = {
   directorMode: DirectorMode
   blueprintId: string | null
   visualStyle: VisualStyle | null
+  storyBible: StoryBible | null
   viralScript: ViralScript | null
   variationHistory: VariationHistory
   virlo: VirloMetadata | null
@@ -205,6 +207,7 @@ export function buildQuickCutHydrationFromRow(
       extractCreatorBlueprintFromCaptions(row.captions)
     ),
     visualStyle: (row.visual_style as VisualStyle | null) ?? null,
+    storyBible: extractStoryBibleFromVisualStyle(row.visual_style),
     viralScript: (row.viral_script as ViralScript | null) ?? null,
     variationHistory:
       (row.variation_history as VariationHistory | null) ?? emptyVariationHistory(),

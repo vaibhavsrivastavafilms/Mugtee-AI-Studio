@@ -152,6 +152,11 @@ import {
 } from '@/lib/cinematic/cinematic-script'
 import type { CinematicGenerationState } from '@/lib/cinematic/quick-cut/cinematic-assembly-timing'
 import { runCinematicAssemblyPresentation } from '@/lib/cinematic/quick-cut/run-cinematic-assembly'
+import {
+  buildStoryBibleFromVisualDirection,
+  embedStoryBibleInVisualStyle,
+  type StoryBible,
+} from '@/lib/cinematic/story-bible'
 
 export type { CinematicGenerationState }
 
@@ -286,6 +291,7 @@ interface QuickCutGenerationStateBase {
   style: string
   duration: number
   visualStyle: VisualStyle | null
+  storyBible: StoryBible | null
   viralScript: ViralScript | null
   inputType: 'text' | 'voice' | 'mixed'
   originalTranscript: string
@@ -411,6 +417,7 @@ const INITIAL: QuickCutGenerationState = {
   style: 'cinematic',
   duration: 60,
   visualStyle: null,
+  storyBible: null,
   viralScript: null,
   inputType: 'text',
   originalTranscript: '',
@@ -739,7 +746,7 @@ function buildArchiveInput(
     input_type: state.inputType,
     original_transcript: state.originalTranscript || state.prompt,
     variation_history: state.variationHistory,
-    visual_style: state.visualStyle,
+    visual_style: embedStoryBibleInVisualStyle(state.visualStyle, state.storyBible),
     viral_script: state.viralScript,
     generation_status: state.generationStatus,
     generation_step: state.lastCompletedStep ?? undefined,
@@ -910,6 +917,7 @@ async function fetchSceneImages(
     | 'niche'
     | 'style'
     | 'visualStyle'
+    | 'storyBible'
     | 'language'
     | 'imageNote'
   >,
@@ -935,6 +943,7 @@ async function fetchSceneImages(
       niche: state.niche,
       style: state.style,
       visualStyle: state.visualStyle ?? undefined,
+      storyBible: state.storyBible ?? undefined,
       language: state.language,
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
@@ -1315,6 +1324,7 @@ export const useQuickCutGenerationStore = create<
       ? {
           savedProjectId: prior.savedProjectId,
           visualStyle: prior.visualStyle,
+          storyBible: prior.storyBible,
           niche: prior.niche,
           language: prior.language,
           directorMode: prior.directorMode,
@@ -1398,8 +1408,10 @@ export const useQuickCutGenerationStore = create<
         duration,
         niche:
           regenFresh && !topicChanged ? preserved?.niche ?? 'storytelling' : 'storytelling',
-        visualStyle:
+          visualStyle:
           regenFresh && !topicChanged ? preserved?.visualStyle ?? null : null,
+        storyBible:
+          regenFresh && !topicChanged ? preserved?.storyBible ?? null : null,
         inputType,
         originalTranscript:
           input.originalTranscript?.trim() ||
@@ -1761,10 +1773,21 @@ export const useQuickCutGenerationStore = create<
           total: scenes.length,
         })
 
+        const storyBible = buildStoryBibleFromVisualDirection({
+          scenes,
+          script,
+          characterDescription,
+          visualStyle: visualStyle ?? lockedVisualStyle,
+          style: tone,
+          niche: scriptNiche,
+          emotionalGoal: scriptVirlo?.emotionalGoal,
+        })
+
         set({
           scenes,
           storyboard: scenes,
           characterDescription,
+          storyBible,
           niche: scriptNiche,
           ...parseStoryboardFromApi(scenesData),
           lastCompletedStep: 'visual_direction',
@@ -1776,6 +1799,19 @@ export const useQuickCutGenerationStore = create<
           buildArchiveInput(get(), buildGenerationOutput(get()))
         )
         if (scenesId) set({ savedProjectId: scenesId, saveState: 'saved' })
+      }
+
+      if (!get().storyBible && scenes.length > 0) {
+        const fallbackBible = buildStoryBibleFromVisualDirection({
+          scenes,
+          script,
+          characterDescription,
+          visualStyle: visualStyle ?? get().visualStyle,
+          style: tone,
+          niche: scriptNiche,
+          emotionalGoal: scriptVirlo?.emotionalGoal,
+        })
+        set({ storyBible: fallbackBible })
       }
 
       if (stepShouldRun(resumeFrom, 'storyboard')) {
@@ -1796,7 +1832,7 @@ export const useQuickCutGenerationStore = create<
 
           try {
             const imgResult = await fetchSceneImages(
-              { ...get(), scenes, characterDescription, hook: scriptHook, script },
+              { ...get(), scenes, characterDescription, hook: scriptHook, script, storyBible: get().storyBible },
               [scene.id],
               false,
               regenFresh ? i + 1 : 0

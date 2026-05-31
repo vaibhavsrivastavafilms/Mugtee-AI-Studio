@@ -11,6 +11,10 @@ import {
 import type { StoryboardImage } from '@/stores/cinematic-project'
 import { buildStoryboardContinuityBlock } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
 import { cinematicWorldLighting } from '@/lib/cinematic/execution/cinematic-lighting-engine'
+import {
+  formatStoryBibleForPrompt,
+  type StoryBible,
+} from '@/lib/cinematic/story-bible'
 import { allowDalleImages } from '@/lib/ai/free-tier'
 import {
   generateOpenAISceneImage,
@@ -57,6 +61,8 @@ export type StoryboardGenerationInput = {
   hook?: string
   /** Prior scenes for visual continuity (optional). */
   allScenes?: RegenSceneInput[]
+  /** Project-wide story bible continuity lock */
+  storyBible?: StoryBible | null
 }
 
 export function buildNicheStyleLock(niche: CinematicNiche, style: string): string {
@@ -124,6 +130,12 @@ export function buildStoryboardPrompt(
 
   const lines = [
     'Cinematic director storyboard frame for a vertical creator reel.',
+  ]
+
+  const continuity = formatStoryBibleForPrompt(input.storyBible)
+  if (continuity) lines.unshift(continuity)
+
+  lines.push(
     `Scene ${input.sceneIndex} — ${role}.`,
     variant.framing,
     `Visual beat: ${input.scene.imagePrompt || visual.visualPrompt}`,
@@ -303,6 +315,10 @@ export async function generateSceneStoryboardImages(params: {
 
   let anyMock = !hasImageGenerationKey()
   const images: StoryboardImage[] = []
+
+  if (params.input.storyBible) {
+    formatStoryBibleForPrompt(params.input.storyBible, { log: true })
+  }
 
   for (let i = 0; i < STORYBOARD_VARIANTS.length; i++) {
     const variant = STORYBOARD_VARIANTS[i]
