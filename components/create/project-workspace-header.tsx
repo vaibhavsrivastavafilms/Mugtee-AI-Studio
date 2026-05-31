@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { ArrowLeft, Download, Sparkles } from 'lucide-react'
-import { QuickCutProjectScriptViewDialog } from '@/components/quick-cut/project-script-view-dialog'
+import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { cn } from '@/lib/utils'
 import {
   STUDIO,
@@ -137,7 +137,7 @@ export function ProjectWorkspaceHeader({
         <div className="flex flex-col sm:items-end gap-2 shrink-0 w-full sm:w-auto">
           <ShareAsShowcaseToggle projectId={projectId} className="w-full sm:max-w-xs" />
           <div className="flex flex-wrap items-center gap-2">
-          {mode === 'quick' ? <QuickCutProjectScriptViewDialog /> : null}
+          {mode === 'quick' ? <QuickCutViewScriptButton projectId={projectId} /> : null}
           <Link href={createEntryHref('quick')} className={actionClass}>
             <Sparkles className="w-3 h-3" /> Generate More
           </Link>

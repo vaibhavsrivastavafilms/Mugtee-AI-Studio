@@ -21,7 +21,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
-import { QuickCutProjectScriptViewDialog } from '@/components/quick-cut/project-script-view-dialog'
+import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
 import { relSavedLabel } from '@/stores/cinematic-project'
 import { sumSceneDurationSec } from '@/lib/cinematic/scene-duration'
@@ -401,12 +401,8 @@ export function GenerationResultsSection({
           {downloadingMp3 ? 'Downloading…' : 'Download Audio'}
         </button>
 
-        <QuickCutProjectScriptViewDialog
+        <QuickCutViewScriptButton
           compact
-          title={title}
-          script={script}
-          hook={hook}
-          scenes={scenes}
           triggerClassName={cn(
             secondaryActionClass,
             '!rounded-xl !min-h-[44px] !px-4 !py-2 !text-[10px]'

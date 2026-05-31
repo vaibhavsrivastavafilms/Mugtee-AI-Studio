@@ -40,7 +40,7 @@ import {
   formatPlaybackTime,
 } from '@/lib/media/format-playback-time'
 
-import { QuickCutProjectScriptViewDialog } from '@/components/quick-cut/project-script-view-dialog'
+import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { QuickCutPlayerMp4Download } from '@/components/quick-cut/project-mp4-button'
 
 
@@ -845,12 +845,9 @@ export function ReelAssemblyPlayer({
 
             {!hideInlineActions ? (
               <>
-                <QuickCutProjectScriptViewDialog
+                <QuickCutViewScriptButton
                   compact
-                  title={title}
-                  script={script}
-                  hook={hook}
-                  scenes={scenes}
+                  projectId={projectId}
                   triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[28px] px-3 py-1 text-gold-100/90 hover:bg-black/60"
                 />
 
@@ -876,11 +873,8 @@ export function ReelAssemblyPlayer({
 
         <div className="flex items-center justify-center gap-2 flex-wrap">
 
-          <QuickCutProjectScriptViewDialog
-            title={title}
-            script={script}
-            hook={hook}
-            scenes={scenes}
+          <QuickCutViewScriptButton
+            projectId={projectId}
             triggerClassName="rounded-full border-gold-500/30 bg-black/45 min-h-[32px] px-4 py-1.5 text-gold-100/90 hover:bg-black/60"
           />
 

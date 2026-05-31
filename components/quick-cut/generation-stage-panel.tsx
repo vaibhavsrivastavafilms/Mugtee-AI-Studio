@@ -194,6 +194,7 @@ export function GenerationStagePanel({
 
   const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean, section?: SectionId) => (
     <div
+      data-generation-stage-panel
       className={cn(
         'rounded-xl border border-white/[0.08] bg-black/30 p-4 min-h-[120px]',
         loading && 'shimmer-cinematic',
