@@ -28,6 +28,9 @@ import { UsageOverview } from '@/components/settings/usage-overview'
 import { FoundingCreatorProgramSection } from '@/components/settings/founding-creator-program'
 import { InviteCreatorsSection } from '@/components/settings/invite-creators-section'
 import { MemoryDashboardPanel } from '@/components/memory/memory-dashboard-panel'
+import { WorldSelector } from '@/components/multiverse/world-selector'
+import { SidekickPersonalityPicker } from '@/components/multiverse/sidekick-personality-picker'
+import type { CreatorWorldId } from '@/lib/multiverse/types'
 
 const THEMES = [
   { key: 'gold',     label: 'Gold',          hue: 43,  sat: 60, css: 'linear-gradient(135deg, hsl(43 60% 70%), hsl(43 60% 50%), hsl(43 60% 30%))' },
@@ -110,12 +113,19 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<{ niche: string; audience: string }>({ niche: 'general', audience: 'mass' })
   const [memoryProfile, setMemoryProfile] = useState<CreatorMemoryProfile>({})
   const [profileSaving, setProfileSaving] = useState(false)
+  const [creatorWorld, setCreatorWorld] = useState<CreatorWorldId | null>(null)
   useEffect(() => {
     setProfile(readCreatorProfile())
     fetchCreatorMemoryProfile()
       .then((loaded) => {
         setMemoryProfile(loaded)
         if (loaded.niche) setProfile((p) => ({ ...p, niche: loaded.niche! }))
+      })
+      .catch(() => {})
+    void fetch('/api/multiverse/profile', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.profile?.creatorWorld) setCreatorWorld(d.profile.creatorWorld)
       })
       .catch(() => {})
   }, [])
@@ -461,6 +471,19 @@ export default function SettingsPage() {
         className="glass rounded-2xl p-6 sm:p-8"
       >
         <MemoryDashboardPanel />
+      </motion.div>
+
+      {/* Creator Multiverse — world + sidekick personality ==================== */}
+      <motion.div id="multiverse" initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.087}}
+        className="glass rounded-2xl p-6 sm:p-8 space-y-8"
+      >
+        <div>
+          <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-1">Creator Multiverse</div>
+          <h2 className="font-display text-2xl mb-1">Your creative world</h2>
+          <p className="text-luxe/70 text-sm">Choose the universe Mugtee shapes around your content.</p>
+        </div>
+        <WorldSelector selected={creatorWorld} onSelect={setCreatorWorld} compact />
+        <SidekickPersonalityPicker />
       </motion.div>
 
       {/* Theme ================================================================= */}
