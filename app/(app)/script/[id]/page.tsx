@@ -427,15 +427,21 @@ export default function ScriptWorkspace() {
           <ReadScriptButton text={scriptText} />
           {/* V3.3 — Full ↔ Narration toggle. Strips scene headers & descriptions to spoken lines only. */}
           {fullScript && (
-            <div className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5 h-9 min-h-[44px] sm:min-h-0" role="tablist" aria-label="Script view mode">
+            <div className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5 h-9 min-h-[44px] sm:min-h-0" role="radiogroup" aria-label="Script view mode">
               <button
+                type="button"
+                role="radio"
                 onClick={() => setViewMode('full')}
-                aria-pressed={viewMode === 'full'}
+                aria-checked={viewMode === 'full' ? 'true' : 'false'}
+                aria-label="Full script view"
                 className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition ${viewMode === 'full' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
               >Full</button>
               <button
+                type="button"
+                role="radio"
                 onClick={() => setViewMode('narration')}
-                aria-pressed={viewMode === 'narration'}
+                aria-checked={viewMode === 'narration' ? 'true' : 'false'}
+                aria-label="Narration only — spoken lines without scene labels"
                 className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 ${viewMode === 'narration' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
                 title="Show only the spoken narration (no scene labels)"
               ><Volume2 className="w-3 h-3" /> Narration</button>
@@ -537,6 +543,7 @@ export default function ScriptWorkspace() {
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              aria-label="Edit script content"
               className="w-full min-h-[280px] bg-white/[0.03] border border-white/[0.08] rounded-lg p-3 text-[13px] leading-relaxed font-mono text-luxe/90 focus:outline-none focus:border-gold-500/50"
             />
             <div className="flex justify-end gap-2 mt-3">
