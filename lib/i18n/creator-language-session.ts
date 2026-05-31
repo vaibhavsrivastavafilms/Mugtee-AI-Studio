@@ -10,6 +10,10 @@ export type CreatorLanguageSession = DetectedCreatorLanguage & {
   updatedAt: number
 }
 
+export function toCreatorLanguageSession(detected: DetectedCreatorLanguage): CreatorLanguageSession {
+  return { ...detected, updatedAt: Date.now() }
+}
+
 export function saveCreatorLanguageSession(detected: DetectedCreatorLanguage): void {
   if (typeof window === 'undefined') return
   try {
