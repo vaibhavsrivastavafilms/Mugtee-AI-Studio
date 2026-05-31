@@ -31,7 +31,7 @@ export const MUGTEE_GREETING =
 
 export const MUGTEE_TAGLINE = MUGTEE_PERSONALITY.tagline
 
-export const MUGTEE_INPUT_PLACEHOLDER = 'Bol — what's the idea?'
+export const MUGTEE_INPUT_PLACEHOLDER = "Bol — what's the idea?"
 
 export const MUGTEE_INPUT_EXAMPLE =
   'Example: "Bhai, ek faceless reel on discipline — hook should slap in 1.5 seconds."'
