@@ -3,9 +3,20 @@
 import { motion } from 'framer-motion'
 import { EmotionalWorldAtmosphere } from '@/components/cinematic/cinematic-storyworld-shell'
 import { CinematicBackground } from '@/components/mugtee-portal/cinematic-background'
+import { CreateDashboardAtmosphere } from '@/components/quick-cut/canvas/create-dashboard-atmosphere'
 import { cn } from '@/lib/utils'
 
-export function CinematicCanvasBackground({ className }: { className?: string }) {
+export function CinematicCanvasBackground({
+  className,
+  variant = 'default',
+}: {
+  className?: string
+  variant?: 'default' | 'create-dashboard'
+}) {
+  if (variant === 'create-dashboard') {
+    return <CreateDashboardAtmosphere className={className} />
+  }
+
   return (
     <div className={cn('pointer-events-none fixed inset-0 -z-10 overflow-hidden', className)} aria-hidden>
       <CinematicBackground />

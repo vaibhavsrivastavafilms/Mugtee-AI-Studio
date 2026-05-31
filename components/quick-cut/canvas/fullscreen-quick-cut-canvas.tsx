@@ -3,15 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Film, Sparkles } from 'lucide-react'
-import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
+import { Film } from 'lucide-react'
+import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
 import { cn } from '@/lib/utils'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { useSpeechRecognition } from '@/lib/use-voice'
 import {
   QUICK_CUT_PROMPTS,
   QUICK_CUT_SIGN_IN,
-  ASK_MUGTEE_PROMPT_CHIPS,
 } from '@/lib/cinematic/quick-cut/copy'
 import {
   clearQuickCutPending,
@@ -19,6 +18,7 @@ import {
   type QuickCutPending,
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { AskMugteeSuggestionChips } from '@/components/quick-cut/canvas/ask-mugtee-suggestion-chips'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
 import { CinematicPromptInput } from '@/components/quick-cut/canvas/cinematic-prompt-input'
 import { FloatingMicButton } from '@/components/quick-cut/canvas/floating-mic-button'
@@ -381,7 +381,7 @@ export function FullscreenQuickCutCanvas({
         embedded ? 'min-h-[calc(100dvh-4rem)]' : 'min-h-[100dvh]'
       )}
     >
-      <CinematicCanvasBackground />
+      <CinematicCanvasBackground variant="create-dashboard" />
 
       {!embedded ? (
         <header className="relative z-20 flex items-center justify-between px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
@@ -413,8 +413,8 @@ export function FullscreenQuickCutCanvas({
         </header>
       ) : null}
 
-      <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
-        <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
+      <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-2 sm:pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
+        <div className="flex-1 flex flex-col justify-center min-w-0 w-full max-w-3xl mx-auto xl:max-w-2xl xl:mx-auto xl:pr-[220px] 2xl:pr-[240px]">
           {showConversation ? (
             <>
               {showActivationHints && !prompt.trim() && !isGenerating ? (
@@ -452,28 +452,28 @@ export function FullscreenQuickCutCanvas({
             key={promptIndex}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center text-[10px] tracking-[0.28em] uppercase text-gold-300/70 mb-2"
+            className="text-center text-[10px] sm:text-[11px] tracking-[0.32em] uppercase text-gold-300/80 mb-2"
           >
             Ask Mugtee
           </motion.p>
-          <motion.p
+          <motion.h1
             key={`q-${promptIndex}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center font-display text-lg sm:text-xl md:text-2xl text-[#F4E7C1]/90 leading-snug italic mb-6 sm:mb-8 px-2"
+            className="text-center font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient leading-tight mb-3 sm:mb-4 px-2"
           >
             {question}
-          </motion.p>
+          </motion.h1>
 
           {!directorUi ? (
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-5 sm:mb-6">
               <button
                 type="button"
                 onClick={() => {
                   saveConversationEntryPreference('conversation')
                   setUseConversationEntry(true)
                 }}
-                className="text-[10px] tracking-[0.16em] uppercase text-gold-300/65 hover:text-gold-200 transition min-h-[44px] px-3"
+                className="text-[10px] tracking-[0.2em] uppercase text-cyan-300/70 hover:text-cyan-200/90 transition min-h-[44px] px-3"
               >
                 Switch to Mugtee chat
               </button>
@@ -502,37 +502,21 @@ export function FullscreenQuickCutCanvas({
             ) : null}
 
             <div className="relative">
-              <MugteeOrb
-                state={promptFocused || prompt.trim() ? 'thinking' : 'idle'}
-                size={32}
-                useLogo
-                className="absolute -left-1 sm:left-0 top-4 z-10 hidden sm:block"
-              />
               <CinematicPromptInput
                 value={prompt}
                 onChange={setPrompt}
                 focused={promptFocused}
                 onFocus={() => setPromptFocused(true)}
                 onBlur={() => setPromptFocused(false)}
-                className="sm:pl-10"
               />
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2">
-              {ASK_MUGTEE_PROMPT_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => {
-                    setPrompt(chip)
-                    setPromptFocused(true)
-                  }}
-                  className="rounded-full border border-white/[0.08] bg-black/30 px-3 py-1.5 text-[11px] text-luxe/55 hover:border-gold-500/30 hover:text-gold-200 transition"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
+            <AskMugteeSuggestionChips
+              onSelect={(chip) => {
+                setPrompt(chip)
+                setPromptFocused(true)
+              }}
+            />
 
             {prompt.trim().length >= 6 ? (
               <div className="space-y-2">
@@ -608,9 +592,16 @@ export function FullscreenQuickCutCanvas({
                 </div>
               </>
             ) : (
-              <p className="text-center text-[11px] text-luxe/45 leading-relaxed px-2">
-                Noob mode uses guided defaults. Switch to Director for blueprints, mood, voice, and
-                deep research.
+              <p className="text-center text-[11px] text-luxe/50 leading-relaxed px-2">
+                Noob mode uses guided defaults. Switch to{' '}
+                <button
+                  type="button"
+                  onClick={() => handleExperienceChange('director')}
+                  className="text-gold-300/90 hover:text-gold-200 underline-offset-2 hover:underline font-medium"
+                >
+                  Director
+                </button>{' '}
+                for blueprints, mood, voice, and deep research.
               </p>
             )}
 
@@ -654,24 +645,24 @@ export function FullscreenQuickCutCanvas({
                 canGenerate
                   ? {
                       boxShadow: [
-                        '0 0 24px -6px rgba(212,175,55,0.35)',
-                        '0 0 40px -4px rgba(212,175,55,0.55)',
-                        '0 0 24px -6px rgba(212,175,55,0.35)',
+                        '0 0 28px -4px rgba(212,175,55,0.45)',
+                        '0 0 48px -2px rgba(212,175,55,0.65)',
+                        '0 0 28px -4px rgba(212,175,55,0.45)',
                       ],
                     }
                   : undefined
               }
               transition={{ duration: 2.5, repeat: canGenerate ? Infinity : 0 }}
               className={cn(
-                'w-full min-h-[52px] inline-flex items-center justify-center gap-2.5 rounded-2xl',
-                'bg-gold-gradient text-black text-sm font-semibold tracking-[0.08em] uppercase',
+                'w-full min-h-[56px] inline-flex items-center justify-center gap-3 rounded-2xl',
+                'bg-gold-gradient text-black text-sm font-bold tracking-[0.14em] uppercase',
                 'shadow-gold-glow disabled:opacity-40 disabled:pointer-events-none hover:opacity-95 transition-opacity'
               )}
             >
-              <Sparkles className="w-4 h-4" />
+              <MugteeSidekickAvatar size="sm" animated={canGenerate && !isGenerating} />
               Ask Mugtee
               {inputMode !== 'idle' && inputMode !== 'text' ? (
-                <span className="text-[10px] opacity-70 normal-case tracking-normal">
+                <span className="text-[10px] opacity-70 normal-case tracking-normal font-medium">
                   · {inputMode}
                 </span>
               ) : null}
