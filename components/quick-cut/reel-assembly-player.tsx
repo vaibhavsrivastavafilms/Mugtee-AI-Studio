@@ -607,6 +607,50 @@ export function ReelAssemblyPlayer({
 
 
 
+        {canPlayPreview && !previewIsPlaying ? (
+
+          <button
+
+            type="button"
+
+            onClick={togglePlayback}
+
+            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/0 hover:bg-black/15 transition-colors"
+
+            aria-label={playControlLabel}
+
+          >
+
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-black/55 text-gold-100 shadow-lg backdrop-blur-sm">
+
+              <Play className="h-5 w-5 ml-0.5" aria-hidden />
+
+            </span>
+
+          </button>
+
+        ) : canPlayPreview && previewIsPlaying ? (
+
+          <button
+
+            type="button"
+
+            onClick={togglePlayback}
+
+            className="absolute bottom-3 right-3 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-black/60 text-gold-100 shadow-lg backdrop-blur-sm opacity-90 hover:opacity-100 transition-opacity"
+
+            aria-label={hasVideo ? 'Pause video' : 'Pause preview'}
+
+          >
+
+            <Pause className="h-4 w-4" aria-hidden />
+
+          </button>
+
+        ) : null}
+
+
+
         {showKaraoke ? (
 
           <KaraokeCaptionOverlay
