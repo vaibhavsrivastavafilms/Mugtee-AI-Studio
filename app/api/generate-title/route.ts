@@ -8,6 +8,16 @@ import {
   pickTitle,
 } from '@/lib/virlo-engine/hook-engine'
 import { coercePreviousHooks, isHookTooSimilar } from '@/lib/cinematic/hook-variation'
+import {
+  coerceRecentContentAngles,
+  contentAngleMetaFromSelection,
+  isBannedHookOpening,
+  isBannedTitle,
+  sanitizeTitleCandidate,
+  selectContentAngle,
+  selectHookFramework,
+} from '@/lib/cinematic/content-angle-engine'
+import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
@@ -39,10 +49,24 @@ export async function POST(req: NextRequest) {
         : idea
 
     const previousHooks = coercePreviousHooks(raw?.previousHooks)
+    const recentAngles = coerceRecentContentAngles(raw?.recentContentAngles)
     const attemptIndex =
       typeof raw?.hookVariantIndex === 'number' && raw.hookVariantIndex >= 0
         ? Math.floor(raw.hookVariantIndex)
         : previousHooks.length
+
+    const niche = inferNicheFromBrief({ topic: idea })
+    const contentAngle = selectContentAngle({
+      niche,
+      topic: idea,
+      sessionSeed,
+      recentAngles,
+      contentAngleId: typeof raw?.contentAngleId === 'string' ? raw.contentAngleId : undefined,
+    })
+    const hookFramework = selectHookFramework({
+      sessionSeed,
+      attemptIndex,
+    })
 
     const virlo = buildVirloContext(idea, {
       sessionSeed: `${sessionSeed}-${attemptIndex}`,
@@ -52,13 +76,16 @@ export async function POST(req: NextRequest) {
     const titleCandidates = generateTitleCandidates(
       idea,
       virlo.topicAnalysis.niche,
-      virlo.creativeSeed.seed + attemptIndex * 17
+      virlo.creativeSeed.seed + attemptIndex * 17,
+      contentAngle
     )
     const hooks = generateHookCandidates(
       idea,
       virlo.topicAnalysis.niche,
       virlo.emotionalGoal,
-      virlo.creativeSeed.seed + attemptIndex * 23
+      virlo.creativeSeed.seed + attemptIndex * 23,
+      5,
+      hookFramework
     )
 
     const avoid = previousHooks
@@ -68,18 +95,27 @@ export async function POST(req: NextRequest) {
       virlo.emotionalGoal,
       virlo.creativeSeed.seed,
       attemptIndex,
-      (text) => isHookTooSimilar(text, avoid)
+      (text) => isHookTooSimilar(text, avoid) || isBannedHookOpening(text),
+      hookFramework
     )
 
     const freshCandidate =
-      hooks.find((h) => !isHookTooSimilar(h.text, avoid)) ?? rotated
+      hooks.find((h) => !isHookTooSimilar(h.text, avoid) && !isBannedHookOpening(h.text)) ??
+      rotated
     const selectedHook =
       freshCandidate.tensionScore >= pickStrongestHookCandidate(hooks).tensionScore - 1
         ? freshCandidate
         : pickStrongestHookCandidate(hooks)
 
-    const title = pickTitle(titleCandidates, virlo.creativeSeed.seed + attemptIndex)
-    const hook = selectedHook.text
+    let title = pickTitle(titleCandidates, virlo.creativeSeed.seed + attemptIndex)
+    if (isBannedTitle(title)) {
+      title = sanitizeTitleCandidate(title, virlo.creativeSeed.seed + attemptIndex)
+    }
+    const hook = isBannedHookOpening(selectedHook.text)
+      ? rotated.text
+      : selectedHook.text
+
+    const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
 
     await delay(320)
 
@@ -97,6 +133,7 @@ export async function POST(req: NextRequest) {
       },
       hookVariant: selectedHook.variant,
       structureName: meta.structureName,
+      ...angleMeta,
     })
   } catch (err) {
     logError('generate-title', err)

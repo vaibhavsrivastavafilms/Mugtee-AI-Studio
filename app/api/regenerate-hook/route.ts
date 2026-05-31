@@ -91,7 +91,10 @@ async function generateDistinctHook(
 
   const sessionHooks = allSessionHooks(ctx)
 
-  let lastResult = { hook: ctx.hook, hookFramework: rotatedHookFramework(ctx.hookVariantIndex).id }
+  let lastResult: { hook: string; hookFramework: string } = {
+    hook: ctx.hook,
+    hookFramework: rotatedHookFramework(ctx.hookVariantIndex).id,
+  }
 
   let retries = 0
 

@@ -25,6 +25,11 @@ import {
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { ScriptArchetypeId } from '@/lib/cinematic/script-archetypes'
+import {
+  loadRecentContentAngles,
+  normalizeContentAngleId,
+  recordContentAngleInSession,
+} from '@/lib/cinematic/content-angle-engine'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
 import {
   clearQuickCutPreview,
@@ -240,6 +245,10 @@ interface QuickCutGenerationStateBase {
   scriptArchetypeId: string | null
   scriptArchetypeLabel: string | null
   scriptArchetypeDisplay: string | null
+  contentAngleId: string | null
+  contentAngleLabel: string | null
+  hookFramework: string | null
+  hookFrameworkLabel: string | null
   characterDescription: string
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
@@ -358,6 +367,10 @@ const INITIAL: QuickCutGenerationState = {
   scriptArchetypeId: null,
   scriptArchetypeLabel: null,
   scriptArchetypeDisplay: null,
+  contentAngleId: null,
+  contentAngleLabel: null,
+  hookFramework: null,
+  hookFrameworkLabel: null,
   scenes: [],
   storyboard: [],
   characterDescription: '',
@@ -440,6 +453,24 @@ function resolveCreatorProfilePayload(
     state.creatorProfile,
     state.creatorProfileOverride
   ) ?? undefined
+}
+
+function parseContentAngleFromResponse(data?: Record<string, unknown> | null): {
+  contentAngleId: string | null
+  contentAngleLabel: string | null
+  hookFramework: string | null
+  hookFrameworkLabel: string | null
+} {
+  return {
+    contentAngleId:
+      typeof data?.contentAngleId === 'string' ? data.contentAngleId : null,
+    contentAngleLabel:
+      typeof data?.contentAngleLabel === 'string' ? data.contentAngleLabel : null,
+    hookFramework:
+      typeof data?.hookFramework === 'string' ? data.hookFramework : null,
+    hookFrameworkLabel:
+      typeof data?.hookFrameworkLabel === 'string' ? data.hookFrameworkLabel : null,
+  }
 }
 
 function parseScriptArchetypeFromOutput(output?: Record<string, unknown> | null): {
@@ -549,6 +580,14 @@ function buildGenerationOutput(
           archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
         }
       : {}),
+    ...(state.contentAngleId
+      ? {
+          contentAngleId: state.contentAngleId,
+          contentAngleLabel: state.contentAngleLabel ?? undefined,
+          hookFramework: state.hookFramework ?? undefined,
+          hookFrameworkLabel: state.hookFrameworkLabel ?? undefined,
+        }
+      : {}),
   }
 }
 
@@ -645,6 +684,10 @@ function buildArchiveInput(
     archetypeId: state.scriptArchetypeId ?? undefined,
     archetypeLabel: state.scriptArchetypeLabel ?? undefined,
     archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
+    contentAngleId: state.contentAngleId ?? undefined,
+    contentAngleLabel: state.contentAngleLabel ?? undefined,
+    hookFramework: state.hookFramework ?? undefined,
+    hookFrameworkLabel: state.hookFrameworkLabel ?? undefined,
     input_type: state.inputType,
     original_transcript: state.originalTranscript || state.prompt,
     variation_history: state.variationHistory,
@@ -747,7 +790,15 @@ function buildQuickCutRegenPayload(state: QuickCutGenerationState) {
     })),
     captionLines: state.script.split('\n').filter(Boolean).slice(0, 8),
     suggestedVoiceStyle: 'warm_documentary',
+    contentAngleId: state.contentAngleId ?? undefined,
   }
+}
+
+function trackContentAngleFromResponse(data: Record<string, unknown>) {
+  const parsed = parseContentAngleFromResponse(data)
+  const angleId = normalizeContentAngleId(parsed.contentAngleId)
+  if (angleId) recordContentAngleInSession(angleId)
+  return parsed
 }
 
 async function requestHookRegeneration(
@@ -766,6 +817,7 @@ async function requestHookRegeneration(
       hookVariantNumber: state.hookVariantNumber,
       strongVariation,
       emotionalGoal: state.virlo?.emotionalGoal,
+      contentAngleId: state.contentAngleId ?? undefined,
     })
   } catch {
     const res = await fetch('/api/generate-title', {
@@ -777,6 +829,8 @@ async function requestHookRegeneration(
         previousHooks: [...state.previousHooks, state.hook].filter(Boolean),
         hookVariantIndex: state.previousHooks.length + (strongVariation ? 1 : 0),
         language: state.language,
+        recentContentAngles: loadRecentContentAngles(),
+        contentAngleId: state.contentAngleId ?? undefined,
       }),
     })
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -1392,6 +1446,7 @@ export const useQuickCutGenerationStore = create<
               idea: prompt,
               sessionSeed,
               language,
+              recentContentAngles: loadRecentContentAngles(),
               ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
             }),
             maxRetries: 2,
@@ -1412,6 +1467,7 @@ export const useQuickCutGenerationStore = create<
           title,
           hook,
           virlo,
+          ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
           storyboard: isResume ? get().storyboard : [],
           previousHooks: regenFresh ? regenAvoidHooks : [],
           hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
@@ -1515,6 +1571,9 @@ export const useQuickCutGenerationStore = create<
             skipResearch: true,
             skipStoryboard: true,
             researchDocument,
+            contentAngleId: get().contentAngleId ?? undefined,
+            recentContentAngles: loadRecentContentAngles(),
+            hookFrameworkId: get().hookFramework ?? undefined,
           }),
           maxRetries: 1,
           timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
@@ -1560,6 +1619,7 @@ export const useQuickCutGenerationStore = create<
           payoff: applied.payoff,
           cta: applied.cta,
           ...parseScriptArchetypeFromOutput(output),
+          ...parseContentAngleFromResponse(output),
           title: scriptTitle,
           hook: scriptHook,
           researchDocument:
@@ -2187,6 +2247,7 @@ export const useQuickCutGenerationStore = create<
         hook: result.hook,
         previousHooks: nextPrevious,
         hookVariantNumber,
+        hookFramework: result.hookFramework ?? state.hookFramework,
         virlo: nextVirlo,
         viralScript: state.viralScript
           ? { ...state.viralScript, hook: result.hook }
@@ -2222,6 +2283,7 @@ export const useQuickCutGenerationStore = create<
           sessionSeed: `${state.prompt}-title-${Date.now()}`,
           previousHooks: [state.title, state.hook].filter(Boolean),
           language: state.language,
+          recentContentAngles: loadRecentContentAngles(),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -2232,6 +2294,7 @@ export const useQuickCutGenerationStore = create<
 
       set({
         title: nextTitle,
+        ...trackContentAngleFromResponse(data),
       })
       persistSession(get())
     } catch {
@@ -2278,6 +2341,9 @@ export const useQuickCutGenerationStore = create<
           researchDocument: state.researchDocument ?? undefined,
           skipResearch: true,
           skipStoryboard: true,
+          contentAngleId: state.contentAngleId ?? undefined,
+          recentContentAngles: loadRecentContentAngles(),
+          hookFrameworkId: state.hookFramework ?? undefined,
         }),
         maxRetries: 1,
         timeoutMs: SCRIPT_GENERATION_TIMEOUT_MS,
@@ -2294,6 +2360,7 @@ export const useQuickCutGenerationStore = create<
         payoff: applied.payoff,
         cta: applied.cta,
         ...parseScriptArchetypeFromOutput(output),
+        ...parseContentAngleFromResponse(output),
         viralScript: state.viralScript
           ? { ...state.viralScript, script: applied.script }
           : state.viralScript,

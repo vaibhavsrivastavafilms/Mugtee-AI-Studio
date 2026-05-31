@@ -45,6 +45,7 @@ export type RegenProjectContext = {
   hookVariantIndex: number
   strongVariation: boolean
   emotionalGoal?: string
+  contentAngleId?: string
 }
 
 function coerceString(raw: unknown, fallback = '', max = 12_000): string {
@@ -139,6 +140,10 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
     emotionalGoal:
       typeof raw.emotionalGoal === 'string' && raw.emotionalGoal.trim()
         ? raw.emotionalGoal.trim()
+        : undefined,
+    contentAngleId:
+      typeof raw.contentAngleId === 'string' && raw.contentAngleId.trim()
+        ? raw.contentAngleId.trim()
         : undefined,
   }
 }

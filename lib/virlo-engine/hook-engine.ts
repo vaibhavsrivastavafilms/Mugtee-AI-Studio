@@ -3,6 +3,13 @@ import { NICHE_PROFILES } from '@/lib/cinematic/niches'
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import type { HookCandidate } from '@/lib/virlo-engine/types'
 import type { EmotionalGoal } from '@/lib/virlo-engine/types'
+import {
+  isBannedHookOpening,
+  isBannedTitle,
+  sanitizeTitleCandidate,
+  type ContentAngle,
+  type HookFramework,
+} from '@/lib/cinematic/content-angle-engine'
 
 export const HOOK_PATTERNS = [
   'pattern-interrupt',
@@ -30,22 +37,28 @@ function buildHookText(
   topic: string,
   niche: CinematicNiche,
   _emotion: EmotionalGoal,
-  seed: number
+  seed: number,
+  framework?: HookFramework
 ): string {
   const profile = NICHE_PROFILES[niche]
   const subject = topicLabel(topic)
   const v0 = profile.vocabulary[seed % profile.vocabulary.length] ?? 'this'
   const v1 = profile.vocabulary[(seed + 1) % profile.vocabulary.length] ?? 'results'
 
+  if (framework) {
+    const shaped = framework.example.replace(/this story|this one|this mistake/gi, subject)
+    if (!isBannedHookOpening(shaped)) return shaped
+  }
+
   switch (pattern) {
     case 'pattern-interrupt':
       return `Stop scrolling — if you're working on ${subject}, this one mistake wastes weeks.`
     case 'problem-first':
-      return `Most people fail at ${subject} because they skip the first step.`
+      return `The first step around ${subject} is the one almost everyone skips.`
     case 'result-tease':
       return `I tested ${subject} for 30 days — here's what actually moved the needle.`
     case 'direct-callout':
-      return `If ${subject} feels stuck right now, watch this before you quit.`
+      return `You keep circling ${subject} — this pattern is why nothing sticks yet.`
     case 'stat-claim':
       return `90% of ${subject} advice is wrong — I learned the hard way so you don't have to.`
     case 'curiosity-gap':
@@ -103,7 +116,8 @@ export function generateHookCandidates(
   niche: CinematicNiche,
   emotion: EmotionalGoal,
   seed: number,
-  count = 5
+  count = 5,
+  framework?: HookFramework
 ): HookCandidate[] {
   const patterns = [...HOOK_PATTERNS]
   const rotated = [
@@ -114,7 +128,7 @@ export function generateHookCandidates(
   const candidates: HookCandidate[] = []
   for (let i = 0; i < Math.min(count, rotated.length); i++) {
     const pattern = rotated[i]
-    const text = buildHookText(pattern, topic, niche, emotion, seed + i * 7)
+    const text = buildHookText(pattern, topic, niche, emotion, seed + i * 7, framework)
     candidates.push({
       text,
       pattern,
@@ -150,15 +164,16 @@ export function pickRotatedHookCandidate(
   emotion: EmotionalGoal,
   baseSeed: number,
   attemptIndex: number,
-  isTooSimilar: (text: string) => boolean
+  isTooSimilar: (text: string) => boolean,
+  framework?: HookFramework
 ): HookCandidate {
   const rotationOffset = attemptIndex + 1
   const seed = baseSeed + rotationOffset * 7919
 
   for (let pass = 0; pass < HOOK_PATTERNS.length; pass++) {
     const pattern = rotatedHookPattern(attemptIndex + pass)
-    const text = buildHookText(pattern, topic, niche, emotion, seed + pass * 13)
-    if (!isTooSimilar(text)) {
+    const text = buildHookText(pattern, topic, niche, emotion, seed + pass * 13, framework)
+    if (!isTooSimilar(text) && !isBannedHookOpening(text)) {
       return {
         text,
         pattern,
@@ -174,7 +189,8 @@ export function pickRotatedHookCandidate(
     topic,
     niche,
     emotion,
-    seed + attemptIndex * 31
+    seed + attemptIndex * 31,
+    framework
   )
   return {
     text: fallbackText,
@@ -184,25 +200,55 @@ export function pickRotatedHookCandidate(
   }
 }
 
+const TITLE_ANGLE_TEMPLATES: Record<
+  ContentAngle['id'],
+  (short: string, v: string, profileLabel: string) => string[]
+> = {
+  story: (short, v) => [`${short}: The Turn Nobody Expected`, `${v} — What Changed Everything`],
+  documentary: (short) => [`${short}: Witness Report`, `${short} — On Record`],
+  contrarian: (short, v) => [`${short}: The Unpopular Read`, `Why ${v} Advice Backfires`],
+  investigation: (short) => [`${short}: What They Missed`, `${short} — Follow the Clue`],
+  myth_busting: (short, v) => [`${short}: The Myth vs Reality`, `${v} — Debunked`],
+  dark_psychology: (short, v) => [`${short}: The Hidden Pattern`, `${v} — What They Use Against You`],
+  emotional: (short) => [`${short}: The Part Nobody Admits`, `${short} — What It Actually Feels Like`],
+  authority: (short, v) => [`${short}: Expert Breakdown`, `${v} — Mechanism Explained`],
+  case_study: (short) => [`${short}: One Case, Real Stakes`, `${short} — Subject Study`],
+  challenge: (short, v) => [`${short}: The 7-Day Test`, `${v} — Can You Handle This?`],
+  prediction: (short) => [`${short}: What's Coming Next`, `${short} — The Shift Ahead`],
+  historical_parallel: (short) => [`${short}: History Repeating`, `${short} — Then vs Now`],
+  personal_revelation: (short) => [`${short}: What I Finally Admitted`, `${short} — Confession`],
+  warning: (short, v) => [`${short}: The Cost of Ignoring This`, `${v} — Before It's Too Late`],
+  unexpected_truth: (short, v) => [`${short}: The Opposite Is True`, `${v} — Unexpected Turn`],
+}
+
 export function generateTitleCandidates(
   topic: string,
   niche: CinematicNiche,
-  seed: number
+  seed: number,
+  contentAngle?: ContentAngle
 ): string[] {
   const locked = inferNicheFromBrief({ topic, niche })
   const profile = NICHE_PROFILES[locked]
   const short = topic.length > 48 ? `${topic.slice(0, 45)}…` : topic
   const v = hashPick(profile.vocabulary, seed)
 
-  return [
+  const angleTemplates = contentAngle
+    ? TITLE_ANGLE_TEMPLATES[contentAngle.id](short, v, profile.label)
+    : [`${short} — Creator Breakdown`, `${short}: A Fresh Angle`, `${v} — What Actually Shifts`]
+
+  const candidates = [
+    ...angleTemplates,
     `${short}: What Actually Works`,
-    `Fix Your ${v} in 60 Seconds`,
     `Stop Getting ${profile.label} Wrong`,
-    `The ${v} Mistake Everyone Makes`,
-    `${short} — Creator Breakdown`,
   ]
+    .map((title) => sanitizeTitleCandidate(title, seed))
+    .filter((title) => !isBannedTitle(title))
+
+  return candidates.length ? candidates : [`${short} — Creator Breakdown`]
 }
 
 export function pickTitle(candidates: string[], seed: number): string {
-  return candidates[Math.abs(seed) % candidates.length] ?? candidates[0] ?? 'Untitled'
+  const valid = candidates.filter((title) => !isBannedTitle(title))
+  const pool = valid.length ? valid : candidates
+  return pool[Math.abs(seed) % pool.length] ?? pool[0] ?? 'Untitled'
 }

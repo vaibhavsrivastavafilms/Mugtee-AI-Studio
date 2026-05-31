@@ -10,11 +10,19 @@ import { pacingPromptFragment } from '@/lib/virlo-engine/pacing-engine'
 import { visualLanguagePromptFragment } from '@/lib/virlo-engine/visual-language'
 import type { VirloContext } from '@/lib/virlo-engine/types'
 import type { SelectedScriptArchetype } from '@/lib/cinematic/script-archetypes'
+import type { HookFramework, SelectedContentAngle } from '@/lib/cinematic/content-angle-engine'
+import {
+  buildContentAnglePromptSection,
+  buildHookFrameworkPromptSection,
+  buildTitleOriginalityRules,
+} from '@/lib/cinematic/content-angle-engine'
 
 export function buildVirloScriptPrompt(
   ctx: VirloContext,
   viralStructure?: ViralStructureAnalysis,
-  scriptArchetype?: SelectedScriptArchetype
+  scriptArchetype?: SelectedScriptArchetype,
+  contentAngle?: SelectedContentAngle,
+  hookFramework?: HookFramework
 ): string {
   const { topicAnalysis, structure, retention, selectedHook, hooks } = ctx
 
@@ -34,6 +42,9 @@ export function buildVirloScriptPrompt(
     pacingPromptFragment(ctx.pacing),
     buildCreativeSeedLayer(ctx),
     buildHookDirectiveLayer(selectedHook, hooks, viralStructure),
+    contentAngle ? buildContentAnglePromptSection(contentAngle) : '',
+    hookFramework ? buildHookFrameworkPromptSection(hookFramework) : '',
+    buildTitleOriginalityRules(),
     buildNicheLayer(topicAnalysis.niche),
     buildVisualDirectiveLayer(ctx),
     buildCaptionLayer(),
@@ -41,7 +52,11 @@ export function buildVirloScriptPrompt(
   ].join('\n\n')
 }
 
-export function buildVirloTitlePrompt(ctx: VirloContext): string {
+export function buildVirloTitlePrompt(
+  ctx: VirloContext,
+  contentAngle?: SelectedContentAngle,
+  hookFramework?: HookFramework
+): string {
   return [
     `Generate a viral short-form title and hook for this idea using VIRLO structure "${ctx.structure.name}".`,
     `Idea: "${ctx.idea}"`,
@@ -50,6 +65,9 @@ export function buildVirloTitlePrompt(ctx: VirloContext): string {
     `Preferred hook pattern: ${ctx.selectedHook.pattern}`,
     `Hook tension reference (adapt, do not copy verbatim): ${ctx.selectedHook.text}`,
     `Opening move: ${ctx.structure.openingMove}`,
+    contentAngle ? buildContentAnglePromptSection(contentAngle) : '',
+    hookFramework ? buildHookFrameworkPromptSection(hookFramework) : '',
+    buildTitleOriginalityRules(),
     `Avoid generic patterns: "you won't believe", "ultimate guide", "in a world where".`,
     `Return JSON: { "title": string, "hook": string, "hookVariations": string[3] }`,
   ].join('\n')

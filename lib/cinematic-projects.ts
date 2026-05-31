@@ -216,6 +216,10 @@ export type ArchiveGeneratedProjectInput = {
   archetypeId?: string | null
   archetypeLabel?: string | null
   archetypeDisplay?: string | null
+  contentAngleId?: string | null
+  contentAngleLabel?: string | null
+  hookFramework?: string | null
+  hookFrameworkLabel?: string | null
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -614,6 +618,7 @@ export async function updateProject(
     (state as { directorMode?: string }).directorMode !== undefined ||
     (state as { blueprintId?: string | null }).blueprintId !== undefined ||
     (state as { archetypeId?: string | null }).archetypeId !== undefined ||
+    (state as { contentAngleId?: string | null }).contentAngleId !== undefined ||
     state.series !== undefined ||
     state.repurposedAssets !== undefined
   ) {
@@ -634,6 +639,14 @@ export async function updateProject(
         (state as { archetypeLabel?: string | null }).archetypeLabel ?? undefined,
       archetypeDisplay:
         (state as { archetypeDisplay?: string | null }).archetypeDisplay ?? undefined,
+      contentAngleId:
+        (state as { contentAngleId?: string | null }).contentAngleId ?? undefined,
+      contentAngleLabel:
+        (state as { contentAngleLabel?: string | null }).contentAngleLabel ?? undefined,
+      hookFramework:
+        (state as { hookFramework?: string | null }).hookFramework ?? undefined,
+      hookFrameworkLabel:
+        (state as { hookFrameworkLabel?: string | null }).hookFrameworkLabel ?? undefined,
       series: state.series ?? undefined,
       repurposedAssets: state.repurposedAssets,
     })

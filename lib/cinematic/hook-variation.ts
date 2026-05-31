@@ -1,86 +1,24 @@
 /** Hook deduplication and framework rotation for Quick Cut regeneration. */
 
+import {
+  HOOK_FRAMEWORKS,
+  HOOK_FRAMEWORK_IDS,
+  selectHookFramework,
+  type HookFramework,
+} from '@/lib/cinematic/content-angle-engine'
+
 export const HOOK_SIMILARITY_THRESHOLD = 0.7
 
 export const MAX_HOOK_SIMILARITY_RETRIES = 3
 
-export type HookRegenFramework = {
-  id: string
-  name: string
-  example: string
-  instruction: string
-}
+export type HookRegenFramework = HookFramework
 
-export const HOOK_REGEN_FRAMEWORKS: readonly HookRegenFramework[] = [
-  {
-    id: 'contrarian',
-    name: 'Contrarian',
-    example:
-      'Everyone says discipline is the answer — but the real story starts when you realize it was never about willpower.',
-    instruction:
-      'Open by naming a common belief, then invert it with a sharper, cinematic truth.',
-  },
-  {
-    id: 'curiosity-gap',
-    name: 'Curiosity Gap',
-    example:
-      'There is one detail in this story that changes everything — and most people scroll past it in the first second.',
-    instruction:
-      'Withhold the key reveal; create an itch to know more without resolving it in the hook.',
-  },
-  {
-    id: 'psychological-observation',
-    name: 'Psychological Observation',
-    example:
-      'The mind does something strange the moment success stops feeling like a surprise.',
-    instruction:
-      'Start with a precise psychological pattern the viewer recognizes in themselves.',
-  },
-  {
-    id: 'direct-callout',
-    name: 'Direct Callout',
-    example:
-      'If you keep restarting every Monday, this one habit is why nothing sticks.',
-    instruction:
-      'Use second-person direct address; name a specific stuck behavior, not a poetic fear.',
-  },
-  {
-    id: 'documentary-opening',
-    name: 'Documentary Opening',
-    example:
-      'In 2019, a photographer noticed something in the background of a single frame — and could not unsee it.',
-    instruction:
-      'Open like vérité documentary: specific time, place, or witness detail that pulls the viewer in.',
-  },
-  {
-    id: 'hidden-truth',
-    name: 'Hidden Truth',
-    example:
-      'Nobody posts the part where the victory feels hollow — but that is where this story actually begins.',
-    instruction:
-      'Expose what is deliberately hidden, unspoken, or edited out of the public version.',
-  },
-  {
-    id: 'narrative-setup',
-    name: 'Narrative Setup',
-    example:
-      'She had three seconds to decide — and every choice she made after that was already written.',
-    instruction:
-      'Drop the viewer mid-scene with a character, clock, or decision that implies a story unfolding.',
-  },
-  {
-    id: 'emotional-contrast',
-    name: 'Emotional Contrast',
-    example:
-      'The room was full of applause — and completely silent inside her head.',
-    instruction:
-      'Juxtapose outer appearance vs inner reality; cinematic contrast in one breath.',
-  },
-] as const
+export const HOOK_REGEN_FRAMEWORKS: readonly HookRegenFramework[] = HOOK_FRAMEWORK_IDS.map(
+  (id) => HOOK_FRAMEWORKS[id]
+)
 
 export function rotatedHookFramework(attemptIndex: number): HookRegenFramework {
-  const idx = Math.abs(attemptIndex) % HOOK_REGEN_FRAMEWORKS.length
-  return HOOK_REGEN_FRAMEWORKS[idx]
+  return selectHookFramework({ attemptIndex })
 }
 
 export function normalizeHookText(hook: string): string {

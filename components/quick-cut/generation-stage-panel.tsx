@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 function SceneBreakdownList({
   scenes,
@@ -131,6 +132,8 @@ export function GenerationStagePanel({
   const cta = useQuickCutGenerationStore((s) => s.cta)
   const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
   const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
+  const contentAngleLabel = useQuickCutGenerationStore((s) => s.contentAngleLabel)
+  const hookFrameworkLabel = useQuickCutGenerationStore((s) => s.hookFrameworkLabel)
   const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
   const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
   const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
@@ -198,6 +201,10 @@ export function GenerationStagePanel({
                 </button>
               </div>
             ) : null}
+            <ContentAngleLabel
+              angleLabel={contentAngleLabel}
+              hookFrameworkLabel={hookFrameworkLabel}
+            />
             <CinematicTitleReveal
               title={title}
               subtitle={hook ? 'Hook ready — open Hook tab' : 'Generating hook…'}
@@ -239,6 +246,10 @@ export function GenerationStagePanel({
                 </button>
               ) : null}
             </div>
+            <ContentAngleLabel
+              angleLabel={contentAngleLabel}
+              hookFrameworkLabel={hookFrameworkLabel}
+            />
             <p className="font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug">
               {hook}
             </p>
@@ -272,6 +283,11 @@ export function GenerationStagePanel({
           ) : null}
           <ScriptTypeLabel
             label={scriptArchetypeDisplay ?? scriptArchetypeLabel}
+            className="px-0.5"
+          />
+          <ContentAngleLabel
+            angleLabel={contentAngleLabel}
+            hookFrameworkLabel={hookFrameworkLabel}
             className="px-0.5"
           />
           <LiveScriptReveal

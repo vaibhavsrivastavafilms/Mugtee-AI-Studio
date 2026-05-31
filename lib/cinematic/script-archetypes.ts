@@ -1,4 +1,10 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
+import {
+  contentAngleArchetypePrefs,
+  getContentAngle,
+  normalizeContentAngleId,
+  type ContentAngleId,
+} from '@/lib/cinematic/content-angle-engine'
 
 export const SCRIPT_ARCHETYPE_IDS = [
   'story',
@@ -164,6 +170,8 @@ export type SelectScriptArchetypeInput = {
   contentType?: string
   sessionSeed?: string | number
   creatorNiche?: string
+  /** Content originality engine — aligns script structure with selected angle */
+  contentAngleId?: ContentAngleId | string
 }
 
 export type SelectedScriptArchetype = ScriptArchetype & {
@@ -187,8 +195,15 @@ export function selectScriptArchetype(
   const creatorPrefs = creatorNiche
     ? topicKeywordPreferences(creatorNiche)
     : []
+  const angleId = normalizeContentAngleId(input.contentAngleId)
+  const anglePrefs = angleId ? contentAngleArchetypePrefs(getContentAngle(angleId)) : []
 
-  const pool = mergePreferencePools(nichePrefs, topicPrefs, creatorPrefs)
+  const pool = mergePreferencePools(
+    anglePrefs.length ? anglePrefs : [],
+    nichePrefs,
+    topicPrefs,
+    creatorPrefs
+  )
   const seed = Math.abs(
     hashString(topic) ^
       hashString(String(input.sessionSeed ?? '')) ^

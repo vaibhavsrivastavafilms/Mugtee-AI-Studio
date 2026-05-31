@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 const actionButtonClass =
   'inline-flex min-h-[44px] flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation'
@@ -74,6 +75,8 @@ export function GenerationResultsSection({
   const cta = useQuickCutGenerationStore((s) => s.cta)
   const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
   const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
+  const contentAngleLabel = useQuickCutGenerationStore((s) => s.contentAngleLabel)
+  const hookFrameworkLabel = useQuickCutGenerationStore((s) => s.hookFrameworkLabel)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
@@ -360,6 +363,10 @@ export function GenerationResultsSection({
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3 space-y-2">
             <ScriptTypeLabel label={scriptArchetypeDisplay ?? scriptArchetypeLabel} />
+            <ContentAngleLabel
+              angleLabel={contentAngleLabel}
+              hookFrameworkLabel={hookFrameworkLabel}
+            />
             <LiveScriptReveal
               script={script}
               hook={hook}

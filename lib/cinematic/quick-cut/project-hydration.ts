@@ -105,6 +105,10 @@ export type QuickCutProjectHydrationPatch = {
   scriptArchetypeId: string | null
   scriptArchetypeLabel: string | null
   scriptArchetypeDisplay: string | null
+  contentAngleId: string | null
+  contentAngleLabel: string | null
+  hookFramework: string | null
+  hookFrameworkLabel: string | null
   lastSavedAt: number
   originalTranscript: string
   lastGeneratedPrompt: string
@@ -183,6 +187,10 @@ export function buildQuickCutHydrationFromRow(
     scriptArchetypeId: parsedCaptions.archetypeId ?? null,
     scriptArchetypeLabel: parsedCaptions.archetypeLabel ?? null,
     scriptArchetypeDisplay: parsedCaptions.archetypeDisplay ?? null,
+    contentAngleId: parsedCaptions.contentAngleId ?? null,
+    contentAngleLabel: parsedCaptions.contentAngleLabel ?? null,
+    hookFramework: parsedCaptions.hookFramework ?? null,
+    hookFrameworkLabel: parsedCaptions.hookFrameworkLabel ?? null,
     blueprintId: normalizeCreatorBlueprintId(
       extractCreatorBlueprintFromCaptions(row.captions)
     ),
