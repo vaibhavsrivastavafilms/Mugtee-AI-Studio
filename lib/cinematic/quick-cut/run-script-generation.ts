@@ -282,6 +282,7 @@ async function generateWithOpenAI(
     const content = completion.choices[0]?.message?.content || '{}'
     if (process.env.NODE_ENV === 'development') {
       console.log('[OPENAI] REQUEST SUCCESS')
+      console.log('[SCRIPT_DEBUG] openai success')
     }
     return parseLlmJson(content)
   } catch (error) {
@@ -368,6 +369,51 @@ async function generateScript(input: GenInput, retryNote?: string) {
       ? `No usable script from providers (${errors.join(', ')})`
       : 'No script generation provider configured'
   )
+}
+
+type ScriptPostProcessContext = {
+  scriptTopic: string
+  duration: number
+  tone: string
+  niche: CinematicNiche
+  titleSeed?: string
+  hookVariations?: string[]
+}
+
+function shapeScriptFromLlm(
+  parsed: Record<string, unknown>,
+  ctx: ScriptPostProcessContext
+): {
+  output: CinematicGenerationOutput
+  validation: ReturnType<typeof validateCinematicOutput>
+  sopCompliance: ReturnType<typeof scoreCinematicOutputSop>
+  hookVariations: string[]
+} {
+  const hookVariations = Array.isArray(parsed.hookVariations)
+    ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
+    : []
+
+  const output = finalizeCinematicOutput(
+    normalizeCinematicOutput(parsed, {
+      topic: ctx.scriptTopic,
+      duration: ctx.duration,
+      tone: ctx.tone,
+      niche: ctx.niche,
+      titleSeed: ctx.titleSeed,
+    }),
+    ctx.niche,
+    {
+      topic: ctx.scriptTopic,
+      duration: ctx.duration,
+      tone: ctx.tone,
+      hookVariations,
+    }
+  )
+
+  const validation = validateCinematicOutput(output, ctx.niche, ctx.scriptTopic)
+  const sopCompliance = scoreCinematicOutputSop(output, ctx.scriptTopic)
+
+  return { output, validation, sopCompliance, hookVariations }
 }
 
 /** Shared script shaping used by Quick Cut orchestration and generate-script API. */
@@ -508,25 +554,18 @@ export async function runScriptGeneration(
         parsed = await generateScript(genInput)
       }
 
-
-      hookVariations = Array.isArray(parsed.hookVariations)
-        ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
-        : hookVariations
-
-      output = finalizeCinematicOutput(
-        normalizeCinematicOutput(parsed, {
-          topic,
-          duration,
-          tone,
-          niche,
-          titleSeed: input.titleSeed,
-        }),
+      const shaped = shapeScriptFromLlm(parsed, {
+        scriptTopic: topic,
+        duration,
+        tone,
         niche,
-        { topic, duration, tone, hookVariations }
-      )
-
-      validation = validateCinematicOutput(output, niche, topic)
-      sopCompliance = scoreCinematicOutputSop(output, topic)
+        titleSeed: input.titleSeed,
+        hookVariations,
+      })
+      output = shaped.output
+      validation = shaped.validation
+      sopCompliance = shaped.sopCompliance
+      hookVariations = shaped.hookVariations
 
       const passesValidation = validation.valid
       const passesSop = sopCompliance.overall >= minSopScore
