@@ -33,20 +33,27 @@ export function MissionTimeline({
   generationStep,
   className,
   compact = false,
+  horizontal = false,
 }: {
   sectionStatus: SectionStatusMap
   generationStep: QuickCutGenerationStep
   className?: string
   compact?: boolean
+  horizontal?: boolean
 }) {
-  return (
-    <div className={cn('w-full', className)}>
-      <ul
-        className={cn(
-          'grid gap-2',
-          compact ? 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-9' : 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-9'
-        )}
-      >
+  const list = (
+    <ul
+      className={cn(
+        horizontal
+          ? 'flex gap-2 min-w-max'
+          : cn(
+              'grid gap-2',
+              compact
+                ? 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-9'
+                : 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-9'
+            )
+      )}
+    >
         {MISSION_STEPS.map((step) => {
           const state = resolveMissionStepState(step, sectionStatus, generationStep)
           return (
@@ -73,7 +80,16 @@ export function MissionTimeline({
             </li>
           )
         })}
-      </ul>
-    </div>
+    </ul>
   )
+
+  if (horizontal) {
+    return (
+      <div className={cn('w-full overflow-x-auto scrollbar-none -mx-1 px-1', className)}>
+        {list}
+      </div>
+    )
+  }
+
+  return <div className={cn('w-full', className)}>{list}</div>
 }

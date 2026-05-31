@@ -62,7 +62,7 @@ export function AchievementToast() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.98 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80]"
+          className="fixed left-1/2 -translate-x-1/2 z-[80] bottom-[calc(13.5rem+env(safe-area-inset-bottom))] sm:bottom-[calc(12rem+env(safe-area-inset-bottom))]"
         >
           <div className="relative rounded-2xl border border-[var(--v2-gold)]/40 bg-black/90 backdrop-blur-md px-5 py-3 pr-10 shadow-gold-glow flex items-center gap-3">
             <button
