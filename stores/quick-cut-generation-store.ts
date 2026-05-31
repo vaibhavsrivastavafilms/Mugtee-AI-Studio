@@ -52,6 +52,7 @@ import {
   isCinematicProjectsUnavailable,
   updateProject,
   type ArchiveGeneratedProjectInput,
+  type CinematicProjectPatch,
 } from '@/lib/cinematic-projects'
 import {
   completedStatus,
@@ -89,6 +90,11 @@ import {
   type QuickCutStageTab,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
+import {
+  buildThumbnailCoverScene,
+  resolveActiveThumbnailUrl,
+  THUMBNAIL_COVER_SCENE_ID,
+} from '@/lib/cinematic/thumbnail-cover'
 import {
   reorderSceneIds,
   reorderScenesByIds,
@@ -333,6 +339,9 @@ interface QuickCutGenerationStateBase {
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
   regeneratingSceneIds: string[]
+  /** Dedicated cover image — persisted as thumbnail_url */
+  thumbnailImageUrl: string | null
+  isRegeneratingThumbnail: boolean
   directingSceneLabel: string | null
   voiceUrl: string | null
   elevenLabsVoiceId: string | null
@@ -420,6 +429,7 @@ interface QuickCutGenerationActions {
   regenerateTitle: () => Promise<void>
   regenerateScript: () => Promise<void>
   regenerateSceneImage: (sceneId: string) => Promise<void>
+  regenerateThumbnailImage: () => Promise<void>
   updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
   generateSceneVariations: (sceneId: string) => Promise<void>
   reorderScenes: (activeId: string, overId: string) => void
@@ -476,6 +486,8 @@ const INITIAL: QuickCutGenerationState = {
   characterDescription: '',
   directingSceneLabel: null,
   regeneratingSceneIds: [],
+  thumbnailImageUrl: null,
+  isRegeneratingThumbnail: false,
   voiceUrl: null,
   elevenLabsVoiceId: null,
   voiceName: null,
@@ -828,6 +840,7 @@ function buildArchiveInput(
 ): ArchiveGeneratedProjectInput {
   const storedScenes = scenesToStore(output.scenes)
   const thumbnail =
+    state.thumbnailImageUrl?.trim() ??
     storedScenes[0]?.imageUrl?.trim() ??
     storedScenes.find((s) => s.imageUrl)?.imageUrl ??
     storedScenes[0]?.storyboardImages?.[0]?.url ??
@@ -1141,6 +1154,83 @@ async function fetchSceneImages(
       typeof data.characterDescription === 'string'
         ? data.characterDescription
         : undefined,
+  }
+}
+
+async function fetchThumbnailCoverImage(
+  state: Pick<
+    QuickCutGenerationState,
+    | 'hook'
+    | 'title'
+    | 'scenes'
+    | 'characterDescription'
+    | 'virlo'
+    | 'niche'
+    | 'style'
+    | 'visualStyle'
+    | 'storyBible'
+    | 'language'
+    | 'imageNote'
+    | 'contentBrief'
+  >
+): Promise<string | null> {
+  const coverScene = buildThumbnailCoverScene({
+    hook: state.hook,
+    title: state.title,
+    scenes: state.scenes,
+    visualStyleLabel: state.visualStyle?.label ?? null,
+  })
+  const res = await fetch('/api/generate-images', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenes: [coverScene],
+      sceneIds: [THUMBNAIL_COVER_SCENE_ID],
+      characterDescription: state.characterDescription || undefined,
+      virlo: state.virlo ?? undefined,
+      hook: state.hook,
+      niche: state.niche,
+      style: state.style,
+      visualStyle: state.visualStyle ?? undefined,
+      storyBible: state.storyBible ?? undefined,
+      language: state.language,
+      referenceStyleNote: state.imageNote ?? undefined,
+      hasReferenceStyle: Boolean(state.imageNote?.trim()),
+      contentBrief: state.contentBrief ?? undefined,
+    }),
+  })
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  if (handlePlanLimitResponse(res, data)) {
+    throw new PlanLimitError(
+      typeof data.error === 'string' ? data.error : undefined
+    )
+  }
+  if (handleImageGenerationUnavailableResponse(res, data)) {
+    throw new ImageGenerationUnavailableError(
+      typeof data.message === 'string' ? data.message : undefined
+    )
+  }
+  if (!res.ok) {
+    throw new Error(String(data?.error || 'Thumbnail image generation failed'))
+  }
+  const scenes = Array.isArray(data.scenes)
+    ? (data.scenes as GeneratedScene[])
+    : []
+  const url = scenes.find((s) => s.id === THUMBNAIL_COVER_SCENE_ID)?.imageUrl
+  return url?.trim() || null
+}
+
+async function persistThumbnailUrl(
+  projectId: string | null,
+  thumbnailUrl: string | null
+): Promise<void> {
+  if (!projectId || !thumbnailUrl?.trim()) return
+  try {
+    await updateProject(projectId, {
+      thumbnail_url: thumbnailUrl.trim(),
+    } as CinematicProjectPatch)
+  } catch {
+    /* in-memory thumbnail still shown */
   }
 }
 
@@ -2299,8 +2389,9 @@ export const useQuickCutGenerationStore = create<
         scenes = get().scenes.length ? get().scenes : scenes
         set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
         patchSectionStatus(set, get, 'storyboard', 'completed')
-        if (scenes[0]?.imageUrl?.trim()) {
-          patchSectionStatus(set, get, 'thumbnail', 'completed')
+        const sceneOneThumb = resolveActiveThumbnailUrl(null, scenes)
+        if (sceneOneThumb) {
+          set({ thumbnailImageUrl: sceneOneThumb })
         }
         genPerf.end('storyboard')
 
@@ -2310,6 +2401,23 @@ export const useQuickCutGenerationStore = create<
           buildArchiveInput(get(), buildGenerationOutput(get()))
         )
         if (storyboardId) set({ savedProjectId: storyboardId, saveState: 'saved' })
+
+        try {
+          const coverUrl = await fetchThumbnailCoverImage(get())
+          if (coverUrl) {
+            set({ thumbnailImageUrl: coverUrl })
+            patchSectionStatus(set, get, 'thumbnail', 'completed')
+            void persistThumbnailUrl(get().savedProjectId, coverUrl)
+          } else if (sceneOneThumb) {
+            patchSectionStatus(set, get, 'thumbnail', 'completed')
+            void persistThumbnailUrl(get().savedProjectId, sceneOneThumb)
+          }
+        } catch (err) {
+          if (err instanceof ImageGenerationUnavailableError) throw err
+          if (sceneOneThumb) {
+            patchSectionStatus(set, get, 'thumbnail', 'completed')
+          }
+        }
 
         setStep(set, get, 'motion')
         set({ directingSceneLabel: 'Applying cinematic motion…' })
@@ -2628,6 +2736,44 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  regenerateThumbnailImage: async () => {
+    const state = get()
+    if (state.isGenerating || state.isRegeneratingThumbnail) return
+    if (!state.hook?.trim() && !state.title?.trim() && state.scenes.length < 1) {
+      toast.message('Generate storyboard first — thumbnail needs a hook or scene')
+      return
+    }
+
+    set({ isRegeneratingThumbnail: true, directingSceneLabel: 'Composing cover…' })
+    try {
+      const coverUrl = await fetchThumbnailCoverImage(state)
+      if (!coverUrl) {
+        const fallback = resolveActiveThumbnailUrl(null, state.scenes)
+        if (fallback) {
+          set({ thumbnailImageUrl: fallback })
+          void persistThumbnailUrl(state.savedProjectId, fallback)
+          toast.success('Using storyboard frame as cover')
+        } else {
+          toast.error('Could not generate thumbnail image')
+        }
+        return
+      }
+      set({ thumbnailImageUrl: coverUrl })
+      void persistThumbnailUrl(state.savedProjectId, coverUrl)
+      patchSectionStatus(set, get, 'thumbnail', 'completed')
+      persistSession(get())
+      toast.success('Cover thumbnail generated')
+    } catch (err) {
+      if (err instanceof PlanLimitError) {
+        showPlanLimitToast(err.message)
+      } else {
+        toast.error(toUserGenerationError(err) || 'Could not regenerate thumbnail')
+      }
+    } finally {
+      set({ isRegeneratingThumbnail: false, directingSceneLabel: null })
+    }
+  },
+
   regenerateSceneImage: async (sceneId) => {
     const state = get()
     if (!sceneId || state.isGenerating) return
@@ -2651,13 +2797,22 @@ export const useQuickCutGenerationStore = create<
           select: true,
         })
       }
+      const isFirstScene = state.scenes[0]?.id === sceneId
+      const nextThumb =
+        updated?.imageUrl?.trim() && isFirstScene && !state.thumbnailImageUrl?.trim()
+          ? updated.imageUrl.trim()
+          : state.thumbnailImageUrl
       set({
         scenes,
         storyboard: scenes,
         variationHistory,
+        thumbnailImageUrl: nextThumb,
         characterDescription:
           result.characterDescription || state.characterDescription,
       })
+      if (isFirstScene && updated?.imageUrl?.trim()) {
+        void persistThumbnailUrl(state.savedProjectId, updated.imageUrl.trim())
+      }
       trackEvent(AnalyticsEvents.REGENERATE_SCENE, {
         projectId: get().savedProjectId,
         metadata: { scene_id: sceneId },

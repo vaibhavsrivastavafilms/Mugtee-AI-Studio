@@ -176,7 +176,11 @@ export async function buildPlatformPackZip(
   report('Fetching thumbnail…', 35)
 
   if (profileId === 'youtube') {
-    const thumbnailUrl = resolveThumbnailImageUrl(input.scenes, input.isGenerating)
+    const thumbnailUrl = resolveThumbnailImageUrl(
+      input.scenes,
+      input.isGenerating,
+      input.thumbnailImageUrl
+    )
     if (thumbnailUrl) {
       try {
         const blob = await fetchSceneImageBlob(thumbnailUrl, 'horizontal')

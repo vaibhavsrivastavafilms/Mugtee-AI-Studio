@@ -1,8 +1,14 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import {
+  deriveThumbnailConcept,
+  resolveActiveThumbnailUrl,
+} from '@/lib/cinematic/thumbnail-cover'
 import { creatorBlueprintById } from '@/lib/cinematic/creator-blueprints'
 import { buildQuickCutScriptText } from '@/lib/quick-cut/download-script'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import type { WorkspaceTargetPlatform } from '@/stores/studio-workspace-store'
+
+export { deriveThumbnailConcept } from '@/lib/cinematic/thumbnail-cover'
 
 export type ContentReadinessState = {
   hookReady: boolean
@@ -43,30 +49,6 @@ export function deriveCaptionLines(input: {
   return lines.length > 0 ? lines : []
 }
 
-export function deriveThumbnailConcept(input: {
-  hook?: string
-  title?: string
-  scenes?: GeneratedScene[]
-  visualStyleLabel?: string | null
-}): string {
-  const hook = input.hook?.trim()
-  const title = input.title?.trim()
-  const firstScene = input.scenes?.[0]
-  const visual =
-    firstScene?.imagePrompt?.trim() ||
-    firstScene?.visualPrompt?.trim() ||
-    firstScene?.title?.trim() ||
-    input.visualStyleLabel?.trim()
-
-  if (hook && visual) {
-    return `"${hook}" — ${visual}`
-  }
-  if (title && visual) return `${title}: ${visual}`
-  if (hook) return `Bold frame with "${hook}" in cinematic gold typography`
-  if (visual) return visual
-  return ''
-}
-
 export function deriveContentReadiness(input: {
   hook?: string
   script?: string
@@ -75,6 +57,7 @@ export function deriveContentReadiness(input: {
   payoff?: string
   title?: string
   visualStyleLabel?: string | null
+  thumbnailImageUrl?: string | null
 }): ContentReadinessState {
   const scenes = input.scenes ?? []
   const captionLines = deriveCaptionLines(input)
@@ -85,12 +68,13 @@ export function deriveContentReadiness(input: {
     storyboardReady: scenes.length > 0 && scenes.some(sceneHasImage),
     captionReady: captionLines.length > 0,
     thumbnailReady: Boolean(
-      deriveThumbnailConcept({
-        hook: input.hook,
-        title: input.title,
-        scenes,
-        visualStyleLabel: input.visualStyleLabel,
-      }).trim()
+      resolveActiveThumbnailUrl(input.thumbnailImageUrl, scenes) ||
+        deriveThumbnailConcept({
+          hook: input.hook,
+          title: input.title,
+          scenes,
+          visualStyleLabel: input.visualStyleLabel,
+        }).trim()
     ),
   }
 }

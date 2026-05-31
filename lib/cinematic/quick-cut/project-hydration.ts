@@ -46,6 +46,7 @@ import {
   parseSceneMotionMap,
 } from '@/lib/motion/motion-presets'
 import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
+import { resolveActiveThumbnailUrl } from '@/lib/cinematic/thumbnail-cover'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -131,6 +132,7 @@ export type QuickCutProjectHydrationPatch = {
   repurposedAssets: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   contentSeries: ContentSeries | null
   sceneMotion: SceneMotionMap
+  thumbnailImageUrl: string | null
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -148,6 +150,7 @@ export function buildQuickCutHydrationFromRow(
     sceneMotion = assignSceneMotion(baseScenes, storyBible, null)
   }
   const scenes = applySceneMotionToScenes(baseScenes, sceneMotion)
+  const thumbnailImageUrl = resolveActiveThumbnailUrl(row.thumbnail_url, scenes)
   const resolvedTab = stageTab ?? inferOpenStageTab(row)
 
   const reelUrl = row.reel_url ?? row.video_url ?? null
@@ -173,6 +176,7 @@ export function buildQuickCutHydrationFromRow(
     cta: state.cta,
     scenes,
     storyboard: scenes,
+    thumbnailImageUrl,
     voiceUrl: state.voice?.audioUrl ?? null,
     elevenLabsVoiceId: state.voice?.voiceId ?? null,
     voiceName: state.voice?.voiceName ?? null,

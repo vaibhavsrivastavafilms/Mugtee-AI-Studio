@@ -27,6 +27,7 @@ export function deriveContentReadinessFromStore(): ContentReadinessState {
     payoff: state.payoff,
     title: state.title,
     visualStyleLabel: state.visualStyle?.label ?? null,
+    thumbnailImageUrl: state.thumbnailImageUrl,
   })
 }
 
@@ -38,6 +39,7 @@ export function ContentReadinessTracker({ className }: { className?: string }) {
   const payoff = useQuickCutGenerationStore((s) => s.payoff)
   const title = useQuickCutGenerationStore((s) => s.title)
   const visualStyle = useQuickCutGenerationStore((s) => s.visualStyle)
+  const thumbnailImageUrl = useQuickCutGenerationStore((s) => s.thumbnailImageUrl)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
 
   const readiness = deriveContentReadiness({
@@ -48,6 +50,7 @@ export function ContentReadinessTracker({ className }: { className?: string }) {
     payoff,
     title,
     visualStyleLabel: visualStyle?.label ?? null,
+    thumbnailImageUrl,
   })
 
   const readyCount = READINESS_ITEMS.filter((item) => readiness[item.key]).length
