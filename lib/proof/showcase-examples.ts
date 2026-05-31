@@ -84,6 +84,13 @@ export const EMPTY_STATE_STARTERS: ProofEmptyStarter[] = [
       'Nobody talks about discipline like this — the quiet decision before the comeback arc begins',
     niche: 'Motivation',
   },
+  {
+    id: 'business-breakdown',
+    label: 'Business Breakdown',
+    topic:
+      'Why Nokia failed — business documentary reel about missing the smartphone shift and the lesson for builders today',
+    niche: 'Business',
+  },
 ]
 
 export function proofStarterHref(starter: ProofEmptyStarter): string {
