@@ -170,6 +170,8 @@ export function CinematicCreateScreen() {
           <select
             value={style}
             onChange={(e) => updateStyle(e.target.value)}
+            aria-label="Cinematic style"
+            title="Cinematic style"
             className="h-14 sm:h-16 rounded-2xl border border-white/10 bg-black/40 px-5 text-white/80 min-h-[48px]"
           >
             {STYLE_OPTIONS.map((option) => (
@@ -182,6 +184,8 @@ export function CinematicCreateScreen() {
           <select
             value={duration}
             onChange={(e) => updateDuration(Number(e.target.value))}
+            aria-label="Video duration"
+            title="Video duration"
             className="h-14 sm:h-16 rounded-2xl border border-white/10 bg-black/40 px-5 text-white/80 min-h-[48px]"
           >
             {DURATION_OPTIONS.map((option) => (
