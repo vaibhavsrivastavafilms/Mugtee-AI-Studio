@@ -14,6 +14,7 @@ import {
   QuickCutGenerationFooter,
 } from '@/components/quick-cut/generation-footer'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
+import { OutputWorkspacePanel } from '@/components/workspace/output-workspace/output-workspace-panel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { tabToWorkspaceStage, workspaceStageToTab } from '@/lib/studio/workspace-stages'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -24,9 +25,10 @@ import { STUDIO } from '@/lib/create/routes'
 
 type StudioMainWorkspaceProps = {
   className?: string
+  projectId?: string
 }
 
-export function StudioMainWorkspace({ className }: StudioMainWorkspaceProps) {
+export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspaceProps) {
   const router = useRouter()
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
   const activeStage = useStudioWorkspaceStore((s) => s.activeStage)
@@ -154,6 +156,10 @@ export function StudioMainWorkspace({ className }: StudioMainWorkspaceProps) {
 
         {(isComplete || Boolean(script.trim()) || scenes.length > 0) ? (
           <RecommendedNextSteps />
+        ) : null}
+
+        {(Boolean(script.trim()) || Boolean(hook.trim()) || scenes.length > 0) ? (
+          <OutputWorkspacePanel projectId={projectId} />
         ) : null}
 
         <AnimatePresence mode="wait">
