@@ -115,8 +115,11 @@ export function hasMergedCompanionBrief(
 }
 
 /** Single injection block for all generation prompts. */
-export function formatContentBriefForPrompt(brief?: ContentBrief | null): string {
-  if (!brief) return ''
+export function formatContentBriefForPrompt(
+  brief?: ContentBrief | null,
+  memorySection?: string
+): string {
+  if (!brief) return memorySection?.trim() ?? ''
   const lines = [
     `Topic: ${brief.topic}`,
     brief.audience ? `Audience: ${brief.audience}` : '',
@@ -130,11 +133,16 @@ export function formatContentBriefForPrompt(brief?: ContentBrief | null): string
       ? `Key insights:\n${brief.keyInsights.map((i) => `- ${i}`).join('\n')}`
       : '',
   ].filter(Boolean)
-  if (!lines.length) return ''
-  return [
-    'CONTENT DIRECTOR BRIEF (single source of truth — align hook, script, visuals, captions):',
-    ...lines,
-  ].join('\n')
+  const base =
+    lines.length > 0
+      ? [
+          'CONTENT DIRECTOR BRIEF (single source of truth — align hook, script, visuals, captions):',
+          ...lines,
+        ].join('\n')
+      : ''
+  const memory = memorySection?.trim()
+  if (base && memory) return `${base}\n\n${memory}`
+  return base || memory || ''
 }
 
 /**

@@ -91,6 +91,10 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
         })
         // Optional referral attribution — best-effort, never blocks bootstrap.
         void fetch('/api/referral/claim', { method: 'POST' }).catch(() => {})
+        // Memory OS hydrate — best-effort.
+        void import('@/stores/creator-memory-store').then(({ useCreatorMemoryStore }) => {
+          void useCreatorMemoryStore.getState().hydrate()
+        })
       })
       .catch((e) => {
         if (cancelled) return

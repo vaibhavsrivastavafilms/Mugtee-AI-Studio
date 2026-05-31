@@ -34,6 +34,8 @@ import {
 import { trackServerError } from '@/lib/analytics/track-server-event'
 import { normalizeCreativeBrief } from '@/lib/companion/creative-discovery'
 import { normalizeCreatorMemory } from '@/lib/companion/creator-memory'
+import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
+import type { MemoryProfile } from '@/lib/memory/types'
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import {
@@ -285,6 +287,27 @@ export async function POST(req: NextRequest) {
       raw.companionMemory ?? raw.companion_memory ?? raw.creatorMemory
     )
 
+    let memoryProfile: MemoryProfile | undefined
+    if (raw.memoryProfile && typeof raw.memoryProfile === 'object') {
+      memoryProfile = raw.memoryProfile as MemoryProfile
+    } else {
+      const { data: memRow } = await supabase
+        .from('creator_profiles')
+        .select(
+          'creator_memory, creator_dna, relationship_level, relationship_score, memory_graph, learning_events, niche, platform, content_style, updated_at'
+        )
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const loaded = rowToMemoryProfile(memRow)
+      if (
+        loaded.relationshipScore > 0 ||
+        Object.values(loaded.creatorDna).some(Boolean) ||
+        (loaded.learningEvents?.length ?? 0) > 0
+      ) {
+        memoryProfile = loaded
+      }
+    }
+
     const input = {
       topic,
       rawInput,
@@ -320,6 +343,7 @@ export async function POST(req: NextRequest) {
       recentNarrativeFrameworks,
       creativeBrief: Object.values(creativeBrief).some(Boolean) ? creativeBrief : undefined,
       companionMemory: Object.values(companionMemory).some(Boolean) ? companionMemory : undefined,
+      memoryProfile: memoryProfile ?? undefined,
       contentBrief: contentBrief ?? undefined,
     }
 

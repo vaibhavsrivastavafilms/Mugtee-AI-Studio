@@ -8,6 +8,7 @@ import {
   markWelcomeShownToday,
   shouldShowWelcomeBack,
 } from '@/lib/retention/returning-creator-state'
+import { useCreatorMemoryStore } from '@/stores/creator-memory-store'
 
 type WelcomeBackBannerProps = {
   className?: string
@@ -15,15 +16,24 @@ type WelcomeBackBannerProps = {
 
 export function WelcomeBackBanner({ className }: WelcomeBackBannerProps) {
   const [visible, setVisible] = useState(false)
+  const companionMessage = useCreatorMemoryStore((s) => s.companionMessage)
+  const refreshCompanionMessage = useCreatorMemoryStore((s) => s.refreshCompanionMessage)
+  const hydrate = useCreatorMemoryStore((s) => s.hydrate)
 
   useEffect(() => {
     if (shouldShowWelcomeBack()) {
       setVisible(true)
       markWelcomeShownToday()
+      void hydrate()
+      void refreshCompanionMessage()
     }
-  }, [])
+  }, [hydrate, refreshCompanionMessage])
 
   if (!visible) return null
+
+  const greeting = companionMessage?.greeting ?? 'Welcome back.'
+  const insight =
+    companionMessage?.insight ?? 'Ready to create something new today?'
 
   return (
     <AnimatePresence>
@@ -52,10 +62,8 @@ export function WelcomeBackBanner({ className }: WelcomeBackBannerProps) {
               <Sparkles className="h-4 w-4" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p className="font-display text-base sm:text-lg text-[#F4E7C1]">Welcome back.</p>
-              <p className="text-xs sm:text-sm text-luxe/55 mt-0.5">
-                Ready to create something new today?
-              </p>
+              <p className="font-display text-base sm:text-lg text-[#F4E7C1]">{greeting}</p>
+              <p className="text-xs sm:text-sm text-luxe/55 mt-0.5">{insight}</p>
             </div>
           </div>
         </motion.div>

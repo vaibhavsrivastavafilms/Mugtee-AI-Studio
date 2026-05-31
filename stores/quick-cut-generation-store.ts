@@ -108,6 +108,14 @@ import {
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
 import { useCompanionStore } from '@/stores/companion-store'
+import { useCreatorMemoryStore } from '@/stores/creator-memory-store'
+import {
+  logExportSuccess,
+  logHookAccept,
+  logHookRegen,
+  logProjectSave,
+  logScriptRegen,
+} from '@/lib/memory/learning-loop'
 import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
@@ -249,15 +257,15 @@ export const STEP_PROGRESS: Record<QuickCutGenerationStep, number> = {
 
 export const STEP_LABELS: Record<QuickCutGenerationStep, string> = {
   idle: '',
-  analyzing: 'Reading your brief…',
-  title: 'Generating viral title…',
-  hook: 'Crafting hook…',
-  script: 'Writing cinematic script…',
-  scenes: 'Building emotional pacing…',
-  images: 'Generating cinematic visuals…',
-  motion: 'Applying cinematic motion…',
-  voice: 'Synthesizing voiceover…',
-  render: 'Packaging storyboard export…',
+  analyzing: 'Mugtee is reading your audience brief…',
+  title: 'Mugtee is discovering your story angle…',
+  hook: 'Mugtee is crafting your scroll-stopping hook…',
+  script: 'Mugtee is directing your next viral story.',
+  scenes: 'Mugtee is building your scene breakdown…',
+  images: 'Mugtee is generating cinematic visuals…',
+  motion: 'Mugtee is applying cinematic motion…',
+  voice: 'Mugtee is creating your voiceover…',
+  render: 'Mugtee is rendering your reel…',
   complete: 'Your cinematic video is ready',
   error: 'Generation paused',
 }
@@ -552,6 +560,18 @@ function resolveCreatorProfilePayload(
     state.creatorProfile,
     state.creatorProfileOverride
   ) ?? undefined
+}
+
+function resolveMemoryProfilePayload() {
+  const profile = useCreatorMemoryStore.getState().profile
+  if (
+    profile.relationshipScore > 0 ||
+    Object.values(profile.creatorDna).some(Boolean) ||
+    (profile.learningEvents?.length ?? 0) > 0
+  ) {
+    return profile
+  }
+  return undefined
 }
 
 function contentBriefApiPayload(
@@ -1458,6 +1478,7 @@ export const useQuickCutGenerationStore = create<
 
     const parsedIntent = parseCreatorIntentSync(prompt)
     logParsedIntent(parsedIntent)
+    void useCreatorMemoryStore.getState().hydrate()
 
     const now = Date.now()
     if (get().generationInFlight || get().isGenerating) return
@@ -1823,6 +1844,13 @@ export const useQuickCutGenerationStore = create<
               })
               persistHookSession(get())
               patchSectionStatus(set, get, 'hook', 'completed')
+              if (!regenFresh && hook) {
+                logHookAccept(hook, {
+                  projectId: get().savedProjectId ?? undefined,
+                  topic: parsedIntent.cleanTopic,
+                  theme: useCompanionStore.getState().creativeBrief?.theme,
+                })
+              }
               genPerf.end('hook')
             })()
           : Promise.resolve(),
@@ -1874,6 +1902,7 @@ export const useQuickCutGenerationStore = create<
                   creatorProfile: resolveCreatorProfilePayload(get()),
                   creativeBrief: useCompanionStore.getState().creativeBrief,
                   companionMemory: useCompanionStore.getState().creatorMemory,
+                  memoryProfile: resolveMemoryProfilePayload(),
                   contentBrief: sessionContentBrief ?? undefined,
                   recentNarrativeFrameworks: loadRecentNarrativeFrameworks(),
                   ...creatorHistoryPayload(directorMode),
@@ -2397,6 +2426,13 @@ export const useQuickCutGenerationStore = create<
         if (exportDone) {
           set({ lastCompletedStep: 'export' })
           patchSectionStatus(set, get, 'export', 'completed')
+          logExportSuccess({
+            projectId: get().savedProjectId ?? undefined,
+            title: get().title,
+            hook: get().hook,
+            theme: useCompanionStore.getState().creativeBrief?.theme,
+            tone: get().style,
+          })
           const exportId = await persistStepComplete(
             get(),
             'export',
@@ -2785,6 +2821,10 @@ export const useQuickCutGenerationStore = create<
       })
 
       trackEvent(AnalyticsEvents.REGENERATE_HOOK, { projectId: get().savedProjectId })
+      logHookRegen({
+        projectId: get().savedProjectId ?? undefined,
+        hook: result.hook,
+      })
       persistSession(get())
     } catch {
       /* hook regen is non-blocking — user keeps current hook */
@@ -2878,6 +2918,7 @@ export const useQuickCutGenerationStore = create<
           creatorProfile: resolveCreatorProfilePayload(state),
           creativeBrief: useCompanionStore.getState().creativeBrief,
           companionMemory: useCompanionStore.getState().creatorMemory,
+          memoryProfile: resolveMemoryProfilePayload(),
           contentBrief: state.contentBrief ?? undefined,
           ...creatorHistoryPayload(state.directorMode),
           researchDocument: state.researchDocument ?? undefined,
@@ -2907,6 +2948,7 @@ export const useQuickCutGenerationStore = create<
           ? { ...state.viralScript, script: applied.script }
           : state.viralScript,
       })
+      logScriptRegen({ projectId: state.savedProjectId ?? undefined })
       persistSession(get())
     } catch {
       /* script regen is non-blocking */
@@ -3226,6 +3268,15 @@ export const useQuickCutGenerationStore = create<
     set({ saveState: 'saving', saveError: null })
     try {
       const id = await archiveQuickCutProject(get())
+      if (id) {
+        logProjectSave({
+          projectId: id,
+          title: get().title,
+          hook: get().hook,
+          theme: useCompanionStore.getState().creativeBrief?.theme,
+          topic: get().parsedIntent?.cleanTopic ?? get().prompt,
+        })
+      }
       return id
     } catch (err) {
       set({ saveState: 'error', saveError: resolveSaveError(err) })
