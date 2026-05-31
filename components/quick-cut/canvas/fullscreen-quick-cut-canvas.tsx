@@ -65,6 +65,8 @@ import { CreatorInspiration } from '@/components/creator-inspiration'
 import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
 import { KnowledgeSuggestions } from '@/components/create/knowledge-suggestions'
+import { AudienceSimulatorCard } from '@/components/agent/audience-simulator-card'
+import { ViralProbabilityBadge } from '@/components/agent/viral-probability-badge'
 import {
   MugteeConversationEntry,
   type MugteeConversationLaunchPayload,
@@ -531,6 +533,15 @@ export function FullscreenQuickCutCanvas({
                 </button>
               ))}
             </div>
+
+            {prompt.trim().length >= 6 ? (
+              <div className="space-y-2">
+                <div className="flex justify-center">
+                  <ViralProbabilityBadge topic={prompt} hookPreview={prompt} />
+                </div>
+                <AudienceSimulatorCard topic={prompt} hook={prompt} />
+              </div>
+            ) : null}
 
             {directorUi && signedIn ? (
               <KnowledgeSuggestions

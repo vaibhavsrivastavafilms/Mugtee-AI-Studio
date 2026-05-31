@@ -16,6 +16,10 @@ import { ExampleChannelsSection } from '@/components/sidekick/example-channels-s
 import { ComingSoonCards } from '@/components/sidekick/coming-soon-cards'
 import { CreatorJourneySection } from '@/components/sidekick/creator-journey-section'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
+import { OpportunityFeed } from '@/components/agent/opportunity-feed'
+import { SmartSuggestionsPanel } from '@/components/agent/smart-suggestions-panel'
+import { CeoBriefingEntry } from '@/components/agent/ceo-briefing-modal'
+import { IdeaCaptureInput } from '@/components/agent/idea-capture-input'
 import { CreatorQueue } from '@/components/creator/creator-queue'
 import { CreatorStreakBadge } from '@/components/creator/creator-streak-badge'
 import { PipelineFeatures } from '@/components/landing/pipeline-features'
@@ -115,6 +119,14 @@ export function CreatorWorkspace() {
       {showEmptyRecovery ? <RetentionEmptyStateRecovery /> : null}
 
       <CreatorOsNav />
+
+      <IdeaCaptureInput />
+
+      <OpportunityFeed />
+
+      <SmartSuggestionsPanel />
+
+      <CeoBriefingEntry />
 
       <CreatorWorkflowRail activeIndex={0} />
 

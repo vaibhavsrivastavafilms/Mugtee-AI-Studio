@@ -31,6 +31,7 @@ import { projectCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client
 
 import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
 import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
+import { PublishingAssistantPanel } from '@/components/agent/publishing-assistant-panel'
 
 
 
@@ -254,6 +255,15 @@ function ExportInner() {
 
           />
 
+        ) : null}
+
+        {(script.trim() || hook.trim() || title.trim()) ? (
+          <PublishingAssistantPanel
+            title={title}
+            hook={hook}
+            description={caption}
+            hasThumbnail={previewFrames.length > 0}
+          />
         ) : null}
 
       </div>
