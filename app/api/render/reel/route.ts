@@ -7,17 +7,14 @@ import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { logError } from '@/lib/workspace/validation'
+import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 function friendlyError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : 'Reel render failed'
-  if (raw.includes('VIDEO_RENDER') || raw.includes('Remotion') || raw.includes('FFmpeg')) {
-    return 'Reel export is temporarily unavailable — your preview still works.'
-  }
-  return raw.slice(0, 160)
+  return friendlyReelRenderErrorFromUnknown(err)
 }
 
 export async function POST(req: NextRequest) {
@@ -25,7 +22,8 @@ export async function POST(req: NextRequest) {
     if (!isVideoRenderEnabled()) {
       return NextResponse.json(
         {
-          error: 'Reel MP4 export is not enabled on this server.',
+          error:
+            'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.',
           status: 'disabled',
         },
         { status: 503 }

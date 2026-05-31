@@ -137,7 +137,10 @@ export function FullscreenQuickCutCanvas({
   const signedIn = authReady ? Boolean(user) : null
 
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const error = useQuickCutGenerationStore((s) => s.error)
+  const pipelineError =
+    error && (isGenerating || generationStep === 'error') ? error : null
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
   const blueprintId = useQuickCutGenerationStore((s) => s.blueprintId)
   const setCreatorBlueprint = useQuickCutGenerationStore((s) => s.setCreatorBlueprint)
@@ -605,9 +608,9 @@ export function FullscreenQuickCutCanvas({
               </p>
             )}
 
-            {error ? (
+            {pipelineError ? (
               <p className="text-center text-sm text-amber-200/90" role="alert">
-                {error}
+                {pipelineError}
               </p>
             ) : null}
 

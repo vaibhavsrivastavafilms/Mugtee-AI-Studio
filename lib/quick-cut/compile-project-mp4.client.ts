@@ -85,7 +85,7 @@ async function compileProjectMp4Inner(
   }
   if (!config.videoRenderEnabled) {
     throw new Error(
-      'MP4 compile is not enabled on this server. Set VIDEO_RENDER_ENABLED=true.'
+      'MP4 compile is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.'
     )
   }
   if (!config.remotion && !config.ffmpeg) {
