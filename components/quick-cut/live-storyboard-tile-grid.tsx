@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
+import { missionStatusLabel } from '@/lib/mission/mission-copy'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 import { MotionPresetBadge } from '@/components/quick-cut/motion-preset-control'
 
@@ -14,13 +15,7 @@ function statusLabel(
   sceneCount = 0,
   directingLabel?: string | null
 ): string {
-  if (directingLabel) return directingLabel
-  if (step === 'images') return 'Composing visuals…'
-  if (step === 'scenes' || sceneCount > 0) return 'Building your storyboard…'
-  if (step === 'script') return 'Writing your script…'
-  if (step === 'hook') return 'Crafting your hook…'
-  if (step === 'title' || step === 'analyzing') return 'Finding your angle…'
-  return 'Building your storyboard…'
+  return missionStatusLabel(step, sceneCount, directingLabel)
 }
 
 export function LiveStoryboardTileGrid({

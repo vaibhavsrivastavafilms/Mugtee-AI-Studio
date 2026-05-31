@@ -12,6 +12,7 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 
 import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
 import { CreatorLevelBadge } from '@/components/mission/creator-level-badge'
+import { SidekickEvolutionBadge } from '@/components/multiverse/sidekick-evolution-badge'
 
 import { buildTodaysBrief } from '@/lib/sidekick/todays-brief'
 
@@ -40,7 +41,18 @@ export function TodaysBriefSection() {
   const companionMessage = useCreatorMemoryStore((s) => s.companionMessage)
   const refreshCompanionMessage = useCreatorMemoryStore((s) => s.refreshCompanionMessage)
 
+  const [sidekickTier, setSidekickTier] = useState(1)
+
   useEffect(() => {
+
+    void fetch('/api/multiverse/profile', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.profile?.sidekickEvolutionTier) {
+          setSidekickTier(Number(d.profile.sidekickEvolutionTier) || 1)
+        }
+      })
+      .catch(() => {})
 
     try {
 
@@ -122,7 +134,8 @@ export function TodaysBriefSection() {
 
           </div>
 
-          <CreatorLevelBadge className="mb-1.5" />
+            <CreatorLevelBadge className="mb-1.5" />
+            <SidekickEvolutionBadge tier={sidekickTier} className="mb-1.5" />
 
           <p className="text-sm text-luxe/80 leading-relaxed">{brief.greeting}</p>
 

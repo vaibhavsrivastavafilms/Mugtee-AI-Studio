@@ -2,7 +2,8 @@
 
 import { QuickCutStudio } from '@/components/quick-cut/quick-cut-studio'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
-import { CinematicTimeline } from '@/components/v2/cinematic-timeline'
+import { GenerationMissionPanel } from '@/components/mission/generation-mission-panel'
+import { AgentWorkflowStrip } from '@/components/agent/agent-workflow-strip'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { cn } from '@/lib/utils'
 
@@ -18,7 +19,6 @@ export function LiveGenerationCanvas({
   className?: string
 }) {
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
-  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
 
   return (
     <div
@@ -34,22 +34,20 @@ export function LiveGenerationCanvas({
         <div className="max-w-6xl mx-auto min-w-0 w-full overflow-x-hidden">
           <header className="mb-6 sm:mb-8 text-center">
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-2">
-              {complete ? 'Production complete' : 'Live generation'}
+              {complete ? 'Production complete' : 'Creator mission'}
             </p>
             <h2 className="font-display text-2xl sm:text-3xl text-[var(--v2-text-primary)] italic">
-              {complete ? 'Your reel is ready to export' : 'Your reel is becoming film'}
+              {complete ? 'Your reel is ready to export' : 'Mugtee is directing your next viral story.'}
             </h2>
-            {!complete ? (
-              <div className="mt-6 max-w-lg mx-auto">
-                <CinematicTimeline currentStep={generationStep} sectionStatus={sectionStatus} />
-              </div>
-            ) : null}
+            <div className="mt-6">
+              <GenerationMissionPanel complete={complete} />
+            </div>
+            <AgentWorkflowStrip generationStep={generationStep} className="mt-4" />
           </header>
 
           <QuickCutStudio onRegenerate={onRegenerate} />
         </div>
       </div>
-
     </div>
   )
 }

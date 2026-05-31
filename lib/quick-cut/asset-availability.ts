@@ -147,14 +147,14 @@ export function resolveQuickCutProgressLabel(input: QuickCutProgressLabelInput):
   if (generationStep === 'error') return 'Generation paused'
   if (!isComplete) {
     const labels: Partial<Record<QuickCutGenerationStep, string>> = {
-      analyzing: 'Reading your brief…',
-      title: 'Generating viral title…',
-      hook: 'Crafting hook…',
-      script: 'Writing cinematic script…',
-      scenes: 'Building emotional pacing…',
-      images: 'Generating cinematic visuals…',
-      voice: 'Synthesizing voiceover…',
-      render: 'Packaging storyboard export…',
+      analyzing: 'Mugtee is reading your audience brief…',
+      title: 'Mugtee is discovering your story angle…',
+      hook: 'Mugtee is crafting your scroll-stopping hook…',
+      script: 'Mugtee is directing your next viral story.',
+      scenes: 'Mugtee is building your scene breakdown…',
+      images: 'Mugtee is generating cinematic visuals…',
+      voice: 'Mugtee is creating your voiceover…',
+      render: 'Mugtee is rendering your reel…',
     }
     return labels[generationStep] ?? 'In production…'
   }
