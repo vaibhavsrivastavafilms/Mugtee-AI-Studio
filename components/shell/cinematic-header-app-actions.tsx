@@ -10,14 +10,13 @@ import {
   Clapperboard,
   Film,
   Image as ImageIcon,
-  Plus,
   Sparkles,
   Trash2,
   Users2,
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { quickCutStudioHref } from '@/lib/create/routes'
+import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
 import { useStore } from '@/lib/store'
 import { useUsage } from '@/lib/usage'
 import { useAutomations } from '@/lib/automations-store'
@@ -213,15 +212,7 @@ export function HeaderRightActions({ user }: { user: User }) {
 
   return (
     <>
-      <Button
-        size="sm"
-        asChild
-        className="hidden sm:inline-flex h-9 gap-1.5 rounded-full bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow"
-      >
-        <Link href={quickCutStudioHref()}>
-          <Plus className="w-4 h-4" /> New Project
-        </Link>
-      </Button>
+      <CreateNewProjectButton />
 
       <div ref={bellRef} className="relative hidden sm:block">
         <button

@@ -6,6 +6,7 @@ import { StoryboardContinuityPanel } from '@/components/cinematic/storyboard-con
 import { DirectorNotesPanel } from '@/components/companion/director-notes-panel'
 import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
 import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
+import { ProjectImprovementActions } from '@/components/retention/project-improvement-actions'
 import { cn } from '@/lib/utils'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -51,6 +52,8 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe p-4 space-y-4">
         <DirectorNotesPanel />
+
+        <ProjectImprovementActions />
 
         <EmotionalStoryCard
           hook={hook}

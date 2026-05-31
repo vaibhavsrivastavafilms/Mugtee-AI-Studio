@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clapperboard, Zap } from 'lucide-react'
@@ -15,10 +16,14 @@ import { ExampleChannelsSection } from '@/components/sidekick/example-channels-s
 import { ComingSoonCards } from '@/components/sidekick/coming-soon-cards'
 import { CreatorJourneySection } from '@/components/sidekick/creator-journey-section'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
-import { ContinueCreatingWidget } from '@/components/creator/continue-creating-widget'
 import { CreatorQueue } from '@/components/creator/creator-queue'
 import { CreatorStreakBadge } from '@/components/creator/creator-streak-badge'
 import { PipelineFeatures } from '@/components/landing/pipeline-features'
+import { CreatorWelcomeModal } from '@/components/onboarding/creator-welcome-modal'
+import { WelcomeBackBanner } from '@/components/retention/welcome-back-banner'
+import { ContinueCreatingSection } from '@/components/retention/continue-creating-section'
+import { InspirationFeed } from '@/components/retention/inspiration-feed'
+import { RetentionEmptyStateRecovery } from '@/components/retention/empty-state-recovery'
 import { useCreatorStreakTracker } from '@/hooks/use-creator-streak'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 
@@ -75,9 +80,17 @@ function DirectorModeLink() {
 export function CreatorWorkspace() {
   const { user } = useAuthHydration()
   useCreatorStreakTracker(user?.id)
+  const [recentProjectCount, setRecentProjectCount] = useState<number | null>(null)
+  const onProjectsLoaded = useCallback((count: number) => {
+    setRecentProjectCount(count)
+  }, [])
+
+  const showEmptyRecovery = recentProjectCount === 0
 
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-8 sm:space-y-10">
+      <CreatorWelcomeModal />
+      <WelcomeBackBanner />
       <motion.header
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -97,9 +110,15 @@ export function CreatorWorkspace() {
         {user?.id ? <CreatorStreakBadge userId={user.id} /> : null}
       </motion.header>
 
+      <ContinueCreatingSection limit={6} onProjectsLoaded={onProjectsLoaded} />
+
+      {showEmptyRecovery ? <RetentionEmptyStateRecovery /> : null}
+
       <CreatorOsNav />
 
       <CreatorWorkflowRail activeIndex={0} />
+
+      <InspirationFeed />
 
       <TodaysBriefSection />
 
@@ -113,8 +132,6 @@ export function CreatorWorkspace() {
         <QuickModeLink />
         <DirectorModeLink />
       </div>
-
-      <ContinueCreatingWidget limit={8} />
 
       <PipelineFeatures className="pt-2" />
 
