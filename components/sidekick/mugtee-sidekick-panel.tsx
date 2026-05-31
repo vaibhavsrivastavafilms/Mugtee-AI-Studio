@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
+import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
 import { cn } from '@/lib/utils'
 import {
   pickSidekickMessage,
@@ -52,15 +53,15 @@ function SidekickCard({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3">
-        <MugteeOrb state="idle" size={36} useLogo className="shrink-0 mt-0.5" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
-            Mugtee · Sidekick
-          </p>
-          <p className="text-sm text-luxe/90 leading-relaxed">{brief.greeting}</p>
-          <p className="text-[11px] text-luxe/55">{brief.goalLine}</p>
-        </div>
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-gold-500/15 bg-gold-500/[0.03] px-3 py-4">
+        <MugteeSidekickAvatar size="lg" priority />
+        <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
+          Mugtee · Sidekick
+        </p>
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm text-luxe/90 leading-relaxed">{brief.greeting}</p>
+        <p className="text-[11px] text-luxe/55">{brief.goalLine}</p>
       </div>
 
       <div className="rounded-xl border border-gold-500/20 bg-gold-500/[0.04] px-3 py-2.5 space-y-1.5">
@@ -206,7 +207,7 @@ export function MugteeSidekickPanel() {
           >
             {!collapsed ? <span>Mugtee</span> : null}
             {collapsed ? (
-              <MugteeOrb state="idle" size={24} useLogo />
+              <MugteeOrb state="idle" size={24} variant="sidekick" />
             ) : (
               <ChevronDown className="w-3.5 h-3.5 rotate-[-90deg]" />
             )}
@@ -228,7 +229,7 @@ export function MugteeSidekickPanel() {
             )}
           >
             <span className="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-gold-200">
-              <MugteeOrb state="idle" size={22} useLogo />
+              <MugteeOrb state="idle" size={22} variant="sidekick" />
               Mugtee Sidekick
             </span>
             {mobileOpen ? (

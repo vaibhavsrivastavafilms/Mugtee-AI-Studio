@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Loader2 } from 'lucide-react'
-import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
+import { MugteeSidekickAvatar } from '@/components/sidekick/mugtee-sidekick-avatar'
 import { NICHES } from '@/components/ai/viral-studio-panel'
 import {
   CREATOR_CONTENT_STYLES,
@@ -180,7 +180,7 @@ export function CreatorProfileOnboardingModal({
           >
             <div className="p-5 sm:p-6 border-b border-white/[0.06]">
               <div className="flex items-start gap-3">
-                <MugteeOrb state="idle" size={40} useLogo className="shrink-0" />
+                <MugteeSidekickAvatar size="md" className="shrink-0" priority />
                 <div>
                   <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-1">
                     Creator setup

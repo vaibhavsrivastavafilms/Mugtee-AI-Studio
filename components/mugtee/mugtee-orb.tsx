@@ -10,6 +10,10 @@
 // Lives INSIDE the unified creator studio only (per Master Execution mandate).
 
 import { MugteeLogoMark } from '@/components/mugtee/mugtee-logo-mark'
+import {
+  MugteeSidekickAvatar,
+  sidekickAvatarSizeFromPx,
+} from '@/components/sidekick/mugtee-sidekick-avatar'
 import { cn } from '@/lib/utils'
 
 export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking'
@@ -26,8 +30,27 @@ export function MugteeOrb({
   size  = 56,
   className,
   useLogo = false,
-}: { state?: OrbState; size?: number; className?: string; useLogo?: boolean }) {
+  variant = 'default',
+}: {
+  state?: OrbState
+  size?: number
+  className?: string
+  useLogo?: boolean
+  /** Character mascot for sidekick surfaces; default orb for assistant chat. */
+  variant?: 'default' | 'sidekick'
+}) {
   const coreSize = Math.round(size * 0.76)
+
+  if (variant === 'sidekick') {
+    return (
+      <MugteeSidekickAvatar
+        size={sidekickAvatarSizeFromPx(size)}
+        animated={state === 'idle'}
+        className={className}
+      />
+    )
+  }
+
   return (
     <div
       className={cn(
