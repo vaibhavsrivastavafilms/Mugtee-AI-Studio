@@ -21,6 +21,7 @@ import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
 
 function SceneBreakdownList({
   scenes,
@@ -128,6 +129,8 @@ export function GenerationStagePanel({
   const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
   const payoff = useQuickCutGenerationStore((s) => s.payoff)
   const cta = useQuickCutGenerationStore((s) => s.cta)
+  const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
+  const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
   const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
   const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
   const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
@@ -267,6 +270,10 @@ export function GenerationStagePanel({
               </button>
             </div>
           ) : null}
+          <ScriptTypeLabel
+            label={scriptArchetypeDisplay ?? scriptArchetypeLabel}
+            className="px-0.5"
+          />
           <LiveScriptReveal
             script={script}
             hook={hook}

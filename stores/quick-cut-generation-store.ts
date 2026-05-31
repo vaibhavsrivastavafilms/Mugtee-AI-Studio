@@ -24,6 +24,7 @@ import {
 } from '@/lib/cinematic/creator-blueprints'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
+import type { ScriptArchetypeId } from '@/lib/cinematic/script-archetypes'
 import { applyGenerationToStore } from '@/stores/cinematic-project'
 import {
   clearQuickCutPreview,
@@ -236,6 +237,9 @@ interface QuickCutGenerationStateBase {
   scriptBeats: ScriptBeat[]
   payoff: string
   cta: string
+  scriptArchetypeId: string | null
+  scriptArchetypeLabel: string | null
+  scriptArchetypeDisplay: string | null
   characterDescription: string
   scenes: GeneratedScene[]
   storyboard: GeneratedScene[]
@@ -351,6 +355,9 @@ const INITIAL: QuickCutGenerationState = {
   scriptBeats: [],
   payoff: '',
   cta: '',
+  scriptArchetypeId: null,
+  scriptArchetypeLabel: null,
+  scriptArchetypeDisplay: null,
   scenes: [],
   storyboard: [],
   characterDescription: '',
@@ -433,6 +440,21 @@ function resolveCreatorProfilePayload(
     state.creatorProfile,
     state.creatorProfileOverride
   ) ?? undefined
+}
+
+function parseScriptArchetypeFromOutput(output?: Record<string, unknown> | null): {
+  scriptArchetypeId: string | null
+  scriptArchetypeLabel: string | null
+  scriptArchetypeDisplay: string | null
+} {
+  return {
+    scriptArchetypeId:
+      typeof output?.archetypeId === 'string' ? output.archetypeId : null,
+    scriptArchetypeLabel:
+      typeof output?.archetypeLabel === 'string' ? output.archetypeLabel : null,
+    scriptArchetypeDisplay:
+      typeof output?.archetypeDisplay === 'string' ? output.archetypeDisplay : null,
+  }
 }
 
 function applyScriptOutput(
@@ -520,6 +542,13 @@ function buildGenerationOutput(
     },
     suggestedVoiceStyle: 'warm_documentary',
     niche: state.niche,
+    ...(state.scriptArchetypeId
+      ? {
+          archetypeId: state.scriptArchetypeId as ScriptArchetypeId,
+          archetypeLabel: state.scriptArchetypeLabel ?? undefined,
+          archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
+        }
+      : {}),
   }
 }
 
@@ -613,6 +642,9 @@ function buildArchiveInput(
     language: state.language,
     directorMode: state.directorMode,
     blueprintId: state.blueprintId ?? undefined,
+    archetypeId: state.scriptArchetypeId ?? undefined,
+    archetypeLabel: state.scriptArchetypeLabel ?? undefined,
+    archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
     input_type: state.inputType,
     original_transcript: state.originalTranscript || state.prompt,
     variation_history: state.variationHistory,
@@ -1527,6 +1559,7 @@ export const useQuickCutGenerationStore = create<
           scriptBeats: applied.scriptBeats,
           payoff: applied.payoff,
           cta: applied.cta,
+          ...parseScriptArchetypeFromOutput(output),
           title: scriptTitle,
           hook: scriptHook,
           researchDocument:
@@ -2260,6 +2293,7 @@ export const useQuickCutGenerationStore = create<
         scriptBeats: applied.scriptBeats,
         payoff: applied.payoff,
         cta: applied.cta,
+        ...parseScriptArchetypeFromOutput(output),
         viralScript: state.viralScript
           ? { ...state.viralScript, script: applied.script }
           : state.viralScript,

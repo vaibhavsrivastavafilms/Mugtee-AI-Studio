@@ -213,6 +213,9 @@ export type ArchiveGeneratedProjectInput = {
   generation_error?: string | null
   last_completed_step?: string | null
   repurposedAssets?: RepurposedAssetsMap
+  archetypeId?: string | null
+  archetypeLabel?: string | null
+  archetypeDisplay?: string | null
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -559,6 +562,9 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   repurposedAssets?: RepurposedAssetsMap
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
+  archetypeId?: string | null
+  archetypeLabel?: string | null
+  archetypeDisplay?: string | null
 }
 
 export async function updateProject(
@@ -607,6 +613,7 @@ export async function updateProject(
     state.niche !== undefined ||
     (state as { directorMode?: string }).directorMode !== undefined ||
     (state as { blueprintId?: string | null }).blueprintId !== undefined ||
+    (state as { archetypeId?: string | null }).archetypeId !== undefined ||
     state.series !== undefined ||
     state.repurposedAssets !== undefined
   ) {
@@ -622,6 +629,11 @@ export async function updateProject(
       directorMode: (state as { directorMode?: string }).directorMode,
       blueprintId:
         (state as { blueprintId?: string | null }).blueprintId ?? undefined,
+      archetypeId: (state as { archetypeId?: string | null }).archetypeId ?? undefined,
+      archetypeLabel:
+        (state as { archetypeLabel?: string | null }).archetypeLabel ?? undefined,
+      archetypeDisplay:
+        (state as { archetypeDisplay?: string | null }).archetypeDisplay ?? undefined,
       series: state.series ?? undefined,
       repurposedAssets: state.repurposedAssets,
     })
@@ -805,6 +817,9 @@ export async function archiveGeneratedProject(
     mode?: 'quick' | 'director'
     directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
     blueprintId?: string | null
+    archetypeId?: string | null
+    archetypeLabel?: string | null
+    archetypeDisplay?: string | null
     video_url?: string | null
     thumbnail_url?: string | null
     storyboard?: unknown
@@ -844,6 +859,9 @@ export async function archiveGeneratedProject(
     mode: input.mode,
     directorMode: input.directorMode,
     blueprintId: input.blueprintId,
+    archetypeId: input.archetypeId ?? undefined,
+    archetypeLabel: input.archetypeLabel ?? undefined,
+    archetypeDisplay: input.archetypeDisplay ?? undefined,
     video_url: input.video_url ?? null,
     thumbnail_url: thumbnail,
     storyboard: input.storyboard ?? scenes,
@@ -888,6 +906,9 @@ export async function archiveGeneratedProject(
       mode: input.mode,
       directorMode: input.directorMode,
       blueprintId: input.blueprintId,
+      archetypeId: input.archetypeId ?? undefined,
+      archetypeLabel: input.archetypeLabel ?? undefined,
+      archetypeDisplay: input.archetypeDisplay ?? undefined,
       video_url: input.video_url ?? null,
       thumbnail_url: thumbnail,
       storyboard: input.storyboard ?? scenes,

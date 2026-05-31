@@ -379,8 +379,11 @@ function scoreBeatEmotion(beats: MugteeScriptBeat[]): number {
   score += withEmotion.length * 6
   const distinct = new Set(withEmotion.map((b) => b.emotion.toLowerCase()))
   if (distinct.size >= 4) score += 15
-  const arc = beats.map((b) => b.emotion.toLowerCase()).join(' ')
-  if (/tension|curiosity|shock|relief|hope|urgency/i.test(arc)) score += 10
+  if (distinct.size >= 6) score += 8
+  const repeated =
+    withEmotion.length >= 4 &&
+    distinct.size <= Math.max(2, Math.floor(withEmotion.length / 3))
+  if (repeated) score -= 12
   return clampScore(score)
 }
 

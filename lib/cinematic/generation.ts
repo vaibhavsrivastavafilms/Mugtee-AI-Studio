@@ -54,6 +54,7 @@ import {
   migrateScriptStringToBeats,
   cinematicScriptFromGenerationOutput,
 } from '@/lib/cinematic/cinematic-script'
+import type { ScriptArchetypeMeta } from '@/lib/cinematic/script-archetypes'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -310,6 +311,9 @@ export type CinematicGenerationOutput = {
   captionPack: StructuredCaptions
   suggestedVoiceStyle: string
   niche: CinematicNiche
+  archetypeId?: ScriptArchetypeMeta['archetypeId']
+  archetypeLabel?: string
+  archetypeDisplay?: string
 }
 
 function coerceString(raw: unknown, fallback = '', max = 12_000): string {
@@ -422,6 +426,7 @@ export function normalizeCinematicOutput(
     tone?: string
     niche?: CinematicNiche
     titleSeed?: string
+    scriptArchetype?: ScriptArchetypeMeta
   }
 ): CinematicGenerationOutput {
   const src =
@@ -522,6 +527,21 @@ export function normalizeCinematicOutput(
     cta: ctaLine,
   })
 
+  const archetypeFromModel =
+    typeof src.archetypeId === 'string' || typeof src.archetype_id === 'string'
+      ? {
+          archetypeId: (src.archetypeId ?? src.archetype_id) as ScriptArchetypeMeta['archetypeId'],
+          archetypeLabel:
+            typeof src.archetypeLabel === 'string'
+              ? src.archetypeLabel
+              : fallback.scriptArchetype?.archetypeLabel,
+          archetypeDisplay:
+            typeof src.archetypeDisplay === 'string'
+              ? src.archetypeDisplay
+              : fallback.scriptArchetype?.archetypeDisplay,
+        }
+      : fallback.scriptArchetype
+
   return {
     title,
     hook,
@@ -538,6 +558,13 @@ export function normalizeCinematicOutput(
     captionPack,
     suggestedVoiceStyle,
     niche,
+    ...(archetypeFromModel?.archetypeId
+      ? {
+          archetypeId: archetypeFromModel.archetypeId,
+          archetypeLabel: archetypeFromModel.archetypeLabel,
+          archetypeDisplay: archetypeFromModel.archetypeDisplay,
+        }
+      : {}),
   }
 }
 
@@ -693,6 +720,7 @@ export function buildMockCinematicOutput(input: {
   niche?: CinematicNiche
   virloContext?: VirloContext
   viralStructure?: ViralStructureAnalysis
+  scriptArchetype?: ScriptArchetypeMeta
 }): CinematicGenerationOutput {
   const niche =
     input.niche ??
@@ -792,6 +820,13 @@ export function buildMockCinematicOutput(input: {
       captionPack,
       suggestedVoiceStyle: recommendVoiceStyle({ niche, tone: input.tone }),
       niche,
+      ...(input.scriptArchetype?.archetypeId
+        ? {
+            archetypeId: input.scriptArchetype.archetypeId,
+            archetypeLabel: input.scriptArchetype.archetypeLabel,
+            archetypeDisplay: input.scriptArchetype.archetypeDisplay,
+          }
+        : {}),
     },
     niche
   )
@@ -808,6 +843,9 @@ export type CaptionsPayload = {
   suggestedVoiceStyle?: string
   directorMode?: string
   blueprintId?: string
+  archetypeId?: string
+  archetypeLabel?: string
+  archetypeDisplay?: string
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   series?: {
     title: string
@@ -832,6 +870,9 @@ export function captionsToPayload(state: {
   hashtags?: string[]
   directorMode?: string
   blueprintId?: string
+  archetypeId?: string
+  archetypeLabel?: string
+  archetypeDisplay?: string
   repurposedAssets?: CaptionsPayload['repurposedAssets']
   series?: CaptionsPayload['series']
 }): CaptionsPayload {
@@ -846,6 +887,9 @@ export function captionsToPayload(state: {
     suggestedVoiceStyle: state.suggestedVoiceStyle,
     directorMode: state.directorMode,
     blueprintId: state.blueprintId,
+    archetypeId: state.archetypeId,
+    archetypeLabel: state.archetypeLabel,
+    archetypeDisplay: state.archetypeDisplay,
     repurposedAssets: state.repurposedAssets,
     series: state.series,
   }
@@ -864,6 +908,9 @@ export function parseCaptionsPayload(
   text: string
   directorMode?: string
   blueprintId?: string
+  archetypeId?: string
+  archetypeLabel?: string
+  archetypeDisplay?: string
   series?: CaptionsPayload['series']
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
 } {
@@ -915,6 +962,18 @@ export function parseCaptionsPayload(
     typeof value?.blueprintId === 'string' && value.blueprintId.trim()
       ? value.blueprintId.trim()
       : undefined
+  const archetypeId =
+    typeof value?.archetypeId === 'string' && value.archetypeId.trim()
+      ? value.archetypeId.trim()
+      : undefined
+  const archetypeLabel =
+    typeof value?.archetypeLabel === 'string' && value.archetypeLabel.trim()
+      ? value.archetypeLabel.trim()
+      : undefined
+  const archetypeDisplay =
+    typeof value?.archetypeDisplay === 'string' && value.archetypeDisplay.trim()
+      ? value.archetypeDisplay.trim()
+      : undefined
 
   const seriesRaw = value?.series
   const series =
@@ -941,6 +1000,9 @@ export function parseCaptionsPayload(
     text,
     directorMode,
     blueprintId,
+    archetypeId,
+    archetypeLabel,
+    archetypeDisplay,
     series,
     repurposedAssets,
   }

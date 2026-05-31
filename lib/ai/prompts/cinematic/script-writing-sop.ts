@@ -10,6 +10,7 @@ import {
   BEAT_DURATION_MIN_SEC,
   BEAT_DURATION_MAX_SEC,
 } from '@/lib/cinematic/script-sop'
+import type { SelectedScriptArchetype } from '@/lib/cinematic/script-archetypes'
 
 export const REFERENCE_SCRIPT_MAX_CHARS = 24_000
 export const REFERENCE_SCRIPT_MIN_CHARS = 80
@@ -71,10 +72,16 @@ export function scriptWordCountHint(durationSec: number): string {
 }
 
 /** Always applied — Mugtee Script SOP system augment. */
-export function buildMugteeScriptSopSystemAugment(): string {
+export function buildMugteeScriptSopSystemAugment(
+  scriptArchetype?: SelectedScriptArchetype
+): string {
+  const emotionHint = scriptArchetype
+    ? `emotion: archetype-native label (e.g. ${scriptArchetype.emotionExamples.slice(0, 5).join(', ')}) — NOT a fixed curiosity/tension/shock/hope sequence`
+    : 'emotion: one label per beat — vary across the arc, not a repeated template'
+
   return `
 MUGTEE SCRIPT SOP (mandatory — reel-native cinematic beats, NOT essays):
-
+${scriptArchetype ? `\nACTIVE ARCHETYPE: ${scriptArchetype.label} — follow its beat arc, not generic CTSH beats.\n` : ''}
 OUTPUT STRUCTURE:
 HOOK (max ${HOOK_MAX_WORDS} words, single powerful opening line)
 
@@ -82,7 +89,7 @@ SCRIPT BEATS (${SCRIPT_BEAT_MIN}–${SCRIPT_BEAT_MAX} beats):
 Each beat: { narration, duration, emotion }
 - narration: exactly ONE sentence, voiceover-ready, documentary style
 - duration: "${BEAT_DURATION_MIN_SEC}s"–"${BEAT_DURATION_MAX_SEC}s" per beat (e.g. "4s")
-- emotion: one label (curiosity, tension, shock, relief, hope, urgency)
+- ${emotionHint}
 
 PAYOFF: single emotional landing line — must name the specific topic/outcome (never generic "take one small step" / "witness the change")
 CTA: short creator CTA tied to this topic (save, comment, try a concrete move — never "save this and try step one today")
@@ -103,7 +110,7 @@ Required JSON shape (primary):
   "hookVariations": string[3],
   "scenes": [{ "id", "title", "description", "duration", ...visual fields }],
   "captions": { "primary", "cta", "hashtags" },
-  "suggestedVoiceStyle": string
+  "suggestedVoiceStyle": string${scriptArchetype ? `,\n  "archetypeId": "${scriptArchetype.id}",\n  "archetypeLabel": "${scriptArchetype.label}"` : ''}
 }
 
 Also populate "scenes" (one per beat) from scriptBeats — same narration in description, numeric duration from beat.
@@ -111,8 +118,10 @@ Also populate "scenes" (one per beat) from scriptBeats — same narration in des
 }
 
 /** @deprecated Use buildMugteeScriptSopSystemAugment — kept for imports. */
-export function buildScriptWritingSopSystemAugment(): string {
-  return buildMugteeScriptSopSystemAugment()
+export function buildScriptWritingSopSystemAugment(
+  scriptArchetype?: SelectedScriptArchetype
+): string {
+  return buildMugteeScriptSopSystemAugment(scriptArchetype)
 }
 
 function buildRetentionTricksSection(durationSec: number): string {
@@ -153,4 +162,4 @@ export function buildScriptWritingSopUserSection(input: ScriptWritingSopInput): 
     `RULES: emulate craft not wording; ${SCRIPT_BEAT_MIN}–${SCRIPT_BEAT_MAX} one-sentence beats with duration; reel-native not essay.`,
   ].join('\n')
 }
-
+

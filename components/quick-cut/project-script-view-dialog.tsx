@@ -15,6 +15,7 @@ import { StoryboardPanel } from '@/components/quick-cut/storyboard-panel'
 import { cn } from '@/lib/utils'
 import { loadProject, resolveProjectScenes, rowToState } from '@/lib/cinematic-projects'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { parseCaptionsPayload } from '@/lib/cinematic/generation'
 import {
   resolveProjectTranscript,
   TRANSCRIPT_SOURCE_LABEL,
@@ -23,6 +24,7 @@ import {
 import type { ScriptBeat } from '@/types/cinematic-script'
 import type { StoryboardScene, VisualTimelineEntry } from '@/types/storyboard'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
 
 export type ProjectScriptViewDialogProps = {
   title?: string | null
@@ -39,6 +41,8 @@ export type ProjectScriptViewDialogProps = {
   originalTranscript?: string | null
   captions?: string | null
   captionLines?: string[] | null
+  scriptArchetypeLabel?: string | null
+  scriptArchetypeDisplay?: string | null
   projectId?: string | null
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -82,6 +86,8 @@ export function ProjectScriptViewDialog({
   originalTranscript,
   captions,
   captionLines,
+  scriptArchetypeLabel,
+  scriptArchetypeDisplay,
   projectId,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -105,6 +111,8 @@ export function ProjectScriptViewDialog({
     originalTranscript?: string
     captions?: string
     captionLines?: string[]
+    scriptArchetypeLabel?: string
+    scriptArchetypeDisplay?: string
   } | null>(null)
 
   const open = controlledOpen ?? internalOpen
@@ -118,6 +126,7 @@ export function ProjectScriptViewDialog({
       .then((row) => {
         if (!alive) return
         const state = rowToState(row)
+        const parsedCaptions = parseCaptionsPayload(row.captions)
         setPersisted({
           title: state.title,
           hook: state.hook,
@@ -130,6 +139,8 @@ export function ProjectScriptViewDialog({
           voiceUrl: state.voice?.audioUrl ?? null,
           captions: state.captions,
           captionLines: state.captionLines,
+          scriptArchetypeLabel: parsedCaptions.archetypeLabel,
+          scriptArchetypeDisplay: parsedCaptions.archetypeDisplay,
         })
       })
       .catch(() => {
@@ -161,6 +172,10 @@ export function ProjectScriptViewDialog({
         nonEmptyProp(originalTranscript) ?? nonEmptyProp(persisted?.originalTranscript),
       captions: nonEmptyProp(captions) ?? nonEmptyProp(persisted?.captions),
       captionLines: captionLines?.length ? captionLines : persisted?.captionLines,
+      scriptArchetypeLabel:
+        nonEmptyProp(scriptArchetypeLabel) ?? nonEmptyProp(persisted?.scriptArchetypeLabel),
+      scriptArchetypeDisplay:
+        nonEmptyProp(scriptArchetypeDisplay) ?? nonEmptyProp(persisted?.scriptArchetypeDisplay),
     }),
     [
       title,
@@ -177,6 +192,8 @@ export function ProjectScriptViewDialog({
       originalTranscript,
       captions,
       captionLines,
+      scriptArchetypeLabel,
+      scriptArchetypeDisplay,
       persisted,
     ]
   )
@@ -240,6 +257,10 @@ export function ProjectScriptViewDialog({
           <DialogDescription className="text-[11px] text-luxe/50">
             Title, hook, full script, storyboard, and narration from this project
           </DialogDescription>
+          <ScriptTypeLabel
+            label={merged.scriptArchetypeDisplay ?? merged.scriptArchetypeLabel}
+            className="pt-1"
+          />
         </DialogHeader>
         <div className="px-5 py-4 overflow-y-auto scrollbar-luxe flex-1 min-h-0 space-y-3">
           {!hasContent ? (
@@ -349,6 +370,8 @@ export function QuickCutProjectScriptViewDialog({
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const originalTranscript = useQuickCutGenerationStore((s) => s.originalTranscript)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const scriptArchetypeLabel = useQuickCutGenerationStore((s) => s.scriptArchetypeLabel)
+  const scriptArchetypeDisplay = useQuickCutGenerationStore((s) => s.scriptArchetypeDisplay)
 
   const title = titleProp ?? titleStore
   const hook = hookProp ?? hookStore
@@ -375,6 +398,8 @@ export function QuickCutProjectScriptViewDialog({
       originalTranscript={originalTranscript}
       captionLines={captionLines}
       projectId={savedProjectId}
+      scriptArchetypeLabel={scriptArchetypeLabel}
+      scriptArchetypeDisplay={scriptArchetypeDisplay}
       className={className}
       triggerClassName={triggerClassName}
       compact={compact}

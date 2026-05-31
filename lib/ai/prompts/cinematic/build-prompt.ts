@@ -18,6 +18,10 @@ import { buildDirectorModePromptSection } from '@/lib/ai/prompts/cinematic/direc
 import { buildCreatorBlueprintPromptSection } from '@/lib/ai/prompts/cinematic/creator-blueprint-prompt'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
+import {
+  buildArchetypePromptSection,
+  type SelectedScriptArchetype,
+} from '@/lib/cinematic/script-archetypes'
 
 export type CinematicPromptInput = {
   topic: string
@@ -50,6 +54,8 @@ export type CinematicPromptInput = {
   recentTopics?: string[]
   /** Director mode / style line for creator history block */
   creatorHistoryStyle?: string
+  /** Selected script archetype — dynamic structure (not fixed CTSH template) */
+  scriptArchetype?: SelectedScriptArchetype
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -157,10 +163,13 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
           directorMode: input.creatorHistoryStyle ?? input.directorMode,
         })
       : '',
+    input.scriptArchetype
+      ? buildArchetypePromptSection(input.scriptArchetype)
+      : '',
   ]
     .filter(Boolean)
     .join('\n')
-  return `${briefHeader}\n\n${buildVirloScriptPrompt(virlo, input.viralStructure)}`
+  return `${briefHeader}\n\n${buildVirloScriptPrompt(virlo, input.viralStructure, input.scriptArchetype)}`
 }
 
 // Back-compat re-export for existing imports

@@ -53,6 +53,13 @@ import { coerceDuration, coercePlatform, coerceTone } from '@/lib/workspace/vali
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import { normalizeCreatorBlueprintId } from '@/lib/cinematic/creator-blueprints'
+import {
+  archetypeMetaFromSelection,
+  resolveArchetypeFromOutput,
+  selectScriptArchetype,
+  type ScriptArchetypeMeta,
+  type SelectedScriptArchetype,
+} from '@/lib/cinematic/script-archetypes'
 
 export type ScriptGenerationInput = {
   topic: string
@@ -117,10 +124,11 @@ type GenInput = {
   blueprintId?: string | null
   recentTopics?: string[]
   creatorHistoryStyle?: string
+  scriptArchetype?: SelectedScriptArchetype
 }
 
-function buildSystemPrompt(): string {
-  return `${buildVirloSystemPrompt()}\n\n${buildMugteeScriptSopSystemAugment()}`
+function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
+  return `${buildVirloSystemPrompt()}\n\n${buildMugteeScriptSopSystemAugment(scriptArchetype)}`
 }
 
 function buildUserPrompt(input: GenInput, retryNote?: string): string {
@@ -160,6 +168,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       blueprintId: input.blueprintId,
       recentTopics: input.recentTopics,
       creatorHistoryStyle: input.creatorHistoryStyle,
+      scriptArchetype: input.scriptArchetype,
     }),
     sopSection,
     retryNote
@@ -314,7 +323,7 @@ async function tryGeminiScript(
 /** OpenAI (ChatGPT) first when key set → Claude → Gemini (Gemini first only on free tier without OpenAI). */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
-  const systemPrompt = buildSystemPrompt()
+  const systemPrompt = buildSystemPrompt(input.scriptArchetype)
   const errors: string[] = []
   const openaiFirst = allowOpenAIScript()
   const geminiFirst = isFreeTierOnly() && !openaiFirst
@@ -378,6 +387,7 @@ type ScriptPostProcessContext = {
   niche: CinematicNiche
   titleSeed?: string
   hookVariations?: string[]
+  scriptArchetype: SelectedScriptArchetype
 }
 
 function shapeScriptFromLlm(
@@ -388,10 +398,14 @@ function shapeScriptFromLlm(
   validation: ReturnType<typeof validateCinematicOutput>
   sopCompliance: ReturnType<typeof scoreCinematicOutputSop>
   hookVariations: string[]
+  scriptArchetype: ScriptArchetypeMeta
 } {
   const hookVariations = Array.isArray(parsed.hookVariations)
     ? parsed.hookVariations.filter((v): v is string => typeof v === 'string')
     : []
+
+  const resolvedArchetype = resolveArchetypeFromOutput(parsed, ctx.scriptArchetype)
+  const archetypeMeta = archetypeMetaFromSelection(resolvedArchetype)
 
   const output = finalizeCinematicOutput(
     normalizeCinematicOutput(parsed, {
@@ -400,6 +414,7 @@ function shapeScriptFromLlm(
       tone: ctx.tone,
       niche: ctx.niche,
       titleSeed: ctx.titleSeed,
+      scriptArchetype: archetypeMeta,
     }),
     ctx.niche,
     {
@@ -413,7 +428,7 @@ function shapeScriptFromLlm(
   const validation = validateCinematicOutput(output, ctx.niche, ctx.scriptTopic)
   const sopCompliance = scoreCinematicOutputSop(output, ctx.scriptTopic)
 
-  return { output, validation, sopCompliance, hookVariations }
+  return { output, validation, sopCompliance, hookVariations, scriptArchetype: archetypeMeta }
 }
 
 /** Shared script shaping used by Quick Cut orchestration and generate-script API. */
@@ -428,6 +443,7 @@ export type ScriptGenerationResult = {
   viralStructure: ViralStructureAnalysis
   sopCompliance?: import('@/lib/cinematic/script-sop').ScriptSopComplianceScore
   sopRegenAttempts?: number
+  scriptArchetype?: ScriptArchetypeMeta
 } & ScriptGenerationResearchOutput &
   Partial<StoryboardStoreFields>
 
@@ -467,6 +483,14 @@ export async function runScriptGeneration(
   const { niche, virloContext, virlo, viralStructure } = blueprint
   const resolvedVisualStyle = input.visualStyle ?? blueprint.visualStyle
 
+  const scriptArchetype = selectScriptArchetype({
+    niche,
+    topic,
+    contentType: input.directorMode,
+    sessionSeed: input.sessionSeed,
+    creatorNiche: input.creatorProfile?.niche ?? input.creatorMemoryBias?.niche,
+  })
+
   const referenceScript = input.referenceScript?.trim() || undefined
 
   const genInput: GenInput = {
@@ -495,9 +519,11 @@ export async function runScriptGeneration(
     blueprintId: input.blueprintId,
     recentTopics: input.recentTopics,
     creatorHistoryStyle: input.creatorHistoryStyle,
+    scriptArchetype,
   }
 
   if (!hasScriptGenerationKey()) {
+    const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
     const output = buildMockCinematicOutput({
       topic,
       tone,
@@ -505,6 +531,7 @@ export async function runScriptGeneration(
       niche,
       virloContext,
       viralStructure,
+      scriptArchetype: archetypeMeta,
     })
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
     return {
@@ -519,6 +546,7 @@ export async function runScriptGeneration(
       researchDocument,
       researchReport,
       researchMock,
+      scriptArchetype: archetypeMeta,
     }
   }
 
@@ -527,6 +555,7 @@ export async function runScriptGeneration(
     const maxSopRetries = scriptSopMaxRetries()
     let sopRegenAttempts = 0
     let hookVariations: string[] = []
+    let scriptArchetypeMeta = archetypeMetaFromSelection(scriptArchetype)
     let output: CinematicGenerationOutput | undefined
     let validation: ReturnType<typeof validateCinematicOutput> = {
       valid: false,
@@ -561,11 +590,13 @@ export async function runScriptGeneration(
         niche,
         titleSeed: input.titleSeed,
         hookVariations,
+        scriptArchetype,
       })
       output = shaped.output
       validation = shaped.validation
       sopCompliance = shaped.sopCompliance
       hookVariations = shaped.hookVariations
+      scriptArchetypeMeta = shaped.scriptArchetype
 
       const passesValidation = validation.valid
       const passesSop = sopCompliance.overall >= minSopScore
@@ -600,10 +631,12 @@ export async function runScriptGeneration(
       researchMock,
       sopCompliance,
       sopRegenAttempts,
+      scriptArchetype: scriptArchetypeMeta,
       ...(storyboard ?? {}),
     }
   } catch (err) {
     if (!hasScriptGenerationKey()) {
+      const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
       const output = buildMockCinematicOutput({
         topic,
         tone,
@@ -611,6 +644,7 @@ export async function runScriptGeneration(
         niche,
         virloContext,
         viralStructure,
+        scriptArchetype: archetypeMeta,
       })
       const viralScript = mergeViralScript(blueprint, output.script, output.hook)
       return {
@@ -625,6 +659,7 @@ export async function runScriptGeneration(
         researchDocument,
         researchReport,
         researchMock,
+        scriptArchetype: archetypeMeta,
       }
     }
     throw err instanceof Error ? err : new Error('Script generation failed')
