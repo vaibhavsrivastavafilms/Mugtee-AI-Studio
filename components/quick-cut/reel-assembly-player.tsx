@@ -57,6 +57,9 @@ export function ReelAssemblyPlayer({
 
   videoUrl,
 
+  /** Shown on the MP4 before playback (demo templates use previewVideoPoster) */
+  posterUrl,
+
   voiceUrl,
 
   audioRef: externalAudioRef,
@@ -93,6 +96,8 @@ export function ReelAssemblyPlayer({
   script?: string
 
   videoUrl: string | null
+
+  posterUrl?: string | null
 
   voiceUrl?: string | null
 
@@ -142,6 +147,7 @@ export function ReelAssemblyPlayer({
 
 
   const [frameIndex, setFrameIndex] = useState(0)
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false)
   const [slideshowPlaying, setSlideshowPlaying] = useState(false)
   const [slideshowTime, setSlideshowTime] = useState(0)
   const slideshowRafRef = useRef<number | null>(null)
@@ -155,7 +161,8 @@ export function ReelAssemblyPlayer({
 
 
 
-  const hasVideo = Boolean(videoUrl)
+  const hasVideo = Boolean(videoUrl?.trim()) && !videoLoadFailed
+  const videoPoster = posterUrl?.trim() || frames[0] || undefined
 
   const imagesLoading = generationStep === 'images'
   const directingSceneLabel = useQuickCutGenerationStore((s) =>
@@ -259,11 +266,12 @@ export function ReelAssemblyPlayer({
   useEffect(() => {
 
     setFrameIndex(0)
+    setVideoLoadFailed(false)
     setSlideshowPlaying(false)
     setSlideshowTime(0)
     slideshowTimeRef.current = 0
 
-  }, [frames.length, frames[frames.length - 1]])
+  }, [frames.length, frames[frames.length - 1], videoUrl])
 
 
 
@@ -358,7 +366,17 @@ export function ReelAssemblyPlayer({
   const autoPlayStartedRef = useRef(false)
 
   useEffect(() => {
-    if (!autoPlayPreview || autoPlayStartedRef.current || hasVideo) return
+    if (!autoPlayPreview || autoPlayStartedRef.current) return
+
+    if (videoUrl?.trim() && !videoLoadFailed) {
+      const media = videoRef.current
+      if (!media) return
+      autoPlayStartedRef.current = true
+      media.muted = true
+      void media.play().catch(() => {})
+      return
+    }
+
     if (frames.length < 1) return
     autoPlayStartedRef.current = true
     if (voiceUrl) {
@@ -367,7 +385,15 @@ export function ReelAssemblyPlayer({
       return
     }
     if (storyboardPreview) setSlideshowPlaying(true)
-  }, [autoPlayPreview, hasVideo, voiceUrl, frames.length, storyboardPreview, audioRef])
+  }, [
+    autoPlayPreview,
+    videoUrl,
+    videoLoadFailed,
+    voiceUrl,
+    frames.length,
+    storyboardPreview,
+    audioRef,
+  ])
 
   const togglePlayback = () => {
 
@@ -526,10 +552,13 @@ export function ReelAssemblyPlayer({
           <video
             ref={videoRef}
             src={videoUrl!}
+            poster={videoPoster}
             playsInline
-            preload="metadata"
+            muted
+            preload="auto"
             className="h-full w-full object-cover cursor-pointer"
             onClick={togglePlayback}
+            onError={() => setVideoLoadFailed(true)}
           />
 
         ) : showLiveTiles ? (

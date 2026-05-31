@@ -570,6 +570,7 @@ export function VideoStudio() {
                   hook={output.hook}
                   script={output.voiceover}
                   videoUrl={activeTemplate.previewVideoUrl}
+                  posterUrl={activeTemplate.previewVideoPoster}
                   generationStep="complete"
                   autoPlayPreview
                   showSubtitles
@@ -762,7 +763,9 @@ export function VideoStudio() {
                       hook={output.hook}
                       script={output.voiceover}
                       videoUrl={activeTemplate.previewVideoUrl}
+                      posterUrl={activeTemplate.previewVideoPoster}
                       generationStep="complete"
+                      autoPlayPreview
                       showSubtitles
                       className="max-w-[280px]"
                     />
