@@ -136,9 +136,12 @@ function pickSentence(sentences: string[], index: number, fallback: string): str
 
 function creatorBeatFallbacks(
   subject: string,
-  lang: ProjectLanguage
+  lang: ProjectLanguage,
+  sessionSeed?: string | number
 ): Omit<ViralStructureAnalysis, 'inputMode' | 'detectedLanguage'> {
   const topic = subject.replace(/^["']|["']$/g, '').trim()
+  const topicShort = topic.length > 56 ? `${topic.slice(0, 53)}…` : topic
+  const variant = hashSeed(topic, sessionSeed, lang) % 5
 
   if (lang === 'hi') {
     const hinglish = /[\u0900-\u097F]/.test(topic) || /\b(kya|hai|nahi|kaise|kyun)\b/i.test(topic)
@@ -149,8 +152,20 @@ function creatorBeatFallbacks(
         emotional_problem: `Agar aap bhi try kar chuke ho aur lagta hai "merse nahi hoga" — yeh normal feel hota hai.`,
         solution: `Pehle ek chhota system banao: roz 20 minute practice, ek clear outcome, aur feedback loop.`,
         proof: `Maine yahi approach use ki — 30 din mein portfolio aur confidence dono improve hue.`,
-        payoff: `Step-by-step: pehle reference copy karo, phir apna twist add karo, phir post karo.`,
-        cta: `Save karo aur aaj hi step 1 try karo — comment mein batao kya try karoge.`,
+        payoff: [
+          `${topicShort} पर यही मोड़ है — एक साफ कदम, महीनों की अनुमान से बेहतर।`,
+          `जब ${topicShort} समझ आता है, पूरा काम हल्का लगने लगता है।`,
+          `${topicShort} में असली बदलाव छोटे, ईमानदार reps से आता है — आज एक rep।`,
+          `यही वजह है ${topicShort} अब overwhelm नहीं, plan लगता है।`,
+          `${topicShort} पर आज एक test — कल confidence अलग दिखेगा।`,
+        ][variant],
+        cta: [
+          `${topicShort} के लिए save करो — जिस दोस्त को यही चाहिए tag करो।`,
+          `Bookmark करो, आज ${topicShort} पर एक piece try करो — comment में बताओ क्या बदला।`,
+          `${topicShort} stuck friend को send करो — साथ में पहला step try करो।`,
+          `Follow for more ${topicShort} — 🔥 अगर आज try कर रहे हो।`,
+          `Save + next ${topicShort} session से पहले दोबारा देखो — कौन सा part hit किया?`,
+        ][variant],
       }
     }
     return {
@@ -159,29 +174,59 @@ function creatorBeatFallbacks(
       emotional_problem: `अगर आप भी हार मानने वाले थे — यह सामान्य है, आप अकेले नहीं हैं।`,
       solution: `रोज़ 20 मिनट का एक फोकस्ड रूटीन और एक छोटा लक्ष्य रखें।`,
       proof: `इसी तरीके से मैंने 30 दिन में सुधार देखा — यह काम करता है।`,
-      payoff: `आज पहला कदम: एक सरल उदाहरण बनाएं और उसे पूरा करें।`,
-      cta: `सेव करें और आज ही शुरू करें — कमेंट में बताएं आप क्या करोगे।`,
+      payoff: [
+        `${topicShort} — एक साफ कदम, महीनों की अनुमान से बेहतर।`,
+        `जब ${topicShort} समझ आता है, काम हल्का लगने लगता है।`,
+        `${topicShort} में बदलाव छोटे, ईमानदार reps से आता है।`,
+        `${topicShort} अब overwhelm नहीं, plan लगता है।`,
+        `${topicShort} पर आज एक test — कल confidence अलग होगा।`,
+      ][variant],
+      cta: [
+        `${topicShort} के लिए save करें — जिसे यही चाहिए tag करें।`,
+        `Bookmark करें, आज ${topicShort} पर एक piece try करें — comment में बताएं।`,
+        `${topicShort} stuck दोस्त को send करें — साथ में पहला step।`,
+        `Follow for more ${topicShort} — 🔥 अगर आज try कर रहे हैं।`,
+        `Save + next ${topicShort} session से पहले दोबारा देखें।`,
+      ][variant],
     }
   }
+
+  const payoffTemplates = [
+    (t: string) =>
+      `That's the shift with ${t} — one clear move beats another month of guessing.`,
+    (t: string) => `When ${t} finally clicks, the whole problem feels smaller by tonight.`,
+    (t: string) => `The win with ${t} isn't hype — it's seeing your own progress stack.`,
+    (t: string) => `Apply this to ${t} today and you'll feel the difference on the next rep.`,
+    (t: string) => `This is how ${t} stops feeling overwhelming and starts feeling doable.`,
+  ]
+  const ctaTemplates = [
+    (t: string) =>
+      `Save this for your next ${t} session — tag someone who needs the same reset.`,
+    (t: string) => `Bookmark it and test one piece on ${t} tonight. Comment what changed.`,
+    (t: string) => `Send this to a friend stuck on ${t} — then try the first move together.`,
+    (t: string) => `Follow for more on ${t} — drop a 🔥 if you're running this today.`,
+    (t: string) => `Save + revisit before your next ${t} attempt. Which part hit hardest?`,
+  ]
 
   return {
     hook: `Stop doing ${topic} the hard way — here's what actually works.`,
     pain: `Most people stuck on ${topic} skip the basics and wonder why nothing clicks.`,
     emotional_problem: `If you've tried before and felt like quitting — that's normal, not a sign you're bad at this.`,
     solution: `Use a simple daily loop: 20 focused minutes, one clear outcome, and quick feedback.`,
-    proof: `I used this exact approach — visible progress in 30 days without burning out.`,
-    payoff: `Do this today: pick one small task, finish it, post or track the result.`,
-    cta: `Save this and try step one today — comment what you're starting with.`,
+    proof: `I used this exact approach on ${topicShort} — visible progress in 30 days without burning out.`,
+    payoff: payoffTemplates[variant](topicShort),
+    cta: ctaTemplates[variant](topicShort),
   }
 }
 
 function extractFromLongInput(
   text: string,
-  lang: ProjectLanguage
+  lang: ProjectLanguage,
+  sessionSeed?: string | number
 ): Omit<ViralStructureAnalysis, 'inputMode' | 'detectedLanguage'> {
   const sentences = splitSentences(text)
   const subject = topicSubject(text.split(/\n\n/)[0] ?? text)
-  const fallbacks = creatorBeatFallbacks(subject, lang)
+  const fallbacks = creatorBeatFallbacks(subject, lang, sessionSeed)
 
   if (sentences.length < 3) return fallbacks
 
@@ -209,6 +254,53 @@ export type AnalyzeViralStructureInput = {
   language?: ProjectLanguage | string
   transcript?: string
   voiceNote?: string
+  /** Variation fingerprint — diversifies topic-mode fallback payoff/cta */
+  sessionSeed?: string | number
+}
+
+/** Motivational templates that repeat across generations — reject in SOP validation. */
+export const GENERIC_PAYOFF_CTA_PATTERNS: readonly RegExp[] = [
+  /save this and try step one/i,
+  /comment what you're starting with/i,
+  /take one small step today/i,
+  /witness the change unfold/i,
+  /pick one small task/i,
+  /do this today:\s*pick one small/i,
+  /finish it, post or track the result/i,
+  /save karo aur aaj hi step 1/i,
+  /comment mein batao kya try karoge/i,
+  /सेव करें और आज ही शुरू करें/i,
+]
+
+function hashSeed(...parts: (string | number | undefined)[]): number {
+  const blob = parts.filter((p) => p !== undefined && p !== '').join('|')
+  let h = 2166136261
+  for (let i = 0; i < blob.length; i++) {
+    h ^= blob.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+export function isGenericPayoffOrCta(text: string, topic?: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed || trimmed.length < 4) return true
+  if (GENERIC_PAYOFF_CTA_PATTERNS.some((pattern) => pattern.test(trimmed))) return true
+
+  const topicWords = (topic ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s\u0900-\u097F]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 4)
+  if (topicWords.length < 2) return false
+
+  const lower = trimmed.toLowerCase()
+  const mentionsTopic = topicWords.some((w) => lower.includes(w))
+  if (mentionsTopic) return false
+
+  return /\b(today|step one|small step|save this|try step|comment what|bookmark|follow for)\b/i.test(
+    trimmed
+  )
 }
 
 /** Step 1 — extract creator-native skeleton from transcript, voice, topic, or story. */
@@ -225,8 +317,12 @@ export function analyzeViralStructure(input: AnalyzeViralStructureInput): ViralS
 
   const beats =
     inputMode === 'topic'
-      ? creatorBeatFallbacks(topicSubject(combined), detectedLanguage)
-      : extractFromLongInput(combined, detectedLanguage)
+      ? creatorBeatFallbacks(
+          topicSubject(combined),
+          detectedLanguage,
+          input.sessionSeed
+        )
+      : extractFromLongInput(combined, detectedLanguage, input.sessionSeed)
 
   return {
     ...beats,
@@ -274,14 +370,15 @@ export function viralStructurePromptFragment(analysis: ViralStructureAnalysis): 
     `MUGTEE SCRIPT SOP (mandatory — reel beats, NOT quote mode, NOT essay):`,
     `Chain: ${RETENTION_STRUCTURE_CHAIN}`,
     `Input mode: ${analysis.inputMode} · Language: ${lang} (${analysis.detectedLanguage}) — never translate.`,
-    `Extracted skeleton (expand into spoken narration — do NOT copy as isolated quotes):`,
+    `Structural hints (expand into spoken narration — do NOT copy as isolated quotes):`,
     `- hook: ${analysis.hook}`,
     `- pain: ${analysis.pain}`,
     `- emotional_problem: ${analysis.emotional_problem}`,
     `- solution: ${analysis.solution}`,
     `- proof: ${analysis.proof}`,
-    `- payoff: ${analysis.payoff}`,
-    `- cta: ${analysis.cta}`,
+    `- payoff_direction (write original line naming the topic — never reuse seed wording): ${analysis.payoff}`,
+    `- cta_direction (write original platform CTA about this topic — never reuse seed wording): ${analysis.cta}`,
+    `PAYOFF + CTA RULES: Must reference the specific topic/concrete action from the brief. Banned generic lines: "save this and try step one", "take one small step today", "comment what you're starting with", "witness the change unfold". Each generation needs fresh wording.`,
     `SCENE MAP (exactly ${CREATOR_RETENTION_SCENE_COUNT} scenes):`,
     ...RETENTION_SCENE_BEATS.map(
       (b) =>

@@ -61,6 +61,7 @@ export function buildFreshRegenDirective(input: {
     'FRESH REGENERATION — same topic, language, niche, and locked visual style.',
     'Write a completely new script variation. Do NOT repeat, paraphrase, or echo the previous script.',
     'Use different hook angle, scene beats, wording, and emotional pacing while staying on-brief.',
+    'Payoff and CTA must be freshly written for this topic — never reuse generic "save and try step one" closers.',
   ]
   if (input.previousHook?.trim()) {
     parts.push(`Previous hook to avoid: "${input.previousHook.slice(0, 220)}"`)
