@@ -55,8 +55,15 @@ export function hasExportableSceneImages(
   scenes: GeneratedScene[],
   isGenerating = false
 ): boolean {
-  if (isGenerating || scenes.length < 1) return false
-  return scenes.some((scene) => isRealSceneImageUrl(scene.imageUrl))
+  if (scenes.length < 1) return false
+  const hasRealImage = scenes.some(
+    (scene) =>
+      isRealSceneImageUrl(scene.imageUrl) ||
+      scene.storyboardImages?.some((img) => isRealSceneImageUrl(img.url))
+  )
+  if (hasRealImage) return true
+  if (isGenerating) return false
+  return false
 }
 
 export function hasExportableNarration(voiceUrl: string | null | undefined): boolean {

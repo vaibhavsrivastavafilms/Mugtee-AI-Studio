@@ -1,6 +1,7 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { NICHE_PROFILES, type CinematicNiche } from '@/lib/cinematic/niches'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
+import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import {
   hasExportableSceneImages,
@@ -10,6 +11,8 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { buildQuickCutScriptText } from '@/lib/quick-cut/download-script'
 import type { DeepResearchReport } from '@/types/deep-research'
+
+export type PlatformAssetState = 'ready' | 'missing' | 'preparing'
 
 export type PlatformExportId = 'youtube' | 'instagram' | 'tiktok'
 
@@ -46,12 +49,21 @@ export type PlatformExportInput = {
   savedProjectId?: string | null
   isUnlimited?: boolean
   isGenerating?: boolean
+  /** Set when reel download API confirms file exists (see useReelDownloadReadiness). */
+  downloadValidated?: boolean
+  /** True while reel URL is being verified on the server. */
+  videoValidating?: boolean
+  /** Precomputed compile eligibility — mirrors download panel MP4 row. */
+  mp4CanCompile?: boolean
+  /** Derived thumbnail concept when no scene still is exportable yet. */
+  thumbnailConcept?: string
 }
 
 export type PlatformAssetStatus = {
   filename: string
   label: string
   available: boolean
+  state: PlatformAssetState
 }
 
 export const PLATFORM_PROFILES: Record<PlatformExportId, PlatformProfile> = {
@@ -116,15 +128,38 @@ function hasGeneratedText(input: PlatformExportInput): boolean {
   )
 }
 
-export function hasExportableThumbnail(
+function resolveSceneThumbnailUrl(scene: GeneratedScene, index: number): string | null {
+  if (isRealSceneImageUrl(scene.imageUrl)) return scene.imageUrl!.trim()
+  const storyboardUrl = scene.storyboardImages
+    ?.map((img) => img.url?.trim())
+    .find((url) => isRealSceneImageUrl(url))
+  if (storyboardUrl) return storyboardUrl
+  const preview = resolveScenePreviewUrl(scene, index)
+  return isRealSceneImageUrl(preview) ? preview : null
+}
+
+export function hasExportableThumbnailImage(
   scenes: GeneratedScene[],
   isGenerating = false
 ): boolean {
   return hasExportableSceneImages(scenes, isGenerating)
 }
 
+export function hasExportableThumbnail(
+  scenes: GeneratedScene[],
+  isGenerating = false,
+  thumbnailConcept?: string
+): boolean {
+  if (hasExportableThumbnailImage(scenes, isGenerating)) return true
+  return Boolean(thumbnailConcept?.trim())
+}
+
 export function resolveThumbnailSceneIndex(scenes: GeneratedScene[]): number {
-  const realIndex = scenes.findIndex((scene) => isRealSceneImageUrl(scene.imageUrl))
+  const realIndex = scenes.findIndex(
+    (scene) =>
+      isRealSceneImageUrl(scene.imageUrl) ||
+      scene.storyboardImages?.some((img) => isRealSceneImageUrl(img.url))
+  )
   return realIndex >= 0 ? realIndex : 0
 }
 
@@ -132,58 +167,86 @@ export function resolveThumbnailImageUrl(
   scenes: GeneratedScene[],
   isGenerating = false
 ): string | null {
-  if (!hasExportableThumbnail(scenes, isGenerating)) return null
+  if (!hasExportableThumbnailImage(scenes, isGenerating)) return null
   const index = resolveThumbnailSceneIndex(scenes)
   const scene = scenes[index]
   if (!scene) return null
-  const url = scene.imageUrl?.trim() || resolveScenePreviewUrl(scene, index)
-  return isRealSceneImageUrl(url) ? url : null
+  return resolveSceneThumbnailUrl(scene, index)
+}
+
+export function resolvePlatformVideoAssetState(input: PlatformExportInput): PlatformAssetState {
+  if (input.exportExpired) return 'missing'
+  if (input.isRenderingVideo || input.renderPollUrl || input.videoValidating) {
+    return 'preparing'
+  }
+
+  const mp4DownloadReady = isQuickCutMp4DownloadReady({
+    videoUrl: input.videoUrl,
+    videoRenderEnabled: input.videoRenderEnabled,
+    exportExpired: input.exportExpired,
+    isRenderingVideo: input.isRenderingVideo,
+    renderPollUrl: input.renderPollUrl,
+    renderError: input.renderError,
+    downloadValidated: input.downloadValidated,
+  })
+  if (mp4DownloadReady) return 'ready'
+
+  const canCompile =
+    input.mp4CanCompile ??
+    quickCutCanCompileMp4(input.scenes, input.voiceUrl, input.videoRenderEnabled)
+  if (canCompile && !input.exportExpired) return 'ready'
+
+  const url = input.videoUrl?.trim()
+  if (url && isValidReelDownloadUrl(url)) return 'preparing'
+
+  return 'missing'
 }
 
 export function hasExportablePlatformVideo(input: PlatformExportInput): boolean {
-  if (input.exportExpired) return false
-  if (
-    isQuickCutMp4DownloadReady({
-      videoUrl: input.videoUrl,
-      videoRenderEnabled: input.videoRenderEnabled,
-      exportExpired: input.exportExpired,
-      isRenderingVideo: input.isRenderingVideo,
-      renderPollUrl: input.renderPollUrl,
-      renderError: input.renderError,
-    })
-  ) {
-    return true
-  }
-  return quickCutCanCompileMp4(input.scenes, input.voiceUrl, input.videoRenderEnabled)
+  return resolvePlatformVideoAssetState(input) === 'ready'
 }
 
-function resolveAssetAvailability(
+function resolveThumbnailAssetState(input: PlatformExportInput): PlatformAssetState {
+  if (hasExportableThumbnailImage(input.scenes, input.isGenerating)) return 'ready'
+  if (input.thumbnailConcept?.trim()) return 'ready'
+  return 'missing'
+}
+
+function resolveTextAssetState(available: boolean): PlatformAssetState {
+  return available ? 'ready' : 'missing'
+}
+
+function resolveAssetState(
   profileId: PlatformExportId,
   filename: string,
   input: PlatformExportInput
-): boolean {
+): PlatformAssetState {
   switch (filename) {
     case 'title.txt':
-      return Boolean(input.title.trim())
+      return resolveTextAssetState(Boolean(input.title.trim()))
     case 'description.txt':
     case 'tags.txt':
     case 'hashtags.txt':
-      return hasGeneratedText(input)
+      return resolveTextAssetState(hasGeneratedText(input))
     case 'thumbnail.jpg':
-      return hasExportableThumbnail(input.scenes, input.isGenerating)
+      return resolveThumbnailAssetState(input)
     case 'script.txt':
-      return hasExportableScript(input)
+      return resolveTextAssetState(hasExportableScript(input))
     case 'video.mp4':
     case 'reel-video.mp4':
-      return hasExportablePlatformVideo(input)
+      return resolvePlatformVideoAssetState(input)
     case 'caption.txt':
-      return Boolean(input.hook.trim() || input.script.trim() || input.scriptBeats?.length)
+      return resolveTextAssetState(
+        Boolean(input.hook.trim() || input.script.trim() || input.scriptBeats?.length)
+      )
     case 'cover-title.txt':
-      return Boolean(input.title.trim() || input.hook.trim())
+      return resolveTextAssetState(Boolean(input.title.trim() || input.hook.trim()))
     case 'hook.txt':
-      return Boolean(input.hook.trim() || input.title.trim() || input.script.trim())
+      return resolveTextAssetState(
+        Boolean(input.hook.trim() || input.title.trim() || input.script.trim())
+      )
     default:
-      return false
+      return 'missing'
   }
 }
 
@@ -192,11 +255,23 @@ export function resolvePlatformAssetStatuses(
   input: PlatformExportInput
 ): PlatformAssetStatus[] {
   const profile = PLATFORM_PROFILES[profileId]
-  return profile.assets.map((asset) => ({
-    filename: asset.filename,
-    label: asset.label,
-    available: resolveAssetAvailability(profileId, asset.filename, input),
-  }))
+  return profile.assets.map((asset) => {
+    const state = resolveAssetState(profileId, asset.filename, input)
+    return {
+      filename: asset.filename,
+      label: asset.label,
+      available: state === 'ready',
+      state,
+    }
+  })
+}
+
+/** True when at least one asset in the profile is ready for ZIP export. */
+export function platformProfileCanExport(
+  profileId: PlatformExportId,
+  input: PlatformExportInput
+): boolean {
+  return resolvePlatformAssetStatuses(profileId, input).some((asset) => asset.state === 'ready')
 }
 
 export function buildYouTubeDescription(input: PlatformExportInput): string {
@@ -302,7 +377,5 @@ export function buildPlatformScriptText(input: PlatformExportInput): string {
 }
 
 export function platformHasAnyExportableAsset(input: PlatformExportInput): boolean {
-  return PLATFORM_EXPORT_IDS.some((profileId) =>
-    resolvePlatformAssetStatuses(profileId, input).some((asset) => asset.available)
-  )
+  return PLATFORM_EXPORT_IDS.some((profileId) => platformProfileCanExport(profileId, input))
 }
