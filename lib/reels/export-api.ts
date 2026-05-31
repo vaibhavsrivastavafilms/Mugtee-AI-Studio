@@ -299,6 +299,11 @@ export async function queueReelExportForProject(params: {
     sceneMotion: parseSceneMotionMap(params.row.scene_motion),
   }).catch((err) => {
     logError('reels.export.async', err)
+    exportLog.error('async export', err, {
+      jobId,
+      projectId: params.row.id,
+      userId: params.userId,
+    })
     updateRenderJob(jobId, {
       status: 'failed',
       stage: 'error',
