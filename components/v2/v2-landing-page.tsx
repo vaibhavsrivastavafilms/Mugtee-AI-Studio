@@ -5,7 +5,6 @@ import { LuxFooter } from '@/components/v2/lux-footer'
 import { CinematicParticles } from '@/components/v2/cinematic-particles'
 import { LandingHeroSplit } from '@/components/v2/landing-hero-split'
 import { LandingFeatureGrid } from '@/components/v2/landing-feature-grid'
-import { LandingTrustedBy } from '@/components/v2/landing-trusted-by'
 
 export default function V2LandingPage() {
   return (
@@ -16,7 +15,6 @@ export default function V2LandingPage() {
       <main className="relative z-10">
         <LandingHeroSplit />
         <LandingFeatureGrid />
-        <LandingTrustedBy />
       </main>
 
       <LuxFooter />
