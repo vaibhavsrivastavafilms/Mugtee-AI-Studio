@@ -10,7 +10,11 @@ import { CreatorAudienceSection } from '@/components/marketing/creator-audience-
 import { WhatYouGetSection } from '@/components/marketing/what-you-get-section'
 import { HowItWorksSection } from '@/components/marketing/how-it-works-section'
 import { FinalCtaSection } from '@/components/marketing/final-cta-section'
-import { TrustMetricsStrip } from '@/components/proof/trust-metrics-strip'
+import { TrustBadgesStrip } from '@/components/trust/trust-badges-strip'
+import { OutputShowcaseCarousel } from '@/components/trust/output-showcase-carousel'
+import { SuccessProofCards } from '@/components/trust/success-proof-cards'
+import { CreatorTestimonialsSection } from '@/components/trust/creator-testimonials-section'
+import { SocialValidationBar } from '@/components/trust/social-validation-bar'
 import { HomepageJsonLd } from '@/components/seo/homepage-json-ld'
 
 const ShowcaseSection = nextDynamic(
@@ -27,12 +31,16 @@ export default function V2LandingPage() {
 
       <main className="relative z-10">
         <LandingHeroSplit />
+        <TrustBadgesStrip />
         <ProductDemoFlow />
+        <OutputShowcaseCarousel />
         <CreatorAudienceSection />
         <WhatYouGetSection />
+        <SuccessProofCards />
+        <CreatorTestimonialsSection />
         <ShowcaseSection />
-        <TrustMetricsStrip variant="homepage" />
         <HowItWorksSection />
+        <SocialValidationBar />
         <FinalCtaSection />
       </main>
 
