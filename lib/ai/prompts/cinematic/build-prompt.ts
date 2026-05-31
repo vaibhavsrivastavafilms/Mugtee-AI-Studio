@@ -35,6 +35,10 @@ import {
   resolveGenerationTopic,
   type ParsedCreatorIntent,
 } from '@/lib/input-understanding'
+import {
+  buildNarrativeFrameworkPromptSection,
+  type SelectedNarrativeFramework,
+} from '@/lib/narrative/narrative-frameworks'
 
 export type CinematicPromptInput = {
   topic: string
@@ -80,6 +84,8 @@ export type CinematicPromptInput = {
   creativeBrief?: CreativeBrief | null
   /** Content Director session brief — preferred over duplicating topic/platform/tone */
   contentBrief?: ContentBrief | null
+  /** Dynamic narrative framework — rotates per session to avoid repetitive structure */
+  narrativeFramework?: SelectedNarrativeFramework | null
   /** Companion creator memory from reflections */
   companionMemory?: CreatorMemory | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
@@ -203,6 +209,9 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
       : '',
     input.scriptArchetype
       ? buildArchetypePromptSection(input.scriptArchetype)
+      : '',
+    input.narrativeFramework
+      ? buildNarrativeFrameworkPromptSection(input.narrativeFramework)
       : '',
   ]
     .filter(Boolean)

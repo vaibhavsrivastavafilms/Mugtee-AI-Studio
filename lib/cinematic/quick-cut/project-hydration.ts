@@ -37,6 +37,7 @@ import {
   type PersistedGenerationStep,
 } from '@/lib/cinematic/generation-state'
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
+import { reelExportPollPath } from '@/lib/reels/export-paths'
 import { extractContentSeriesFromCaptions } from '@/lib/cinematic/content-series'
 import type { ContentSeries } from '@/lib/cinematic/content-series'
 import {
@@ -152,6 +153,13 @@ export function buildQuickCutHydrationFromRow(
   const reelUrl = row.reel_url ?? row.video_url ?? null
   const videoReady = Boolean(reelUrl?.trim())
   const reelFailed = (row.reel_status ?? '').toLowerCase() === 'failed'
+  const inProgressReel = ['pending', 'queued', 'assembling', 'rendering', 'uploading'].includes(
+    (row.reel_status ?? '').toLowerCase()
+  )
+  const renderPollUrl =
+    !videoReady && inProgressReel && row.reel_job_id?.trim()
+      ? reelExportPollPath(row.reel_job_id.trim(), row.id)
+      : null
 
   return {
     savedProjectId: row.id,
@@ -169,8 +177,8 @@ export function buildQuickCutHydrationFromRow(
     elevenLabsVoiceId: state.voice?.voiceId ?? null,
     voiceName: state.voice?.voiceName ?? null,
     videoUrl: reelUrl,
-    renderPollUrl: null,
-    exportExpired: reelFailed && !videoReady,
+    renderPollUrl,
+    exportExpired: reelFailed && !videoReady && !renderPollUrl,
     renderError: videoReady
       ? null
       : reelFailed

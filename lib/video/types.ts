@@ -46,6 +46,8 @@ export type RenderJobStatus = {
   mock?: boolean
   projectId?: string | null
   userId?: string | null
+  /** Last progress touch — used to extend TTL for active renders */
+  updatedAt?: number
 }
 
 export type RenderVideoResult = {

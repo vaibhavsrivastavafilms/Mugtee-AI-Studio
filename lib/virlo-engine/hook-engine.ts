@@ -225,7 +225,8 @@ export function generateTitleCandidates(
   topic: string,
   niche: CinematicNiche,
   seed: number,
-  contentAngle?: ContentAngle
+  contentAngle?: ContentAngle,
+  count = 5
 ): string[] {
   const locked = inferNicheFromBrief({ topic, niche })
   const profile = NICHE_PROFILES[locked]
@@ -236,15 +237,30 @@ export function generateTitleCandidates(
     ? TITLE_ANGLE_TEMPLATES[contentAngle.id](short, v, profile.label)
     : [`${short} — Creator Breakdown`, `${short}: A Fresh Angle`, `${v} — What Actually Shifts`]
 
-  const candidates = [
+  const pool = [
     ...angleTemplates,
     `${short}: What Actually Works`,
     `Stop Getting ${profile.label} Wrong`,
+    `${short} — The Part Nobody Explains`,
+    `${v} vs ${profile.label}: What Changed`,
+    `${short}: Before You Scroll`,
+    `The ${profile.label} Truth About ${short}`,
   ]
     .map((title) => sanitizeTitleCandidate(title, seed))
     .filter((title) => !isBannedTitle(title))
 
-  return candidates.length ? candidates : [`${short} — Creator Breakdown`]
+  const unique = [...new Set(pool)]
+  const target = Math.max(5, count)
+  while (unique.length < target) {
+    const extra = sanitizeTitleCandidate(
+      `${short}: ${hashPick(profile.vocabulary, seed + unique.length * 11)} Angle ${unique.length + 1}`,
+      seed + unique.length
+    )
+    if (!isBannedTitle(extra) && !unique.includes(extra)) unique.push(extra)
+    else break
+  }
+
+  return unique.slice(0, target).length ? unique.slice(0, target) : [`${short} — Creator Breakdown`]
 }
 
 export function pickTitle(candidates: string[], seed: number): string {
