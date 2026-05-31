@@ -45,6 +45,7 @@ export function ScriptBeatsDisplay({
   cta,
   active,
   className,
+  selectable,
 }: {
   hook: string
   scriptBeats: ScriptBeat[]
@@ -52,6 +53,7 @@ export function ScriptBeatsDisplay({
   cta?: string
   active?: boolean
   className?: string
+  selectable?: boolean
 }) {
   const [revealedCount, setRevealedCount] = useState(active ? 0 : scriptBeats.length + 3)
 
@@ -73,6 +75,8 @@ export function ScriptBeatsDisplay({
 
   if (!hook && !scriptBeats.length) return null
 
+  const selectClass = selectable ? 'select-text' : 'select-none'
+
   let step = 0
   const showHook = hook && revealedCount > step++
   const visibleBeats = scriptBeats.filter((_, i) => revealedCount > step + i)
@@ -93,7 +97,13 @@ export function ScriptBeatsDisplay({
 
       {showHook ? (
         <BeatCard label="Hook">
-          <p className="font-display text-base sm:text-lg text-[#F4E7C1] italic leading-snug">
+          <p
+            data-rewrite-type="hook"
+            className={cn(
+              'font-display text-base sm:text-lg text-[#F4E7C1] italic leading-snug',
+              selectClass
+            )}
+          >
             {hook}
           </p>
         </BeatCard>
@@ -116,7 +126,12 @@ export function ScriptBeatsDisplay({
                   </span>
                   {beat.duration ? <DurationBadge duration={beat.duration} /> : null}
                 </div>
-                <p className="text-sm text-luxe/90 leading-snug font-serif">{beat.narration}</p>
+                <p
+                  data-rewrite-type="script"
+                  className={cn('text-sm text-luxe/90 leading-snug font-serif', selectClass)}
+                >
+                  {beat.narration}
+                </p>
                 {beat.emotion ? (
                   <p className="text-[10px] text-gold-300/50 mt-1.5 tracking-wide uppercase">
                     {beat.emotion}
@@ -130,13 +145,23 @@ export function ScriptBeatsDisplay({
 
       {showPayoff && payoff ? (
         <BeatCard label="Payoff">
-          <p className="text-sm text-luxe/90 leading-snug font-serif italic">{payoff}</p>
+          <p
+            data-rewrite-type="script"
+            className={cn('text-sm text-luxe/90 leading-snug font-serif italic', selectClass)}
+          >
+            {payoff}
+          </p>
         </BeatCard>
       ) : null}
 
       {showCta && cta ? (
         <BeatCard label="CTA">
-          <p className="text-sm text-gold-200/85 leading-snug font-medium">{cta}</p>
+          <p
+            data-rewrite-type="caption"
+            className={cn('text-sm text-gold-200/85 leading-snug font-medium', selectClass)}
+          >
+            {cta}
+          </p>
         </BeatCard>
       ) : null}
 

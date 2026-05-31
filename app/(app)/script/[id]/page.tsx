@@ -18,7 +18,8 @@ import { toast } from 'sonner'
 import type { ContentPiece } from '@/lib/types'
 import { useSpeechSynthesis } from '@/lib/use-voice'
 import { useUsage } from '@/lib/usage'
-import { RewriteToolbar, type RewriteVariant } from '@/components/script/rewrite-toolbar'
+import { RewriteToolbar, type RewriteVariant } from '@/components/rewrite/rewrite-toolbar'
+import { replaceSelectionInText } from '@/lib/rewrite/replace-text'
 import { exportScriptAsDoc } from '@/lib/export-docx'
 import { GenerateImagesButton } from '@/components/script/generate-images-button'
 import { VoiceoverModal } from '@/components/script/voiceover-modal'
@@ -82,10 +83,7 @@ function withScriptBody(envelope: WorkspaceEnvelope | null, script: string): str
 function replaceInScriptBody(raw: string, original: string, replacement: string): string {
   const p = parseWorkspaceScript(raw)
   const body = p.isStructured ? p.script : raw
-  const idx = body.indexOf(original)
-  const nextBody = idx >= 0
-    ? body.slice(0, idx) + replacement + body.slice(idx + original.length)
-    : body + '\n\n' + replacement
+  const nextBody = replaceSelectionInText(body, original, replacement)
   return p.isStructured && p.envelope ? withScriptBody(p.envelope, nextBody) : nextBody
 }
 
@@ -191,7 +189,7 @@ export default function ScriptWorkspace() {
   // but is not persisted to localStorage by default to avoid stale state across tabs.
   const [liveScript, setLiveScript] = useState<string>('')
   const [versions, setVersions] = useState<{ at: number; label: string; text: string }[]>([])
-  const scriptBodyRef = useRef<HTMLPreElement>(null)
+  const scriptBodyRef = useRef<HTMLDivElement>(null)
 
   // Sync liveScript whenever the underlying piece changes (initial load or realtime update).
   useEffect(() => {
@@ -203,11 +201,33 @@ export default function ScriptWorkspace() {
     setVersions(prev => [{ at: Date.now(), label, text }, ...prev].slice(0, 5))
   }
 
-  const handleRewriteReplace = async (original: string, replacement: string, variant: RewriteVariant) => {
+  const handleRewriteReplace = async ({
+    original,
+    replacement,
+    variant,
+    contentType,
+  }: {
+    original: string
+    replacement: string
+    variant: RewriteVariant
+    contentType?: import('@/lib/rewrite/rewrite-actions').RewriteContentType
+  }) => {
     if (!piece) return
-    // Snapshot the current full script BEFORE replacing (so Undo works).
     pushVersion(`Before ${variant.replace('_', ' ')}`, liveScript)
-    const next = replaceInScriptBody(liveScript, original, replacement)
+    const parsed = parseWorkspaceScript(liveScript)
+    let next = liveScript
+    if (parsed.isStructured && parsed.envelope && (contentType === 'hook' || parsed.hook?.includes(original))) {
+      const nextHook = replaceSelectionInText(parsed.hook, original, replacement)
+      next = withScriptBody(
+        {
+          ...parsed.envelope,
+          output: { ...(parsed.envelope.output || {}), hook: nextHook },
+        },
+        parsed.script
+      )
+    } else {
+      next = replaceInScriptBody(liveScript, original, replacement)
+    }
     setLiveScript(next)
     // Persist to DB (fire-and-forget; UI already updated optimistically).
     try { await updateContent(piece.id, { script: next } as any) } catch (e:any) { toast.error(e?.message || 'Save failed') }
@@ -386,13 +406,14 @@ export default function ScriptWorkspace() {
       {/* Phase V1.2 — Floating Highlight + Rewrite toolbar. Listens for selections inside `scriptBodyRef`. */}
       {!editing && (
         <RewriteToolbar
-          containerRef={scriptBodyRef as any}
+          containerRef={scriptBodyRef}
           context={{
             title: piece.title,
             platform: piece.platform,
             niche: (piece as any).niche || undefined,
-            tone:  (piece as any).tone  || undefined,
-            full_script: bodyForTools,
+            tone: (piece as any).tone || undefined,
+            full_text: bodyForTools,
+            content_type: 'script',
           }}
           onReplace={handleRewriteReplace}
         />
@@ -526,16 +547,18 @@ export default function ScriptWorkspace() {
         ) : (
           <>
             {scriptText || (parsedScript.isStructured && parsedScript.hook) ? (
-              viewMode === 'narration' || !parsedScript.isStructured ? (
-                <pre
-                  ref={scriptBodyRef}
-                  className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text"
-                >
-                  {scriptText}
-                </pre>
-              ) : (
-                <CinematicScriptBody raw={fullScript} scriptBodyRef={scriptBodyRef} />
-              )
+              <div ref={scriptBodyRef}>
+                {viewMode === 'narration' || !parsedScript.isStructured ? (
+                  <pre
+                    data-rewrite-type="script"
+                    className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text"
+                  >
+                    {scriptText}
+                  </pre>
+                ) : (
+                  <CinematicScriptBody raw={fullScript} />
+                )}
+              </div>
             ) : (
               <div className="text-[12px] text-muted-foreground italic">
                 No script body yet. Click <span className="text-gold-300">Continue editing</span> to start writing.
@@ -545,7 +568,7 @@ export default function ScriptWorkspace() {
         )}
         {scriptText && !editing && (
           <div className="mt-3 pt-3 border-t border-white/[0.05] text-[10px] text-muted-foreground tracking-wider flex items-center gap-1.5">
-            <Wand2 className="w-3 h-3 text-gold-400/80" /> Highlight any paragraph to rewrite it with AI · 5 styles
+            <Wand2 className="w-3 h-3 text-gold-400/80" /> Highlight any passage for Director Edit · contextual rewrite actions
           </div>
         )}
       </div>
@@ -694,19 +717,13 @@ function ReadScriptButton({ text }: { text: string }) {
 }
 
 // Renders workspace JSON as Hook + Cinematic Script cards instead of raw JSON.
-function CinematicScriptBody({
-  raw,
-  scriptBodyRef,
-}: {
-  raw: string
-  scriptBodyRef: RefObject<HTMLPreElement | null>
-}) {
+function CinematicScriptBody({ raw }: { raw: string }) {
   try {
     const parsed = parseWorkspaceScript(raw)
     if (!parsed.isStructured) {
       return (
         <pre
-          ref={scriptBodyRef as Ref<HTMLPreElement>}
+          data-rewrite-type="script"
           className="text-[13px] sm:text-[13px] leading-[1.75] sm:leading-relaxed text-luxe/90 whitespace-pre-wrap font-mono break-words select-text"
         >
           {raw}
@@ -720,7 +737,10 @@ function CinematicScriptBody({
             <div className="mb-2 text-[11px] uppercase tracking-[0.28em] text-[#C6A55C]">
               Hook
             </div>
-            <p className="text-[22px] leading-relaxed font-light">
+            <p
+              data-rewrite-type="hook"
+              className="select-text text-[22px] leading-relaxed font-light"
+            >
               {parsed.hook}
             </p>
           </div>
@@ -732,7 +752,7 @@ function CinematicScriptBody({
               Cinematic Script
             </div>
             <pre
-              ref={scriptBodyRef as Ref<HTMLPreElement>}
+              data-rewrite-type="script"
               className="whitespace-pre-wrap font-light leading-[2] text-[15px] text-[#E7E2D9] break-words select-text"
             >
               {parsed.script}
@@ -743,7 +763,10 @@ function CinematicScriptBody({
     )
   } catch {
     return (
-      <pre className="whitespace-pre-wrap text-sm text-zinc-300 font-mono break-words">
+      <pre
+        data-rewrite-type="script"
+        className="whitespace-pre-wrap text-sm text-zinc-300 font-mono break-words select-text"
+      >
         {String(raw)}
       </pre>
     )
