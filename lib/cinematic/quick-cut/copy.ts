@@ -8,10 +8,10 @@ export const QUICK_CUT_PROMPTS = [
 
 /** Suggested chips below the Ask Mugtee composer. */
 export const ASK_MUGTEE_PROMPT_CHIPS = [
-  '60s reel on a myth everyone believes',
-  'Documentary hook about a forgotten moment',
-  'Authority take on a trending topic in my niche',
-  'Emotional story with a pattern-interrupt open',
+  'Help me create a viral psychology short',
+  'Create a documentary idea',
+  'Generate a finance reel',
+  'Improve this hook',
 ] as const
 
 export const QUICK_CUT_LOADING_LINES = [

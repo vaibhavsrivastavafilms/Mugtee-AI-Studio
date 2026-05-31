@@ -7,7 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { cn } from '@/lib/utils'
-import { buildSidekickRotation } from '@/lib/sidekick/sidekick-messages'
+import {
+  pickSidekickMessage,
+  SIDEKICK_ENCOURAGEMENT,
+} from '@/lib/sidekick/sidekick-messages'
+import { buildTodaysBrief } from '@/lib/sidekick/todays-brief'
 import {
   fetchCreatorMemoryProfile,
   type CreatorMemoryProfile,
@@ -18,7 +22,7 @@ import {
   type CreatorJourneySnapshot,
   type CreatorJourneyLevel,
 } from '@/lib/sidekick/creator-journey'
-import { STUDIO } from '@/lib/create/routes'
+import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { toast } from 'sonner'
 
 const LS_COLLAPSED = 'mugtee:sidekick:collapsed:v1'
@@ -34,40 +38,61 @@ function isSidekickRoute(pathname: string): boolean {
 }
 
 function SidekickCard({
+  profile,
   journey,
-  message,
+  motivation,
   profileLoaded,
 }: {
+  profile: CreatorMemoryProfile
   journey: CreatorJourneySnapshot | null
-  message: string
+  motivation: string
   profileLoaded: boolean
 }) {
+  const brief = useMemo(() => buildTodaysBrief(profile, null), [profile])
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
         <MugteeOrb state="idle" size={36} useLogo className="shrink-0 mt-0.5" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 mb-1">
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
             Mugtee · Sidekick
           </p>
-          <p className="text-sm text-luxe/90 leading-relaxed italic">&ldquo;{message}&rdquo;</p>
+          <p className="text-sm text-luxe/90 leading-relaxed">{brief.greeting}</p>
+          <p className="text-[11px] text-luxe/55">{brief.goalLine}</p>
         </div>
       </div>
 
+      <div className="rounded-xl border border-gold-500/20 bg-gold-500/[0.04] px-3 py-2.5 space-y-1.5">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80">
+          Today&apos;s opportunity
+        </p>
+        <p className="text-sm text-luxe/90 font-medium leading-snug">{brief.recommendedTopic}</p>
+        <p className="text-[11px] text-gold-200/85 italic">&ldquo;{brief.recommendedHook}&rdquo;</p>
+        <Link
+          href={quickCutStudioHref({ topic: brief.recommendedTopic.slice(0, 120) })}
+          className="inline-flex items-center gap-1 text-[10px] tracking-[0.16em] uppercase text-gold-300/70 hover:text-gold-200 transition mt-1"
+        >
+          <Sparkles className="w-3 h-3" />
+          Ask Mugtee
+        </Link>
+      </div>
+
+      <p className="text-[11px] text-luxe/60 italic leading-relaxed">&ldquo;{motivation}&rdquo;</p>
+
       {journey ? (
-        <div className="rounded-xl border border-gold-500/20 bg-gold-500/[0.04] px-3 py-2.5">
+        <div className="rounded-xl border border-white/[0.08] bg-black/30 px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80">
-              Creator Journey
+            <span className="text-[10px] tracking-[0.2em] uppercase text-luxe/45">
+              Creator progress
             </span>
             <span className="text-xs font-medium text-gold-200">{journey.label}</span>
           </div>
-          <p className="text-[11px] text-luxe/55 mt-1 leading-snug">{journey.description}</p>
-          <p className="text-[10px] text-luxe/40 mt-1.5">{journey.progressHint}</p>
+          <p className="text-[10px] text-luxe/40 mt-1">{journey.progressHint}</p>
         </div>
       ) : null}
 
-      {!profileLoaded ? null : (
+      {profileLoaded ? (
         <Link
           href={STUDIO.settings}
           className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/60 hover:text-gold-200 transition"
@@ -75,7 +100,7 @@ function SidekickCard({
           <Sparkles className="w-3 h-3" />
           Tune my creator profile
         </Link>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -136,8 +161,8 @@ export function MugteeSidekickPanel() {
     }
   }, [])
 
-  const message = useMemo(
-    () => buildSidekickRotation(tick + (profile.creatorName?.length ?? 0)),
+  const motivation = useMemo(
+    () => pickSidekickMessage(tick + (profile.creatorName?.length ?? 0), SIDEKICK_ENCOURAGEMENT),
     [tick, profile.creatorName]
   )
 
@@ -153,17 +178,19 @@ export function MugteeSidekickPanel() {
 
   if (!visible) return null
 
+  const profileLoaded = Boolean(profile.creatorName || profile.niche)
+
   const card = (
     <SidekickCard
+      profile={profile}
       journey={journey}
-      message={message}
-      profileLoaded={Boolean(profile.creatorName || profile.niche)}
+      motivation={motivation}
+      profileLoaded={profileLoaded}
     />
   )
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           'hidden lg:flex shrink-0 flex-col w-[280px] xl:w-[300px] border-l border-white/[0.06] bg-black/25 backdrop-blur-xl',
@@ -190,7 +217,6 @@ export function MugteeSidekickPanel() {
         </div>
       </aside>
 
-      {/* Mobile bottom panel */}
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 pointer-events-none">
         <div className="pointer-events-auto mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button

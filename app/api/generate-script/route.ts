@@ -182,6 +182,23 @@ export async function POST(req: NextRequest) {
     let creatorProfile =
       parseCreatorProfile(raw.creatorProfile ?? raw.creator_profile) ?? undefined
     if (!creatorProfile) {
+      const { data: tableRow } = await supabase
+        .from('creator_profiles')
+        .select('creator_name, platform, niche, creator_goal, content_style, experience_level')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (tableRow) {
+        creatorProfile = parseCreatorProfile({
+          creatorName: tableRow.creator_name,
+          primaryPlatform: tableRow.platform,
+          niche: tableRow.niche,
+          creatorGoal: tableRow.creator_goal,
+          contentStyle: tableRow.content_style,
+          experience: tableRow.experience_level,
+        })
+      }
+    }
+    if (!creatorProfile) {
       const { data: profileRow } = await supabase
         .from('profiles')
         .select('creator_profile')
