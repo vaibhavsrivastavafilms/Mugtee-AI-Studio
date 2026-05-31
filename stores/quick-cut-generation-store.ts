@@ -108,6 +108,7 @@ import {
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
 import { useCompanionStore } from '@/stores/companion-store'
+import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import {
@@ -116,6 +117,15 @@ import {
   serializeParsedIntent,
   type ParsedCreatorIntent,
 } from '@/lib/input-understanding'
+import {
+  validateTitleHookBundle,
+  MAX_OUTPUT_VALIDATION_RETRIES,
+} from '@/lib/quality/output-validator'
+import {
+  loadRecentNarrativeFrameworks,
+  recordNarrativeFrameworkUsage,
+  type NarrativeFrameworkId,
+} from '@/lib/narrative/narrative-frameworks'
 import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
@@ -569,6 +579,39 @@ function recordRecentTitle(titles: string[], next: string): string[] {
   if (!trimmed) return titles
   const filtered = titles.filter((t) => t.trim().toLowerCase() !== trimmed.toLowerCase())
   return [trimmed, ...filtered].slice(0, 8)
+}
+
+async function fetchValidatedTitleHook(
+  payload: Record<string, unknown>,
+  rawInput: string,
+  recentTitles: readonly string[]
+): Promise<{ title: string; hook: string; data: Record<string, unknown> }> {
+  let lastData: Record<string, unknown> = {}
+  for (let attempt = 0; attempt <= MAX_OUTPUT_VALIDATION_RETRIES; attempt++) {
+    const { res, data } = await pipelineFetchJson<Record<string, unknown>>(
+      '/api/generate-title',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, hookVariantIndex: attempt }),
+        maxRetries: 2,
+      }
+    )
+    lastData = data
+    if (!res.ok) {
+      throw new Error(String(data?.error || 'Title generation failed'))
+    }
+    const title = String(data.title ?? '')
+    const hook = String(data.hook ?? '')
+    if (validateTitleHookBundle(title, hook, rawInput, recentTitles).ok) {
+      return { title, hook, data }
+    }
+  }
+  return {
+    title: String(lastData.title ?? ''),
+    hook: String(lastData.hook ?? ''),
+    data: lastData,
+  }
 }
 
 function parseContentAngleFromResponse(data?: Record<string, unknown> | null): {
@@ -1366,6 +1409,7 @@ export const useQuickCutGenerationStore = create<
       ? null
       : get().lastGeneratedPrompt
     clearHookSession()
+    useContentQualityStore.getState().resetQualityReview()
     set({ ...INITIAL, savedProjectId, lastGeneratedPrompt, studioReviewMode: false })
   },
 
@@ -1739,32 +1783,24 @@ export const useQuickCutGenerationStore = create<
               patchSectionStatus(set, get, 'hook', 'generating')
               genPerf.start('hook')
               setStep(set, get, 'title')
-              const { res: titleRes, data: titleData } = await pipelineFetchJson(
-                '/api/generate-title',
+              const titleHookResult = await fetchValidatedTitleHook(
                 {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    idea: prompt,
-                    parsedIntent: serializeParsedIntent(parsedIntent),
-                    sessionSeed,
-                    language,
-                    recentContentAngles: loadRecentContentAngles(),
-                    recentTitles: get().recentTitles,
-                    contentBrief: sessionContentBrief ?? undefined,
-                    ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
-                  }),
-                  maxRetries: 2,
-                }
+                  idea: prompt,
+                  parsedIntent: serializeParsedIntent(parsedIntent),
+                  sessionSeed,
+                  language,
+                  recentContentAngles: loadRecentContentAngles(),
+                  recentTitles: get().recentTitles,
+                  contentBrief: sessionContentBrief ?? undefined,
+                  ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
+                },
+                parsedIntent.rawInput,
+                get().recentTitles
               )
-              if (!titleRes.ok) {
-                patchSectionStatus(set, get, 'hook', 'failed')
-                logStepFailed('hook', get().savedProjectId, 'title')
-                throw new Error(String(titleData?.error || 'Title generation failed'))
-              }
+              const titleData = titleHookResult.data
 
-              title = String(titleData.title ?? '')
-              hook = String(titleData.hook ?? '')
+              title = titleHookResult.title
+              hook = titleHookResult.hook
               if (sessionContentBrief && hook) {
                 hook = alignOutputToBrief(hook, sessionContentBrief, 'hook').text
               }
@@ -1839,6 +1875,7 @@ export const useQuickCutGenerationStore = create<
                   creativeBrief: useCompanionStore.getState().creativeBrief,
                   companionMemory: useCompanionStore.getState().creatorMemory,
                   contentBrief: sessionContentBrief ?? undefined,
+                  recentNarrativeFrameworks: loadRecentNarrativeFrameworks(),
                   ...creatorHistoryPayload(directorMode),
                   skipResearch: true,
                   skipStoryboard: true,
@@ -1857,6 +1894,14 @@ export const useQuickCutGenerationStore = create<
                 patchSectionStatus(set, get, 'captions', 'failed')
                 logStepFailed('script', get().savedProjectId, 'script')
                 throw new Error(String(scriptData?.error || 'Script generation failed'))
+              }
+
+              const narrativeFrameworkId =
+                typeof scriptData.narrativeFrameworkId === 'string'
+                  ? scriptData.narrativeFrameworkId
+                  : null
+              if (narrativeFrameworkId) {
+                recordNarrativeFrameworkUsage(narrativeFrameworkId as NarrativeFrameworkId)
               }
 
               const output = scriptData.output as Record<string, unknown> | undefined
@@ -3088,6 +3133,9 @@ export const useQuickCutGenerationStore = create<
       })
       persistHookSession(get())
       void get().syncVideoRenderConfig()
+      if (patch.renderPollUrl && !patch.videoUrl) {
+        void get().resumeRenderPoll()
+      }
       return true
     } catch {
       return false

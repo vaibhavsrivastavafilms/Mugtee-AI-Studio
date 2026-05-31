@@ -5,6 +5,8 @@ import {
   loadOwnedCinematicProject,
   projectCanExportReel,
   queueReelExportForProject,
+  buildValidatedDownloadResponse,
+  mapProjectReelStatus,
 } from '@/lib/reels/export-api'
 import { logError } from '@/lib/workspace/validation'
 import { exportLog } from '@/lib/export/export-log.server'
@@ -59,6 +61,30 @@ export async function POST(req: NextRequest) {
         jobId: null,
         status: 'completed',
         reelUrl: row.reel_url.trim(),
+      })
+    }
+
+    const validated = await buildValidatedDownloadResponse(row)
+    if (validated.status === 'completed' && validated.reelUrl) {
+      return NextResponse.json({
+        jobId: null,
+        status: 'completed',
+        reelUrl: validated.reelUrl,
+      })
+    }
+
+    const inProgressStatuses = new Set([
+      'pending',
+      'queued',
+      'assembling',
+      'rendering',
+      'uploading',
+    ])
+    const reelStatus = (row.reel_status ?? '').toLowerCase()
+    if (row.reel_job_id?.trim() && inProgressStatuses.has(reelStatus)) {
+      return NextResponse.json({
+        jobId: row.reel_job_id.trim(),
+        status: mapProjectReelStatus(row.reel_status, row.reel_url),
       })
     }
 

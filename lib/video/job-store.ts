@@ -31,9 +31,18 @@ function readJobFromDisk(jobId: string): RenderJobStatus | null {
   }
 }
 
+function withTimestamp(job: RenderJobStatus, patch?: Partial<RenderJobStatus>): RenderJobStatus {
+  return {
+    ...job,
+    ...patch,
+    updatedAt: Date.now(),
+  }
+}
+
 function persistJob(job: RenderJobStatus) {
-  jobs.set(job.jobId, job)
-  writeJobToDisk(job)
+  const stamped = job.updatedAt ? job : withTimestamp(job)
+  jobs.set(stamped.jobId, stamped)
+  writeJobToDisk(stamped)
 }
 
 export function createRenderJob(jobId: string): RenderJobStatus {
@@ -51,6 +60,7 @@ export function createRenderJob(jobId: string): RenderJobStatus {
     thumbnailUrl: null,
     status: 'queued',
     error: null,
+    updatedAt: Date.now(),
   }
   persistJob(job)
   return job
@@ -62,9 +72,19 @@ export function updateRenderJob(
 ): RenderJobStatus | null {
   const current = getRenderJob(jobId)
   if (!current) return null
-  const next = { ...current, ...patch }
+  const next = withTimestamp(current, patch)
   persistJob(next)
   return next
+}
+
+/** Extend TTL for jobs still queued or running (default 3 hours). */
+export const ACTIVE_RENDER_JOB_TTL_MS = 3 * 60 * 60 * 1000
+
+export function touchRenderJobHeartbeat(jobId: string): RenderJobStatus | null {
+  const current = getRenderJob(jobId)
+  if (!current) return null
+  if (current.status !== 'queued' && current.status !== 'running') return current
+  return updateRenderJob(jobId, { label: current.label })
 }
 
 export function getRenderJob(jobId: string): RenderJobStatus | null {
@@ -78,27 +98,41 @@ export function getRenderJob(jobId: string): RenderJobStatus | null {
   return null
 }
 
-/** Trim old jobs (dev server memory + disk). */
+function jobAgeMs(job: RenderJobStatus): number {
+  if (typeof job.updatedAt === 'number' && job.updatedAt > 0) {
+    return Date.now() - job.updatedAt
+  }
+  const ts = Number(job.jobId.split('-').pop())
+  return Number.isFinite(ts) ? Date.now() - ts : 0
+}
+
+function isActiveRenderJob(job: RenderJobStatus): boolean {
+  return job.status === 'queued' || job.status === 'running'
+}
+
+/** Trim old jobs (dev server memory + disk). Active jobs use extended TTL. */
 export function pruneRenderJobs(maxAgeMs = 60 * 60 * 1000) {
-  const cutoff = Date.now() - maxAgeMs
-  for (const [id, job] of jobs) {
-    const ts = Number(id.split('-').pop())
-    if (Number.isFinite(ts) && ts < cutoff) {
-      jobs.delete(id)
-      try {
-        fs.unlinkSync(jobFilePath(id))
-      } catch {
-        /* ignore */
-      }
+  const pruneOne = (id: string, job?: RenderJobStatus | null) => {
+    const resolved = job ?? getRenderJob(id)
+    if (!resolved) return
+    const ttl = isActiveRenderJob(resolved) ? ACTIVE_RENDER_JOB_TTL_MS : maxAgeMs
+    if (jobAgeMs(resolved) < ttl) return
+    jobs.delete(id)
+    try {
+      fs.unlinkSync(jobFilePath(id))
+    } catch {
+      /* ignore */
     }
+  }
+
+  for (const [id, job] of jobs) {
+    pruneOne(id, job)
   }
   try {
     if (!fs.existsSync(JOBS_DIR)) return
     for (const file of fs.readdirSync(JOBS_DIR)) {
-      const ts = Number(file.replace(/\.json$/, '').split('-').pop())
-      if (Number.isFinite(ts) && ts < cutoff) {
-        fs.unlinkSync(path.join(JOBS_DIR, file))
-      }
+      const id = file.replace(/\.json$/, '')
+      pruneOne(id)
     }
   } catch {
     /* ignore */

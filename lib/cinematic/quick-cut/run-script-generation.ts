@@ -72,6 +72,12 @@ import {
   type SelectedContentAngle,
   type HookFramework,
 } from '@/lib/cinematic/content-angle-engine'
+import {
+  loadRecentNarrativeFrameworks,
+  recordNarrativeFrameworkUsage,
+  selectNarrativeFramework,
+  type SelectedNarrativeFramework,
+} from '@/lib/narrative/narrative-frameworks'
 
 export type ScriptGenerationInput = {
   topic: string
@@ -118,6 +124,7 @@ export type ScriptGenerationInput = {
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
+  recentNarrativeFrameworks?: string[]
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -154,6 +161,7 @@ type GenInput = {
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
   parsedIntent?: import('@/lib/input-understanding').ParsedCreatorIntent | null
+  narrativeFramework?: SelectedNarrativeFramework
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -205,6 +213,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       companionMemory: input.companionMemory,
       contentBrief: input.contentBrief,
       parsedIntent: input.parsedIntent,
+      narrativeFramework: input.narrativeFramework,
     }),
     sopSection,
     retryNote
@@ -550,6 +559,12 @@ export async function runScriptGeneration(
     contentAngleId: contentAngle.id,
   })
 
+  const narrativeFramework = selectNarrativeFramework(
+    niche,
+    input.recentNarrativeFrameworks ?? [],
+    input.sessionSeed
+  )
+
   const referenceScript = input.referenceScript?.trim() || undefined
 
   const genInput: GenInput = {
@@ -586,6 +601,7 @@ export async function runScriptGeneration(
     companionMemory: input.companionMemory,
     contentBrief: input.contentBrief,
     parsedIntent: input.parsedIntent,
+    narrativeFramework,
   }
 
   if (!hasScriptGenerationKey()) {
@@ -704,6 +720,7 @@ export async function runScriptGeneration(
       sopCompliance,
       sopRegenAttempts,
       scriptArchetype: scriptArchetypeMeta,
+      narrativeFrameworkId: narrativeFramework.id,
       ...(storyboard ?? {}),
     }
   } catch (err) {

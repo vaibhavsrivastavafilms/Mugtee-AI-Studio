@@ -271,6 +271,13 @@ export async function POST(req: NextRequest) {
           .filter(Boolean)
           .slice(0, 5)
       : undefined
+    const recentNarrativeFrameworks = Array.isArray(raw.recentNarrativeFrameworks)
+      ? raw.recentNarrativeFrameworks
+          .filter((v): v is string => typeof v === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 8)
+      : undefined
 
     const creativeBrief = normalizeCreativeBrief(raw.creativeBrief ?? raw.creative_brief)
     const contentBrief = normalizeContentBrief(raw.contentBrief ?? raw.content_brief)
@@ -310,6 +317,7 @@ export async function POST(req: NextRequest) {
       contentAngleId,
       hookFrameworkId,
       recentContentAngles,
+      recentNarrativeFrameworks,
       creativeBrief: Object.values(creativeBrief).some(Boolean) ? creativeBrief : undefined,
       companionMemory: Object.values(companionMemory).some(Boolean) ? companionMemory : undefined,
       contentBrief: contentBrief ?? undefined,
@@ -366,6 +374,7 @@ export async function POST(req: NextRequest) {
         storyboardPrompts: result.storyboardPrompts,
         sceneCount: result.sceneCount,
         visualTimeline: result.visualTimeline,
+        narrativeFrameworkId: result.narrativeFrameworkId,
         ...research,
       })
     } catch (err) {
