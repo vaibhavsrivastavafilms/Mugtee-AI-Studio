@@ -1,6 +1,7 @@
 import type { CinematicProjectState } from '@/stores/cinematic-project'
 
 import { SOFT_ERROR_COPY } from '@/lib/creator/soft-error-copy'
+import { sessionLanguageMixed } from '@/lib/i18n/creator-language-session'
 
 
 
@@ -69,6 +70,8 @@ export function buildRegenPayload(
     niche: state.niche,
 
     language: (state as { language?: string }).language ?? 'en',
+
+    languageMixed: sessionLanguageMixed(),
 
     visualStyle: (state as { visualStyle?: unknown }).visualStyle ?? undefined,
 

@@ -39,6 +39,12 @@ import {
   saveContentLanguagePreference,
 } from '@/lib/cinematic/content-languages'
 import {
+  loadCreatorLanguageSession,
+  persistCreatorLanguageFromText,
+} from '@/lib/i18n/creator-language-session'
+import { CreatorLanguageIndicator } from '@/components/i18n/creator-language-indicator'
+import type { DetectedCreatorLanguage } from '@/lib/i18n/detect-creator-language'
+import {
   DEFAULT_DIRECTOR_MODE,
   loadDirectorModePreference,
   saveDirectorModePreference,
@@ -114,6 +120,7 @@ export function FullscreenQuickCutCanvas({
   const [showSignIn, setShowSignIn] = useState(false)
   const [mobileImageOpen, setMobileImageOpen] = useState(false)
   const [useConversationEntry, setUseConversationEntry] = useState(true)
+  const [creatorLanguage, setCreatorLanguage] = useState<DetectedCreatorLanguage | null>(null)
 
   const { ready: authReady, user } = useAuthHydration()
   const signedIn = authReady ? Boolean(user) : null
@@ -156,12 +163,27 @@ export function FullscreenQuickCutCanvas({
   const directorUi = isDirectorExperience(experienceLevel)
 
   useEffect(() => {
-    setContentLanguage(loadContentLanguagePreference())
+    const session = loadCreatorLanguageSession()
+    if (session) {
+      setContentLanguage(session.projectLanguage)
+      setCreatorLanguage(session)
+    } else {
+      setContentLanguage(loadContentLanguagePreference())
+    }
     setDirectorMode(loadDirectorModePreference())
     const level = initialExperience ?? loadCreatorExperiencePreference()
     setExperienceLevel(level)
     setUseConversationEntry(loadConversationEntryPreference(isDirectorExperience(level)))
   }, [initialExperience])
+
+  useEffect(() => {
+    const combined = [prompt, voiceTranscript].filter(Boolean).join(' ').trim()
+    if (combined.length < 6) return
+    const detected = persistCreatorLanguageFromText(combined)
+    setCreatorLanguage(detected)
+    setContentLanguage(detected.projectLanguage)
+    saveContentLanguagePreference(detected.projectLanguage)
+  }, [prompt, voiceTranscript])
 
   useEffect(() => {
     if (directorUi) {
@@ -487,6 +509,7 @@ export function FullscreenQuickCutCanvas({
               <ContentLanguageSelector
                 value={contentLanguage}
                 onChange={handleLanguageChange}
+                autoDetected={creatorLanguage?.projectLanguage === contentLanguage}
               />
               {directorUi ? (
                 <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />

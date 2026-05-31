@@ -20,21 +20,28 @@ export function ContentLanguageSelector({
   value,
   onChange,
   className,
+  autoDetected,
 }: {
   value: ProjectLanguage
   onChange: (language: ProjectLanguage) => void
   className?: string
+  autoDetected?: boolean
 }) {
   const selected = CONTENT_LANGUAGES.find((option) => option.code === value)
 
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label
-        htmlFor="quick-cut-content-language"
-        className="text-[9px] tracking-[0.24em] uppercase text-luxe/45"
-      >
-        Output language
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label
+          htmlFor="quick-cut-content-language"
+          className="text-[9px] tracking-[0.24em] uppercase text-luxe/45"
+        >
+          Output language
+        </label>
+        {autoDetected ? (
+          <span className="text-[9px] tracking-wide text-gold-300/55">Auto-detected</span>
+        ) : null}
+      </div>
       <Select value={value} onValueChange={(code) => onChange(code as ProjectLanguage)}>
         <SelectTrigger
           id="quick-cut-content-language"

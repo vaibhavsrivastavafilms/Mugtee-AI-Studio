@@ -6,6 +6,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { MUGTEE_SYSTEM_PROMPT } from '@/lib/mugtee/personality'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  mugteeLanguageSystemHint,
+  resolveCreatorLanguage,
+  type CreatorLanguageCode,
+} from '@/lib/i18n/detect-creator-language'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,7 +21,14 @@ const MODEL = 'gpt-4o-mini'
 const MAX_HISTORY_TURNS = 10   // hard cap to keep tokens predictable
 
 interface ClientMessage { role: 'user' | 'assistant'; content: string }
-interface MugteeRequest { messages?: ClientMessage[]; route?: string }
+interface MugteeRequest {
+  messages?: ClientMessage[]
+  route?: string
+  detectedLanguage?: {
+    languageCode?: CreatorLanguageCode
+    isMixed?: boolean
+  }
+}
 
 export async function POST(req: NextRequest) {
   if (!EMERGENT_LLM_KEY) {
@@ -47,10 +59,15 @@ export async function POST(req: NextRequest) {
   // Light route context so Mugtee can give location-aware tips.
   const routeHint = body.route ? `\n\n[The user is currently viewing: ${String(body.route).slice(0, 100)}]` : ''
 
+  const lastUserText =
+    [...safe].reverse().find((m) => m.role === 'user')?.content ?? ''
+  const detected = resolveCreatorLanguage(lastUserText, body.detectedLanguage ?? null)
+  const languageHint = mugteeLanguageSystemHint(detected)
+
   const payload = {
     model: MODEL,
     messages: [
-      { role: 'system', content: MUGTEE_SYSTEM_PROMPT + routeHint },
+      { role: 'system', content: MUGTEE_SYSTEM_PROMPT + routeHint + languageHint },
       ...safe,
     ],
     temperature: 0.7,

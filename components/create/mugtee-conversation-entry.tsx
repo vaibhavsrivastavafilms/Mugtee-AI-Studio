@@ -38,6 +38,16 @@ import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { QUICK_CUT_SIGN_IN } from '@/lib/cinematic/quick-cut/copy'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { CreatorLanguageIndicator } from '@/components/i18n/creator-language-indicator'
+import {
+  detectCreatorLanguage,
+  type DetectedCreatorLanguage,
+} from '@/lib/i18n/detect-creator-language'
+import {
+  persistCreatorLanguageFromText,
+  loadCreatorLanguageSession,
+} from '@/lib/i18n/creator-language-session'
+import { saveContentLanguagePreference } from '@/lib/cinematic/content-languages'
 
 export type MugteeConversationLaunchPayload = {
   prompt: string
@@ -75,6 +85,7 @@ export function MugteeConversationEntry({
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const [launching, setLaunching] = useState(false)
+  const [creatorLanguage, setCreatorLanguage] = useState<DetectedCreatorLanguage | null>(null)
 
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const error = useQuickCutGenerationStore((s) => s.error)
@@ -82,6 +93,17 @@ export function MugteeConversationEntry({
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const launchedRef = useRef(false)
+
+  useEffect(() => {
+    setCreatorLanguage(loadCreatorLanguageSession())
+  }, [])
+
+  useEffect(() => {
+    const trimmed = input.trim()
+    if (trimmed.length < 3) return
+    const detected = detectCreatorLanguage(trimmed)
+    setCreatorLanguage(detected)
+  }, [input])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -114,12 +136,16 @@ export function MugteeConversationEntry({
 
       const tone = finalCtx.tone ?? 'cinematic'
       const keywords = mapToneToKeywords(tone)
+      const detected = persistCreatorLanguageFromText(finalCtx.topic)
+      setCreatorLanguage(detected)
+      const resolvedLanguage = detected.projectLanguage
+      saveContentLanguagePreference(resolvedLanguage)
       const payload: MugteeConversationLaunchPayload = {
         prompt: buildConversationPrompt(finalCtx),
         style: buildStyleFromKeywords(keywords, mapToneToStyle(tone)),
         keywords,
         directorMode: mapToneToDirectorMode(tone),
-        language,
+        language: resolvedLanguage,
         niche: resolveNiche(finalCtx),
       }
 
@@ -139,6 +165,7 @@ export function MugteeConversationEntry({
 
       pushUser(topic)
       setInput('')
+      persistCreatorLanguageFromText(topic)
       const nextCtx = { ...ctx, topic }
       setCtx(nextCtx)
 
@@ -220,6 +247,10 @@ export function MugteeConversationEntry({
           <div>
             <p className="font-display text-sm tracking-wide text-gold-gradient">Mugtee</p>
             <p className="text-[10px] tracking-[0.2em] uppercase text-luxe/45">Creative sidekick</p>
+            <CreatorLanguageIndicator
+              detected={creatorLanguage}
+              className="mt-1.5"
+            />
           </div>
         </div>
         {onSwitchClassic ? (

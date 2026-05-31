@@ -55,7 +55,10 @@ function buildPreserveBlock(action: RegenAction, ctx: RegenProjectContext): stri
     caption: 'Preserve: language, script. Change ONLY caption pack.',
     all: 'Preserve: language, visual style, niche, and topic. Generate COMPLETELY FRESH hook, script, scenes, and visuals. Do NOT repeat previous script wording or reuse prior scene beats verbatim.',
   }
-  const parts = [rules[action], languageDirective(ctx.language)]
+  const parts = [
+    rules[action],
+    languageDirective(ctx.language, { isMixed: ctx.languageMixed }),
+  ]
   const viralBlock = buildViralScriptBlock(ctx)
   if (viralBlock && action !== 'caption') parts.push(viralBlock)
   const styleLock = buildVisualStyleLock(ctx)
@@ -236,7 +239,7 @@ export function buildVoiceSuggestPrompt(ctx: RegenProjectContext): string {
     .join('\n')
 
   return [
-    languageDirective(ctx.language),
+    languageDirective(ctx.language, { isMixed: ctx.languageMixed }),
     `Recommend the best narrator voice style for this cinematic reel.`,
     `Niche: ${ctx.niche} · Tone: ${ctx.tone}`,
     buildNicheLayer(ctx.niche),
