@@ -10,6 +10,14 @@ import {
 } from '@/lib/cinematic/regen-context'
 import { rotatedHookFramework } from '@/lib/cinematic/hook-variation'
 import { languageDirective } from '@/lib/cinematic/language-prompt'
+import {
+  buildContentAnglePromptSection,
+  buildHookFrameworkPromptSection,
+  buildTitleOriginalityRules,
+  getContentAngle,
+  normalizeContentAngleId,
+  type SelectedContentAngle,
+} from '@/lib/cinematic/content-angle-engine'
 
 export type RegenAction = 'hook' | 'scene' | 'storyboard' | 'caption' | 'all'
 
@@ -79,6 +87,8 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
 
   const framework = rotatedHookFramework(ctx.hookVariantIndex)
   const emotionalTone = ctx.emotionalGoal || ctx.tone
+  const angleId = normalizeContentAngleId(ctx.contentAngleId)
+  const contentAngle: SelectedContentAngle | null = angleId ? getContentAngle(angleId) : null
 
   const avoidBlock =
     avoidHooks.length > 0
@@ -109,11 +119,11 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
     `Niche: ${ctx.niche}`,
     `Emotional tone: ${emotionalTone}`,
     `Tone / style: ${ctx.tone} · Duration: ${ctx.duration}s`,
+    contentAngle ? buildContentAnglePromptSection(contentAngle) : '',
+    buildTitleOriginalityRules(),
     buildNicheLayer(ctx.niche),
     buildHookLayer(),
-    `Hook framework for this attempt: ${framework.name}`,
-    `Framework instruction: ${framework.instruction}`,
-    `Example shape (do NOT copy verbatim): "${framework.example}"`,
+    buildHookFrameworkPromptSection(framework),
     avoidBlock,
     variationBlock,
     `Current hook (replace entirely): "${ctx.hook || '—'}"`,

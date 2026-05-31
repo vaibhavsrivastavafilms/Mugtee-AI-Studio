@@ -60,6 +60,17 @@ import {
   type ScriptArchetypeMeta,
   type SelectedScriptArchetype,
 } from '@/lib/cinematic/script-archetypes'
+import {
+  coerceRecentContentAngles,
+  contentAngleMetaFromSelection,
+  getHookFramework,
+  normalizeHookFrameworkId,
+  selectContentAngle,
+  selectHookFramework,
+  type ContentAngleMeta,
+  type SelectedContentAngle,
+  type HookFramework,
+} from '@/lib/cinematic/content-angle-engine'
 
 export type ScriptGenerationInput = {
   topic: string
@@ -96,6 +107,9 @@ export type ScriptGenerationInput = {
   blueprintId?: string | null
   recentTopics?: string[]
   creatorHistoryStyle?: string
+  contentAngleId?: string
+  recentContentAngles?: string[]
+  hookFrameworkId?: string
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -125,6 +139,8 @@ type GenInput = {
   recentTopics?: string[]
   creatorHistoryStyle?: string
   scriptArchetype?: SelectedScriptArchetype
+  contentAngle?: SelectedContentAngle
+  hookFramework?: HookFramework
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -169,6 +185,8 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       recentTopics: input.recentTopics,
       creatorHistoryStyle: input.creatorHistoryStyle,
       scriptArchetype: input.scriptArchetype,
+      contentAngle: input.contentAngle,
+      hookFramework: input.hookFramework,
     }),
     sopSection,
     retryNote
@@ -388,6 +406,7 @@ type ScriptPostProcessContext = {
   titleSeed?: string
   hookVariations?: string[]
   scriptArchetype: SelectedScriptArchetype
+  contentAngleMeta?: ContentAngleMeta
 }
 
 function shapeScriptFromLlm(
@@ -407,23 +426,26 @@ function shapeScriptFromLlm(
   const resolvedArchetype = resolveArchetypeFromOutput(parsed, ctx.scriptArchetype)
   const archetypeMeta = archetypeMetaFromSelection(resolvedArchetype)
 
-  const output = finalizeCinematicOutput(
-    normalizeCinematicOutput(parsed, {
-      topic: ctx.scriptTopic,
-      duration: ctx.duration,
-      tone: ctx.tone,
-      niche: ctx.niche,
-      titleSeed: ctx.titleSeed,
-      scriptArchetype: archetypeMeta,
-    }),
-    ctx.niche,
-    {
-      topic: ctx.scriptTopic,
-      duration: ctx.duration,
-      tone: ctx.tone,
-      hookVariations,
-    }
-  )
+  const output = {
+    ...finalizeCinematicOutput(
+      normalizeCinematicOutput(parsed, {
+        topic: ctx.scriptTopic,
+        duration: ctx.duration,
+        tone: ctx.tone,
+        niche: ctx.niche,
+        titleSeed: ctx.titleSeed,
+        scriptArchetype: archetypeMeta,
+      }),
+      ctx.niche,
+      {
+        topic: ctx.scriptTopic,
+        duration: ctx.duration,
+        tone: ctx.tone,
+        hookVariations,
+      }
+    ),
+    ...(ctx.contentAngleMeta ?? {}),
+  }
 
   const validation = validateCinematicOutput(output, ctx.niche, ctx.scriptTopic)
   const sopCompliance = scoreCinematicOutputSop(output, ctx.scriptTopic)
@@ -483,12 +505,29 @@ export async function runScriptGeneration(
   const { niche, virloContext, virlo, viralStructure } = blueprint
   const resolvedVisualStyle = input.visualStyle ?? blueprint.visualStyle
 
+  const recentAngles = coerceRecentContentAngles(input.recentContentAngles)
+  const contentAngle = selectContentAngle({
+    niche,
+    topic,
+    sessionSeed: input.sessionSeed,
+    recentAngles,
+    contentAngleId: input.contentAngleId,
+  })
+  const hookFrameworkId = normalizeHookFrameworkId(input.hookFrameworkId)
+  const hookFramework = hookFrameworkId
+    ? getHookFramework(hookFrameworkId)
+    : selectHookFramework({
+        sessionSeed: input.sessionSeed,
+        attemptIndex: 0,
+      })
+
   const scriptArchetype = selectScriptArchetype({
     niche,
     topic,
     contentType: input.directorMode,
     sessionSeed: input.sessionSeed,
     creatorNiche: input.creatorProfile?.niche ?? input.creatorMemoryBias?.niche,
+    contentAngleId: contentAngle.id,
   })
 
   const referenceScript = input.referenceScript?.trim() || undefined
@@ -520,19 +559,25 @@ export async function runScriptGeneration(
     recentTopics: input.recentTopics,
     creatorHistoryStyle: input.creatorHistoryStyle,
     scriptArchetype,
+    contentAngle,
+    hookFramework,
   }
 
   if (!hasScriptGenerationKey()) {
     const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
-    const output = buildMockCinematicOutput({
-      topic,
-      tone,
-      duration,
-      niche,
-      virloContext,
-      viralStructure,
-      scriptArchetype: archetypeMeta,
-    })
+    const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
+    const output = {
+      ...buildMockCinematicOutput({
+        topic,
+        tone,
+        duration,
+        niche,
+        virloContext,
+        viralStructure,
+        scriptArchetype: archetypeMeta,
+      }),
+      ...angleMeta,
+    }
     const viralScript = mergeViralScript(blueprint, output.script, output.hook)
     return {
       output,
@@ -556,6 +601,7 @@ export async function runScriptGeneration(
     let sopRegenAttempts = 0
     let hookVariations: string[] = []
     let scriptArchetypeMeta = archetypeMetaFromSelection(scriptArchetype)
+    const contentAngleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
     let output: CinematicGenerationOutput | undefined
     let validation: ReturnType<typeof validateCinematicOutput> = {
       valid: false,
@@ -591,6 +637,7 @@ export async function runScriptGeneration(
         titleSeed: input.titleSeed,
         hookVariations,
         scriptArchetype,
+        contentAngleMeta,
       })
       output = shaped.output
       validation = shaped.validation

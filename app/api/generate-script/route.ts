@@ -233,6 +233,21 @@ export async function POST(req: NextRequest) {
       typeof raw.creatorHistoryStyle === 'string' && raw.creatorHistoryStyle.trim()
         ? raw.creatorHistoryStyle.trim().slice(0, 80)
         : undefined
+    const contentAngleId =
+      typeof raw.contentAngleId === 'string' && raw.contentAngleId.trim()
+        ? raw.contentAngleId.trim()
+        : undefined
+    const hookFrameworkId =
+      typeof raw.hookFrameworkId === 'string' && raw.hookFrameworkId.trim()
+        ? raw.hookFrameworkId.trim()
+        : undefined
+    const recentContentAngles = Array.isArray(raw.recentContentAngles)
+      ? raw.recentContentAngles
+          .filter((v): v is string => typeof v === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 5)
+      : undefined
 
     const input = {
       topic,
@@ -260,6 +275,9 @@ export async function POST(req: NextRequest) {
       blueprintId,
       recentTopics: recentTopics?.length ? recentTopics : undefined,
       creatorHistoryStyle,
+      contentAngleId,
+      hookFrameworkId,
+      recentContentAngles,
     }
 
     if (process.env.NODE_ENV === 'development') {

@@ -25,6 +25,7 @@ import type { ScriptBeat } from '@/types/cinematic-script'
 import type { StoryboardScene, VisualTimelineEntry } from '@/types/storyboard'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { ScriptTypeLabel } from '@/components/quick-cut/script-type-label'
+import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 
 export type ProjectScriptViewDialogProps = {
   title?: string | null
@@ -113,7 +114,12 @@ export function ProjectScriptViewDialog({
     captionLines?: string[]
     scriptArchetypeLabel?: string
     scriptArchetypeDisplay?: string
+    contentAngleLabel?: string
+    hookFrameworkLabel?: string
   } | null>(null)
+
+  const storeContentAngleLabel = useQuickCutGenerationStore((s) => s.contentAngleLabel)
+  const storeHookFrameworkLabel = useQuickCutGenerationStore((s) => s.hookFrameworkLabel)
 
   const open = controlledOpen ?? internalOpen
   const setOpen = controlledOnOpenChange ?? setInternalOpen
@@ -141,6 +147,8 @@ export function ProjectScriptViewDialog({
           captionLines: state.captionLines,
           scriptArchetypeLabel: parsedCaptions.archetypeLabel,
           scriptArchetypeDisplay: parsedCaptions.archetypeDisplay,
+          contentAngleLabel: parsedCaptions.contentAngleLabel,
+          hookFrameworkLabel: parsedCaptions.hookFrameworkLabel,
         })
       })
       .catch(() => {
@@ -176,6 +184,10 @@ export function ProjectScriptViewDialog({
         nonEmptyProp(scriptArchetypeLabel) ?? nonEmptyProp(persisted?.scriptArchetypeLabel),
       scriptArchetypeDisplay:
         nonEmptyProp(scriptArchetypeDisplay) ?? nonEmptyProp(persisted?.scriptArchetypeDisplay),
+      contentAngleLabel:
+        storeContentAngleLabel ?? nonEmptyProp(persisted?.contentAngleLabel),
+      hookFrameworkLabel:
+        storeHookFrameworkLabel ?? nonEmptyProp(persisted?.hookFrameworkLabel),
     }),
     [
       title,
@@ -194,6 +206,8 @@ export function ProjectScriptViewDialog({
       captionLines,
       scriptArchetypeLabel,
       scriptArchetypeDisplay,
+      storeContentAngleLabel,
+      storeHookFrameworkLabel,
       persisted,
     ]
   )
@@ -259,6 +273,11 @@ export function ProjectScriptViewDialog({
           </DialogDescription>
           <ScriptTypeLabel
             label={merged.scriptArchetypeDisplay ?? merged.scriptArchetypeLabel}
+            className="pt-1"
+          />
+          <ContentAngleLabel
+            angleLabel={merged.contentAngleLabel}
+            hookFrameworkLabel={merged.hookFrameworkLabel}
             className="pt-1"
           />
         </DialogHeader>

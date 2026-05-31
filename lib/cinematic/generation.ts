@@ -314,6 +314,10 @@ export type CinematicGenerationOutput = {
   archetypeId?: ScriptArchetypeMeta['archetypeId']
   archetypeLabel?: string
   archetypeDisplay?: string
+  contentAngleId?: string
+  contentAngleLabel?: string
+  hookFramework?: string
+  hookFrameworkLabel?: string
 }
 
 function coerceString(raw: unknown, fallback = '', max = 12_000): string {
@@ -846,6 +850,10 @@ export type CaptionsPayload = {
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  contentAngleId?: string
+  contentAngleLabel?: string
+  hookFramework?: string
+  hookFrameworkLabel?: string
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   series?: {
     title: string
@@ -873,6 +881,10 @@ export function captionsToPayload(state: {
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  contentAngleId?: string
+  contentAngleLabel?: string
+  hookFramework?: string
+  hookFrameworkLabel?: string
   repurposedAssets?: CaptionsPayload['repurposedAssets']
   series?: CaptionsPayload['series']
 }): CaptionsPayload {
@@ -890,6 +902,10 @@ export function captionsToPayload(state: {
     archetypeId: state.archetypeId,
     archetypeLabel: state.archetypeLabel,
     archetypeDisplay: state.archetypeDisplay,
+    contentAngleId: state.contentAngleId,
+    contentAngleLabel: state.contentAngleLabel,
+    hookFramework: state.hookFramework,
+    hookFrameworkLabel: state.hookFrameworkLabel,
     repurposedAssets: state.repurposedAssets,
     series: state.series,
   }
@@ -911,6 +927,10 @@ export function parseCaptionsPayload(
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
+  contentAngleId?: string
+  contentAngleLabel?: string
+  hookFramework?: string
+  hookFrameworkLabel?: string
   series?: CaptionsPayload['series']
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
 } {
@@ -974,6 +994,22 @@ export function parseCaptionsPayload(
     typeof value?.archetypeDisplay === 'string' && value.archetypeDisplay.trim()
       ? value.archetypeDisplay.trim()
       : undefined
+  const contentAngleId =
+    typeof value?.contentAngleId === 'string' && value.contentAngleId.trim()
+      ? value.contentAngleId.trim()
+      : undefined
+  const contentAngleLabel =
+    typeof value?.contentAngleLabel === 'string' && value.contentAngleLabel.trim()
+      ? value.contentAngleLabel.trim()
+      : undefined
+  const hookFramework =
+    typeof value?.hookFramework === 'string' && value.hookFramework.trim()
+      ? value.hookFramework.trim()
+      : undefined
+  const hookFrameworkLabel =
+    typeof value?.hookFrameworkLabel === 'string' && value.hookFrameworkLabel.trim()
+      ? value.hookFrameworkLabel.trim()
+      : undefined
 
   const seriesRaw = value?.series
   const series =
@@ -1003,6 +1039,10 @@ export function parseCaptionsPayload(
     archetypeId,
     archetypeLabel,
     archetypeDisplay,
+    contentAngleId,
+    contentAngleLabel,
+    hookFramework,
+    hookFrameworkLabel,
     series,
     repurposedAssets,
   }

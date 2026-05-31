@@ -22,6 +22,13 @@ import {
   buildArchetypePromptSection,
   type SelectedScriptArchetype,
 } from '@/lib/cinematic/script-archetypes'
+import {
+  buildContentAnglePromptSection,
+  buildHookFrameworkPromptSection,
+  buildTitleOriginalityRules,
+  type SelectedContentAngle,
+  type HookFramework,
+} from '@/lib/cinematic/content-angle-engine'
 
 export type CinematicPromptInput = {
   topic: string
@@ -56,6 +63,9 @@ export type CinematicPromptInput = {
   creatorHistoryStyle?: string
   /** Selected script archetype — dynamic structure (not fixed CTSH template) */
   scriptArchetype?: SelectedScriptArchetype
+  /** Content originality engine — strategist angle for title/hook/script alignment */
+  contentAngle?: SelectedContentAngle
+  hookFramework?: HookFramework
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -166,10 +176,13 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.scriptArchetype
       ? buildArchetypePromptSection(input.scriptArchetype)
       : '',
+    input.contentAngle ? buildContentAnglePromptSection(input.contentAngle) : '',
+    input.hookFramework ? buildHookFrameworkPromptSection(input.hookFramework) : '',
+    buildTitleOriginalityRules(),
   ]
     .filter(Boolean)
     .join('\n')
-  return `${briefHeader}\n\n${buildVirloScriptPrompt(virlo, input.viralStructure, input.scriptArchetype)}`
+  return `${briefHeader}\n\n${buildVirloScriptPrompt(virlo, input.viralStructure, input.scriptArchetype, input.contentAngle, input.hookFramework)}`
 }
 
 // Back-compat re-export for existing imports

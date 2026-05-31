@@ -16,6 +16,8 @@ export type HookRegenPayloadOptions = {
 
   emotionalGoal?: string
 
+  contentAngleId?: string
+
 }
 
 
@@ -121,6 +123,8 @@ export function buildRegenPayload(
     strongVariation: hookOptions?.strongVariation ?? false,
 
     emotionalGoal: hookOptions?.emotionalGoal,
+
+    contentAngleId: hookOptions?.contentAngleId,
 
   }
 
