@@ -13,7 +13,8 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import type { RewriteVariant } from '@/components/script/rewrite-toolbar'
+import type { RewriteVariant } from '@/lib/rewrite/rewrite-actions'
+import { requestRewriteSelection } from '@/lib/rewrite/rewrite-api'
 
 type FollowUpAction = {
   id: string
@@ -69,33 +70,19 @@ export function MugteeFollowUpActions({ className }: { className?: string }) {
         return
       }
 
-      const res = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'rewrite_selection',
-          context: {
-            selection: source,
-            rewrite_variant: variant,
-            full_script: source,
-            title: title || undefined,
-            niche: niche || undefined,
-            tone: style || undefined,
-          },
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || data?.error) {
-        toast.error(String(data?.error || 'Rewrite failed'))
-        return
+      try {
+        const res = await requestRewriteSelection(source, variant, {
+          full_text: source,
+          title: title || undefined,
+          niche: niche || undefined,
+          tone: style || undefined,
+          content_type: 'script',
+        })
+        useQuickCutGenerationStore.setState({ script: res.output })
+        toast.success('Script updated')
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : 'Rewrite failed')
       }
-      const next = String(data.output || data.raw || '').trim()
-      if (!next) {
-        toast.error('Empty rewrite returned')
-        return
-      }
-      useQuickCutGenerationStore.setState({ script: next })
-      toast.success('Script updated')
     },
     [script, hook, title, niche, style]
   )
