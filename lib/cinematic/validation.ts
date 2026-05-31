@@ -135,7 +135,10 @@ function scriptEchoesTopic(script: string, topic: string): boolean {
   return overlapRatio(script, topic) > 0.72
 }
 
-function beatsStructureWeak(output: CinematicGenerationOutput, topic?: string): boolean {
+function beatsStructureWeak(
+  output: CinematicGenerationOutput,
+  scriptTopic?: string
+): boolean {
   const beats =
     output.scriptBeats?.length
       ? output.scriptBeats
@@ -161,7 +164,7 @@ function beatsStructureWeak(output: CinematicGenerationOutput, topic?: string): 
       beats,
       payoff: output.payoff ?? '',
       cta: output.cta ?? output.captionPack?.cta ?? '',
-      topic,
+      topic: scriptTopic,
     })
     return !check.valid
   }

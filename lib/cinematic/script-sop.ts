@@ -485,7 +485,7 @@ export function scoreScriptSopCompliance(input: {
 
 export function scoreCinematicOutputSop(
   output: CinematicGenerationOutput,
-  topic?: string
+  scriptTopic?: string
 ): ScriptSopComplianceScore {
   if (output.scriptBeats?.length) {
     return scoreScriptBeatsCompliance({
@@ -493,7 +493,7 @@ export function scoreCinematicOutputSop(
       beats: output.scriptBeats,
       payoff: output.payoff ?? '',
       cta: output.cta ?? output.captionPack?.cta ?? '',
-      topic,
+      topic: scriptTopic,
     })
   }
 
@@ -514,7 +514,7 @@ export function scoreCinematicOutputSop(
     sections,
     payoff: output.payoff || sections[4]?.narration || '',
     cta: output.cta || output.captionPack?.cta || sections[5]?.narration || '',
-    topic,
+    topic: scriptTopic,
   })
 }
 

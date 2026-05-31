@@ -65,6 +65,7 @@ function parseCreatorProfile(raw: unknown): CreatorMemoryProfile | undefined {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[SCRIPT_DEBUG] request received')
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
     if (raw?.landing === true || raw?.mock === true) {
@@ -269,6 +270,7 @@ export async function POST(req: NextRequest) {
 
       logStepComplete('script', user.id)
 
+      console.log('[SCRIPT_DEBUG] before save')
       await trackUsageMetric(user.id, 'generations')
       void trackFeatureUsage(
         user.id,
@@ -276,6 +278,7 @@ export async function POST(req: NextRequest) {
         parseFeatureUsageProjectId(raw)
       )
 
+      console.log('[SCRIPT_DEBUG] before response')
       return NextResponse.json({
         output: result.output,
         mock: result.mock,
@@ -296,6 +299,8 @@ export async function POST(req: NextRequest) {
         ...research,
       })
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Script generation failed'
+      const stack = err instanceof Error ? err.stack : undefined
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })
       if (!hasScriptGenerationKey()) {
         const virloContext = buildVirloContext(topic, {
@@ -314,13 +319,12 @@ export async function POST(req: NextRequest) {
           virlo: virloMetadataFromContext(virloContext),
         })
       }
-      const message =
-        err instanceof Error ? err.message : 'Script generation failed'
       logStepFailed('script', user.id, message)
       logGenerationError(user.id, 'script', message, { reason: 'provider_failed' })
+      console.error('[GENERATE_SCRIPT_ERROR]', { message, stack })
       return NextResponse.json(
         {
-          error: SOFT_ERROR_COPY.storyPaused,
+          error: 'Script generation failed',
           reason: 'provider_failed',
         },
         { status: 502 }
