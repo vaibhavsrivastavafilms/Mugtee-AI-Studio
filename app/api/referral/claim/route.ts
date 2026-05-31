@@ -17,10 +17,7 @@ export async function POST(req: NextRequest) {
 
   const db = createSupabaseServiceClient()
   if (!db) {
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY required for referral claim' },
-      { status: 503 }
-    )
+    return NextResponse.json({ ok: true, claimed: false, reason: 'service_unavailable' })
   }
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
@@ -32,14 +29,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, claimed: false, reason: 'no_code' })
   }
 
-  const result = await claimReferral(db, user.id, code)
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
-  }
+  try {
+    const result = await claimReferral(db, user.id, code)
+    if (!result.ok) {
+      console.warn('[referral/claim] skipped:', result.error)
+      return NextResponse.json({ ok: true, claimed: false, reason: 'claim_failed' })
+    }
 
-  const response = NextResponse.json(result)
-  if (result.ok && result.claimed) {
-    response.cookies.set(REFERRAL_COOKIE_NAME, '', { path: '/', maxAge: 0 })
+    const response = NextResponse.json(result)
+    if (result.claimed) {
+      response.cookies.set(REFERRAL_COOKIE_NAME, '', { path: '/', maxAge: 0 })
+    }
+    return response
+  } catch (e) {
+    console.warn('[referral/claim] skipped:', (e as Error)?.message || e)
+    return NextResponse.json({ ok: true, claimed: false, reason: 'service_unavailable' })
   }
-  return response
 }

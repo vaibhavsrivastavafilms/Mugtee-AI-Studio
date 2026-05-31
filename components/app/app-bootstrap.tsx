@@ -89,7 +89,8 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
           signedIn: data?.signed_in,
           planType: data?.plan_type,
         })
-        fetch('/api/referral/claim', { method: 'POST' }).catch(() => {})
+        // Optional referral attribution — best-effort, never blocks bootstrap.
+        void fetch('/api/referral/claim', { method: 'POST' }).catch(() => {})
       })
       .catch((e) => {
         if (cancelled) return
