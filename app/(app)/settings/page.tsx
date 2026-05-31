@@ -27,7 +27,6 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { UsageOverview } from '@/components/settings/usage-overview'
 import { FoundingCreatorProgramSection } from '@/components/settings/founding-creator-program'
 import { InviteCreatorsSection } from '@/components/settings/invite-creators-section'
-import { NotionConnect, BufferConnect } from '@/components/integrations/buffer-queue-button'
 
 const THEMES = [
   { key: 'gold',     label: 'Gold',          hue: 43,  sat: 60, css: 'linear-gradient(135deg, hsl(43 60% 70%), hsl(43 60% 50%), hsl(43 60% 30%))' },
@@ -553,11 +552,6 @@ export default function SettingsPage() {
         {/* Phase P4 — YouTube Publishing connection */}
         <div className="mt-5">
           <YouTubeConnect />
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <NotionConnect />
-          <BufferConnect />
         </div>
       </motion.div>
 
