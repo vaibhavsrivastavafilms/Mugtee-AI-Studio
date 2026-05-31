@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Camera, Download, Loader2, Pause, Pencil, Play, Sparkles } from 'lucide-react'
+import { Camera, Download, Loader2, Pause, Pencil, Play, RefreshCw, Sparkles } from 'lucide-react'
 import {
   downloadSceneImage,
   sceneImageFilename,
@@ -22,6 +22,7 @@ export function SceneVisualCard({
   loadingLabel,
   onSavePrompt,
   onVariations,
+  onRegenerate,
   onToggleAudio,
   canPlayAudio = false,
   audioPlaying = false,
@@ -37,6 +38,7 @@ export function SceneVisualCard({
   loadingLabel?: string
   onSavePrompt?: (prompt: string) => void
   onVariations?: () => void
+  onRegenerate?: () => void
   onToggleAudio?: () => void
   canPlayAudio?: boolean
   audioPlaying?: boolean
@@ -241,6 +243,21 @@ export function SceneVisualCard({
               >
                 <Pencil className="w-3 h-3" />
                 Edit prompt
+              </button>
+            ) : null}
+            {onRegenerate ? (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={onRegenerate}
+                className="inline-flex items-center gap-1 text-[10px] tracking-wide uppercase text-luxe/55 hover:text-gold-200 disabled:opacity-40"
+              >
+                {loading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Regenerate
               </button>
             ) : null}
             {onVariations ? (
