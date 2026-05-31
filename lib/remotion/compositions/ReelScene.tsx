@@ -52,8 +52,6 @@ export function ReelScene({
     translateX = interpolate(progress, [0, 1], [-24, 24])
   }
 
-  const caption = scene.caption?.trim()
-
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0807', opacity }}>
       <AbsoluteFill
@@ -77,32 +75,6 @@ export function ReelScene({
             'linear-gradient(180deg, rgba(10,8,7,0.15) 0%, rgba(10,8,7,0) 28%, rgba(10,8,7,0.55) 72%, rgba(10,8,7,0.92) 100%)',
         }}
       />
-
-      {caption ? (
-        <AbsoluteFill
-          style={{
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            padding: '0 48px 120px',
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              maxWidth: 920,
-              textAlign: 'center',
-              color: '#F4E7C1',
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontSize: 42,
-              lineHeight: 1.35,
-              fontWeight: 500,
-              textShadow: '0 2px 24px rgba(0,0,0,0.85)',
-            }}
-          >
-            {caption}
-          </p>
-        </AbsoluteFill>
-      ) : null}
     </AbsoluteFill>
   )
 }

@@ -42,6 +42,8 @@ export type RenderPipelineInput = {
   subtitles: SubtitleSegment[]
   outputPath: string
   crossfadeSec?: number
+  /** When true, burn subtitle segments into the exported video. Defaults to off. */
+  burnSubtitles?: boolean
 }
 
 export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
@@ -118,10 +120,6 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
       mergedVideo,
     ])
 
-    const srtPath = path.join(workDir, 'subs.srt')
-    await fs.writeFile(srtPath, segmentsToSrt(input.subtitles), 'utf8')
-
-    const srtForFilter = srtPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")
     const finalPath = input.outputPath
     await ensureDir(path.dirname(finalPath))
 
@@ -130,10 +128,16 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
       args.push('-i', input.audioPath)
     }
 
-    const vfParts = [
-      `subtitles='${srtForFilter}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=80'`,
-    ]
-    args.push('-vf', vfParts.join(','))
+    const burnSubtitles = input.burnSubtitles === true && input.subtitles.length > 0
+    if (burnSubtitles) {
+      const srtPath = path.join(workDir, 'subs.srt')
+      await fs.writeFile(srtPath, segmentsToSrt(input.subtitles), 'utf8')
+      const srtForFilter = srtPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")
+      args.push(
+        '-vf',
+        `subtitles='${srtForFilter}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=80'`
+      )
+    }
     args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS))
 
     if (input.audioPath) {
