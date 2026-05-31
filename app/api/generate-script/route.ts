@@ -31,8 +31,10 @@ import {
   parseFeatureUsageProjectId,
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
+import { trackServerError } from '@/lib/analytics/track-server-event'
 import { normalizeCreativeBrief } from '@/lib/companion/creative-discovery'
 import { normalizeCreatorMemory } from '@/lib/companion/creator-memory'
+import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -261,6 +263,7 @@ export async function POST(req: NextRequest) {
       : undefined
 
     const creativeBrief = normalizeCreativeBrief(raw.creativeBrief ?? raw.creative_brief)
+    const contentBrief = normalizeContentBrief(raw.contentBrief ?? raw.content_brief)
     const companionMemory = normalizeCreatorMemory(
       raw.companionMemory ?? raw.companion_memory ?? raw.creatorMemory
     )
@@ -297,6 +300,7 @@ export async function POST(req: NextRequest) {
       recentContentAngles,
       creativeBrief: Object.values(creativeBrief).some(Boolean) ? creativeBrief : undefined,
       companionMemory: Object.values(companionMemory).some(Boolean) ? companionMemory : undefined,
+      contentBrief: contentBrief ?? undefined,
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -375,6 +379,12 @@ export async function POST(req: NextRequest) {
       }
       logStepFailed('script', user.id, message)
       logGenerationError(user.id, 'script', message, { reason: 'provider_failed' })
+      void trackServerError(
+        message.toLowerCase().includes('timeout') ? 'timeout' : 'openai',
+        message,
+        { step: 'script', topic: topic.slice(0, 40) },
+        user.id
+      )
       console.error('[GENERATE_SCRIPT_ERROR]', { message, stack })
       return NextResponse.json(
         {

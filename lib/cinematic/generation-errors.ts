@@ -1,3 +1,4 @@
+import { creatorFriendlyMessage } from '@/lib/errors/creator-friendly-errors'
 import { SOFT_ERROR_COPY, softenCinematicError } from '@/lib/creator/soft-error-copy'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import { PLAN_LIMIT_MESSAGE } from '@/lib/usage/usage-tracker'
@@ -34,9 +35,13 @@ export function toUserGenerationError(err: unknown): string {
     if (RAW_USER_MESSAGES.has(msg)) {
       return SOFT_ERROR_COPY.storyPaused
     }
-    return softenCinematicError(err, SOFT_ERROR_COPY.storyPaused)
+    const softened = softenCinematicError(err, SOFT_ERROR_COPY.storyPaused)
+    if (softened === SOFT_ERROR_COPY.storyPaused) {
+      return creatorFriendlyMessage(err, 'generation')
+    }
+    return softened
   }
-  return SOFT_ERROR_COPY.storyPaused
+  return creatorFriendlyMessage(err, 'generation')
 }
 
 export const GENERATION_RECOVERY_MESSAGE =

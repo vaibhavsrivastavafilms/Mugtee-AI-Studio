@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
+import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
 
 function WorkspacePageInner() {
   const searchParams = useSearchParams()
@@ -18,11 +19,7 @@ function WorkspacePageInner() {
 export default function StudioWorkspacePage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-          Opening Command Center…
-        </div>
-      }
+      fallback={<PageLoadingSkeleton className="p-6 sm:p-8 min-h-[40vh]" />}
     >
       <WorkspacePageInner />
     </Suspense>

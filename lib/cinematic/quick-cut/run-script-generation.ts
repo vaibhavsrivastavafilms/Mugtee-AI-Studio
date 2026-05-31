@@ -114,6 +114,7 @@ export type ScriptGenerationInput = {
   hookFrameworkId?: string
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
+  contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -148,6 +149,7 @@ type GenInput = {
   hookFramework?: HookFramework
   creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
   companionMemory?: import('@/lib/companion/types').CreatorMemory | null
+  contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -197,6 +199,7 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       hookFramework: input.hookFramework,
       creativeBrief: input.creativeBrief,
       companionMemory: input.companionMemory,
+      contentBrief: input.contentBrief,
     }),
     sopSection,
     retryNote
@@ -576,6 +579,7 @@ export async function runScriptGeneration(
     hookFramework,
     creativeBrief: input.creativeBrief,
     companionMemory: input.companionMemory,
+    contentBrief: input.contentBrief,
   }
 
   if (!hasScriptGenerationKey()) {

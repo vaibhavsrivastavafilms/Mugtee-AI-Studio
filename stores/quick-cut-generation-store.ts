@@ -152,7 +152,14 @@ import {
   persistStepComplete,
 } from '@/lib/cinematic/generation-persist'
 import { AnalyticsEvents } from '@/lib/analytics/events'
-import { trackEvent } from '@/lib/analytics/track-event'
+import {
+  trackError,
+  trackEvent,
+  trackFirstGenerationCompleted,
+  trackFirstGenerationStarted,
+  trackFirstProjectCreated,
+} from '@/lib/analytics/track-event'
+import { markFirstGeneration } from '@/lib/onboarding/onboarding-state'
 import {
   deriveScriptText,
   narrationFromCinematicScript,
@@ -1548,6 +1555,7 @@ export const useQuickCutGenerationStore = create<
         style: tone,
       },
     })
+    trackFirstGenerationStarted({ projectId: preserveProjectId })
 
     let anyMock = false
     const missingKeys = new Set<string>()
@@ -1915,6 +1923,7 @@ export const useQuickCutGenerationStore = create<
               projectId: hookId,
               metadata: { source: 'quick_cut' },
             })
+            trackFirstProjectCreated({ projectId: hookId, metadata: { source: 'quick_cut' } })
           }
         }
       }
@@ -2415,7 +2424,13 @@ export const useQuickCutGenerationStore = create<
             mock: anyMock,
           },
         })
+        trackFirstGenerationCompleted({ projectId: get().savedProjectId })
+        markFirstGeneration()
         trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
+          projectId: get().savedProjectId,
+          metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+        })
+        trackEvent(AnalyticsEvents.PROJECT_EXPORTED, {
           projectId: get().savedProjectId,
           metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
         })
@@ -2432,6 +2447,10 @@ export const useQuickCutGenerationStore = create<
             message: renderError?.slice(0, 120) ?? 'Export failed',
             step: 'export',
           },
+        })
+        trackError('export', renderError ?? 'Export failed', {
+          step: 'export',
+          projectId: get().savedProjectId,
         })
       }
 
@@ -2451,6 +2470,10 @@ export const useQuickCutGenerationStore = create<
           message: toUserGenerationError(err).slice(0, 120),
           step: get().generationStep,
         },
+      })
+      trackError('api', toUserGenerationError(err), {
+        step: get().generationStep,
+        projectId: get().savedProjectId,
       })
       const failedAt = inferLastCompletedStep(get())
       const nextFailedStep =

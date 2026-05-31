@@ -92,7 +92,7 @@ export function LoginContent() {
     })
 
     if (error) {
-      toast.error('Could not start Google sign-in: ' + error.message)
+      toast.error('Could not start Google sign-in. Please try again.')
       setLoading(false)
     }
   }
@@ -140,7 +140,7 @@ export function LoginContent() {
             type="button"
             onClick={handleGoogle}
             disabled={loading || !authConfigured}
-            className="w-full flex items-center justify-center gap-3 h-14 rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 transition-opacity duration-150 font-medium text-sm disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 min-h-[44px] h-14 rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 transition-opacity duration-150 font-medium text-sm disabled:opacity-50 touch-manipulation"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
               <path
@@ -171,7 +171,7 @@ export function LoginContent() {
 
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 text-sm text-[var(--v2-text-secondary)] hover:text-[var(--v2-text-primary)] transition-colors duration-150"
+            className="flex min-h-[44px] items-center justify-center gap-2 text-sm text-[var(--v2-text-secondary)] hover:text-[var(--v2-text-primary)] transition-colors duration-150 touch-manipulation"
           >
             <ArrowRight className="w-3.5 h-3.5 rotate-180" />
             Return to homepage
@@ -179,7 +179,15 @@ export function LoginContent() {
         </div>
 
         <p className="text-[10px] text-center text-[var(--v2-text-secondary)] mt-6 leading-relaxed">
-          By continuing you accept Mugtee&apos;s terms. Session encrypted via Supabase PKCE.
+          By continuing you accept our{' '}
+          <Link href="/terms" className="text-[var(--v2-gold)]/90 hover:underline">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="text-[var(--v2-gold)]/90 hover:underline">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </motion.div>
     </div>

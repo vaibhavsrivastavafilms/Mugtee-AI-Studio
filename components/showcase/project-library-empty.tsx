@@ -4,11 +4,11 @@ import { V2EmptyState } from '@/components/v2/v2-empty-state'
 import {
   CREATOR_TYPE_SHOWCASE,
   SHOWCASE_EXAMPLES,
-  STARTER_PROMPT_CHIPS,
   nicheLabel,
 } from '@/lib/showcase/examples'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 
 export function ProjectLibraryEmpty() {
   const examples = SHOWCASE_EXAMPLES.slice(0, 3)
@@ -68,17 +68,7 @@ export function ProjectLibraryEmpty() {
         </div>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 pt-1">
-        {STARTER_PROMPT_CHIPS.slice(0, 3).map((chip) => (
-          <Link
-            key={chip.label}
-            href={`/create?mode=quick&topic=${encodeURIComponent(chip.prompt)}`}
-            className="px-3 py-1.5 rounded-full border border-[var(--v2-border)] text-[10px] text-[var(--v2-text-secondary)] hover:text-[var(--v2-text-primary)] hover:border-[var(--v2-gold)]/35 transition-colors duration-150"
-          >
-            {chip.label}
-          </Link>
-        ))}
-      </div>
+      <EmptyStateExamples variant="cards" className="pt-1" />
     </div>
   )
 }

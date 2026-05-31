@@ -2,6 +2,8 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 
+import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
+
 export const ASSET_UNAVAILABLE_MSG = 'Asset unavailable. Regenerate required.'
 export const EXPORT_EXPIRED_MSG = 'Export expired. Regenerate export.'
 
@@ -13,12 +15,15 @@ export function isQuickCutMp4DownloadReady(input: {
   isRenderingVideo?: boolean
   renderPollUrl?: string | null
   renderError?: string | null
+  /** Set when server/client validation confirms file exists */
+  downloadValidated?: boolean
 }): boolean {
   if (input.exportExpired) return false
   if (input.isRenderingVideo || input.renderPollUrl) return false
   const url = input.videoUrl?.trim()
-  if (!url) return false
+  if (!url || !isValidReelDownloadUrl(url)) return false
   if (input.videoRenderEnabled && input.renderError?.trim()) return false
+  if (input.downloadValidated === false) return false
   return true
 }
 
@@ -316,7 +321,18 @@ export async function fetchProjectReelDownload(
   if (!res.ok) {
     return { reelUrl: null, status: 'failed' }
   }
-  const data = (await res.json()) as { reelUrl?: string | null; status?: string }
-  const reelUrl = typeof data.reelUrl === 'string' && data.reelUrl.trim() ? data.reelUrl.trim() : null
-  return { reelUrl, status: typeof data.status === 'string' ? data.status : 'pending' }
+  const data = (await res.json()) as {
+    reelUrl?: string | null
+    status?: string
+    validated?: boolean
+  }
+  const reelUrl =
+    typeof data.reelUrl === 'string' &&
+    data.reelUrl.trim() &&
+    isValidReelDownloadUrl(data.reelUrl)
+      ? data.reelUrl.trim()
+      : null
+  const status =
+    data.validated && reelUrl ? 'completed' : typeof data.status === 'string' ? data.status : 'pending'
+  return { reelUrl, status }
 }

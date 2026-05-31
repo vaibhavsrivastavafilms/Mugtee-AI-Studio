@@ -7,6 +7,7 @@ import {
   queueReelExportForProject,
 } from '@/lib/reels/export-api'
 import { logError } from '@/lib/workspace/validation'
+import { exportLog } from '@/lib/export/export-log.server'
 import {
   FeatureUsageFeatures,
   trackFeatureUsage,
@@ -82,12 +83,20 @@ export async function POST(req: NextRequest) {
       includeCaptions,
     })
 
+    exportLog.requested({
+      projectId,
+      userId: auth.user!.id,
+      jobId,
+      quality,
+    })
+
     await trackUsageMetric(auth.user!.id, 'renders')
     void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.VIDEO_GENERATION, projectId)
 
     return NextResponse.json({ jobId, status })
   } catch (err) {
     logError('reels.export.post', err)
+    exportLog.error('export request', err, { route: 'POST /api/reels/export' })
     const message = err instanceof Error ? err.message : 'Reel export failed'
     return NextResponse.json({ error: message, status: 'failed' }, { status: 500 })
   }

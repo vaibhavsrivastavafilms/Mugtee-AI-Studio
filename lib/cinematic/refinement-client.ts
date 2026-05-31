@@ -129,6 +129,8 @@ export function buildRegenPayload(
 
     contentAngleId: hookOptions?.contentAngleId,
 
+    contentBrief: (state as { contentBrief?: unknown }).contentBrief ?? undefined,
+
   }
 
 }

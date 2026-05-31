@@ -27,8 +27,8 @@ const variants = {
 }
 
 const sizes = {
-  default: 'px-5 py-2.5 text-sm',
-  lg: 'px-7 py-3.5 text-base',
+  default: 'min-h-[44px] px-5 py-2.5 text-sm touch-manipulation',
+  lg: 'min-h-[44px] px-7 py-3.5 text-base touch-manipulation',
 }
 
 export function LuxButton({

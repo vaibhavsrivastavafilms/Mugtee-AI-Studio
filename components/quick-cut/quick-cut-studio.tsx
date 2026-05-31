@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { hasProjectFeedbackSubmitted } from '@/lib/creator/project-feedback-storage'
-import { ProjectCompletionFeedbackModal } from '@/components/quick-cut/project-completion-feedback-modal'
+import { useFeedbackStore } from '@/stores/feedback-store'
 import { useRouter } from 'next/navigation'
 import {
   GENERATION_FOOTER_CLEARANCE,
@@ -39,8 +38,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const feedbackPromptedRef = useRef<string | null>(null)
   const generationState = useQuickCutGenerationStore((s) => s.generationState)
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
@@ -61,14 +58,8 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
   }, [generationStep, stageTabPinned])
 
   useEffect(() => {
-    if (!isComplete) return
-    const key = savedProjectId || 'session'
-    if (feedbackPromptedRef.current === key) return
-    if (hasProjectFeedbackSubmitted(savedProjectId)) return
-    feedbackPromptedRef.current = key
-    const t = window.setTimeout(() => setFeedbackOpen(true), 1500)
-    return () => window.clearTimeout(t)
-  }, [isComplete, savedProjectId])
+    useFeedbackStore.getState().setScopeId(savedProjectId)
+  }, [savedProjectId])
 
   const showRecovery =
     generationStep === 'error' || generationStatus === 'failed'
@@ -169,10 +160,7 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
       </div>
 
       <QuickCutGenerationFooter />
-      <ProjectCompletionFeedbackModal
-        open={feedbackOpen}
-        onClose={() => setFeedbackOpen(false)}
-      />
     </>
   )
 }
+

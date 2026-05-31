@@ -26,6 +26,7 @@ import { ThumbnailGeneratePanel } from '@/components/workspace/thumbnail-generat
 import { DirectorCutUpgradeModal } from '@/components/mugtee-portal/director-cut-upgrade-modal'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { cn } from '@/lib/utils'
+import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 import { storeCreatorMode } from '@/lib/create/mode-selection'
 
 const PLATFORMS = [
@@ -685,7 +686,8 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
 
         {/* Empty-state inspiration ╬ô├ç├╢ appears until the creator has output or a draft topic. */}
         {!output && !generating && !topic.trim() && (
-          <div className="mb-6 space-y-2.5 animate-in fade-in duration-500">
+          <div className="mb-6 space-y-4 animate-in fade-in duration-500">
+            <EmptyStateExamples />
             <p className="text-[10px] tracking-[0.22em] uppercase text-gold-400/70 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" /> Start with a feeling
             </p>

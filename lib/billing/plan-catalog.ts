@@ -48,6 +48,7 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
       limits: free,
       features: [
         ...limitFeatures(free),
+        'Best for trying Mugtee — no card required',
         'Cinematic script & storyboard workflow',
         'Quick Cut generation pipeline',
         'Showcase sharing',
@@ -65,6 +66,7 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
       limits: creator,
       features: [
         ...limitFeatures(creator, 'Up to '),
+        'Everything in Free, with higher monthly caps',
         'Priority generation queue',
         'Advanced export profiles',
         'Creator analytics dashboard',
@@ -83,7 +85,7 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
       limits: pro,
       features: [
         ...limitFeatures(pro, 'Up to '),
-        'Everything in Creator',
+        'Everything in Creator, with the highest limits',
         'Team workspaces (coming soon)',
         'Priority support',
         'Early access to new models',

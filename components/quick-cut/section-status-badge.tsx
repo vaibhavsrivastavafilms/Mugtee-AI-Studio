@@ -30,7 +30,7 @@ export function SectionStatusBadge({
   return (
     <p
       className={cn(
-        'text-[10px] tracking-[0.16em] uppercase flex items-center gap-1.5',
+        'text-[10px] sm:text-[11px] tracking-[0.16em] uppercase flex flex-wrap items-center gap-1.5 max-w-full',
         status === 'completed' && 'text-emerald-400/85',
         status === 'generating' && 'text-gold-300/80',
         status === 'failed' && 'text-red-400/80',

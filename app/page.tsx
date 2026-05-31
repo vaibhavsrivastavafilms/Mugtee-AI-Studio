@@ -1,6 +1,32 @@
 import nextDynamic from 'next/dynamic'
+import type { Metadata } from 'next'
+import { getCanonicalSiteUrl } from '@/lib/url'
 
 export const dynamic = 'force-dynamic'
+
+const SITE_URL = getCanonicalSiteUrl()
+const HOME_TITLE = 'Mugtee · AI Production OS for Creators'
+const HOME_DESCRIPTION =
+  'Turn any idea into creator-ready hooks, scripts, storyboards, and exports in one cinematic AI studio built for creators.'
+
+export const metadata: Metadata = {
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Mugtee' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: ['/logo.png'],
+  },
+}
 
 const CinematicLandingPage = nextDynamic(
   () =>

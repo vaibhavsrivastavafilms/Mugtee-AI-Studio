@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   Check,
   CheckCircle2,
@@ -45,6 +45,8 @@ import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { CelebrationState } from '@/components/companion/celebration-state'
+import { FirstSuccessCelebration } from '@/components/onboarding/first-success-celebration'
+import { hasCompletedFirstGeneration } from '@/lib/onboarding/onboarding-state'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
 import { StoryExpansionCard } from '@/components/companion/story-expansion-card'
 import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
@@ -53,6 +55,10 @@ import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
+import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
+import { OutputQualityBadges } from '@/components/proof/output-quality-badges'
+import { OutputRatingCard } from '@/components/feedback/output-rating-card'
+import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
 
 const actionButtonClass =
   'inline-flex min-h-[44px] flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation'
@@ -106,11 +112,15 @@ export function GenerationResultsSection({
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
 
+  const returningCreatorRef = useRef(hasCompletedFirstGeneration())
+
   const [downloadingMp4, setDownloadingMp4] = useState(false)
   const [downloadingMp3, setDownloadingMp3] = useState(false)
   const [copiedScript, setCopiedScript] = useState(false)
   const [scriptOpen, setScriptOpen] = useState(false)
   const [assetError, setAssetError] = useState<string | null>(null)
+  const [showExportFeedback, setShowExportFeedback] = useState(false)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
 
   const exportBase = slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')
   const mp4Name = `${exportBase}.mp4`
@@ -130,6 +140,13 @@ export function GenerationResultsSection({
   const hasScript = exportAssets.script
   const hasNarration = exportAssets.narration
   const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
+  const reelReadiness = useReelDownloadReadiness({
+    projectId: savedProjectId,
+    videoUrl,
+    isRendering: isRenderingVideo,
+    renderPollUrl,
+    exportExpired,
+  })
   const mp4DownloadReady = isQuickCutMp4DownloadReady({
     videoUrl,
     videoRenderEnabled,
@@ -137,8 +154,11 @@ export function GenerationResultsSection({
     isRenderingVideo,
     renderPollUrl,
     renderError,
+    downloadValidated: videoUrl?.trim()
+      ? reelReadiness.ready || !savedProjectId
+      : undefined,
   })
-  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired)
+  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired && !reelReadiness.validating)
   const mp4Compiling =
     isRenderingVideo ||
     (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
@@ -171,6 +191,9 @@ export function GenerationResultsSection({
     })
     setAssetError(null)
     setDownloadingMp4(true)
+    if (mp4Compiling || reelReadiness.validating) {
+      toast.message('Preparing your video…')
+    }
     try {
       if (videoUrl?.trim() || savedProjectId) {
         await resolveMp4Download({
@@ -178,7 +201,10 @@ export function GenerationResultsSection({
           videoUrl,
           filename: mp4Name,
           compileIfNeeded: canCompileMp4 && !videoUrl,
+          onProgress: (label) => toast.message(label, { id: 'mp4-export-progress' }),
         })
+        toast.success('Video ready for download.', { id: 'mp4-export-progress' })
+        setShowExportFeedback(true)
       } else {
         await retryVideoRender()
         const url = useQuickCutGenerationStore.getState().videoUrl
@@ -189,6 +215,8 @@ export function GenerationResultsSection({
           videoUrl: url,
           filename: mp4Name,
         })
+        toast.success('Video ready for download.')
+        setShowExportFeedback(true)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
@@ -198,6 +226,7 @@ export function GenerationResultsSection({
         ...(expired ? { exportExpired: true, videoUrl: null } : {}),
       })
       setAssetError(message)
+      toast.error('Download failed. Please try again.', { id: 'mp4-export-progress' })
     } finally {
       setDownloadingMp4(false)
     }
@@ -209,6 +238,8 @@ export function GenerationResultsSection({
     canCompileMp4,
     retryVideoRender,
     guardExport,
+    mp4Compiling,
+    reelReadiness.validating,
   ])
 
   const handleDownloadMp3 = useCallback(async () => {
@@ -222,6 +253,7 @@ export function GenerationResultsSection({
     setDownloadingMp3(true)
     try {
       await downloadMp3File(voiceUrl!, mp3Name)
+      setShowExportFeedback(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
       setAssetError(message)
@@ -243,6 +275,13 @@ export function GenerationResultsSection({
   }, [hasScript, scriptInput])
 
   const hasScriptContent = Boolean(script?.trim() || scriptBeats.length || hook?.trim())
+  const captionReady = Boolean(cta?.trim() || script?.trim())
+  const outputQuality = {
+    hookGenerated: Boolean(hook?.trim()),
+    storyboardReady: scenes.length > 0,
+    captionReady,
+    exportReady: hasMp4,
+  }
 
   return (
     <section
@@ -252,7 +291,12 @@ export function GenerationResultsSection({
       )}
       aria-label="Generation results"
     >
-      <CelebrationState title={title} className="w-full" />
+      <FirstSuccessCelebration className="w-full" />
+      {returningCreatorRef.current ? (
+        <CelebrationState title={title} className="w-full" />
+      ) : null}
+
+      <OutputQualityBadges state={outputQuality} />
 
       <div className="flex flex-col items-center text-center gap-2">
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-[10px] tracking-[0.22em] uppercase text-emerald-200/90">
@@ -311,20 +355,34 @@ export function GenerationResultsSection({
           type="button"
           data-recommend-target="mp4-export"
           onClick={() => void handleDownloadMp4()}
-          disabled={!hasMp4 || downloadingMp4 || mp4Compiling || exportExpired}
+          disabled={!hasMp4 || downloadingMp4 || mp4Compiling || exportExpired || reelReadiness.validating}
           className={hasMp4 ? primaryActionClass : secondaryActionClass}
         >
-          {downloadingMp4 || mp4Compiling ? (
+          {downloadingMp4 || mp4Compiling || reelReadiness.validating ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
           ) : (
             <Download className="w-3.5 h-3.5" aria-hidden />
           )}
           {downloadingMp4
             ? 'Downloading…'
-            : mp4Compiling
-              ? 'Rendering…'
-              : 'Download MP4'}
+            : mp4Compiling || reelReadiness.validating
+              ? 'Preparing…'
+              : mp4DownloadReady
+                ? 'Download MP4'
+                : 'Compile MP4'}
         </button>
+
+        {reelReadiness.validationError && !mp4Compiling ? (
+          <p className="w-full text-center text-[11px] text-amber-200/80" role="status">
+            {reelReadiness.validationError}
+          </p>
+        ) : null}
+
+        {assetError ? (
+          <p className="w-full text-center text-[11px] text-amber-200/80" role="alert">
+            {assetError}
+          </p>
+        ) : null}
 
         <button
           type="button"
@@ -404,6 +462,18 @@ export function GenerationResultsSection({
             />
           </CollapsibleContent>
         </Collapsible>
+      ) : null}
+
+      {isComplete ? (
+        <OutputRatingCard projectId={savedProjectId} className="w-full" />
+      ) : null}
+
+      {showExportFeedback ? (
+        <ExportSatisfactionCard
+          projectId={savedProjectId}
+          className="w-full"
+          onDismissed={() => setShowExportFeedback(false)}
+        />
       ) : null}
 
       <dl className="grid grid-cols-1 sm:grid-cols-3 gap-2">

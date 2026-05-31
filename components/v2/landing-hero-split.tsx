@@ -7,8 +7,8 @@ import { LuxButton } from '@/components/v2/lux-button'
 import { TEXT_TO_VIDEO_DEMO_TEMPLATES } from '@/lib/demo/text-to-video-templates'
 import { cn } from '@/lib/utils'
 
-const DEMO_HREF = '/studio/video'
 const CREATE_HREF = '/studio/create?mode=quick'
+const SHOWCASE_ANCHOR = '#see-what-mugtee-creates'
 
 const EGYPT_DEMO =
   TEXT_TO_VIDEO_DEMO_TEMPLATES.find((t) => t.id === 'ancient-egypt-daily-life') ??
@@ -35,20 +35,19 @@ export function LandingHeroSplit({ className }: { className?: string }) {
             Cinematic AI Studio
           </p>
           <h1 className="font-display text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.06] text-[var(--v2-text-primary)]">
-            From Idea to{' '}
-            <span className="italic text-[var(--v2-gold)]">Cinematic Story</span>
+            Turn Any Idea Into{' '}
+            <span className="italic text-[var(--v2-gold)]">Creator-Ready Content</span>
           </h1>
           <p className="text-base sm:text-lg text-[var(--v2-text-secondary)] max-w-lg leading-relaxed">
-            Generate hooks, scripts, storyboards, captions, and cinematic videos — all in one AI
-            studio for creators.
+            Generate hooks, scripts, storyboards, captions, and thumbnail concepts in one cinematic
+            AI studio built for creators.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-2 w-full max-w-lg">
             <LuxButton href={CREATE_HREF} size="lg" className="rounded-full">
-              Start Creating <ArrowRight className="h-4 w-4" />
+              Start Creating Free <ArrowRight className="h-4 w-4" />
             </LuxButton>
-            <LuxButton href={DEMO_HREF} variant="secondary" size="lg" className="rounded-full">
-              <Play className="h-4 w-4 fill-current" />
-              Watch Demo
+            <LuxButton href={SHOWCASE_ANCHOR} variant="secondary" size="lg" className="rounded-full">
+              See Example Outputs
             </LuxButton>
           </div>
           <div className="flex items-center gap-3 pt-2">
@@ -72,7 +71,7 @@ export function LandingHeroSplit({ className }: { className?: string }) {
 
         <div className="relative flex justify-center lg:justify-end">
           <Link
-            href={DEMO_HREF}
+            href={SHOWCASE_ANCHOR}
             className="group relative w-full max-w-[540px] aspect-[16/10] rounded-2xl overflow-hidden border border-[var(--v2-border)] bg-[var(--v2-surface)] v2-hover-scale shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
             <Image

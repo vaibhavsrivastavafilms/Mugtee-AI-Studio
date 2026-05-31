@@ -8,6 +8,7 @@ import {
   type ViralScript,
   type VisualStyle,
 } from '@/lib/cinematic/workflow-state'
+import { normalizeContentBrief, type ContentBrief } from '@/lib/content-director/content-brief'
 
 export type RegenSceneInput = {
   id: string
@@ -47,6 +48,7 @@ export type RegenProjectContext = {
   strongVariation: boolean
   emotionalGoal?: string
   contentAngleId?: string
+  contentBrief?: ContentBrief | null
 }
 
 function coerceString(raw: unknown, fallback = '', max = 12_000): string {
@@ -148,6 +150,7 @@ export function parseRegenContext(raw: Record<string, unknown>): RegenProjectCon
       typeof raw.contentAngleId === 'string' && raw.contentAngleId.trim()
         ? raw.contentAngleId.trim()
         : undefined,
+    contentBrief: normalizeContentBrief(raw.contentBrief ?? raw.content_brief),
   }
 }
 
