@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { RewriteVariant } from '@/lib/rewrite/rewrite-actions'
 import { requestRewriteSelection } from '@/lib/rewrite/rewrite-api'
@@ -95,6 +97,8 @@ export function MugteeFollowUpActions({ className }: { className?: string }) {
       try {
         switch (action.kind) {
           case 'hook':
+            trackEvent(AnalyticsEvents.IMPROVE_HOOK_CLICKED)
+            trackEvent(AnalyticsEvents.REGENERATE_CLICKED, { metadata: { target: 'hook' } })
             if (!hook?.trim()) {
               toast.error('Hook not ready yet')
               return
@@ -103,6 +107,8 @@ export function MugteeFollowUpActions({ className }: { className?: string }) {
             toast.success('Hook refreshed')
             break
           case 'script-regen':
+            trackEvent(AnalyticsEvents.IMPROVE_SCRIPT_CLICKED)
+            trackEvent(AnalyticsEvents.REGENERATE_CLICKED, { metadata: { target: 'script' } })
             await regenerateScript()
             toast.success('Script regenerated')
             break
@@ -111,6 +117,7 @@ export function MugteeFollowUpActions({ className }: { className?: string }) {
             await rewriteScript(action.rewriteVariant)
             break
           case 'pipeline-alt':
+            trackEvent(AnalyticsEvents.REGENERATE_CLICKED, { metadata: { target: 'pipeline_alt' } })
             if (!prompt.trim()) {
               toast.error('No project context to regenerate')
               return

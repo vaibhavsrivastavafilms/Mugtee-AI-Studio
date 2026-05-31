@@ -8,6 +8,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { FacelessRenderInput, RenderProgressStage, RenderVideoResult } from '@/lib/video/types'
 import type { SceneMotionMap } from '@/lib/motion/motion-presets'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
+import { exportLog } from '@/lib/export/export-log.server'
 import { logError } from '@/lib/workspace/validation'
 import {
   clampSceneDurationsToTarget,
@@ -95,6 +96,13 @@ export async function orchestrateRemotionReel(
       throw new Error('At least one scene is required to render a reel.')
     }
 
+    exportLog.renderStarted({
+      jobId,
+      projectId: input.projectId,
+      userId: input.userId,
+      sceneCount: scenes.length,
+    })
+
     if (input.userId && input.projectId) {
       await updateProjectReelStatus({
         userId: input.userId,
@@ -149,12 +157,14 @@ export async function orchestrateRemotionReel(
     }
 
     report('assemble', 'Finalizing reel…')
+    exportLog.renderComplete({ jobId, projectId: input.projectId, durationSec })
 
     let videoUrl: string
     let storagePath: string
     let thumbnailUrl: string | null = null
 
     report('upload')
+    exportLog.uploadStarted({ jobId, projectId: input.projectId })
 
     if (input.userId && input.projectId) {
       await updateProjectReelStatus({
@@ -172,6 +182,11 @@ export async function orchestrateRemotionReel(
       })
       videoUrl = uploaded.videoUrl
       storagePath = uploaded.storagePath
+      exportLog.uploadComplete({
+        jobId,
+        projectId: input.projectId,
+        storagePath,
+      })
 
       if (thumbnailPath) {
         try {
@@ -211,6 +226,7 @@ export async function orchestrateRemotionReel(
     await fs.unlink(outputPath).catch(() => undefined)
 
     report('complete', 'Download ready')
+    exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
 
     updateRenderJob(jobId, {
       status: 'done',
@@ -234,6 +250,7 @@ export async function orchestrateRemotionReel(
     const message =
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
     logError('orchestrate.remotion-reel', err)
+    exportLog.error('render', err, { jobId, projectId: input.projectId })
 
     if (input.userId && input.projectId) {
       await updateProjectReelStatus({

@@ -8,6 +8,8 @@ import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydra
 import { loadProject } from '@/lib/cinematic-projects'
 import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import { STUDIO, type CreatorMode } from '@/lib/create/routes'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import WorkspacePage from '@/components/workspace/workspace-page'
 
 type ProjectMeta = {
@@ -82,6 +84,10 @@ function ProjectWorkspaceInner() {
           title: row.title,
           status: row.status,
           updatedAt: row.updated_at,
+        })
+        trackEvent(AnalyticsEvents.PROJECT_OPENED, {
+          projectId,
+          metadata: { mode: resolvedMode },
         })
       } catch {
         if (alive) router.replace(STUDIO.projects)

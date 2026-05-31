@@ -102,6 +102,12 @@ export default function FounderDashboardPage() {
         </Link>
         <div className="flex items-center gap-4 ml-auto flex-wrap">
           <Link
+            href="/admin/analytics"
+            className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
+          >
+            Conversion analytics <ExternalLink className="w-3 h-3" />
+          </Link>
+          <Link
             href="/admin/validation"
             className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
           >
@@ -130,6 +136,18 @@ export default function FounderDashboardPage() {
             className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
           >
             Growth signals <ExternalLink className="w-3 h-3" />
+          </Link>
+          <Link
+            href="/admin/launch-readiness"
+            className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
+          >
+            Launch readiness <ExternalLink className="w-3 h-3" />
+          </Link>
+          <Link
+            href="/admin/launch-checklist"
+            className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
+          >
+            Founder testing <ExternalLink className="w-3 h-3" />
           </Link>
         </div>
       </div>

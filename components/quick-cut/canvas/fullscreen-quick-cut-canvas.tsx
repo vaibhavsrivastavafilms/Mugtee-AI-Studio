@@ -73,7 +73,6 @@ import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
 import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
 import { SuggestionChips } from '@/components/onboarding/suggestion-chips'
 import { WhatMugteeGenerates } from '@/components/onboarding/what-mugtee-generates'
-import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 import {
   isFirstTimeUser,
   markHasCreatedProject,
@@ -130,6 +129,7 @@ export function FullscreenQuickCutCanvas({
   const [mobileImageOpen, setMobileImageOpen] = useState(false)
   const [useConversationEntry, setUseConversationEntry] = useState(true)
   const [creatorLanguage, setCreatorLanguage] = useState<DetectedCreatorLanguage | null>(null)
+  const [showActivationHints, setShowActivationHints] = useState(false)
 
   const { ready: authReady, user } = useAuthHydration()
   const signedIn = authReady ? Boolean(user) : null
@@ -170,6 +170,10 @@ export function FullscreenQuickCutCanvas({
   const imageNote = imageRef?.note
 
   const directorUi = isDirectorExperience(experienceLevel)
+
+  useEffect(() => {
+    setShowActivationHints(isFirstTimeUser())
+  }, [])
 
   useEffect(() => {
     const session = loadCreatorLanguageSession()
@@ -234,11 +238,18 @@ export function FullscreenQuickCutCanvas({
     )
   }, [])
 
-  const handleInspirationSelect = useCallback((topic: string) => {
+  const handlePromptPrefill = useCallback((topic: string) => {
     setPrompt(topic)
     setPromptFocused(true)
     promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
+
+  const handleInspirationSelect = useCallback(
+    (topic: string) => {
+      handlePromptPrefill(topic)
+    },
+    [handlePromptPrefill]
+  )
 
   const handleBlueprintSelect = useCallback(
     (blueprint: CreatorBlueprint) => {
@@ -302,6 +313,9 @@ export function FullscreenQuickCutCanvas({
         setShowSignIn(true)
         return
       }
+
+      markHasCreatedProject()
+      setShowActivationHints(false)
 
       const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
       await runPipeline({
@@ -400,22 +414,38 @@ export function FullscreenQuickCutCanvas({
       <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
         <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
           {showConversation ? (
-            <MugteeConversationEntry
-              embedded={embedded}
-              language={contentLanguage}
-              signedIn={signedIn}
-              authReady={authReady}
-              onLaunch={handleConversationLaunch}
-              requireDiscovery={experienceLevel === 'noob'}
-              onSwitchClassic={() => {
-                saveConversationEntryPreference('classic')
-                setUseConversationEntry(false)
-              }}
-              showSignIn={showSignIn}
-              loginHref={loginHref}
-            />
+            <>
+              {showActivationHints && !prompt.trim() && !isGenerating ? (
+                <div className="mb-6 space-y-5">
+                  <GuidedCreationPrompt onSelect={handlePromptPrefill} />
+                  <SuggestionChips onSelect={handlePromptPrefill} />
+                </div>
+              ) : null}
+              <MugteeConversationEntry
+                embedded={embedded}
+                language={contentLanguage}
+                signedIn={signedIn}
+                authReady={authReady}
+                onLaunch={handleConversationLaunch}
+                requireDiscovery={experienceLevel === 'noob'}
+                onSwitchClassic={() => {
+                  saveConversationEntryPreference('classic')
+                  setUseConversationEntry(false)
+                }}
+                showSignIn={showSignIn}
+                loginHref={loginHref}
+              />
+            </>
           ) : (
             <>
+          {showActivationHints && !prompt.trim() && !isGenerating ? (
+            <div className="mb-6 space-y-5">
+              <GuidedCreationPrompt onSelect={handlePromptPrefill} />
+              <SuggestionChips onSelect={handlePromptPrefill} />
+              <EmptyStateExamples />
+              <WhatMugteeGenerates compact />
+            </div>
+          ) : null}
           <motion.p
             key={promptIndex}
             initial={{ opacity: 0, y: 6 }}

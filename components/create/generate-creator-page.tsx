@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { QuickCutCreator } from '@/components/create/quick-cut-creator'
+import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
 
 function GenerateInner() {
@@ -19,7 +20,7 @@ function GenerateInner() {
 
 export function GenerateCreatorPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-muted-foreground italic p-8">Loading…</div>}>
+    <Suspense fallback={<PageLoadingSkeleton className="p-6 sm:p-8" />}>
       <GenerateInner />
     </Suspense>
   )

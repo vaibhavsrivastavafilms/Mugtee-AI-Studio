@@ -3,6 +3,7 @@ import { buildHookLayer } from '@/lib/ai/prompts/cinematic/output-format'
 import { buildCaptionLayer } from '@/lib/ai/prompts/cinematic/output-format'
 import { buildVisualLayer, sceneVisualJsonFields } from '@/lib/ai/prompts/cinematic/visual-layer'
 import type { RegenProjectContext } from '@/lib/cinematic/regen-context'
+import { formatContentBriefForPrompt, type ContentBrief } from '@/lib/content-director/content-brief'
 import {
   captionsFromLines,
   sceneDescription,
@@ -116,6 +117,7 @@ export function buildHookRegenPrompt(ctx: RegenProjectContext): string {
       ].join('\n')
 
   return [
+    formatContentBriefForPrompt(ctx.contentBrief),
     buildPreserveBlock('hook', ctx),
     `Refine ONLY the opening hook for this vertical cinematic reel.`,
     `Original creator idea: "${ctx.topic || ctx.prompt}"`,
@@ -215,6 +217,7 @@ export function buildCaptionImprovePrompt(ctx: RegenProjectContext): string {
   const current = captionsFromLines(ctx.captionLines)
 
   return [
+    formatContentBriefForPrompt(ctx.contentBrief),
     buildPreserveBlock('caption', ctx),
     `Improve captions only — stronger emotional pull, cleaner short-form phrasing.`,
     `Project: "${ctx.topic || ctx.prompt}" · Niche: ${ctx.niche}`,

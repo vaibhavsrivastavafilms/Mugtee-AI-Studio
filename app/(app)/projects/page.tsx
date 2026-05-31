@@ -6,6 +6,7 @@ import { ProjectsInsightsPanel } from '@/components/create/projects-insights-pan
 import { ProjectsLibrarySection } from '@/components/create/projects-library-section'
 import { V2PageShell } from '@/components/v2/v2-page-shell'
 import { LuxFooter } from '@/components/v2/lux-footer'
+import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
 
 function ProjectsDashboardInner() {
   const [selectedProject, setSelectedProject] = useState<ProjectCardModel | null>(null)
@@ -44,9 +45,9 @@ export default function ProjectsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[40vh] flex items-center justify-center text-sm text-[var(--v2-text-secondary)] italic">
-          Loading projects…
-        </div>
+        <V2PageShell>
+          <PageLoadingSkeleton variant="grid" className="py-8" />
+        </V2PageShell>
       }
     >
       <V2PageShell className="pb-0">

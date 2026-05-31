@@ -3,20 +3,11 @@
 // Admin-only via ADMIN_USER_IDS env (comma-separated UUIDs). Anyone else gets 403.
 
 import { NextResponse } from 'next/server'
+import { computeConversionSummary } from '@/lib/analytics/compute-conversion-summary'
+import { isAdminUser } from '@/lib/admin/is-admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
-
-function isAdmin(userId: string | undefined): boolean {
-  if (!userId) return false
-  const list = (process.env.ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
-  if (list.length === 0) {
-    // Fallback — if no allow-list is configured we still let any authenticated user view
-    // their OWN aggregates. Strict admin requires ADMIN_USER_IDS to be set in env.
-    return false
-  }
-  return list.includes(userId)
-}
 
 function startOfWindow(days: number) {
   const d = new Date()
@@ -33,7 +24,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days') || 30)))
     const since = startOfWindow(days)
-    const admin = isAdmin(user.id)
+    const admin = isAdminUser(user)
 
     // For non-admins: scope all queries to their own user_id so they see only their personal funnel.
     const userFilter = admin ? null : user.id
@@ -128,6 +119,12 @@ export async function GET(req: Request) {
       agency_clicks:   counts['agency_demo_clicked'] || 0,
     }
 
+    const conversion = admin
+      ? computeConversionSummary(list)
+      : computeConversionSummary(
+          list.filter((ev) => ev.user_id === user.id)
+        )
+
     return NextResponse.json({
       ok: true,
       admin,
@@ -148,6 +145,7 @@ export async function GET(req: Request) {
         exports:           totals.exports,
         published:         totals.published,
       },
+      conversion,
     }, { status: 200 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 200 })

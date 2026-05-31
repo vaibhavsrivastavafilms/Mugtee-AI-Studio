@@ -30,6 +30,7 @@ import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import { projectCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 
 import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
+import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
 
 
 
@@ -191,11 +192,7 @@ function ExportInner() {
 
         ) : loadingUrl ? (
 
-          <div className="rounded-[28px] border border-white/[0.06] bg-[#050505]/80 p-12 text-center film-grain">
-
-            <p className="text-sm text-white/40 italic">Opening the render studio…</p>
-
-          </div>
+          <PageLoadingSkeleton variant="export" className="bg-[#050505]/80 film-grain" />
 
         ) : videoUrl ? (
 

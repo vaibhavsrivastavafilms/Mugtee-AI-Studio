@@ -1,6 +1,13 @@
 import { ASSET_UNAVAILABLE_MSG, EXPORT_EXPIRED_MSG } from '@/lib/quick-cut/asset-availability'
 import { compileProjectMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
+import {
+  recordDownloadFailure,
+  recordDownloadSuccess,
+  recordExportStarted,
+  recordExportSuccess,
+} from '@/lib/export/export-diagnostics'
+import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 
 export function projectMp4FileDownloadPath(projectId: string): string {
   return `/api/reels/download/${encodeURIComponent(projectId)}/file`
@@ -19,11 +26,14 @@ async function downloadViaProjectFileEndpoint(
     throw new Error(body.error || `Download failed (${res.status})`)
   }
   const blob = await res.blob()
+  if (blob.size <= 0) {
+    throw new Error('Downloaded video file is empty.')
+  }
   const objectUrl = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = objectUrl
   anchor.download = filename.endsWith('.mp4') ? filename : `${filename}.mp4`
-  anchor.rel = 'noopener'
+  anchor.rel = 'noopener noreferrer'
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
@@ -45,12 +55,24 @@ async function compileAndDownload(
   filename: string,
   onProgress?: (label: string) => void
 ): Promise<string> {
+  recordExportStarted(projectId)
+  onProgress?.('Preparing your video…')
   const videoUrl = await compileProjectMp4(projectId, { onProgress })
+  recordExportSuccess(projectId)
+
+  if (!isValidReelDownloadUrl(videoUrl)) {
+    throw new Error(ASSET_UNAVAILABLE_MSG)
+  }
+
   if (projectId) {
     const downloaded = await downloadViaProjectFileEndpoint(projectId, filename)
-    if (downloaded) return videoUrl
+    if (downloaded) {
+      recordDownloadSuccess(projectId)
+      return videoUrl
+    }
   }
   await downloadMp4File(videoUrl, filename)
+  recordDownloadSuccess(projectId)
   return videoUrl
 }
 
@@ -61,33 +83,46 @@ export async function resolveMp4Download(
   const { projectId, filename, onProgress } = params
   let videoUrl = params.videoUrl?.trim() || null
 
-  if (!videoUrl && params.compileIfNeeded && projectId) {
-    return compileAndDownload(projectId, filename, onProgress)
-  }
-
-  if (projectId) {
-    const downloaded = await downloadViaProjectFileEndpoint(projectId, filename)
-    if (downloaded) return videoUrl ?? projectMp4FileDownloadPath(projectId)
-    if (videoUrl) {
-      throw new Error(EXPORT_EXPIRED_MSG)
+  try {
+    if (!videoUrl && params.compileIfNeeded && projectId) {
+      return await compileAndDownload(projectId, filename, onProgress)
     }
-  }
 
-  if (videoUrl) {
-    try {
-      await downloadMp4File(videoUrl, filename)
-      return videoUrl
-    } catch {
-      if (params.compileIfNeeded && projectId) {
-        return compileAndDownload(projectId, filename, onProgress)
+    if (projectId) {
+      const downloaded = await downloadViaProjectFileEndpoint(projectId, filename)
+      if (downloaded) {
+        recordDownloadSuccess(projectId)
+        return videoUrl ?? projectMp4FileDownloadPath(projectId)
       }
-      throw new Error(ASSET_UNAVAILABLE_MSG)
+      if (videoUrl) {
+        throw new Error(EXPORT_EXPIRED_MSG)
+      }
     }
-  }
 
-  if (params.compileIfNeeded && projectId) {
-    return compileAndDownload(projectId, filename, onProgress)
-  }
+    if (videoUrl) {
+      if (!isValidReelDownloadUrl(videoUrl)) {
+        throw new Error(ASSET_UNAVAILABLE_MSG)
+      }
+      try {
+        await downloadMp4File(videoUrl, filename)
+        recordDownloadSuccess(projectId)
+        return videoUrl
+      } catch {
+        if (params.compileIfNeeded && projectId) {
+          return compileAndDownload(projectId, filename, onProgress)
+        }
+        throw new Error(ASSET_UNAVAILABLE_MSG)
+      }
+    }
 
-  throw new Error(ASSET_UNAVAILABLE_MSG)
+    if (params.compileIfNeeded && projectId) {
+      return compileAndDownload(projectId, filename, onProgress)
+    }
+
+    throw new Error(ASSET_UNAVAILABLE_MSG)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+    recordDownloadFailure(message, projectId)
+    throw err
+  }
 }

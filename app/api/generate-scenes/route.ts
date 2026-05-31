@@ -31,6 +31,7 @@ import {
 import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
 import { sanitizeSceneOnlyPrompt } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
 
+import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { coerceDuration, coerceTopic, logError } from '@/lib/workspace/validation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
@@ -153,6 +154,8 @@ export async function POST(req: NextRequest) {
       parseVisualStyle(raw?.visualStyle, visualStyleFromVirloContext(virlo)) ??
       visualStyleFromVirloContext(virlo)
 
+    const contentBrief = normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief)
+
     const parsed = parseScriptIntoScenes(script, visualStyle)
     if (parsed && parsed.length >= 2) {
       const enriched = parsed.map((scene, i) => {
@@ -233,6 +236,7 @@ export async function POST(req: NextRequest) {
         const userPrompt = buildMugteeDirectorPrompt(virlo, script, visualStyle, language, {
           researchDocument,
           directorMode,
+          contentBrief,
         })
 
         const completion = await openai.chat.completions.create({

@@ -22,6 +22,10 @@ import {
   variationCompositionDirective,
 } from '@/lib/cinematic/visual-diversity'
 import { formatStoryBibleForPrompt, type StoryBible } from '@/lib/cinematic/story-bible'
+import {
+  formatContentBriefForPrompt,
+  type ContentBrief,
+} from '@/lib/content-director/content-brief'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -43,6 +47,7 @@ export type GenerateSceneImagesInput = {
   hasReferenceStyle?: boolean
   referenceStyleNote?: string
   storyBible?: StoryBible | null
+  contentBrief?: ContentBrief | null
 }
 
 export type GenerateSceneImagesResult = {
@@ -80,6 +85,7 @@ function promptContext(
       : cameraVariationDirective(index, input.diversityAttempt ?? 0),
     hasReferenceStyle,
     storyBible: input.storyBible ?? undefined,
+    contentBriefSection: formatContentBriefForPrompt(input.contentBrief),
     previousScene:
       index > 0
         ? {

@@ -6,12 +6,15 @@
 
 import { useEffect } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { initPostHog, track } from '@/lib/posthog'
 
 export function AnalyticsBoot() {
   useEffect(() => {
     initPostHog()
     const firstVisit = !document.referrer || !document.referrer.includes(location.host)
+    trackEvent(AnalyticsEvents.LANDING_PAGE_VIEWED, { metadata: { first_visit: firstVisit } })
+    trackEvent(AnalyticsEvents.HOMEPAGE_VISIT, { metadata: { first_visit: firstVisit } })
     track(AnalyticsEvents.HOMEPAGE_VISIT, { first_visit: firstVisit })
     track('visitor_opened_site', { first_visit: firstVisit })
   }, [])

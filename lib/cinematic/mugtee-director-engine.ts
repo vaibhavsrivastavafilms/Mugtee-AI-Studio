@@ -14,6 +14,7 @@ import {
 import type { DeepResearchPipelineOptions } from '@/types/deep-research'
 import { buildDirectorModePromptSection } from '@/lib/ai/prompts/cinematic/director-mode-prompt'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
+import { formatContentBriefForPrompt, type ContentBrief } from '@/lib/content-director/content-brief'
 
 /**
  * Mugtee Director — converts Virlo viral script into scene beats with camera + lighting.
@@ -22,6 +23,7 @@ import type { DirectorMode } from '@/lib/cinematic/director-modes'
 export type MugteeDirectorPromptOptions = {
   viralStructure?: ViralStructureAnalysis
   directorMode?: DirectorMode
+  contentBrief?: ContentBrief | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument'>
 
 export function buildMugteeDirectorPrompt(
@@ -31,7 +33,7 @@ export function buildMugteeDirectorPrompt(
   language: ProjectLanguage,
   options: MugteeDirectorPromptOptions = {}
 ): string {
-  const { viralStructure, researchDocument, directorMode } = options
+  const { viralStructure, researchDocument, directorMode, contentBrief } = options
 
   const styleLock = [
     `LOCKED VISUAL STYLE (metadata layer — apply to cameraAngle, lightingMood, colorPalette, environment, movementStyle):`,
@@ -54,6 +56,7 @@ export function buildMugteeDirectorPrompt(
   })
 
   return [
+    formatContentBriefForPrompt(contentBrief),
     languageDirective(language),
     directorMode ? buildDirectorModePromptSection(directorMode) : '',
     buildStoryboardSopSystemAugment(),

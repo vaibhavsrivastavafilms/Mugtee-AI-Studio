@@ -27,8 +27,9 @@ export default function PricingPage() {
             <span className="block text-[var(--v2-text-primary)] mt-1">cinematic studio tier.</span>
           </h1>
           <p className="text-[var(--v2-text-secondary)] mt-4 text-sm sm:text-base leading-relaxed">
-            Start free with generous limits. Join the waitlist for Creator and Pro — billing launches
-            soon with no surprise charges today.
+            Start free with generous limits. Creator and Pro add higher monthly caps for projects,
+            generations, exports, and renders — join the waitlist; billing launches soon with no
+            surprise charges today.
           </p>
         </div>
 

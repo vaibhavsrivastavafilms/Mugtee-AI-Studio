@@ -14,6 +14,8 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { track } from '@/lib/posthog'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { persistPostLoginRedirect } from '@/lib/create/mode-selection'
 
 export default function HeroGoogleCta({
@@ -33,6 +35,8 @@ export default function HeroGoogleCta({
     if (loading) return
     setLoading(true)
     track('signup_started', { provider: 'google', source })
+    trackEvent(AnalyticsEvents.SIGNUP_STARTED, { metadata: { provider: 'google', source } })
+    trackEvent(AnalyticsEvents.HERO_CTA_CLICKED, { metadata: { provider: 'google', source } })
     try {
       persistPostLoginRedirect(next)
       const supabase = createSupabaseBrowserClient()
@@ -47,12 +51,12 @@ export default function HeroGoogleCta({
         options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } },
       })
       if (error) {
-        toast.error('Could not start Google sign-in: ' + error.message)
+        toast.error('Could not start Google sign-in. Please try again.')
         setLoading(false)
       }
       // On success the browser navigates to Google — no further state changes needed here.
-    } catch (e: any) {
-      toast.error(e?.message || 'Sign-in failed')
+    } catch {
+      toast.error('Sign-in failed. Please try again.')
       setLoading(false)
     }
   }

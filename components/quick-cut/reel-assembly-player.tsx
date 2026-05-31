@@ -671,7 +671,7 @@ export function ReelAssemblyPlayer({
 
             onClick={togglePlayback}
 
-            className="absolute bottom-3 right-3 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-black/60 text-gold-100 shadow-lg backdrop-blur-sm opacity-90 hover:opacity-100 transition-opacity"
+            className="absolute bottom-3 right-3 z-[3] flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-gold-500/40 bg-black/60 text-gold-100 shadow-lg backdrop-blur-sm opacity-90 hover:opacity-100 transition-opacity touch-manipulation"
 
             aria-label={hasVideo ? 'Pause video' : 'Pause preview'}
 
@@ -763,7 +763,7 @@ export function ReelAssemblyPlayer({
 
               onClick={togglePlayback}
 
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold-500/35 bg-black/45 text-gold-100/90 hover:bg-black/60 transition-colors"
+              className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-gold-500/35 bg-black/45 text-gold-100/90 hover:bg-black/60 transition-colors touch-manipulation"
 
               aria-label={previewIsPlaying ? 'Pause preview' : playControlLabel}
 

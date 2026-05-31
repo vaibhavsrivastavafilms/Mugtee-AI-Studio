@@ -178,7 +178,11 @@ export function LaunchReadinessChecklist() {
 
       <p className="text-[11px] text-luxe/45">
         Related:{' '}
-        <Link href="/studio/admin" className="text-gold-300/80 hover:text-gold-200">
+        <Link href="/admin/launch-checklist" className="text-gold-300/80 hover:text-gold-200">
+          Founder testing checklist
+        </Link>
+        {' · '}
+        <Link href="/admin/validation" className="text-gold-300/80 hover:text-gold-200">
           Creator validation metrics
         </Link>
         {' · '}

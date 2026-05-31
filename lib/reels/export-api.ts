@@ -14,6 +14,9 @@ import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-
 import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { updateProjectReelStatus } from '@/lib/video/reel-storage-upload'
+import { exportLog } from '@/lib/export/export-log.server'
+import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
+import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
 
 export type ReelExportStatus =
@@ -67,9 +70,9 @@ export function mapProjectReelStatus(
   reelStatus: string | null | undefined,
   reelUrl: string | null | undefined
 ): ReelExportStatus {
-  if (reelUrl?.trim()) return 'completed'
+  if (reelUrl?.trim() && isValidReelDownloadUrl(reelUrl)) return 'completed'
   const s = (reelStatus ?? '').toLowerCase()
-  if (s === 'ready' || s === 'completed') return 'completed'
+  if (s === 'ready' || s === 'completed') return 'uploading'
   if (s === 'failed') return 'failed'
   if (s === 'queued' || s === 'pending') return s as ReelExportStatus
   if (s === 'uploading') return 'uploading'
@@ -139,29 +142,88 @@ export async function loadOwnedProjectByReelJobId(
 export function projectRowToExportPollResponse(row: CinematicProjectRow) {
   const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
   const status = mapProjectReelStatus(row.reel_status, reelUrl)
+  const completed = status === 'completed' && Boolean(reelUrl?.trim())
   return {
-    status,
-    progress: status === 'completed' ? 100 : status === 'failed' ? 0 : 50,
+    status: completed ? 'completed' : status,
+    progress: completed ? 100 : status === 'failed' ? 0 : 50,
     label:
-      status === 'completed'
+      completed
         ? 'Download ready'
         : status === 'failed'
           ? 'Reel export failed'
-          : 'Rendering reel…',
-    reelUrl: status === 'completed' ? reelUrl : null,
+          : status === 'uploading'
+            ? 'Uploading reel…'
+            : 'Rendering reel…',
+    reelUrl: completed ? reelUrl : null,
     error: status === 'failed' ? 'Reel export failed' : null,
   }
 }
 
 export function jobToExportPollResponse(job: RenderJobStatus) {
-  const status = mapJobToExportStatus(job)
+  let status = mapJobToExportStatus(job)
+  const reelUrl =
+    status === 'completed' && job.videoUrl?.trim() && isValidReelDownloadUrl(job.videoUrl)
+      ? job.videoUrl.trim()
+      : null
+  if (status === 'completed' && !reelUrl) {
+    status = job.stage === 'upload' ? 'uploading' : 'rendering'
+  }
   return {
     jobId: job.jobId,
     status,
     progress: Math.round(job.percent),
     label: exportStatusLabel(status, job),
-    reelUrl: status === 'completed' ? job.videoUrl : null,
+    reelUrl,
     error: job.error,
+  }
+}
+
+export async function buildValidatedDownloadResponse(
+  row: CinematicProjectRow
+): Promise<{
+  status: ReelExportStatus
+  reelUrl: string | null
+  renderedAt: string | null
+  validated: boolean
+  fileSize?: number
+  validationError?: string | null
+}> {
+  const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
+  const status = mapProjectReelStatus(row.reel_status, reelUrl)
+  const renderedAt = row.reel_rendered_at ?? null
+
+  if (status !== 'completed' || !reelUrl) {
+    return {
+      status,
+      reelUrl: reelUrl ?? null,
+      renderedAt,
+      validated: false,
+      validationError: reelUrl && !isValidReelDownloadUrl(reelUrl) ? 'invalid url' : null,
+    }
+  }
+
+  const verification = await verifyReelFileExists(reelUrl, row.id)
+  if (!verification.ok) {
+    exportLog.error('download validate', verification.error ?? 'unreachable', {
+      projectId: row.id,
+      reelUrl,
+    })
+    return {
+      status: 'uploading',
+      reelUrl,
+      renderedAt,
+      validated: false,
+      validationError: verification.error ?? 'file unreachable',
+    }
+  }
+
+  return {
+    status: 'completed',
+    reelUrl,
+    renderedAt,
+    validated: true,
+    fileSize: verification.size,
+    validationError: null,
   }
 }
 
@@ -194,6 +256,13 @@ export async function queueReelExportForProject(params: {
   }
 
   const jobId = `reel-${uuidv4()}-${Date.now()}`
+  exportLog.requested({
+    projectId: params.row.id,
+    userId: params.userId,
+    jobId,
+    includeVoiceover: params.includeVoiceover,
+    includeCaptions: params.includeCaptions,
+  })
   createRenderJob(jobId)
   updateRenderJob(jobId, {
     status: 'queued',

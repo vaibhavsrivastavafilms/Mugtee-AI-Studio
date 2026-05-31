@@ -52,6 +52,7 @@ import {
   loadCreatorLanguageSession,
 } from '@/lib/i18n/creator-language-session'
 import { saveContentLanguagePreference } from '@/lib/cinematic/content-languages'
+import { markHasCreatedProject } from '@/lib/onboarding/onboarding-state'
 
 export type MugteeConversationLaunchPayload = {
   prompt: string
@@ -199,6 +200,7 @@ export function MugteeConversationEntry({
       pushUser(topic)
       setInput('')
       persistCreatorLanguageFromText(topic)
+      markHasCreatedProject()
       const nextCtx = { ...ctx, topic }
       setCtx(nextCtx)
 

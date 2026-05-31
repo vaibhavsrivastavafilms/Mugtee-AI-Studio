@@ -6,6 +6,9 @@ import { ArrowRight, Check, Play, Sparkles } from 'lucide-react'
 import CinematicShowcase from '@/components/landing/cinematic-showcase'
 import HeroGoogleCta from '@/components/landing/hero-google-cta'
 import { MobileStickyCta } from '@/components/landing/mobile-sticky-cta'
+import { ViewTrackerSection } from '@/lib/analytics/view-tracker'
+import { AnalyticsEvents } from '@/lib/analytics/events'
+import { trackEvent } from '@/lib/analytics/track-event'
 import { HERO, PRICING, FINAL_CTA, FOOTER, PROOF } from '@/lib/marketing/site-copy'
 import { quickCutStudioHref } from '@/lib/create/routes'
 import { FeatureStatusBadge, type FeatureStatus } from '@/components/marketing/feature-status-badge'
@@ -52,6 +55,7 @@ export default function MarketingHome() {
             </Link>
             <Link
               href={studioHref}
+              onClick={() => trackEvent(AnalyticsEvents.HERO_CTA_CLICKED, { metadata: { source: 'nav' } })}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gold-gradient text-black text-[12px] font-medium shadow-gold-glow hover:opacity-90 transition-opacity"
             >
               {HERO.primaryCta} <ArrowRight className="w-3.5 h-3.5" />
@@ -77,6 +81,7 @@ export default function MarketingHome() {
               <HeroGoogleCta next={studioHref} source="home_hero" helper={HERO.trust} />
               <a
                 href="#demo"
+                onClick={() => trackEvent(AnalyticsEvents.HERO_CTA_CLICKED, { metadata: { source: 'hero_secondary' } })}
                 className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white/[0.035] border border-white/[0.08] text-[12.5px] text-luxe/85 hover:border-gold-500/40 transition"
               >
                 <Play className="w-3.5 h-3.5 text-gold-300" /> {HERO.secondaryCta}
@@ -96,11 +101,16 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      <div id="demo">
+      <ViewTrackerSection event={AnalyticsEvents.EXAMPLE_OUTPUT_VIEWED} as="div" id="demo">
         <CinematicShowcase />
-      </div>
+      </ViewTrackerSection>
 
-      <section id="features" className="relative px-5 sm:px-6 py-20 sm:py-24 border-t border-white/[0.04]">
+      <ViewTrackerSection
+        event={AnalyticsEvents.TESTIMONIAL_VIEWED}
+        as="section"
+        className="relative px-5 sm:px-6 py-20 sm:py-24 border-t border-white/[0.04]"
+        id="features"
+      >
         <div className="container max-w-5xl mx-auto">
           <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-12">
             <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">{PROOF.eyebrow}</div>
@@ -128,9 +138,14 @@ export default function MarketingHome() {
             ))}
           </div>
         </div>
-      </section>
+      </ViewTrackerSection>
 
-      <section id="pricing" className="relative px-5 sm:px-6 py-20 sm:py-28 border-t border-white/[0.04]">
+      <ViewTrackerSection
+        event={AnalyticsEvents.PRICING_VIEWED}
+        as="section"
+        className="relative px-5 sm:px-6 py-20 sm:py-28 border-t border-white/[0.04]"
+        id="pricing"
+      >
         <div className="container max-w-6xl mx-auto">
           <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-12">
             <div className="text-[10px] tracking-[0.35em] uppercase text-gold-300 mb-3">{PRICING.eyebrow}</div>
@@ -187,7 +202,7 @@ export default function MarketingHome() {
             ))}
           </div>
         </div>
-      </section>
+      </ViewTrackerSection>
 
       <section id="cta" className="relative px-5 sm:px-6 py-20 sm:py-28">
         <div className="container max-w-4xl mx-auto">
@@ -200,6 +215,7 @@ export default function MarketingHome() {
             <p className="mt-5 text-luxe/70 max-w-lg mx-auto text-sm sm:text-base">{FINAL_CTA.subheadline}</p>
             <Link
               href={studioHref}
+              onClick={() => trackEvent(AnalyticsEvents.FINAL_CTA_CLICKED, { metadata: { source: 'final_cta' } })}
               className="mt-8 inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-gold-gradient text-black text-sm font-medium shadow-gold-glow hover:opacity-90 transition-opacity"
             >
               {FINAL_CTA.cta} <ArrowRight className="w-4 h-4" />

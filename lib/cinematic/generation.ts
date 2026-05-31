@@ -105,6 +105,8 @@ export type SceneImagePromptContext = {
   hasReferenceStyle?: boolean
   /** Project-wide visual continuity lock from story bible */
   storyBible?: StoryBible | null
+  /** Content Director brief — injected once for thumbnail/scene alignment */
+  contentBriefSection?: string
   previousScene?: Pick<
     GeneratedScene,
     | 'title'
@@ -241,6 +243,7 @@ export function buildSceneImagePrompt(
     ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
 
   const parts: string[] = []
+  if (ctx?.contentBriefSection?.trim()) parts.push(ctx.contentBriefSection.trim())
   const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
   if (continuity) parts.push(continuity)
   if (ctx?.previousScene && ctx?.storyBible) {

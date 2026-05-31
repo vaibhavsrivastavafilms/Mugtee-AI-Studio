@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import {
+  buildValidatedDownloadResponse,
   loadOwnedCinematicProject,
-  mapProjectReelStatus,
 } from '@/lib/reels/export-api'
+import { exportLog } from '@/lib/export/export-log.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,20 +26,13 @@ export async function GET(
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
-  const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
-  const status = mapProjectReelStatus(row.reel_status, reelUrl)
-
-  if (status === 'completed' && reelUrl) {
-    return NextResponse.json({
-      status: 'completed',
-      reelUrl,
-      renderedAt: row.reel_rendered_at ?? null,
-    })
-  }
-
-  return NextResponse.json({
-    status,
-    reelUrl: reelUrl ?? null,
-    renderedAt: row.reel_rendered_at ?? null,
+  const body = await buildValidatedDownloadResponse(row)
+  exportLog.poll({
+    projectId: projectId.trim(),
+    status: body.status,
+    validated: body.validated,
+    hasUrl: Boolean(body.reelUrl),
   })
+
+  return NextResponse.json(body)
 }

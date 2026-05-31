@@ -7,6 +7,7 @@ import {
   projectRowToExportPollResponse,
 } from '@/lib/reels/export-api'
 import { getRenderJob } from '@/lib/video/job-store'
+import { exportLog } from '@/lib/export/export-log.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,7 @@ export async function GET(
     }
 
     const body = jobToExportPollResponse(job)
+    exportLog.poll({ jobId, source: 'memory', status: body.status, hasUrl: Boolean(body.reelUrl) })
     return NextResponse.json({
       status: body.status,
       progress: body.progress,
@@ -46,16 +48,21 @@ export async function GET(
 
   const rowByJob = await loadOwnedProjectByReelJobId(jobId, auth.user!.id)
   if (rowByJob) {
-    return NextResponse.json(projectRowToExportPollResponse(rowByJob))
+    const body = projectRowToExportPollResponse(rowByJob)
+    exportLog.poll({ jobId, source: 'reel_job_id', status: body.status, hasUrl: Boolean(body.reelUrl) })
+    return NextResponse.json(body)
   }
 
   const projectId = req.nextUrl.searchParams.get('projectId')?.trim()
   if (projectId) {
     const row = await loadOwnedCinematicProject(projectId, auth.user!.id)
     if (row) {
-      return NextResponse.json(projectRowToExportPollResponse(row))
+      const body = projectRowToExportPollResponse(row)
+      exportLog.poll({ jobId, source: 'projectId', projectId, status: body.status, hasUrl: Boolean(body.reelUrl) })
+      return NextResponse.json(body)
     }
   }
 
+  exportLog.error('poll', 'job not found', { jobId, projectId: projectId ?? null })
   return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 }

@@ -40,6 +40,9 @@ import { trackEvent } from '@/lib/analytics/track-event'
 import { requestExitFeedback } from '@/lib/creator/exit-feedback'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
+import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
+import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
+import { toast } from 'sonner'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const rowButtonClass =
@@ -119,6 +122,7 @@ export function QuickCutDownloadPanel({
   const [downloadingImagesFormat, setDownloadingImagesFormat] =
     useState<SceneImageExportSize | null>(null)
   const [assetError, setAssetError] = useState<string | null>(null)
+  const [showExportFeedback, setShowExportFeedback] = useState(false)
   const pollStartedRef = useRef(false)
   const exportTrackedRef = useRef(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
@@ -163,6 +167,13 @@ export function QuickCutDownloadPanel({
   const hasImages = exportAssets.images
   const hasNarration = exportAssets.narration
   const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
+  const reelReadiness = useReelDownloadReadiness({
+    projectId: savedProjectId,
+    videoUrl,
+    isRendering: isRenderingVideo,
+    renderPollUrl,
+    exportExpired,
+  })
   const mp4DownloadReady = isQuickCutMp4DownloadReady({
     videoUrl,
     videoRenderEnabled,
@@ -170,8 +181,11 @@ export function QuickCutDownloadPanel({
     isRenderingVideo,
     renderPollUrl,
     renderError,
+    downloadValidated: videoUrl?.trim()
+      ? reelReadiness.ready || !savedProjectId
+      : undefined,
   })
-  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired)
+  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired && !reelReadiness.validating)
   const mp4Compiling =
     isRenderingVideo ||
     (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
@@ -251,6 +265,7 @@ export function QuickCutDownloadPanel({
     setDownloadingMp3(true)
     try {
       await downloadMp3File(voiceUrl!, mp3Name)
+      setShowExportFeedback(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
       setAssetError(message)
@@ -285,6 +300,9 @@ export function QuickCutDownloadPanel({
     if (!(await guardExport())) return
     trackExportStarted('video_mp4')
     setDownloadingMp4(true)
+    if (mp4Compiling || reelReadiness.validating) {
+      toast.message('Preparing your video…')
+    }
     try {
       if (videoUrl?.trim() || savedProjectId) {
         await resolveMp4Download({
@@ -292,7 +310,10 @@ export function QuickCutDownloadPanel({
           videoUrl,
           filename: mp4Name,
           compileIfNeeded: canCompileMp4 && !videoUrl,
+          onProgress: (label) => toast.message(label, { id: 'mp4-export-progress' }),
         })
+        toast.success('Video ready for download.', { id: 'mp4-export-progress' })
+        setShowExportFeedback(true)
       } else {
         await retryVideoRender()
         const url = useQuickCutGenerationStore.getState().videoUrl
@@ -303,6 +324,8 @@ export function QuickCutDownloadPanel({
           videoUrl: url,
           filename: mp4Name,
         })
+        toast.success('Video ready for download.')
+        setShowExportFeedback(true)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
@@ -312,6 +335,7 @@ export function QuickCutDownloadPanel({
         ...(expired ? { exportExpired: true, videoUrl: null } : {}),
       })
       setAssetError(message)
+      toast.error('Download failed. Please try again.', { id: 'mp4-export-progress' })
     } finally {
       setDownloadingMp4(false)
     }
@@ -324,6 +348,8 @@ export function QuickCutDownloadPanel({
     canCompileMp4,
     retryVideoRender,
     guardExport,
+    mp4Compiling,
+    reelReadiness.validating,
   ])
 
   const handleExportCreatorPack = useCallback(async () => {
@@ -390,6 +416,7 @@ export function QuickCutDownloadPanel({
   const handleDownloadCreatorPack = useCallback(() => {
     if (!creatorPackResult) return
     triggerCreatorPackDownload(creatorPackResult.blob, creatorPackResult.filename)
+    setShowExportFeedback(true)
     window.setTimeout(() => requestExitFeedback('export_inactive'), 800)
   }, [creatorPackResult])
 
@@ -509,9 +536,9 @@ export function QuickCutDownloadPanel({
             exportExpired
               ? EXPORT_EXPIRED_MSG
               : mp4DownloadReady
-                ? 'Download ready — final synced MP4 reel'
-                : mp4Compiling
-                  ? renderStatusLabel || 'Rendering reel…'
+                ? reelReadiness.label
+                : mp4Compiling || reelReadiness.validating
+                  ? renderStatusLabel || 'Preparing your video…'
                   : renderError
                     ? renderError
                     : canCompileMp4
@@ -534,19 +561,21 @@ export function QuickCutDownloadPanel({
               <button
                 type="button"
                 onClick={() => void handleDownloadMp4()}
-                disabled={downloadingMp4 || mp4Compiling || exportExpired}
+                disabled={downloadingMp4 || mp4Compiling || exportExpired || reelReadiness.validating}
                 className={primaryButtonClass}
               >
-                {downloadingMp4 ? (
+                {downloadingMp4 || mp4Compiling || reelReadiness.validating ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
                   <Download className="w-3 h-3" />
                 )}
                 {downloadingMp4
                   ? 'Downloading…'
-                  : mp4DownloadReady
-                    ? '.mp4'
-                    : 'Compile .mp4'}
+                  : mp4Compiling || reelReadiness.validating
+                    ? 'Preparing…'
+                    : mp4DownloadReady
+                      ? '.mp4'
+                      : 'Compile .mp4'}
               </button>
               {mp4DownloadReady ? (
                 <>
@@ -642,6 +671,14 @@ export function QuickCutDownloadPanel({
           )}
         </DownloadRow>
       </div>
+
+      {showExportFeedback ? (
+        <ExportSatisfactionCard
+          projectId={savedProjectId}
+          className="w-full"
+          onDismissed={() => setShowExportFeedback(false)}
+        />
+      ) : null}
 
       <QuickCutPlatformExportProfiles />
     </div>

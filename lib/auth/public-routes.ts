@@ -10,6 +10,7 @@ const PUBLIC_EXACT = new Set([
   '/auth/login',
   '/signin',
   '/pricing',
+  '/contact',
   '/offline',
   '/made-with-mugtee',
   '/showcase',

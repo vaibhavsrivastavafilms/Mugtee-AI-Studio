@@ -5,6 +5,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import { parseStoryBible } from '@/lib/cinematic/story-bible'
+import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { logError } from '@/lib/workspace/validation'
 import {
   FeatureUsageFeatures,
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
         raw?.hasReferenceStyle === true || Boolean(referenceStyleNote?.trim()),
       referenceStyleNote,
       storyBible: parseStoryBible(raw?.storyBible),
+      contentBrief: normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief) ?? undefined,
     })
 
     if (user) {
