@@ -16,6 +16,7 @@ import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-pane
 import { SeriesContextPanel } from '@/components/quick-cut/series-context-panel'
 import { episodeTopic } from '@/lib/cinematic/content-series'
 import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
+import { GenerationResultsSection } from '@/components/quick-cut/generation-results-section'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -99,6 +100,11 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
               <CinematicAssemblyScreen
                 audioRef={voiceAudioRef}
                 onSkipToExport={() => setActiveStageTab('complete', true)}
+                className="w-full max-w-md mx-auto"
+              />
+            ) : isComplete ? (
+              <GenerationResultsSection
+                audioRef={voiceAudioRef}
                 className="w-full max-w-md mx-auto"
               />
             ) : (
