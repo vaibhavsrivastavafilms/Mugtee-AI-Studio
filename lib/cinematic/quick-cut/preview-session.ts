@@ -57,6 +57,9 @@ export function restoreQuickCutPreviewSession(): boolean {
   const videoUrl = preview.videoUrl ?? null
   const renderPollUrl = preview.renderPollUrl ?? null
   const videoPending = Boolean(renderPollUrl) && !videoUrl
+  const hasContent =
+    scenes.length > 0 &&
+    Boolean(preview.voiceUrl ?? preview.project.voice?.audioUrl ?? preview.project.script?.trim())
 
   useQuickCutGenerationStore.setState({
     prompt: preview.project.prompt,
@@ -72,9 +75,10 @@ export function restoreQuickCutPreviewSession(): boolean {
     savedProjectId: preview.savedProjectId ?? null,
     mock: preview.mock,
     pipeline: preview.pipeline,
-    isComplete: true,
+    isComplete: hasContent,
     isGenerating: false,
-    generationStep: videoUrl ? 'complete' : videoPending || preview.renderError ? 'render' : 'complete',
+    error: null,
+    generationStep: videoUrl ? 'complete' : videoPending ? 'render' : 'complete',
     progress: videoUrl ? 100 : 88,
     eta: 0,
     generationStatus: 'completed',

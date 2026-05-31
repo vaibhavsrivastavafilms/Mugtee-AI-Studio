@@ -18,6 +18,7 @@ import { exportLog } from '@/lib/export/export-log.server'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
+import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
 
 export type ReelExportStatus =
   | 'pending'
@@ -228,11 +229,7 @@ export async function buildValidatedDownloadResponse(
 }
 
 function friendlyExportError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : 'Reel export failed'
-  if (raw.includes('VIDEO_RENDER') || raw.includes('Remotion') || raw.includes('FFmpeg')) {
-    return 'Reel export is temporarily unavailable — your preview still works.'
-  }
-  return raw.slice(0, 160)
+  return friendlyReelRenderErrorFromUnknown(err)
 }
 
 export async function queueReelExportForProject(params: {

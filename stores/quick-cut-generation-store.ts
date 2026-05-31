@@ -1773,8 +1773,8 @@ export const useQuickCutGenerationStore = create<
           missingKeys.add('OPENAI_API_KEY')
         }
       }
-      if (step === 'video' && videoRenderEnabled && !config.ffmpeg) {
-        missingKeys.add('FFMPEG_PATH')
+      if (step === 'video' && videoRenderEnabled && !config.remotion) {
+        missingKeys.add('VIDEO_RENDER_ENABLED')
       }
     }
 
@@ -2558,10 +2558,11 @@ export const useQuickCutGenerationStore = create<
         await assemblyPresentation
       }
 
-      const exportDoneFinal = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
+      const mp4Ready = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
       const exportInProgressFinal =
         videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError
       const exportFailedFinal = videoRenderEnabled && Boolean(renderError) && !videoUrl
+      const contentReadyForResults = true
 
       const pipeline: QuickCutPipelineStatus = {
         steps: {
@@ -2569,7 +2570,7 @@ export const useQuickCutGenerationStore = create<
             scriptData.mock === true ? 'fallback' : get().script.trim() ? 'live' : 'fallback',
           images: imgMock ? 'fallback' : 'live',
           voice: voiceUrl ? 'live' : 'fallback',
-          video: videoRenderEnabled ? (videoUrl ? 'live' : 'skipped') : 'skipped',
+          video: videoRenderEnabled ? (videoUrl ? 'live' : exportFailedFinal ? 'fallback' : 'skipped') : 'skipped',
         },
         missingKeys: [...missingKeys],
         live: !anyMock,
@@ -2578,7 +2579,7 @@ export const useQuickCutGenerationStore = create<
       setStep(
         set,
         get,
-        exportDoneFinal ? 'complete' : exportInProgressFinal || exportFailedFinal ? 'render' : 'complete'
+        mp4Ready ? 'complete' : exportInProgressFinal ? 'render' : 'complete'
       )
       set({
         videoUrl,
@@ -2589,24 +2590,17 @@ export const useQuickCutGenerationStore = create<
         missingKeys: [...missingKeys],
         pipeline,
         isGenerating: false,
-        isComplete: exportDoneFinal,
-        generationStatus: exportDoneFinal
-          ? 'completed'
-          : exportInProgressFinal || exportFailedFinal
-            ? 'generating'
-            : 'completed',
-        generationStep: exportDoneFinal
-          ? 'complete'
-          : exportInProgressFinal || exportFailedFinal
-            ? 'render'
-            : 'complete',
+        isComplete: contentReadyForResults,
+        generationStatus: 'completed',
+        generationStep: mp4Ready ? 'complete' : exportInProgressFinal ? 'render' : 'complete',
         generationState: 'idle',
         assemblyPreviewAutoplay: false,
         assemblyLineIndex: 0,
-        lastCompletedStep: exportDoneFinal ? 'export' : get().lastCompletedStep,
+        lastCompletedStep:
+          mp4Ready || exportFailedFinal || exportPackageReady ? 'export' : get().lastCompletedStep,
         failedAtStep: exportFailedFinal ? 'export' : null,
-        error: exportFailedFinal ? renderError : null,
-        progress: exportDoneFinal ? 100 : exportFailedFinal || exportInProgressFinal ? 88 : 100,
+        error: null,
+        progress: mp4Ready ? 100 : exportInProgressFinal ? 92 : exportFailedFinal ? 100 : 100,
         eta: 0,
         lastGeneratedPrompt: prompt,
         studioReviewMode: false,
@@ -2623,20 +2617,19 @@ export const useQuickCutGenerationStore = create<
       try {
         await archiveGeneratedProject({
           ...completedArchive,
-          generation_status: exportDoneFinal
-            ? 'completed'
-            : exportInProgressFinal || exportFailedFinal
-              ? 'generating'
-              : 'completed',
-          generation_step: exportDoneFinal ? 'export' : 'export',
-          last_completed_step: exportDoneFinal ? 'export' : get().lastCompletedStep ?? 'voice',
+          generation_status: 'completed',
+          generation_step: 'export',
+          last_completed_step:
+            mp4Ready || exportFailedFinal || exportPackageReady
+              ? 'export'
+              : get().lastCompletedStep ?? 'voice',
           generation_error: exportFailedFinal ? renderError : null,
         })
       } catch {
         /* preview session still holds state */
       }
 
-      if (exportDoneFinal) {
+      if (contentReadyForResults) {
         logGenerationSuccess(get().savedProjectId, {
           durationMs: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
           mock: anyMock,
@@ -2653,32 +2646,34 @@ export const useQuickCutGenerationStore = create<
         })
         trackFirstGenerationCompleted({ projectId: get().savedProjectId })
         markFirstGeneration()
-        trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
-          projectId: get().savedProjectId,
-          metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
-        })
-        trackEvent(AnalyticsEvents.PROJECT_EXPORTED, {
-          projectId: get().savedProjectId,
-          metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
-        })
-      } else if (exportFailedFinal) {
-        logGenerationError(
-          get().savedProjectId,
-          'export',
-          renderError ?? 'Export failed',
-          { recoverable: true }
-        )
-        trackEvent(AnalyticsEvents.GENERATION_FAILED, {
-          projectId: get().savedProjectId,
-          metadata: {
-            message: renderError?.slice(0, 120) ?? 'Export failed',
+        if (mp4Ready) {
+          trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
+            projectId: get().savedProjectId,
+            metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+          })
+          trackEvent(AnalyticsEvents.PROJECT_EXPORTED, {
+            projectId: get().savedProjectId,
+            metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+          })
+        } else if (exportFailedFinal) {
+          logGenerationError(
+            get().savedProjectId,
+            'export',
+            renderError ?? 'Export failed',
+            { recoverable: true }
+          )
+          trackEvent(AnalyticsEvents.GENERATION_FAILED, {
+            projectId: get().savedProjectId,
+            metadata: {
+              message: renderError?.slice(0, 120) ?? 'Export failed',
+              step: 'export',
+            },
+          })
+          trackError('export', renderError ?? 'Export failed', {
             step: 'export',
-          },
-        })
-        trackError('export', renderError ?? 'Export failed', {
-          step: 'export',
-          projectId: get().savedProjectId,
-        })
+            projectId: get().savedProjectId,
+          })
+        }
       }
 
       persistSession(get())
@@ -3180,7 +3175,11 @@ export const useQuickCutGenerationStore = create<
 
       const { renderRes, renderData } = await requestVideoRender(get(), true)
       if (!renderRes.ok) {
-        set({ renderError: String(renderData?.error || 'Video render unavailable') })
+        set({
+          renderError: friendlyReelRenderError(
+            String(renderData?.error || 'Video render unavailable')
+          ),
+        })
         return
       }
 
@@ -3215,12 +3214,16 @@ export const useQuickCutGenerationStore = create<
       }
 
       set({
-        renderError: String(sync.renderData?.error || 'Video render unavailable'),
+        renderError: friendlyReelRenderError(
+          String(sync.renderData?.error || 'Video render unavailable')
+        ),
         generationStep: 'render',
       })
     } catch (err) {
       set({
-        renderError: err instanceof Error ? err.message : 'Video render unavailable',
+        renderError: friendlyReelRenderError(
+          err instanceof Error ? err.message : 'Video render unavailable'
+        ),
         generationStep: 'render',
       })
     } finally {

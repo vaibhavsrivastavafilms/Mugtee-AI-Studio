@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
   try {
     if (!isVideoRenderEnabled()) {
       return NextResponse.json(
-        { error: 'Reel MP4 export is not enabled on this server.', status: 'failed' },
+        {
+          error:
+            'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.',
+          status: 'failed',
+        },
         { status: 503 }
       )
     }

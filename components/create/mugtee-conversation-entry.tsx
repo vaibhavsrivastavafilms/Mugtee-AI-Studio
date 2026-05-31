@@ -98,7 +98,10 @@ export function MugteeConversationEntry({
   const [creatorLanguage, setCreatorLanguage] = useState<DetectedCreatorLanguage | null>(null)
 
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const error = useQuickCutGenerationStore((s) => s.error)
+  const pipelineError =
+    error && (isGenerating || generationStep === 'error') ? error : null
   const setCreativeBrief = useCompanionStore((s) => s.setCreativeBrief)
   const startDiscovery = useCompanionStore((s) => s.startDiscovery)
 
@@ -452,9 +455,9 @@ export function MugteeConversationEntry({
           </p>
         ) : null}
 
-        {error ? (
+        {pipelineError ? (
           <p className="text-center text-sm text-amber-200/90" role="alert">
-            {error}
+            {pipelineError}
           </p>
         ) : null}
 

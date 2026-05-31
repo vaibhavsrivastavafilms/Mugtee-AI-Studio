@@ -12,6 +12,7 @@ import {
 } from '@/lib/cinematic/scene-duration'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
 import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
+import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/constants'
 import { buildReelSceneInput } from '@/lib/motion/apply-scene-motion'
 import type { SceneMotionMap } from '@/lib/motion/motion-presets'
@@ -151,7 +152,7 @@ export async function renderRemotionReel(
 }
 
 export function isRemotionRenderAvailable(): boolean {
-  return process.env.VIDEO_RENDER_MOCK === 'true' || process.env.VIDEO_RENDER_ENABLED === 'true'
+  return isVideoRenderEnabled()
 }
 
 /** Dev stub when VIDEO_RENDER_MOCK=true — copies first scene image metadata only. */
