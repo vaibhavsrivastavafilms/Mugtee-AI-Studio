@@ -89,6 +89,10 @@ import {
   type QuickCutStageTab,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
+import {
+  reorderSceneIds,
+  reorderScenesByIds,
+} from '@/lib/cinematic/quick-cut/reorder-scenes'
 import { loadProject } from '@/lib/cinematic-projects'
 import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import {
@@ -138,6 +142,7 @@ import {
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import { showPlanLimitToast, handlePlanLimitResponse } from '@/lib/usage/plan-limit-toast.client'
+import { toast } from 'sonner'
 import { handleImageGenerationUnavailableResponse } from '@/lib/cinematic/image-generation-unavailable.client'
 import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
 import {
@@ -357,6 +362,7 @@ interface QuickCutGenerationActions {
   regenerateSceneImage: (sceneId: string) => Promise<void>
   updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
   generateSceneVariations: (sceneId: string) => Promise<void>
+  reorderScenes: (activeId: string, overId: string) => void
   selectHookVersion: (versionId: string) => void
   selectStoryboardVersion: (versionId: string) => void
   markProjectExported: () => Promise<void>
@@ -2269,8 +2275,12 @@ export const useQuickCutGenerationStore = create<
         metadata: { scene_id: sceneId },
       })
       persistSession(get())
-    } catch {
-      /* silent — card shows prior frame */
+    } catch (err) {
+      if (err instanceof PlanLimitError) {
+        showPlanLimitToast(err.message)
+      } else {
+        toast.error(toUserGenerationError(err) || 'Could not regenerate scene')
+      }
     } finally {
       set({
         regeneratingSceneIds: get().regeneratingSceneIds.filter((id) => id !== sceneId),
@@ -2334,6 +2344,40 @@ export const useQuickCutGenerationStore = create<
         directingSceneLabel: null,
       })
     }
+  },
+
+  reorderScenes: (activeId, overId) => {
+    const state = get()
+    if (state.isGenerating || !activeId || !overId || activeId === overId) return
+
+    const orderedIds = reorderSceneIds(
+      state.scenes.map((s) => s.id),
+      activeId,
+      overId
+    )
+    if (!orderedIds) return
+
+    const hadVideo = Boolean(state.videoUrl?.trim())
+    const reordered = reorderScenesByIds(
+      state.scenes,
+      state.storyboardScenes,
+      orderedIds
+    )
+
+    set({
+      scenes: reordered.scenes,
+      storyboard: reordered.scenes,
+      storyboardScenes: reordered.storyboardScenes,
+      visualTimeline: reordered.visualTimeline,
+      videoUrl: hadVideo ? null : state.videoUrl,
+      renderPollUrl: hadVideo ? null : state.renderPollUrl,
+      renderError: hadVideo ? 'Scene order changed — recompile export.' : state.renderError,
+    })
+    persistSession(get())
+    trackEvent(AnalyticsEvents.STORYBOARD_VIEWED, {
+      projectId: get().savedProjectId,
+      metadata: { scene_count: reordered.scenes.length, reordered: true },
+    })
   },
 
   regenerateHook: async () => {

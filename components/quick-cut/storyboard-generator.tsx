@@ -38,6 +38,7 @@ export function StoryboardGenerator({
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const regeneratingSceneIds = useQuickCutGenerationStore((s) => s.regeneratingSceneIds)
   const updateSceneImagePrompt = useQuickCutGenerationStore((s) => s.updateSceneImagePrompt)
+  const regenerateSceneImage = useQuickCutGenerationStore((s) => s.regenerateSceneImage)
   const generateSceneVariations = useQuickCutGenerationStore((s) => s.generateSceneVariations)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
@@ -125,6 +126,9 @@ export function StoryboardGenerator({
                 interactive
                   ? (prompt) => void updateSceneImagePrompt(scene.id, prompt)
                   : undefined
+              }
+              onRegenerate={
+                interactive ? () => void regenerateSceneImage(scene.id) : undefined
               }
               onVariations={
                 interactive ? () => void generateSceneVariations(scene.id) : undefined

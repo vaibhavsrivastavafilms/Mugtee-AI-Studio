@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Clapperboard, Download, Loader2 } from 'lucide-react'
 import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator'
 import {
@@ -11,6 +11,7 @@ import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { StoryboardScene, VisualTimelineEntry } from '@/types/storyboard'
+import { SopSceneKanban } from '@/components/quick-cut/sop-scene-kanban'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export function StoryboardPanel({
@@ -40,16 +41,11 @@ export function StoryboardPanel({
 }) {
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const reorderScenes = useQuickCutGenerationStore((s) => s.reorderScenes)
   const [exporting, setExporting] = useState(false)
 
   const count = sceneCount > 0 ? sceneCount : scenes.length
   const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
-
-  const sceneMetaById = useMemo(() => {
-    const map = new Map<string, StoryboardScene>()
-    storyboardScenes.forEach((s) => map.set(s.id, s))
-    return map
-  }, [storyboardScenes])
 
   const timeline =
     visualTimeline.length > 0
@@ -97,33 +93,20 @@ export function StoryboardPanel({
         </div>
 
         {timeline.length > 0 ? (
-          <div className="mt-3 flex gap-1 overflow-x-auto scrollbar-luxe pb-1">
-            {timeline.map((entry) => {
-              const meta = sceneMetaById.get(entry.sceneId)
-              const widthPct = Math.max(
-                8,
-                ((entry.endSec - entry.startSec) / Math.max(totalDuration, 1)) * 100
-              )
-              return (
-                <div
-                  key={entry.sceneId}
-                  className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 min-w-[72px]"
-                  style={{ flexBasis: `${widthPct}%` }}
-                  title={meta?.scriptLines || entry.label}
-                >
-                  <p className="text-[9px] tracking-[0.16em] uppercase text-gold-300/70">
-                    {entry.index}
-                  </p>
-                  <p className="text-[10px] text-luxe/55 truncate mt-0.5">
-                    {meta?.visualFocus || entry.label}
-                  </p>
-                  <p className="text-[9px] text-luxe/35 tabular-nums mt-0.5">
-                    {entry.startSec}s–{entry.endSec}s
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+          <>
+            {interactive ? (
+              <p className="text-[9px] tracking-[0.14em] uppercase text-luxe/40 mt-2">
+                Drag scenes to reorder reel · export updates on recompile
+              </p>
+            ) : null}
+            <SopSceneKanban
+              timeline={timeline}
+              storyboardScenes={storyboardScenes}
+              totalDuration={totalDuration}
+              interactive={interactive}
+              onReorder={(activeId, overId) => reorderScenes(activeId, overId)}
+            />
+          </>
         ) : null}
 
         {generationStep === 'scenes' && directingSceneLabel ? (
