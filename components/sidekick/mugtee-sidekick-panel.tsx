@@ -14,17 +14,22 @@ import {
 } from '@/lib/creator/creator-memory'
 import {
   resolveCreatorJourney,
+  JOURNEY_UNLOCK_MESSAGES,
   type CreatorJourneySnapshot,
+  type CreatorJourneyLevel,
 } from '@/lib/sidekick/creator-journey'
 import { STUDIO } from '@/lib/create/routes'
+import { toast } from 'sonner'
 
 const LS_COLLAPSED = 'mugtee:sidekick:collapsed:v1'
+const LS_JOURNEY_LEVEL = 'mugtee:creator-journey-level:v1'
 
 function isSidekickRoute(pathname: string): boolean {
   if (pathname === '/dashboard') return true
   if (pathname === '/studio' || pathname.startsWith('/studio/')) return true
   if (pathname.startsWith('/projects')) return true
   if (pathname.startsWith('/create')) return true
+  if (pathname.startsWith('/settings')) return true
   return false
 }
 
@@ -107,7 +112,20 @@ export function MugteeSidekickPanel() {
           const data = (await res.json()) as { used?: { projects?: number; generations?: number } }
           const projects = data.used?.projects ?? 0
           const generations = data.used?.generations ?? 0
-          if (alive) setJourney(resolveCreatorJourney(projects, generations))
+          if (alive) {
+            const snapshot = resolveCreatorJourney(projects, generations)
+            setJourney(snapshot)
+            try {
+              const prev = localStorage.getItem(LS_JOURNEY_LEVEL) as CreatorJourneyLevel | null
+              if (prev && prev !== snapshot.level) {
+                toast.success(JOURNEY_UNLOCK_MESSAGES[snapshot.level], {
+                  description: snapshot.label,
+                  duration: 5000,
+                })
+              }
+              localStorage.setItem(LS_JOURNEY_LEVEL, snapshot.level)
+            } catch {}
+          }
         }
       } catch {
         if (alive) setJourney(resolveCreatorJourney(0, 0))
