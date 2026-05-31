@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   Sparkles,
   X,
@@ -61,6 +61,8 @@ export function MugteeAssistant() {
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const createMode = searchParams?.get('mode')
   const lastSpokenRef = useRef<string | null>(null)
   const sentRef = useRef(false)
 
@@ -251,6 +253,15 @@ export function MugteeAssistant() {
   }
 
   if (pathname === '/dashboard') return null
+
+  // Bottom primary CTAs (Generate) sit above the fold — hide orb so it cannot steal clicks.
+  if (
+    pathname === '/studio/video' ||
+    pathname === '/studio/create' ||
+    (pathname === '/create' && createMode === 'quick')
+  ) {
+    return null
+  }
 
   const orbState: OrbState = stt.listening
     ? 'listening'

@@ -174,6 +174,7 @@ export function VideoStudio() {
     setLoading(true)
     setError(null)
     setCopied(false)
+    setStep(2)
 
     const isScript = trimmed.length >= 120 || trimmed.includes('\n\n')
     const body = isScript ? { script: trimmed } : { topic: trimmed }
@@ -192,6 +193,7 @@ export function VideoStudio() {
       setStep(2)
       setActiveSection('hook')
     } catch (err) {
+      setStep(1)
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
@@ -230,7 +232,7 @@ export function VideoStudio() {
   }, [output])
 
   return (
-    <div className="min-h-[calc(100dvh-4rem)] max-w-5xl mx-auto w-full px-1 sm:px-0 py-6 sm:py-8">
+    <div className="min-h-[calc(100dvh-4rem)] max-w-5xl mx-auto w-full px-1 sm:px-0 py-6 sm:py-8 pb-[max(5rem,env(safe-area-inset-bottom))]">
       <header className="mb-8 sm:mb-10 text-center px-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-gold-500/25 text-[10px] tracking-[0.28em] uppercase text-gold-300 mb-4">
           <Video className="w-3 h-3" aria-hidden />

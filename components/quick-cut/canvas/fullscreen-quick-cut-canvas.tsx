@@ -224,11 +224,11 @@ export function FullscreenQuickCutCanvas({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!canGenerate || isGenerating) return
+    if (!canGenerate || isGenerating || !authReady) return
 
     const pending = buildPending()
 
-    if (!signedIn) {
+    if (signedIn === false) {
       saveQuickCutPending(pending)
       setShowSignIn(true)
       return
@@ -290,7 +290,7 @@ export function FullscreenQuickCutCanvas({
         </header>
       ) : null}
 
-      <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
+      <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
         <div className="flex-1 flex flex-col justify-center min-w-0 max-w-3xl mx-auto lg:mx-0 lg:max-w-none w-full">
           <motion.p
             key={promptIndex}
@@ -406,7 +406,7 @@ export function FullscreenQuickCutCanvas({
               </p>
             ) : null}
 
-            {showSignIn && !signedIn ? (
+            {showSignIn && signedIn === false ? (
               <div className="rounded-2xl border border-gold-500/25 bg-gold-500/[0.06] p-4 text-center space-y-3">
                 <p className="font-display text-lg text-[#F4E7C1]">{QUICK_CUT_SIGN_IN.title}</p>
                 <p className="text-sm text-luxe/65">{QUICK_CUT_SIGN_IN.body}</p>
@@ -433,7 +433,7 @@ export function FullscreenQuickCutCanvas({
 
             <motion.button
               type="submit"
-              disabled={!canGenerate || isGenerating}
+              disabled={!canGenerate || isGenerating || !authReady}
               whileHover={canGenerate ? { scale: 1.01 } : undefined}
               whileTap={canGenerate ? { scale: 0.99 } : undefined}
               animate={
