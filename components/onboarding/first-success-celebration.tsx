@@ -53,16 +53,17 @@ export function FirstSuccessCelebration({ className }: FirstSuccessCelebrationPr
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {CHECKLIST.map((item, index) => (
-          <motion.li
-            key={item}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.08 + index * 0.06, duration: 0.3 }}
-            className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2"
-          >
-            <Check className="h-3.5 w-3.5 text-emerald-300 shrink-0" aria-hidden />
-            <span className="text-sm text-luxe/85">{item}</span>
-          </motion.li>
+          <li key={item}>
+            <motion.div
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.08 + index * 0.06, duration: 0.3 }}
+              className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2"
+            >
+              <Check className="h-3.5 w-3.5 text-emerald-300 shrink-0" aria-hidden />
+              <span className="text-sm text-luxe/85">{item}</span>
+            </motion.div>
+          </li>
         ))}
       </ul>
 
