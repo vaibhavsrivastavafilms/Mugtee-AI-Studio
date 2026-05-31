@@ -102,6 +102,9 @@ export type QuickCutProjectHydrationPatch = {
   viralScript: ViralScript | null
   variationHistory: VariationHistory
   virlo: VirloMetadata | null
+  scriptArchetypeId: string | null
+  scriptArchetypeLabel: string | null
+  scriptArchetypeDisplay: string | null
   lastSavedAt: number
   originalTranscript: string
   lastGeneratedPrompt: string
@@ -177,6 +180,9 @@ export function buildQuickCutHydrationFromRow(
     directorMode: normalizeDirectorMode(
       extractDirectorModeFromCaptions(row.captions)
     ),
+    scriptArchetypeId: parsedCaptions.archetypeId ?? null,
+    scriptArchetypeLabel: parsedCaptions.archetypeLabel ?? null,
+    scriptArchetypeDisplay: parsedCaptions.archetypeDisplay ?? null,
     blueprintId: normalizeCreatorBlueprintId(
       extractCreatorBlueprintFromCaptions(row.captions)
     ),
