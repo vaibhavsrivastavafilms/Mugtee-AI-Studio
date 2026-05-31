@@ -13,9 +13,8 @@ import { buildStoryboardContinuityBlock } from '@/lib/cinematic/execution/cinema
 import { cinematicWorldLighting } from '@/lib/cinematic/execution/cinematic-lighting-engine'
 import { allowDalleImages } from '@/lib/ai/free-tier'
 import {
-  generateGeminiSceneImage,
   generateOpenAISceneImage,
-  hasGeminiImageKey,
+  generateSceneImage,
   hasImageGenerationKey,
   persistRemoteImage,
 } from '@/lib/ai/generate-scene-image'
@@ -254,9 +253,13 @@ async function generateStoryboardImageUrl(params: {
   const cinematic = `${params.prompt}\n\n${cinematicBits}`
   const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
 
-  // Primary: Gemini via Emergent gateway
-  if (hasGeminiImageKey()) {
-    const url = await generateGeminiSceneImage(cinematic, { filename })
+  // Primary: Together AI → Pollinations
+  {
+    const result = await generateSceneImage(cinematic, {
+      filename,
+      userId: params.userId,
+    })
+    const url = result.url
     if (url && !url.startsWith('data:')) {
       return { url, mock: false }
     }
