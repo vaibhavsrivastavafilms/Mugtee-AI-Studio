@@ -10,9 +10,8 @@ import { placeholderSceneImageUrl } from '@/lib/cinematic/scene-preview-url'
 import { allowDalleImages } from '@/lib/ai/free-tier'
 import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
 import {
-  generateGeminiSceneImage,
   generateOpenAISceneImage,
-  hasGeminiImageKey,
+  generateSceneImage,
   hasImageGenerationKey,
   persistRemoteImage,
 } from '@/lib/ai/generate-scene-image'
@@ -39,7 +38,7 @@ export type GenerateSceneImagesInput = {
   /** Rotation index for camera/framing diversity on regen */
   diversityAttempt?: number
   userId?: string
-  /** Reference style image or note present — SOP prefix at Gemini */
+  /** Reference style image or note present — SOP prefix on image prompt */
   hasReferenceStyle?: boolean
   referenceStyleNote?: string
 }
@@ -127,17 +126,18 @@ export async function generateSceneImages(
     let imageUrl: string | null = null
     const attempted: string[] = []
 
-    // Primary: Gemini (direct AI Studio key first, then Emergent gateway when allowed)
-    if (hasGeminiImageKey()) {
-      attempted.push('gemini')
-      try {
-        imageUrl = await generateGeminiSceneImage(scenePrompt, {
-          filename,
-          hasReferenceStyle: ctx.hasReferenceStyle,
-        })
-      } catch (err) {
-        if (err instanceof ImageGenerationUnavailableError) throw err
-      }
+    // Primary: Together AI → Pollinations (free-tier image providers)
+    attempted.push('together-pollinations')
+    try {
+      const result = await generateSceneImage(scenePrompt, {
+        filename,
+        userId: input.userId,
+        hasReferenceStyle: ctx.hasReferenceStyle,
+      })
+      imageUrl = result.url
+      if (result.provider) attempted.push(result.provider)
+    } catch (err) {
+      if (err instanceof ImageGenerationUnavailableError) throw err
     }
 
     // Fallback: OpenAI Images API (disabled in free-tier-only mode)

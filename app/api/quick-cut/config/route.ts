@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hasGeminiImageKey, hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
+import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import { buildQuickCutProviderConfig } from '@/lib/ai/free-tier'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { hasGeminiImageKey } from '@/lib/ai/generate-scene-image'
+import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
 import { hasScriptGenerationKey } from '@/lib/ai/script-generation-keys'
 import {
   allowElevenLabsVoice,
@@ -16,14 +16,14 @@ import type { QuickCutPipelineStep, QuickCutPipelineStatus, QuickCutStepStatus }
 
 const FREE_STEP_KEY_HINTS: Record<QuickCutPipelineStep, string[]> = {
   script: ['GEMINI_API_KEY', 'OPENAI_API_KEY'],
-  images: ['GEMINI_API_KEY'],
+  images: ['TOGETHER_API_KEY'],
   voice: ['OPENAI_API_KEY'],
   video: ['FFMPEG_PATH'],
 }
 
 const PAID_STEP_KEY_HINTS: Record<QuickCutPipelineStep, string[]> = {
   script: ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY'],
-  images: ['GEMINI_API_KEY', 'EMERGENT_LLM_KEY', 'OPENAI_API_KEY'],
+  images: ['TOGETHER_API_KEY', 'OPENAI_API_KEY'],
   voice: ['ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'EMERGENT_LLM_KEY'],
   video: ['FFMPEG_PATH'],
 }
@@ -48,7 +48,7 @@ function stepHasLiveProvider(step: QuickCutPipelineStep): boolean {
     case 'script':
       return hasScriptGenerationKey()
     case 'images':
-      return hasGeminiImageKey()
+      return hasImageGenerationKey()
     case 'voice':
       return allowElevenLabsVoice() || allowOpenAITts() || allowEmergentGateway()
     case 'video':

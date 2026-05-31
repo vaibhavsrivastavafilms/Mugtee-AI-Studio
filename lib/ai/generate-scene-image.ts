@@ -1,7 +1,4 @@
-import {
-  generateGeminiSceneImageBuffer,
-  hasGeminiImageKey,
-} from '@/lib/ai/gemini-image'
+import { generateImage, hasTogetherApiKey } from '@/lib/image-providers'
 import {
   allowDalleImages,
   allowReplicateImages,
@@ -10,13 +7,12 @@ import {
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { logError } from '@/lib/workspace/validation'
 
-export { hasGeminiImageKey } from '@/lib/ai/gemini-image'
-
+/** Pollinations fallback requires no key — image generation is always available. */
 export function hasImageGenerationKey(): boolean {
-  return Boolean(
-    hasGeminiImageKey() || allowDalleImages() || allowReplicateImages()
-  )
+  return true
 }
+
+export { hasTogetherApiKey }
 
 export type SceneImageOptions = {
   quality?: 'standard' | 'hd'
@@ -24,28 +20,24 @@ export type SceneImageOptions = {
   hasReferenceStyle?: boolean
 }
 
-/** Generate a cinematic still via Gemini (Emergent gateway). Uploads when filename provided. */
-export async function generateGeminiSceneImage(
+/** Generate a cinematic still via Together AI → Pollinations. Uploads when filename provided. */
+export async function generateSceneImage(
   prompt: string,
-  opts: { filename?: string; hasReferenceStyle?: boolean } = {}
-): Promise<string | null> {
-  if (!hasGeminiImageKey()) return null
-
-  const result = await generateGeminiSceneImageBuffer(prompt, {
-    hasReferenceStyle: opts.hasReferenceStyle,
-  })
-  if (!result) return null
+  opts: { filename?: string; userId?: string; hasReferenceStyle?: boolean } = {}
+): Promise<{ url: string | null; provider?: string }> {
+  const result = await generateImage(prompt)
+  if (!result) return { url: null }
 
   if (opts.filename) {
-    const uploaded = await uploadImageBuffer({
-      buffer: result.buffer,
+    const uploaded = await persistRemoteImage({
+      remoteUrl: result.url,
+      userId: opts.userId,
       filename: opts.filename,
-      contentType: 'image/png',
     })
-    if (uploaded) return uploaded
+    return { url: uploaded, provider: result.provider }
   }
 
-  return `data:image/png;base64,${result.b64}`
+  return { url: result.url, provider: result.provider }
 }
 
 /** Map legacy DALL-E sizes to gpt-image-1 supported sizes. */
@@ -123,14 +115,12 @@ export async function uploadImageBuffer(params: {
   return pub.publicUrl
 }
 
-/** Download remote image URL and persist to Supabase when userId provided. */
+/** Download remote image URL and persist to Supabase storage. */
 export async function persistRemoteImage(params: {
   remoteUrl: string
   userId?: string
   filename: string
 }): Promise<string> {
-  if (!params.userId) return params.remoteUrl
-
   try {
     const dataMatch = /^data:([^;]+);base64,(.+)$/i.exec(params.remoteUrl)
     if (dataMatch) {
@@ -148,10 +138,15 @@ export async function persistRemoteImage(params: {
     const uploaded = await uploadImageBuffer({
       buffer,
       filename: params.filename,
-      contentType: 'image/png',
+      contentType: imgRes.headers.get('content-type') ?? 'image/png',
     })
     return uploaded ?? params.remoteUrl
   } catch {
     return params.remoteUrl
   }
+}
+
+/** @deprecated Use hasImageGenerationKey — kept for callers checking paid OpenAI/Replicate paths. */
+export function hasPaidImageFallbackKey(): boolean {
+  return Boolean(allowDalleImages() || allowReplicateImages())
 }
