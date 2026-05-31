@@ -18,6 +18,7 @@ export function LiveGenerationCanvas({
   className?: string
 }) {
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
 
   return (
     <div
@@ -40,7 +41,7 @@ export function LiveGenerationCanvas({
             </h2>
             {!complete ? (
               <div className="mt-6 max-w-lg mx-auto">
-                <CinematicTimeline currentStep={generationStep} />
+                <CinematicTimeline currentStep={generationStep} sectionStatus={sectionStatus} />
               </div>
             ) : null}
           </header>

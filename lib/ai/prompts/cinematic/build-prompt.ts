@@ -11,8 +11,12 @@ import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection, creatorProfileDirective } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection as buildCompanionMemorySection } from '@/lib/companion/creator-memory'
-import { buildCreativeBriefPromptSection } from '@/lib/companion/creative-discovery'
 import type { CreativeBrief, CreatorMemory } from '@/lib/companion/types'
+import {
+  formatCompanionBriefFallback,
+  formatContentBriefForPrompt,
+  type ContentBrief,
+} from '@/lib/content-director/content-brief'
 import { creatorHistoryDirective } from '@/lib/creator/knowledge-base'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
@@ -25,13 +29,7 @@ import {
   buildArchetypePromptSection,
   type SelectedScriptArchetype,
 } from '@/lib/cinematic/script-archetypes'
-import {
-  buildContentAnglePromptSection,
-  buildHookFrameworkPromptSection,
-  buildTitleOriginalityRules,
-  type SelectedContentAngle,
-  type HookFramework,
-} from '@/lib/cinematic/content-angle-engine'
+import type { SelectedContentAngle, HookFramework } from '@/lib/cinematic/content-angle-engine'
 
 export type CinematicPromptInput = {
   topic: string
@@ -73,6 +71,8 @@ export type CinematicPromptInput = {
   hookFramework?: HookFramework
   /** Human Creative Companion discovery brief */
   creativeBrief?: CreativeBrief | null
+  /** Content Director session brief — preferred over duplicating topic/platform/tone */
+  contentBrief?: ContentBrief | null
   /** Companion creator memory from reflections */
   companionMemory?: CreatorMemory | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
@@ -132,12 +132,13 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     niche: input.niche,
     sessionSeed: input.sessionSeed,
   })
+  const directorBrief = formatContentBriefForPrompt(input.contentBrief)
   const briefHeader = [
-    'CREATOR BRIEF (use exactly):',
-    `TOPIC: ${input.topic}`,
+    directorBrief ||
+      ['CREATOR BRIEF (use exactly):', `TOPIC: ${input.topic}`, `STYLE: ${input.tone}`, `PLATFORM: ${input.platform}`].join(
+        '\n'
+      ),
     `MODE: quick_cut`,
-    `STYLE: ${input.tone}`,
-    `PLATFORM: ${input.platform}`,
     `DURATION: ${input.duration}s`,
     scriptWordCountHint(input.duration),
     languageDirective(normalizeProjectLanguage(input.language), {
@@ -171,7 +172,7 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
       ? buildCreatorMemoryPromptSection(input.creatorMemoryBias)
       : '',
     input.companionMemory ? buildCompanionMemorySection(input.companionMemory) : '',
-    input.creativeBrief ? buildCreativeBriefPromptSection(input.creativeBrief) : '',
+    formatCompanionBriefFallback(input.contentBrief, input.creativeBrief),
     input.creatorProfile ? creatorProfileDirective(input.creatorProfile) : '',
     input.researchReport
       ? buildDeepResearchReportScriptContext(input.researchReport)
@@ -189,9 +190,6 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.scriptArchetype
       ? buildArchetypePromptSection(input.scriptArchetype)
       : '',
-    input.contentAngle ? buildContentAnglePromptSection(input.contentAngle) : '',
-    input.hookFramework ? buildHookFrameworkPromptSection(input.hookFramework) : '',
-    buildTitleOriginalityRules(),
   ]
     .filter(Boolean)
     .join('\n')

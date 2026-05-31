@@ -62,6 +62,7 @@ import { CreatorExperienceSelector } from '@/components/create/creator-experienc
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
 import { CreatorInspiration } from '@/components/creator-inspiration'
+import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
 import { KnowledgeSuggestions } from '@/components/create/knowledge-suggestions'
 import {
@@ -69,6 +70,14 @@ import {
   type MugteeConversationLaunchPayload,
 } from '@/components/create/mugtee-conversation-entry'
 import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
+import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
+import { SuggestionChips } from '@/components/onboarding/suggestion-chips'
+import { WhatMugteeGenerates } from '@/components/onboarding/what-mugtee-generates'
+import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
+import {
+  isFirstTimeUser,
+  markHasCreatedProject,
+} from '@/lib/onboarding/onboarding-state'
 
 const LOGIN_AFTER_QUICK_CUT = '/create?mode=quick&resume=1'
 const CONVERSATION_ENTRY_KEY = 'mugtee:conversation-entry:v1'
@@ -284,7 +293,9 @@ export function FullscreenQuickCutCanvas({
 
   const launchPipeline = useCallback(
     async (pending: QuickCutPending) => {
-      if (isGenerating || !authReady) return
+      if (isGenerating || useQuickCutGenerationStore.getState().generationInFlight || !authReady) {
+        return
+      }
 
       if (signedIn === false) {
         saveQuickCutPending(pending)
@@ -634,6 +645,10 @@ export function FullscreenQuickCutCanvas({
           </form>
 
           {directorUi && !isGenerating ? <RecentGenerationsStrip limit={8} /> : null}
+
+          {directorUi && !isGenerating && !prompt.trim() ? (
+            <EmptyStateExamples className="mt-6" />
+          ) : null}
 
           {directorUi && !isGenerating ? (
             <CreatorInspiration onSelectTopic={handleInspirationSelect} />
