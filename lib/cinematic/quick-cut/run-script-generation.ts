@@ -76,6 +76,7 @@ import {
   loadRecentNarrativeFrameworks,
   recordNarrativeFrameworkUsage,
   selectNarrativeFramework,
+  type NarrativeFrameworkId,
   type SelectedNarrativeFramework,
 } from '@/lib/narrative/narrative-frameworks'
 
@@ -494,6 +495,7 @@ export type ScriptGenerationResult = {
   sopCompliance?: import('@/lib/cinematic/script-sop').ScriptSopComplianceScore
   sopRegenAttempts?: number
   scriptArchetype?: ScriptArchetypeMeta
+  narrativeFrameworkId?: NarrativeFrameworkId
 } & ScriptGenerationResearchOutput &
   Partial<StoryboardStoreFields>
 
@@ -633,6 +635,7 @@ export async function runScriptGeneration(
       researchReport,
       researchMock,
       scriptArchetype: archetypeMeta,
+      narrativeFrameworkId: narrativeFramework.id,
     }
   }
 
@@ -749,6 +752,7 @@ export async function runScriptGeneration(
         researchReport,
         researchMock,
         scriptArchetype: archetypeMeta,
+        narrativeFrameworkId: narrativeFramework.id,
       }
     }
     throw err instanceof Error ? err : new Error('Script generation failed')

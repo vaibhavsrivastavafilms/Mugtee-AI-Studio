@@ -89,7 +89,7 @@ export type QuickCutProjectHydrationPatch = {
   elevenLabsVoiceId: string | null
   voiceName: string | null
   videoUrl: string | null
-  renderPollUrl: null
+  renderPollUrl: string | null
   renderError: string | null
   exportExpired: boolean
   generationStep: QuickCutGenerationStep

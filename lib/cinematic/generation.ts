@@ -79,6 +79,9 @@ export type GeneratedScene = {
   movementStyle: string
   /** Populated after /api/generate-images */
   imageUrl?: string | null
+  /** Multi-frame storyboard gallery from enhance-storyboard */
+  storyboardImages?: import('@/stores/cinematic-project').StoryboardImage[]
+  activeStoryboardId?: string
   /** Optional alt frame from Generate Variations */
   variationImageUrl?: string | null
   /** Motion Engine preset — assigned after storyboard */
@@ -798,6 +801,10 @@ export function storeScenesToGenerated(scenes: CinematicScene[]): GeneratedScene
     colorPalette: scene.colorPalette || '',
     movementStyle: scene.movementStyle || '',
     imageUrl: scene.imageUrl ?? null,
+    ...(scene.storyboardImages?.length
+      ? { storyboardImages: scene.storyboardImages }
+      : {}),
+    ...(scene.activeStoryboardId ? { activeStoryboardId: scene.activeStoryboardId } : {}),
     variationImageUrl:
       'variationImageUrl' in scene && typeof scene.variationImageUrl === 'string'
         ? scene.variationImageUrl
