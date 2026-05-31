@@ -37,7 +37,7 @@ async function handleRewriteSelection(context: NonNullable<GenerateRequest['cont
     model: 'gpt-4.1-mini',
     temperature: 0.85,
     messages: [
-      { role: 'system', content: buildRewriteSystemPrompt() },
+      { role: 'system', content: buildRewriteSystemPrompt({ niche: context.niche, language: undefined }) },
       {
         role: 'user',
         content: buildRewriteUserPrompt({

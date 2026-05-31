@@ -2,10 +2,9 @@
 
 import { useRef } from 'react'
 import { ScriptBeatsDisplay } from '@/components/quick-cut/script-beats-display'
+import { RewriteProvider } from '@/components/director/rewrite-provider'
 import type { ScriptBeat } from '@/types/cinematic-script'
 import { cn } from '@/lib/utils'
-import { RewriteToolbar, type RewriteReplacePayload } from '@/components/rewrite/rewrite-toolbar'
-import type { RewriteContext } from '@/lib/rewrite/rewrite-actions'
 
 export function LiveScriptReveal({
   script,
@@ -16,8 +15,6 @@ export function LiveScriptReveal({
   active,
   className,
   directorEdit,
-  rewriteContext,
-  onDirectorReplace,
 }: {
   script: string
   hook?: string
@@ -27,8 +24,6 @@ export function LiveScriptReveal({
   active?: boolean
   className?: string
   directorEdit?: boolean
-  rewriteContext?: RewriteContext
-  onDirectorReplace?: (payload: RewriteReplacePayload) => void | Promise<void>
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -54,17 +49,13 @@ export function LiveScriptReveal({
 
   if (!inner) return null
 
-  return (
-    <div ref={containerRef} className={cn('relative', className)}>
-      {directorEdit && onDirectorReplace ? (
-        <RewriteToolbar
-          containerRef={containerRef}
-          context={rewriteContext}
-          onReplace={onDirectorReplace}
-          enabled={!active}
-        />
-      ) : null}
-      {inner}
-    </div>
-  )
+  if (directorEdit) {
+    return (
+      <RewriteProvider containerRef={containerRef} enabled className={cn('relative', className)}>
+        {inner}
+      </RewriteProvider>
+    )
+  }
+
+  return <div className={cn('relative', className)}>{inner}</div>
 }

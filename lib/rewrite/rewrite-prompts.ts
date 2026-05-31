@@ -1,3 +1,4 @@
+import type { StoryBible } from '@/lib/cinematic/story-bible'
 import type { RewriteContentType, RewriteVariant } from '@/lib/rewrite/rewrite-actions'
 
 const VARIANT_DIRECTIVES: Record<RewriteVariant, string> = {
@@ -52,17 +53,32 @@ const CONTENT_HINTS: Record<RewriteContentType, string> = {
   script: 'This is SCRIPT narration — spoken aloud, cinematic pacing.',
   scene: 'This is a SCENE beat — storyboard / scene description.',
   caption: 'This is CAPTION copy — social post text.',
+  cta: 'This is a CTA — call-to-action line. One clear action, native to short-form.',
   visual_direction: 'This is VISUAL DIRECTION — camera, lighting, composition notes.',
 }
 
-export function buildRewriteSystemPrompt(): string {
-  return [
-    'You are Mugtee — a cinematic AI director for creators.',
+function formatStoryBibleHint(bible: StoryBible): string {
+  const parts = [
+    bible.visualStyle && `Visual style: ${bible.visualStyle}`,
+    bible.colorPalette && `Palette: ${bible.colorPalette}`,
+    bible.environment && `Environment: ${bible.environment}`,
+    bible.cameraLanguage && `Camera: ${bible.cameraLanguage}`,
+    bible.mood && `Mood: ${bible.mood}`,
+  ].filter(Boolean)
+  return parts.length ? `Story bible (preserve continuity):\n${parts.join('\n')}` : ''
+}
+
+export function buildRewriteSystemPrompt(input?: { language?: string; niche?: string }): string {
+  const parts = [
+    'You are Mugtee — a cinematic AI director and editor for creators.',
     'Rewrite ONLY the selected passage. Return plain replacement prose.',
     'No quotes, no markdown headers, no labels, no explanations.',
-    'Preserve names, facts, and story intent unless the directive requires a tonal shift.',
-    'Match the language of the selection.',
-  ].join(' ')
+    'Preserve meaning, voice, niche, and story intent unless the directive requires a tonal shift.',
+  ]
+  if (input?.language) parts.push(`Write in ${input.language}.`)
+  else parts.push('Match the language of the selection.')
+  if (input?.niche) parts.push(`Creator niche: ${input.niche}.`)
+  return parts.join(' ')
 }
 
 export function buildRewriteUserPrompt(input: {
@@ -74,6 +90,8 @@ export function buildRewriteUserPrompt(input: {
   platform?: string
   niche?: string
   tone?: string
+  storyBible?: StoryBible | null
+  language?: string
 }): string {
   const directive = VARIANT_DIRECTIVES[input.variant] ?? VARIANT_DIRECTIVES.more_viral
   const parts: string[] = [directive]
@@ -85,6 +103,11 @@ export function buildRewriteUserPrompt(input: {
   if (input.platform) parts.push(`Platform: ${input.platform}`)
   if (input.niche) parts.push(`Niche: ${input.niche}`)
   if (input.tone) parts.push(`Tone/style: ${input.tone}`)
+  if (input.storyBible) {
+    const hint = formatStoryBibleHint(input.storyBible)
+    if (hint) parts.push(hint)
+  }
+  if (input.language) parts.push(`Language: ${input.language}`)
   if (input.fullScript && input.fullScript !== input.selection) {
     parts.push(`Full surrounding text (context only — do NOT rewrite all of this):\n${input.fullScript.slice(0, 2000)}`)
   }

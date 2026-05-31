@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import type { StoryBible } from '@/lib/cinematic/story-bible'
 import {
   REWRITE_MIN_SELECTION_CHARS,
   type RewriteContentType,
@@ -25,9 +26,13 @@ export type PendingRewrite = {
 type UseTextSelectionRewriteOptions = {
   containerRef: React.RefObject<HTMLElement | null>
   defaultContentType?: RewriteContentType
-  context?: RewriteContext
+  context?: RewriteContext & { storyBible?: StoryBible | null; language?: string }
   enabled?: boolean
   minChars?: number
+  projectId?: string | null
+  onRewriteStart?: (variant: RewriteVariant, contentType: RewriteContentType) => void
+  onRewriteSuccess?: (variant: RewriteVariant, contentType: RewriteContentType) => void
+  onRewriteError?: (error: string) => void
 }
 
 function detectContentType(node: Node | null): RewriteContentType {
@@ -40,6 +45,7 @@ function detectContentType(node: Node | null): RewriteContentType {
       typed === 'script' ||
       typed === 'scene' ||
       typed === 'caption' ||
+      typed === 'cta' ||
       typed === 'visual_direction'
     ) {
       return typed
@@ -62,6 +68,9 @@ export function useTextSelectionRewrite({
   context = {},
   enabled = true,
   minChars = REWRITE_MIN_SELECTION_CHARS,
+  onRewriteStart,
+  onRewriteSuccess,
+  onRewriteError,
 }: UseTextSelectionRewriteOptions) {
   const [selection, setSelection] = useState<SelectionRewriteState | null>(null)
   const [busyVariant, setBusyVariant] = useState<RewriteVariant | null>(null)
@@ -140,14 +149,16 @@ export function useTextSelectionRewrite({
   const runRewrite = useCallback(
     async (variant: RewriteVariant, skipPreview = false) => {
       if (!selection || busyVariant) return null
+      const contentType = selection.contentType || defaultContentType
       setBusyVariant(variant)
       setError(null)
+      onRewriteStart?.(variant, contentType)
       try {
-        const contentType = selection.contentType || defaultContentType
         const result = await requestRewriteSelection(selection.text, variant, {
           ...context,
           content_type: contentType,
         })
+        onRewriteSuccess?.(variant, contentType)
         const pendingRewrite: PendingRewrite = {
           original: selection.text,
           replacement: result.output,
@@ -163,12 +174,22 @@ export function useTextSelectionRewrite({
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Rewrite failed'
         setError(message)
+        onRewriteError?.(message)
         return null
       } finally {
         setBusyVariant(null)
       }
     },
-    [selection, busyVariant, context, defaultContentType, clearSelection]
+    [
+      selection,
+      busyVariant,
+      context,
+      defaultContentType,
+      clearSelection,
+      onRewriteStart,
+      onRewriteSuccess,
+      onRewriteError,
+    ]
   )
 
   const confirmPending = useCallback(() => {

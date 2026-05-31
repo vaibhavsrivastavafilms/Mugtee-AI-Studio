@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, type ReactNode, RefObject } from 'react'
+import { useEffect, useRef, type ReactNode, RefObject } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
@@ -24,9 +24,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
-import { buildQuickCutRewritePatch } from '@/lib/rewrite/apply-quick-cut-rewrite'
-import type { RewriteReplacePayload } from '@/components/rewrite/rewrite-toolbar'
-import { RewriteToolbar } from '@/components/rewrite/rewrite-toolbar'
+import { RewriteProvider } from '@/components/director/rewrite-provider'
 
 function SceneBreakdownList({
   scenes,
@@ -162,46 +160,12 @@ export function GenerationStagePanel({
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const saveProject = useQuickCutGenerationStore((s) => s.saveProject)
-  const style = useQuickCutGenerationStore((s) => s.style)
-  const niche = useQuickCutGenerationStore((s) => s.niche)
   const storyboardTracked = useRef(false)
   const hookPanelRef = useRef<HTMLDivElement>(null)
   const scenesPanelRef = useRef<HTMLDivElement>(null)
 
   const directorEditEnabled =
     !isGenerating && !isRegeneratingScript && !isRegeneratingHook
-
-  const rewriteContext = {
-    title: title || undefined,
-    niche: niche || undefined,
-    tone: style || undefined,
-    full_text: [hook, script].filter(Boolean).join('\n\n'),
-  }
-
-  const onDirectorReplace = useCallback(
-    async ({ original, replacement, variant, contentType }: RewriteReplacePayload) => {
-      const state = useQuickCutGenerationStore.getState()
-      const patch = buildQuickCutRewritePatch(
-        {
-          hook: state.hook,
-          script: state.script,
-          scriptBeats: state.scriptBeats,
-          payoff: state.payoff,
-          cta: state.cta,
-          scenes: state.scenes,
-        },
-        original,
-        replacement,
-        contentType,
-        variant
-      )
-      if (Object.keys(patch).length === 0) return
-      useQuickCutGenerationStore.setState(patch)
-      void saveProject()
-    },
-    [saveProject]
-  )
 
   useEffect(() => {
     if (tab !== 'scenes' || scenes.length < 1 || storyboardTracked.current) return
@@ -301,22 +265,19 @@ export function GenerationStagePanel({
               angleLabel={contentAngleLabel}
               hookFrameworkLabel={hookFrameworkLabel}
             />
-            <div ref={hookPanelRef} className="relative">
-              {directorEditEnabled ? (
-                <RewriteToolbar
-                  containerRef={hookPanelRef}
-                  context={rewriteContext}
-                  onReplace={onDirectorReplace}
-                  defaultContentType="hook"
-                />
-              ) : null}
+            <RewriteProvider
+              containerRef={hookPanelRef}
+              enabled={directorEditEnabled}
+              defaultContentType="hook"
+              className="relative"
+            >
               <p
                 data-rewrite-type="hook"
                 className="select-text font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug"
               >
                 {hook}
               </p>
-            </div>
+            </RewriteProvider>
           </div>
         ) : (
           <p className="text-[12px] text-luxe/55 italic">Crafting hook…</p>
@@ -367,8 +328,6 @@ export function GenerationStagePanel({
               (generationStep === 'script' || generationStep === 'scenes')
             }
             directorEdit={directorEditEnabled}
-            rewriteContext={rewriteContext}
-            onDirectorReplace={onDirectorReplace}
           />
           {!isGenerating && (script?.trim() || hook?.trim()) ? (
             <MugteeFollowUpActions className="pt-2" />
@@ -397,15 +356,12 @@ export function GenerationStagePanel({
           {shell(
             'Scene breakdown',
             <Film className="w-3 h-3" />,
-            <div ref={scenesPanelRef} className="relative">
-              {directorEditEnabled ? (
-                <RewriteToolbar
-                  containerRef={scenesPanelRef}
-                  context={rewriteContext}
-                  onReplace={onDirectorReplace}
-                  defaultContentType="scene"
-                />
-              ) : null}
+            <RewriteProvider
+              containerRef={scenesPanelRef}
+              enabled={directorEditEnabled}
+              defaultContentType="scene"
+              className="relative"
+            >
               <SceneBreakdownList
                 scenes={scenes}
                 loading={generationStep === 'scenes'}
@@ -413,7 +369,7 @@ export function GenerationStagePanel({
                 exportTitle={title}
                 allowDownload={isComplete}
               />
-            </div>,
+            </RewriteProvider>,
             generationStep === 'scenes'
           )}
         </div>

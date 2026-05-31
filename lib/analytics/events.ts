@@ -44,6 +44,11 @@ export const AnalyticsEvents = {
 
   REGENERATE_VISUAL_DIRECTION: 'regenerate_visual_direction',
 
+  REWRITE_ACTION_USED: 'rewrite_action_used',
+  REWRITE_SUCCESS: 'rewrite_success',
+  REWRITE_ACCEPT: 'rewrite_accept',
+  REWRITE_REVERT: 'rewrite_revert',
+
 } as const
 
 
