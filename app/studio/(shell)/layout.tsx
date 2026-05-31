@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import {
   APP_ROUTE_LOGIN_FALLBACK,
@@ -28,7 +29,9 @@ export default async function StudioShellLayout({
   return (
     <DashboardShell user={user}>
       {children}
-      <MugteeAssistant />
+      <Suspense fallback={null}>
+        <MugteeAssistant />
+      </Suspense>
     </DashboardShell>
   )
 }
