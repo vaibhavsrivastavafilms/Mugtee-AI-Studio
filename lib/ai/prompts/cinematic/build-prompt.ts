@@ -10,6 +10,9 @@ import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { CreatorMemoryBiasHints, CreatorMemoryProfile } from '@/lib/creator/creator-memory'
 import { buildCreatorMemoryPromptSection, creatorProfileDirective } from '@/lib/creator/creator-memory'
+import { buildCreatorMemoryPromptSection as buildCompanionMemorySection } from '@/lib/companion/creator-memory'
+import { buildCreativeBriefPromptSection } from '@/lib/companion/creative-discovery'
+import type { CreativeBrief, CreatorMemory } from '@/lib/companion/types'
 import { creatorHistoryDirective } from '@/lib/creator/knowledge-base'
 import { buildDeepResearchScriptContextSection } from '@/lib/ai/prompts/youtube/deep-research-prompt'
 import { buildDeepResearchReportScriptContext } from '@/lib/ai/prompts/youtube/deep-research-sop'
@@ -68,6 +71,10 @@ export type CinematicPromptInput = {
   /** Content originality engine — strategist angle for title/hook/script alignment */
   contentAngle?: SelectedContentAngle
   hookFramework?: HookFramework
+  /** Human Creative Companion discovery brief */
+  creativeBrief?: CreativeBrief | null
+  /** Companion creator memory from reflections */
+  companionMemory?: CreatorMemory | null
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Instruct LLM to produce a new variation while keeping topic / style locks. */
@@ -163,6 +170,8 @@ export function buildCinematicScriptPrompt(input: CinematicPromptInput): string 
     input.creatorMemoryBias
       ? buildCreatorMemoryPromptSection(input.creatorMemoryBias)
       : '',
+    input.companionMemory ? buildCompanionMemorySection(input.companionMemory) : '',
+    input.creativeBrief ? buildCreativeBriefPromptSection(input.creativeBrief) : '',
     input.creatorProfile ? creatorProfileDirective(input.creatorProfile) : '',
     input.researchReport
       ? buildDeepResearchReportScriptContext(input.researchReport)

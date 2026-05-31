@@ -3,6 +3,9 @@
 import { Wand2 } from 'lucide-react'
 import { CreatorToneMemory } from '@/components/cinematic/creator-tone-memory'
 import { StoryboardContinuityPanel } from '@/components/cinematic/storyboard-continuity-panel'
+import { DirectorNotesPanel } from '@/components/companion/director-notes-panel'
+import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
+import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
 import { cn } from '@/lib/utils'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -15,6 +18,9 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
   const panelPreferences = useStudioWorkspaceStore((s) => s.panelPreferences)
   const style = useQuickCutGenerationStore((s) => s.style)
   const niche = useQuickCutGenerationStore((s) => s.niche)
+  const hook = useQuickCutGenerationStore((s) => s.hook)
+  const script = useQuickCutGenerationStore((s) => s.script)
+  const duration = useQuickCutGenerationStore((s) => s.duration)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
@@ -44,6 +50,22 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe p-4 space-y-4">
+        <DirectorNotesPanel />
+
+        <EmotionalStoryCard
+          hook={hook}
+          script={script}
+          scenes={scenes}
+          duration={duration}
+        />
+
+        <ViewerJourneyPreview
+          hook={hook}
+          script={script}
+          scenes={scenes}
+          duration={duration}
+        />
+
         <CreatorToneMemory style={style} niche={niche} className="text-left" />
 
         <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3">

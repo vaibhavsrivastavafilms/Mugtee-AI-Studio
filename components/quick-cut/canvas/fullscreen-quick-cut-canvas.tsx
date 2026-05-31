@@ -395,6 +395,7 @@ export function FullscreenQuickCutCanvas({
               signedIn={signedIn}
               authReady={authReady}
               onLaunch={handleConversationLaunch}
+              requireDiscovery={experienceLevel === 'noob'}
               onSwitchClassic={() => {
                 saveConversationEntryPreference('classic')
                 setUseConversationEntry(false)

@@ -37,6 +37,10 @@ import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { QUICK_CUT_SIGN_IN } from '@/lib/cinematic/quick-cut/copy'
+import { companionCopy } from '@/lib/companion/microcopy'
+import { mergeBriefWithConversation } from '@/lib/companion/creative-discovery'
+import { CreativeDiscoveryFlow } from '@/components/companion/creative-discovery-flow'
+import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { CreatorLanguageIndicator } from '@/components/i18n/creator-language-indicator'
 import {
@@ -67,6 +71,7 @@ export function MugteeConversationEntry({
   onSwitchClassic,
   showSignIn,
   loginHref,
+  requireDiscovery = true,
 }: {
   embedded?: boolean
   language: ProjectLanguage
@@ -76,6 +81,8 @@ export function MugteeConversationEntry({
   onSwitchClassic?: () => void
   showSignIn?: boolean
   loginHref: string
+  /** Noob flow — 5 discovery questions before generation */
+  requireDiscovery?: boolean
 }) {
   const [step, setStep] = useState<ConversationStep>('welcome')
   const [ctx, setCtx] = useState<ConversationContext>(emptyConversationContext())
@@ -89,6 +96,8 @@ export function MugteeConversationEntry({
 
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const error = useQuickCutGenerationStore((s) => s.error)
+  const setCreativeBrief = useCompanionStore((s) => s.setCreativeBrief)
+  const startDiscovery = useCompanionStore((s) => s.startDiscovery)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -158,6 +167,30 @@ export function MugteeConversationEntry({
     [launching, onLaunch, pushMugtee]
   )
 
+  const beginLaunch = useCallback(
+    async (finalCtx: ConversationContext) => {
+      if (requireDiscovery) {
+        const toneLabel = TONE_OPTIONS.find((t) => t.id === finalCtx.tone)?.label
+        setCreativeBrief(
+          mergeBriefWithConversation(useCompanionStore.getState().creativeBrief, {
+            topic: finalCtx.topic,
+            tone: toneLabel,
+          })
+        )
+        startDiscovery()
+        setStep('discovery')
+        await pushMugtee('discovery', finalCtx, 480)
+        return
+      }
+      await launchGeneration(finalCtx)
+    },
+    [requireDiscovery, launchGeneration, pushMugtee, setCreativeBrief, startDiscovery]
+  )
+
+  const handleDiscoveryComplete = useCallback(async () => {
+    await launchGeneration(ctx)
+  }, [ctx, launchGeneration])
+
   const handleTopicSubmit = useCallback(
     async (raw: string) => {
       const topic = raw.trim()
@@ -200,10 +233,10 @@ export function MugteeConversationEntry({
         return
       }
 
-      await pushMugtee('launching', nextCtx, 480)
-      void launchGeneration(nextCtx)
+      await pushMugtee(requireDiscovery ? 'discovery' : 'launching', nextCtx, 480)
+      void beginLaunch(nextCtx)
     },
-    [ctx, launchGeneration, pushMugtee, pushUser, typing, launching]
+    [ctx, beginLaunch, pushMugtee, pushUser, requireDiscovery, typing, launching]
   )
 
   const handleNichePick = useCallback(
@@ -214,9 +247,9 @@ export function MugteeConversationEntry({
       const nextCtx = { ...ctx, niche }
       setCtx(nextCtx)
       await pushMugtee(nextStepAfterNiche(), nextCtx, 480)
-      void launchGeneration(nextCtx)
+      void beginLaunch(nextCtx)
     },
-    [ctx, launchGeneration, pushMugtee, pushUser, typing, launching]
+    [ctx, beginLaunch, pushMugtee, pushUser, typing, launching]
   )
 
   const handleChipClick = (chip: string) => {
@@ -336,6 +369,13 @@ export function MugteeConversationEntry({
           />
         ) : null}
 
+        {step === 'discovery' && !typing && !launching ? (
+          <CreativeDiscoveryFlow
+            onComplete={() => void handleDiscoveryComplete()}
+            onSkip={() => void handleDiscoveryComplete()}
+          />
+        ) : null}
+
         {(step === 'welcome' || step === 'topic') && !busy ? (
           <div className="flex flex-wrap justify-center gap-2">
             {CONVERSATION_EXAMPLE_CHIPS.map((chip) => (
@@ -384,7 +424,7 @@ export function MugteeConversationEntry({
         {launching || isGenerating ? (
           <p className="text-center text-[11px] tracking-[0.18em] uppercase text-gold-300/70 flex items-center justify-center gap-2">
             <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            Mugtee is generating your reel…
+            {companionCopy('generating')}
           </p>
         ) : null}
 

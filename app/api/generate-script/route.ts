@@ -31,6 +31,8 @@ import {
   parseFeatureUsageProjectId,
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
+import { normalizeCreativeBrief } from '@/lib/companion/creative-discovery'
+import { normalizeCreatorMemory } from '@/lib/companion/creator-memory'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export const runtime = 'nodejs'
@@ -258,6 +260,11 @@ export async function POST(req: NextRequest) {
           .slice(0, 5)
       : undefined
 
+    const creativeBrief = normalizeCreativeBrief(raw.creativeBrief ?? raw.creative_brief)
+    const companionMemory = normalizeCreatorMemory(
+      raw.companionMemory ?? raw.companion_memory ?? raw.creatorMemory
+    )
+
     const input = {
       topic,
       platform,
@@ -288,6 +295,8 @@ export async function POST(req: NextRequest) {
       contentAngleId,
       hookFrameworkId,
       recentContentAngles,
+      creativeBrief: Object.values(creativeBrief).some(Boolean) ? creativeBrief : undefined,
+      companionMemory: Object.values(companionMemory).some(Boolean) ? companionMemory : undefined,
     }
 
     if (process.env.NODE_ENV === 'development') {

@@ -112,6 +112,8 @@ export type ScriptGenerationInput = {
   contentAngleId?: string
   recentContentAngles?: string[]
   hookFrameworkId?: string
+  creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
+  companionMemory?: import('@/lib/companion/types').CreatorMemory | null
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -144,6 +146,8 @@ type GenInput = {
   scriptArchetype?: SelectedScriptArchetype
   contentAngle?: SelectedContentAngle
   hookFramework?: HookFramework
+  creativeBrief?: import('@/lib/companion/types').CreativeBrief | null
+  companionMemory?: import('@/lib/companion/types').CreatorMemory | null
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -191,6 +195,8 @@ function buildUserPrompt(input: GenInput, retryNote?: string): string {
       scriptArchetype: input.scriptArchetype,
       contentAngle: input.contentAngle,
       hookFramework: input.hookFramework,
+      creativeBrief: input.creativeBrief,
+      companionMemory: input.companionMemory,
     }),
     sopSection,
     retryNote
@@ -568,6 +574,8 @@ export async function runScriptGeneration(
     scriptArchetype,
     contentAngle,
     hookFramework,
+    creativeBrief: input.creativeBrief,
+    companionMemory: input.companionMemory,
   }
 
   if (!hasScriptGenerationKey()) {

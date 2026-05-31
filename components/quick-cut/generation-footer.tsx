@@ -4,7 +4,7 @@ import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-ti
 import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
 import { RenderProgress } from '@/components/quick-cut/render-progress'
-import { resolveQuickCutProgressLabel } from '@/lib/quick-cut/asset-availability'
+import { companionCopy } from '@/lib/companion/microcopy'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -32,24 +32,10 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
   const subtitle = hook
     ? 'Hook ready — open Hook tab'
     : generationStep === 'title' || generationStep === 'analyzing'
-      ? 'Generating hook…'
+      ? companionCopy('generating')
       : isComplete
-        ? resolveQuickCutProgressLabel({
-            generationStep,
-            isComplete,
-            videoUrl,
-            videoRenderEnabled,
-            renderError,
-            renderPollUrl,
-            isRenderingVideo,
-            renderStatusLabel,
-            exportPackageReady,
-            exportExpired,
-            hasScript: Boolean(script?.trim() || hook?.trim() || title?.trim() || scriptBeats.length),
-            hasImages: scenes.some((scene) => Boolean(scene.imageUrl?.trim())),
-            hasNarration: Boolean(voiceUrl?.trim()),
-          })
-        : 'In production…'
+        ? companionCopy('storyReady')
+        : companionCopy('generating')
 
   return (
     <footer

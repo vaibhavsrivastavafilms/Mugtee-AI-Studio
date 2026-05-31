@@ -24,6 +24,9 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
+import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
+import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
+import { companionCopy } from '@/lib/companion/microcopy'
 import { MotionStagePanel, MotionStageShell } from '@/components/quick-cut/motion-stage-panel'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 
@@ -169,6 +172,7 @@ export function GenerationStagePanel({
   const setSceneMotionPreset = useQuickCutGenerationStore((s) => s.setSceneMotionPreset)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const duration = useQuickCutGenerationStore((s) => s.duration)
   const storyboardTracked = useRef(false)
   const hookPanelRef = useRef<HTMLDivElement>(null)
   const scenesPanelRef = useRef<HTMLDivElement>(null)
@@ -340,6 +344,12 @@ export function GenerationStagePanel({
           />
           {!isGenerating && (script?.trim() || hook?.trim()) ? (
             <MugteeFollowUpActions className="pt-2" />
+          ) : null}
+          {(script?.trim() || hook?.trim()) ? (
+            <>
+              <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
+              <ViewerJourneyPreview hook={hook} script={script} scenes={scenes} duration={duration} />
+            </>
           ) : null}
         </div>
       ) : (

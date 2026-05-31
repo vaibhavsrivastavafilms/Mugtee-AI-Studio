@@ -14,6 +14,7 @@ export type ConversationStep =
   | 'platform'
   | 'tone'
   | 'niche'
+  | 'discovery'
   | 'launching'
 
 export type ConversationPlatform = 'youtube' | 'instagram' | 'tiktok'
@@ -100,7 +101,9 @@ export function mugteeReplyForStep(
         ? pickMugteePhrase('Last one — what niche bucket fits best?')
         : pickMugteePhrase("Perfect. I'm filling the canvas and starting generation.")
     case 'niche':
-      return pickMugteePhrase("Locked. Building your hook, script, and scenes now.")
+      return pickMugteePhrase("Locked. Five quick questions — then we roll camera.")
+    case 'discovery':
+      return 'Before we generate anything — tell me what this story is really about. Five questions, fast.'
     case 'launching':
       return pickMugteePhrase('On it — your reel is taking shape.')
     default:

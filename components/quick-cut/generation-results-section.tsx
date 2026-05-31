@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import {
   Check,
   CheckCircle2,
@@ -44,6 +44,12 @@ import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
+import { CelebrationState } from '@/components/companion/celebration-state'
+import { ReflectionLoop } from '@/components/companion/reflection-loop'
+import { StoryExpansionCard } from '@/components/companion/story-expansion-card'
+import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
+import { companionCopy } from '@/lib/companion/microcopy'
+import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
@@ -90,6 +96,12 @@ export function GenerationResultsSection({
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const niche = useQuickCutGenerationStore((s) => s.niche)
+  const setProjectId = useCompanionStore((s) => s.setProjectId)
+
+  useEffect(() => {
+    if (savedProjectId) setProjectId(savedProjectId)
+  }, [savedProjectId, setProjectId])
   const lastSavedAt = useQuickCutGenerationStore((s) => s.lastSavedAt)
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
@@ -240,10 +252,12 @@ export function GenerationResultsSection({
       )}
       aria-label="Generation results"
     >
+      <CelebrationState title={title} className="w-full" />
+
       <div className="flex flex-col items-center text-center gap-2">
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-[10px] tracking-[0.22em] uppercase text-emerald-200/90">
           <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-          Video Generated Successfully
+          {companionCopy('exportReady')}
         </div>
         {title ? (
           <p className="font-display text-lg text-[#F4E7C1] italic leading-snug line-clamp-2">
@@ -285,6 +299,12 @@ export function GenerationResultsSection({
       />
 
       <MugteeFollowUpActions />
+
+      <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
+
+      <StoryExpansionCard title={title} hook={hook} script={script} niche={niche} />
+
+      <ReflectionLoop />
 
       <div className="flex flex-wrap items-stretch justify-center gap-2">
         <button
