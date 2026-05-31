@@ -24,8 +24,10 @@ export type TextToVideoDemoTemplate = {
   output: VideoGeneratorOutput
   sceneImageUrls: string[]
   voicePreview: TextToVideoVoicePreview
-  /** Placeholder preview — static image when no MP4 in public/ */
+  /** Poster frame shown before MP4 loads */
   previewVideoPoster: string
+  /** Playable demo MP4 — stable public sample per template */
+  previewVideoUrl: string
 }
 
 const VISUAL_SUFFIX =
@@ -237,6 +239,8 @@ export const TEXT_TO_VIDEO_DEMO_TEMPLATES: TextToVideoDemoTemplate[] = [
     voicePreview: voicePreview(58),
     previewVideoPoster:
       'https://images.unsplash.com/photo-1568322445380-f9ba8147e1a2?w=1200&q=85',
+    previewVideoUrl:
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
   },
   {
     id: 'faceless-history-channel',
@@ -266,6 +270,8 @@ export const TEXT_TO_VIDEO_DEMO_TEMPLATES: TextToVideoDemoTemplate[] = [
     voicePreview: voicePreview(52),
     previewVideoPoster:
       'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200&q=85',
+    previewVideoUrl:
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
   },
   {
     id: 'viral-psychology-reel',
@@ -295,6 +301,8 @@ export const TEXT_TO_VIDEO_DEMO_TEMPLATES: TextToVideoDemoTemplate[] = [
     voicePreview: voicePreview(48),
     previewVideoPoster:
       'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&q=85',
+    previewVideoUrl:
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
   },
   {
     id: 'documentary-storytelling',
@@ -324,6 +332,8 @@ export const TEXT_TO_VIDEO_DEMO_TEMPLATES: TextToVideoDemoTemplate[] = [
     voicePreview: voicePreview(62),
     previewVideoPoster:
       'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85',
+    previewVideoUrl:
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Suburbia.mp4',
   },
 ]
 

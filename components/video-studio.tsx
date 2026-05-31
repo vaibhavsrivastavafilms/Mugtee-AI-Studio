@@ -33,6 +33,8 @@ import {
   type TextToVideoTimelineStep,
 } from '@/lib/demo/run-text-to-video-demo'
 import { CinematicTimeline } from '@/components/v2/cinematic-timeline'
+import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
+import { demoTemplateToGeneratedScenes } from '@/lib/demo/text-to-video-demo-player'
 import {
   Select,
   SelectContent,
@@ -266,6 +268,22 @@ export function VideoStudio() {
       }),
     [output?.title, input, selectedTemplate.topic]
   )
+
+  const selectedTemplateScenes = useMemo(
+    () => demoTemplateToGeneratedScenes(selectedTemplate),
+    [selectedTemplate]
+  )
+
+  const activeDemoScenes = useMemo(
+    () => (activeTemplate ? demoTemplateToGeneratedScenes(activeTemplate) : []),
+    [activeTemplate]
+  )
+
+  const showRenderPreview =
+    loading &&
+    pipelineProgress != null &&
+    (pipelineProgress.pipelineStep === 'render' ||
+      pipelineProgress.pipelineStep === 'complete')
 
   const handleTemplateChange = useCallback((id: TextToVideoDemoTemplateId) => {
     setSelectedTemplateId(id)
@@ -507,6 +525,25 @@ export function VideoStudio() {
                   <span>{pipelineProgress.progress}% complete</span>
                 </div>
               ) : null}
+              {showRenderPreview ? (
+                <div className="pt-2 border-t border-white/[0.06]">
+                  <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/75 mb-4 text-center">
+                    Assembling demo preview
+                  </p>
+                  <ReelAssemblyPlayer
+                    scenes={selectedTemplateScenes}
+                    title={selectedTemplate.output.title}
+                    hook={selectedTemplate.output.hook}
+                    script={selectedTemplate.output.voiceover}
+                    videoUrl={null}
+                    mp4Compiling={pipelineProgress?.pipelineStep === 'render'}
+                    generationStep="render"
+                    autoPlayPreview
+                    showSubtitles
+                    className="max-w-[320px]"
+                  />
+                </div>
+              ) : null}
             </GlassPanel>
           </motion.div>
         ) : null}
@@ -521,27 +558,23 @@ export function VideoStudio() {
             exit={{ opacity: 0, y: 8 }}
             className="mt-6 sm:mt-8 pt-8 sm:pt-10 border-t border-white/[0.06] space-y-6"
           >
-            {/* Video preview poster — step 3 */}
+            {/* Video preview — step 3 */}
             {step >= 3 ? (
-              <GlassPanel className="overflow-hidden p-0">
-                <div className="relative aspect-video bg-black/60">
-                  <Image
-                    src={activeTemplate.previewVideoPoster}
-                    alt={`${output.title} preview`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 100vw, 896px"
-                    unoptimized
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-                    <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/85 mb-1">
-                      Demo preview · {activeTemplate.voicePreview.voiceName}
-                    </p>
-                    <p className="font-display text-lg sm:text-xl text-luxe">{output.title}</p>
-                  </div>
-                </div>
+              <GlassPanel className="overflow-hidden p-4 sm:p-6">
+                <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/85 mb-4 text-center">
+                  Demo preview · {activeTemplate.voicePreview.voiceName}
+                </p>
+                <ReelAssemblyPlayer
+                  scenes={activeDemoScenes}
+                  title={output.title}
+                  hook={output.hook}
+                  script={output.voiceover}
+                  videoUrl={activeTemplate.previewVideoUrl}
+                  generationStep="complete"
+                  autoPlayPreview
+                  showSubtitles
+                  className="max-w-[320px]"
+                />
               </GlassPanel>
             ) : null}
 
@@ -722,6 +755,18 @@ export function VideoStudio() {
                     Download or copy your cinematic demo package. For full video render with voice and
                     storyboard frames, continue in Quick Cut (live generation for signed-in users).
                   </p>
+                  <div className="flex justify-center py-2">
+                    <ReelAssemblyPlayer
+                      scenes={activeDemoScenes}
+                      title={output.title}
+                      hook={output.hook}
+                      script={output.voiceover}
+                      videoUrl={activeTemplate.previewVideoUrl}
+                      generationStep="complete"
+                      showSubtitles
+                      className="max-w-[280px]"
+                    />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
