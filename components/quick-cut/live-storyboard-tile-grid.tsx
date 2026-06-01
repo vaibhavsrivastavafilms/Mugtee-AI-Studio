@@ -1,6 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
@@ -67,11 +68,12 @@ export function LiveStoryboardTileGrid({
             >
               {previewUrl ? (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={previewUrl}
                     alt={scene?.title || `Scene ${i + 1}`}
-                    className="absolute inset-0 h-full w-full object-cover"
+                    fill
+                    sizes="74px"
+                    className="object-cover"
                   />
                   <div
                     className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 pointer-events-none"

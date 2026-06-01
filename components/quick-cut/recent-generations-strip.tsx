@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clapperboard, Film, Play, RefreshCw, Zap } from 'lucide-react'
 import { ProjectMp4Button } from '@/components/quick-cut/project-mp4-button'
@@ -138,12 +139,12 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
                         playsInline
                       />
                     ) : p.thumbnail ? (
-                      <img
+                      <Image
                         src={p.thumbnail}
                         alt={p.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
+                        fill
+                        sizes="188px"
+                        className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">

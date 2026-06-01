@@ -68,6 +68,7 @@ import {
   type SceneBlueprint,
   type VisualConsistencyPack,
 } from '@/lib/cinematic/scene-blueprint'
+import { parseReelTimeline } from '@/lib/reel/parse-reel-timeline'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -989,6 +990,8 @@ export type CaptionsPayload = {
   /** Output alignment pass — scene visual blueprints */
   sceneBlueprints?: SceneBlueprint[]
   outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
+  /** Reel Composer Pass — synchronized voice/visual/caption timeline */
+  reelTimeline?: import('@/lib/reel/types').ReelTimeline
 }
 
 export function captionsToPayload(state: {
@@ -1016,6 +1019,7 @@ export function captionsToPayload(state: {
   series?: CaptionsPayload['series']
   sceneBlueprints?: SceneBlueprint[]
   outputAlignmentControls?: CaptionsPayload['outputAlignmentControls']
+  reelTimeline?: import('@/lib/reel/types').ReelTimeline
 }): CaptionsPayload {
   return {
     text: state.captionLines.join('\n') || state.hook || '',
@@ -1047,6 +1051,7 @@ export function captionsToPayload(state: {
     ...(state.outputAlignmentControls
       ? { outputAlignmentControls: state.outputAlignmentControls }
       : {}),
+    ...(state.reelTimeline ? { reelTimeline: state.reelTimeline } : {}),
   }
 }
 
@@ -1078,6 +1083,7 @@ export function parseCaptionsPayload(
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   sceneBlueprints?: SceneBlueprint[]
   outputAlignmentControls?: CaptionsPayload['outputAlignmentControls']
+  reelTimeline?: import('@/lib/reel/types').ReelTimeline
 } {
   if (typeof value === 'string') {
     return {
@@ -1216,5 +1222,6 @@ export function parseCaptionsPayload(
     outputAlignmentControls: parseOutputAlignmentControls(
       value?.outputAlignmentControls
     ),
+    reelTimeline: parseReelTimeline(value?.reelTimeline) ?? undefined,
   }
 }

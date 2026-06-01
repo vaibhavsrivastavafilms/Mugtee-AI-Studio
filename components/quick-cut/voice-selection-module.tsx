@@ -209,7 +209,7 @@ export function VoiceSelectionModule({ className }: { className?: string }) {
                       <button
                         type="button"
                         role="option"
-                        aria-selected={selected}
+                        aria-selected={selected ? 'true' : 'false'}
                         onClick={() => selectVoice(voice)}
                         className={cn(
                           'w-full text-left rounded-md px-2.5 py-2 border transition-colors',

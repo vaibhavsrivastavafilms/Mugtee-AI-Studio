@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -27,6 +27,7 @@ export function CreatorShowcase({ className }: { className?: string }) {
   const [category, setCategory] = useState<ShowcaseCategoryId>('all')
   const [preview, setPreview] = useState<ProofShowcaseExample | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const tabPanelId = useId()
 
   const items = useMemo(() => filterShowcaseByCategory(category).slice(0, 6), [category])
 
@@ -55,26 +56,38 @@ export function CreatorShowcase({ className }: { className?: string }) {
           role="tablist"
           aria-label="Showcase categories"
         >
-          {SHOWCASE_FEATURED_CATEGORIES.map((cat) => (
+          {SHOWCASE_FEATURED_CATEGORIES.map((cat) => {
+            const selected = category === cat.id
+            const tabId = `showcase-tab-${cat.id}`
+            return (
             <button
               key={cat.id}
               type="button"
+              id={tabId}
               role="tab"
-              aria-selected={category === cat.id}
+              aria-selected={selected ? 'true' : 'false'}
+              aria-controls={tabPanelId}
+              tabIndex={selected ? 0 : -1}
               onClick={() => setCategory(cat.id)}
               className={cn(
                 'shrink-0 min-h-[36px] rounded-full px-3.5 py-1.5 text-[10px] tracking-[0.14em] uppercase transition-colors',
-                category === cat.id
+                selected
                   ? 'bg-gold-500/15 border border-gold-500/35 text-gold-100'
                   : 'border border-white/[0.08] text-luxe/45 hover:text-luxe/70 hover:border-white/15'
               )}
             >
               {cat.label}
             </button>
-          ))}
+            )
+          })}
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          role="tabpanel"
+          id={tabPanelId}
+          aria-labelledby={`showcase-tab-${category}`}
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           {items.map((item, index) => (
             <motion.article
               key={item.id}
@@ -107,6 +120,7 @@ export function CreatorShowcase({ className }: { className?: string }) {
               <div className="p-3 pt-2 grid grid-cols-3 gap-1.5 mt-auto">
                 <button
                   type="button"
+                  aria-label={`View ${item.topic}`}
                   onClick={() => openPreview(item)}
                   className={cn(
                     'inline-flex min-h-[40px] flex-col items-center justify-center gap-0.5 rounded-lg',

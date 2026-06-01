@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -77,6 +78,8 @@ const STARTER_PROMPTS_POOL = [
   'The bus stop where two strangers met',
   'A song that found him in the rain',
 ]
+const FIRST_SESSION_GREETINGS = ['Ready when you are.']
+const RETURNING_GREETINGS = ['Continue your reel.', 'Pick up where you left off.']
 function pickStarterPrompts(seed = Date.now(), count = 5): string[] {
   const arr = [...STARTER_PROMPTS_POOL]
   // Lightweight deterministic-ish shuffle so a single mount renders the same
@@ -428,8 +431,6 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
   // initialize with stable fallback values (first 5 prompts, first greeting)
   // and randomize ONLY inside useEffect after mount. This eliminates the
   // server/client HTML mismatch that triggered the hydration warning.
-  const FIRST_SESSION_GREETINGS = ['Ready when you are.']
-  const RETURNING_GREETINGS = ['Continue your reel.', 'Pick up where you left off.']
   const [starterPrompts, setStarterPrompts] = useState<string[]>(() => STARTER_PROMPTS_POOL.slice(0, 5))
   const [welcomeMessage, setWelcomeMessage] = useState<string>(FIRST_SESSION_GREETINGS[0])
   useEffect(() => {
@@ -2347,12 +2348,12 @@ function FrameCard({
       title={frame.prompt?.slice(0, 240)}
       className="group relative block aspect-[9/16] rounded-lg overflow-hidden border border-white/[0.06] bg-black/40 hover:border-gold-500/40 transition"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={frame.url}
         alt={`Frame ${index + 1}`}
-        loading="lazy"
-        className={`w-full h-full object-cover transition duration-500 ${busy ? 'opacity-30 blur-[1px]' : 'group-hover:scale-[1.02]'}`}
+        fill
+        sizes="120px"
+        className={`object-cover transition duration-500 ${busy ? 'opacity-30 blur-[1px]' : 'group-hover:scale-[1.02]'}`}
       />
 
       {/* Frame number badge ╬ô├ç├╢ always visible */}
@@ -2545,13 +2546,13 @@ function WorkspaceMascot() {
     >
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-gold-500/20 blur-2xl animate-pulse" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/api/mascot"
           alt=""
           width={56}
           height={56}
           className="relative w-14 h-14 rounded-full object-cover ring-1 ring-gold-500/30 shadow-[0_0_30px_-6px_rgba(245,196,77,0.45)]"
+          unoptimized
         />
       </div>
     </div>
@@ -2624,7 +2625,7 @@ function AIDirectorCard({
     }
   }, [])
 
-  const shots = output?.storyboardShots || []
+  const shots = useMemo(() => output?.storyboardShots ?? [], [output?.storyboardShots])
   const hasStoryboard = shots.length > 0
 
   // Story Feel ╬ô├ç├╢ derived from tone.

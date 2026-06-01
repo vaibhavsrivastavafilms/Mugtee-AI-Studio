@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
@@ -55,11 +56,12 @@ export function LiveStoryboardBuild({
               )}
             >
               {frame ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={frame}
                   alt={scene.title}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  fill
+                  sizes="72px"
+                  className="object-cover"
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-[#120D08] to-black flex items-center justify-center">

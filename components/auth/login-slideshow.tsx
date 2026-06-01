@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import type { CreatorMode } from '@/lib/create/routes'
 
 type Slide = { src: string; caption: string; eyebrow?: string }
@@ -82,12 +83,14 @@ export function LoginSlideshow({ mode }: { mode?: CreatorMode | null }) {
           }
           {...(isActive ? {} : { 'aria-hidden': 'true' as const })}
         >
-          <img
+          <Image
             src={s.src}
             alt=""
-            loading={i === 0 ? 'eager' : 'lazy'}
+            fill
+            sizes="(max-width: 1024px) 100vw, 640px"
+            priority={i === 0}
             className={
-              'w-full h-full object-cover transition-transform ease-linear ' +
+              'object-cover transition-transform ease-linear ' +
               (active === i ? 'animate-kenburns' : 'scale-105') +
               (i % 2 === 0 ? ' origin-center' : ' origin-[60%_40%]')
             }

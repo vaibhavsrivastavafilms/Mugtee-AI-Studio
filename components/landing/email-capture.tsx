@@ -72,7 +72,7 @@ export function EmailCapture() {
               )}
             >
               {busy ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
-                : done ? <><Check className="w-4 h-4" /> You're in</>
+                : done ? <><Check className="w-4 h-4" /> You&apos;re in</>
                 : 'Subscribe'}
             </button>
           </div>

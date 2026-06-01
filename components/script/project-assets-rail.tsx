@@ -7,9 +7,10 @@
 // Reads from /api/projects/[id]/assets. Music + Videos tabs are placeholder-only
 // (clearly labelled "Coming soon") so the project workflow is future-ready.
 //
-// EXTREME LOW CREDIT MODE: lazy-loaded <img loading="lazy">, no gallery libraries.
+// Lazy-loaded Next.js Image, no gallery libraries.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Image as ImageIcon, Mic2, Music, Film, Wand2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Play, Pause, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -134,8 +135,16 @@ function ImagesGrid({ assets, loading, onRemove }: { assets: ProjectAsset[]; loa
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
       {assets.map(a => (
         <div key={a.id} className="group relative rounded-xl overflow-hidden border border-gold-soft hover:border-gold-500/40 transition bg-black">
-          <div className="aspect-[9/16] bg-zinc-900">
-            {a.url && <img src={a.url} alt={a.prompt || 'asset'} loading="lazy" decoding="async" className="w-full h-full object-cover" />}
+          <div className="relative aspect-[9/16] bg-zinc-900">
+            {a.url && (
+              <Image
+                src={a.url}
+                alt={a.prompt || 'asset'}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover"
+              />
+            )}
           </div>
           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/95 via-black/55 to-transparent opacity-0 group-hover:opacity-100 transition">
             <div className="flex items-center justify-between gap-1">

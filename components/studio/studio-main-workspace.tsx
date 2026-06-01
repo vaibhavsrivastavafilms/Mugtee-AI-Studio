@@ -28,6 +28,8 @@ type StudioMainWorkspaceProps = {
   projectId?: string
 }
 
+const EXPORT_STAGE_TABS = ['complete', 'publish', 'repurpose'] as const
+
 export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspaceProps) {
   const router = useRouter()
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
@@ -37,7 +39,6 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const stageTabPinned = useQuickCutGenerationStore((s) => s.stageTabPinned)
-  const EXPORT_STAGE_TABS = ['complete', 'publish', 'repurpose'] as const
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)

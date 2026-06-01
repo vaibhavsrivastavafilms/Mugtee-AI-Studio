@@ -1,8 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+function isNativeImageSrc(src: string) {
+  return src.startsWith('data:') || src.startsWith('blob:')
+}
 
 /** Crossfades storyboard frames — keeps previous image visible during variant switches. */
 export function StoryboardCrossfadeImage({
@@ -60,24 +65,29 @@ export function StoryboardCrossfadeImage({
         <div className="absolute inset-0 shimmer-cinematic opacity-50" aria-hidden />
       ) : null}
       {previousSrc ? (
-        <img
+        <Image
           src={previousSrc}
           alt=""
           aria-hidden
+          fill
+          unoptimized={isNativeImageSrc(previousSrc)}
+          sizes="100vw"
           className={
-            'absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out pointer-events-none ' +
+            'object-cover transition-opacity duration-560 ease-out pointer-events-none ' +
             (loaded ? 'opacity-0' : 'opacity-100')
           }
         />
       ) : null}
-      <img
+      <Image
         src={currentSrc}
         alt={alt}
-        decoding="async"
+        fill
+        unoptimized={isNativeImageSrc(currentSrc)}
+        sizes="100vw"
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         className={cn(
-          'absolute inset-0 w-full h-full object-cover transition-opacity duration-560 ease-out',
+          'object-cover transition-opacity duration-560 ease-out',
           loaded ? 'opacity-100 storyboard-focus-zoom' : 'opacity-0'
         )}
       />

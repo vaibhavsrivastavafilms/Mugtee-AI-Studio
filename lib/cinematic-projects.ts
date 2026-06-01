@@ -279,6 +279,7 @@ import {
 } from '@/lib/cinematic/cinematic-script'
 import type { ScriptBeatsPayload } from '@/types/cinematic-script'
 import type { RepurposedAssetsMap } from '@/lib/cinematic/content-repurpose'
+import { timelineStateFromReelTimeline } from '@/lib/reel/parse-reel-timeline'
 
 export { FINISHED_PROJECT_STATUSES, normalizeProjectStatus, isFinishedProjectStatus }
 import type {
@@ -326,6 +327,8 @@ export type CinematicProjectRow = {
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | Record<string, unknown> | null
   /** Per-scene motion preset map (migration 0038). */
   scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | Record<string, unknown> | null
+  /** Reel composer timeline (migration 0037). */
+  timeline_state?: Record<string, unknown> | null
   /** Opt-in public homepage gallery (default false). */
   share_as_showcase?: boolean
 }
@@ -406,6 +409,7 @@ export type ArchiveGeneratedProjectInput = {
   hookFrameworkLabel?: string | null
   scene_blueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
   output_alignment_controls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
+  timeline_state?: Record<string, unknown> | null
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -754,6 +758,8 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   visual_style?: VisualStyle | Record<string, unknown> | null
   sceneBlueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
   outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
+  reelTimeline?: import('@/lib/reel/types').ReelTimeline | null
+  timeline_state?: Record<string, unknown> | null
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
   archetypeId?: string | null
@@ -812,7 +818,8 @@ export async function updateProject(
     state.series !== undefined ||
     state.repurposedAssets !== undefined ||
     (state as CinematicProjectPatch).sceneBlueprints !== undefined ||
-    (state as CinematicProjectPatch).outputAlignmentControls !== undefined
+    (state as CinematicProjectPatch).outputAlignmentControls !== undefined ||
+    (state as CinematicProjectPatch).reelTimeline !== undefined
   ) {
     const lines = state.captionLines ?? []
     patch.captions = captionsToPayload({
@@ -856,6 +863,7 @@ export async function updateProject(
       repurposedAssets: state.repurposedAssets,
       sceneBlueprints: (state as CinematicProjectPatch).sceneBlueprints,
       outputAlignmentControls: (state as CinematicProjectPatch).outputAlignmentControls,
+      reelTimeline: (state as CinematicProjectPatch).reelTimeline ?? undefined,
     })
   }
   if (state.status !== undefined) patch.status = state.status
@@ -913,6 +921,13 @@ export async function updateProject(
   if ((state as { share_as_showcase?: boolean }).share_as_showcase !== undefined) {
     patch.share_as_showcase = Boolean(
       (state as { share_as_showcase?: boolean }).share_as_showcase
+    )
+  }
+  if ((state as CinematicProjectPatch).timeline_state !== undefined) {
+    patch.timeline_state = (state as CinematicProjectPatch).timeline_state
+  } else if ((state as CinematicProjectPatch).reelTimeline !== undefined) {
+    patch.timeline_state = timelineStateFromReelTimeline(
+      (state as CinematicProjectPatch).reelTimeline ?? null
     )
   }
 
@@ -1118,6 +1133,7 @@ export async function archiveGeneratedProject(
     series?: import('@/lib/cinematic/content-series').ContentSeries | null
     sceneBlueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
     outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
+    timeline_state?: Record<string, unknown> | null
   }
 
   const archivePatch: ArchivePatch = {
@@ -1168,6 +1184,7 @@ export async function archiveGeneratedProject(
     series: input.series ?? undefined,
     sceneBlueprints: input.scene_blueprints,
     outputAlignmentControls: input.output_alignment_controls,
+    timeline_state: input.timeline_state ?? undefined,
   }
 
   if (input.projectId) {

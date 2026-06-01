@@ -34,25 +34,25 @@ export default function Post() {
             Curiosity is the highest-retention emotion on YouTube — and documentary-style faceless channels (think: cold-war espionage, ancient empires, forgotten technologies) compound it. Retention curves stay above 55% even at the 8-minute mark, and the AI script workflow turns a 12-hour research-to-narration cycle into a 90-minute one.
           </Section>
           <Section n="2" title="Personal finance for specific archetypes">
-            Generic "how to invest" is dead. "How a 23-year-old in Mumbai with ₹40K/month should think about index funds" still works. Tight audience, tight CTR, premium RPM.
+            Generic &quot;how to invest&quot; is dead. &quot;How a 23-year-old in Mumbai with ₹40K/month should think about index funds&quot; still works. Tight audience, tight CTR, premium RPM.
           </Section>
           <Section n="3" title="Cinematic philosophy / psychology essays">
             Stoicism, attention economy, modern loneliness — written with sensory anchors and cinematic B-roll. The voiceover does 80% of the work. AI handles both halves.
           </Section>
           <Section n="4" title="Niche micro-history">
-            "The story of the chair you're sitting in." "Why every airport sounds the same." Small surfaces, dense payoff, infinite topics. Format scales linearly with research speed — exactly where AI helps.
+            &quot;The story of the chair you&apos;re sitting in.&quot; &quot;Why every airport sounds the same.&quot; Small surfaces, dense payoff, infinite topics. Format scales linearly with research speed — exactly where AI helps.
           </Section>
           <Section n="5" title="Tech deep-dives (founder lens)">
-            Not "top 10 AI tools." Instead: "how Anthropic actually builds Claude" or "the real reason Notion lost to Linear." Founders watch this on lunch. CPMs are absurd.
+            Not &quot;top 10 AI tools.&quot; Instead: &quot;how Anthropic actually builds Claude&quot; or &quot;the real reason Notion lost to Linear.&quot; Founders watch this on lunch. CPMs are absurd.
           </Section>
           <Section n="6" title="AI workflows / creator economics">
-            Meta enough to be self-referential, but real. Creators are an audience hungry to learn from each other. Yes, you're reading one such post right now.
+            Meta enough to be self-referential, but real. Creators are an audience hungry to learn from each other. Yes, you&apos;re reading one such post right now.
           </Section>
           <Section n="7" title="Quiet-luxury aesthetic essays">
             Slow shots, no on-screen text, soft narration. Architecture, fashion, food culture, travel. Best paired with cinematic AI B-roll instead of stock footage.
           </Section>
           <Section n="8" title="True-crime + cultural context">
-            High-retention, but commoditized — until you add cultural framing ("How this trial reshaped India's relationship with privacy"). Story + meaning beats story alone.
+            High-retention, but commoditized — until you add cultural framing (&quot;How this trial reshaped India&apos;s relationship with privacy&quot;). Story + meaning beats story alone.
           </Section>
           <Section n="9" title="How I built it — mini-docs about real creators">
             Bite-sized documentaries about niche solo builders. Audiences love the parasocial-but-distant texture. Pairs perfectly with AI-driven research + scripting.
@@ -60,7 +60,7 @@ export default function Post() {
 
           <section className="mt-12 rounded-2xl glass border border-gold-soft p-6">
             <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-2">TL;DR</div>
-            <p className="text-luxe/85 text-sm leading-relaxed">Pick a niche where curiosity, specificity, or aesthetic carries the watch-time — and where AI compresses your research and scripting cycle by 5–10×. That's the leverage.</p>
+            <p className="text-luxe/85 text-sm leading-relaxed">Pick a niche where curiosity, specificity, or aesthetic carries the watch-time — and where AI compresses your research and scripting cycle by 5–10×. That&apos;s the leverage.</p>
           </section>
 
           <CTA />

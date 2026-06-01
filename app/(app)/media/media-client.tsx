@@ -14,6 +14,7 @@
 // reuse the existing project_assets table via a single thin /api/library/assets endpoint.
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -216,7 +217,7 @@ export default function MediaPageClient() {
       <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Library</div>
-          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Everything</span> you've created</h1>
+          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">Everything</span> you&apos;ve created</h1>
           <p className="text-luxe/70 mt-2 text-sm">Auto-saved scripts, ideas, prompts &amp; media — pick up where you left off.</p>
         </div>
         {tab === 'media' && (
@@ -282,7 +283,7 @@ export default function MediaPageClient() {
                     >
                       <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 relative overflow-hidden">
                         {m.thumbnail ? (
-                          <img src={m.thumbnail} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <Image src={m.thumbnail} alt={m.title} fill className="object-cover group-hover:scale-105 transition-transform" unoptimized sizes="(max-width:768px) 50vw, 300px" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center"><Icon className="w-10 h-10 text-gold-500/50" /></div>
                         )}
@@ -391,7 +392,7 @@ function IdeasTab({ ideas, onDelete, onLaunch }: { ideas: LibraryIdea[]; onDelet
             </button>
           </div>
           <h3 className="font-display text-base leading-tight">{idea.title}</h3>
-          {idea.hook && <p className="text-[12px] text-luxe/80 leading-snug italic">"{idea.hook}"</p>}
+          {idea.hook && <p className="text-[12px] text-luxe/80 leading-snug italic">&quot;{idea.hook}&quot;</p>}
           {idea.angle && <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">{idea.angle}</p>}
           <div className="flex items-center justify-between gap-2 pt-2 mt-auto border-t border-white/[0.05]">
             <span className="text-[10px] text-muted-foreground tracking-wider inline-flex items-center gap-1">
@@ -547,7 +548,7 @@ function LibraryAssetsTab({
           >
             <div className="aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 relative overflow-hidden">
               {isImage ? (
-                <img src={a.url!} alt={title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                <Image src={a.url!} alt={title} fill className="object-cover group-hover:scale-105 transition-transform" unoptimized sizes="(max-width:768px) 50vw, 300px" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center"><Icon className="w-10 h-10 text-gold-500/50" /></div>
               )}

@@ -15,6 +15,13 @@ import {
 } from '@/lib/quick-cut/download-scene-image'
 import { buildQuickCutScriptText } from '@/lib/quick-cut/download-script'
 import { buildStoryboardExportPayload } from '@/lib/quick-cut/download-storyboard-package'
+import {
+  buildCaptionsSrt,
+  buildStoryboardManifest,
+  buildTimelineJson,
+} from '@/lib/reel'
+import type { ReelTimeline } from '@/lib/reel/types'
+import { buildReelExport2Assets } from '@/lib/reel/export-2'
 import type { DeepResearchReport } from '@/types/deep-research'
 import {
   blobToUint8Array,
@@ -36,6 +43,7 @@ export type CreatorPackExportInput = {
   savedProjectId?: string | null
   isUnlimited?: boolean
   isGenerating?: boolean
+  reelTimeline?: ReelTimeline | null
 }
 
 export type CreatorPackMetadata = {
@@ -132,7 +140,23 @@ export async function buildCreatorPackZip(
 
   report('Building storyboard…', 20)
 
-  if (input.scenes.length > 0) {
+  if (input.reelTimeline) {
+    entries.push({
+      path: 'timeline.json',
+      data: textToUint8Array(buildTimelineJson(input.reelTimeline)),
+    })
+    included.push('timeline.json')
+    entries.push({
+      path: 'captions.srt',
+      data: textToUint8Array(buildCaptionsSrt(input.reelTimeline)),
+    })
+    included.push('captions.srt')
+    entries.push({
+      path: 'storyboard.json',
+      data: textToUint8Array(buildStoryboardManifest(input.reelTimeline)),
+    })
+    included.push('storyboard.json')
+  } else if (input.scenes.length > 0) {
     const payload = buildStoryboardExportPayload({
       title: input.title,
       hook: input.hook,
@@ -212,6 +236,30 @@ export async function buildCreatorPackZip(
     included.push('captions.txt')
   } else {
     warnings.push('captions.txt skipped — no script content available')
+  }
+
+  if (input.reelTimeline) {
+    const export2 = buildReelExport2Assets(input.reelTimeline, {
+      title: input.title,
+      hook: input.hook,
+      script: input.script,
+      scriptBeats: input.scriptBeats,
+      payoff: input.payoff,
+      cta: input.cta,
+      scenes: input.scenes,
+    })
+    entries.push({ path: 'timeline.json', data: textToUint8Array(export2.timelineJson) })
+    included.push('timeline.json')
+    entries.push({ path: 'captions.srt', data: textToUint8Array(export2.captionsSrt) })
+    included.push('captions.srt')
+    if (!included.includes('storyboard.json')) {
+      entries.push({ path: 'storyboard-timeline.json', data: textToUint8Array(export2.storyboardJson) })
+      included.push('storyboard-timeline.json')
+    }
+    if (!included.includes('script.txt')) {
+      entries.push({ path: 'script.txt', data: textToUint8Array(export2.scriptTxt) })
+      included.push('script.txt')
+    }
   }
 
   report('Adding thumbnail prompt…', 80)

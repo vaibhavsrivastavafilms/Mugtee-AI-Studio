@@ -21,6 +21,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
+import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
 import { relSavedLabel } from '@/stores/cinematic-project'
@@ -42,7 +43,6 @@ import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
 import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
-import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { CelebrationState } from '@/components/companion/celebration-state'
 import { FirstSuccessCelebration } from '@/components/onboarding/first-success-celebration'
 import { hasCompletedFirstGeneration } from '@/lib/onboarding/onboarding-state'
@@ -112,6 +112,8 @@ export function GenerationResultsSection({
   }, [savedProjectId, setProjectId])
   const lastSavedAt = useQuickCutGenerationStore((s) => s.lastSavedAt)
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
+  const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
+  const updateReelTimelineClip = useQuickCutGenerationStore((s) => s.updateReelTimelineClip)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
   const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
 
@@ -190,7 +192,10 @@ export function GenerationResultsSection({
     return 'Just now'
   }, [lastSavedAt])
 
-  const scriptInput = { title, hook, script, scriptBeats, payoff, cta, isUnlimited }
+  const scriptInput = useMemo(
+    () => ({ title, hook, script, scriptBeats, payoff, cta, isUnlimited }),
+    [title, hook, script, scriptBeats, payoff, cta, isUnlimited]
+  )
 
   const guardExport = useCallback(async () => trackClientUsage('exports'), [])
 
@@ -323,6 +328,13 @@ export function GenerationResultsSection({
         ) : null}
       </div>
 
+      <ReelComposer
+        timeline={reelTimeline}
+        audioRef={audioRef}
+        className="mx-auto"
+        showDirectorTracks
+      />
+
       <ReelAssemblyPlayer
         scenes={scenes}
         title={title}
@@ -354,8 +366,6 @@ export function GenerationResultsSection({
         hasScenes={scenes.length > 0}
         hasVoice={Boolean(voiceUrl?.trim())}
       />
-
-      <MugteeFollowUpActions />
 
       <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
 

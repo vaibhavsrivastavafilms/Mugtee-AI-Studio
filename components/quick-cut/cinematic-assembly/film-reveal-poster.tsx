@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import { Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -47,11 +48,13 @@ export function FilmRevealPoster({
         />
 
         {posterUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={posterUrl}
             alt={title || 'Reel poster'}
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            sizes="280px"
+            className="object-cover"
+            priority
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-black to-black" />

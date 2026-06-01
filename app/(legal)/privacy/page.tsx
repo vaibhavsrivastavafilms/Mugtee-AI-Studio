@@ -48,7 +48,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section icon={Sparkles} title="AI-generated content disclaimer">
-        <p>Scripts, captions, hooks, and other content produced by Mugtee's AI engines (OpenAI GPT-4o-mini, Anthropic Claude 3.5 Sonnet via Emergent's universal key) are <strong className="text-luxe">generated suggestions</strong>, not verified facts. You are responsible for reviewing, editing, and verifying any AI output before publishing it to your audience. Mugtee does not guarantee accuracy, originality, or fitness for any particular use.</p>
+        <p>Scripts, captions, hooks, and other content produced by Mugtee&apos;s AI engines (OpenAI GPT-4o-mini, Anthropic Claude 3.5 Sonnet via Emergent&apos;s universal key) are <strong className="text-luxe">generated suggestions</strong>, not verified facts. You are responsible for reviewing, editing, and verifying any AI output before publishing it to your audience. Mugtee does not guarantee accuracy, originality, or fitness for any particular use.</p>
         <p>Your prompts and inputs are sent to the underlying model providers under their respective privacy policies. We pass them through; we do not retain them for training.</p>
       </Section>
 
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section icon={Instagram} title="Instagram / Meta data">
-        <p>When you connect Instagram, we request only the permissions needed to publish to your linked Professional Instagram account (via the Meta Graph API): <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">instagram_basic</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">instagram_content_publish</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">pages_show_list</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">pages_read_engagement</code>. We don't read your DMs, comments, or follower data.</p>
+        <p>When you connect Instagram, we request only the permissions needed to publish to your linked Professional Instagram account (via the Meta Graph API): <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">instagram_basic</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">instagram_content_publish</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">pages_show_list</code>, <code className="text-gold-200/90 bg-white/[0.04] px-1.5 py-0.5 rounded text-xs">pages_read_engagement</code>. We don&apos;t read your DMs, comments, or follower data.</p>
       </Section>
 
       <Section icon={CreditCard} title="Billing & subscriptions">
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section icon={FileWarning} title="Your rights">
-        <p>You can view, export, or delete your data any time. Email us at the address below and we'll respond within 30 days. Disconnect any integration from <Link href="/settings" className="text-gold-300 hover:underline">Settings</Link> to revoke access tokens immediately.</p>
+        <p>You can view, export, or delete your data any time. Email us at the address below and we&apos;ll respond within 30 days. Disconnect any integration from <Link href="/settings" className="text-gold-300 hover:underline">Settings</Link> to revoke access tokens immediately.</p>
       </Section>
 
       <Section icon={Mail} title="Contact">

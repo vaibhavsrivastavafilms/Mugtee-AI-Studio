@@ -1,76 +1,85 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import type { SceneVoiceDirection } from '@/lib/voice/voiceDirector'
 import type { ReelVoiceSegment } from '@/lib/reel/types'
+import { narrationFromScenes } from '@/lib/cinematic/captions/word-timing'
+import { buildNarrationFromScript } from '@/lib/ai/synthesize-speech'
+import { scaleDurationsToVoiceTotal } from '@/lib/reel/scene-timing'
 
-function sceneNarration(scene: GeneratedScene): string {
+function sceneNarrationText(scene: GeneratedScene): string {
   return (scene.description || scene.visualPrompt || scene.title || '').replace(/\s+/g, ' ').trim()
 }
 
-function narrationWeights(scenes: GeneratedScene[]): number[] {
-  return scenes.map((s) => Math.max(1, sceneNarration(s).split(/\s+/).filter(Boolean).length))
+function wordWeight(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  return Math.max(1, words.length)
 }
 
-/** Split full narration into per-scene voice segments aligned to scene windows. */
+/** Estimate voice track length when ElevenLabs metadata is unavailable. */
+export function estimateVoiceDurationSec(
+  scenes: GeneratedScene[],
+  script?: string
+): number {
+  const narration =
+    narrationFromScenes(scenes, '') || buildNarrationFromScript(script ?? '')
+  return Math.max(15, Math.round(narration.length / 14))
+}
+
+export function estimateVoiceTotalSec(
+  voiceDurationSec?: number | null,
+  narration?: string
+): number {
+  if (voiceDurationSec != null && Number.isFinite(voiceDurationSec) && voiceDurationSec > 0) {
+    return voiceDurationSec
+  }
+  const text = narration?.trim() ?? ''
+  return Math.max(15, Math.round(text.length / 14))
+}
+
+/** Per-scene durations scaled to ElevenLabs voice total. */
+export function sceneDurationsFromVoiceMetadata(
+  scenes: GeneratedScene[],
+  voiceTotalSec: number,
+  rawDurations: number[]
+): number[] {
+  return scaleDurationsToVoiceTotal(rawDurations, voiceTotalSec)
+}
+
+/** Voice segments aligned to per-scene durations (scene duration = narration window). */
 export function buildVoiceSegmentsForScenes(
   scenes: GeneratedScene[],
   sceneDurations: number[],
-  voiceTotalSec?: number
+  voiceTotalSec: number,
+  options?: {
+    script?: string
+    sceneDirections?: SceneVoiceDirection[]
+  }
 ): ReelVoiceSegment[] {
-  const total =
-    voiceTotalSec && voiceTotalSec > 0
-      ? voiceTotalSec
-      : sceneDurations.reduce((a, b) => a + b, 0)
+  if (scenes.length === 0) return []
 
+  const fullNarration =
+    narrationFromScenes(scenes, '') ||
+    buildNarrationFromScript(options?.script ?? '') ||
+    scenes.map(sceneNarrationText).filter(Boolean).join(' ')
+
+  const texts = scenes.map(sceneNarrationText)
   let cursor = 0
-  let audioOffset = 0
   const segments: ReelVoiceSegment[] = []
 
   for (let i = 0; i < scenes.length; i++) {
-    const dur = sceneDurations[i] ?? 4
-    const text = sceneNarration(scenes[i]!)
+    const durationSec = sceneDurations[i] ?? voiceTotalSec / scenes.length
     const startSec = cursor
-    const endSec = Math.min(cursor + dur, total)
+    const endSec = startSec + durationSec
+    const text = texts[i] || fullNarration.slice(0, 80)
+
     segments.push({
       text,
       startSec,
       endSec,
-      audioOffsetSec: audioOffset,
-      durationSec: Math.max(0.05, endSec - startSec),
+      audioOffsetSec: startSec,
+      durationSec: Math.max(0.05, durationSec),
     })
     cursor = endSec
-    audioOffset += Math.max(0.05, endSec - startSec)
   }
 
   return segments
-}
-
-/** Estimate voice duration when ElevenLabs metadata is unavailable (~14 chars/sec). */
-export function estimateVoiceDurationSec(scenes: GeneratedScene[], fallbackScript?: string): number {
-  const fromScenes = scenes.map(sceneNarration).filter(Boolean).join(' ')
-  const text = fromScenes || (fallbackScript ?? '').replace(/\s+/g, ' ').trim()
-  if (!text) return 30
-  return Math.max(15, Math.min(60, Math.round(text.length / 14)))
-}
-
-/** Proportional scene durations from voice metadata duration. */
-export function sceneDurationsFromVoiceMetadata(
-  scenes: GeneratedScene[],
-  voiceDurationSec: number,
-  rawDurations: number[]
-): number[] {
-  const weights = narrationWeights(scenes)
-  const weightTotal = weights.reduce((a, b) => a + b, 0) || scenes.length
-  const minSec = 2
-
-  const proportional = weights.map((w, i) => {
-    const share = (w / weightTotal) * voiceDurationSec
-    const emotionBoost = rawDurations[i] ?? 4
-    return Math.max(minSec, share * 0.7 + emotionBoost * 0.3)
-  })
-
-  const sum = proportional.reduce((a, b) => a + b, 0)
-  const scale = voiceDurationSec / sum
-  const scaled = proportional.map((d) => Math.max(minSec, d * scale))
-  const head = scaled.slice(0, -1).reduce((a, b) => a + b, 0)
-  scaled[scaled.length - 1] = Math.max(minSec, voiceDurationSec - head)
-  return scaled.map((d) => Math.round(d * 100) / 100)
 }

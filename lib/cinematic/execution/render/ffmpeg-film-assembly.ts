@@ -5,7 +5,6 @@ let ffmpegAvailable: boolean | null = null
 function checkFfmpegAvailable(): boolean {
   if (ffmpegAvailable != null) return ffmpegAvailable
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('ffmpeg-static')
     ffmpegAvailable = true
   } catch {

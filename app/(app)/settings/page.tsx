@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import NextImage from 'next/image'
 import { motion } from 'framer-motion'
 import { NICHES, AUDIENCES, readCreatorProfile, writeCreatorProfile } from '@/components/ai/viral-studio-panel'
 import {
@@ -280,8 +281,8 @@ export default function SettingsPage() {
         <div className="space-y-3">
           <label htmlFor="studio-logo-upload" className="text-xs tracking-wider uppercase text-muted-foreground">Logo</label>
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-xl glass flex items-center justify-center overflow-hidden shrink-0">
-              {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-gold-400/60" />}
+            <div className="w-20 h-20 rounded-xl glass flex items-center justify-center overflow-hidden shrink-0 relative">
+              {logoUrl ? <NextImage src={logoUrl} alt="logo" fill className="object-cover" unoptimized sizes="80px" /> : <ImageIcon className="w-8 h-8 text-gold-400/60" />}
             </div>
             <div className="flex-1 space-y-2">
               <input id="studio-logo-upload" ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"

@@ -3,6 +3,7 @@
 // Listens for beforeinstallprompt, suppresses the mini-infobar, shows a branded CTA.
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { track } from '@/lib/posthog'
 
 type BIPEvent = Event & {
@@ -108,7 +109,7 @@ export function InstallMugteeBanner() {
       className="fixed inset-x-0 bottom-0 z-[80] px-3 pb-[max(env(safe-area-inset-bottom),12px)] pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
       <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-[#D4AF37]/25 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(212,175,55,0.18)] p-3.5 flex items-center gap-3 min-w-0">
-        <img
+        <Image
           src="/icons/icon-192.png"
           alt=""
           width={44}

@@ -31,7 +31,6 @@ export const dynamic = 'force-dynamic'
 
 const EMERGENT_LLM_KEY = process.env.EMERGENT_LLM_KEY
 const CHAT_URL = 'https://integrations.emergentagent.com/llm/chat/completions'
-const TTS_URL = 'https://integrations.emergentagent.com/llm/v1/audio/speech'
 
 // 4 cinematic voice presets (per spec).
 // Maps each style to: the OpenAI TTS voice + a short LLM persona prefix that

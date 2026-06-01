@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Image from 'next/image'
 import { Download, ImageIcon, Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -150,7 +151,14 @@ export function ThumbnailGeneratePanel({
       ) : imageUrl ? (
         <div className="rounded-xl border border-gold-500/25 bg-black/30 p-2 max-w-md">
           <div className="relative aspect-video rounded-lg overflow-hidden border border-white/10">
-            <img src={imageUrl} alt="Generated thumbnail" className="absolute inset-0 h-full w-full object-cover" />
+            <Image
+              src={imageUrl}
+              alt="Generated thumbnail"
+              fill
+              sizes="(max-width: 768px) 100vw, 448px"
+              className="object-cover"
+              unoptimized
+            />
           </div>
           <p className="text-[10px] tracking-[0.16em] uppercase text-luxe/40 mt-2 flex items-center gap-1">
             <ImageIcon className="w-3 h-3" /> DALL-E 3 HD · 16:9

@@ -43,6 +43,7 @@ function useDeliveryLine(
   resolver: (...args: never[]) => string,
   deps: readonly unknown[]
 ) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- deps tuple is the call-site dependency list
   return useMemo(() => resolver(...(deps as never[])), deps)
 }
 

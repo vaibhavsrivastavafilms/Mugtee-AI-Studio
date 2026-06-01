@@ -20,6 +20,7 @@
 // EXTREME LOW CREDIT MODE: zero new deps, reuses ProjectAsset shape + assets API.
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   Film, Copy, Check, Download, Heart, Camera, Clock, Music2, Sparkles, FileImage, Wand2, Lock, Loader2, Printer
@@ -231,11 +232,12 @@ export function StoryboardPanel({ projectId, refreshKey = 0 }: { projectId: stri
             >
               <div className="relative aspect-[9/16] bg-black/60">
                 {a.url ? (
-                  <img
+                  <Image
                     src={a.url}
                     alt={String(narrn || a.prompt || `Frame ${seq}`)}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="280px"
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">

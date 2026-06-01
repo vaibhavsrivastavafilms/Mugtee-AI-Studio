@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
+import Image from 'next/image'
 import { Loader2, Pause, Play } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -144,6 +145,8 @@ export function ReelAssemblyPlayer({
 
   )
 
+  const lastFrame = frames[frames.length - 1]
+
 
 
   const [frameIndex, setFrameIndex] = useState(0)
@@ -271,7 +274,7 @@ export function ReelAssemblyPlayer({
     setSlideshowTime(0)
     slideshowTimeRef.current = 0
 
-  }, [frames.length, frames[frames.length - 1], videoUrl])
+  }, [frames.length, lastFrame, videoUrl])
 
 
 
@@ -488,7 +491,7 @@ export function ReelAssemblyPlayer({
 
     isPlaying,
 
-    captionState?.sceneIndex,
+    captionState,
 
     storyboardPreview,
 
@@ -923,12 +926,12 @@ export function ReelAssemblyPlayer({
 
             >
 
-              <img
+              <Image
                 src={url}
                 alt=""
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-cover"
+                fill
+                sizes="40px"
+                className="object-cover"
               />
 
             </button>

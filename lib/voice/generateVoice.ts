@@ -150,10 +150,7 @@ async function uploadVoiceBuffer(
 
 async function synthesizeWithDirector(
   narration: string,
-  voiceId: string,
-  speed: number,
-  profileStability: number,
-  profileStyle: number
+  voiceId: string
 ): Promise<{ buffer: Buffer | null; provider: VoiceMetadata['provider']; fallbackMessage?: string }> {
   if (allowElevenLabsVoice() && getElevenLabsApiKey()) {
     const result = await synthesizeElevenLabsSpeech(narration, {
@@ -253,13 +250,7 @@ export async function generateVoice(
     }
   }
 
-  const synth = await synthesizeWithDirector(
-    narration,
-    plan.voiceId,
-    plan.speed,
-    plan.profile.stability,
-    plan.profile.style
-  )
+  const synth = await synthesizeWithDirector(narration, plan.voiceId)
 
   if (!synth.buffer) {
     return {

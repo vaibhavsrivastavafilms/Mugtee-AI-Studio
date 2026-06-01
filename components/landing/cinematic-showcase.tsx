@@ -117,7 +117,7 @@ export default function CinematicShowcase() {
               </div>
               <div className="absolute bottom-3 left-3 right-3">
                 <p className="text-[10px] tracking-[0.22em] uppercase text-luxe/55 mb-1">Prompt</p>
-                <p className="text-[13px] text-luxe italic leading-snug">"{s.topic}"</p>
+                <p className="text-[13px] text-luxe italic leading-snug">&quot;{s.topic}&quot;</p>
               </div>
             </div>
           </div>
