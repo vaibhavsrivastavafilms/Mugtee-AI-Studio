@@ -1,15 +1,9 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
-import { Check, Circle, Download, Loader2, Share2 } from 'lucide-react'
+import { useMemo } from 'react'
+import { Check, Circle, Loader2, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUsage } from '@/lib/usage'
-import { AnalyticsEvents } from '@/lib/analytics/events'
-import { trackEvent } from '@/lib/analytics/track-event'
-import {
-  buildPlatformPackZip,
-  triggerPlatformPackDownload,
-} from '@/lib/quick-cut/platform-pack-export.client'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { isQuickCutMp4DownloadReady } from '@/lib/quick-cut/asset-availability'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
@@ -20,17 +14,10 @@ import {
   platformProfileCanExport,
   resolvePlatformAssetStatuses,
   type PlatformAssetState,
-  type PlatformExportId,
   type PlatformExportInput,
 } from '@/lib/quick-cut/platform-export-profiles'
 import { deriveThumbnailConcept } from '@/lib/workspace/output-workspace-utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-
-const cardButtonClass =
-  'inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity touch-manipulation bg-gold-gradient text-black shadow-gold-glow hover:opacity-90'
-
-const cardButtonDisabledClass =
-  'inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity touch-manipulation border border-white/10 text-luxe/45 cursor-not-allowed'
 
 function assetStateLabel(state: PlatformAssetState): string {
   switch (state) {
@@ -79,14 +66,11 @@ function AssetRow({ label, state }: { label: string; state: PlatformAssetState }
 function PlatformExportCard({
   profileId,
   input,
-  onError,
 }: {
-  profileId: PlatformExportId
+  profileId: (typeof PLATFORM_EXPORT_IDS)[number]
   input: PlatformExportInput
-  onError: (message: string | null) => void
 }) {
   const profile = PLATFORM_PROFILES[profileId]
-  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const assetStatuses = useMemo(
     () => resolvePlatformAssetStatuses(profileId, input),
     [profileId, input]
@@ -97,35 +81,6 @@ function PlatformExportCard({
   )
   const readyCount = assetStatuses.filter((asset) => asset.state === 'ready').length
   const partialExport = canExportZip && readyCount < assetStatuses.length
-
-  type ExportState = 'idle' | 'preparing' | 'error'
-  const [exportState, setExportState] = useState<ExportState>('idle')
-  const [progress, setProgress] = useState(0)
-
-  const handleExport = useCallback(async () => {
-    if (!canExportZip || exportState === 'preparing') return
-    setExportState('preparing')
-    setProgress(0)
-    onError(null)
-
-    trackEvent(AnalyticsEvents.EXPORT_STARTED, {
-      projectId: savedProjectId,
-      metadata: { asset: `platform_${profileId}` },
-    })
-
-    try {
-      const result = await buildPlatformPackZip(profileId, input, ({ progress: pct }) =>
-        setProgress(pct)
-      )
-      triggerPlatformPackDownload(result.blob, result.filename)
-      setExportState('idle')
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : `Unable to create ${profile.name} package.`
-      onError(message)
-      setExportState('error')
-    }
-  }, [canExportZip, exportState, profileId, profile.name, input, onError, savedProjectId])
 
   return (
     <article className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-3 space-y-2.5 flex flex-col min-w-0">
@@ -144,27 +99,14 @@ function PlatformExportCard({
         <p className="text-[10px] text-luxe/40 leading-snug">
           Partial ZIP — includes {readyCount} of {assetStatuses.length} ready assets.
         </p>
-      ) : null}
-
-      {exportState === 'preparing' ? (
-        <button type="button" disabled className={cn(cardButtonClass, 'opacity-60')}>
-          <Loader2 className="w-3 h-3 animate-spin" />
-          Preparing… {progress > 0 ? `${progress}%` : ''}
-        </button>
-      ) : exportState === 'error' ? (
-        <button type="button" onClick={() => void handleExport()} className={cardButtonClass}>
-          Retry Export
-        </button>
+      ) : canExportZip ? (
+        <p className="text-[10px] text-emerald-300/70 leading-snug">
+          Ready — download from menu above.
+        </p>
       ) : (
-        <button
-          type="button"
-          onClick={() => void handleExport()}
-          disabled={!canExportZip}
-          className={canExportZip ? cardButtonClass : cardButtonDisabledClass}
-        >
-          <Download className="w-3 h-3" />
-          Export ZIP
-        </button>
+        <p className="text-[10px] text-luxe/35 leading-snug italic">
+          Waiting on assets — check status above.
+        </p>
       )}
     </article>
   )
@@ -194,8 +136,6 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const visualStyle = useQuickCutGenerationStore((s) => s.visualStyle)
   const thumbnailImageUrl = useQuickCutGenerationStore((s) => s.thumbnailImageUrl)
-
-  const [assetError, setAssetError] = useState<string | null>(null)
 
   const canCompileMp4 = useMemo(
     () => quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled),
@@ -305,24 +245,13 @@ export function QuickCutPlatformExportProfiles({ className }: { className?: stri
           Export Profiles
         </div>
         <p className="text-[11px] text-luxe/45 mt-1">
-          Platform-ready ZIP bundles — no direct publishing.
+          Platform readiness — download ZIPs from the menu above.
         </p>
       </div>
 
-      {assetError ? (
-        <p className="text-[11px] text-amber-200/80" role="alert">
-          {assetError}
-        </p>
-      ) : null}
-
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-2">
         {PLATFORM_EXPORT_IDS.map((profileId) => (
-          <PlatformExportCard
-            key={profileId}
-            profileId={profileId}
-            input={exportInput}
-            onError={setAssetError}
-          />
+          <PlatformExportCard key={profileId} profileId={profileId} input={exportInput} />
         ))}
       </div>
 

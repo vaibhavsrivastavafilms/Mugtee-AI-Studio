@@ -1,305 +1,36 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Download,
-  ExternalLink,
-  FileText,
-  ImageIcon,
-  Loader2,
-  Mic,
-  Package,
-  Share2,
-  Video,
-} from 'lucide-react'
+import { useState } from 'react'
+import { ExternalLink, Download, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useUsage } from '@/lib/usage'
-import { downloadMp3File } from '@/lib/quick-cut/download-audio'
-import { resolveMp4Download } from '@/lib/quick-cut/resolve-mp4-download.client'
-import {
-  downloadAllStoryboardImages,
-  SCENE_IMAGE_EXPORT_DIMENSIONS,
-  slugifyExportBase,
-  type SceneImageExportSize,
-} from '@/lib/quick-cut/download-scene-image'
-import { downloadScriptDoc, downloadScriptTxt } from '@/lib/quick-cut/download-script'
-import {
-  buildCreatorPackZip,
-  triggerCreatorPackDownload,
-  type CreatorPackExportResult,
-} from '@/lib/quick-cut/creator-pack-export.client'
-import {
-  ASSET_UNAVAILABLE_MSG,
-  EXPORT_EXPIRED_MSG,
-  resolveQuickCutExportAssets,
-} from '@/lib/quick-cut/asset-availability'
-import { AnalyticsEvents } from '@/lib/analytics/events'
-import { trackEvent } from '@/lib/analytics/track-event'
-import { requestExitFeedback } from '@/lib/creator/exit-feedback'
-import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
+import { UnifiedExportMenu } from '@/components/export/unified-export-menu'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
-import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
-import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
-import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
-import {
-  findScenesMissingExportImages,
-  isMissingScenesExportError,
-} from '@/lib/export/scene-export-validation'
-import { toast } from 'sonner'
-import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
-const rowButtonClass =
-  'inline-flex min-h-[44px] items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation'
-
-const primaryButtonClass = cn(rowButtonClass, 'bg-gold-gradient text-black shadow-gold-glow hover:opacity-90')
-const secondaryButtonClass = cn(
-  rowButtonClass,
-  'border border-gold-500/30 bg-gold-500/[0.06] text-gold-200 hover:bg-gold-500/10'
-)
-const ghostButtonClass = cn(
-  rowButtonClass,
-  'border border-white/10 text-luxe/70 hover:text-luxe hover:border-white/20'
-)
-
-function DownloadRow({
-  icon,
-  label,
-  hint,
-  children,
-  'data-recommend-target': recommendTarget,
-}: {
-  icon: React.ReactNode
-  label: string
-  hint?: string
-  children: React.ReactNode
-  'data-recommend-target'?: string
-}) {
-  return (
-    <div
-      data-recommend-target={recommendTarget}
-      className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between"
-    >
-      <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/80">
-          {icon}
-          {label}
-        </div>
-        {hint ? <p className="text-[11px] text-luxe/45 mt-1">{hint}</p> : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 shrink-0">{children}</div>
-    </div>
-  )
-}
+const secondaryButtonClass =
+  'inline-flex min-h-[44px] items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity touch-manipulation border border-gold-500/30 bg-gold-500/[0.06] text-gold-200 hover:bg-gold-500/10'
 
 export function QuickCutDownloadPanel({
   className,
   supplementaryOnly = false,
 }: {
   className?: string
-  /** Hide script, narration, and MP4 rows when primary actions live in GenerationResultsSection */
+  /** Hide video/script/narration menu items when primary actions live in GenerationResultsSection */
   supplementaryOnly?: boolean
 }) {
-  const { isUnlimited } = useUsage()
-
-  const {
-    title,
-    hook,
-    script,
-    scriptBeats,
-    payoff,
-    cta,
-    scenes,
-    voiceUrl,
-    videoUrl,
-    renderPollUrl,
-    renderError,
-    renderStatusLabel,
-    isRenderingVideo,
-    videoRenderEnabled,
-    isGenerating,
-    resumeRenderPoll,
-    retryVideoRender,
-    regenerateMissingSceneImages,
-    syncVideoRenderConfig,
-    exportPackageReady,
-    savedProjectId,
-    exportExpired,
-    researchReport,
-    reelTimeline,
-  } = useQuickCutGenerationStore(
-    useShallow((s) => ({
-      title: s.title,
-      hook: s.hook,
-      script: s.script,
-      scriptBeats: s.scriptBeats,
-      payoff: s.payoff,
-      cta: s.cta,
-      scenes: s.scenes,
-      voiceUrl: s.voiceUrl,
-      videoUrl: s.videoUrl,
-      renderPollUrl: s.renderPollUrl,
-      renderError: s.renderError,
-      renderStatusLabel: s.renderStatusLabel,
-      isRenderingVideo: s.isRenderingVideo,
-      videoRenderEnabled: s.videoRenderEnabled,
-      isGenerating: s.isGenerating,
-      resumeRenderPoll: s.resumeRenderPoll,
-      retryVideoRender: s.retryVideoRender,
-      regenerateMissingSceneImages: s.regenerateMissingSceneImages,
-      syncVideoRenderConfig: s.syncVideoRenderConfig,
-      exportPackageReady: s.exportPackageReady,
-      savedProjectId: s.savedProjectId,
-      exportExpired: s.exportExpired,
-      researchReport: s.researchReport,
-      reelTimeline: s.reelTimeline,
-    }))
-  )
-
-  const [downloadingMp4, setDownloadingMp4] = useState(false)
-  const [downloadingMp3, setDownloadingMp3] = useState(false)
-  const [downloadingImagesFormat, setDownloadingImagesFormat] =
-    useState<SceneImageExportSize | null>(null)
-  const [assetError, setAssetError] = useState<string | null>(null)
   const [showExportFeedback, setShowExportFeedback] = useState(false)
-  const exportTrackedRef = useRef(false)
-  type CreatorPackState = 'idle' | 'preparing' | 'ready' | 'error'
-  const [creatorPackState, setCreatorPackState] = useState<CreatorPackState>('idle')
-  const [creatorPackProgress, setCreatorPackProgress] = useState(0)
-  const [creatorPackResult, setCreatorPackResult] = useState<CreatorPackExportResult | null>(null)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const title = useQuickCutGenerationStore((s) => s.title)
 
-  const trackExportStarted = useCallback(
-    (asset: string) => {
-      if (exportTrackedRef.current) return
-      exportTrackedRef.current = true
-      trackEvent(AnalyticsEvents.EXPORT_STARTED, {
-        projectId: savedProjectId,
-        metadata: { asset },
-      })
-    },
-    [savedProjectId]
-  )
-
-  const guardExport = useCallback(async () => trackClientUsage('exports'), [])
-
-  const exportBase = slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')
-  const mp4Name = `${exportBase}.mp4`
-  const mp3Name = `${exportBase}-narration.mp3`
-
-  const exportAssets = resolveQuickCutExportAssets({
-    title,
-    hook,
-    script,
-    scriptBeats,
-    scenes,
-    voiceUrl,
-    videoUrl,
-    videoRenderEnabled,
-    isGenerating,
-  })
-  const hasScript = exportAssets.script
-  const hasImages = exportAssets.images
-  const hasNarration = exportAssets.narration
-  const reelReadiness = useReelDownloadReadiness({
-    projectId: savedProjectId,
-    videoUrl,
-    isRendering: isRenderingVideo,
-    renderPollUrl,
-    exportExpired,
-  })
-  const mp4Export = resolveMp4ExportUiState({
-    scenes,
-    voiceUrl,
-    videoUrl,
-    videoRenderEnabled,
-    exportExpired,
-    exportPackageReady,
-    isRenderingVideo,
-    renderPollUrl,
-    renderError,
-    downloadValidated: videoUrl?.trim()
-      ? reelReadiness.ready || !savedProjectId
-      : undefined,
-    reelValidating: reelReadiness.validating,
-    downloadingMp4,
-  })
-  const {
-    canCompileMp4,
-    mp4DownloadReady,
-    mp4Compiling,
-    hasMp4Action: hasMp4,
-  } = mp4Export
-  const missingExportScenes = useMemo(
-    () => findScenesMissingExportImages(scenes),
-    [scenes]
-  )
-  const showRegenerateMissingScenes =
-    missingExportScenes.length > 0 &&
-    (isMissingScenesExportError(renderError) || (!videoUrl && !mp4Compiling))
-
-  useReelExportAutoResume({ canCompileMp4 })
-
-  useEffect(() => {
-    void syncVideoRenderConfig()
-  }, [syncVideoRenderConfig])
-
-  const scriptInput = useMemo(
-    () => ({ title, hook, script, scriptBeats, payoff, cta, isUnlimited }),
-    [title, hook, script, scriptBeats, payoff, cta, isUnlimited]
-  )
-
-  const handleDownloadTxt = useCallback(async () => {
-    if (!(await guardExport())) return
-    trackExportStarted('script_txt')
-    downloadScriptTxt(scriptInput)
-  }, [scriptInput, trackExportStarted, guardExport])
-
-  const handleDownloadDoc = useCallback(() => {
-    downloadScriptDoc(scriptInput)
-  }, [scriptInput])
-
-  const handleDownloadImages = useCallback(
-    async (exportSize: SceneImageExportSize) => {
-      if (downloadingImagesFormat || !hasImages) return
-      if (!(await guardExport())) return
-      trackExportStarted(`images_${exportSize}`)
-      setAssetError(null)
-      setDownloadingImagesFormat(exportSize)
-      try {
-        const count = await downloadAllStoryboardImages(scenes, title || 'mugtee-storyboard', exportSize)
-        if (count < 1) throw new Error(ASSET_UNAVAILABLE_MSG)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
-        setAssetError(message)
-      } finally {
-        setDownloadingImagesFormat(null)
-      }
-    },
-    [downloadingImagesFormat, scenes, title, trackExportStarted, hasImages, guardExport]
-  )
-
-  const handleDownloadMp3 = useCallback(async () => {
-    if (!hasNarration || downloadingMp3) return
-    if (!(await guardExport())) return
-    trackExportStarted('narration_mp3')
-    setAssetError(null)
-    setDownloadingMp3(true)
-    try {
-      await downloadMp3File(voiceUrl!, mp3Name)
-      setShowExportFeedback(true)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
-      setAssetError(message)
-    } finally {
-      setDownloadingMp3(false)
-    }
-  }, [voiceUrl, mp3Name, downloadingMp3, trackExportStarted, hasNarration, guardExport])
-
-  const handleShareReel = useCallback(async () => {
+  const handlePreviewReel = () => {
     if (!videoUrl?.trim()) return
-    if (!(await guardExport())) return
-    trackExportStarted('video_share')
+    window.open(videoUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleShareReel = async () => {
+    if (!videoUrl?.trim()) return
     try {
       if (navigator.share) {
         await navigator.share({ title: title || 'Mugtee reel', url: videoUrl })
@@ -309,145 +40,7 @@ export function QuickCutDownloadPanel({
     } catch {
       /* user cancelled share */
     }
-  }, [videoUrl, title, trackExportStarted, guardExport])
-
-  const handlePreviewReel = useCallback(() => {
-    if (!videoUrl?.trim()) return
-    window.open(videoUrl, '_blank', 'noopener,noreferrer')
-  }, [videoUrl])
-
-  const handleDownloadMp4 = useCallback(async () => {
-    if (downloadingMp4) return
-    if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
-    if (!(await guardExport())) return
-    trackExportStarted('video_mp4')
-    setDownloadingMp4(true)
-    if (mp4Compiling || reelReadiness.validating) {
-      toast.message('Preparing your video…')
-    }
-    try {
-      if (videoUrl?.trim() || savedProjectId) {
-        await resolveMp4Download({
-          projectId: savedProjectId,
-          videoUrl,
-          filename: mp4Name,
-          compileIfNeeded: canCompileMp4 && !videoUrl,
-          onProgress: (label) => toast.message(label, { id: 'mp4-export-progress' }),
-        })
-        toast.success('Video ready for download.', { id: 'mp4-export-progress' })
-        setShowExportFeedback(true)
-      } else {
-        await retryVideoRender()
-        const url = useQuickCutGenerationStore.getState().videoUrl
-        const err = useQuickCutGenerationStore.getState().renderError
-        if (!url) throw new Error(err || 'Video compile failed')
-        await resolveMp4Download({
-          projectId: savedProjectId,
-          videoUrl: url,
-          filename: mp4Name,
-        })
-        toast.success('Video ready for download.')
-        setShowExportFeedback(true)
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
-      const expired = message === EXPORT_EXPIRED_MSG || message.includes('Export job expired')
-      useQuickCutGenerationStore.setState({
-        renderError: message,
-        ...(expired ? { exportExpired: true, videoUrl: null } : {}),
-      })
-      setAssetError(message)
-      toast.error('MP4 export failed — Creator Pack is available below.', { id: 'mp4-export-progress' })
-      setCreatorPackState('idle')
-    } finally {
-      setDownloadingMp4(false)
-    }
-  }, [
-    videoUrl,
-    mp4Name,
-    downloadingMp4,
-    trackExportStarted,
-    savedProjectId,
-    canCompileMp4,
-    retryVideoRender,
-    guardExport,
-    mp4Compiling,
-    reelReadiness.validating,
-  ])
-
-  const handleExportCreatorPack = useCallback(async () => {
-    setCreatorPackState('preparing')
-    setCreatorPackProgress(0)
-    setCreatorPackResult(null)
-    setAssetError(null)
-    if (!(await guardExport())) {
-      setCreatorPackState('idle')
-      return
-    }
-    trackExportStarted('creator_pack')
-
-    try {
-      const result = await buildCreatorPackZip(
-        {
-          title,
-          hook,
-          script,
-          scriptBeats,
-          payoff,
-          cta,
-          scenes,
-          voiceUrl,
-          researchReport,
-          savedProjectId,
-          isUnlimited,
-          isGenerating,
-          reelTimeline,
-        },
-        ({ progress }) => setCreatorPackProgress(progress)
-      )
-      setCreatorPackResult(result)
-      setCreatorPackState('ready')
-      void fetch('/api/analytics/feature-usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          feature: 'export',
-          project_id: savedProjectId ?? undefined,
-        }),
-        keepalive: true,
-      }).catch(() => {})
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to create Creator Pack.'
-      setAssetError(message)
-      setCreatorPackState('error')
-    }
-  }, [
-    title,
-    hook,
-    script,
-    scriptBeats,
-    payoff,
-    cta,
-    scenes,
-    voiceUrl,
-    researchReport,
-    savedProjectId,
-    isUnlimited,
-    isGenerating,
-    trackExportStarted,
-    guardExport,
-    reelTimeline,
-  ])
-
-  const handleDownloadCreatorPack = useCallback(() => {
-    if (!creatorPackResult) return
-    triggerCreatorPackDownload(creatorPackResult.blob, creatorPackResult.filename)
-    setShowExportFeedback(true)
-    window.setTimeout(() => requestExitFeedback('export_inactive'), 800)
-  }, [creatorPackResult])
-
-  const hasAnyCreatorPackAsset =
-    exportAssets.script || exportAssets.images || exportAssets.narration
+  }
 
   return (
     <div
@@ -456,270 +49,37 @@ export function QuickCutDownloadPanel({
         className
       )}
     >
-      <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
-        <Download className="w-3 h-3" />
-        {supplementaryOnly ? 'More export assets' : 'Download assets'}
-      </div>
-
-      <div className="space-y-2">
-        {assetError ? (
-          <p className="text-[11px] text-amber-200/80" role="alert">
-            {assetError}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+            <Download className="w-3 h-3" />
+            {supplementaryOnly ? 'More export assets' : 'Download assets'}
+          </div>
+          <p className="text-[11px] text-luxe/45 mt-1">
+            All exports in one menu — scene images, creator pack, and platform ZIPs.
           </p>
-        ) : null}
-
-        {!supplementaryOnly ? (
-          <>
-        <DownloadRow
-          icon={<FileText className="w-3 h-3" />}
-          label="Script"
-          hint={
-            hasScript ? 'Full title, hook, and narration script' : ASSET_UNAVAILABLE_MSG
-          }
-        >
-          <button
-            type="button"
-            onClick={handleDownloadTxt}
-            disabled={!hasScript}
-            className={hasScript ? secondaryButtonClass : ghostButtonClass}
-          >
-            <Download className="w-3 h-3" />
-            .txt
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadDoc}
-            disabled={!hasScript}
-            className={hasScript ? secondaryButtonClass : ghostButtonClass}
-          >
-            <Download className="w-3 h-3" />
-            .doc
-          </button>
-        </DownloadRow>
-          </>
-        ) : null}
-
-        <DownloadRow
-          icon={<ImageIcon className="w-3 h-3" />}
-          label="Scene images"
-          hint={
-            hasImages
-              ? 'All storyboard stills as JPG — vertical or horizontal'
-              : ASSET_UNAVAILABLE_MSG
-          }
-        >
-          {(['vertical', 'horizontal'] as const).map((exportSize) => {
-            const { label } = SCENE_IMAGE_EXPORT_DIMENSIONS[exportSize]
-            const aspectLabel = exportSize === 'vertical' ? '9:16' : '16:9'
-            const isDownloading = downloadingImagesFormat === exportSize
-            return (
-              <button
-                key={exportSize}
-                type="button"
-                title={`Download all scenes at ${label} (${aspectLabel})`}
-                onClick={() => void handleDownloadImages(exportSize)}
-                disabled={!hasImages || downloadingImagesFormat !== null}
-                className={hasImages ? primaryButtonClass : ghostButtonClass}
-              >
-                {isDownloading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Download className="w-3 h-3" />
-                )}
-                {isDownloading ? 'Downloading…' : `All ${aspectLabel}`}
-              </button>
-            )
-          })}
-        </DownloadRow>
-
-        {!supplementaryOnly ? (
-          <>
-        <DownloadRow
-          icon={<Mic className="w-3 h-3" />}
-          label="Narration"
-          hint={hasNarration ? 'Synced voiceover audio track' : ASSET_UNAVAILABLE_MSG}
-        >
-          <button
-            type="button"
-            onClick={() => void handleDownloadMp3()}
-            disabled={!hasNarration || downloadingMp3}
-            className={hasNarration ? secondaryButtonClass : ghostButtonClass}
-          >
-            {downloadingMp3 ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Download className="w-3 h-3" />
-            )}
-            {downloadingMp3 ? 'Downloading…' : '.mp3'}
-          </button>
-        </DownloadRow>
-
-        <DownloadRow
-          icon={<Video className="w-3 h-3" />}
-          label="Video"
-          data-recommend-target="mp4-export"
-          hint={
-            exportExpired
-              ? EXPORT_EXPIRED_MSG
-              : mp4DownloadReady
-                ? reelReadiness.label
-                : mp4Compiling || reelReadiness.validating
-                  ? renderStatusLabel || 'Preparing your video…'
-                  : reelReadiness.validationError
-                    ? reelReadiness.validationError
-                    : renderError
-                    ? `${renderError} — download Creator Pack below as fallback.`
-                    : canCompileMp4
-                      ? 'Ken Burns motion · captions · voiceover'
-                      : hasMp4
-                        ? 'Available after render completes'
-                        : ASSET_UNAVAILABLE_MSG
-          }
-        >
-          {exportExpired ? (
-            <button
-              type="button"
-              onClick={() => void retryVideoRender()}
-              className={secondaryButtonClass}
-            >
-              Regenerate export
-            </button>
-          ) : hasMp4 ? (
-            <>
-              <button
-                type="button"
-                onClick={() => void handleDownloadMp4()}
-                disabled={downloadingMp4 || mp4Compiling || exportExpired || reelReadiness.validating}
-                className={primaryButtonClass}
-              >
-                {downloadingMp4 || mp4Compiling || reelReadiness.validating ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Download className="w-3 h-3" />
-                )}
-                {downloadingMp4
-                  ? 'Downloading…'
-                  : mp4Compiling || reelReadiness.validating
-                    ? 'Preparing…'
-                    : mp4DownloadReady
-                      ? '.mp4'
-                      : 'Compile .mp4'}
-              </button>
-              {mp4DownloadReady ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handlePreviewReel}
-                    className={secondaryButtonClass}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleShareReel()}
-                    className={secondaryButtonClass}
-                  >
-                    <Share2 className="w-3 h-3" />
-                    Share
-                  </button>
-                </>
-              ) : null}
-            </>
-          ) : mp4Compiling ? (
-            <button type="button" disabled className={ghostButtonClass}>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Rendering reel…
-            </button>
-          ) : renderError || reelReadiness.validationError ? (
-            <>
-              {showRegenerateMissingScenes ? (
-                <button
-                  type="button"
-                  onClick={() => void regenerateMissingSceneImages()}
-                  className={primaryButtonClass}
-                >
-                  Regenerate scenes {missingExportScenes.map((s) => s.index).join(', ')}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
-                className={secondaryButtonClass}
-              >
-                Retry compile
-              </button>
-              {hasAnyCreatorPackAsset ? (
-                <button
-                  type="button"
-                  onClick={() => void handleExportCreatorPack()}
-                  className={primaryButtonClass}
-                >
-                  <Package className="w-3 h-3" />
-                  Creator Pack
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <button type="button" disabled className={ghostButtonClass}>
-              .mp4
-            </button>
-          )}
-        </DownloadRow>
-          </>
-        ) : null}
-
-        <DownloadRow
-          icon={<Package className="w-3 h-3" />}
-          label="Creator Pack"
-          data-recommend-target="creator-pack"
-          hint={
-            creatorPackState === 'preparing'
-              ? 'Preparing Creator Pack…'
-              : creatorPackState === 'ready'
-                ? 'Creator Pack Ready — all available assets bundled'
-                : creatorPackState === 'error'
-                  ? 'Unable to create Creator Pack.'
-                  : hasAnyCreatorPackAsset
-                    ? 'ZIP bundle — script, storyboard, images, narration & metadata'
-                    : ASSET_UNAVAILABLE_MSG
-          }
-        >
-          {creatorPackState === 'preparing' ? (
-            <button type="button" disabled className={ghostButtonClass}>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Preparing… {creatorPackProgress > 0 ? `${creatorPackProgress}%` : ''}
-            </button>
-          ) : creatorPackState === 'ready' ? (
-            <button
-              type="button"
-              onClick={handleDownloadCreatorPack}
-              className={primaryButtonClass}
-            >
-              <Download className="w-3 h-3" />
-              Download ZIP
-            </button>
-          ) : creatorPackState === 'error' ? (
-            <button
-              type="button"
-              onClick={() => void handleExportCreatorPack()}
-              className={secondaryButtonClass}
-            >
-              Retry Export
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void handleExportCreatorPack()}
-              disabled={!hasAnyCreatorPackAsset}
-              className={hasAnyCreatorPackAsset ? primaryButtonClass : ghostButtonClass}
-            >
-              <Package className="w-3 h-3" />
-              Download Creator Pack
-            </button>
-          )}
-        </DownloadRow>
+        </div>
+        <UnifiedExportMenu
+          supplementaryOnly={supplementaryOnly}
+          includeTextExports
+          onExportComplete={() => setShowExportFeedback(true)}
+          className="w-full sm:w-auto shrink-0"
+          align="end"
+        />
       </div>
+
+      {!supplementaryOnly && videoUrl?.trim() ? (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={handlePreviewReel} className={secondaryButtonClass}>
+            <ExternalLink className="w-3 h-3" />
+            Preview reel
+          </button>
+          <button type="button" onClick={() => void handleShareReel()} className={secondaryButtonClass}>
+            <Share2 className="w-3 h-3" />
+            Share link
+          </button>
+        </div>
+      ) : null}
 
       {showExportFeedback ? (
         <ExportSatisfactionCard
