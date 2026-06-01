@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { AlertCircle, Film, RefreshCw, Sparkles } from 'lucide-react'
 import { TRUST_COPY } from '@/lib/creator/trust-copy'
@@ -153,19 +154,22 @@ export function CinematicFadeImage({
       {!loaded ? (
         <div className="absolute inset-0 shimmer-cinematic" aria-hidden />
       ) : null}
-      <img
-        src={displaySrc}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-        className={cn(
-          className,
-          'transition-opacity duration-700 ease-out',
-          loaded ? 'opacity-100' : 'opacity-0'
-        )}
-      />
+      <div className="absolute inset-0">
+        <Image
+          src={displaySrc}
+          alt={alt}
+          fill
+          unoptimized={displaySrc.startsWith('data:') || displaySrc.startsWith('blob:')}
+          sizes="(max-width: 768px) 100vw, 400px"
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          className={cn(
+            className,
+            'object-cover transition-opacity duration-700 ease-out',
+            loaded ? 'opacity-100' : 'opacity-0'
+          )}
+        />
+      </div>
     </>
   )
 }

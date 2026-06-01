@@ -52,6 +52,8 @@ import {
   buildBlueprintsForScenes,
   DEFAULT_OUTPUT_ALIGNMENT_CONTROLS,
 } from '@/lib/cinematic/scene-blueprint'
+import { composeReelTimeline, parseTimelineState } from '@/lib/reel'
+import type { ReelTimeline } from '@/lib/reel/types'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -142,6 +144,7 @@ export type QuickCutProjectHydrationPatch = {
   sceneMotion: SceneMotionMap
   sceneBlueprints: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
   outputAlignmentControls: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
+  reelTimeline: ReelTimeline | null
   thumbnailImageUrl: string | null
 }
 
@@ -192,6 +195,22 @@ export function buildQuickCutHydrationFromRow(
       (scenes.length > 0 && (state.scriptBeats.length > 0 || state.script.trim()))
   )
   const exportPackageReady = !videoReady && !inProgressReel && !reelFailed && contentComplete
+
+  const persistedTimeline = parseTimelineState(
+    (row as { timeline_state?: unknown }).timeline_state
+  )
+  const reelTimeline =
+    persistedTimeline ??
+    composeReelTimeline({
+      scenes,
+      sceneBlueprints,
+      sceneMotion,
+      outputAlignmentControls,
+      voiceUrl: state.voice?.audioUrl ?? null,
+      voiceMetadata: state.voice?.metadata ?? null,
+      script: state.script,
+      targetDurationSec: state.duration,
+    })
 
   return {
     savedProjectId: row.id,
@@ -268,6 +287,7 @@ export function buildQuickCutHydrationFromRow(
     sceneMotion,
     sceneBlueprints,
     outputAlignmentControls,
+    reelTimeline,
     viralScript: (row.viral_script as ViralScript | null) ?? null,
     variationHistory:
       (row.variation_history as VariationHistory | null) ?? emptyVariationHistory(),

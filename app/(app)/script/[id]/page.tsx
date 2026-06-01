@@ -191,11 +191,13 @@ export default function ScriptWorkspace() {
   const [versions, setVersions] = useState<{ at: number; label: string; text: string }[]>([])
   const scriptBodyRef = useRef<HTMLDivElement>(null)
 
+  const pieceScript = (piece as { script?: string } | undefined)?.script
+  const pieceDescription = piece?.description ?? ''
+
   // Sync liveScript whenever the underlying piece changes (initial load or realtime update).
   useEffect(() => {
-    const src = (piece as any)?.script || piece?.description || ''
-    setLiveScript(src)
-  }, [piece?.id, (piece as any)?.script, piece?.description])
+    setLiveScript(pieceScript || pieceDescription || '')
+  }, [piece?.id, pieceScript, pieceDescription])
 
   const pushVersion = (label: string, text: string) => {
     setVersions(prev => [{ at: Date.now(), label, text }, ...prev].slice(0, 5))

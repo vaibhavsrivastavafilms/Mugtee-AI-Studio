@@ -191,7 +191,7 @@ export function UpgradeModal({ open, onOpenChange, reason }: { open: boolean; on
             <Crown className="w-3 h-3" /> Upgrade to Mugtee Pro
           </div>
           <DialogTitle className="font-display text-2xl sm:text-3xl">
-            You've hit the <span className="text-gold-gradient">free monthly cap</span>
+            You&apos;ve hit the <span className="text-gold-gradient">free monthly cap</span>
           </DialogTitle>
           <p className="text-[11px] text-muted-foreground">
             {reason ? `Out of ${reason} this month. ` : ''}Unlock unlimited AI + scripts + planner with Creator — or watch a sponsor for 3 free credits.

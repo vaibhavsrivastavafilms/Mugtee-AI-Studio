@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Download,
   ExternalLink,
@@ -122,6 +122,7 @@ export function QuickCutDownloadPanel({
     savedProjectId,
     exportExpired,
     researchReport,
+    reelTimeline,
   } = useQuickCutGenerationStore(
     useShallow((s) => ({
       title: s.title,
@@ -146,6 +147,7 @@ export function QuickCutDownloadPanel({
       savedProjectId: s.savedProjectId,
       exportExpired: s.exportExpired,
       researchReport: s.researchReport,
+      reelTimeline: s.reelTimeline,
     }))
   )
 
@@ -229,7 +231,10 @@ export function QuickCutDownloadPanel({
     void syncVideoRenderConfig()
   }, [syncVideoRenderConfig])
 
-  const scriptInput = { title, hook, script, scriptBeats, payoff, cta, isUnlimited }
+  const scriptInput = useMemo(
+    () => ({ title, hook, script, scriptBeats, payoff, cta, isUnlimited }),
+    [title, hook, script, scriptBeats, payoff, cta, isUnlimited]
+  )
 
   const handleDownloadTxt = useCallback(async () => {
     if (!(await guardExport())) return
@@ -239,7 +244,7 @@ export function QuickCutDownloadPanel({
 
   const handleDownloadDoc = useCallback(() => {
     downloadScriptDoc(scriptInput)
-  }, [title, hook, script, scriptBeats, payoff, cta, isUnlimited])
+  }, [scriptInput])
 
   const handleDownloadImages = useCallback(
     async (exportSize: SceneImageExportSize) => {
@@ -382,6 +387,7 @@ export function QuickCutDownloadPanel({
           savedProjectId,
           isUnlimited,
           isGenerating,
+          reelTimeline,
         },
         ({ progress }) => setCreatorPackProgress(progress)
       )
@@ -415,6 +421,8 @@ export function QuickCutDownloadPanel({
     isUnlimited,
     isGenerating,
     trackExportStarted,
+    guardExport,
+    reelTimeline,
   ])
 
   const handleDownloadCreatorPack = useCallback(() => {

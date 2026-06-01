@@ -25,12 +25,12 @@ import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
-import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { useDraftRegenerationGuard } from '@/components/trust/draft-protection-dialog'
 import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
 import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
 import { companionCopy } from '@/lib/companion/microcopy'
 import { MotionStagePanel, MotionStageShell } from '@/components/quick-cut/motion-stage-panel'
+import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
 import type { SectionId } from '@/lib/cinematic/section-generation-status'
@@ -184,6 +184,8 @@ export function GenerationStagePanel({
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const duration = useQuickCutGenerationStore((s) => s.duration)
+  const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
+  const updateReelTimelineClip = useQuickCutGenerationStore((s) => s.updateReelTimelineClip)
   const storyboardTracked = useRef(false)
   const hookPanelRef = useRef<HTMLDivElement>(null)
   const scenesPanelRef = useRef<HTMLDivElement>(null)
@@ -402,9 +404,6 @@ export function GenerationStagePanel({
             }
             directorEdit={directorEditEnabled}
           />
-          {!isGenerating && (script?.trim() || hook?.trim()) ? (
-            <MugteeFollowUpActions className="pt-2" />
-          ) : null}
           {(script?.trim() || hook?.trim()) ? (
             <>
               <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
@@ -542,6 +541,14 @@ export function GenerationStagePanel({
       return (
         <MotionStageShell className={className}>
           <MotionStagePanel scenes={scenes} />
+          {reelTimeline ? (
+            <div className="mt-3 rounded-xl border border-white/[0.06] bg-black/30 p-3 space-y-2">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/70">
+                Director timeline
+              </p>
+              <ReelComposer timeline={reelTimeline} showDirectorTracks />
+            </div>
+          ) : null}
         </MotionStageShell>
       )
 
@@ -562,6 +569,14 @@ export function GenerationStagePanel({
             voiceName={voiceName}
             onRegenerate={() => void regenerateVoice()}
           />
+          {reelTimeline && voiceUrl ? (
+            <div className="rounded-xl border border-white/[0.06] bg-black/30 p-3 space-y-2">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/70">
+                Reel preview
+              </p>
+              <ReelComposer timeline={reelTimeline} audioRef={audioRef} />
+            </div>
+          ) : null}
         </div>
       )
 
@@ -590,7 +605,14 @@ export function GenerationStagePanel({
 
     case 'complete':
       return isComplete ? (
-        <QuickCutDownloadPanel className={className} supplementaryOnly />
+        <div className={cn('space-y-4', className)}>
+          <ReelComposer
+            timeline={reelTimeline}
+            audioRef={audioRef}
+            showDirectorTracks
+          />
+          <QuickCutDownloadPanel supplementaryOnly />
+        </div>
       ) : (
         shell(
           'Download',

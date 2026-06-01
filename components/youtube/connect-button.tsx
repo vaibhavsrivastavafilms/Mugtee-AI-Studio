@@ -3,6 +3,7 @@
 // Drop on the settings page or anywhere a creator manages integrations.
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Youtube, Check, Loader2, Link2, Unlink, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -74,7 +75,13 @@ export function YouTubeConnect() {
           </div>
         </div>
         {connected && channel?.thumb && (
-          <img src={channel.thumb} alt={channel.title || 'Channel'} className="w-10 h-10 rounded-full ring-1 ring-gold-500/30 shrink-0" />
+          <Image
+            src={channel.thumb}
+            alt={channel.title || 'Channel'}
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full ring-1 ring-gold-500/30 shrink-0 object-cover"
+          />
         )}
       </div>
 

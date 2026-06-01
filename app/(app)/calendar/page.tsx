@@ -1,5 +1,6 @@
 'use client'
 import { useStore } from '@/lib/store'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, format, isSameMonth, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
 import { useState, useMemo } from 'react'
@@ -285,12 +286,12 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
               <div className="relative w-12 h-12 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/30">
                 {isVideo ? (
                   selectedAsset?.thumbnail ? (
-                    <img src={selectedAsset.thumbnail} alt="" className="w-full h-full object-cover" />
+                    <Image src={selectedAsset.thumbnail} alt="" fill className="object-cover" unoptimized sizes="48px" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gold-400"><FileVideo className="w-4 h-4" /></div>
                   )
                 ) : (
-                  <img src={mediaUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                  <Image src={mediaUrl} alt="" fill className="object-cover" unoptimized sizes="48px" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -336,13 +337,13 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
                         )}
                       >
                         {m.thumbnail ? (
-                          <img src={m.thumbnail} alt={m.title} className="w-full h-full object-cover" />
+                          <Image src={m.thumbnail} alt={m.title} fill className="object-cover" unoptimized sizes="80px" />
                         ) : vid ? (
                           <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><FileVideo className="w-4 h-4" /></div>
                         ) : m.type === 'audio' ? (
                           <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><Music className="w-4 h-4" /></div>
                         ) : (
-                          <img src={m.url || ''} alt={m.title} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                          <Image src={m.url || ''} alt={m.title} fill className="object-cover" unoptimized sizes="80px" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                         )}
                         {selected && (
                           <div className="absolute inset-0 bg-gold-500/30 flex items-center justify-center">

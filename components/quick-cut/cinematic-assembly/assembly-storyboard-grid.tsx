@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import { MotionPresetBadge } from '@/components/quick-cut/motion-preset-control'
@@ -63,11 +64,12 @@ export function AssemblyStoryboardGrid({
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.2 }}
             >
               {src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={src}
                   alt={scene.title || `Scene ${i + 1}`}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 640px) 50vw, 160px"
+                  className="object-cover"
                 />
               ) : (
                 <div className="absolute inset-0 shimmer-cinematic bg-white/[0.03]" />

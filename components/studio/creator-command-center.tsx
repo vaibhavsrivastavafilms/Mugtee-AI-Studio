@@ -13,11 +13,11 @@ import { StudioDirectorPanel } from '@/components/studio/studio-director-panel'
 import { StudioStatusBar } from '@/components/studio/studio-status-bar'
 import { StudioCommandPalettePlaceholder } from '@/components/studio/studio-command-palette-placeholder'
 import { StudioGlobalSearchPlaceholder } from '@/components/studio/studio-global-search-placeholder'
-import { ProjectImprovementActions } from '@/components/retention/project-improvement-actions'
 import { ProjectMomentumBadgesFromStore } from '@/components/retention/project-momentum-badges'
 import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
 import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banner'
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
+import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 
 type CreatorCommandCenterProps = {
   projectId?: string
@@ -71,10 +71,15 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         <StudioSidebar projectId={projectId} />
         <div className="hidden lg:flex flex-col gap-3 min-h-0 border-r border-white/[0.06] p-2 overflow-y-auto scrollbar-luxe">
           <StoryTimeline />
+          <MugteeFollowUpActions className="px-0.5 shrink-0" />
           <QuickCutActivityTimeline
             projectId={savedProjectId}
             title={projectTitle || undefined}
           />
+        </div>
+
+        <div className="lg:hidden shrink-0 border-b border-white/[0.06] px-3 py-3 bg-black/30">
+          <MugteeFollowUpActions />
         </div>
 
         <div className="flex flex-col min-h-0 min-w-0 border-t lg:border-t-0 border-white/[0.06]">

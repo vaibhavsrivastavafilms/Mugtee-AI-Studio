@@ -246,6 +246,14 @@ import {
   type OutputAlignmentControls,
   type SceneBlueprint,
 } from '@/lib/cinematic/scene-blueprint'
+import {
+  composeReelTimeline,
+  patchReelTimelineClip,
+  reelTimelineToSceneDurations,
+  timelineStateFromReelTimeline,
+  type ReelTimeline,
+  type ReelTimelineEditPatch,
+} from '@/lib/reel'
 import { genPerf } from '@/lib/cinematic/generation-perf'
 import {
   resetSectionStatus,
@@ -412,6 +420,8 @@ interface QuickCutGenerationStateBase {
   sceneMotion: SceneMotionMap
   /** Scene → visual blueprint (script/image/motion alignment) */
   sceneBlueprints: SceneBlueprint[]
+  /** Synchronized ready-to-edit reel timeline (voice/visual/caption) */
+  reelTimeline: ReelTimeline | null
   outputAlignmentControls: OutputAlignmentControls
   viralScript: ViralScript | null
   inputType: 'text' | 'voice' | 'mixed'
@@ -513,6 +523,8 @@ interface QuickCutGenerationActions {
   setSceneMotionPreset: (sceneId: string, presetId: MotionPresetId) => void
   setOutputAlignmentControls: (patch: Partial<OutputAlignmentControls>) => void
   refreshSceneBlueprints: () => void
+  composeReelTimeline: () => void
+  updateReelTimelineClip: (sceneId: string, patch: ReelTimelineEditPatch) => void
   setCurrentWorkflowStep: (step: WorkflowStepId) => void
   markWorkflowStepComplete: (step: WorkflowStepId) => void
   syncWorkflowFromPipeline: () => void
@@ -579,6 +591,7 @@ const INITIAL: QuickCutGenerationState = {
   storyBible: null,
   sceneMotion: {},
   sceneBlueprints: [],
+  reelTimeline: null,
   outputAlignmentControls: { ...DEFAULT_OUTPUT_ALIGNMENT_CONTROLS },
   viralScript: null,
   inputType: 'text',
@@ -1007,7 +1020,35 @@ function buildArchiveInput(
     series: state.contentSeries ?? undefined,
     scene_blueprints: state.sceneBlueprints,
     output_alignment_controls: state.outputAlignmentControls,
+    timeline_state: timelineStateFromReelTimeline(state.reelTimeline),
   }
+}
+
+function buildReelTimelineFromState(state: QuickCutGenerationState): ReelTimeline | null {
+  if (state.scenes.length < 1) return null
+  return composeReelTimeline({
+    scenes: state.scenes,
+    sceneBlueprints: state.sceneBlueprints,
+    sceneMotion: state.sceneMotion,
+    outputAlignmentControls: state.outputAlignmentControls,
+    voiceUrl: state.voiceUrl,
+    voiceMetadata: state.voiceMetadata,
+    script: state.script,
+    targetDurationSec: state.duration,
+  })
+}
+
+function persistReelTimelineQuiet(state: QuickCutGenerationState, timeline: ReelTimeline | null) {
+  if (!state.savedProjectId || !timeline) return
+  void updateProject(state.savedProjectId, {
+    timeline_state: timelineStateFromReelTimeline(timeline),
+    scenes: scenesToStore(
+      state.scenes.map((scene) => {
+        const dur = timeline.clips.find((c) => c.sceneId === scene.id)?.duration
+        return dur != null ? { ...scene, duration: dur } : scene
+      })
+    ),
+  } as import('@/lib/cinematic-projects').CinematicProjectPatch).catch(() => {})
 }
 
 async function saveCompletedStages(
@@ -1738,6 +1779,7 @@ export const useQuickCutGenerationStore = create<
       if (state.savedProjectId) {
         void archiveQuickCutProject(get()).catch(() => {})
       }
+      get().composeReelTimeline()
     } finally {
       set({ isRegeneratingVoice: false })
     }
@@ -2762,6 +2804,7 @@ export const useQuickCutGenerationStore = create<
             scenes: scenesToStore(scenes),
           }).catch(() => undefined)
         }
+        get().composeReelTimeline()
         await delay(350)
         set({ directingSceneLabel: null })
       }
@@ -2939,6 +2982,7 @@ export const useQuickCutGenerationStore = create<
         saveState: 'saved',
         generationInFlight: false,
       })
+      get().composeReelTimeline()
 
       genPerf.end('pipeline')
       genPerf.log('pipeline', 'completed', {
@@ -3697,6 +3741,9 @@ export const useQuickCutGenerationStore = create<
       persistHookSession(get())
       persistCreatorContinuity(get())
       void get().syncVideoRenderConfig()
+      if (!patch.reelTimeline && patch.scenes.length > 0) {
+        get().composeReelTimeline()
+      }
       if (patch.renderPollUrl && !patch.videoUrl) {
         void get().resumeRenderPoll()
       }
@@ -3797,6 +3844,33 @@ export const useQuickCutGenerationStore = create<
     set({ sceneBlueprints: blueprints, scenes: aligned, storyboard: aligned })
   },
 
+  composeReelTimeline: () => {
+    const state = get()
+    const timeline = buildReelTimelineFromState(state)
+    if (!timeline) return
+    const durationMap = reelTimelineToSceneDurations(timeline)
+    const scenes = state.scenes.map((scene) => {
+      const id = scene.id
+      const dur = durationMap[id]
+      return dur != null ? { ...scene, duration: dur } : scene
+    })
+    set({ reelTimeline: timeline, scenes, storyboard: scenes })
+    persistReelTimelineQuiet({ ...state, reelTimeline: timeline, scenes }, timeline)
+  },
+
+  updateReelTimelineClip: (sceneId, patch) => {
+    const state = get()
+    if (!state.reelTimeline) return
+    const timeline = patchReelTimelineClip(state.reelTimeline, sceneId, patch)
+    const durationMap = reelTimelineToSceneDurations(timeline)
+    const scenes = state.scenes.map((scene) => {
+      const dur = durationMap[scene.id]
+      return dur != null ? { ...scene, duration: dur } : scene
+    })
+    set({ reelTimeline: timeline, scenes, storyboard: scenes })
+    persistReelTimelineQuiet({ ...state, reelTimeline: timeline, scenes }, timeline)
+  },
+
   setSceneMotionPreset: (sceneId, presetId) => {
     if (!isMotionPresetId(presetId)) return
     const state = get()
@@ -3812,6 +3886,7 @@ export const useQuickCutGenerationStore = create<
         scene_motion: nextMap,
       }).catch(() => {})
     }
+    get().composeReelTimeline()
   },
 
   saveProject: async () => {

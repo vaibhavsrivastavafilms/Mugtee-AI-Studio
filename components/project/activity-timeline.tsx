@@ -184,9 +184,12 @@ export function ProjectActivityTimeline({
         <div className="text-[12px] text-muted-foreground italic">No events yet. Generate or edit something \u2014 it\u2019ll show up here, live.</div>
       ) : (
         <>
-          <ol className="relative space-y-2.5 pl-[26px]">
-            {/* Vertical guide */}
-            <span aria-hidden className="absolute left-[13px] top-1 bottom-1 w-px bg-gradient-to-b from-gold-500/30 via-white/[0.04] to-transparent" />
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[13px] top-1 bottom-1 w-px bg-gradient-to-b from-gold-500/30 via-white/[0.04] to-transparent"
+            />
+            <ol className="relative space-y-2.5 pl-[26px]">
             {visible.map(row => {
               const Icon = EVENT_ICON[row.event_type || ''] || Sparkles
               const tone = EVENT_TONE[row.event_type || ''] || 'text-luxe/70'
@@ -209,9 +212,11 @@ export function ProjectActivityTimeline({
                 </li>
               )
             })}
-          </ol>
+            </ol>
+          </div>
           {hidden > 0 && (
             <button
+              type="button"
               onClick={() => setExpanded(true)}
               className="mt-3 text-[10.5px] tracking-wider uppercase text-gold-300 hover:text-gold-200 transition"
             >

@@ -294,7 +294,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
                     <div className="text-sm font-medium leading-snug mb-1.5">{d.title}</div>
 
                     {/* Hook */}
-                    <div className="text-[12px] text-luxe/90 italic leading-snug mb-2">"{d.hook}"</div>
+                    <div className="text-[12px] text-luxe/90 italic leading-snug mb-2">&quot;{d.hook}&quot;</div>
 
                     {/* Description */}
                     <div className="text-[11px] text-muted-foreground line-clamp-3 leading-relaxed mb-2.5">{d.description}</div>

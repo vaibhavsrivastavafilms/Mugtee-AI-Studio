@@ -105,7 +105,7 @@ export function GuestHookGenerator() {
         <div className="mt-5 space-y-2">
           {hooks.map((h, i) => (
             <div key={i} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.03] border border-gold-500/20 hover:border-gold-500/40 transition group">
-              <span className="text-[14px] sm:text-[15px] text-luxe/95 leading-relaxed flex-1">"{h}"</span>
+              <span className="text-[14px] sm:text-[15px] text-luxe/95 leading-relaxed flex-1">&quot;{h}&quot;</span>
               <button onClick={() => copy(h, i)} className="opacity-70 hover:opacity-100 transition shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-gold-300 hover:bg-gold-500/10">
                 {copied === i ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               </button>

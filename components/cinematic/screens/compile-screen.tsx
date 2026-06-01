@@ -114,7 +114,10 @@ export function CinematicCompileScreen() {
 
   useEffect(() => {
     return () => {
-      if (exportRafRef.current) cancelAnimationFrame(exportRafRef.current)
+      // Read ref at cleanup — cancels the latest scheduled export RAF on unmount.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const rafId = exportRafRef.current
+      if (rafId) cancelAnimationFrame(rafId)
     }
   }, [])
 
@@ -270,7 +273,7 @@ export function CinematicCompileScreen() {
       .catch(() => {
         /* invisible — compile continues calmly */
       })
-  }, [captionLines, duration, filmOrchestration.blueprint, filmRealization, hook, id, niche, persistedId, prompt, scenes, script, style, suggestedVoiceStyle])
+  }, [captionLines, duration, filmOrchestration.blueprint, filmRealization, hook, id, niche, persistedId, prompt, scenes, script, style, suggestedVoiceStyle, summary])
 
   const handleRenderComplete = useCallback(() => {
     setPhase('success')

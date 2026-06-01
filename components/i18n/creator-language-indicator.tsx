@@ -31,7 +31,7 @@ export function CreatorLanguageIndicator({
 
   useEffect(() => {
     setSession(detected ? toCreatorLanguageSession(detected) : loadCreatorLanguageSession())
-  }, [detected?.languageCode, detected?.isMixed, detected?.displayName])
+  }, [detected])
 
   const active = detected ?? session
   if (!active) return null

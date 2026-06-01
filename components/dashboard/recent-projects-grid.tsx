@@ -10,10 +10,11 @@
 //   • progress status
 //
 // Empty state: friendly cinematic "Start your first project" cards (existing CTAs).
-// EXTREME LOW CREDIT MODE: lazy-loaded <img>, motion only on enter.
+// Lazy-loaded Next.js Image, motion only on enter.
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, FileText, Image as ImageIcon, Sparkles, Clock, Layers, Film, Mic } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -171,7 +172,13 @@ export function RecentProjectsGrid() {
               >
                 <div className="relative aspect-[4/5] bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900">
                   {p.thumbnail ? (
-                    <img src={p.thumbnail} alt={p.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
+                    <Image
+                      src={p.thumbnail}
+                      alt={p.title}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Icon className="w-10 h-10 text-gold-500/30" />

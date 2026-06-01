@@ -55,8 +55,6 @@ export function StoryboardGenerator({
     getDisabledReason,
   } = useSceneAudioPlayback({ scenes, voiceUrl, fallbackText: hook })
 
-  if (scenes.length === 0 && !loading) return null
-
   const batchLoading = loading && generationStep === 'images'
   const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
   const [downloadingAllFormat, setDownloadingAllFormat] = useState<SceneImageExportSize | null>(
@@ -85,6 +83,8 @@ export function StoryboardGenerator({
     },
     [downloadingAllFormat, scenes, exportTitle]
   )
+
+  if (scenes.length === 0 && !loading) return null
 
   return (
     <div

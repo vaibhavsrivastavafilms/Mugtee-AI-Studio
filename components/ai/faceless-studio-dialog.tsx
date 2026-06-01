@@ -271,7 +271,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
           <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-red-500/[0.08] border border-red-500/30">
             <span className="text-red-300 mt-0.5">⚠</span>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-medium text-red-200">Something didn't work</div>
+              <div className="text-[11px] font-medium text-red-200">Something didn&apos;t work</div>
               <div className="text-[11px] text-red-200/80 mt-0.5 truncate">{lastErr.msg}</div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -294,7 +294,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
             </div>
             <div className="flex items-start gap-2 text-[10px] text-muted-foreground p-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
               <BarChart3 className="w-3 h-3 mt-0.5 text-gold-400/70 shrink-0" />
-              <span>AI-only analysis based on public knowledge. Stats marked "(est)" are inferred. No scraping. Auto-saved to Recent AI Sessions.</span>
+              <span>AI-only analysis based on public knowledge. Stats marked &quot;(est)&quot; are inferred. No scraping. Auto-saved to Recent AI Sessions.</span>
             </div>
 
             {ytOut && (
@@ -345,7 +345,7 @@ export function FacelessStudioDialog({ open, onOpenChange }: { open: boolean; on
                             <span className="text-[9px] tracking-widest uppercase text-gold-300 opacity-0 group-hover:opacity-100 transition-opacity">→ Build script</span>
                           </div>
                           <div className="text-[11px] text-muted-foreground leading-snug">{f.why}</div>
-                          {f.example_title && <div className="text-[11px] text-gold-300/80 italic mt-1 truncate">e.g. "{f.example_title}"</div>}
+                          {f.example_title && <div className="text-[11px] text-gold-300/80 italic mt-1 truncate">e.g. &quot;{f.example_title}&quot;</div>}
                         </button>
                       ))}
                     </div>

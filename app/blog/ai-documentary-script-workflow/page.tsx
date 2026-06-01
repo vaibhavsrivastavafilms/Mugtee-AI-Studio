@@ -25,7 +25,7 @@ export default function Post() {
 
         <div className="space-y-7">
           <Step n="01" title="Lock the curiosity, not the topic.">
-            Don't start with "AI documentary about productivity." Start with "why nobody mentions that the founders of every productivity app are exhausted." The smaller and more specific the curiosity, the harder it is to scroll past.
+            Don&apos;t start with &quot;AI documentary about productivity.&quot; Start with &quot;why nobody mentions that the founders of every productivity app are exhausted.&quot; The smaller and more specific the curiosity, the harder it is to scroll past.
           </Step>
           <Step n="02" title="Run the research pass.">
             Ask the AI for 5 surprising facts, 3 contrarian framings, 2 emotional anchors. Discard 70%. Keep what makes your eyebrows raise. This is the only part where speed matters less than discernment.
@@ -37,13 +37,13 @@ export default function Post() {
             Long-form mode, Claude 3.5 Sonnet, temperature 0.9, 900-1500 word target. Insist on bracketed scene headers and quoted narration. The output should read like a screenplay-ready narration draft, not a blog post.
           </Step>
           <Step n="05" title="Highlight + rewrite, paragraph by paragraph.">
-            This is where most workflows quit. Read aloud. Highlight every sentence that didn't quite land. Hit "More Emotional" or "Shorter" on each. Don't regenerate the whole script — surgery, not re-amputation.
+            This is where most workflows quit. Read aloud. Highlight every sentence that didn&apos;t quite land. Hit &quot;More Emotional&quot; or &quot;Shorter&quot; on each. Don&apos;t regenerate the whole script — surgery, not re-amputation.
           </Step>
           <Step n="06" title="Generate the B-roll prompt pipeline.">
             Each scene gets 1-2 cinematic visual prompts — specific lens, light, composition. These feed straight into your AI image / video tool of choice.
           </Step>
           <Step n="07" title="Record the voiceover. Cut the cinema.">
-            From here it's mechanical. Either narrate it yourself or use a signature TTS. The story is already built — the editor is just protecting it.
+            From here it&apos;s mechanical. Either narrate it yourself or use a signature TTS. The story is already built — the editor is just protecting it.
           </Step>
 
           <section className="mt-12 rounded-2xl glass border border-gold-soft p-6">

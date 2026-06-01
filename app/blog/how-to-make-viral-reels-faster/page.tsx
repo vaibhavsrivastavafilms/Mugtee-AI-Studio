@@ -21,28 +21,28 @@ export default function Post() {
       <div className="container max-w-3xl mx-auto px-5 sm:px-6 pt-12 pb-24">
         <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-3 inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Reels · 6 min read</div>
         <h1 className="font-display text-4xl sm:text-5xl leading-[1.1] mb-4">How to Make Viral Reels Faster — Without Burning Out</h1>
-        <p className="text-luxe/70 text-base leading-relaxed mb-10">A reel doesn't have 8 seconds. It has 0.6 seconds. Inside that window, you make 5 decisions. Get them right and the algorithm protects you — get them wrong and it doesn't matter how long your script is.</p>
+        <p className="text-luxe/70 text-base leading-relaxed mb-10">A reel doesn&apos;t have 8 seconds. It has 0.6 seconds. Inside that window, you make 5 decisions. Get them right and the algorithm protects you — get them wrong and it doesn&apos;t matter how long your script is.</p>
 
         <div className="space-y-7">
           <Item title="1. First frame must promise.">
-            Not tease — promise. The viewer should see something they cannot un-see. A face mid-emotion, an object out of context, a number that's wrong on purpose. If frame one is generic, the rest of the reel never gets a chance.
+            Not tease — promise. The viewer should see something they cannot un-see. A face mid-emotion, an object out of context, a number that&apos;s wrong on purpose. If frame one is generic, the rest of the reel never gets a chance.
           </Item>
           <Item title="2. First line must mismatch the visual.">
             Mild dissonance between what they see and what they hear creates the curiosity loop. A serene shot + an aggressive line. A loud scene + a whispered line. Mismatch is the cheapest hook in existence.
           </Item>
           <Item title="3. Every 3 seconds, change something.">
-            Cut. Push in. Re-frame. Change voice tone. The eye is a predator — it gets bored before the brain does. Visual energy ≠ chaos; it's just non-static.
+            Cut. Push in. Re-frame. Change voice tone. The eye is a predator — it gets bored before the brain does. Visual energy ≠ chaos; it&apos;s just non-static.
           </Item>
           <Item title="4. Don't pay off on time.">
             Make the viewer wait. Not too long — but long enough to commit. Premature payoff is the #1 reason an otherwise great reel underperforms. The dopamine curve has to climb.
           </Item>
           <Item title="5. The last line is the share button.">
-            Reels go viral because someone tags someone else. Your final line decides whether that share happens. "Tag a friend who needs to see this" is dead — replace it with a line that earns the share emotionally.
+            Reels go viral because someone tags someone else. Your final line decides whether that share happens. &quot;Tag a friend who needs to see this&quot; is dead — replace it with a line that earns the share emotionally.
           </Item>
 
           <section className="mt-10 rounded-2xl glass border border-gold-soft p-6">
             <div className="text-[10px] tracking-[0.3em] uppercase text-gold-300 mb-2">The automation stack</div>
-            <p className="text-luxe/85 text-sm leading-relaxed mb-3">You shouldn't be making these decisions in a vacuum. The right stack collapses a 6-hour edit into a 90-minute edit:</p>
+            <p className="text-luxe/85 text-sm leading-relaxed mb-3">You shouldn&apos;t be making these decisions in a vacuum. The right stack collapses a 6-hour edit into a 90-minute edit:</p>
             <ul className="text-luxe/85 text-sm leading-relaxed list-disc pl-5 space-y-1.5">
               <li>AI script + hook engine (Mugtee)</li>
               <li>Cinematic B-roll prompt pipeline (Mugtee → image AI)</li>

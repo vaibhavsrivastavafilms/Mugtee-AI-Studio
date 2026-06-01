@@ -97,7 +97,7 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
                 className="absolute top-full left-0 right-0 mt-2 glass-strong rounded-xl p-2 z-50 max-h-[60vh] overflow-y-auto scrollbar-luxe shadow-cinema"
               >
                 {totalResults === 0 ? (
-                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">No results for "<span className="text-luxe">{query}</span>"</div>
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">No results for &quot;<span className="text-luxe">{query}</span>&quot;</div>
                 ) : (
                   <>
                     {results!.content.length > 0 && (

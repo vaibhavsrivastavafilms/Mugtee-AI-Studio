@@ -2,6 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -331,12 +332,12 @@ export function UnifiedProjectsGrid({
                       playsInline
                     />
                   ) : p.thumbnail ? (
-                    <img
+                    <Image
                       src={p.thumbnail}
                       alt={p.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">

@@ -139,8 +139,10 @@ Scene navigation and per-scene actions were spread across cards/kanban without a
 - `components/dashboard/creator-showcase.tsx` — categories, View/Remix/Generate, inspiration feed
 - `components/quick-cut/generation-stage-panel.tsx` — storyboard timeline on scenes tab
 - `components/quick-cut/storyboard-panel.tsx` — timeline on visuals tab
+- `components/quick-cut/storyboard-generator.tsx` — hooks order fix (rules-of-hooks)
 - `components/quick-cut/scene-visual-card.tsx` — scroll targets
 - `lib/proof/showcase-examples.ts` — category filter + inspiration feed data
+- `lib/cinematic-projects.ts` — `ArchivePatch` type includes `sceneBlueprints` + `outputAlignmentControls`
 
 ### Prior passes (uncommitted / integrated — not re-authored here)
 Trust, workflow, hook, activation, onboarding, and store files listed in git status and prior reports.

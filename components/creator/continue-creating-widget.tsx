@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clock3, Film, Loader2, Play } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -97,11 +98,12 @@ export function ContinueCreatingWidget({ limit = 8 }: { limit?: number }) {
               >
                 <div className="relative aspect-video bg-black/50">
                   {project.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={project.thumbnail}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                      fill
+                      sizes="260px"
+                      className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">

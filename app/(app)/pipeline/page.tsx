@@ -1,5 +1,6 @@
 'use client'
 import { useStore } from '@/lib/store'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -414,11 +415,11 @@ const anySelected = !!sel && sel.selected.size > 0
         const filename = url.split('/').pop()?.split('?')[0] || 'media'
         return (
           <div className="flex items-center gap-2 mb-2 p-1.5 rounded-lg bg-white/[0.025] border border-gold-500/15 group/media relative">
-            <div className="w-9 h-9 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/20 transition-transform group-hover/media:scale-110 group-hover/media:ring-gold-500/60">
+            <div className="w-9 h-9 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/20 transition-transform group-hover/media:scale-110 group-hover/media:ring-gold-500/60 relative">
               {isVid ? (
                 <div className="w-full h-full flex items-center justify-center text-gold-400/80"><Film className="w-4 h-4" /></div>
               ) : (
-                <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                <Image src={url} alt="" fill className="object-cover" unoptimized sizes="36px" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
               )}
             </div>
             <span className="text-[10px] text-muted-foreground truncate flex-1">{isVid ? 'Reel · ' : ''}{filename}</span>
@@ -582,12 +583,12 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
                   <div className="relative w-14 h-14 rounded-md overflow-hidden bg-zinc-900 shrink-0 ring-1 ring-gold-500/30">
                     {isVideo ? (
                       selectedAsset?.thumbnail ? (
-                        <img src={selectedAsset.thumbnail} alt="" className="w-full h-full object-cover" />
+                        <Image src={selectedAsset.thumbnail} alt="" fill className="object-cover" unoptimized sizes="56px" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gold-400"><FileVideo className="w-5 h-5" /></div>
                       )
                     ) : (
-                      <img src={mediaUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                      <Image src={mediaUrl} alt="" fill className="object-cover" unoptimized sizes="56px" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -637,13 +638,13 @@ function ScheduleDialog({ item, onClose }: { item: ContentPiece | null; onClose:
                             )}
                           >
                             {m.thumbnail ? (
-                              <img src={m.thumbnail} alt={m.title} className="w-full h-full object-cover" />
+                              <Image src={m.thumbnail} alt={m.title} fill className="object-cover" unoptimized sizes="80px" />
                             ) : vid ? (
                               <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><FileVideo className="w-4 h-4" /></div>
                             ) : m.type === 'audio' ? (
                               <div className="w-full h-full flex items-center justify-center text-gold-400/70 bg-gradient-to-br from-zinc-800 to-zinc-900"><Music className="w-4 h-4" /></div>
                             ) : (
-                              <img src={m.url || ''} alt={m.title} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                              <Image src={m.url || ''} alt={m.title} fill className="object-cover" unoptimized sizes="80px" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                             )}
                             {selected && (
                               <div className="absolute inset-0 bg-gold-500/30 flex items-center justify-center">
