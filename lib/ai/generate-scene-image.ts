@@ -18,14 +18,22 @@ export type SceneImageOptions = {
   quality?: 'standard' | 'hd'
   size?: '1024x1792' | '1792x1024' | '1024x1024'
   hasReferenceStyle?: boolean
+  aspectRatio?: string
 }
 
 /** Generate a cinematic still via FluxAPI Kontext → Together → Pollinations. Uploads when filename provided. */
 export async function generateSceneImage(
   prompt: string,
-  opts: { filename?: string; userId?: string; hasReferenceStyle?: boolean } = {}
+  opts: {
+    filename?: string
+    userId?: string
+    hasReferenceStyle?: boolean
+    aspectRatio?: string
+  } = {}
 ): Promise<{ url: string | null; provider?: string }> {
-  const result = await generateImage(prompt)
+  const result = await generateImage(prompt, {
+    aspectRatio: opts.aspectRatio ?? process.env.FLUXAPI_ASPECT_RATIO?.trim() ?? '9:16',
+  })
   if (!result) return { url: null }
 
   if (opts.filename) {

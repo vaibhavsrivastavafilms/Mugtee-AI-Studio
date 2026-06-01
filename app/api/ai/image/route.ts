@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     cinematicBits.push(`Composition: cinematic, professional, high detail, ${aspectRatio === '9:16' ? 'vertical reel composition' : aspectRatio === '16:9' ? 'cinematic landscape' : 'square feed composition'}.`)
     const cinematic = `${prompt}\n\n${cinematicBits.join('\n')}`
 
-    const generated = await generateImage(cinematic)
+    const generated = await generateImage(cinematic, { aspectRatio })
     if (!generated) {
       return NextResponse.json(
         { success: false, error: IMAGE_UNAVAILABLE },

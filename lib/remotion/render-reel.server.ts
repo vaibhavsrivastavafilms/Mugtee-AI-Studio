@@ -21,13 +21,39 @@ import type { ReelCompositionProps, ReelSceneInput } from '@/lib/remotion/compos
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
 
+/** Remotion's bundler does not read tsconfig paths — mirror @/* aliases for composition imports. */
+function remotionWebpackOverride<T extends { resolve?: { alias?: Record<string, string> } }>(
+  config: T
+): T {
+  const root = process.cwd()
+  const alias = {
+    ...(typeof config.resolve?.alias === 'object' && !Array.isArray(config.resolve.alias)
+      ? config.resolve.alias
+      : {}),
+    '@/lib': path.join(root, 'lib'),
+    '@/components': path.join(root, 'components'),
+    '@/app': path.join(root, 'app'),
+    '@/stores': path.join(root, 'stores'),
+    '@/hooks': path.join(root, 'hooks'),
+    '@/types': path.join(root, 'types'),
+    '@': path.join(root, 'src'),
+  }
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      alias,
+    },
+  }
+}
+
 async function getServeUrl(): Promise<string> {
   if (cachedBundleLocation) return cachedBundleLocation
   if (!bundlePromise) {
     const entry = path.join(process.cwd(), 'lib', 'remotion', 'compositions', 'index.ts')
     bundlePromise = bundle({
       entryPoint: entry,
-      webpackOverride: (config) => config,
+      webpackOverride: remotionWebpackOverride,
     }).then((location) => {
       cachedBundleLocation = location
       return location

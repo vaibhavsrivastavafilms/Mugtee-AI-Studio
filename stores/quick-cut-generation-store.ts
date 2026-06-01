@@ -1306,6 +1306,7 @@ async function fetchSceneImages(
     | 'contentBrief'
     | 'sceneBlueprints'
     | 'outputAlignmentControls'
+    | 'visualBible'
   >,
   sceneIds?: string[],
   variation = false,
@@ -1336,6 +1337,7 @@ async function fetchSceneImages(
       diversityAttempt,
       contentBrief: state.contentBrief ?? undefined,
       sceneBlueprints: state.sceneBlueprints,
+      visualBible: state.visualBible ?? undefined,
       outputAlignmentControls: state.outputAlignmentControls,
     }),
   })

@@ -128,6 +128,8 @@ export type SceneImagePromptContext = {
   visualConsistency?: VisualConsistencyPack | null
   /** Content Director brief — injected once for thumbnail/scene alignment */
   contentBriefSection?: string
+  /** V3 Visual Bible block — global art style, lens, palette lock */
+  visualBibleSection?: string
   previousScene?: Pick<
     GeneratedScene,
     | 'title'
@@ -273,6 +275,7 @@ export function buildSceneImagePrompt(
   if (ctx?.contentBriefSection?.trim()) parts.push(ctx.contentBriefSection.trim())
   const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
   if (continuity) parts.push(continuity)
+  if (ctx?.visualBibleSection?.trim()) parts.push(ctx.visualBibleSection.trim())
   if (ctx?.previousScene && ctx?.storyBible) {
     const prior =
       ctx.previousScene.imagePrompt ||

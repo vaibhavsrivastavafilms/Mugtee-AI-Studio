@@ -33,6 +33,11 @@ import {
   type SceneBlueprint,
 } from '@/lib/cinematic/scene-blueprint'
 import {
+  formatVisualBibleForPrompt,
+  mergeVisualBibleIntoBlueprints,
+} from '@/lib/cinematic/visual-bible'
+import type { VisualBible } from '@/lib/pipeline/v3-types'
+import {
   rebuildAlignedImagePrompt,
   scoreSceneAlignment,
   validateSequenceCoherence,
@@ -61,6 +66,8 @@ export type GenerateSceneImagesInput = {
   contentBrief?: ContentBrief | null
   /** Scene blueprints — required for aligned image prompts */
   sceneBlueprints?: SceneBlueprint[]
+  /** V3 Visual Bible — merged into blueprints and injected into Flux prompts */
+  visualBible?: VisualBible | null
   outputAlignmentControls?: OutputAlignmentControls | null
 }
 
@@ -88,7 +95,8 @@ function promptContext(
   index: number,
   total: number,
   blueprint?: SceneBlueprint | null,
-  visualConsistency?: ReturnType<typeof buildVisualConsistencyPack> | null
+  visualConsistency?: ReturnType<typeof buildVisualConsistencyPack> | null,
+  visualBibleSection?: string
 ): SceneImagePromptContext {
   const hasReferenceStyle = Boolean(
     input.hasReferenceStyle || input.referenceStyleNote?.trim()
@@ -111,6 +119,7 @@ function promptContext(
     storyBible: input.storyBible ?? undefined,
     sceneBlueprint: blueprint ?? undefined,
     visualConsistency: visualConsistency ?? undefined,
+    visualBibleSection,
     contentBriefSection: formatContentBriefForPrompt(input.contentBrief),
     previousScene:
       index > 0
@@ -143,10 +152,15 @@ export async function generateSceneImages(
     ? new Set(input.sceneIds)
     : null
 
-  const blueprintMap = blueprintBySceneId(input.sceneBlueprints ?? [])
+  const blueprintSource =
+    input.visualBible && input.sceneBlueprints?.length
+      ? mergeVisualBibleIntoBlueprints(input.sceneBlueprints, input.visualBible)
+      : (input.sceneBlueprints ?? [])
+
+  const blueprintMap = blueprintBySceneId(blueprintSource)
   const consistency =
-    input.sceneBlueprints?.length ?
-      buildVisualConsistencyPack(input.sceneBlueprints, {
+    blueprintSource.length ?
+      buildVisualConsistencyPack(blueprintSource, {
         characterDescription,
         visualStyle: input.visualStyle ?? null,
         storyBible: input.storyBible ?? null,
@@ -154,8 +168,12 @@ export async function generateSceneImages(
       })
     : null
 
-  const sequenceCoherence = input.sceneBlueprints?.length
-    ? validateSequenceCoherence(input.sceneBlueprints)
+  const visualBibleSection = input.visualBible
+    ? formatVisualBibleForPrompt(input.visualBible)
+    : undefined
+
+  const sequenceCoherence = blueprintSource.length
+    ? validateSequenceCoherence(blueprintSource)
     : undefined
 
   let anyMock = !canGenerate
@@ -176,7 +194,8 @@ export async function generateSceneImages(
       i,
       updated.length,
       blueprint,
-      consistency
+      consistency,
+      visualBibleSection
     )
     if (input.storyBible && !storyBibleLogged) {
       formatStoryBibleForPrompt(input.storyBible, { log: true })

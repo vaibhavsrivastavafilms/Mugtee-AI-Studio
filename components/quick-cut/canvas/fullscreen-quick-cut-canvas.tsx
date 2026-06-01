@@ -467,7 +467,7 @@ export function FullscreenQuickCutCanvas({
       ) : null}
 
       <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-2 sm:pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
-        <div className="flex-1 flex flex-col justify-center min-w-0 w-full max-w-3xl mx-auto xl:max-w-2xl xl:mx-auto xl:pr-[220px] 2xl:pr-[240px]">
+        <div className="flex-1 flex flex-col justify-center min-w-0 w-full max-w-3xl mx-auto">
           {isActivationMode ? (
             <FirstActivationPanel
               onSelectPrompt={handlePromptPrefill}
