@@ -1,3 +1,4 @@
+import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   buildStoryboardSopPrompt,
@@ -83,7 +84,7 @@ async function generateStoryboardScenesInternal(
     if (process.env.NODE_ENV === 'development') {
       console.log('[OPENAI] REQUEST START', { model: 'gpt-4o-mini', step: 'storyboard-sop' })
     }
-    const completion = await openai.chat.completions.create({
+    const completion = await createCachedOpenAIChatCompletion(openai, {
       model: 'gpt-4o-mini',
       temperature: 0.65,
       response_format: { type: 'json_object' },

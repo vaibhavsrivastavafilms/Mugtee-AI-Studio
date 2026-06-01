@@ -1,3 +1,4 @@
+import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { FREE_OPENAI_CHAT_MODEL } from '@/lib/ai/free-tier'
 import type { ParsedCreatorIntent } from '@/lib/input-understanding/types'
@@ -170,7 +171,7 @@ async function parseCreatorIntentWithLlm(rawInput: string): Promise<Partial<Pars
 
   try {
     const openai = getOpenAIClient()
-    const completion = await openai.chat.completions.create({
+    const completion = await createCachedOpenAIChatCompletion(openai, {
       model: FREE_OPENAI_CHAT_MODEL,
       temperature: 0.2,
       response_format: { type: 'json_object' },

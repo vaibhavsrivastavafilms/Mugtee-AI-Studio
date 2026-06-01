@@ -176,6 +176,7 @@ import {
   SCRIPT_GENERATION_TIMEOUT_MS,
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
+import { fetchQuickCutConfig } from '@/lib/quick-cut/quick-cut-config-cache.client'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import { showPlanLimitToast, handlePlanLimitResponse } from '@/lib/usage/plan-limit-toast.client'
 import { toast } from 'sonner'
@@ -1789,14 +1790,13 @@ export const useQuickCutGenerationStore = create<
     let videoRenderEnabled = get().videoRenderEnabled
     let freeTier = false
 
-    const configPromise = fetch('/api/quick-cut/config')
-      .then((res) => res.json().catch(() => ({})) as Promise<Record<string, boolean>>)
+    const configPromise = fetchQuickCutConfig()
       .then((cfg) => {
-        config = cfg
+        config = cfg as Record<string, boolean>
         videoRenderEnabled = cfg.videoRenderEnabled === true
         freeTier = cfg.freeTierOnly === true
         set({ videoRenderEnabled })
-        return cfg
+        return cfg as Record<string, boolean>
       })
       .catch(() => ({} as Record<string, boolean>))
 
@@ -2375,6 +2375,11 @@ export const useQuickCutGenerationStore = create<
           .map((scene, index) => ({ scene, index }))
           .filter(({ scene }) => scene?.id && !(isResume && scene.imageUrl))
 
+        const thumbnailCoverPromise = fetchThumbnailCoverImage(get()).catch((err) => {
+          if (err instanceof ImageGenerationUnavailableError) throw err
+          return null
+        })
+
         await Promise.all(
           scenesToRender.map(async ({ scene, index }) => {
             set({ directingSceneLabel: `Directing Scene ${index + 1}…` })
@@ -2439,7 +2444,7 @@ export const useQuickCutGenerationStore = create<
         if (storyboardId) set({ savedProjectId: storyboardId, saveState: 'saved' })
 
         try {
-          const coverUrl = await fetchThumbnailCoverImage(get())
+          const coverUrl = await thumbnailCoverPromise
           if (coverUrl) {
             set({ thumbnailImageUrl: coverUrl })
             patchSectionStatus(set, get, 'thumbnail', 'completed')
@@ -3278,8 +3283,10 @@ export const useQuickCutGenerationStore = create<
 
   syncVideoRenderConfig: async () => {
     try {
-      const res = await fetch('/api/quick-cut/config')
-      const config = (await res.json().catch(() => ({}))) as Record<string, boolean>
+      const { fetchQuickCutConfig } = await import(
+        '@/lib/quick-cut/quick-cut-config-cache.client'
+      )
+      const config = (await fetchQuickCutConfig()) as Record<string, boolean>
       const videoRenderEnabled = config.videoRenderEnabled === true
       set({ videoRenderEnabled })
       const state = get()

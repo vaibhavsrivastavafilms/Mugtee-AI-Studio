@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { FREE_OPENAI_CHAT_MODEL } from '@/lib/ai/free-tier'
 import {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
     try {
       const openai = getOpenAIClient()
       const excerpt = excerptForQualityReview(body.hook ?? '', body.script ?? '')
-      const completion = await openai.chat.completions.create({
+      const completion = await createCachedOpenAIChatCompletion(openai, {
         model: FREE_OPENAI_CHAT_MODEL,
         temperature: 0.2,
         max_tokens: 220,
