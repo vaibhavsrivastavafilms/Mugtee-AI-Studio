@@ -19,7 +19,7 @@ export const MISSION_STEPS: MissionStep[] = [
   },
   {
     id: 'angle',
-    label: 'Discover Story Angle',
+    label: 'Discover Angle',
     section: 'contentDirectorBrief',
     generationSteps: ['title', 'analyzing'],
   },

@@ -31,6 +31,12 @@ import {
 } from '@/lib/cinematic/workflow-state'
 import { sceneVisualFieldsFromVirlo } from '@/lib/virlo-engine/visual-language'
 import { sanitizeSceneOnlyPrompt } from '@/lib/ai/prompts/youtube/storyboard-sop-prompt'
+import {
+  applyBlueprintsToScenes,
+  buildBlueprintsForScenes,
+  parseOutputAlignmentControls,
+} from '@/lib/cinematic/scene-blueprint'
+import { validateSequenceCoherence } from '@/lib/cinematic/output-alignment'
 
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { coerceDuration, coerceTopic, logError } from '@/lib/workspace/validation'
@@ -156,6 +162,31 @@ export async function POST(req: NextRequest) {
       visualStyleFromVirloContext(virlo)
 
     const contentBrief = normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief)
+    const outputAlignmentControls = parseOutputAlignmentControls(
+      raw?.outputAlignmentControls ?? raw?.output_alignment_controls
+    )
+
+    function finishWithBlueprints(
+      scenes: import('@/lib/cinematic/generation').GeneratedScene[],
+      characterDescription: string,
+      extra: Record<string, unknown>
+    ) {
+      const blueprints = buildBlueprintsForScenes(scenes, {
+        script,
+        characterDescription,
+        visualStyle,
+        controls: outputAlignmentControls,
+      })
+      const aligned = applyBlueprintsToScenes(scenes, blueprints)
+      const sequenceCoherence = validateSequenceCoherence(blueprints)
+      return finish({
+        scenes: ensureScenesHaveImagePrompts(aligned),
+        sceneBlueprints: blueprints,
+        sequenceCoherence,
+        outputAlignmentControls,
+        ...extra,
+      })
+    }
 
     const parsed = parseScriptIntoScenes(script, visualStyle)
     if (parsed && parsed.length >= 2) {
@@ -165,8 +196,9 @@ export async function POST(req: NextRequest) {
         const fields = sceneVisualFieldsFromVirlo(virloVisual)
         return applyVisualStyleToScene({ ...scene, ...fields }, visualStyle)
       })
-      return finish({
-        scenes: ensureScenesHaveImagePrompts(enriched),
+      const characterDescription =
+        enriched[0]?.description?.slice(0, 120) ?? ''
+      return finishWithBlueprints(enriched, characterDescription, {
         mock: false,
         niche,
         language,
@@ -190,16 +222,19 @@ export async function POST(req: NextRequest) {
           : scene
         return applyVisualStyleToScene(withVirlo, visualStyle)
       })
-      return finish({
-        scenes: ensureScenesHaveImagePrompts(styled),
-        mock: false,
-        niche,
-        language,
-        visualStyle,
-        source: 'storyboard_sop',
-        ...storyboardResponseExtras(buildStoryboardProjectFields(precomputed)),
-        virlo: meta,
-      })
+      return finishWithBlueprints(
+        styled,
+        styled[0]?.description?.slice(0, 120) ?? '',
+        {
+          mock: false,
+          niche,
+          language,
+          visualStyle,
+          source: 'storyboard_sop',
+          ...storyboardResponseExtras(buildStoryboardProjectFields(precomputed)),
+          virlo: meta,
+        }
+      )
     }
 
     if (process.env.OPENAI_API_KEY && script.trim().length > 40) {
@@ -218,16 +253,19 @@ export async function POST(req: NextRequest) {
             : scene
           return applyVisualStyleToScene(withVirlo, visualStyle)
         })
-        return finish({
-          scenes: ensureScenesHaveImagePrompts(styled),
-          mock: false,
-          niche,
-          language,
-          visualStyle,
-          source: 'storyboard_sop',
-          ...storyboardResponseExtras(sopResult),
-          virlo: meta,
-        })
+        return finishWithBlueprints(
+          styled,
+          styled[0]?.description?.slice(0, 120) ?? '',
+          {
+            mock: false,
+            niche,
+            language,
+            visualStyle,
+            source: 'storyboard_sop',
+            ...storyboardResponseExtras(sopResult),
+            virlo: meta,
+          }
+        )
       }
     }
 
@@ -262,15 +300,18 @@ export async function POST(req: NextRequest) {
           const styled = normalized.scenes.map((scene) =>
             applyVisualStyleToScene(scene, visualStyle)
           )
-          return finish({
-            scenes: ensureScenesHaveImagePrompts(styled),
-            mock: false,
-            niche,
-            language,
-            visualStyle,
-            source: 'openai',
-            virlo: meta,
-          })
+          return finishWithBlueprints(
+            styled,
+            styled[0]?.description?.slice(0, 120) ?? '',
+            {
+              mock: false,
+              niche,
+              language,
+              visualStyle,
+              source: 'openai',
+              virlo: meta,
+            }
+          )
         }
       } catch (err) {
         logError('generate-scenes.openai', err)
@@ -285,10 +326,10 @@ export async function POST(req: NextRequest) {
       virloContext: virlo,
     })
 
-    return finish({
-      scenes: ensureScenesHaveImagePrompts(
-        mock.scenes.map((scene) => applyVisualStyleToScene(scene, visualStyle))
-      ),
+    const mockScenes = mock.scenes.map((scene) =>
+      applyVisualStyleToScene(scene, visualStyle)
+    )
+    return finishWithBlueprints(mockScenes, '', {
       mock: true,
       niche,
       language,

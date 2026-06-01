@@ -3,40 +3,15 @@
 import { motion } from 'framer-motion'
 import { Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CINEMATIC_HERO_EXAMPLES } from '@/lib/activation/first-activation'
 import { markHasCreatedProject } from '@/lib/onboarding/onboarding-state'
 
-export const GUIDED_CREATION_EXAMPLES = [
-  {
-    id: 'apple-doc',
-    label: 'Documentary about Apple',
-    prompt:
-      'The moment Apple bet everything on design — a cinematic documentary reel on courage, craft, and the iPhone pivot',
-  },
-  {
-    id: 'ai-startup',
-    label: 'AI Startup Reel',
-    prompt:
-      'How AI startups are winning in 2026 — contrarian hook, 60-second reel with macro B-roll and voiceover',
-  },
-  {
-    id: 'psychology',
-    label: 'Psychology Story',
-    prompt:
-      'The hidden psychology of why we scroll when we are lonely — intimate reel with mirror framing and soft light',
-  },
-  {
-    id: 'motivation',
-    label: 'Motivation Video',
-    prompt:
-      'Nobody talks about discipline like this — the quiet decision before the comeback arc begins',
-  },
-  {
-    id: 'business',
-    label: 'Business Breakdown',
-    prompt:
-      'Why Nokia failed — business documentary reel about missing the smartphone shift and the lesson for builders today',
-  },
-] as const
+/** @deprecated Prefer CinematicExampleCards — kept for legacy imports */
+export const GUIDED_CREATION_EXAMPLES = CINEMATIC_HERO_EXAMPLES.map((e) => ({
+  id: e.id,
+  label: e.label,
+  prompt: e.prompt,
+}))
 
 type GuidedCreationPromptProps = {
   onSelect: (prompt: string) => void

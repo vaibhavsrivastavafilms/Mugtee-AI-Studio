@@ -1,8 +1,10 @@
 'use client'
 
 import type { RecommendedNextStep } from '@/lib/quick-cut/recommended-next-steps'
-import { tabToWorkspaceStage } from '@/lib/studio/workspace-stages'
 import { GENERATION_STAGE_PANEL_SELECTOR } from '@/lib/quick-cut/view-script-navigation'
+import { navigateToStep, scrollToWorkflowSection } from '@/lib/workflow/workflow-navigation'
+import { TAB_TO_WORKFLOW_STEP } from '@/lib/workflow/workflow-step-map'
+import { tabToWorkspaceStage } from '@/lib/studio/workspace-stages'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 
@@ -38,10 +40,15 @@ function triggerRecommendTarget(target: string) {
 /** Navigate workspace + stage panel for a recommended next step card. */
 export function executeRecommendedNextStep(step: RecommendedNextStep) {
   if (step.tabTarget) {
-    useQuickCutGenerationStore.getState().setActiveStageTab(step.tabTarget, true)
-    const workspaceStage = tabToWorkspaceStage(step.tabTarget)
-    if (workspaceStage) {
-      useStudioWorkspaceStore.getState().setActiveStage(workspaceStage)
+    const stepId = TAB_TO_WORKFLOW_STEP[step.tabTarget]
+    if (stepId) {
+      navigateToStep(stepId)
+    } else {
+      useQuickCutGenerationStore.getState().setActiveStageTab(step.tabTarget, true)
+      const workspaceStage = tabToWorkspaceStage(step.tabTarget)
+      if (workspaceStage) {
+        useStudioWorkspaceStore.getState().setActiveStage(workspaceStage)
+      }
     }
   }
 

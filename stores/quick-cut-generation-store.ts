@@ -85,6 +85,25 @@ import {
   loadHookSession,
   saveHookSession,
 } from '@/lib/cinematic/quick-cut/hook-session'
+import {
+  inferActiveWorkflowStep,
+  inferCompletedWorkflowSteps,
+} from '@/lib/workflow/workflow-continuity'
+import {
+  clearWorkflowSession,
+  loadWorkflowSession,
+  saveWorkflowSession,
+} from '@/lib/workflow/workflow-session'
+import {
+  buildResumeHref,
+  inferLastGeneratedAsset,
+  saveProjectContinuity,
+} from '@/lib/trust/project-continuity'
+import { logPipelineActivity } from '@/lib/trust/activity-events'
+import {
+  workflowStepFromGenerationStep,
+  type WorkflowStepId,
+} from '@/lib/workflow/workflow-step-map'
 import { regenerateHook as requestHookRegen } from '@/lib/cinematic/refinement-client'
 import {
   generationStepToTab,
@@ -137,8 +156,11 @@ import {
 } from '@/lib/input-understanding'
 import {
   validateTitleHookBundle,
-  MAX_OUTPUT_VALIDATION_RETRIES,
 } from '@/lib/quality/output-validator'
+import {
+  createHookProgressController,
+  type HookProgressPhase,
+} from '@/lib/cinematic/hook-generation-progress'
 import {
   loadRecentNarrativeFrameworks,
   recordNarrativeFrameworkUsage,
@@ -215,6 +237,15 @@ import {
   type MotionPresetId,
   type SceneMotionMap,
 } from '@/lib/motion/motion-presets'
+import {
+  applyBlueprintsToScenes,
+  buildBlueprintsForScenes,
+  DEFAULT_OUTPUT_ALIGNMENT_CONTROLS,
+  parseOutputAlignmentControls,
+  parseSceneBlueprints,
+  type OutputAlignmentControls,
+  type SceneBlueprint,
+} from '@/lib/cinematic/scene-blueprint'
 import { genPerf } from '@/lib/cinematic/generation-perf'
 import {
   resetSectionStatus,
@@ -351,6 +382,9 @@ interface QuickCutGenerationStateBase {
   voiceUrl: string | null
   elevenLabsVoiceId: string | null
   voiceName: string | null
+  voiceProfileId: string | null
+  voiceMetadata: import('@/lib/voice/generateVoice').VoiceMetadata | null
+  isRegeneratingVoice: boolean
   voiceFallbackMessage: string | null
   waveform: number[]
   progress: number
@@ -376,6 +410,9 @@ interface QuickCutGenerationStateBase {
   visualStyle: VisualStyle | null
   storyBible: StoryBible | null
   sceneMotion: SceneMotionMap
+  /** Scene → visual blueprint (script/image/motion alignment) */
+  sceneBlueprints: SceneBlueprint[]
+  outputAlignmentControls: OutputAlignmentControls
   viralScript: ViralScript | null
   inputType: 'text' | 'voice' | 'mixed'
   originalTranscript: string
@@ -420,8 +457,19 @@ interface QuickCutGenerationStateBase {
   recentTitles: string[]
   /** Per-output-card status for progressive UI */
   sectionStatus: SectionStatusMap
+  /** Craft Hook staged progress (header + hook panel) */
+  hookProgressPhase: HookProgressPhase
+  hookProgressLabel: string | null
+  /** Shown at ~2s before final validated hook lands */
+  hookPreview: string | null
   /** Prevents duplicate pipeline starts from rapid clicks */
   generationInFlight: boolean
+  /** Unified creator workflow timeline — current highlighted step */
+  currentWorkflowStep: WorkflowStepId
+  /** Mission steps marked complete this session */
+  completedWorkflowSteps: WorkflowStepId[]
+  /** Last timeline step the creator navigated to (restore on return) */
+  lastVisitedStep: WorkflowStepId | null
 }
 
 interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
@@ -456,12 +504,18 @@ interface QuickCutGenerationActions {
   setRepurposedAsset: (type: RepurposeOutputType, entry: RepurposedAssetEntry) => void
   setSelectedElevenLabsVoice: (voiceId: string, name: string) => void
   ensureRecommendedElevenLabsVoice: () => Promise<void>
+  regenerateVoice: () => Promise<void>
   setCreatorProfileOverride: (override: CreatorProfileOverride | null) => void
   setContentSeries: (series: ContentSeries | null) => void
   persistContentSeries: (series: ContentSeries) => Promise<void>
   setStoryBible: (bible: StoryBible | null) => void
   updateStoryBible: (patch: Partial<StoryBible>) => void
   setSceneMotionPreset: (sceneId: string, presetId: MotionPresetId) => void
+  setOutputAlignmentControls: (patch: Partial<OutputAlignmentControls>) => void
+  refreshSceneBlueprints: () => void
+  setCurrentWorkflowStep: (step: WorkflowStepId) => void
+  markWorkflowStepComplete: (step: WorkflowStepId) => void
+  syncWorkflowFromPipeline: () => void
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -498,6 +552,9 @@ const INITIAL: QuickCutGenerationState = {
   voiceUrl: null,
   elevenLabsVoiceId: null,
   voiceName: null,
+  voiceProfileId: null,
+  voiceMetadata: null,
+  isRegeneratingVoice: false,
   voiceFallbackMessage: null,
   waveform: [],
   progress: 0,
@@ -521,6 +578,8 @@ const INITIAL: QuickCutGenerationState = {
   visualStyle: null,
   storyBible: null,
   sceneMotion: {},
+  sceneBlueprints: [],
+  outputAlignmentControls: { ...DEFAULT_OUTPUT_ALIGNMENT_CONTROLS },
   viralScript: null,
   inputType: 'text',
   originalTranscript: '',
@@ -558,7 +617,13 @@ const INITIAL: QuickCutGenerationState = {
   parsedIntent: null,
   recentTitles: [],
   sectionStatus: resetSectionStatus(),
+  hookProgressPhase: 'idle',
+  hookProgressLabel: null,
+  hookPreview: null,
   generationInFlight: false,
+  currentWorkflowStep: 'analyze',
+  completedWorkflowSteps: [],
+  lastVisitedStep: null,
   ...EMPTY_STORYBOARD_FIELDS,
 }
 
@@ -624,34 +689,35 @@ function recordRecentTitle(titles: string[], next: string): string[] {
 async function fetchValidatedTitleHook(
   payload: Record<string, unknown>,
   rawInput: string,
-  recentTitles: readonly string[]
+  recentTitles: readonly string[],
+  onProgress?: ReturnType<typeof createHookProgressController>
 ): Promise<{ title: string; hook: string; data: Record<string, unknown> }> {
-  let lastData: Record<string, unknown> = {}
-  for (let attempt = 0; attempt <= MAX_OUTPUT_VALIDATION_RETRIES; attempt++) {
-    const { res, data } = await pipelineFetchJson<Record<string, unknown>>(
-      '/api/generate-title',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, hookVariantIndex: attempt }),
-        maxRetries: 2,
-      }
-    )
-    lastData = data
-    if (!res.ok) {
-      throw new Error(String(data?.error || 'Title generation failed'))
+  const { res, data } = await pipelineFetchJson<Record<string, unknown>>(
+    '/api/generate-title',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      maxRetries: 0,
     }
-    const title = String(data.title ?? '')
-    const hook = String(data.hook ?? '')
-    if (validateTitleHookBundle(title, hook, rawInput, recentTitles).ok) {
-      return { title, hook, data }
-    }
+  )
+  if (!res.ok) {
+    throw new Error(String(data?.error || 'Title generation failed'))
   }
-  return {
-    title: String(lastData.title ?? ''),
-    hook: String(lastData.hook ?? ''),
-    data: lastData,
+  const title = String(data.title ?? '')
+  const hook = String(data.hook ?? '')
+
+  onProgress?.markCandidate(hook, title)
+
+  const validation = validateTitleHookBundle(title, hook, rawInput, recentTitles)
+  if (!validation.ok) {
+    genPerf.log('hook', 'client validation soft-fail — using server result', {
+      issues: validation.issues,
+    })
   }
+
+  onProgress?.markValidated(hook, title)
+  return { title, hook, data }
 }
 
 function parseContentAngleFromResponse(data?: Record<string, unknown> | null): {
@@ -879,7 +945,7 @@ function buildArchiveInput(
       ? {
           voiceId: state.elevenLabsVoiceId ?? undefined,
           voiceName: state.voiceName || 'Cinematic Narrator',
-          style: 'warm_documentary',
+          style: state.voiceProfileId || 'warm_documentary',
           audioUrl: state.voiceUrl,
           narration: narrationFromCinematicScript(
             resolveCinematicScript({
@@ -891,6 +957,7 @@ function buildArchiveInput(
             }),
             false
           ),
+          metadata: state.voiceMetadata ?? undefined,
         }
       : null,
     duration: coerceDuration(state.duration),
@@ -938,6 +1005,8 @@ function buildArchiveInput(
       state.generationStatus === 'failed' ? state.error : null,
     repurposedAssets: state.repurposedAssets,
     series: state.contentSeries ?? undefined,
+    scene_blueprints: state.sceneBlueprints,
+    output_alignment_controls: state.outputAlignmentControls,
   }
 }
 
@@ -1108,6 +1177,8 @@ async function fetchSceneImages(
     | 'language'
     | 'imageNote'
     | 'contentBrief'
+    | 'sceneBlueprints'
+    | 'outputAlignmentControls'
   >,
   sceneIds?: string[],
   variation = false,
@@ -1137,6 +1208,8 @@ async function fetchSceneImages(
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
       diversityAttempt,
       contentBrief: state.contentBrief ?? undefined,
+      sceneBlueprints: state.sceneBlueprints,
+      outputAlignmentControls: state.outputAlignmentControls,
     }),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -1299,6 +1372,7 @@ function setStep(
   if (!get().stageTabPinned) {
     const tab = generationStepToTab(step)
     if (tab) patch.activeStageTab = tab
+    patch.currentWorkflowStep = workflowStepFromGenerationStep(step)
   }
   set(patch)
 }
@@ -1440,6 +1514,57 @@ function restoreHookSession(): Pick<
   }
 }
 
+function restoreWorkflowContinuity(): Pick<
+  QuickCutGenerationState,
+  'currentWorkflowStep' | 'completedWorkflowSteps' | 'lastVisitedStep'
+> {
+  const session = loadWorkflowSession()
+  if (!session) {
+    return {
+      currentWorkflowStep: 'analyze',
+      completedWorkflowSteps: [],
+      lastVisitedStep: null,
+    }
+  }
+  return {
+    currentWorkflowStep: session.currentWorkflowStep,
+    completedWorkflowSteps: session.completedWorkflowSteps,
+    lastVisitedStep: session.lastVisitedStep,
+  }
+}
+
+function persistWorkflowContinuity(state: QuickCutGenerationState) {
+  saveWorkflowSession({
+    currentWorkflowStep: state.currentWorkflowStep,
+    completedWorkflowSteps: state.completedWorkflowSteps,
+    lastVisitedStep: state.lastVisitedStep,
+    projectId: state.savedProjectId,
+    lastGeneratedAsset: inferLastGeneratedAsset(state.lastCompletedStep),
+  })
+  persistCreatorContinuity(state)
+}
+
+function persistCreatorContinuity(state: QuickCutGenerationState) {
+  const projectId = state.savedProjectId
+  if (!projectId) return
+  const title = state.title.trim() || state.prompt.trim().slice(0, 80) || 'Untitled project'
+  saveProjectContinuity({
+    projectId,
+    title,
+    lastEditedAt: new Date().toISOString(),
+    currentWorkflowStep: state.currentWorkflowStep,
+    lastVisitedStep: state.lastVisitedStep,
+    completedWorkflowSteps: state.completedWorkflowSteps,
+    lastGeneratedAsset: inferLastGeneratedAsset(state.lastCompletedStep),
+    lastCompletedStep: state.lastCompletedStep,
+    scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
+    resumeHref: buildResumeHref(
+      projectId,
+      state.lastVisitedStep ?? state.currentWorkflowStep
+    ),
+  })
+}
+
 function persistSession(state: QuickCutGenerationState) {
   const output = buildGenerationOutput(state)
 
@@ -1518,6 +1643,7 @@ function persistSession(state: QuickCutGenerationState) {
   })
 
   persistHookSession(state)
+  persistCreatorContinuity(state)
 }
 
 export const useQuickCutGenerationStore = create<
@@ -1545,6 +1671,76 @@ export const useQuickCutGenerationStore = create<
         voiceName: recommended.name,
       })
     }
+    const { selectVoiceProfile } = await import('@/lib/voice/voiceProfiles')
+    const profile = selectVoiceProfile({
+      niche: get().niche,
+      tone: get().style,
+      contentBrief: get().contentBrief,
+      parsedIntent: get().parsedIntent,
+    })
+    if (!get().voiceProfileId) {
+      set({ voiceProfileId: profile.id })
+    }
+  },
+
+  regenerateVoice: async () => {
+    const state = get()
+    const script = state.script.trim()
+    if (!script || state.isRegeneratingVoice) return
+    set({ isRegeneratingVoice: true, voiceFallbackMessage: null })
+    try {
+      const { res, data } = await pipelineFetchJson('/api/regenerate-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          script,
+          niche: state.niche,
+          tone: state.style,
+          elevenLabsVoiceId: state.elevenLabsVoiceId ?? undefined,
+          voiceName: state.voiceName ?? undefined,
+          voiceProfileId: state.voiceProfileId ?? undefined,
+          scenes: state.scenes,
+          sceneBlueprints: state.sceneBlueprints,
+          project_id: state.savedProjectId ?? undefined,
+        }),
+      })
+      if (!res.ok || !data?.audioUrl) {
+        set({
+          voiceFallbackMessage:
+            typeof data?.fallbackMessage === 'string'
+              ? data.fallbackMessage
+              : typeof data?.error === 'string'
+                ? data.error
+                : 'Voice regeneration failed',
+        })
+        return
+      }
+      set({
+        voiceUrl: String(data.audioUrl),
+        waveform: Array.isArray(data.waveform) ? (data.waveform as number[]) : state.waveform,
+        voiceName: typeof data.voiceName === 'string' ? data.voiceName : state.voiceName,
+        elevenLabsVoiceId:
+          typeof data.elevenLabsVoiceId === 'string'
+            ? data.elevenLabsVoiceId
+            : state.elevenLabsVoiceId,
+        voiceProfileId:
+          typeof data.voiceProfileId === 'string' ? data.voiceProfileId : state.voiceProfileId,
+        voiceMetadata:
+          data.voiceMetadata && typeof data.voiceMetadata === 'object'
+            ? (data.voiceMetadata as import('@/lib/voice/generateVoice').VoiceMetadata)
+            : state.voiceMetadata,
+        voiceFallbackMessage:
+          typeof data.fallbackMessage === 'string' ? data.fallbackMessage : null,
+        ...(Array.isArray(data.sceneBlueprints) && data.sceneBlueprints.length > 0
+          ? { sceneBlueprints: data.sceneBlueprints }
+          : {}),
+      })
+      if (state.savedProjectId) {
+        void archiveQuickCutProject(get()).catch(() => {})
+      }
+    } finally {
+      set({ isRegeneratingVoice: false })
+    }
   },
 
   reset: (options) => {
@@ -1553,8 +1749,39 @@ export const useQuickCutGenerationStore = create<
       ? null
       : get().lastGeneratedPrompt
     clearHookSession()
+    clearWorkflowSession()
     useContentQualityStore.getState().resetQualityReview()
     set({ ...INITIAL, savedProjectId, lastGeneratedPrompt, studioReviewMode: false })
+  },
+
+  setCurrentWorkflowStep: (step) => {
+    set({ currentWorkflowStep: step, lastVisitedStep: step })
+    persistWorkflowContinuity(get())
+  },
+
+  markWorkflowStepComplete: (step) => {
+    set((state) => {
+      const completed = state.completedWorkflowSteps.includes(step)
+        ? state.completedWorkflowSteps
+        : [...state.completedWorkflowSteps, step]
+      return { completedWorkflowSteps: completed }
+    })
+    persistWorkflowContinuity(get())
+  },
+
+  syncWorkflowFromPipeline: () => {
+    const state = get()
+    const completed = inferCompletedWorkflowSteps(state.sectionStatus, state.generationStep)
+    const active = inferActiveWorkflowStep(
+      state.sectionStatus,
+      state.generationStep,
+      state.isComplete
+    )
+    set({
+      completedWorkflowSteps: completed,
+      currentWorkflowStep: state.stageTabPinned ? state.currentWorkflowStep : active,
+    })
+    persistWorkflowContinuity(get())
   },
 
   setActiveStageTab: (tab, pinned = true) =>
@@ -1928,55 +2155,73 @@ export const useQuickCutGenerationStore = create<
               patchSectionStatus(set, get, 'hook', 'generating')
               genPerf.start('hook')
               genPerf.log('hook', `started ${Date.now() - pipelineStartedAt}ms after pipeline click`)
-              setStep(set, get, 'title')
-              const titleHookResult = await fetchValidatedTitleHook(
-                {
-                  idea: prompt,
-                  parsedIntent: serializeParsedIntent(parsedIntent),
-                  sessionSeed,
-                  language,
-                  recentContentAngles: loadRecentContentAngles(),
-                  recentTitles: get().recentTitles,
-                  contentBrief: sessionContentBrief ?? undefined,
-                  ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
-                },
-                parsedIntent.rawInput,
-                get().recentTitles
-              )
-              const titleData = titleHookResult.data
 
-              title = titleHookResult.title
-              hook = titleHookResult.hook
-              if (sessionContentBrief && hook) {
-                hook = alignOutputToBrief(hook, sessionContentBrief, 'hook').text
-              }
-              virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
-              if (titleData.mock === true) anyMock = true
-
-              setStep(set, get, 'hook')
-              set({
-                title,
-                hook,
-                virlo,
-                recentTitles: recordRecentTitle(get().recentTitles, title),
-                ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
-                storyboard: isResume ? get().storyboard : [],
-                previousHooks: regenFresh ? regenAvoidHooks : [],
-                hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
-                variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
-                  select: true,
-                }),
+              const progress = createHookProgressController((patch) => {
+                const next: Partial<QuickCutGenerationState> = { ...patch }
+                if (patch.generationStep) {
+                  next.progress = STEP_PROGRESS[patch.generationStep]
+                  next.eta = computeStepEta(next.progress)
+                }
+                if (patch.activeStageTab && !get().stageTabPinned) {
+                  next.activeStageTab = patch.activeStageTab
+                }
+                set(next)
               })
-              persistHookSession(get())
-              patchSectionStatus(set, get, 'hook', 'completed')
-              if (!regenFresh && hook) {
-                logHookAccept(hook, {
-                  projectId: get().savedProjectId ?? undefined,
-                  topic: parsedIntent.cleanTopic,
-                  theme: useCompanionStore.getState().creativeBrief?.theme,
+
+              progress.start()
+
+              try {
+                const titleHookResult = await fetchValidatedTitleHook(
+                  {
+                    idea: prompt,
+                    parsedIntent: serializeParsedIntent(parsedIntent),
+                    sessionSeed,
+                    language,
+                    recentContentAngles: loadRecentContentAngles(),
+                    recentTitles: get().recentTitles,
+                    contentBrief: sessionContentBrief ?? undefined,
+                    ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
+                  },
+                  parsedIntent.rawInput,
+                  get().recentTitles,
+                  progress
+                )
+                const titleData = titleHookResult.data
+
+                title = titleHookResult.title
+                hook = titleHookResult.hook
+                if (sessionContentBrief && hook) {
+                  hook = alignOutputToBrief(hook, sessionContentBrief, 'hook').text
+                }
+                virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
+                if (titleData.mock === true) anyMock = true
+
+                set({
+                  title,
+                  hook,
+                  virlo,
+                  recentTitles: recordRecentTitle(get().recentTitles, title),
+                  ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
+                  storyboard: isResume ? get().storyboard : [],
+                  previousHooks: regenFresh ? regenAvoidHooks : [],
+                  hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
+                  variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
+                    select: true,
+                  }),
                 })
+                persistHookSession(get())
+                patchSectionStatus(set, get, 'hook', 'completed')
+                if (!regenFresh && hook) {
+                  logHookAccept(hook, {
+                    projectId: get().savedProjectId ?? undefined,
+                    topic: parsedIntent.cleanTopic,
+                    theme: useCompanionStore.getState().creativeBrief?.theme,
+                  })
+                }
+                genPerf.end('hook')
+              } finally {
+                progress.stop()
               }
-              genPerf.end('hook')
             })()
           : Promise.resolve(),
         needsScript
@@ -2249,11 +2494,23 @@ export const useQuickCutGenerationStore = create<
                 existing: get().storyBible,
               })
 
+              const sceneBlueprints = Array.isArray(scenesData.sceneBlueprints)
+                ? parseSceneBlueprints(scenesData.sceneBlueprints)
+                : buildBlueprintsForScenes(scenes, {
+                    script,
+                    characterDescription,
+                    visualStyle: visualStyle ?? lockedVisualStyle,
+                    storyBible,
+                    controls: get().outputAlignmentControls,
+                  })
+              const alignedScenes = applyBlueprintsToScenes(scenes, sceneBlueprints)
+
               set({
-                scenes,
-                storyboard: scenes,
+                scenes: alignedScenes,
+                storyboard: alignedScenes,
                 characterDescription,
                 storyBible,
+                sceneBlueprints,
                 niche: scriptNiche,
                 ...parseStoryboardFromApi(scenesData),
                 lastCompletedStep: 'visual_direction',
@@ -2286,7 +2543,7 @@ export const useQuickCutGenerationStore = create<
                 }
               }
 
-              const { elevenLabsVoiceId, voiceName: selectedVoiceName } = get()
+              const { elevenLabsVoiceId, voiceName: selectedVoiceName, voiceProfileId } = get()
               const { res: voiceRes, data: voiceData } = await pipelineFetchJson(
                 '/api/generate-voice',
                 {
@@ -2294,8 +2551,14 @@ export const useQuickCutGenerationStore = create<
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     script,
+                    niche: get().niche,
+                    tone: get().style,
                     elevenLabsVoiceId: elevenLabsVoiceId ?? undefined,
                     voiceName: selectedVoiceName ?? undefined,
+                    voiceProfileId: voiceProfileId ?? undefined,
+                    scenes: get().scenes,
+                    sceneBlueprints: get().sceneBlueprints,
+                    project_id: get().savedProjectId ?? undefined,
                   }),
                 }
               )
@@ -2315,6 +2578,21 @@ export const useQuickCutGenerationStore = create<
                   voiceData.elevenLabsVoiceId
                 ) {
                   set({ elevenLabsVoiceId: voiceData.elevenLabsVoiceId })
+                }
+                if (typeof voiceData.voiceProfileId === 'string' && voiceData.voiceProfileId) {
+                  set({ voiceProfileId: voiceData.voiceProfileId })
+                }
+                if (voiceData.voiceMetadata && typeof voiceData.voiceMetadata === 'object') {
+                  set({ voiceMetadata: voiceData.voiceMetadata as import('@/lib/voice/generateVoice').VoiceMetadata })
+                }
+                if (Array.isArray(voiceData.sceneVoiceDirections) && get().sceneBlueprints.length > 0) {
+                  const { applyVoiceDirectionToBlueprints } = await import('@/lib/voice/voiceDirector')
+                  set({
+                    sceneBlueprints: applyVoiceDirectionToBlueprints(
+                      get().sceneBlueprints,
+                      voiceData.sceneVoiceDirections
+                    ),
+                  })
                 }
                 if (voiceData.mock === true) {
                   anyMock = true
@@ -2462,7 +2740,15 @@ export const useQuickCutGenerationStore = create<
 
         setStep(set, get, 'motion')
         set({ directingSceneLabel: 'Applying cinematic motion…' })
-        const motionMap = assignSceneMotion(scenes, get().storyBible, get().sceneMotion)
+        const motionMap = assignSceneMotion(
+          scenes,
+          get().storyBible,
+          get().sceneMotion,
+          {
+            sceneBlueprints: get().sceneBlueprints,
+            outputAlignmentControls: get().outputAlignmentControls,
+          }
+        )
         scenes = applySceneMotionToScenes(scenes, motionMap)
         set({
           sceneMotion: motionMap,
@@ -2978,19 +3264,27 @@ export const useQuickCutGenerationStore = create<
       stageTabPinned: true,
     })
 
+    const progress = createHookProgressController((patch) => set(patch))
+
+    progress.start()
+
     try {
       const priorHooks = state.previousHooks
       const currentHook = state.hook
       const avoid = [...priorHooks, currentHook]
 
       let result = await requestHookRegeneration(state, false)
+      progress.markCandidate(result.hook)
 
       if (isHookTooSimilar(result.hook, avoid)) {
         result = await requestHookRegeneration(
           { ...state, previousHooks: priorHooks },
           true
         )
+        progress.markCandidate(result.hook)
       }
+
+      progress.markValidated(result.hook)
 
       const nextPrevious = appendPreviousHook(priorHooks, currentHook)
       const hookVariantNumber =
@@ -3029,6 +3323,7 @@ export const useQuickCutGenerationStore = create<
     } catch {
       /* hook regen is non-blocking — user keeps current hook */
     } finally {
+      progress.stop()
       set({ isRegeneratingHook: false })
     }
   },
@@ -3391,13 +3686,16 @@ export const useQuickCutGenerationStore = create<
       if (inferProjectMode(row) === 'director') return false
 
       const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
+      const workflow = restoreWorkflowContinuity()
       set({
         ...INITIAL,
         ...patch,
+        ...workflow,
         saveState: 'idle',
         saveError: null,
       })
       persistHookSession(get())
+      persistCreatorContinuity(get())
       void get().syncVideoRenderConfig()
       if (patch.renderPollUrl && !patch.videoUrl) {
         void get().resumeRenderPoll()
@@ -3452,6 +3750,51 @@ export const useQuickCutGenerationStore = create<
   updateStoryBible: (patch) => {
     const next = mergeStoryBible(get().storyBible, patch)
     get().setStoryBible(next)
+  },
+
+  setOutputAlignmentControls: (patch) => {
+    const next = {
+      ...get().outputAlignmentControls,
+      ...patch,
+    }
+    set({ outputAlignmentControls: next })
+    const state = get()
+    if (state.scenes.length > 0) {
+      const blueprints = buildBlueprintsForScenes(state.scenes, {
+        script: state.script,
+        characterDescription: state.characterDescription,
+        visualStyle: state.visualStyle,
+        storyBible: state.storyBible,
+        controls: next,
+      })
+      const aligned = applyBlueprintsToScenes(state.scenes, blueprints)
+      set({ sceneBlueprints: blueprints, scenes: aligned, storyboard: aligned })
+      if (state.savedProjectId) {
+        void updateProject(state.savedProjectId, {
+          scenes: scenesToStore(aligned),
+          sceneBlueprints: blueprints,
+          outputAlignmentControls: next,
+        } as import('@/lib/cinematic-projects').CinematicProjectPatch).catch(() => {})
+      }
+    } else if (state.savedProjectId) {
+      void updateProject(state.savedProjectId, {
+        outputAlignmentControls: next,
+      } as import('@/lib/cinematic-projects').CinematicProjectPatch).catch(() => {})
+    }
+  },
+
+  refreshSceneBlueprints: () => {
+    const state = get()
+    if (!state.scenes.length) return
+    const blueprints = buildBlueprintsForScenes(state.scenes, {
+      script: state.script,
+      characterDescription: state.characterDescription,
+      visualStyle: state.visualStyle,
+      storyBible: state.storyBible,
+      controls: state.outputAlignmentControls,
+    })
+    const aligned = applyBlueprintsToScenes(state.scenes, blueprints)
+    set({ sceneBlueprints: blueprints, scenes: aligned, storyboard: aligned })
   },
 
   setSceneMotionPreset: (sceneId, presetId) => {

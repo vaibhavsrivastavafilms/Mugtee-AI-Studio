@@ -1,6 +1,6 @@
 'use client'
 
-import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
+import { SaveStatusIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { relSavedLabel } from '@/stores/cinematic-project'
@@ -36,7 +36,7 @@ export function StudioStatusBar({ className }: { className?: string }) {
             Generating…
           </span>
         ) : null}
-        <GenerationSaveIndicator />
+        <SaveStatusIndicator persistent={false} />
         {lastSaved && saveState !== 'saving' ? (
           <span className="text-[10px] tracking-[0.16em] uppercase text-luxe/40">
             {lastSaved}

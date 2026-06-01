@@ -14,6 +14,7 @@ function storageAvailable(): boolean {
 
 export function isPipelineLlmCacheEnabled(): boolean {
   if (process.env.NEXT_PUBLIC_LLM_CACHE === '0') return false
+  if (process.env.NEXT_PUBLIC_LLM_CACHE === '1') return true
   return process.env.NODE_ENV === 'development'
 }
 

@@ -5,7 +5,8 @@ import {
 import { isBannedHookOpening, isBannedTitle } from '@/lib/cinematic/content-angle-engine'
 import type { HookCandidate } from '@/lib/virlo-engine/types'
 
-const MAX_VALIDATION_RETRIES = 2
+/** One generation pass — fall back to best-scored candidate instead of re-seeding. */
+const MAX_VALIDATION_RETRIES = 0
 
 function scoreTitleCandidate(text: string): number {
   let score = 0

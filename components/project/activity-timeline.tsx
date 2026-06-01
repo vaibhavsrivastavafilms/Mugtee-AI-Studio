@@ -31,7 +31,10 @@ interface ActivityRow {
 
 const EVENT_ICON: Record<string, any> = {
   project_opened:         Eye,
+  hook_generated:         Sparkles,
   script_generated:       FileText,
+  scenes_generated:       ImageIcon,
+  visuals_generated:      ImageIcon,
   rewrite_applied:        Wand2,
   narration_extracted:    Volume2,
   flow_prompts_generated: Brain,
@@ -45,7 +48,10 @@ const EVENT_ICON: Record<string, any> = {
 
 const EVENT_TONE: Record<string, string> = {
   project_opened:         'text-muted-foreground',
+  hook_generated:         'text-gold-300',
   script_generated:       'text-gold-300',
+  scenes_generated:       'text-cyan-300',
+  visuals_generated:      'text-cyan-300',
   rewrite_applied:        'text-amber-200',
   narration_extracted:    'text-rose-300',
   flow_prompts_generated: 'text-cyan-300',
@@ -60,7 +66,10 @@ const EVENT_TONE: Record<string, string> = {
 function friendlyLabel(row: ActivityRow): string {
   const map: Record<string, string> = {
     project_opened:         'Opened workspace',
-    script_generated:       'Generated script',
+    hook_generated:         'Hook generated',
+    script_generated:       'Script generated',
+    scenes_generated:       'Scenes generated',
+    visuals_generated:      'Visuals generated',
     rewrite_applied:        `Applied ${row.metadata?.variant ? `\u201C${row.metadata.variant}\u201D ` : ''}rewrite`,
     narration_extracted:    'Extracted narration',
     flow_prompts_generated: `Generated ${row.metadata?.count || ''} visual prompts`.trim(),

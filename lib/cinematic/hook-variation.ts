@@ -9,7 +9,7 @@ import {
 
 export const HOOK_SIMILARITY_THRESHOLD = 0.7
 
-export const MAX_HOOK_SIMILARITY_RETRIES = 3
+export const MAX_HOOK_SIMILARITY_RETRIES = 1
 
 export type HookRegenFramework = HookFramework
 

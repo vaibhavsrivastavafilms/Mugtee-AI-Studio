@@ -77,6 +77,7 @@ export interface CinematicVoice {
   style?: string
   audioUrl?: string
   narration?: string
+  metadata?: import('@/lib/voice/generateVoice').VoiceMetadata
 }
 
 export interface CinematicProjectState {

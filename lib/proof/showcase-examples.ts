@@ -57,24 +57,24 @@ export type ProofEmptyStarter = {
 /** One-click starters — prefill topic only; never auto-run generation. */
 export const EMPTY_STATE_STARTERS: ProofEmptyStarter[] = [
   {
-    id: 'apple-doc',
-    label: 'Documentary on Apple',
+    id: 'opposite-is-true',
+    label: 'The Opposite Is True',
     topic:
-      'The moment Apple bet everything on design — a cinematic documentary reel on courage, craft, and the iPhone pivot',
-    niche: 'Documentary',
+      'The Opposite Is True — contrarian psychology reel on why the advice that sounds wise keeps you stuck',
+    niche: 'Psychology',
   },
   {
-    id: 'ai-business',
-    label: 'AI Business Reel',
+    id: 'luxury-attention',
+    label: 'How Luxury Brands Control Attention',
     topic:
-      'How AI is reshaping small business in 2026 — contrarian hook, 60-second business reel with macro B-roll and voiceover',
-    niche: 'AI',
+      'How Luxury Brands Control Attention — cinematic business reel on scarcity, ritual, and the psychology of desire',
+    niche: 'Business',
   },
   {
-    id: 'psychology-story',
-    label: 'Psychology Story',
+    id: 'psychology-silence',
+    label: 'The Psychology of Silence',
     topic:
-      'The hidden psychology of why we scroll when we are lonely — intimate psychology reel with mirror framing and soft light',
+      'The Psychology of Silence — intimate psychology reel on pauses, tension, and what we hear in the gaps',
     niche: 'Psychology',
   },
   {
@@ -83,13 +83,6 @@ export const EMPTY_STATE_STARTERS: ProofEmptyStarter[] = [
     topic:
       'Nobody talks about discipline like this — the quiet decision before the comeback arc begins',
     niche: 'Motivation',
-  },
-  {
-    id: 'business-breakdown',
-    label: 'Business Breakdown',
-    topic:
-      'Why Nokia failed — business documentary reel about missing the smartphone shift and the lesson for builders today',
-    niche: 'Business',
   },
 ]
 
@@ -413,3 +406,47 @@ export function getShowcaseExample(id: string): ProofShowcaseExample | undefined
 export function proofNicheLabel(niche: ProofNiche): string {
   return niche
 }
+
+/** Dashboard showcase category filters — maps UI labels to proof niches. */
+export const SHOWCASE_FEATURED_CATEGORIES = [
+  { id: 'all', label: 'All', niches: null as ProofNiche[] | null },
+  { id: 'psychology', label: 'Psychology', niches: ['Psychology'] as ProofNiche[] },
+  { id: 'luxury', label: 'Luxury', niches: ['Business'] as ProofNiche[] },
+  { id: 'documentary', label: 'Documentary', niches: ['Documentary'] as ProofNiche[] },
+  { id: 'storytelling', label: 'Storytelling', niches: ['Storytelling', 'Motivation'] as ProofNiche[] },
+] as const
+
+export type ShowcaseCategoryId = (typeof SHOWCASE_FEATURED_CATEGORIES)[number]['id']
+
+export function filterShowcaseByCategory(
+  categoryId: ShowcaseCategoryId
+): ProofShowcaseExample[] {
+  const category = SHOWCASE_FEATURED_CATEGORIES.find((c) => c.id === categoryId)
+  if (!category?.niches) return SHOWCASE_EXAMPLES
+  return SHOWCASE_EXAMPLES.filter((e) => category.niches!.includes(e.niche))
+}
+
+/** Inspiration feed items for dashboard — hooks, scenes, scripts, visual directions. */
+export const SHOWCASE_INSPIRATION_FEED = [
+  ...SHOWCASE_EXAMPLES.slice(0, 4).map((e) => ({
+    id: e.id,
+    type: 'hook' as const,
+    label: e.hook.slice(0, 72) + (e.hook.length > 72 ? '…' : ''),
+    topic: e.topic,
+    niche: e.niche,
+  })),
+  ...SHOWCASE_EXAMPLES.slice(0, 3).map((e) => ({
+    id: `${e.id}-script`,
+    type: 'script' as const,
+    label: e.scriptPreview.slice(0, 72) + (e.scriptPreview.length > 72 ? '…' : ''),
+    topic: e.topic,
+    niche: e.niche,
+  })),
+  ...SHOWCASE_EXAMPLES.slice(0, 3).map((e) => ({
+    id: `${e.id}-visual`,
+    type: 'visual' as const,
+    label: e.thumbnailIdea.slice(0, 72) + (e.thumbnailIdea.length > 72 ? '…' : ''),
+    topic: e.topic,
+    niche: e.niche,
+  })),
+].slice(0, 8)

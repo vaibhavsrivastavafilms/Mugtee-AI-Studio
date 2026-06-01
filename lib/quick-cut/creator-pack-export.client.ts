@@ -186,16 +186,32 @@ export async function buildCreatorPackZip(
   if (hasExportableNarration(input.voiceUrl)) {
     try {
       const audioBlob = await fetchMp3Blob(input.voiceUrl!)
+      const audioData = await blobToUint8Array(audioBlob)
       entries.push({
         path: 'narration.mp3',
-        data: await blobToUint8Array(audioBlob),
+        data: audioData,
       })
       included.push('narration.mp3')
+      entries.push({
+        path: 'voice.mp3',
+        data: audioData,
+      })
+      included.push('voice.mp3')
     } catch {
       warnings.push('narration.mp3 skipped — audio fetch failed')
+      warnings.push('voice.mp3 skipped — audio fetch failed')
     }
   } else {
     warnings.push('narration.mp3 skipped — no voiceover available')
+    warnings.push('voice.mp3 skipped — no voiceover available')
+  }
+
+  if (hasExportableScript(scriptInput)) {
+    const captionText = buildQuickCutScriptText(scriptInput)
+    entries.push({ path: 'captions.txt', data: textToUint8Array(captionText) })
+    included.push('captions.txt')
+  } else {
+    warnings.push('captions.txt skipped — no script content available')
   }
 
   report('Adding thumbnail prompt…', 80)

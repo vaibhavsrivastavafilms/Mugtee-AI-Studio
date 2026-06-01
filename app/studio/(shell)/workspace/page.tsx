@@ -4,6 +4,8 @@ import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
 import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
+import { SessionContinuityGuard } from '@/components/trust/session-continuity-guard'
+import { MobileSaveTrustBar } from '@/components/trust/mobile-save-trust-bar'
 
 function WorkspacePageInner() {
   const searchParams = useSearchParams()
@@ -11,6 +13,8 @@ function WorkspacePageInner() {
 
   return (
     <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6">
+      <SessionContinuityGuard projectId={projectId} />
+      <MobileSaveTrustBar />
       <CreatorCommandCenter projectId={projectId} />
     </div>
   )

@@ -14,7 +14,10 @@ import { createSupabaseBrowserClient } from './supabase/client'
 
 export type EventType =
   | 'project_opened'
+  | 'hook_generated'
   | 'script_generated'
+  | 'scenes_generated'
+  | 'visuals_generated'
   | 'rewrite_applied'
   | 'narration_extracted'
   | 'flow_prompts_generated'
@@ -38,7 +41,10 @@ export interface LogEventInput {
 
 const FRIENDLY_ACTION: Record<EventType, string> = {
   project_opened:         'opened',
+  hook_generated:         'generated hook',
   script_generated:       'generated script',
+  scenes_generated:       'generated scenes',
+  visuals_generated:      'generated visuals',
   rewrite_applied:        'rewrote',
   narration_extracted:    'extracted narration',
   flow_prompts_generated: 'generated visual prompts',

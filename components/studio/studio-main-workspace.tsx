@@ -2,10 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { QuickCutHome } from '@/components/quick-cut/quick-cut-home'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
-import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
 import { GenerationResultsSection } from '@/components/quick-cut/generation-results-section'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
@@ -15,6 +13,8 @@ import {
 } from '@/components/quick-cut/generation-footer'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
 import { OutputWorkspacePanel } from '@/components/workspace/output-workspace/output-workspace-panel'
+import { WorkflowHeader } from '@/components/workflow/workflow-header'
+import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { tabToWorkspaceStage, workspaceStageToTab } from '@/lib/studio/workspace-stages'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -128,7 +128,9 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
         className
       )}
     >
-      <div className="space-y-5 max-w-3xl mx-auto w-full px-1 sm:px-2 py-2">
+      <div className="space-y-4 max-w-3xl mx-auto w-full px-1 sm:px-2 py-2">
+        <WorkflowHeader className="sticky top-0 z-30 -mx-1 px-1 py-2 -mt-1 mb-1 bg-[#050505]/92 backdrop-blur-xl border-b border-white/[0.06]" />
+
         <div className="flex flex-col items-center">
           {showCinematicAssembly ? (
             <CinematicAssemblyScreen
@@ -172,21 +174,10 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
           <OutputWorkspacePanel projectId={projectId} />
         ) : null}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeStageTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <GenerationStagePanel
-              tab={activeStageTab}
-              audioRef={voiceAudioRef}
-              onRegenerate={() => resetQuickCutForFreshCreate()}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <WorkflowStackedPanel
+          audioRef={voiceAudioRef}
+          onRegenerate={() => resetQuickCutForFreshCreate()}
+        />
       </div>
 
       <QuickCutGenerationFooter />

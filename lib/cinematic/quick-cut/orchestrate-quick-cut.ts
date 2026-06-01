@@ -8,6 +8,10 @@ import {
   storeScenesToGenerated,
 } from '@/lib/cinematic/generation'
 import { generateSceneImages } from '@/lib/cinematic/generate-scene-images'
+import {
+  applyBlueprintsToScenes,
+  buildBlueprintsForScenes,
+} from '@/lib/cinematic/scene-blueprint'
 import { prepareCinematicVoiceover } from '@/lib/cinematic/execution/cinematic-voice-engine'
 import {
   buildCompileFilmPlan,
@@ -99,15 +103,21 @@ async function attachSceneImages(
 ): Promise<{ scenes: CinematicScene[]; frames: string[]; mock: boolean }> {
   const generated = storeScenesToGenerated(scenes)
   const characterDescription = extractCharacterDescription(ctx.script, generated)
-  const withPrompts = scenesWithCharacterImagePrompts(generated, {
+  const sceneBlueprints = buildBlueprintsForScenes(generated, {
+    script: ctx.script,
+    characterDescription,
+  })
+  const withBlueprints = applyBlueprintsToScenes(generated, sceneBlueprints)
+  const withPrompts = scenesWithCharacterImagePrompts(withBlueprints, {
     characterDescription,
     hook: ctx.hook,
     emotionalGoal: ctx.emotionalGoal,
-    total: generated.length,
+    total: withBlueprints.length,
   })
 
   const result = await generateSceneImages({
     scenes: withPrompts,
+    sceneBlueprints,
     characterDescription,
     hook: ctx.hook,
     script: ctx.script,

@@ -157,29 +157,8 @@ async function generateDistinctHook(
 
 
     if (!validation.valid) {
-
-      try {
-
-        raw = await callCinematicRegen(
-
-          openai,
-
-          prompt,
-
-          validation.issues.join(', '),
-
-          0.92
-
-        )
-
-      } catch {
-
-        retries += 1
-
-        continue
-
-      }
-
+      retries += 1
+      continue
     }
 
 
@@ -301,10 +280,6 @@ export async function POST(req: NextRequest) {
 
       const result = await generateDistinctHook(openai, ctx)
 
-      const validation = validateRegeneratedHook(result.hook, ctx.niche, ctx.hook)
-
-
-
       await trackUsageMetric(auth.user!.id, 'generations')
       void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.HOOK_GENERATION, projectId)
 
@@ -319,8 +294,6 @@ export async function POST(req: NextRequest) {
         similarityRetries: result.retries,
 
         mock: false,
-
-        validation,
 
       })
 

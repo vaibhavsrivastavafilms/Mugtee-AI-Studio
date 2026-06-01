@@ -2,16 +2,10 @@
 
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { AchievementToast } from '@/components/mission/achievement-toast'
-import { CreatorLevelBadge } from '@/components/mission/creator-level-badge'
-import { MissionTimeline } from '@/components/mission/mission-timeline'
-import { ProjectCompletionMeter } from '@/components/mission/project-completion-meter'
 import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
+import { ExportRetryStrip } from '@/components/quick-cut/render-progress'
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
-import { RenderProgress } from '@/components/quick-cut/render-progress'
-import { companionCopy } from '@/lib/companion/microcopy'
-import { missionCompletionPercent } from '@/lib/mission/mission-steps'
 import { useMissionGenerationSync } from '@/lib/mission/use-mission-generation-sync'
 import { cn } from '@/lib/utils'
 import { useMissionStore } from '@/stores/mission-store'
@@ -19,7 +13,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 /** Bottom padding for scrollable content so it clears the fixed generation footer. */
-export const GENERATION_FOOTER_CLEARANCE = 'pb-60 sm:pb-56'
+export const GENERATION_FOOTER_CLEARANCE = 'pb-24 sm:pb-20'
 
 function XpFloat() {
   const floatingXp = useMissionStore((s) => s.floatingXp)
@@ -49,11 +43,9 @@ function XpFloat() {
 }
 
 export function QuickCutGenerationFooter({ className }: { className?: string }) {
-  const { title, hook, generationStep, sectionStatus, isComplete, isGenerating } =
+  const { generationStep, sectionStatus, isComplete, isGenerating } =
     useQuickCutGenerationStore(
       useShallow((s) => ({
-        title: s.title,
-        hook: s.hook,
         generationStep: s.generationStep,
         sectionStatus: s.sectionStatus,
         isComplete: s.isComplete,
@@ -63,17 +55,10 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
 
   useMissionGenerationSync(sectionStatus, generationStep, isGenerating || isComplete)
 
-  const missionCompletion = missionCompletionPercent(sectionStatus, generationStep)
-  const showMission =
+  const showFooter =
     isGenerating || isComplete || (generationStep !== 'idle' && generationStep !== 'error')
 
-  const subtitle = hook
-    ? 'Hook ready — open Hook tab'
-    : generationStep === 'title' || generationStep === 'analyzing'
-      ? companionCopy('generating')
-      : isComplete
-        ? companionCopy('storyReady')
-        : companionCopy('generating')
+  if (!showFooter) return <AchievementToast />
 
   return (
     <>
@@ -81,54 +66,25 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
       <footer
         className={cn(
           'fixed bottom-0 inset-x-0 z-40',
-          'border-t border-gold-500/15 bg-black/85 backdrop-blur-xl',
-          'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+          'border-t border-gold-500/10 bg-black/90 backdrop-blur-xl',
+          'pb-[max(0.5rem,env(safe-area-inset-bottom))]',
           className
         )}
-        aria-label="Generation progress"
+        aria-label="Generation utilities"
       >
         <div
           className={cn(
             'max-w-6xl mx-auto',
             'px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]',
-            'py-3 sm:py-4 space-y-2.5 sm:space-y-3'
+            'py-2 space-y-2'
           )}
         >
-          {showMission ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="relative shrink-0">
-                <CreatorLevelBadge className="justify-start" />
-                <XpFloat />
-              </div>
-              <ProjectCompletionMeter
-                percent={missionCompletion}
-                compact
-                className="flex-1 min-w-0"
-              />
-            </div>
-          ) : null}
+          <ExportRetryStrip />
 
-          {showMission && !isComplete ? (
-            <MissionTimeline
-              sectionStatus={sectionStatus}
-              generationStep={generationStep}
-              compact
-              horizontal
-            />
-          ) : null}
-
-          {title ? (
-            <CinematicTitleReveal
-              title={title}
-              subtitle={subtitle}
-              className="!text-left items-start !space-y-1"
-            />
-          ) : null}
-
-          <RenderProgress />
-
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <GenerationSaveIndicator />
+          <div className="relative flex flex-wrap items-center gap-2">
+            <XpFloat />
+            <GenerationSaveIndicator persistent className="sm:hidden" />
+            <GenerationSaveIndicator className="hidden sm:inline-flex" />
             <ContentSeriesTrigger variant="footer" />
           </div>
         </div>

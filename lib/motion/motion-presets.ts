@@ -2,6 +2,11 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { StoryBible } from '@/lib/cinematic/story-bible'
 import { scenePacingRole } from '@/lib/cinematic/regen-context'
 import {
+  motionPresetIdFromBlueprint,
+  type OutputAlignmentControls,
+  type SceneBlueprint,
+} from '@/lib/cinematic/scene-blueprint'
+import {
   motionDirectorToSceneMotion,
   rulesMotionDirector,
   sceneUsesFlicker,
@@ -401,8 +406,14 @@ export function selectMotionPresetForScene(
   >,
   sceneIndex: number,
   totalScenes: number,
-  storyBible?: StoryBible | null
+  storyBible?: StoryBible | null,
+  blueprint?: SceneBlueprint | null,
+  alignmentControls?: OutputAlignmentControls | null
 ): MotionPresetId {
+  if (blueprint) {
+    return motionPresetIdFromBlueprint(blueprint, alignmentControls)
+  }
+
   const role = scenePacingRole(sceneIndex + 1, totalScenes)
   const hints = [
     scene.movementStyle,
@@ -424,15 +435,30 @@ export function selectMotionPresetForScene(
 export function assignSceneMotion(
   scenes: GeneratedScene[],
   storyBible?: StoryBible | null,
-  existing?: SceneMotionMap | null
+  existing?: SceneMotionMap | null,
+  options?: {
+    sceneBlueprints?: SceneBlueprint[]
+    outputAlignmentControls?: OutputAlignmentControls | null
+  }
 ): SceneMotionMap {
   const total = scenes.length || 1
   const next: SceneMotionMap = { ...(existing ?? {}) }
+  const blueprintMap = new Map(
+    (options?.sceneBlueprints ?? []).map((b) => [b.sceneId, b])
+  )
 
   scenes.forEach((scene, i) => {
     const id = scene.id || `scene-${i + 1}`
     const current = next[id]
     if (current?.source === 'manual') return
+
+    const blueprint = blueprintMap.get(id) ?? null
+    const presetFromBlueprint = blueprint
+      ? motionPresetIdFromBlueprint(
+          blueprint,
+          options?.outputAlignmentControls ?? null
+        )
+      : null
 
     const directed = rulesMotionDirector({
       scene,
@@ -440,6 +466,7 @@ export function assignSceneMotion(
       totalScenes: total,
       storyBible,
       mood: storyBible?.mood,
+      blueprintPresetId: presetFromBlueprint,
     })
     const mood = [
       storyBible?.mood,

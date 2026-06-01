@@ -26,6 +26,17 @@ import {
   formatContentBriefForPrompt,
   type ContentBrief,
 } from '@/lib/content-director/content-brief'
+import {
+  blueprintBySceneId,
+  buildVisualConsistencyPack,
+  type OutputAlignmentControls,
+  type SceneBlueprint,
+} from '@/lib/cinematic/scene-blueprint'
+import {
+  rebuildAlignedImagePrompt,
+  scoreSceneAlignment,
+  validateSequenceCoherence,
+} from '@/lib/cinematic/output-alignment'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -48,6 +59,9 @@ export type GenerateSceneImagesInput = {
   referenceStyleNote?: string
   storyBible?: StoryBible | null
   contentBrief?: ContentBrief | null
+  /** Scene blueprints — required for aligned image prompts */
+  sceneBlueprints?: SceneBlueprint[]
+  outputAlignmentControls?: OutputAlignmentControls | null
 }
 
 export type GenerateSceneImagesResult = {
@@ -58,13 +72,23 @@ export type GenerateSceneImagesResult = {
   degradedSceneIds?: string[]
   /** Providers attempted before placeholder fallback (per scene) */
   imageFailures?: Array<{ sceneId: string; attempted: string[] }>
+  /** Per-scene alignment scores after validation pass */
+  alignmentResults?: Array<{
+    sceneId: string
+    alignmentScore: number
+    passed: boolean
+    issues: string[]
+  }>
+  sequenceCoherence?: { coherent: boolean; score: number; issues: string[] }
 }
 
 function promptContext(
   input: GenerateSceneImagesInput,
   scene: GeneratedScene,
   index: number,
-  total: number
+  total: number,
+  blueprint?: SceneBlueprint | null,
+  visualConsistency?: ReturnType<typeof buildVisualConsistencyPack> | null
 ): SceneImagePromptContext {
   const hasReferenceStyle = Boolean(
     input.hasReferenceStyle || input.referenceStyleNote?.trim()
@@ -85,6 +109,8 @@ function promptContext(
       : cameraVariationDirective(index, input.diversityAttempt ?? 0),
     hasReferenceStyle,
     storyBible: input.storyBible ?? undefined,
+    sceneBlueprint: blueprint ?? undefined,
+    visualConsistency: visualConsistency ?? undefined,
     contentBriefSection: formatContentBriefForPrompt(input.contentBrief),
     previousScene:
       index > 0
@@ -117,8 +143,24 @@ export async function generateSceneImages(
     ? new Set(input.sceneIds)
     : null
 
+  const blueprintMap = blueprintBySceneId(input.sceneBlueprints ?? [])
+  const consistency =
+    input.sceneBlueprints?.length ?
+      buildVisualConsistencyPack(input.sceneBlueprints, {
+        characterDescription,
+        visualStyle: input.visualStyle ?? null,
+        storyBible: input.storyBible ?? null,
+        controls: input.outputAlignmentControls ?? null,
+      })
+    : null
+
+  const sequenceCoherence = input.sceneBlueprints?.length
+    ? validateSequenceCoherence(input.sceneBlueprints)
+    : undefined
+
   let anyMock = !canGenerate
   const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
+  const alignmentResults: GenerateSceneImagesResult['alignmentResults'] = []
   const updated = input.scenes.map((scene) => ({ ...scene }))
   let storyBibleLogged = false
 
@@ -127,23 +169,56 @@ export async function generateSceneImages(
     if (!scene) continue
     if (idFilter && !idFilter.has(scene.id)) continue
 
-    const ctx = promptContext(input, scene, i, updated.length)
+    const blueprint = blueprintMap.get(scene.id) ?? null
+    const ctx = promptContext(
+      input,
+      scene,
+      i,
+      updated.length,
+      blueprint,
+      consistency
+    )
     if (input.storyBible && !storyBibleLogged) {
       formatStoryBibleForPrompt(input.storyBible, { log: true })
       storyBibleLogged = true
     }
-    if (!scene.imagePrompt?.trim()) {
-      scene.imagePrompt = buildSceneImagePrompt(scene, {
-        ...ctx,
-        characterDescription,
-      })
-    }
 
-    // Storyboard SOP scene-only prompt + reference prefix applied in buildSceneImagePrompt
-    const scenePrompt = buildSceneImagePrompt(scene, {
+    let scenePrompt = buildSceneImagePrompt(scene, {
       ...ctx,
       characterDescription,
     })
+
+    if (blueprint && consistency) {
+      let alignmentAttempt = 0
+      let aligned = scoreSceneAlignment(
+        { ...scene, imagePrompt: scenePrompt },
+        blueprint
+      )
+      while (!aligned.passed && alignmentAttempt < 2) {
+        scene.imagePrompt = rebuildAlignedImagePrompt(
+          blueprint,
+          consistency,
+          alignmentAttempt
+        )
+        scenePrompt = buildSceneImagePrompt(
+          { ...scene, imagePrompt: scene.imagePrompt },
+          { ...ctx, characterDescription }
+        )
+        aligned = scoreSceneAlignment(
+          { ...scene, imagePrompt: scenePrompt },
+          blueprint
+        )
+        alignmentAttempt += 1
+      }
+      alignmentResults.push({
+        sceneId: scene.id,
+        alignmentScore: aligned.alignmentScore,
+        passed: aligned.passed,
+        issues: aligned.issues,
+      })
+    } else if (!scene.imagePrompt?.trim()) {
+      scene.imagePrompt = scenePrompt
+    }
     const filename = input.userId
       ? `${input.userId}/faceless/scene_${scene.id}_${Date.now()}.png`
       : `anon/faceless/scene_${scene.id}_${Date.now()}.png`
@@ -202,6 +277,8 @@ export async function generateSceneImages(
     scenes: ensureScenesHaveImagePrompts(updated),
     mock: anyMock,
     characterDescription,
+    ...(alignmentResults.length ? { alignmentResults } : {}),
+    ...(sequenceCoherence ? { sequenceCoherence } : {}),
     ...(imageFailures.length
       ? {
           degradedSceneIds: imageFailures.map((f) => f.sceneId),
