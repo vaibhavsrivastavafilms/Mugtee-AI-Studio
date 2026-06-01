@@ -413,6 +413,9 @@ comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggr
 -- Mugtee V6 Creator Decision Engine (0045) — run supabase/migrations/0045_creator_decisions.sql
 -- decision_history jsonb on creator_profiles for decision_shown / decision_accepted tuning.
 
+-- Mugtee Timeline Editor (0047) — run supabase/migrations/0047_timeline_json.sql
+-- timeline_json jsonb on cinematic_projects for Remotion timeline editor + export.
+
 -- Optional follow-ups (not required for Quick Cut save):
 -- 0034_creator_profiles.sql, 0036_project_edits.sql, 0037_workspace_preferences.sql,
 -- 0039_creative_companion.sql, 0040–0043 creator agent / companion tables.

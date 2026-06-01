@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { lazy, Suspense, useRef } from 'react'
+import { Clapperboard } from 'lucide-react'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 import { ContentReadinessTracker } from '@/components/workspace/content-readiness-tracker'
 import { ExportHub } from '@/components/workspace/export-hub'
@@ -82,6 +84,15 @@ export function OutputWorkspacePanel({ projectId, className }: OutputWorkspacePa
         </div>
 
         <ContentReadinessTracker />
+        {scenes.length > 0 && savedProjectId ? (
+          <Link
+            href={`/studio/editor?project=${encodeURIComponent(savedProjectId)}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gold-500/30 bg-gold-500/10 px-3 py-2 text-[11px] text-gold-100 hover:bg-gold-500/20 transition w-fit"
+          >
+            <Clapperboard className="h-3.5 w-3.5" />
+            Open Timeline Editor
+          </Link>
+        ) : null}
         <QuickCreatorActions compact />
 
         <Suspense fallback={<SectionFallback />}>

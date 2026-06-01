@@ -123,6 +123,10 @@ import {
   reorderSceneIds,
   reorderScenesByIds,
 } from '@/lib/cinematic/quick-cut/reorder-scenes'
+import {
+  buildTimelineFromQuickCutStore,
+  timelineJsonFromProject,
+} from '@/types/timeline'
 import { loadProject } from '@/lib/cinematic-projects'
 import { inferProjectMode } from '@/lib/cinematic/project-mode'
 import {
@@ -1057,6 +1061,21 @@ function buildArchiveInput(
     scene_blueprints: state.sceneBlueprints,
     output_alignment_controls: state.outputAlignmentControls,
     timeline_state: timelineStateFromReelTimeline(state.reelTimeline),
+    timeline_json: timelineJsonFromProject(
+      buildTimelineFromQuickCutStore({
+        savedProjectId: state.savedProjectId,
+        title: state.title,
+        scenes: state.scenes,
+        voiceUrl: state.voiceUrl,
+        voiceMetadata: state.voiceMetadata,
+        script: state.script,
+        duration: state.duration,
+        sceneMotion: state.sceneMotion,
+        sceneBlueprints: state.sceneBlueprints,
+        outputAlignmentControls: state.outputAlignmentControls,
+        reelTimeline: state.reelTimeline,
+      })
+    ),
   }
 }
 
@@ -1126,8 +1145,22 @@ async function runSceneVideoGeneration(
 
 function persistReelTimelineQuiet(state: QuickCutGenerationState, timeline: ReelTimeline | null) {
   if (!state.savedProjectId || !timeline) return
+  const timelineProject = buildTimelineFromQuickCutStore({
+    savedProjectId: state.savedProjectId,
+    title: state.title,
+    scenes: state.scenes,
+    voiceUrl: state.voiceUrl,
+    voiceMetadata: state.voiceMetadata,
+    script: state.script,
+    duration: state.duration,
+    sceneMotion: state.sceneMotion,
+    sceneBlueprints: state.sceneBlueprints,
+    outputAlignmentControls: state.outputAlignmentControls,
+    reelTimeline: timeline,
+  })
   void updateProject(state.savedProjectId, {
     timeline_state: timelineStateFromReelTimeline(timeline),
+    timeline_json: timelineJsonFromProject(timelineProject),
     scenes: scenesToStore(
       state.scenes.map((scene) => {
         const dur = timeline.clips.find((c) => c.sceneId === scene.id)?.duration

@@ -42,6 +42,7 @@ const OPTIONAL_CINEMATIC_PROJECT_COLUMNS = new Set([
   'director_session_counts',
   'workspace_layout',
   'timeline_state',
+  'timeline_json',
   'panel_preferences',
 ])
 
@@ -74,6 +75,7 @@ const COLUMN_MIGRATION: Record<string, string> = {
   director_session_counts: '0039',
   workspace_layout: '0037',
   timeline_state: '0037',
+  timeline_json: '0047',
   panel_preferences: '0037',
 }
 
@@ -329,6 +331,8 @@ export type CinematicProjectRow = {
   scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | Record<string, unknown> | null
   /** Reel composer timeline (migration 0037). */
   timeline_state?: Record<string, unknown> | null
+  /** Mugtee Timeline Editor JSON (migration 0047). */
+  timeline_json?: Record<string, unknown> | null
   /** Opt-in public homepage gallery (default false). */
   share_as_showcase?: boolean
 }
@@ -410,6 +414,7 @@ export type ArchiveGeneratedProjectInput = {
   scene_blueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
   output_alignment_controls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   timeline_state?: Record<string, unknown> | null
+  timeline_json?: Record<string, unknown> | null
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -760,6 +765,7 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   reelTimeline?: import('@/lib/reel/types').ReelTimeline | null
   timeline_state?: Record<string, unknown> | null
+  timeline_json?: import('@/types/timeline').TimelineProject | Record<string, unknown> | null
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
   archetypeId?: string | null
@@ -929,6 +935,9 @@ export async function updateProject(
     patch.timeline_state = timelineStateFromReelTimeline(
       (state as CinematicProjectPatch).reelTimeline ?? null
     )
+  }
+  if ((state as CinematicProjectPatch).timeline_json !== undefined) {
+    patch.timeline_json = (state as CinematicProjectPatch).timeline_json
   }
 
   return await mutateCinematicProjectRow('update', patch, id)
