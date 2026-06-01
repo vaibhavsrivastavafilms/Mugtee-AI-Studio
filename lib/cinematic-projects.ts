@@ -1,5 +1,9 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
+  readProjectHydrationCache,
+  writeProjectHydrationCache,
+} from '@/lib/cinematic/project-hydration-cache.client'
+import {
   checkClientUsage,
   incrementClientUsage,
 } from '@/lib/usage/plan-limit-toast.client'
@@ -908,6 +912,9 @@ export async function updateProject(
 }
 
 export async function loadProject(id: string): Promise<CinematicProjectRow> {
+  const cached = readProjectHydrationCache(id)
+  if (cached) return cached
+
   const supabase = requireBrowserClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
@@ -916,7 +923,9 @@ export async function loadProject(id: string): Promise<CinematicProjectRow> {
     .single()
 
   if (error) throwIfUnavailable(error)
-  return data as CinematicProjectRow
+  const row = data as CinematicProjectRow
+  writeProjectHydrationCache(id, row)
+  return row
 }
 
 /** Permanently remove a project from the library (owner-only via RLS). */
@@ -963,6 +972,10 @@ export async function duplicateProject(id: string): Promise<CinematicProjectRow>
   })
 }
 
+/** Columns required for {@link rowToSummary} — avoids loading full script JSON on list rails. */
+const RECENT_PROJECT_LIST_COLUMNS =
+  'id,title,prompt,style,duration,script,scenes,storyboard,voice,captions,status,mode,video_url,thumbnail_url,updated_at,created_at'
+
 export type RecentProjectsLoadResult = {
   projects: CinematicProjectSummary[]
   /** True when the cinematic_projects table has not been created. */
@@ -984,7 +997,7 @@ export async function loadRecentProjects(
   const limit = opts.limit ?? 8
 
   const supabase = requireBrowserClient()
-  let query = supabase.from('cinematic_projects').select('*')
+  let query = supabase.from('cinematic_projects').select(RECENT_PROJECT_LIST_COLUMNS)
 
   if (opts.statuses?.length) {
     query = query.in('status', [...opts.statuses])

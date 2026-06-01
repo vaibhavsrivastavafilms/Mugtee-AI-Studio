@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef, type ReactNode, RefObject } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
@@ -452,7 +453,15 @@ export function GenerationStagePanel({
           ) : thumb ? (
             <div className="rounded-xl border border-gold-500/20 bg-black/30 p-3 flex items-center gap-3">
               <div className="relative w-14 aspect-[9/16] rounded-md overflow-hidden border border-white/10 shrink-0">
-                <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <Image
+                  src={thumb}
+                  alt=""
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                  unoptimized
+                  loading="lazy"
+                />
               </div>
               <div>
                 <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80 flex items-center gap-1">

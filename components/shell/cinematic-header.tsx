@@ -76,7 +76,11 @@ function CinematicHeaderInner({
       />
 
       <div className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 h-14 sm:h-16">
-        <Link href={isApp ? STUDIO.create + '?mode=quick' : '/'} className="group flex items-center gap-2.5 shrink-0 min-w-0">
+        <Link
+          href={isApp ? STUDIO.create + '?mode=quick' : '/'}
+          prefetch={isApp}
+          className="group flex items-center gap-2.5 shrink-0 min-w-0"
+        >
           <motion.div
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold-glow shrink-0"
             animate={{

@@ -10,11 +10,23 @@ import { hasRunwayApiKey, resolveRunwayVideoProvider } from '@/lib/ai/runway-vid
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const CONFIG_CACHE_MS = 60_000
+let configCache: { at: number; body: Record<string, unknown> } | null = null
+
 /** Public-safe booleans — which generation providers are configured server-side. */
 export async function GET() {
+  const now = Date.now()
+  if (configCache && now - configCache.at < CONFIG_CACHE_MS) {
+    return NextResponse.json(configCache.body, {
+      headers: {
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+      },
+    })
+  }
+
   const providers = buildQuickCutProviderConfig()
 
-  return NextResponse.json({
+  const body = {
     freeTierOnly: providers.freeTierOnly,
     anthropic: providers.anthropic,
     openai: providers.openai,
@@ -31,6 +43,14 @@ export async function GET() {
     runway: hasRunwayApiKey(),
     videoProvider: isRemotionRenderAvailable() ? 'remotion' : resolveRunwayVideoProvider(),
     models: providers.models,
+  }
+
+  configCache = { at: now, body }
+
+  return NextResponse.json(body, {
+    headers: {
+      'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+    },
   })
 }
 

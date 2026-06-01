@@ -1,5 +1,13 @@
+import nextDynamic from 'next/dynamic'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
-import { CreatorAnalyticsDashboard } from '@/components/create/creator-analytics-dashboard'
+
+const CreatorAnalyticsDashboard = nextDynamic(
+  () =>
+    import('@/components/create/creator-analytics-dashboard').then(
+      (m) => m.CreatorAnalyticsDashboard
+    ),
+  { ssr: false }
+)
 
 export const dynamic = 'force-dynamic'
 

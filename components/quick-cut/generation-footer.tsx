@@ -15,6 +15,7 @@ import { missionCompletionPercent } from '@/lib/mission/mission-steps'
 import { useMissionGenerationSync } from '@/lib/mission/use-mission-generation-sync'
 import { cn } from '@/lib/utils'
 import { useMissionStore } from '@/stores/mission-store'
+import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 /** Bottom padding for scrollable content so it clears the fixed generation footer. */
@@ -48,12 +49,17 @@ function XpFloat() {
 }
 
 export function QuickCutGenerationFooter({ className }: { className?: string }) {
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
-  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
-  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
-  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
-  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const { title, hook, generationStep, sectionStatus, isComplete, isGenerating } =
+    useQuickCutGenerationStore(
+      useShallow((s) => ({
+        title: s.title,
+        hook: s.hook,
+        generationStep: s.generationStep,
+        sectionStatus: s.sectionStatus,
+        isComplete: s.isComplete,
+        isGenerating: s.isGenerating,
+      }))
+    )
 
   useMissionGenerationSync(sectionStatus, generationStep, isGenerating || isComplete)
 

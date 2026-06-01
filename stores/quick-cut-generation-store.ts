@@ -3283,9 +3283,6 @@ export const useQuickCutGenerationStore = create<
 
   syncVideoRenderConfig: async () => {
     try {
-      const { fetchQuickCutConfig } = await import(
-        '@/lib/quick-cut/quick-cut-config-cache.client'
-      )
       const config = (await fetchQuickCutConfig()) as Record<string, boolean>
       const videoRenderEnabled = config.videoRenderEnabled === true
       set({ videoRenderEnabled })

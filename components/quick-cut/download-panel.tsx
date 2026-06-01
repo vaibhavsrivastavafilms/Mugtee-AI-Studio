@@ -43,6 +43,7 @@ import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.c
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const rowButtonClass =
@@ -98,25 +99,55 @@ export function QuickCutDownloadPanel({
 }) {
   const { isUnlimited } = useUsage()
 
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
-  const script = useQuickCutGenerationStore((s) => s.script)
-  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
-  const payoff = useQuickCutGenerationStore((s) => s.payoff)
-  const cta = useQuickCutGenerationStore((s) => s.cta)
-  const scenes = useQuickCutGenerationStore((s) => s.scenes)
-  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
-  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
-  const renderError = useQuickCutGenerationStore((s) => s.renderError)
-  const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
-  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
-  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
-  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
-  const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
-  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
-  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+  const {
+    title,
+    hook,
+    script,
+    scriptBeats,
+    payoff,
+    cta,
+    scenes,
+    voiceUrl,
+    videoUrl,
+    renderPollUrl,
+    renderError,
+    renderStatusLabel,
+    isRenderingVideo,
+    videoRenderEnabled,
+    isGenerating,
+    resumeRenderPoll,
+    retryVideoRender,
+    syncVideoRenderConfig,
+    exportPackageReady,
+    savedProjectId,
+    exportExpired,
+    researchReport,
+  } = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      title: s.title,
+      hook: s.hook,
+      script: s.script,
+      scriptBeats: s.scriptBeats,
+      payoff: s.payoff,
+      cta: s.cta,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      renderPollUrl: s.renderPollUrl,
+      renderError: s.renderError,
+      renderStatusLabel: s.renderStatusLabel,
+      isRenderingVideo: s.isRenderingVideo,
+      videoRenderEnabled: s.videoRenderEnabled,
+      isGenerating: s.isGenerating,
+      resumeRenderPoll: s.resumeRenderPoll,
+      retryVideoRender: s.retryVideoRender,
+      syncVideoRenderConfig: s.syncVideoRenderConfig,
+      exportPackageReady: s.exportPackageReady,
+      savedProjectId: s.savedProjectId,
+      exportExpired: s.exportExpired,
+      researchReport: s.researchReport,
+    }))
+  )
 
   const [downloadingMp4, setDownloadingMp4] = useState(false)
   const [downloadingMp3, setDownloadingMp3] = useState(false)
@@ -125,10 +156,6 @@ export function QuickCutDownloadPanel({
   const [assetError, setAssetError] = useState<string | null>(null)
   const [showExportFeedback, setShowExportFeedback] = useState(false)
   const exportTrackedRef = useRef(false)
-  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
-  const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
-
   type CreatorPackState = 'idle' | 'preparing' | 'ready' | 'error'
   const [creatorPackState, setCreatorPackState] = useState<CreatorPackState>('idle')
   const [creatorPackProgress, setCreatorPackProgress] = useState(0)

@@ -105,11 +105,11 @@ export function buildFreshRegenDirective(input: {
     'Payoff and CTA must be freshly written for this topic — never reuse generic "save and try step one" closers.',
   ]
   if (input.previousHook?.trim()) {
-    parts.push(`Previous hook to avoid: "${input.previousHook.slice(0, 220)}"`)
+    parts.push(`Previous hook to avoid: "${input.previousHook.slice(0, 180)}"`)
   }
   if (input.previousScript?.trim()) {
     parts.push(
-      `Previous script to avoid (do not copy wording or structure):\n${input.previousScript.slice(0, 1500)}`
+      `Previous script to avoid (do not copy wording or structure):\n${input.previousScript.slice(0, 1000)}`
     )
   }
   return parts.join('\n')
@@ -130,11 +130,11 @@ export function buildTopicChangeDirective(input: {
     parts.push(`Previous topic (abandoned): "${input.previousTopic.slice(0, 280)}"`)
   }
   if (input.previousHook?.trim()) {
-    parts.push(`Previous hook to avoid: "${input.previousHook.slice(0, 220)}"`)
+    parts.push(`Previous hook to avoid: "${input.previousHook.slice(0, 180)}"`)
   }
   if (input.previousScript?.trim()) {
     parts.push(
-      `Previous script to avoid (negative example only — do not copy wording or structure):\n${input.previousScript.slice(0, 1500)}`
+      `Previous script to avoid (negative example only — do not copy wording or structure):\n${input.previousScript.slice(0, 1000)}`
     )
   }
   return parts.join('\n')

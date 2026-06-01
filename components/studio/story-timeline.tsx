@@ -21,6 +21,7 @@ import {
   type WorkspaceStage,
 } from '@/lib/studio/workspace-stages'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
+import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const STAGE_ICONS: Record<WorkspaceStage, typeof Lightbulb> = {
@@ -45,19 +46,37 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
   const setActiveStage = useStudioWorkspaceStore((s) => s.setActiveStage)
   const setTimelineCollapsed = useStudioWorkspaceStore((s) => s.setTimelineCollapsed)
 
-  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
-  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
-  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
-  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
-  const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
-  const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
-  const prompt = useQuickCutGenerationStore((s) => s.prompt)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
-  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
-  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
-  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
-  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
+  const {
+    generationStep,
+    sectionStatus,
+    isGenerating,
+    isRenderingVideo,
+    isComplete,
+    failedAtStep,
+    generationStatus,
+    prompt,
+    videoUrl,
+    exportPackageReady,
+    videoRenderEnabled,
+    exportExpired,
+    setActiveStageTab,
+  } = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      generationStep: s.generationStep,
+      sectionStatus: s.sectionStatus,
+      isGenerating: s.isGenerating,
+      isRenderingVideo: s.isRenderingVideo,
+      isComplete: s.isComplete,
+      failedAtStep: s.failedAtStep,
+      generationStatus: s.generationStatus,
+      prompt: s.prompt,
+      videoUrl: s.videoUrl,
+      exportPackageReady: s.exportPackageReady,
+      videoRenderEnabled: s.videoRenderEnabled,
+      exportExpired: s.exportExpired,
+      setActiveStageTab: s.setActiveStageTab,
+    }))
+  )
 
   const pipelineInput = {
     sectionStatus,
