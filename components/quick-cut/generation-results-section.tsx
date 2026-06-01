@@ -46,14 +46,10 @@ import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { cn } from '@/lib/utils'
-import { ProactiveSuggestions } from '@/components/sidekick/proactive-suggestions'
 import { CelebrationState } from '@/components/companion/celebration-state'
 import { FirstSuccessCelebration } from '@/components/onboarding/first-success-celebration'
 import { hasCompletedFirstGeneration } from '@/lib/onboarding/onboarding-state'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
-import { StoryExpansionCard } from '@/components/companion/story-expansion-card'
-import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
-import { ContentQualityCard } from '@/components/quality/content-quality-card'
 import { companionCopy } from '@/lib/companion/microcopy'
 import { useCompanionStore } from '@/stores/companion-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -108,7 +104,6 @@ export function GenerationResultsSection({
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const niche = useQuickCutGenerationStore((s) => s.niche)
   const setProjectId = useCompanionStore((s) => s.setProjectId)
 
   useEffect(() => {
@@ -365,6 +360,7 @@ export function GenerationResultsSection({
           (Boolean(voiceUrl) && !videoUrl) || assemblyPreviewAutoplay
         }
         hideInlineActions
+        showInsightTabs
         className="mx-auto"
       />
 
@@ -391,20 +387,6 @@ export function GenerationResultsSection({
           </button>
         </div>
       ) : null}
-
-      <ProactiveSuggestions
-        hook={hook}
-        script={script}
-        title={title}
-        hasScenes={scenes.length > 0}
-        hasVoice={Boolean(voiceUrl?.trim())}
-      />
-
-      <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
-
-      <ContentQualityCard />
-
-      <StoryExpansionCard title={title} hook={hook} script={script} niche={niche} />
 
       <ReflectionLoop />
 

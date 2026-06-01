@@ -43,6 +43,7 @@ import {
 
 import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { QuickCutPlayerMp4Download } from '@/components/quick-cut/project-mp4-button'
+import { ReelInsightTabs } from '@/components/reel/reel-insight-tabs'
 
 
 
@@ -83,6 +84,9 @@ export function ReelAssemblyPlayer({
 
   /** Hide View Script / Download MP4 controls (used in structured results section) */
   hideInlineActions = false,
+
+  /** Pull-out insight tabs on reel preview (export / results view) */
+  showInsightTabs = false,
 
   className,
 
@@ -132,6 +136,8 @@ export function ReelAssemblyPlayer({
   onVideoUrl?: (url: string) => void
 
   hideInlineActions?: boolean
+
+  showInsightTabs?: boolean
 
   className?: string
 
@@ -548,7 +554,8 @@ export function ReelAssemblyPlayer({
 
       <div className="absolute -inset-4 rounded-[1.75rem] bg-gold-500/[0.08] blur-xl" />
 
-      <div className="relative aspect-[9/16] rounded-[1.25rem] overflow-hidden border border-gold-500/25 bg-black shadow-cinema">
+      <div className="relative aspect-[9/16] rounded-[1.25rem] overflow-visible border border-gold-500/25 bg-black shadow-cinema">
+        <div className="absolute inset-0 overflow-hidden rounded-[1.25rem]">
 
         {hasVideo ? (
 
@@ -699,6 +706,10 @@ export function ReelAssemblyPlayer({
           />
 
         ) : null}
+
+        </div>
+
+        {showInsightTabs ? <ReelInsightTabs /> : null}
 
       </div>
 
