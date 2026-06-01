@@ -344,7 +344,8 @@ export function QuickCutDownloadPanel({
         ...(expired ? { exportExpired: true, videoUrl: null } : {}),
       })
       setAssetError(message)
-      toast.error('Download failed. Please try again.', { id: 'mp4-export-progress' })
+      toast.error('MP4 export failed — Creator Pack is available below.', { id: 'mp4-export-progress' })
+      setCreatorPackState('idle')
     } finally {
       setDownloadingMp4(false)
     }
@@ -554,7 +555,7 @@ export function QuickCutDownloadPanel({
                   : reelReadiness.validationError
                     ? reelReadiness.validationError
                     : renderError
-                    ? renderError
+                    ? `${renderError} — download Creator Pack below as fallback.`
                     : canCompileMp4
                       ? 'Ken Burns motion · captions · voiceover'
                       : hasMp4
@@ -618,13 +619,25 @@ export function QuickCutDownloadPanel({
               Rendering reel…
             </button>
           ) : renderError || reelReadiness.validationError ? (
-            <button
-              type="button"
-              onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
-              className={secondaryButtonClass}
-            >
-              Retry compile
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
+                className={secondaryButtonClass}
+              >
+                Retry compile
+              </button>
+              {hasAnyCreatorPackAsset ? (
+                <button
+                  type="button"
+                  onClick={() => void handleExportCreatorPack()}
+                  className={primaryButtonClass}
+                >
+                  <Package className="w-3 h-3" />
+                  Creator Pack
+                </button>
+              ) : null}
+            </>
           ) : (
             <button type="button" disabled className={ghostButtonClass}>
               .mp4

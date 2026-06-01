@@ -226,8 +226,8 @@ export async function generateSceneImages(
     let imageUrl: string | null = null
     const attempted: string[] = []
 
-    // Primary: Together AI → Pollinations (free-tier image providers)
-    attempted.push('together-pollinations')
+    // Primary: FluxAPI Kontext → Together → Pollinations
+    attempted.push('fluxapi-together-pollinations')
     try {
       const result = await generateSceneImage(scenePrompt, {
         filename,

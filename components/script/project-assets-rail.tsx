@@ -152,8 +152,8 @@ function ImagesGrid({ assets, loading, onRemove }: { assets: ProjectAsset[]; loa
                 className="text-[10px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 inline-flex items-center gap-1 px-1.5 py-1 rounded">
                 {copied === a.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />} Prompt
               </button>
-              {a.url && <a href={a.url} download target="_blank" rel="noopener noreferrer" className="text-[10px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 inline-flex items-center gap-1 px-1.5 py-1 rounded"><Download className="w-3 h-3" /></a>}
-              <button onClick={() => onRemove(a.id)} className="text-[10px] text-rose-300/80 hover:text-rose-300 inline-flex items-center gap-1 px-1.5 py-1 rounded"><Trash2 className="w-3 h-3" /></button>
+              {a.url && <a href={a.url} download target="_blank" rel="noopener noreferrer" className="text-[10px] tracking-wider uppercase text-luxe/80 hover:text-gold-300 inline-flex items-center gap-1 px-1.5 py-1 rounded" aria-label="Download image"><Download className="w-3 h-3" /></a>}
+              <button type="button" onClick={() => onRemove(a.id)} className="text-[10px] text-rose-300/80 hover:text-rose-300 inline-flex items-center gap-1 px-1.5 py-1 rounded" aria-label="Remove image asset"><Trash2 className="w-3 h-3" /></button>
             </div>
           </div>
         </div>
@@ -189,10 +189,10 @@ function VoiceoverList({ assets, loading, onRemove }: { assets: ProjectAsset[]; 
                 ) : (
                   <>
                     <audio controls src={a.url || undefined} className="h-8 max-w-full" preload="none" />
-                    {a.url && <a href={a.url} download className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 px-2 py-1.5 rounded inline-flex items-center gap-1 min-h-[32px]"><Download className="w-3 h-3" /></a>}
+                    {a.url && <a href={a.url} download className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 px-2 py-1.5 rounded inline-flex items-center gap-1 min-h-[32px]" aria-label="Download voiceover"><Download className="w-3 h-3" /></a>}
                   </>
                 )}
-                <button onClick={() => onRemove(a.id)} className="ml-auto text-[10px] text-rose-300/70 hover:text-rose-300 px-2 py-1.5 rounded inline-flex items-center gap-1 min-h-[32px]"><Trash2 className="w-3 h-3" /></button>
+                <button type="button" onClick={() => onRemove(a.id)} className="ml-auto text-[10px] text-rose-300/70 hover:text-rose-300 px-2 py-1.5 rounded inline-flex items-center gap-1 min-h-[32px]" aria-label="Remove voiceover"><Trash2 className="w-3 h-3" /></button>
               </div>
             </div>
           </div>
@@ -211,7 +211,7 @@ function PromptsList({ assets, loading, onRemove }: { assets: ProjectAsset[]; lo
         <div key={a.id} className="rounded-lg glass border border-gold-soft p-3 flex items-start gap-2.5">
           <Wand2 className="w-3.5 h-3.5 text-gold-300 mt-0.5 shrink-0" />
           <p className="flex-1 text-[12px] text-luxe/85 leading-snug">{a.prompt}</p>
-          <button onClick={() => onRemove(a.id)} className="text-[10px] text-rose-300/60 hover:text-rose-300"><Trash2 className="w-3 h-3" /></button>
+          <button type="button" onClick={() => onRemove(a.id)} className="text-[10px] text-rose-300/60 hover:text-rose-300" aria-label="Remove prompt"><Trash2 className="w-3 h-3" /></button>
         </div>
       ))}
     </div>

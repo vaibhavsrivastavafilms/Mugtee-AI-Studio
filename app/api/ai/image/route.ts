@@ -5,7 +5,7 @@
 //
 // Flow:
 //   1. Auth check (must be signed in; project must belong to the user)
-//   2. Call Together AI (FLUX.1-schnell) with Pollinations fallback.
+//   2. Call FluxAPI Kontext (FLUXAPI_KEY), then Together (FLUX.1-schnell), then Pollinations.
 //   3. Download image bytes → upload to Supabase Storage (`project-assets` bucket).
 //   4. Insert a row into project_assets and return { id, url, prompt, kind:'image' }.
 //

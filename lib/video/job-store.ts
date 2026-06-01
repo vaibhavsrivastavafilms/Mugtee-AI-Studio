@@ -1,9 +1,11 @@
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import type { RenderJobStatus } from '@/lib/video/types'
 
 const jobs = new Map<string, RenderJobStatus>()
-const JOBS_DIR = path.join(process.cwd(), '.tmp', 'render-jobs')
+/** Vercel/serverless: only /tmp is writable — not project cwd. */
+const JOBS_DIR = path.join(os.tmpdir(), 'mugtee-render-jobs')
 
 function safeJobId(jobId: string): string {
   return jobId.replace(/[^a-zA-Z0-9_-]/g, '')

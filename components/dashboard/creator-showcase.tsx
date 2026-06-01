@@ -59,25 +59,40 @@ export function CreatorShowcase({ className }: { className?: string }) {
           {SHOWCASE_FEATURED_CATEGORIES.map((cat) => {
             const selected = category === cat.id
             const tabId = `showcase-tab-${cat.id}`
-            return (
-            <button
-              key={cat.id}
-              type="button"
-              id={tabId}
-              role="tab"
-              aria-selected={selected ? 'true' : 'false'}
-              aria-controls={tabPanelId}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setCategory(cat.id)}
-              className={cn(
-                'shrink-0 min-h-[36px] rounded-full px-3.5 py-1.5 text-[10px] tracking-[0.14em] uppercase transition-colors',
-                selected
-                  ? 'bg-gold-500/15 border border-gold-500/35 text-gold-100'
-                  : 'border border-white/[0.08] text-luxe/45 hover:text-luxe/70 hover:border-white/15'
-              )}
-            >
-              {cat.label}
-            </button>
+            const tabClassName = cn(
+              'shrink-0 min-h-[36px] rounded-full px-3.5 py-1.5 text-[10px] tracking-[0.14em] uppercase transition-colors',
+              selected
+                ? 'bg-gold-500/15 border border-gold-500/35 text-gold-100'
+                : 'border border-white/[0.08] text-luxe/45 hover:text-luxe/70 hover:border-white/15'
+            )
+            return selected ? (
+              <button
+                key={cat.id}
+                type="button"
+                id={tabId}
+                role="tab"
+                aria-selected="true"
+                aria-controls={tabPanelId}
+                tabIndex={0}
+                onClick={() => setCategory(cat.id)}
+                className={tabClassName}
+              >
+                {cat.label}
+              </button>
+            ) : (
+              <button
+                key={cat.id}
+                type="button"
+                id={tabId}
+                role="tab"
+                aria-selected="false"
+                aria-controls={tabPanelId}
+                tabIndex={-1}
+                onClick={() => setCategory(cat.id)}
+                className={tabClassName}
+              >
+                {cat.label}
+              </button>
             )
           })}
         </div>

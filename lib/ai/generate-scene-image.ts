@@ -20,7 +20,7 @@ export type SceneImageOptions = {
   hasReferenceStyle?: boolean
 }
 
-/** Generate a cinematic still via Together AI → Pollinations. Uploads when filename provided. */
+/** Generate a cinematic still via FluxAPI Kontext → Together → Pollinations. Uploads when filename provided. */
 export async function generateSceneImage(
   prompt: string,
   opts: { filename?: string; userId?: string; hasReferenceStyle?: boolean } = {}

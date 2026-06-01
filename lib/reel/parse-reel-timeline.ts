@@ -72,6 +72,7 @@ function parseClip(raw: unknown): ReelTimelineClip | null {
     startSec: typeof row.startSec === 'number' ? row.startSec : 0,
     endSec: typeof row.endSec === 'number' ? row.endSec : 4,
     image: typeof row.image === 'string' ? row.image : null,
+    video: typeof row.video === 'string' ? row.video : null,
     voiceSegment,
     caption,
     animation,

@@ -54,6 +54,10 @@ import {
 } from '@/lib/cinematic/scene-blueprint'
 import { composeReelTimeline, parseTimelineState } from '@/lib/reel'
 import type { ReelTimeline } from '@/lib/reel/types'
+import {
+  mergeSceneVideosIntoScenes,
+  parseSceneVideosFromCaptions,
+} from '@/lib/video/scene-video-shared'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -146,6 +150,8 @@ export type QuickCutProjectHydrationPatch = {
   outputAlignmentControls: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   reelTimeline: ReelTimeline | null
   thumbnailImageUrl: string | null
+  sceneVideoEnabled: boolean
+  isGeneratingSceneVideos: boolean
 }
 
 export function buildQuickCutHydrationFromRow(
@@ -175,7 +181,10 @@ export function buildQuickCutHydrationFromRow(
       outputAlignmentControls,
     })
   }
-  const scenes = applySceneMotionToScenes(baseScenes, sceneMotion)
+  const scenes = applySceneMotionToScenes(
+    mergeSceneVideosIntoScenes(baseScenes, parseSceneVideosFromCaptions(parsedCaptions)),
+    sceneMotion
+  )
   const thumbnailImageUrl = resolveActiveThumbnailUrl(row.thumbnail_url, scenes)
   const resolvedTab = stageTab ?? inferOpenStageTab(row)
 
@@ -306,5 +315,7 @@ export function buildQuickCutHydrationFromRow(
     repurposedAssets: parsedCaptions.repurposedAssets ?? {},
     contentSeries:
       parsedCaptions.series ?? extractContentSeriesFromCaptions(row.captions),
+    sceneVideoEnabled: false,
+    isGeneratingSceneVideos: scenes.some((s) => s.videoGenerationStatus === 'generating'),
   }
 }

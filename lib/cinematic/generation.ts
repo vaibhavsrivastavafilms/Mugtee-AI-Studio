@@ -87,6 +87,12 @@ export type GeneratedScene = {
   movementStyle: string
   /** Populated after /api/generate-images */
   imageUrl?: string | null
+  /** Populated after Seedance scene video generation */
+  videoUrl?: string | null
+  videoThumbnailUrl?: string | null
+  videoProvider?: string | null
+  videoGenerationStatus?: 'pending' | 'generating' | 'ready' | 'failed'
+  videoGenerationTimeMs?: number | null
   /** Multi-frame storyboard gallery from enhance-storyboard */
   storyboardImages?: import('@/stores/cinematic-project').StoryboardImage[]
   activeStoryboardId?: string
@@ -790,6 +796,15 @@ export function scenesToStore(scenes: GeneratedScene[]): CinematicScene[] {
       : {}),
     ...(scene.motionPresetId ? { motionPresetId: scene.motionPresetId } : {}),
     ...(scene.motionParams ? { motionParams: scene.motionParams } : {}),
+    ...(scene.videoUrl ? { videoUrl: scene.videoUrl } : {}),
+    ...(scene.videoThumbnailUrl ? { videoThumbnailUrl: scene.videoThumbnailUrl } : {}),
+    ...(scene.videoProvider ? { videoProvider: scene.videoProvider } : {}),
+    ...(scene.videoGenerationStatus
+      ? { videoGenerationStatus: scene.videoGenerationStatus }
+      : {}),
+    ...(scene.videoGenerationTimeMs != null
+      ? { videoGenerationTimeMs: scene.videoGenerationTimeMs }
+      : {}),
   }))
 }
 
@@ -826,6 +841,29 @@ export function storeScenesToGenerated(scenes: CinematicScene[]): GeneratedScene
     variationImageUrl:
       'variationImageUrl' in scene && typeof scene.variationImageUrl === 'string'
         ? scene.variationImageUrl
+        : null,
+    videoUrl:
+      'videoUrl' in scene && typeof scene.videoUrl === 'string' ? scene.videoUrl : null,
+    videoThumbnailUrl:
+      'videoThumbnailUrl' in scene && typeof scene.videoThumbnailUrl === 'string'
+        ? scene.videoThumbnailUrl
+        : null,
+    videoProvider:
+      'videoProvider' in scene && typeof scene.videoProvider === 'string'
+        ? scene.videoProvider
+        : null,
+    videoGenerationStatus:
+      'videoGenerationStatus' in scene &&
+      (scene.videoGenerationStatus === 'pending' ||
+        scene.videoGenerationStatus === 'generating' ||
+        scene.videoGenerationStatus === 'ready' ||
+        scene.videoGenerationStatus === 'failed')
+        ? scene.videoGenerationStatus
+        : undefined,
+    videoGenerationTimeMs:
+      'videoGenerationTimeMs' in scene &&
+      typeof scene.videoGenerationTimeMs === 'number'
+        ? scene.videoGenerationTimeMs
         : null,
   }))
 }
@@ -992,6 +1030,8 @@ export type CaptionsPayload = {
   outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   /** Reel Composer Pass — synchronized voice/visual/caption timeline */
   reelTimeline?: import('@/lib/reel/types').ReelTimeline
+  /** Seedance scene clip metadata (also mirrored on scenes JSON) */
+  sceneVideos?: import('@/lib/video/scene-video-shared').SceneVideoRecord[]
 }
 
 export function captionsToPayload(state: {

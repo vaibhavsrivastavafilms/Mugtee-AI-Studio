@@ -1,7 +1,8 @@
 import fs from 'fs/promises'
 import path from 'path'
+import { retryWithBackoff } from '@/lib/video/retry.server'
 
-export async function downloadToFile(url: string, destPath: string): Promise<void> {
+async function downloadOnce(url: string, destPath: string): Promise<void> {
   if (url.startsWith('data:')) {
     const match = url.match(/^data:([^;]+);base64,(.+)$/)
     if (!match) throw new Error('Invalid data URI')
@@ -14,6 +15,13 @@ export async function downloadToFile(url: string, destPath: string): Promise<voi
   if (!res.ok) throw new Error(`Failed to download asset (${res.status})`)
   const buf = Buffer.from(await res.arrayBuffer())
   await fs.writeFile(destPath, buf)
+}
+
+export async function downloadToFile(url: string, destPath: string): Promise<void> {
+  await retryWithBackoff(() => downloadOnce(url, destPath), {
+    maxAttempts: 3,
+    label: 'asset download',
+  })
 }
 
 export async function ensureDir(dir: string) {

@@ -26,6 +26,8 @@ import {
   renderRemotionReel,
   renderRemotionReelMock,
 } from '@/lib/remotion/render-reel.server'
+import { retryWithBackoff } from '@/lib/video/retry.server'
+import { EXPORT_STAGE_LABELS, labelForRenderStage } from '@/lib/reels/export-stages'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -44,20 +46,7 @@ const STAGE_PERCENT: Record<RenderProgressStage, number> = {
 }
 
 export function reelStageLabel(stage: RenderProgressStage): string {
-  switch (stage) {
-    case 'prepare':
-    case 'download_assets':
-      return 'Assembling film…'
-    case 'render_segments':
-    case 'assemble':
-      return 'Rendering reel…'
-    case 'upload':
-      return 'Uploading reel…'
-    case 'complete':
-      return 'Download ready'
-    default:
-      return 'Processing…'
-  }
+  return labelForRenderStage(stage)
 }
 
 export async function orchestrateRemotionReel(
@@ -68,6 +57,7 @@ export async function orchestrateRemotionReel(
     baseUrl?: string
     musicUrl?: string | null
     sceneMotion?: SceneMotionMap | null
+    exportStartedAt?: number
   }
 ): Promise<RenderVideoResult> {
   const jobId = options?.jobId ?? `reel-${uuidv4()}-${Date.now()}`
@@ -89,12 +79,18 @@ export async function orchestrateRemotionReel(
       )
     }
 
-    report('prepare')
+    report('prepare', EXPORT_STAGE_LABELS.preparing)
 
     const scenes = input.scenes.filter((s) => s.description || s.visualPrompt || s.title)
     if (scenes.length < 1) {
       throw new Error('At least one scene is required to render a reel.')
     }
+
+    exportLog.timelineBuilt({
+      jobId,
+      projectId: input.projectId,
+      sceneCount: scenes.length,
+    })
 
     exportLog.renderStarted({
       jobId,
@@ -115,7 +111,17 @@ export async function orchestrateRemotionReel(
     const timedScenes = clampSceneDurationsToTarget(scenes, totalDuration)
     const outputPath = path.join(os.tmpdir(), `mugtee-reel-${jobId}.mp4`)
 
-    report('download_assets')
+    report('download_assets', EXPORT_STAGE_LABELS.preparing)
+    exportLog.voiceLoaded({
+      jobId,
+      projectId: input.projectId,
+      hasVoice: Boolean(input.voiceUrl?.trim()),
+    })
+    exportLog.imagesLoaded({
+      jobId,
+      projectId: input.projectId,
+      imageCount: scenes.filter((s) => s.imageUrl?.trim()).length,
+    })
 
     if (input.userId && input.projectId) {
       await updateProjectReelStatus({
@@ -125,7 +131,8 @@ export async function orchestrateRemotionReel(
       }).catch(() => undefined)
     }
 
-    report('render_segments')
+    report('render_segments', EXPORT_STAGE_LABELS.timeline)
+    exportLog.ffmpegStarted({ jobId, projectId: input.projectId, mock: process.env.VIDEO_RENDER_MOCK === 'true' })
 
     const mock = process.env.VIDEO_RENDER_MOCK === 'true'
     let durationSec = 0
@@ -156,14 +163,15 @@ export async function orchestrateRemotionReel(
       thumbnailPath = renderResult.thumbnailPath
     }
 
-    report('assemble', 'Finalizing reel…')
+    report('assemble', EXPORT_STAGE_LABELS.encoding)
+    exportLog.ffmpegCompleted({ jobId, projectId: input.projectId, durationSec })
     exportLog.renderComplete({ jobId, projectId: input.projectId, durationSec })
 
     let videoUrl: string
     let storagePath: string
     let thumbnailUrl: string | null = null
 
-    report('upload')
+    report('upload', EXPORT_STAGE_LABELS.uploading)
     exportLog.uploadStarted({ jobId, projectId: input.projectId })
 
     if (input.userId && input.projectId) {
@@ -175,11 +183,15 @@ export async function orchestrateRemotionReel(
     }
 
     if (input.userId && input.projectId) {
-      const uploaded = await uploadReelMp4({
-        localPath: outputPath,
-        projectId: input.projectId,
-        userId: input.userId,
-      })
+      const uploaded = await retryWithBackoff(
+        () =>
+          uploadReelMp4({
+            localPath: outputPath,
+            projectId: input.projectId!,
+            userId: input.userId!,
+          }),
+        { maxAttempts: 3, label: 'reel upload' }
+      )
       videoUrl = uploaded.videoUrl
       storagePath = uploaded.storagePath
       exportLog.uploadComplete({
@@ -225,7 +237,7 @@ export async function orchestrateRemotionReel(
 
     await fs.unlink(outputPath).catch(() => undefined)
 
-    report('complete', 'Download ready')
+    report('complete', EXPORT_STAGE_LABELS.ready)
     exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
 
     updateRenderJob(jobId, {

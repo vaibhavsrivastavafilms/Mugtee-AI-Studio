@@ -4,6 +4,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
+import { runExportInBackground } from '@/lib/export/export-background.server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { logError } from '@/lib/workspace/validation'
@@ -67,16 +68,18 @@ export async function POST(req: NextRequest) {
 
     if (asyncMode) {
       createRenderJob(jobId)
-      void orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl, sceneMotion }).catch((err) => {
-        logError('render-reel.async', err)
-        updateRenderJob(jobId, {
-          status: 'failed',
-          stage: 'error',
-          label: friendlyError(err),
-          error: friendlyError(err),
-          percent: 0,
+      runExportInBackground(() =>
+        orchestrateRemotionReel(input, { jobId, baseUrl, musicUrl, sceneMotion }).catch((err) => {
+          logError('render-reel.async', err)
+          updateRenderJob(jobId, {
+            status: 'failed',
+            stage: 'error',
+            label: friendlyError(err),
+            error: friendlyError(err),
+            percent: 0,
+          })
         })
-      })
+      )
       return NextResponse.json({
         jobId,
         status: 'queued',

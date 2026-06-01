@@ -301,7 +301,7 @@ export default function MediaPageClient() {
                         <button onClick={() => archiveMedia(m.id)} className="absolute top-2 right-10 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-gold-500/40 transition" aria-label="Archive">
                           <Archive className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={async () => { if (await confirm({ title: `Delete ${m.title}?`, description: 'This file will be moved to trash and can be restored from Settings.', destructive: true })) removeMedia(m.id) }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition">
+                        <button type="button" onClick={async () => { if (await confirm({ title: `Delete ${m.title}?`, description: 'This file will be moved to trash and can be restored from Settings.', destructive: true })) removeMedia(m.id) }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-red-500/60 transition" aria-label={`Delete ${m.title}`}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -387,7 +387,7 @@ function IdeasTab({ ideas, onDelete, onLaunch }: { ideas: LibraryIdea[]; onDelet
             <div className="text-[9px] tracking-[0.3em] uppercase text-gold-400/80 inline-flex items-center gap-1.5">
               <Lightbulb className="w-3 h-3" /> {idea.niche || 'general'}
             </div>
-            <button onClick={() => onDelete(idea.id)} className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-300">
+            <button type="button" onClick={() => onDelete(idea.id)} className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-300" aria-label={`Delete idea: ${idea.title}`}>
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
@@ -431,7 +431,7 @@ function PromptsTab({ prompts, onDelete }: { prompts: LibraryPrompt[]; onDelete:
                 <Clock className="w-3 h-3" /> {formatDistanceToNow(parseISO(row.created_at), { addSuffix: true })}
               </span>
             </div>
-            <button onClick={() => onDelete(row.id)} className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-300">
+            <button type="button" onClick={() => onDelete(row.id)} className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-300" aria-label={`Delete prompt set: ${row.script_title || 'Untitled'}`}>
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>

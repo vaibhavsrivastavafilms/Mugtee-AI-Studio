@@ -2,14 +2,15 @@ import { creatorFriendlyMessage } from '@/lib/errors/creator-friendly-errors'
 import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { reelExportPollPath } from '@/lib/reels/export-paths'
+import { EXPORT_STAGE_LABELS } from '@/lib/reels/export-stages'
 
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
 
 export const REEL_EXPORT_PROGRESS_CAP = 95
 /** UI + auto-retry when export appears stalled (e.g. stuck at render step %). */
 export const REEL_EXPORT_STUCK_MS = 30_000
-/** Hard client timeout for a single export poll session. */
-export const REEL_EXPORT_MAX_MS = 5 * 60 * 1000
+/** Hard client timeout for a single export poll session (15 min — matches Vercel maxDuration × retries). */
+export const REEL_EXPORT_MAX_MS = 15 * 60 * 1000
 export const REEL_EXPORT_STUCK_MSG =
   'Export taking longer than expected — Retry export'
 
@@ -85,9 +86,30 @@ export function parseReelExportPoll(
   return {
     status,
     progress,
-    label: typeof job.label === 'string' ? job.label : undefined,
+    label:
+      typeof job.label === 'string' && job.label.trim()
+        ? job.label
+        : mapPollStatusToStageLabel(status),
     reelUrl,
     error: typeof job.error === 'string' ? job.error : null,
+  }
+}
+
+function mapPollStatusToStageLabel(status: ReelExportPollStatus): string {
+  switch (status) {
+    case 'queued':
+    case 'pending':
+      return EXPORT_STAGE_LABELS.preparing
+    case 'rendering':
+      return EXPORT_STAGE_LABELS.encoding
+    case 'uploading':
+      return EXPORT_STAGE_LABELS.uploading
+    case 'completed':
+      return EXPORT_STAGE_LABELS.ready
+    case 'failed':
+      return EXPORT_STAGE_LABELS.failed
+    default:
+      return EXPORT_STAGE_LABELS.preparing
   }
 }
 

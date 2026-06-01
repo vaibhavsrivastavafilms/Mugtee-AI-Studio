@@ -20,7 +20,6 @@ import {
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { AskMugteeSuggestionChips } from '@/components/quick-cut/canvas/ask-mugtee-suggestion-chips'
-import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
 import { CinematicPromptInput } from '@/components/quick-cut/canvas/cinematic-prompt-input'
 import { FloatingMicButton } from '@/components/quick-cut/canvas/floating-mic-button'
@@ -204,14 +203,6 @@ export function FullscreenQuickCutCanvas({
   }, [storePrompt, scenes.length, isGenerating, isComplete, generationStep, renderPollUrl, isRenderingVideo])
 
   useEffect(() => {
-    setShowActivationHints(isFirstTimeUser())
-    if (isFirstTimeUser()) {
-      setExperienceLevel('noob')
-      setUseConversationEntry(false)
-    }
-  }, [])
-
-  useEffect(() => {
     const session = loadCreatorLanguageSession()
     if (session) {
       setContentLanguage(session.projectLanguage)
@@ -220,9 +211,20 @@ export function FullscreenQuickCutCanvas({
       setContentLanguage(loadContentLanguagePreference())
     }
     setDirectorMode(loadDirectorModePreference())
+
+    const firstTime = isFirstTimeUser()
+    setShowActivationHints(firstTime)
+
+    if (firstTime) {
+      setExperienceLevel('noob')
+      setUseConversationEntry(false)
+      return
+    }
+
     const level = initialExperience ?? loadCreatorExperiencePreference()
     setExperienceLevel(level)
-    setUseConversationEntry(loadConversationEntryPreference(isDirectorExperience(level)))
+    const director = isDirectorExperience(level)
+    setUseConversationEntry(director ? false : loadConversationEntryPreference(false))
   }, [initialExperience])
 
   useEffect(() => {
@@ -235,7 +237,7 @@ export function FullscreenQuickCutCanvas({
   }, [prompt, voiceTranscript])
 
   useEffect(() => {
-    if (directorUi) {
+    if (isFirstTimeUser() || directorUi) {
       setUseConversationEntry(false)
       return
     }
@@ -466,42 +468,28 @@ export function FullscreenQuickCutCanvas({
 
       <main className="relative z-10 flex flex-col gap-6 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(5rem,env(safe-area-inset-bottom))] pt-2 sm:pt-4 lg:pt-6 min-h-[calc(100dvh-5rem)]">
         <div className="flex-1 flex flex-col justify-center min-w-0 w-full max-w-3xl mx-auto xl:max-w-2xl xl:mx-auto xl:pr-[220px] 2xl:pr-[240px]">
-          {showConversation ? (
-            <>
-              {isActivationMode ? (
-                <div className="mb-6">
-                  <FirstActivationPanel
-                    onSelectPrompt={handlePromptPrefill}
-                    onLaunch={handleActivationLaunch}
-                    variant="compact"
-                  />
-                </div>
-              ) : null}
-              <MugteeConversationEntry
-                embedded={embedded}
-                language={contentLanguage}
-                signedIn={signedIn}
-                authReady={authReady}
-                onLaunch={handleConversationLaunch}
-                requireDiscovery={experienceLevel === 'noob'}
-                onSwitchClassic={() => {
-                  saveConversationEntryPreference('classic')
-                  setUseConversationEntry(false)
-                }}
-                showSignIn={showSignIn}
-                loginHref={loginHref}
-              />
-            </>
+          {isActivationMode ? (
+            <FirstActivationPanel
+              onSelectPrompt={handlePromptPrefill}
+              onLaunch={handleActivationLaunch}
+            />
+          ) : showConversation ? (
+            <MugteeConversationEntry
+              embedded={embedded}
+              language={contentLanguage}
+              signedIn={signedIn}
+              authReady={authReady}
+              onLaunch={handleConversationLaunch}
+              requireDiscovery={experienceLevel === 'noob'}
+              onSwitchClassic={() => {
+                saveConversationEntryPreference('classic')
+                setUseConversationEntry(false)
+              }}
+              showSignIn={showSignIn}
+              loginHref={loginHref}
+            />
           ) : (
             <>
-          {isActivationMode ? (
-            <div className="mb-6">
-              <FirstActivationPanel
-                onSelectPrompt={handlePromptPrefill}
-                onLaunch={handleActivationLaunch}
-              />
-            </div>
-          ) : null}
           <motion.p
             key={promptIndex}
             initial={{ opacity: 0, y: 6 }}

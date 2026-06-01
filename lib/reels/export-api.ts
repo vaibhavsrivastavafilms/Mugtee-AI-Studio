@@ -15,6 +15,17 @@ import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { updateProjectReelStatus } from '@/lib/video/reel-storage-upload'
 import { exportLog } from '@/lib/export/export-log.server'
+import { runExportInBackground } from '@/lib/export/export-background.server'
+import { validateExportAssets } from '@/lib/export/asset-validation.server'
+import {
+  recordExportMetricFailure,
+  recordExportMetricSuccess,
+} from '@/lib/export/export-metrics.server'
+import {
+  EXPORT_STAGE_LABELS,
+  labelForRenderStage,
+  REEL_STATUS_PROGRESS,
+} from '@/lib/reels/export-stages'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
@@ -48,22 +59,20 @@ export function mapJobToExportStatus(job: RenderJobStatus): ReelExportStatus {
 
 export function exportStatusLabel(status: ReelExportStatus, job?: RenderJobStatus): string {
   if (job?.label?.trim()) return job.label.trim()
+  if (job?.stage) return labelForRenderStage(job.stage)
   switch (status) {
     case 'queued':
-      return 'Queued…'
+      return EXPORT_STAGE_LABELS.queued
     case 'rendering':
-      if (job?.stage === 'prepare' || job?.stage === 'download_assets') {
-        return 'Assembling film…'
-      }
-      return 'Rendering reel…'
+      return EXPORT_STAGE_LABELS.encoding
     case 'uploading':
-      return 'Uploading reel…'
+      return EXPORT_STAGE_LABELS.uploading
     case 'completed':
-      return 'Download ready'
+      return EXPORT_STAGE_LABELS.ready
     case 'failed':
-      return job?.error || 'Reel export failed'
+      return job?.error || EXPORT_STAGE_LABELS.failed
     default:
-      return 'Preparing export…'
+      return EXPORT_STAGE_LABELS.preparing
   }
 }
 
@@ -145,17 +154,16 @@ export function projectRowToExportPollResponse(row: CinematicProjectRow) {
   const hasValidUrl = Boolean(reelUrl && isValidReelDownloadUrl(reelUrl))
   const status = mapProjectReelStatus(row.reel_status, reelUrl)
   const completed = hasValidUrl && (status === 'completed' || !row.reel_job_id?.trim())
+  const reelKey = (row.reel_status ?? '').toLowerCase()
+  const stageInfo = REEL_STATUS_PROGRESS[reelKey]
   return {
     status: completed ? 'completed' : status,
-    progress: completed ? 100 : status === 'failed' ? 0 : 50,
-    label:
-      completed
-        ? 'Download ready'
-        : status === 'failed'
-          ? 'Reel export failed'
-          : status === 'uploading'
-            ? 'Uploading reel…'
-            : 'Rendering reel…',
+    progress: completed ? 100 : stageInfo?.progress ?? (status === 'failed' ? 0 : 35),
+    label: completed
+      ? EXPORT_STAGE_LABELS.ready
+      : status === 'failed'
+        ? EXPORT_STAGE_LABELS.failed
+        : stageInfo?.label ?? EXPORT_STAGE_LABELS.encoding,
     reelUrl: completed ? reelUrl : null,
     error: status === 'failed' ? 'Reel export failed' : null,
   }
@@ -255,6 +263,29 @@ export async function queueReelExportForProject(params: {
   }
 
   const jobId = `reel-${uuidv4()}-${Date.now()}`
+  const exportStartedAt = Date.now()
+  exportLog.exportStart({
+    projectId: params.row.id,
+    userId: params.userId,
+    jobId,
+    includeVoiceover: params.includeVoiceover,
+    includeCaptions: params.includeCaptions,
+  })
+
+  const validation = await validateExportAssets({
+    row: params.row,
+    includeVoiceover: params.includeVoiceover,
+    includeCaptions: params.includeCaptions,
+  })
+  exportLog.assetValidation({
+    jobId,
+    projectId: params.row.id,
+    ...validation,
+  })
+  if (!validation.valid) {
+    throw new Error(validation.message ?? 'Export assets are missing or unreachable.')
+  }
+
   exportLog.requested({
     projectId: params.row.id,
     userId: params.userId,
@@ -291,32 +322,40 @@ export async function queueReelExportForProject(params: {
     projectId: params.row.id,
   }
 
-  void orchestrateRemotionReel(input, {
-    jobId,
-    baseUrl: params.baseUrl,
-    musicUrl: null,
-    sceneMotion: parseSceneMotionMap(params.row.scene_motion),
-  }).catch((err) => {
-    logError('reels.export.async', err)
-    exportLog.error('async export', err, {
+  runExportInBackground(() =>
+    orchestrateRemotionReel(input, {
       jobId,
-      projectId: params.row.id,
-      userId: params.userId,
+      baseUrl: params.baseUrl,
+      musicUrl: null,
+      sceneMotion: parseSceneMotionMap(params.row.scene_motion),
+      exportStartedAt,
     })
-    updateRenderJob(jobId, {
-      status: 'failed',
-      stage: 'error',
-      label: friendlyExportError(err),
-      error: friendlyExportError(err),
-      percent: 0,
-    })
-    void updateProjectReelStatus({
-      userId: params.userId,
-      projectId: params.row.id,
-      reelStatus: 'failed',
-      reelJobId: null,
-    }).catch(() => undefined)
-  })
+      .then(() => {
+        recordExportMetricSuccess(Date.now() - exportStartedAt)
+      })
+      .catch((err) => {
+        logError('reels.export.async', err)
+        recordExportMetricFailure()
+        exportLog.error('async export', err, {
+          jobId,
+          projectId: params.row.id,
+          userId: params.userId,
+        })
+        updateRenderJob(jobId, {
+          status: 'failed',
+          stage: 'error',
+          label: friendlyExportError(err),
+          error: friendlyExportError(err),
+          percent: 0,
+        })
+        void updateProjectReelStatus({
+          userId: params.userId,
+          projectId: params.row.id,
+          reelStatus: 'failed',
+          reelJobId: null,
+        }).catch(() => undefined)
+      })
+  )
 
   return { jobId, status: 'queued' }
 }
