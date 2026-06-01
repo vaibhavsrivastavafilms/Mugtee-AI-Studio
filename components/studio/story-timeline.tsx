@@ -46,11 +46,33 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
   const setTimelineCollapsed = useStudioWorkspaceStore((s) => s.setTimelineCollapsed)
 
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
   const prompt = useQuickCutGenerationStore((s) => s.prompt)
+  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
+
+  const pipelineInput = {
+    sectionStatus,
+    generationStep,
+    isGenerating,
+    isRenderingVideo,
+    isComplete,
+    failedAtStep,
+    generationStatus,
+    prompt,
+    videoUrl,
+    exportPackageReady,
+    videoRenderEnabled,
+    exportExpired,
+  }
 
   const handleSelect = (stage: WorkspaceStage) => {
     setActiveStage(stage)
@@ -116,15 +138,9 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
 
       <nav className="flex-1 overflow-y-auto scrollbar-luxe px-2 py-3 space-y-1">
         {WORKSPACE_STAGE_ORDER.map((stage, index) => {
-          const status = getWorkspaceStageStatus(stage, {
-            activeStage,
-            generationStep,
-            isComplete,
-            failedAtStep,
-            generationStatus,
-            prompt,
-          })
+          const status = getWorkspaceStageStatus(stage, pipelineInput)
           const Icon = STAGE_ICONS[stage]
+          const isSelected = activeStage === stage
           const isActive = status === 'active'
           const isDone = status === 'completed'
           const needsAttention = status === 'needs_attention'
@@ -140,7 +156,9 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
                 'relative w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition',
                 isActive
                   ? 'bg-gold-500/[0.12] border border-gold-500/30 shadow-[0_0_24px_rgba(212,175,55,0.08)]'
-                  : 'border border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]',
+                  : isSelected
+                    ? 'border border-white/[0.1] bg-white/[0.04]'
+                    : 'border border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]',
                 needsAttention && !isActive && 'border-amber-500/25 bg-amber-500/[0.06]'
               )}
             >

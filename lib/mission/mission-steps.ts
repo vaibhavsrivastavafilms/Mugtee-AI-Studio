@@ -93,7 +93,21 @@ export function resolveMissionStepState(
     s.generationSteps.includes(generationStep)
   )
 
-  if (generationStep === 'complete') return 'completed'
+  if (step.id === 'export') {
+    if (sectionStatus.export === 'failed') return 'in_progress'
+    if (generationStep === 'render') return 'in_progress'
+    return 'pending'
+  }
+
+  if (step.id === 'render') {
+    if (generationStep === 'render') return 'in_progress'
+    if (generationStep === 'complete' && sectionStatus.export === 'completed') return 'completed'
+    return 'pending'
+  }
+
+  if (generationStep === 'complete' && step.id !== 'export' && step.id !== 'render') {
+    return 'completed'
+  }
 
   if (step.generationSteps.includes(generationStep)) return 'in_progress'
 
