@@ -5,6 +5,24 @@ import { reelExportPollPath } from '@/lib/reels/export-paths'
 
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
 
+export const REEL_EXPORT_PROGRESS_CAP = 95
+/** UI retry prompt when export appears stalled (e.g. stuck at render step %). */
+export const REEL_EXPORT_STUCK_MS = 3 * 60 * 1000
+/** Hard client timeout for a single export poll session. */
+export const REEL_EXPORT_MAX_MS = 5 * 60 * 1000
+export const REEL_EXPORT_STUCK_MSG =
+  'Reel export is taking longer than expected — tap Retry export.'
+
+const POLL_INTERVAL_MS = 1500
+const FETCH_TIMEOUT_MS = 15_000
+const FETCH_RETRY_DELAYS_MS = [800, 1600, 3200]
+const DB_RECOVERY_EVERY_N_POLLS = 5
+
+export function capReelExportProgress(progress?: number): number | undefined {
+  if (typeof progress !== 'number' || !Number.isFinite(progress)) return undefined
+  return Math.min(REEL_EXPORT_PROGRESS_CAP, Math.max(0, Math.round(progress)))
+}
+
 export function normalizeReelExportPollUrl(
   pollUrl: string,
   projectId?: string | null
@@ -50,12 +68,14 @@ export function parseReelExportPoll(
         : legacyStatus
   ) as ReelExportPollStatus
 
-  const progress =
+  const rawProgress =
     typeof job.progress === 'number'
       ? job.progress
       : typeof job.percent === 'number'
         ? job.percent
         : 0
+
+  const progress = capReelExportProgress(rawProgress) ?? 0
 
   const reelUrl =
     (typeof job.reelUrl === 'string' && job.reelUrl) ||
@@ -71,11 +91,21 @@ export function parseReelExportPoll(
   }
 }
 
-const POLL_INTERVAL_MS = 1500
-const FETCH_RETRY_DELAYS_MS = [800, 1600, 3200]
-
 async function sleep(ms: number): Promise<void> {
   await new Promise((r) => setTimeout(r, ms))
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function fetchPollJson(
@@ -88,7 +118,7 @@ async function fetchPollJson(
       await sleep(FETCH_RETRY_DELAYS_MS[attempt - 1] ?? 3200)
     }
     try {
-      const res = await fetch(pollUrl, { credentials: 'include' })
+      const res = await fetchWithTimeout(pollUrl, { credentials: 'include' })
       let raw: Record<string, unknown> = {}
       try {
         raw = (await res.json()) as Record<string, unknown>
@@ -127,36 +157,74 @@ async function recoverFromDb(projectId?: string | null): Promise<string | null> 
   return null
 }
 
+function maxPollAttempts(maxMs: number): number {
+  return Math.max(1, Math.ceil(maxMs / POLL_INTERVAL_MS))
+}
+
 export async function pollReelExportJob(
   pollUrl: string,
   options?: {
     maxAttempts?: number
     projectId?: string | null
-    onProgress?: (patch: { label?: string; progress?: number }) => void
+    onProgress?: (patch: { label?: string; progress?: number; stuck?: boolean }) => void
+    startedAt?: number
   }
 ): Promise<string> {
-  const maxAttempts = options?.maxAttempts ?? 120
+  const startedAt = options?.startedAt ?? Date.now()
+  const maxAttempts = options?.maxAttempts ?? maxPollAttempts(REEL_EXPORT_MAX_MS)
   const resolvedPollUrl = normalizeReelExportPollUrl(pollUrl, options?.projectId)
 
   for (let i = 0; i < maxAttempts; i++) {
     if (i > 0) await sleep(POLL_INTERVAL_MS)
 
+    const elapsed = Date.now() - startedAt
+    if (elapsed >= REEL_EXPORT_MAX_MS) {
+      const url = await recoverFromDb(options?.projectId)
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
+      throw new Error(creatorFriendlyMessage('Reel export timed out — try again', 'export'))
+    }
+
+    if (
+      elapsed >= REEL_EXPORT_STUCK_MS &&
+      i > 0 &&
+      i % DB_RECOVERY_EVERY_N_POLLS === 0
+    ) {
+      const url = await recoverFromDb(options?.projectId)
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
+    }
+
     const { res, raw } = await fetchPollJson(resolvedPollUrl, options?.projectId)
 
     if (res.status === 404) {
       const url = await recoverFromDb(options?.projectId)
-      if (url) return url
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
       throw new Error('Export job expired — retry export')
     }
 
     if (!res.ok) {
       const url = await recoverFromDb(options?.projectId)
-      if (url) return url
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
       throw new Error(creatorFriendlyMessage({ status: res.status }, 'export'))
     }
 
     const job = parseReelExportPoll(raw)
-    options?.onProgress?.({ label: job.label, progress: job.progress })
+    options?.onProgress?.({
+      label: job.label,
+      progress: job.progress,
+      stuck: elapsed >= REEL_EXPORT_STUCK_MS,
+    })
 
     if (job.status === 'failed') {
       throw new Error(creatorFriendlyMessage(job.error, 'export'))
@@ -164,14 +232,40 @@ export async function pollReelExportJob(
 
     if (job.status === 'completed' && job.reelUrl) {
       if (isValidReelDownloadUrl(job.reelUrl)) {
+        options?.onProgress?.({ progress: 100 })
         return job.reelUrl
       }
+      const url = await recoverFromDb(options?.projectId)
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
       continue
+    }
+
+    if (
+      (job.status === 'rendering' || job.status === 'uploading') &&
+      i > 0 &&
+      i % DB_RECOVERY_EVERY_N_POLLS === 0
+    ) {
+      const url = await recoverFromDb(options?.projectId)
+      if (url) {
+        options?.onProgress?.({ progress: 100 })
+        return url
+      }
     }
   }
 
   const url = await recoverFromDb(options?.projectId)
-  if (url) return url
+  if (url) {
+    options?.onProgress?.({ progress: 100 })
+    return url
+  }
 
   throw new Error(creatorFriendlyMessage('Reel export timed out — try again', 'export'))
+}
+
+export function isReelExportStuck(startedAt: number | null | undefined): boolean {
+  if (!startedAt) return false
+  return Date.now() - startedAt >= REEL_EXPORT_STUCK_MS
 }

@@ -4,6 +4,7 @@ import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
 import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import { ensureScenesHavePreviewUrls } from '@/lib/cinematic/scene-preview-url'
+import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 const PREVIEW_KEY = 'mugtee:quick-cut:preview:v1'
 const PENDING_KEY_SESSION = 'mugtee:quick-cut:pending:session:v1'
@@ -43,8 +44,9 @@ export function clearQuickCutPreview() {
 }
 
 /** Rehydrate Quick Cut store from session preview after refresh (export poll / downloads). */
-export function restoreQuickCutPreviewSession(): boolean {
+export function restoreQuickCutPreviewSession(options?: { allowOnFreshCreate?: boolean }): boolean {
   if (typeof window === 'undefined') return false
+  if (options?.allowOnFreshCreate === false) return false
   const preview = loadQuickCutPreview()
   if (!preview) return false
 
@@ -79,7 +81,7 @@ export function restoreQuickCutPreviewSession(): boolean {
     isGenerating: false,
     error: null,
     generationStep: videoUrl ? 'complete' : videoPending ? 'render' : 'complete',
-    progress: videoUrl ? 100 : 88,
+    progress: videoUrl ? 100 : videoPending ? REEL_EXPORT_PROGRESS_CAP : 100,
     eta: 0,
     generationStatus: 'completed',
     studioReviewMode: false,

@@ -175,7 +175,7 @@ export function resolveQuickCutProgressLabel(input: QuickCutProgressLabelInput):
   }
 
   if (videoRenderEnabled) {
-    if (renderError) return renderError
+    if (renderError && (isRenderingVideo || renderPollUrl || isComplete)) return renderError
     if (isRenderingVideo || renderPollUrl) {
       return renderStatusLabel || 'Rendering reel…'
     }

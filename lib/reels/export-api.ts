@@ -142,8 +142,9 @@ export async function loadOwnedProjectByReelJobId(
 
 export function projectRowToExportPollResponse(row: CinematicProjectRow) {
   const reelUrl = row.reel_url?.trim() || row.video_url?.trim() || null
+  const hasValidUrl = Boolean(reelUrl && isValidReelDownloadUrl(reelUrl))
   const status = mapProjectReelStatus(row.reel_status, reelUrl)
-  const completed = status === 'completed' && Boolean(reelUrl?.trim())
+  const completed = hasValidUrl && (status === 'completed' || !row.reel_job_id?.trim())
   return {
     status: completed ? 'completed' : status,
     progress: completed ? 100 : status === 'failed' ? 0 : 50,

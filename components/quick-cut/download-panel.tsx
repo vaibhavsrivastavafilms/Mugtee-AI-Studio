@@ -42,6 +42,10 @@ import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
+import {
+  isReelExportStuck,
+  REEL_EXPORT_STUCK_MS,
+} from '@/lib/reels/export-poll.client'
 import { toast } from 'sonner'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -127,6 +131,7 @@ export function QuickCutDownloadPanel({
   const exportTrackedRef = useRef(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
+  const renderStartedAt = useQuickCutGenerationStore((s) => s.renderStartedAt)
   const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
 
   type CreatorPackState = 'idle' | 'preparing' | 'ready' | 'error'
@@ -221,6 +226,30 @@ export function QuickCutDownloadPanel({
     renderError,
     isRenderingVideo,
     canCompileMp4,
+    resumeRenderPoll,
+    retryVideoRender,
+  ])
+
+  useEffect(() => {
+    if (!videoRenderEnabled || !mp4Compiling || !renderStartedAt) return
+
+    const timer = setTimeout(() => {
+      if (!isReelExportStuck(renderStartedAt)) return
+      if (isRenderingVideo) {
+        useQuickCutGenerationStore.setState({ isRenderingVideo: false })
+      }
+      pollStartedRef.current = false
+      toast.message('Export taking longer than expected — retrying…', { duration: 4000 })
+      void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())
+    }, REEL_EXPORT_STUCK_MS)
+
+    return () => clearTimeout(timer)
+  }, [
+    videoRenderEnabled,
+    mp4Compiling,
+    renderStartedAt,
+    isRenderingVideo,
+    renderPollUrl,
     resumeRenderPoll,
     retryVideoRender,
   ])

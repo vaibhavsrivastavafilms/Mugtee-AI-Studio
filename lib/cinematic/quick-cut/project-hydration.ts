@@ -11,6 +11,7 @@ import {
   type CinematicProjectRow,
 } from '@/lib/cinematic-projects'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
@@ -202,7 +203,7 @@ export function buildQuickCutHydrationFromRow(
     isGenerating: false,
     activeStageTab: resolvedTab,
     stageTabPinned: true,
-    progress: videoReady ? 100 : reelFailed ? 88 : 100,
+    progress: videoReady ? 100 : reelFailed ? REEL_EXPORT_PROGRESS_CAP : 100,
     eta: 0,
     error:
       row.generation_status === 'failed'

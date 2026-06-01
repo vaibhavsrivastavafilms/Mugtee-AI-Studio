@@ -75,6 +75,7 @@ import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
 import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
 import { SuggestionChips } from '@/components/onboarding/suggestion-chips'
 import { WhatMugteeGenerates } from '@/components/onboarding/what-mugtee-generates'
+import { resolveActivePipelineError, shouldClearIdleExportErrors } from '@/lib/cinematic/quick-cut/pipeline-error.client'
 import {
   isFirstTimeUser,
   markHasCreatedProject,
@@ -139,8 +140,17 @@ export function FullscreenQuickCutCanvas({
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const error = useQuickCutGenerationStore((s) => s.error)
-  const pipelineError =
-    error && (isGenerating || generationStep === 'error') ? error : null
+  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const storePrompt = useQuickCutGenerationStore((s) => s.prompt)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
+  const pipelineError = resolveActivePipelineError(error, {
+    isGenerating,
+    generationStep,
+    hasExportContext: Boolean(renderPollUrl || isRenderingVideo || isComplete),
+  })
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
   const blueprintId = useQuickCutGenerationStore((s) => s.blueprintId)
   const setCreatorBlueprint = useQuickCutGenerationStore((s) => s.setCreatorBlueprint)
@@ -175,6 +185,17 @@ export function FullscreenQuickCutCanvas({
   const imageNote = imageRef?.note
 
   const directorUi = isDirectorExperience(experienceLevel)
+
+  useEffect(() => {
+    void syncVideoRenderConfig()
+  }, [syncVideoRenderConfig])
+
+  useEffect(() => {
+    const state = useQuickCutGenerationStore.getState()
+    if (!shouldClearIdleExportErrors(state)) return
+    if (!state.error && !state.renderError) return
+    useQuickCutGenerationStore.setState({ error: null, renderError: null, renderStartedAt: null })
+  }, [storePrompt, scenes.length, isGenerating, isComplete, generationStep, renderPollUrl, isRenderingVideo])
 
   useEffect(() => {
     setShowActivationHints(isFirstTimeUser())

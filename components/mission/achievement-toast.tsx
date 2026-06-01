@@ -7,18 +7,49 @@ import { ACHIEVEMENTS, type AchievementId } from '@/lib/mission/achievements'
 import { useMissionStore } from '@/stores/mission-store'
 
 const DISMISS_MS = 4500
+const SEEN_KEY = 'mugtee:achievements:seen:v1'
+
+function loadSeenAchievements(): Set<AchievementId> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = localStorage.getItem(SEEN_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw) as AchievementId[]
+    return new Set(Array.isArray(parsed) ? parsed : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function markAchievementSeen(id: AchievementId) {
+  if (typeof window === 'undefined') return
+  try {
+    const seen = loadSeenAchievements()
+    seen.add(id)
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]))
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 export function AchievementToast() {
   const sessionAchievements = useMissionStore((s) => s.sessionAchievements)
   const [visible, setVisible] = useState<AchievementId | null>(null)
   const [queue, setQueue] = useState<AchievementId[]>([])
   const dismissTimerRef = useRef<number | null>(null)
+  const processedRef = useRef<Set<AchievementId>>(new Set())
 
   useEffect(() => {
     if (sessionAchievements.length === 0) return
+    const seen = loadSeenAchievements()
+    const fresh = sessionAchievements.filter(
+      (id) => !processedRef.current.has(id) && !seen.has(id)
+    )
+    if (fresh.length === 0) return
+    for (const id of fresh) processedRef.current.add(id)
     setQueue((prev) => {
       const merged = [...prev]
-      for (const id of sessionAchievements) {
+      for (const id of fresh) {
         if (!merged.includes(id)) merged.push(id)
       }
       return merged
@@ -37,8 +68,9 @@ export function AchievementToast() {
       window.clearTimeout(dismissTimerRef.current)
       dismissTimerRef.current = null
     }
+    if (visible) markAchievementSeen(visible)
     setVisible(null)
-  }, [])
+  }, [visible])
 
   useEffect(() => {
     if (!visible) return

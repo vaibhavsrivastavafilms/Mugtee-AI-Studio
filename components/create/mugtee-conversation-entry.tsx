@@ -54,6 +54,7 @@ import {
   loadCreatorLanguageSession,
 } from '@/lib/i18n/creator-language-session'
 import { saveContentLanguagePreference } from '@/lib/cinematic/content-languages'
+import { resolveActivePipelineError, shouldClearIdleExportErrors } from '@/lib/cinematic/quick-cut/pipeline-error.client'
 import { markHasCreatedProject } from '@/lib/onboarding/onboarding-state'
 
 export type MugteeConversationLaunchPayload = {
@@ -100,8 +101,17 @@ export function MugteeConversationEntry({
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const error = useQuickCutGenerationStore((s) => s.error)
-  const pipelineError =
-    error && (isGenerating || generationStep === 'error') ? error : null
+  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const prompt = useQuickCutGenerationStore((s) => s.prompt)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
+  const pipelineError = resolveActivePipelineError(error, {
+    isGenerating,
+    generationStep,
+    hasExportContext: Boolean(renderPollUrl || isRenderingVideo || isComplete),
+  })
   const setCreativeBrief = useCompanionStore((s) => s.setCreativeBrief)
   const startDiscovery = useCompanionStore((s) => s.startDiscovery)
 
@@ -112,6 +122,17 @@ export function MugteeConversationEntry({
   useEffect(() => {
     setCreatorLanguage(loadCreatorLanguageSession())
   }, [])
+
+  useEffect(() => {
+    void syncVideoRenderConfig()
+  }, [syncVideoRenderConfig])
+
+  useEffect(() => {
+    const state = useQuickCutGenerationStore.getState()
+    if (!shouldClearIdleExportErrors(state)) return
+    if (!state.error && !state.renderError) return
+    useQuickCutGenerationStore.setState({ error: null, renderError: null, renderStartedAt: null })
+  }, [prompt, scenes.length, isGenerating, isComplete, generationStep, renderPollUrl, isRenderingVideo])
 
   useEffect(() => {
     const trimmed = input.trim()

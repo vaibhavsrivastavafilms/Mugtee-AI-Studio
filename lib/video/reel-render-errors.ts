@@ -23,6 +23,19 @@ function isTransientRenderFailure(msg: string): boolean {
   )
 }
 
+export function isReelExportNoticeMessage(msg: string | null | undefined): boolean {
+  if (!msg?.trim()) return false
+  const trimmed = msg.trim()
+  return (
+    trimmed === REEL_EXPORT_UNAVAILABLE_MSG ||
+    trimmed === REEL_EXPORT_DISABLED_MSG ||
+    trimmed.includes('VIDEO_RENDER') ||
+    trimmed.includes('MP4 export') ||
+    trimmed.includes('Reel export') ||
+    trimmed.includes('Video render unavailable')
+  )
+}
+
 /** User-facing copy when server-side reel render fails. */
 export function friendlyReelRenderError(raw: string | null | undefined): string {
   if (!raw?.trim()) return REEL_EXPORT_UNAVAILABLE_MSG

@@ -10,6 +10,10 @@ import {
   isStageTabReachable,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resolveQuickCutProgressLabel } from '@/lib/quick-cut/asset-availability'
+import {
+  isReelExportStuck,
+  REEL_EXPORT_STUCK_MSG,
+} from '@/lib/reels/export-poll.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export function RenderProgress({ className }: { className?: string }) {
@@ -31,8 +35,15 @@ export function RenderProgress({ className }: { className?: string }) {
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
+  const renderStartedAt = useQuickCutGenerationStore((s) => s.renderStartedAt)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
+  const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
+
+  const exportInProgress =
+    isRenderingVideo || (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
+  const exportStuck = exportInProgress && isReelExportStuck(renderStartedAt)
 
   const progressLabel = resolveQuickCutProgressLabel({
     generationStep,
@@ -55,7 +66,7 @@ export function RenderProgress({ className }: { className?: string }) {
       <div>
         <div className="flex items-center justify-between gap-3 mb-2">
           <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/80">
-            {progressLabel || 'Preparing…'}
+            {exportStuck ? REEL_EXPORT_STUCK_MSG : progressLabel || 'Preparing…'}
           </p>
           <span className="text-[10px] text-luxe/45 tabular-nums">
             {progress}%{!isComplete && eta > 0 ? ` · ~${eta}s` : ''}
@@ -68,6 +79,18 @@ export function RenderProgress({ className }: { className?: string }) {
           />
         </div>
       </div>
+
+      {exportStuck ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
+            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-amber-500/35 bg-amber-500/10 px-4 text-[10px] tracking-[0.16em] uppercase text-amber-100/90 hover:bg-amber-500/15 transition-colors"
+          >
+            Retry export
+          </button>
+        </div>
+      ) : null}
 
       <nav aria-label="Generation stages">
         <ol className="flex flex-wrap gap-2">

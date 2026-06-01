@@ -4,5 +4,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 /** Clear preview session + in-memory generation store for a new Quick Cut. */
 export function resetQuickCutForFreshCreate() {
   clearQuickCutPreview()
-  useQuickCutGenerationStore.getState().reset({ clearProject: true })
+  const store = useQuickCutGenerationStore.getState()
+  store.reset({ clearProject: true })
+  void store.syncVideoRenderConfig()
 }
