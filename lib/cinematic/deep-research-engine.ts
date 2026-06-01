@@ -9,6 +9,7 @@ import {
   hasDirectGeminiKey,
   isFreeTierOnly,
 } from '@/lib/ai/free-tier'
+import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   DEFAULT_PERPLEXITY_RESEARCH_MODEL,
@@ -151,7 +152,7 @@ async function generateWithOpenAI(userPrompt: string): Promise<DeepResearchRepor
   }
   try {
     const openai = getOpenAIClient()
-    const completion = await openai.chat.completions.create({
+    const completion = await createCachedOpenAIChatCompletion(openai, {
       model: FREE_OPENAI_CHAT_MODEL,
       temperature: 0.85,
       response_format: { type: 'json_object' },

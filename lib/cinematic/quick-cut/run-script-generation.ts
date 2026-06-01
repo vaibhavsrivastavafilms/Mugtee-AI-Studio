@@ -7,6 +7,7 @@ import {
   isFreeTierOnly,
 } from '@/lib/ai/free-tier'
 import { generateScriptWithGemini } from '@/lib/ai/gemini-script'
+import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import {
   buildCinematicScriptPrompt,
@@ -327,7 +328,7 @@ async function generateWithOpenAI(
   }
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await createCachedOpenAIChatCompletion(openai, {
       model: FREE_OPENAI_CHAT_MODEL,
       temperature: retryNote ? 0.75 : 0.85,
       response_format: { type: 'json_object' },

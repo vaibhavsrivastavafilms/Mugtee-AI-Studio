@@ -42,6 +42,7 @@ import {
   logParsedIntent,
   resolveGenerationTopic,
   resolveParsedIntentAsync,
+  resolveParsedIntentSync,
   serializeParsedIntent,
 } from '@/lib/input-understanding'
 
@@ -149,7 +150,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const parsedIntent = await resolveParsedIntentAsync(raw, rawInput)
+    const parsedIntent =
+      raw?.parsedIntent != null || raw?.parsed_intent != null
+        ? resolveParsedIntentSync(raw, rawInput)
+        : await resolveParsedIntentAsync(raw, rawInput)
     logParsedIntent(parsedIntent)
     const topic = resolveGenerationTopic(parsedIntent, rawInput)
 

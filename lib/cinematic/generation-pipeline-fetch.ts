@@ -1,3 +1,10 @@
+import {
+  getPipelineLlmCache,
+  pipelineLlmCacheKey,
+  setPipelineLlmCache,
+  shouldUsePipelineLlmCache,
+} from '@/lib/ai/llm-pipeline-cache.client'
+
 const DEFAULT_TIMEOUT_MS = 60_000
 /** Script step runs deep research + up to 3 LLM passes + storyboard SOP — often exceeds 60s. */
 export const SCRIPT_GENERATION_TIMEOUT_MS = 180_000
@@ -106,6 +113,22 @@ export async function pipelineFetchJson<T = Record<string, unknown>>(
   url: string,
   options: PipelineFetchOptions = {}
 ): Promise<{ res: Response; data: T }> {
+  const method = (options.method ?? 'GET').toUpperCase()
+  const bodyKey =
+    typeof options.body === 'string' && shouldUsePipelineLlmCache(url, method)
+      ? pipelineLlmCacheKey(url, options.body)
+      : null
+
+  if (bodyKey) {
+    const cached = getPipelineLlmCache<{ ok: boolean; status: number; data: T }>(bodyKey)
+    if (cached?.ok) {
+      return {
+        res: new Response(JSON.stringify(cached.data), { status: cached.status }),
+        data: cached.data,
+      }
+    }
+  }
+
   const res = await pipelineFetch(url, options)
   if (res.status === 504) {
     throw new Error(GATEWAY_TIMEOUT_MESSAGE)
@@ -118,5 +141,10 @@ export async function pipelineFetchJson<T = Record<string, unknown>>(
         : "You've reached your current plan limit."
     throw new PlanLimitError(msg)
   }
+
+  if (bodyKey && res.ok) {
+    setPipelineLlmCache(bodyKey, { ok: true, status: res.status, data })
+  }
+
   return { res, data }
 }
