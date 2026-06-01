@@ -26,6 +26,10 @@ export type ElevenLabsVoiceOption = {
 const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'
 const DEFAULT_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_turbo_v2_5'
 
+if (process.env.NODE_ENV === 'development') {
+  console.log('[elevenlabs] Key loaded:', !!process.env.ELEVENLABS_API_KEY)
+}
+
 const LANGUAGE_ALIASES: Record<ProjectLanguage, string[]> = {
   en: ['en', 'english', 'american', 'british', 'australian'],
   hi: ['hi', 'hindi', 'hinglish', 'indian'],
