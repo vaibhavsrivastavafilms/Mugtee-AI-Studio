@@ -1,0 +1,245 @@
+﻿
+> nextjs-mongo-template@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+node.exe : <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization 
+performance (consider using Buffer instead and decode when needed)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (<w> [webpack.ca...de when needed):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance 
+(consider using Buffer instead and decode when needed)
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+ ΓÜá Using edge runtime on a page currently disables static generation for that page
+   Generating static pages (0/98) ...
+   Generating static pages (24/98) 
+   Generating static pages (48/98) 
+   Generating static pages (73/98) 
+ Γ£ô Generating static pages (98/98)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                         Size     First Load JS
+Γöî ╞Æ /                                               21.1 kB         173 kB
+Γö£ Γùï /_not-found                                     879 B          88.4 kB
+Γö£ Γùï /.well-known/assetlinks.json                    0 B                0 B
+Γö£ Γùï /about                                          197 B          94.5 kB
+Γö£ ╞Æ /admin                                          4.43 kB        98.7 kB
+Γö£ ╞Æ /admin/analytics                                3.19 kB        97.5 kB
+Γö£ ╞Æ /admin/feedback                                 2.47 kB         106 kB
+Γö£ ╞Æ /admin/growth-signals                           3.84 kB        98.1 kB
+Γö£ ╞Æ /admin/interviews                               2.8 kB         97.1 kB
+Γö£ ╞Æ /admin/launch-checklist                         2.47 kB         106 kB
+Γö£ ╞Æ /admin/launch-readiness                         4.14 kB         108 kB
+Γö£ ╞Æ /admin/referrals                                1.57 kB         105 kB
+Γö£ ╞Æ /admin/validation                               4.66 kB          99 kB
+Γö£ Γùï /analytics                                      220 B          87.7 kB
+Γö£ ╞Æ /api/[[...path]]                                0 B                0 B
+Γö£ ╞Æ /api/admin/dashboard                            0 B                0 B
+Γö£ ╞Æ /api/admin/exit-feedback                        0 B                0 B
+Γö£ ╞Æ /api/admin/feature-usage                        0 B                0 B
+Γö£ ╞Æ /api/admin/feedback                             0 B                0 B
+Γö£ ╞Æ /api/admin/growth-signals                       0 B                0 B
+Γö£ ╞Æ /api/admin/interviews                           0 B                0 B
+Γö£ ╞Æ /api/admin/metrics                              0 B                0 B
+Γö£ ╞Æ /api/admin/referrals                            0 B                0 B
+Γö£ ╞Æ /api/admin/validation                           0 B                0 B
+Γö£ ╞Æ /api/admin/validation-report                    0 B                0 B
+Γö£ ╞Æ /api/ai/deep-research                           0 B                0 B
+Γö£ ╞Æ /api/ai/generate                                0 B                0 B
+Γö£ ╞Æ /api/ai/image                                   0 B                0 B
+Γö£ ╞Æ /api/ai/motion-director                         0 B                0 B
+Γö£ ╞Æ /api/ai/rewrite                                 0 B                0 B
+Γö£ ╞Æ /api/ai/runway-video                            0 B                0 B
+Γö£ ╞Æ /api/ai/video-generator                         0 B                0 B
+Γö£ ╞Æ /api/ai/voice                                   0 B                0 B
+Γö£ ╞Æ /api/ai/voiceover                               0 B                0 B
+Γö£ ╞Æ /api/analytics/event                            0 B                0 B
+Γö£ ╞Æ /api/analytics/events                           0 B                0 B
+Γö£ ╞Æ /api/analytics/feature-usage                    0 B                0 B
+Γö£ ╞Æ /api/analytics/feedback                         0 B                0 B
+Γö£ ╞Æ /api/analytics/summary                          0 B                0 B
+Γö£ ╞Æ /api/analytics/track                            0 B                0 B
+Γö£ ╞Æ /api/billing/create-subscription                0 B                0 B
+Γö£ ╞Æ /api/billing/me                                 0 B                0 B
+Γö£ ╞Æ /api/billing/verify                             0 B                0 B
+Γö£ ╞Æ /api/buffer/queue                               0 B                0 B
+Γö£ ╞Æ /api/buffer/status                              0 B                0 B
+Γö£ ╞Æ /api/cinematic/quick-cut                        0 B                0 B
+Γö£ ╞Æ /api/cinematic/render/output/[...path]          0 B                0 B
+Γö£ ╞Æ /api/cinematic/render/prepare                   0 B                0 B
+Γö£ ╞Æ /api/cinematic/storyboard                       0 B                0 B
+Γö£ ╞Æ /api/companion/creator-memory                   0 B                0 B
+Γö£ ╞Æ /api/companion/director-note                    0 B                0 B
+Γö£ ╞Æ /api/companion/discovery                        0 B                0 B
+Γö£ ╞Æ /api/companion/emotional-analysis               0 B                0 B
+Γö£ ╞Æ /api/companion/reflection                       0 B                0 B
+Γö£ ╞Æ /api/companion/story-expansions                 0 B                0 B
+Γö£ ╞Æ /api/compile-video                              0 B                0 B
+Γö£ ╞Æ /api/content-director/brief                     0 B                0 B
+Γö£ ╞Æ /api/creator-profile                            0 B                0 B
+Γö£ ╞Æ /api/elevenlabs/preview                         0 B                0 B
+Γö£ ╞Æ /api/elevenlabs/voices                          0 B                0 B
+Γö£ ╞Æ /api/enhance-storyboard                         0 B                0 B
+Γö£ ╞Æ /api/enhance-visual                             0 B                0 B
+Γö£ ╞Æ /api/exit-feedback                              0 B                0 B
+Γö£ ╞Æ /api/feedback                                   0 B                0 B
+Γö£ ╞Æ /api/feedback/summary                           0 B                0 B
+Γö£ ╞Æ /api/founding-creator                           0 B                0 B
+Γö£ ╞Æ /api/generate-images                            0 B                0 B
+Γö£ ╞Æ /api/generate-scenes                            0 B                0 B
+Γö£ ╞Æ /api/generate-script                            0 B                0 B
+Γö£ ╞Æ /api/generate-series                            0 B                0 B
+Γö£ ╞Æ /api/generate-title                             0 B                0 B
+Γö£ ╞Æ /api/generate-voice                             0 B                0 B
+Γö£ ╞Æ /api/guest-hook                                 0 B                0 B
+Γö£ ╞Æ /api/improve-caption                            0 B                0 B
+Γö£ ╞Æ /api/instagram/[action]                         0 B                0 B
+Γö£ ╞Æ /api/lead                                       0 B                0 B
+Γö£ ╞Æ /api/library/assets                             0 B                0 B
+Γö£ ╞Æ /api/mascot                                     0 B                0 B
+Γö£ ╞Æ /api/mugtee                                     0 B                0 B
+Γö£ ╞Æ /api/notion/status                              0 B                0 B
+Γö£ ╞Æ /api/notion/sync                                0 B                0 B
+Γö£ ╞Æ /api/profile                                    0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/assets                       0 B                0 B
+Γö£ ╞Æ /api/projects/[id]/generation                   0 B                0 B
+Γö£ ╞Æ /api/projects/create                            0 B                0 B
+Γö£ ╞Æ /api/projects/recent                            0 B                0 B
+Γö£ ╞Æ /api/projects/Save                              0 B                0 B
+Γö£ ╞Æ /api/quality/review                             0 B                0 B
+Γö£ ╞Æ /api/quick-cut/config                           0 B                0 B
+Γö£ ╞Æ /api/reels/download/[projectId]                 0 B                0 B
+Γö£ ╞Æ /api/reels/download/[projectId]/file            0 B                0 B
+Γö£ ╞Æ /api/reels/export                               0 B                0 B
+Γö£ ╞Æ /api/reels/export/[jobId]                       0 B                0 B
+Γö£ ╞Æ /api/referral                                   0 B                0 B
+Γö£ ╞Æ /api/referral/claim                             0 B                0 B
+Γö£ ╞Æ /api/referral/visit                             0 B                0 B
+Γö£ ╞Æ /api/regenerate-hook                            0 B                0 B
+Γö£ ╞Æ /api/regenerate-scene                           0 B                0 B
+Γö£ ╞Æ /api/render-video                               0 B                0 B
+Γö£ ╞Æ /api/render-video/asset/[jobId]                 0 B                0 B
+Γö£ ╞Æ /api/render-video/status/[jobId]                0 B                0 B
+Γö£ ╞Æ /api/render/reel                                0 B                0 B
+Γö£ ╞Æ /api/render/reel/status/[jobId]                 0 B                0 B
+Γö£ ╞Æ /api/repurpose-content                          0 B                0 B
+Γö£ ╞Æ /api/revenue/track                              0 B                0 B
+Γö£ ╞Æ /api/showcase/projects                          0 B                0 B
+Γö£ ╞Æ /api/sponsor/[name]                             0 B                0 B
+Γö£ ╞Æ /api/suggest-voice                              0 B                0 B
+Γö£ ╞Æ /api/test-db                                    0 B                0 B
+Γö£ ╞Æ /api/upgrade-interest                           0 B                0 B
+Γö£ ╞Æ /api/usage                                      0 B                0 B
+Γö£ ╞Æ /api/workspace/exports                          0 B                0 B
+Γö£ ╞Æ /api/workspace/project/[id]                     0 B                0 B
+Γö£ ╞Æ /api/workspace/save                             0 B                0 B
+Γö£ ╞Æ /api/workspace/thumbnail                        0 B                0 B
+Γö£ ╞Æ /api/youtube/auth                               0 B                0 B
+Γö£ ╞Æ /api/youtube/callback                           0 B                0 B
+Γö£ ╞Æ /api/youtube/disconnect                         0 B                0 B
+Γö£ ╞Æ /api/youtube/status                             0 B                0 B
+Γö£ ╞Æ /api/youtube/upload                             0 B                0 B
+Γö£ ╞Æ /auth                                           220 B          87.7 kB
+Γö£ ╞Æ /auth/callback                                  0 B                0 B
+Γö£ Γùï /auth/login                                     8.99 kB         510 kB
+Γö£ ╞Æ /auth/signout                                   0 B                0 B
+Γö£ ╞Æ /automations                                    3.92 kB         132 kB
+Γö£ Γùï /blog                                           202 B          94.5 kB
+Γö£ Γùï /blog/ai-documentary-script-workflow            197 B          94.5 kB
+Γö£ Γùï /blog/best-faceless-youtube-niches              202 B          94.5 kB
+Γö£ Γùï /blog/how-to-make-viral-reels-faster            202 B          94.5 kB
+Γö£ ╞Æ /calendar                                       11.3 kB         363 kB
+Γö£ ╞Æ /cinematic                                      221 B          87.7 kB
+Γö£ ╞Æ /cinematic/compile                              220 B          87.7 kB
+Γö£ ╞Æ /cinematic/create                               5.38 kB         465 kB
+Γö£ ╞Æ /cinematic/director                             220 B          87.7 kB
+Γö£ ΓùÅ /cinematic/examples/[slug]                      2.72 kB          97 kB
+Γö£   Γö£ /cinematic/examples/psychology-attention
+Γö£   Γö£ /cinematic/examples/luxury-is-quiet
+Γö£   Γö£ /cinematic/examples/documentary-last-witness
+Γö£   Γöö [+3 more paths]
+Γö£ ╞Æ /cinematic/generating                           220 B          87.7 kB
+Γö£ ╞Æ /cinematic/preview                              221 B          87.7 kB
+Γö£ ╞Æ /cinematic/scenes                               220 B          87.7 kB
+Γö£ ╞Æ /cinematic/voiceover                            220 B          87.7 kB
+Γö£ Γùï /contact                                        3.02 kB         109 kB
+Γö£ ╞Æ /create                                         226 B           802 kB
+Γö£ ╞Æ /create/[projectId]                             220 B          87.7 kB
+Γö£ ╞Æ /create/[projectId]/director                    220 B          87.7 kB
+Γö£ ╞Æ /create/[projectId]/export                      192 B           460 kB
+Γö£ ╞Æ /create/[projectId]/generate                    1.84 kB         795 kB
+Γö£ ╞Æ /create/knowledge                               220 B          87.7 kB
+Γö£ ╞Æ /crew                                           9.3 kB          264 kB
+Γö£ ╞Æ /dashboard                                      11.4 kB         563 kB
+Γö£ ╞Æ /director-cut                                   220 B          87.7 kB
+Γö£ Γùï /icon.png                                       0 B                0 B
+Γö£ ΓùÅ /icons/[file]                                   0 B                0 B
+Γö£   Γö£ /icons/icon.png
+Γö£   Γö£ /icons/icon-192.png
+Γö£   Γö£ /icons/icon-512.png
+Γö£   Γöö [+4 more paths]
+Γö£ ╞Æ /invite/[code]                                  3.45 kB         148 kB
+Γö£ ╞Æ /library                                        220 B          87.7 kB
+Γö£ ╞Æ /login                                          220 B          87.7 kB
+Γö£ Γùï /made-with-mugtee                               5.67 kB         117 kB
+Γö£ Γùï /manifest.webmanifest                           0 B                0 B
+Γö£ ╞Æ /media                                          14.4 kB         249 kB
+Γö£ Γùï /offline                                        220 B          87.7 kB
+Γö£ ╞Æ /opengraph-image                                0 B                0 B
+Γö£ ╞Æ /pipeline                                       16.4 kB         386 kB
+Γö£ Γùï /pricing                                        10.4 kB         306 kB
+Γö£ Γùï /privacy                                        197 B          94.5 kB
+Γö£ ╞Æ /project/[id]                                   220 B          87.7 kB
+Γö£ ╞Æ /projects                                       4.8 kB          659 kB
+Γö£ ╞Æ /quick-cut                                      220 B          87.7 kB
+Γö£ ╞Æ /quick-cut/preview                              220 B          87.7 kB
+Γö£ Γùï /robots.txt                                     0 B                0 B
+Γö£ ╞Æ /script/[id]                                    21.3 kB         483 kB
+Γö£ ╞Æ /scripts                                        220 B          87.7 kB
+Γö£ ╞Æ /settings                                       234 B           359 kB
+Γö£ ╞Æ /shoots                                         7.41 kB         270 kB
+Γö£ Γùï /showcase                                       221 B          87.7 kB
+Γö£ Γùï /sitemap.xml                                    0 B                0 B
+Γö£ ╞Æ /storyboards                                    220 B          87.7 kB
+Γö£ ╞Æ /studio                                         22.5 kB         673 kB
+Γö£ ╞Æ /studio/admin                                   3.06 kB        97.3 kB
+Γö£ ╞Æ /studio/analytics                               5.52 kB         657 kB
+Γö£ ╞Æ /studio/create                                  226 B           802 kB
+Γö£ ╞Æ /studio/create/[projectId]                      220 B          87.7 kB
+Γö£ ╞Æ /studio/create/[projectId]/director             220 B          87.7 kB
+Γö£ ╞Æ /studio/create/[projectId]/export               192 B           460 kB
+Γö£ ╞Æ /studio/create/[projectId]/generate             1.84 kB         795 kB
+Γö£ ╞Æ /studio/director                                352 B           282 kB
+Γö£ ╞Æ /studio/exports                                 3.48 kB         654 kB
+Γö£ ╞Æ /studio/knowledge                               6.93 kB         278 kB
+Γö£ ╞Æ /studio/project/[id]                            220 B          87.7 kB
+Γö£ ╞Æ /studio/projects                                4.41 kB         655 kB
+Γö£ ╞Æ /studio/quick-cut                               220 B          87.7 kB
+Γö£ ╞Æ /studio/settings                                233 B           359 kB
+Γö£ ╞Æ /studio/video                                   20.5 kB         481 kB
+Γö£ ╞Æ /studio/workspace                               15.4 kB         809 kB
+Γö£ Γùï /sw.js                                          0 B                0 B
+Γö£ Γùï /terms                                          202 B          94.5 kB
+Γöö ╞Æ /workspace                                      281 B           282 kB
++ First Load JS shared by all                       87.5 kB
+  Γö£ chunks/7023-5f70e2bcfacc88c5.js                 31.6 kB
+  Γö£ chunks/fd9d1056-997155f8db619325.js             53.6 kB
+  Γöö other shared chunks (total)                     2.22 kB
+
+
+╞Æ Middleware                                        82.5 kB
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses getStaticProps)
+╞Æ  (Dynamic)  server-rendered on demand
+
