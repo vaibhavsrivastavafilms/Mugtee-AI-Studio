@@ -534,7 +534,9 @@ export function GenerationStagePanel({
         shell(
           'Download',
           <Download className="w-3 h-3" />,
-          <p className="text-[12px] text-luxe/55 italic">Finishing touches…</p>
+          <p className="text-[12px] text-luxe/55 italic">
+            {videoUrl ? 'Download ready.' : 'Finishing touches…'}
+          </p>
         )
       )
 

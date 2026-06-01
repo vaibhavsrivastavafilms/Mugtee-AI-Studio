@@ -77,6 +77,7 @@ import type { ContentSeries } from '@/lib/cinematic/content-series'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
+import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
 import {
@@ -256,7 +257,7 @@ export const STEP_PROGRESS: Record<QuickCutGenerationStep, number> = {
   images: 58,
   motion: 68,
   voice: 75,
-  render: 88,
+  render: 90,
   complete: 100,
   error: 0,
 }
@@ -355,6 +356,8 @@ interface QuickCutGenerationStateBase {
   renderError: string | null
   renderStatusLabel: string | null
   isRenderingVideo: boolean
+  /** When server-side MP4 export poll started (for stuck >3min UI). */
+  renderStartedAt: number | null
   exportPackageReady: boolean
   /** MP4 URL missing or download failed — user must re-export. */
   exportExpired: boolean
@@ -500,6 +503,7 @@ const INITIAL: QuickCutGenerationState = {
   renderError: null,
   renderStatusLabel: null,
   isRenderingVideo: false,
+  renderStartedAt: null,
   exportPackageReady: false,
   exportExpired: false,
   videoRenderEnabled: false,
@@ -1278,7 +1282,10 @@ function setStep(
   const patch: Partial<QuickCutGenerationState> = {
     generationStep: step,
     progress,
-    eta: step === 'complete' ? 0 : Math.max(0, Math.round((100 - progress) * 0.14)),
+    eta:
+      step === 'complete' || step === 'render'
+        ? 0
+        : Math.max(0, Math.round((100 - progress) * 0.14)),
   }
   if (!get().stageTabPinned) {
     const tab = generationStepToTab(step)
@@ -1289,21 +1296,39 @@ function setStep(
 
 async function pollRenderJob(
   pollUrl: string,
-  onUpdate?: (patch: { videoUrl?: string; label?: string }) => void,
-  maxAttempts = 120,
+  onUpdate?: (patch: { videoUrl?: string; label?: string; progress?: number }) => void,
+  maxAttempts = 240,
   projectId?: string | null
 ): Promise<string> {
-  const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+  const { pollReelExportJob, capReelExportProgress } = await import(
+    '@/lib/reels/export-poll.client'
+  )
+  const startedAt = Date.now()
+  useQuickCutGenerationStore.setState({ renderStartedAt: startedAt })
+
   return pollReelExportJob(pollUrl, {
     maxAttempts,
     projectId,
+    startedAt,
     onProgress: (patch) => {
       if (patch.label) onUpdate?.({ label: patch.label })
+      if (patch.progress !== undefined) {
+        const capped = capReelExportProgress(patch.progress) ?? patch.progress
+        const exportProgress = Math.max(STEP_PROGRESS.render, capped)
+        onUpdate?.({ progress: exportProgress })
+        useQuickCutGenerationStore.setState({ progress: exportProgress })
+      }
     },
-  }).then((url) => {
-    onUpdate?.({ videoUrl: url })
-    return url
   })
+    .then((url) => {
+      useQuickCutGenerationStore.setState({ renderStartedAt: null, progress: 100 })
+      onUpdate?.({ videoUrl: url, progress: 100 })
+      return url
+    })
+    .catch((err) => {
+      useQuickCutGenerationStore.setState({ renderStartedAt: null })
+      throw err
+    })
 }
 
 async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boolean) {
@@ -2467,7 +2492,7 @@ export const useQuickCutGenerationStore = create<
         }
 
         if (videoRenderEnabled) {
-          set({ isRenderingVideo: true, renderError: null, exportExpired: false })
+          set({ isRenderingVideo: true, renderError: null, exportExpired: false, renderStartedAt: Date.now() })
           try {
             const { renderRes, renderData } = await requestVideoRender(get(), true)
 
@@ -2487,7 +2512,7 @@ export const useQuickCutGenerationStore = create<
                         set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
                       }
                     },
-                    120,
+                    undefined,
                     get().savedProjectId
                   )
                 } catch (pollErr) {
@@ -2600,7 +2625,7 @@ export const useQuickCutGenerationStore = create<
           mp4Ready || exportFailedFinal || exportPackageReady ? 'export' : get().lastCompletedStep,
         failedAtStep: exportFailedFinal ? 'export' : null,
         error: null,
-        progress: mp4Ready ? 100 : exportInProgressFinal ? 92 : exportFailedFinal ? 100 : 100,
+        progress: mp4Ready ? 100 : exportInProgressFinal ? REEL_EXPORT_PROGRESS_CAP : exportFailedFinal ? 100 : 100,
         eta: 0,
         lastGeneratedPrompt: prompt,
         studioReviewMode: false,
@@ -2674,6 +2699,10 @@ export const useQuickCutGenerationStore = create<
             projectId: get().savedProjectId,
           })
         }
+      }
+
+      if (exportInProgressFinal && !get().isRenderingVideo) {
+        void get().resumeRenderPoll()
       }
 
       persistSession(get())
@@ -3161,7 +3190,7 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
-    set({ renderError: null, isRenderingVideo: true, exportExpired: false })
+    set({ renderError: null, isRenderingVideo: true, exportExpired: false, renderStartedAt: Date.now() })
 
     try {
       try {
@@ -3245,7 +3274,7 @@ export const useQuickCutGenerationStore = create<
     const { renderPollUrl, videoUrl, videoRenderEnabled, isRenderingVideo, savedProjectId } = get()
     if (!videoRenderEnabled || !renderPollUrl || videoUrl || isRenderingVideo) return
 
-    set({ isRenderingVideo: true })
+    set({ isRenderingVideo: true, renderStartedAt: Date.now() })
     try {
       const url = await pollRenderJob(
         renderPollUrl,
@@ -3264,11 +3293,16 @@ export const useQuickCutGenerationStore = create<
         renderError: null,
         exportExpired: false,
         generationStep: 'complete',
+        progress: 100,
+        eta: 0,
       })
       persistSession(get())
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Video render timed out'
-      if (message.includes('Export job expired') && savedProjectId) {
+      if (
+        (message.includes('Export job expired') || message.includes('Retry export')) &&
+        savedProjectId
+      ) {
         const { fetchProjectReelDownload, EXPORT_EXPIRED_MSG } = await import(
           '@/lib/quick-cut/asset-availability'
         )
@@ -3280,6 +3314,8 @@ export const useQuickCutGenerationStore = create<
             renderError: null,
             exportExpired: false,
             generationStep: 'complete',
+            progress: 100,
+            eta: 0,
           })
           persistSession(get())
           return

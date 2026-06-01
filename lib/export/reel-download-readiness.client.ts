@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
+import { REEL_EXPORT_STUCK_MS } from '@/lib/reels/export-poll.client'
 
 export type ReelDownloadReadiness = {
   /** True when URL validated and safe to enable download */
@@ -23,17 +24,28 @@ type ValidateResponse = {
 }
 
 const VALIDATION_DELAYS_MS = [0, 1500, 3000]
+const VALIDATION_FETCH_TIMEOUT_MS = 12_000
 
 async function fetchValidation(
   projectId: string,
   signal: AbortSignal
 ): Promise<ValidateResponse | null> {
-  const res = await fetch(`/api/reels/download/${encodeURIComponent(projectId)}`, {
-    credentials: 'include',
-    signal,
-  })
-  if (!res.ok) return null
-  return (await res.json()) as ValidateResponse
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), VALIDATION_FETCH_TIMEOUT_MS)
+  const onAbort = () => controller.abort()
+  signal.addEventListener('abort', onAbort)
+
+  try {
+    const res = await fetch(`/api/reels/download/${encodeURIComponent(projectId)}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    if (!res.ok) return null
+    return (await res.json()) as ValidateResponse
+  } finally {
+    clearTimeout(timer)
+    signal.removeEventListener('abort', onAbort)
+  }
 }
 
 /**
@@ -52,11 +64,13 @@ export function useReelDownloadReadiness(input: {
   const [validating, setValidating] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const startedAtRef = useRef<number | null>(null)
 
   const runValidation = useCallback(async () => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    startedAtRef.current = Date.now()
 
     const url = videoUrl?.trim()
     if (exportExpired || isRendering || renderPollUrl) {
@@ -101,6 +115,13 @@ export function useReelDownloadReadiness(input: {
         if (data.validationError) {
           setValidationError(data.validationError)
         }
+
+        const elapsed = Date.now() - (startedAtRef.current ?? Date.now())
+        if (elapsed >= REEL_EXPORT_STUCK_MS) {
+          setReady(false)
+          setValidationError('Export taking longer than expected — Retry export')
+          return
+        }
       }
 
       setReady(false)
@@ -127,7 +148,7 @@ export function useReelDownloadReadiness(input: {
     : isRendering || renderPollUrl
       ? 'Preparing your video…'
       : validating
-        ? 'Preparing your video…'
+        ? 'Finishing touches…'
         : ready
           ? 'Video ready for download.'
           : videoUrl?.trim()

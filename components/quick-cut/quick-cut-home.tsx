@@ -37,8 +37,10 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     if (previewRestoredRef.current) return
     previewRestoredRef.current = true
-    restoreQuickCutPreviewSession()
-  }, [])
+    const isFreshQuickCreate =
+      searchParams?.get('mode') === 'quick' && !searchParams?.get('projectId')
+    restoreQuickCutPreviewSession({ allowOnFreshCreate: !isFreshQuickCreate })
+  }, [searchParams])
 
   useEffect(() => {
     const topic = searchParams?.get('topic') ?? searchParams?.get('prompt')
