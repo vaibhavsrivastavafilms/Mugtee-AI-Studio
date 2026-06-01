@@ -1,14 +1,7 @@
 import { getAnthropicClient, CLAUDE_SCRIPT_MODEL } from '@/lib/ai/anthropic-client'
-import {
-  allowAnthropicScript,
-  allowOpenAIScript,
-  FREE_OPENAI_CHAT_MODEL,
-  hasDirectGeminiKey,
-  isFreeTierOnly,
-} from '@/lib/ai/free-tier'
-import { generateScriptWithGemini } from '@/lib/ai/gemini-script'
-import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
-import { getOpenAIClient } from '@/lib/ai/openai-client'
+import { allowAnthropicScript } from '@/lib/ai/free-tier'
+import { generateScriptViaRouter } from '@/lib/ai/providers/generation-bridge'
+import { getAvailableProviders } from '@/lib/ai/providers'
 import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
@@ -316,96 +309,45 @@ async function generateWithClaude(
   return parseLlmJson(content)
 }
 
-async function generateWithOpenAI(
-  input: GenInput,
-  userPrompt: string,
-  systemPrompt: string,
-  retryNote?: string
-) {
-  const openai = getOpenAIClient()
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[OPENAI] REQUEST START', { model: FREE_OPENAI_CHAT_MODEL, retry: Boolean(retryNote) })
-  }
-
-  try {
-    const completion = await createCachedOpenAIChatCompletion(openai, {
-      model: FREE_OPENAI_CHAT_MODEL,
-      temperature: retryNote ? 0.75 : 0.85,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    })
-
-    const content = completion.choices[0]?.message?.content || '{}'
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[OPENAI] REQUEST SUCCESS')
-      console.log('[SCRIPT_DEBUG] openai success')
-    }
-    return parseLlmJson(content)
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[OPENAI] REQUEST FAILED', error)
-    }
-    throw error
-  }
-}
-
-async function tryGeminiScript(
-  userPrompt: string,
-  systemPrompt: string,
-  topic: string,
-  retryNote?: string,
-  errors?: string[]
-): Promise<Record<string, unknown> | null> {
-  const gemini = await generateScriptWithGemini({
-    systemPrompt,
-    userPrompt,
-    temperature: retryNote ? 0.75 : 0.85,
-  })
-  if (gemini && hasUsableLlmScript(gemini, topic)) return gemini
-  if (gemini && Object.keys(gemini).length > 0) errors?.push('gemini_echo_or_empty')
-  else if (errors) errors.push('gemini_failed')
-  return null
-}
-
-/** OpenAI (ChatGPT) first when key set → Claude → Gemini (Gemini first only on free tier without OpenAI). */
+/** Multi-provider script generation via AI router, with Anthropic as legacy fallback. */
 async function generateScript(input: GenInput, retryNote?: string) {
   const userPrompt = buildUserPrompt(input, retryNote)
   const systemPrompt = buildSystemPrompt(input.scriptArchetype)
   const errors: string[] = []
-  const openaiFirst = allowOpenAIScript()
-  const geminiFirst = isFreeTierOnly() && !openaiFirst
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[generate-script] provider order', {
-      openaiFirst,
-      geminiFirst,
-      openai: allowOpenAIScript(),
-      anthropic: allowAnthropicScript(),
-      gemini: hasDirectGeminiKey(),
-    })
-  }
 
-  const runGemini = () =>
-    tryGeminiScript(userPrompt, systemPrompt, input.topic, retryNote, errors)
-
-  if (openaiFirst) {
+  if (getAvailableProviders().length > 0) {
     try {
-      const openai = await generateWithOpenAI(input, userPrompt, systemPrompt, retryNote)
-      if (hasUsableLlmScript(openai, input.topic)) return openai
-      errors.push('openai_echo_or_empty')
+      const routerResult = await generateScriptViaRouter({
+        systemPrompt,
+        userPrompt,
+        topic: input.topic,
+        temperature: retryNote ? 0.75 : 0.85,
+        contextInput: {
+          topic: input.topic,
+          niche: input.niche,
+          tone: input.tone,
+          platform: input.platform,
+          parsedIntent: input.parsedIntent,
+          memoryProfile: input.memoryProfile,
+          companionMemory: input.companionMemory,
+          contentBrief: input.contentBrief,
+        },
+      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[generate-script] router provider', routerResult.provider)
+      }
+      if (hasUsableLlmScript(routerResult.parsed, input.topic)) {
+        return routerResult.parsed
+      }
+      errors.push(`${routerResult.provider}_echo_or_empty`)
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('[OPENAI] REQUEST FAILED (script provider)', err)
+        console.error('[generate-script] router failed', err)
       }
-      errors.push('openai_failed')
+      errors.push('router_failed')
     }
-  }
-
-  if (geminiFirst) {
-    const gemini = await runGemini()
-    if (gemini) return gemini
+  } else {
+    errors.push('no_provider_keys')
   }
 
   if (allowAnthropicScript()) {
@@ -416,11 +358,6 @@ async function generateScript(input: GenInput, retryNote?: string) {
     } catch {
       errors.push('claude_failed')
     }
-  }
-
-  if (!geminiFirst) {
-    const gemini = await runGemini()
-    if (gemini) return gemini
   }
 
   throw new Error(
