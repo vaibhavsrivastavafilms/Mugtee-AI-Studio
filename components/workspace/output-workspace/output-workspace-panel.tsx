@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { lazy, Suspense, useRef } from 'react'
 import { Clapperboard } from 'lucide-react'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
-import { ContentReadinessTracker } from '@/components/workspace/content-readiness-tracker'
 import { ExportHub } from '@/components/workspace/export-hub'
 import { PlatformModeToggle } from '@/components/workspace/platform-mode-toggle'
 import { QuickCreatorActions } from '@/components/workspace/quick-creator-actions'
@@ -12,21 +11,6 @@ import { WorkspaceSectionSkeleton } from '@/components/workspace/output-workspac
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { cn } from '@/lib/utils'
 
-const HookSection = lazy(() =>
-  import('@/components/workspace/output-workspace/hook-section').then((m) => ({
-    default: m.HookSection,
-  }))
-)
-const ScriptSection = lazy(() =>
-  import('@/components/workspace/output-workspace/script-section').then((m) => ({
-    default: m.ScriptSection,
-  }))
-)
-const StoryboardSection = lazy(() =>
-  import('@/components/workspace/output-workspace/storyboard-section').then((m) => ({
-    default: m.StoryboardSection,
-  }))
-)
 const CaptionSection = lazy(() =>
   import('@/components/workspace/output-workspace/caption-section').then((m) => ({
     default: m.CaptionSection,
@@ -69,21 +53,20 @@ export function OutputWorkspacePanel({ projectId, className }: OutputWorkspacePa
       <div
         ref={containerRef}
         className={cn('space-y-4 pt-2 border-t border-white/[0.06]', className)}
-        aria-label="Output workspace"
+        aria-label="Export workspace"
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <p className="text-[9px] tracking-[0.24em] uppercase text-gold-300/70">
-              Output workspace
+              Export workspace
             </p>
             <p className="text-[11px] text-luxe/50 mt-0.5 italic">
-              From generation to execution — copy, refine, export.
+              Captions, thumbnails, and platform exports — hook, script, and scenes live above.
             </p>
           </div>
           <PlatformModeToggle />
         </div>
 
-        <ContentReadinessTracker />
         {scenes.length > 0 && savedProjectId ? (
           <Link
             href={`/studio/editor?project=${encodeURIComponent(savedProjectId)}`}
@@ -94,18 +77,6 @@ export function OutputWorkspacePanel({ projectId, className }: OutputWorkspacePa
           </Link>
         ) : null}
         <QuickCreatorActions compact />
-
-        <Suspense fallback={<SectionFallback />}>
-          <HookSection loading={isHydrating} />
-        </Suspense>
-
-        <Suspense fallback={<SectionFallback />}>
-          <ScriptSection loading={isHydrating} />
-        </Suspense>
-
-        <Suspense fallback={<SectionFallback />}>
-          <StoryboardSection loading={isHydrating} />
-        </Suspense>
 
         <Suspense fallback={<SectionFallback />}>
           <CaptionSection loading={isHydrating} />

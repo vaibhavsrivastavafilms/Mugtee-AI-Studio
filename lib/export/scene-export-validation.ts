@@ -1,0 +1,84 @@
+import type { GeneratedScene } from '@/lib/cinematic/generation'
+
+/** Scene still used for reel MP4 export (primary imageUrl or storyboard fallback). */
+export type SceneExportImageSource = {
+  id: string
+  title?: string | null
+  imageUrl?: string | null
+  activeStoryboardId?: string | null
+  storyboardImages?: { id: string; url?: string | null }[] | null
+}
+
+export type MissingExportScene = {
+  index: number
+  id: string
+  title: string
+}
+
+export function resolveSceneExportImageUrl(scene: SceneExportImageSource): string | null {
+  if (scene.imageUrl?.trim()) return scene.imageUrl.trim()
+  const active = scene.storyboardImages?.find(
+    (img) => img.id === scene.activeStoryboardId
+  )?.url
+  if (active?.trim()) return active.trim()
+  const first = scene.storyboardImages?.[0]?.url
+  return first?.trim() ? first.trim() : null
+}
+
+export function findScenesMissingExportImages(
+  scenes: SceneExportImageSource[]
+): MissingExportScene[] {
+  return scenes
+    .map((scene, index) => ({
+      index: index + 1,
+      id: scene.id,
+      title: scene.title?.trim() || `Scene ${index + 1}`,
+      imageUrl: resolveSceneExportImageUrl(scene),
+    }))
+    .filter((row) => !row.imageUrl)
+    .map(({ index, id, title }) => ({ index, id, title }))
+}
+
+export function allScenesHaveExportImages(scenes: SceneExportImageSource[]): boolean {
+  if (scenes.length < 1) return false
+  return findScenesMissingExportImages(scenes).length === 0
+}
+
+function formatSceneNumberList(indices: number[]): string {
+  if (indices.length === 1) return String(indices[0])
+  if (indices.length === 2) return `${indices[0]} and ${indices[1]}`
+  return `${indices.slice(0, -1).join(', ')}, and ${indices[indices.length - 1]}`
+}
+
+/** Creator-facing copy when export is blocked by missing storyboard stills. */
+export function missingScenesExportMessage(missing: MissingExportScene[]): string {
+  if (missing.length < 1) return ''
+  const nums = missing.map((m) => m.index)
+  const sceneWord = nums.length === 1 ? 'Scene' : 'Scenes'
+  const imageWord = nums.length === 1 ? 'image' : 'images'
+  return `Cannot export reel — ${sceneWord.toLowerCase()} ${formatSceneNumberList(nums)} ${nums.length === 1 ? 'is' : 'are'} missing storyboard ${imageWord}. Regenerate them, then try export again.`
+}
+
+export function assertAllScenesHaveExportImages(scenes: SceneExportImageSource[]): void {
+  const missing = findScenesMissingExportImages(scenes)
+  if (missing.length > 0) {
+    throw new Error(missingScenesExportMessage(missing))
+  }
+}
+
+export function sceneExportReadiness(scenes: GeneratedScene[] | SceneExportImageSource[]): {
+  ready: boolean
+  missing: MissingExportScene[]
+  message: string | null
+} {
+  const missing = findScenesMissingExportImages(scenes)
+  return {
+    ready: missing.length === 0 && scenes.length > 0,
+    missing,
+    message: missing.length > 0 ? missingScenesExportMessage(missing) : null,
+  }
+}
+
+export function isMissingScenesExportError(message: string | null | undefined): boolean {
+  return Boolean(message?.trim().startsWith('Cannot export reel —'))
+}

@@ -42,6 +42,10 @@ import { ExportSatisfactionCard } from '@/components/feedback/export-satisfactio
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
+import {
+  findScenesMissingExportImages,
+  isMissingScenesExportError,
+} from '@/lib/export/scene-export-validation'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -117,6 +121,7 @@ export function QuickCutDownloadPanel({
     isGenerating,
     resumeRenderPoll,
     retryVideoRender,
+    regenerateMissingSceneImages,
     syncVideoRenderConfig,
     exportPackageReady,
     savedProjectId,
@@ -142,6 +147,7 @@ export function QuickCutDownloadPanel({
       isGenerating: s.isGenerating,
       resumeRenderPoll: s.resumeRenderPoll,
       retryVideoRender: s.retryVideoRender,
+      regenerateMissingSceneImages: s.regenerateMissingSceneImages,
       syncVideoRenderConfig: s.syncVideoRenderConfig,
       exportPackageReady: s.exportPackageReady,
       savedProjectId: s.savedProjectId,
@@ -224,6 +230,13 @@ export function QuickCutDownloadPanel({
     mp4Compiling,
     hasMp4Action: hasMp4,
   } = mp4Export
+  const missingExportScenes = useMemo(
+    () => findScenesMissingExportImages(scenes),
+    [scenes]
+  )
+  const showRegenerateMissingScenes =
+    missingExportScenes.length > 0 &&
+    (isMissingScenesExportError(renderError) || (!videoUrl && !mp4Compiling))
 
   useReelExportAutoResume({ canCompileMp4 })
 
@@ -620,6 +633,15 @@ export function QuickCutDownloadPanel({
             </button>
           ) : renderError || reelReadiness.validationError ? (
             <>
+              {showRegenerateMissingScenes ? (
+                <button
+                  type="button"
+                  onClick={() => void regenerateMissingSceneImages()}
+                  className={primaryButtonClass}
+                >
+                  Regenerate scenes {missingExportScenes.map((s) => s.index).join(', ')}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}

@@ -13,7 +13,6 @@ import { StudioDirectorPanel } from '@/components/studio/studio-director-panel'
 import { StudioStatusBar } from '@/components/studio/studio-status-bar'
 import { StudioCommandPalettePlaceholder } from '@/components/studio/studio-command-palette-placeholder'
 import { StudioGlobalSearchPlaceholder } from '@/components/studio/studio-global-search-placeholder'
-import { ProjectMomentumBadgesFromStore } from '@/components/retention/project-momentum-badges'
 import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
 import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banner'
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
@@ -52,9 +51,8 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
       ) : null}
 
       <div className="mb-3 space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <ProjectMomentumBadgesFromStore />
-          <CreateNewProjectButton variant="inline" className="sm:ml-auto" />
+        <div className="flex justify-end">
+          <CreateNewProjectButton variant="inline" />
         </div>
         <StudioStatusBar />
       </div>

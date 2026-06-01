@@ -8,6 +8,8 @@ import {
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { toast } from 'sonner'
 
+const MAX_STUCK_AUTO_RETRIES = 2
+
 /** Resume in-flight reel export polls and auto-start compile when generation finished without MP4. */
 export function useReelExportAutoResume(input: {
   enabled?: boolean
@@ -15,6 +17,8 @@ export function useReelExportAutoResume(input: {
 }) {
   const { enabled = true, canCompileMp4 } = input
   const pollStartedRef = useRef(false)
+  const stuckRetryCountRef = useRef(0)
+  const stuckToastShownRef = useRef(false)
 
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
@@ -30,6 +34,13 @@ export function useReelExportAutoResume(input: {
   const mp4Compiling =
     isRenderingVideo ||
     (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
+
+  useEffect(() => {
+    if (!mp4Compiling) {
+      stuckRetryCountRef.current = 0
+      stuckToastShownRef.current = false
+    }
+  }, [mp4Compiling, videoUrl, renderError])
 
   useEffect(() => {
     if (!enabled || !videoRenderEnabled || !renderPollUrl) {
@@ -84,11 +95,14 @@ export function useReelExportAutoResume(input: {
 
     const timer = setTimeout(() => {
       if (!isReelExportStuck(renderStartedAt)) return
-      if (isRenderingVideo) {
-        useQuickCutGenerationStore.setState({ isRenderingVideo: false })
+      if (stuckRetryCountRef.current >= MAX_STUCK_AUTO_RETRIES) return
+
+      stuckRetryCountRef.current += 1
+      if (!stuckToastShownRef.current) {
+        stuckToastShownRef.current = true
+        toast.message('Export taking longer than expected — retrying…', { duration: 4000 })
       }
       pollStartedRef.current = false
-      toast.message('Export taking longer than expected — retrying…', { duration: 4000 })
       void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())
     }, REEL_EXPORT_STUCK_MS)
 
@@ -98,7 +112,6 @@ export function useReelExportAutoResume(input: {
     videoRenderEnabled,
     mp4Compiling,
     renderStartedAt,
-    isRenderingVideo,
     renderPollUrl,
     resumeRenderPoll,
     retryVideoRender,

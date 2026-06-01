@@ -77,6 +77,7 @@ import type { ContentSeries } from '@/lib/cinematic/content-series'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
+import { sceneExportReadiness } from '@/lib/export/scene-export-validation'
 import {
   pollSceneVideoJobs,
   queueSceneVideos,
@@ -524,6 +525,7 @@ interface QuickCutGenerationActions {
   regenerateTitle: () => Promise<void>
   regenerateScript: () => Promise<void>
   regenerateSceneImage: (sceneId: string) => Promise<void>
+  regenerateMissingSceneImages: () => Promise<void>
   regenerateThumbnailImage: () => Promise<void>
   updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
   generateSceneVariations: (sceneId: string) => Promise<void>
@@ -1575,6 +1577,14 @@ async function pollRenderJob(
 }
 
 async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boolean) {
+  const readiness = sceneExportReadiness(state.scenes)
+  if (!readiness.ready && readiness.message) {
+    return {
+      renderRes: { ok: false, status: 400 } as Response,
+      renderData: { error: readiness.message, status: 'failed' },
+    }
+  }
+
   if (state.savedProjectId && asyncMode) {
     const exportRes = await fetch('/api/reels/export', {
       method: 'POST',
@@ -3517,6 +3527,23 @@ export const useQuickCutGenerationStore = create<
         directingSceneLabel: null,
       })
     }
+  },
+
+  regenerateMissingSceneImages: async () => {
+    const state = get()
+    const missing = sceneExportReadiness(state.scenes).missing
+    if (missing.length < 1 || state.isGenerating) return
+
+    set({ renderError: null })
+    for (const row of missing) {
+      await get().regenerateSceneImage(row.id)
+      const updated = get().scenes.find((s) => s.id === row.id)
+      if (!updated?.imageUrl?.trim()) {
+        toast.error(`Scene ${row.index} still missing an image — try again individually.`)
+        break
+      }
+    }
+    persistSession(get())
   },
 
   updateSceneImagePrompt: async (sceneId, imagePrompt) => {

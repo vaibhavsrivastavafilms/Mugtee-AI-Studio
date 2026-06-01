@@ -18,6 +18,12 @@ import { exportLog } from '@/lib/export/export-log.server'
 import { runExportInBackground } from '@/lib/export/export-background.server'
 import { validateExportAssets } from '@/lib/export/asset-validation.server'
 import {
+  allScenesHaveExportImages,
+  missingScenesExportMessage,
+  resolveSceneExportImageUrl,
+  findScenesMissingExportImages,
+} from '@/lib/export/scene-export-validation'
+import {
   recordExportMetricFailure,
   recordExportMetricSuccess,
 } from '@/lib/export/export-metrics.server'
@@ -91,13 +97,7 @@ export function mapProjectReelStatus(
 }
 
 function resolvePersistedSceneImageUrl(scene: CinematicScene): string | null {
-  if (scene.imageUrl?.trim()) return scene.imageUrl.trim()
-  const active = scene.storyboardImages?.find(
-    (img) => img.id === scene.activeStoryboardId
-  )?.url
-  if (active?.trim()) return active.trim()
-  const first = scene.storyboardImages?.[0]?.url
-  return first?.trim() ? first.trim() : null
+  return resolveSceneExportImageUrl(scene)
 }
 
 export function scenesForReelExport(scenes: CinematicScene[]): GeneratedScene[] {
@@ -113,7 +113,7 @@ export function projectCanExportReel(row: CinematicProjectRow): boolean {
   const scenes = resolveProjectScenes(row)
   if (scenes.length < 1) return false
   if (!voiceUrl) return false
-  return scenes.some((scene) => Boolean(resolvePersistedSceneImageUrl(scene)))
+  return allScenesHaveExportImages(scenes)
 }
 
 export async function loadOwnedCinematicProject(
@@ -165,7 +165,10 @@ export function projectRowToExportPollResponse(row: CinematicProjectRow) {
         ? EXPORT_STAGE_LABELS.failed
         : stageInfo?.label ?? EXPORT_STAGE_LABELS.encoding,
     reelUrl: completed ? reelUrl : null,
-    error: status === 'failed' ? 'Reel export failed' : null,
+    error:
+      status === 'failed'
+        ? row.generation_error?.trim() || EXPORT_STAGE_LABELS.failed
+        : null,
   }
 }
 
@@ -252,6 +255,11 @@ export async function queueReelExportForProject(params: {
   const scenes = scenesForReelExport(resolveProjectScenes(params.row))
   if (scenes.length < 1) {
     throw new Error('At least one storyboard scene is required.')
+  }
+
+  const missingImages = findScenesMissingExportImages(resolveProjectScenes(params.row))
+  if (missingImages.length > 0) {
+    throw new Error(missingScenesExportMessage(missingImages))
   }
 
   const voiceUrl = params.includeVoiceover
@@ -348,6 +356,17 @@ export async function queueReelExportForProject(params: {
           error: friendlyExportError(err),
           percent: 0,
         })
+        const exportError = friendlyExportError(err)
+        void createSupabaseServerClient()
+          .from('cinematic_projects')
+          .update({
+            generation_error: exportError.slice(0, 500),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', params.row.id)
+          .eq('user_id', params.userId)
+          .then(() => undefined)
+          .catch(() => undefined)
         void updateProjectReelStatus({
           userId: params.userId,
           projectId: params.row.id,

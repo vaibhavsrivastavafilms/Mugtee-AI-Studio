@@ -51,13 +51,17 @@ export function creatorFriendlyMessage(
 
   if (err instanceof Error) {
     const msg = err.message.trim()
-    if (!msg || TECHNICAL.test(msg)) return fallback
+    if (!msg) return fallback
     if (RAW_SAFE.has(msg)) return msg
-    return fallback
+    if (msg.startsWith('Cannot export reel —')) return msg
+    if (TECHNICAL.test(msg)) return fallback
+    return msg
   }
 
-  if (typeof err === 'string' && err.trim() && !TECHNICAL.test(err)) {
-    return err.trim()
+  if (typeof err === 'string' && err.trim()) {
+    const msg = err.trim()
+    if (msg.startsWith('Cannot export reel —')) return msg
+    if (!TECHNICAL.test(msg)) return msg
   }
 
   return fallback

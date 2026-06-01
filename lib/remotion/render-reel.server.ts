@@ -17,6 +17,11 @@ import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/const
 import { buildReelSceneInput } from '@/lib/motion/apply-scene-motion'
 import type { SceneMotionMap } from '@/lib/motion/motion-presets'
 import type { ReelCompositionProps, ReelSceneInput } from '@/lib/remotion/compositions/types'
+import {
+  assertAllScenesHaveExportImages,
+  findScenesMissingExportImages,
+  missingScenesExportMessage,
+} from '@/lib/export/scene-export-validation'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
@@ -86,16 +91,28 @@ export async function renderRemotionReel(
       computeRenderTotalSec(input.scenes)
     )
 
+    assertAllScenesHaveExportImages(timedScenes)
+
     const reelScenes: ReelSceneInput[] = []
     let thumbnailLocalPath: string | null = null
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
-      const imageUrl =
-        scene.imageUrl?.trim() ||
-        `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&h=1920&fit=crop&q=80`
+      const imageUrl = scene.imageUrl?.trim()
+      if (!imageUrl) {
+        const missing = findScenesMissingExportImages(timedScenes)
+        throw new Error(missingScenesExportMessage(missing))
+      }
       const ext = extFromUrl(imageUrl, '.jpg')
       const localImage = path.join(workDir, `scene_${i}${ext}`)
-      await downloadToFile(imageUrl, localImage)
+      try {
+        await downloadToFile(imageUrl, localImage)
+      } catch (err) {
+        const sceneNum = i + 1
+        const detail = err instanceof Error ? err.message : 'download failed'
+        throw new Error(
+          `Cannot export reel — scene ${sceneNum} image could not be loaded (${detail}). Regenerate scene ${sceneNum}, then try export again.`
+        )
+      }
       if (i === 0) thumbnailLocalPath = localImage
 
       const imageSrc = isHttpUrl(imageUrl)

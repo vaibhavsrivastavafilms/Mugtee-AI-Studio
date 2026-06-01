@@ -27,6 +27,11 @@ import {
   renderRemotionReelMock,
 } from '@/lib/remotion/render-reel.server'
 import { retryWithBackoff } from '@/lib/video/retry.server'
+import {
+  assertAllScenesHaveExportImages,
+  findScenesMissingExportImages,
+  missingScenesExportMessage,
+} from '@/lib/export/scene-export-validation'
 import { EXPORT_STAGE_LABELS, labelForRenderStage } from '@/lib/reels/export-stages'
 
 export type ReelProgressCallback = (
@@ -85,6 +90,12 @@ export async function orchestrateRemotionReel(
     if (scenes.length < 1) {
       throw new Error('At least one scene is required to render a reel.')
     }
+
+    const missingImages = findScenesMissingExportImages(scenes)
+    if (missingImages.length > 0) {
+      throw new Error(missingScenesExportMessage(missingImages))
+    }
+    assertAllScenesHaveExportImages(scenes)
 
     exportLog.timelineBuilt({
       jobId,
@@ -276,7 +287,7 @@ export async function orchestrateRemotionReel(
     updateRenderJob(jobId, {
       status: 'failed',
       stage: 'error',
-      label: 'Reel render unavailable — use preview instead',
+      label: message.slice(0, 120),
       error: message,
       percent: 0,
     })

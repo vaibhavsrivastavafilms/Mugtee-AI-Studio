@@ -8,6 +8,11 @@ import {
   buildValidatedDownloadResponse,
   mapProjectReelStatus,
 } from '@/lib/reels/export-api'
+import { resolveProjectScenes } from '@/lib/cinematic-projects'
+import {
+  findScenesMissingExportImages,
+  missingScenesExportMessage,
+} from '@/lib/export/scene-export-validation'
 import { logError } from '@/lib/workspace/validation'
 import { exportLog } from '@/lib/export/export-log.server'
 import {
@@ -111,10 +116,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (!projectCanExportReel(row) && !timelineOverride) {
+      const missing = findScenesMissingExportImages(resolveProjectScenes(row))
       return NextResponse.json(
         {
           error:
-            'Add storyboard images and voice narration before exporting a reel.',
+            missing.length > 0
+              ? missingScenesExportMessage(missing)
+              : 'Add storyboard images and voice narration before exporting a reel.',
         },
         { status: 400 }
       )
@@ -143,6 +151,13 @@ export async function POST(req: NextRequest) {
     logError('reels.export.post', err)
     exportLog.error('export request', err, { route: 'POST /api/reels/export' })
     const message = err instanceof Error ? err.message : 'Reel export failed'
-    return NextResponse.json({ error: message, status: 'failed' }, { status: 500 })
+    const clientError =
+      message.startsWith('Cannot export reel') ||
+      message.includes('required before exporting') ||
+      message.includes('At least one storyboard')
+    return NextResponse.json(
+      { error: message, status: 'failed' },
+      { status: clientError ? 400 : 500 }
+    )
   }
 }

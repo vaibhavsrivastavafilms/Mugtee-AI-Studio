@@ -171,14 +171,14 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
           <RecommendedNextSteps />
         ) : null}
 
-        {(Boolean(script.trim()) || Boolean(hook.trim()) || scenes.length > 0) ? (
-          <OutputWorkspacePanel projectId={projectId} />
-        ) : null}
-
         <WorkflowStackedPanel
           audioRef={voiceAudioRef}
           onRegenerate={() => resetQuickCutForFreshCreate()}
         />
+
+        {(Boolean(script.trim()) || Boolean(hook.trim()) || scenes.length > 0) ? (
+          <OutputWorkspacePanel projectId={projectId} />
+        ) : null}
       </div>
 
       <QuickCutGenerationFooter />
