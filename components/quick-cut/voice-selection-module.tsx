@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Loader2, Mic, Volume2 } from 'lucide-react'
 import {
   VOICE_CATEGORY_LABELS,
@@ -130,6 +130,7 @@ export function VoiceSelectionModule({ className }: { className?: string }) {
   )
 
   const currentLabel = voiceName || 'Choose narrator'
+  const listboxId = useId()
 
   return (
     <div
@@ -149,21 +150,35 @@ export function VoiceSelectionModule({ className }: { className?: string }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex-1 min-w-0 flex items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-black/50 px-3 py-2 text-left hover:border-gold-500/25 transition-colors"
-          aria-expanded={open}
-          aria-haspopup="listbox"
-        >
-          <span className="truncate text-sm text-[#F4E7C1]/95 font-medium">{currentLabel}</span>
-          <ChevronDown
-            className={cn(
-              'w-4 h-4 shrink-0 text-gold-400/70 transition-transform',
-              open && 'rotate-180'
-            )}
-          />
-        </button>
+        {open ? (
+          <button
+            type="button"
+            role="combobox"
+            onClick={() => setOpen(false)}
+            className="flex-1 min-w-0 flex items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-black/50 px-3 py-2 text-left hover:border-gold-500/25 transition-colors"
+            aria-expanded="true"
+            aria-controls={listboxId}
+            aria-haspopup="listbox"
+            aria-label="Choose narrator voice"
+          >
+            <span className="truncate text-sm text-[#F4E7C1]/95 font-medium">{currentLabel}</span>
+            <ChevronDown className="w-4 h-4 shrink-0 text-gold-400/70 transition-transform rotate-180" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            role="combobox"
+            onClick={() => setOpen(true)}
+            className="flex-1 min-w-0 flex items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-black/50 px-3 py-2 text-left hover:border-gold-500/25 transition-colors"
+            aria-expanded="false"
+            aria-controls={listboxId}
+            aria-haspopup="listbox"
+            aria-label="Choose narrator voice"
+          >
+            <span className="truncate text-sm text-[#F4E7C1]/95 font-medium">{currentLabel}</span>
+            <ChevronDown className="w-4 h-4 shrink-0 text-gold-400/70 transition-transform" />
+          </button>
+        )}
         {elevenLabsVoiceId ? (
           <button
             type="button"
@@ -192,45 +207,64 @@ export function VoiceSelectionModule({ className }: { className?: string }) {
 
       {open ? (
         <div
+          id={listboxId}
           className="mt-3 max-h-[min(280px,40vh)] overflow-y-auto scrollbar-luxe rounded-lg border border-white/[0.06] bg-black/60 p-2 space-y-3"
           role="listbox"
           aria-label="ElevenLabs voices"
         >
           {grouped.map(({ category, label, voices: catVoices }) => (
-            <div key={category}>
+            <div key={category} role="group" aria-label={label}>
               <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/60 px-1 mb-1.5">
                 {label}
               </p>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {catVoices.map((voice) => {
                   const selected = voice.voiceId === elevenLabsVoiceId
-                  return (
-                    <li key={voice.voiceId}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={selected ? 'true' : 'false'}
-                        onClick={() => selectVoice(voice)}
-                        className={cn(
-                          'w-full text-left rounded-md px-2.5 py-2 border transition-colors',
-                          selected
-                            ? 'border-gold-500/40 bg-gold-500/15 text-[#F4E7C1]'
-                            : 'border-transparent bg-white/[0.03] text-luxe/85 hover:border-gold-500/20 hover:bg-gold-500/5'
-                        )}
-                      >
-                        <span className="text-[12px] font-medium block truncate">
-                          {voice.name}
+                  const optionClassName = cn(
+                    'w-full text-left rounded-md px-2.5 py-2 border transition-colors',
+                    selected
+                      ? 'border-gold-500/40 bg-gold-500/15 text-[#F4E7C1]'
+                      : 'border-transparent bg-white/[0.03] text-luxe/85 hover:border-gold-500/20 hover:bg-gold-500/5'
+                  )
+                  return selected ? (
+                    <button
+                      key={voice.voiceId}
+                      type="button"
+                      role="option"
+                      aria-selected="true"
+                      onClick={() => selectVoice(voice)}
+                      className={optionClassName}
+                    >
+                      <span className="text-[12px] font-medium block truncate">
+                        {voice.name}
+                      </span>
+                      {voice.description ? (
+                        <span className="text-[10px] text-luxe/45 line-clamp-1 block mt-0.5">
+                          {voice.description}
                         </span>
-                        {voice.description ? (
-                          <span className="text-[10px] text-luxe/45 line-clamp-1 block mt-0.5">
-                            {voice.description}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
+                      ) : null}
+                    </button>
+                  ) : (
+                    <button
+                      key={voice.voiceId}
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      onClick={() => selectVoice(voice)}
+                      className={optionClassName}
+                    >
+                      <span className="text-[12px] font-medium block truncate">
+                        {voice.name}
+                      </span>
+                      {voice.description ? (
+                        <span className="text-[10px] text-luxe/45 line-clamp-1 block mt-0.5">
+                          {voice.description}
+                        </span>
+                      ) : null}
+                    </button>
                   )
                 })}
-              </ul>
+              </div>
             </div>
           ))}
           {grouped.length === 0 && !loadingVoices ? (

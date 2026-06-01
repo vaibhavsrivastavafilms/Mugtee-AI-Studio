@@ -77,6 +77,10 @@ import type { ContentSeries } from '@/lib/cinematic/content-series'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
+import {
+  pollSceneVideoJobs,
+  queueSceneVideos,
+} from '@/lib/cinematic/scene-video-pipeline.client'
 import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
 import type { QuickCutPipelineStatus } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { buildEmotionalPreviewRhythm, mergePreviewRhythm } from '@/lib/cinematic/preview/emotional-preview-rhythm'
@@ -147,6 +151,20 @@ import {
 import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { generateRulesContentBriefSync } from '@/lib/content-director/rules-content-brief'
+import { generateRulesCreativeDirectorBriefSync } from '@/lib/content-director/creative-director-brief'
+import {
+  EMPTY_V3_PIPELINE_STATE,
+  syncV3StateFromContext,
+  runV3Stage as executeV3Stage,
+  type V3PipelineContext,
+  type V3PipelineStageId,
+} from '@/lib/pipeline/v3-cinematic-pipeline'
+import type {
+  CreativeDirectorBrief,
+  V3PipelineState,
+  VisualBible,
+} from '@/lib/pipeline/v3-types'
+import { isV3PipelineEnabledFromConfig } from '@/lib/pipeline/v3-feature-flag'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import {
   logParsedIntent,
@@ -408,6 +426,9 @@ interface QuickCutGenerationStateBase {
   /** MP4 URL missing or download failed — user must re-export. */
   exportExpired: boolean
   videoRenderEnabled: boolean
+  /** Seedance scene clip generation — distinct from final MP4 compile */
+  sceneVideoEnabled: boolean
+  isGeneratingSceneVideos: boolean
   virlo: VirloMetadata | null
   language: ProjectLanguage
   directorMode: DirectorMode
@@ -463,6 +484,11 @@ interface QuickCutGenerationStateBase {
   contentBrief: ContentBrief | null
   /** Parsed creator intent — clean topic for generation */
   parsedIntent: ParsedCreatorIntent | null
+  /** V3 multi-stage pipeline — feature-flagged via MUGTEE_V3_PIPELINE */
+  v3PipelineEnabled: boolean
+  v3PipelineState: V3PipelineState
+  creativeDirectorBrief: CreativeDirectorBrief | null
+  visualBible: VisualBible | null
   /** Recent titles this session — originality validation */
   recentTitles: string[]
   /** Per-output-card status for progressive UI */
@@ -528,6 +554,10 @@ interface QuickCutGenerationActions {
   setCurrentWorkflowStep: (step: WorkflowStepId) => void
   markWorkflowStepComplete: (step: WorkflowStepId) => void
   syncWorkflowFromPipeline: () => void
+  /** Sync V3 pipeline artifacts from current store snapshot */
+  syncV3PipelineState: () => void
+  /** Run a single V3 stage (when MUGTEE_V3_PIPELINE=true) */
+  runV3Stage: (stage: V3PipelineStageId) => Promise<void>
 }
 
 const INITIAL: QuickCutGenerationState = {
@@ -580,6 +610,8 @@ const INITIAL: QuickCutGenerationState = {
   exportPackageReady: false,
   exportExpired: false,
   videoRenderEnabled: false,
+  sceneVideoEnabled: false,
+  isGeneratingSceneVideos: false,
   virlo: null,
   language: 'en',
   directorMode: DEFAULT_DIRECTOR_MODE,
@@ -628,6 +660,10 @@ const INITIAL: QuickCutGenerationState = {
   contentSeries: null,
   contentBrief: null,
   parsedIntent: null,
+  v3PipelineEnabled: false,
+  v3PipelineState: { ...EMPTY_V3_PIPELINE_STATE },
+  creativeDirectorBrief: null,
+  visualBible: null,
   recentTitles: [],
   sectionStatus: resetSectionStatus(),
   hookProgressPhase: 'idle',
@@ -1038,6 +1074,56 @@ function buildReelTimelineFromState(state: QuickCutGenerationState): ReelTimelin
   })
 }
 
+async function runSceneVideoGeneration(
+  get: () => QuickCutGenerationState & QuickCutGenerationActions,
+  set: typeof useQuickCutGenerationStore.setState
+) {
+  if (!get().sceneVideoEnabled) return
+  const state = get()
+  const eligible = state.scenes.filter(
+    (s) => s.imageUrl?.trim() && !s.videoUrl?.trim() && s.videoGenerationStatus !== 'failed'
+  )
+  if (eligible.length < 1) return
+
+  set({ isGeneratingSceneVideos: true, directingSceneLabel: 'Generating video clips…' })
+
+  try {
+    const jobs = await queueSceneVideos({
+      scenes: state.scenes,
+      sceneBlueprints: state.sceneBlueprints,
+      sceneMotion: state.sceneMotion,
+      visualStyle: state.visualStyle,
+      projectId: state.savedProjectId,
+    })
+
+    if (jobs.length < 1) return
+
+    useQuickCutGenerationStore.setState((prev) => {
+      const scenes = prev.scenes.map((scene) =>
+        jobs.some((j) => j.sceneId === scene.id)
+          ? { ...scene, videoGenerationStatus: 'generating' as const }
+          : scene
+      )
+      return { scenes, storyboard: scenes }
+    })
+
+    await pollSceneVideoJobs(jobs, (sceneId, patch) => {
+      useQuickCutGenerationStore.setState((prev) => {
+        const scenes = prev.scenes.map((scene) =>
+          scene.id === sceneId ? { ...scene, ...patch } : scene
+        )
+        return { scenes, storyboard: scenes }
+      })
+      get().composeReelTimeline()
+    })
+  } catch {
+    /* non-blocking — image fallback preserved */
+  } finally {
+    set({ isGeneratingSceneVideos: false, directingSceneLabel: null })
+    get().composeReelTimeline()
+  }
+}
+
 function persistReelTimelineQuiet(state: QuickCutGenerationState, timeline: ReelTimeline | null) {
   if (!state.savedProjectId || !timeline) return
   void updateProject(state.savedProjectId, {
@@ -1421,7 +1507,6 @@ function setStep(
 async function pollRenderJob(
   pollUrl: string,
   onUpdate?: (patch: { videoUrl?: string; label?: string; progress?: number }) => void,
-  maxAttempts = 240,
   projectId?: string | null
 ): Promise<string> {
   const { pollReelExportJob, capReelExportProgress } = await import(
@@ -1431,7 +1516,6 @@ async function pollRenderJob(
   useQuickCutGenerationStore.setState({ renderStartedAt: startedAt })
 
   return pollReelExportJob(pollUrl, {
-    maxAttempts,
     projectId,
     startedAt,
     onProgress: (patch) => {
@@ -1687,6 +1771,53 @@ function persistSession(state: QuickCutGenerationState) {
   persistCreatorContinuity(state)
 }
 
+function buildV3ContextFromStore(
+  state: Pick<
+    QuickCutGenerationState,
+    | 'prompt'
+    | 'parsedIntent'
+    | 'duration'
+    | 'niche'
+    | 'style'
+    | 'title'
+    | 'hook'
+    | 'script'
+    | 'scenes'
+    | 'sceneBlueprints'
+    | 'contentBrief'
+    | 'storyBible'
+    | 'visualStyle'
+    | 'voiceUrl'
+    | 'reelTimeline'
+    | 'creativeDirectorBrief'
+    | 'visualBible'
+    | 'v3PipelineState'
+    | 'previousHooks'
+  >
+): V3PipelineContext {
+  return {
+    prompt: state.prompt,
+    topic: state.parsedIntent?.cleanTopic ?? state.prompt,
+    duration: state.duration,
+    niche: state.niche,
+    tone: state.style,
+    title: state.title,
+    hook: state.hook,
+    script: state.script,
+    scenes: state.scenes,
+    sceneBlueprints: state.sceneBlueprints,
+    contentBrief: state.contentBrief,
+    storyBible: state.storyBible,
+    visualStyle: state.visualStyle,
+    voiceUrl: state.voiceUrl,
+    reelTimeline: state.reelTimeline,
+    creativeDirectorBrief: state.creativeDirectorBrief,
+    visualBible: state.visualBible,
+    creatorMemory: state.v3PipelineState.creatorMemory,
+    previousHooks: state.previousHooks,
+  }
+}
+
 export const useQuickCutGenerationStore = create<
   QuickCutGenerationState & QuickCutGenerationActions
 >((set, get) => ({
@@ -1824,6 +1955,96 @@ export const useQuickCutGenerationStore = create<
       currentWorkflowStep: state.stageTabPinned ? state.currentWorkflowStep : active,
     })
     persistWorkflowContinuity(get())
+  },
+
+  syncV3PipelineState: () => {
+    const state = get()
+    if (!state.v3PipelineEnabled) return
+    const synced = syncV3StateFromContext(
+      buildV3ContextFromStore(state),
+      { ...state.v3PipelineState, enabled: true }
+    )
+    set({
+      v3PipelineState: synced,
+      creativeDirectorBrief: synced.creativeDirectorBrief,
+      visualBible: synced.visualBible,
+    })
+  },
+
+  runV3Stage: async (stage) => {
+    const state = get()
+    if (!state.v3PipelineEnabled) return
+    set({
+      v3PipelineState: {
+        ...state.v3PipelineState,
+        currentStage: stage,
+      },
+    })
+    const ctx = buildV3ContextFromStore(state)
+    const result = await executeV3Stage(stage, ctx, {
+      characterDescription: state.characterDescription,
+      visualStyle: state.visualStyle,
+      storyBible: state.storyBible,
+      outputAlignmentControls: state.outputAlignmentControls,
+      sceneMotion: state.sceneMotion,
+      voiceMetadata: state.voiceMetadata,
+      targetDurationSec: state.duration,
+      creativeDirectorInput: {
+        topic: ctx.topic,
+        tone: state.style,
+        niche: state.niche,
+        duration: state.duration,
+        sessionSeed: state.prompt,
+        previousHooks: state.previousHooks,
+        title: state.title,
+        hook: state.hook,
+      },
+    })
+    const next = get().v3PipelineState
+    const completed =
+      result.status === 'completed'
+        ? [...new Set([...next.completedStages, stage])]
+        : next.completedStages
+    const patch: Partial<QuickCutGenerationState> = {
+      v3PipelineState: {
+        ...next,
+        currentStage: null,
+        completedStages: completed,
+      },
+    }
+    if (stage === 'creative_director' && result.output) {
+      const brief = result.output as CreativeDirectorBrief
+      patch.creativeDirectorBrief = brief
+      patch.contentBrief = brief.contentBrief
+      patch.v3PipelineState = {
+        ...patch.v3PipelineState!,
+        creativeDirectorBrief: brief,
+      }
+    }
+    if (stage === 'visual_bible' && result.output) {
+      patch.visualBible = result.output as VisualBible
+      patch.v3PipelineState = {
+        ...patch.v3PipelineState!,
+        visualBible: result.output as VisualBible,
+      }
+    }
+    if (stage === 'timeline_composer' && result.output) {
+      const tracks = result.output as import('@/lib/pipeline/v3-types').TimelineTracks
+      if (tracks.reelTimeline) {
+        patch.reelTimeline = tracks.reelTimeline
+      }
+      patch.v3PipelineState = {
+        ...patch.v3PipelineState!,
+        timelineTracks: tracks,
+      }
+    }
+    if (stage === 'memory_system' && result.output) {
+      patch.v3PipelineState = {
+        ...patch.v3PipelineState!,
+        creatorMemory: result.output as import('@/lib/pipeline/v3-types').V3CreatorMemory,
+      }
+    }
+    set(patch)
   },
 
   setActiveStageTab: (tab, pinned = true) =>
@@ -2057,14 +2278,17 @@ export const useQuickCutGenerationStore = create<
     const missingKeys = new Set<string>()
     let config: Record<string, boolean> = {}
     let videoRenderEnabled = get().videoRenderEnabled
+    let sceneVideoEnabled = get().sceneVideoEnabled
     let freeTier = false
 
     const configPromise = fetchQuickCutConfig()
       .then((cfg) => {
         config = cfg as Record<string, boolean>
         videoRenderEnabled = cfg.videoRenderEnabled === true
+        sceneVideoEnabled = cfg.sceneVideoEnabled === true
         freeTier = cfg.freeTierOnly === true
-        set({ videoRenderEnabled })
+        const v3Enabled = isV3PipelineEnabledFromConfig(cfg as Record<string, unknown>)
+        set({ videoRenderEnabled, sceneVideoEnabled, v3PipelineEnabled: v3Enabled })
         return cfg as Record<string, boolean>
       })
       .catch(() => ({} as Record<string, boolean>))
@@ -2126,6 +2350,55 @@ export const useQuickCutGenerationStore = create<
         })
         genPerf.end('content_brief')
         patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
+
+        if (get().v3PipelineEnabled) {
+          let v3Brief = generateRulesCreativeDirectorBriefSync({
+            topic: prompt,
+            tone,
+            niche: get().niche,
+            duration,
+            language,
+            directorMode,
+            parsedIntent,
+            sessionSeed,
+            previousHooks: regenAvoidHooks,
+          })
+          try {
+            const { res, data } = await pipelineFetchJson<typeof v3Brief>(
+              '/api/v3/creative-director',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  topic: parsedIntent.cleanTopic,
+                  tone,
+                  niche: get().niche,
+                  duration,
+                  language,
+                  directorMode,
+                  sessionSeed,
+                  previousHooks: regenAvoidHooks,
+                }),
+                maxRetries: 0,
+                timeoutMs: 20_000,
+              }
+            )
+            if (res.ok && data?.brief) v3Brief = data
+          } catch {
+            /* rules fallback */
+          }
+          set({
+            creativeDirectorBrief: v3Brief.brief,
+            contentBrief: v3Brief.brief.contentBrief,
+            v3PipelineState: {
+              ...get().v3PipelineState,
+              enabled: true,
+              creativeDirectorBrief: v3Brief.brief,
+              completedStages: ['creative_director'],
+              startedAt: get().v3PipelineState.startedAt ?? new Date().toISOString(),
+            },
+          })
+        }
       } else {
         patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
         set({ progress: 8, eta: computeStepEta(8) })
@@ -2807,6 +3080,8 @@ export const useQuickCutGenerationStore = create<
         get().composeReelTimeline()
         await delay(350)
         set({ directingSceneLabel: null })
+
+        void runSceneVideoGeneration(get, set)
       }
 
       const assemblyPresentation = stepShouldRun(resumeFrom, 'storyboard')
@@ -2857,7 +3132,6 @@ export const useQuickCutGenerationStore = create<
                         set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
                       }
                     },
-                    undefined,
                     get().savedProjectId
                   )
                 } catch (pollErr) {
@@ -2983,6 +3257,9 @@ export const useQuickCutGenerationStore = create<
         generationInFlight: false,
       })
       get().composeReelTimeline()
+      if (get().v3PipelineEnabled) {
+        get().syncV3PipelineState()
+      }
 
       genPerf.end('pipeline')
       genPerf.log('pipeline', 'completed', {
@@ -3624,7 +3901,8 @@ export const useQuickCutGenerationStore = create<
     try {
       const config = (await fetchQuickCutConfig()) as Record<string, boolean>
       const videoRenderEnabled = config.videoRenderEnabled === true
-      set({ videoRenderEnabled })
+      const sceneVideoEnabled = config.sceneVideoEnabled === true
+      set({ videoRenderEnabled, sceneVideoEnabled })
       const state = get()
       if (
         videoRenderEnabled &&
@@ -3653,7 +3931,6 @@ export const useQuickCutGenerationStore = create<
             set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
           }
         },
-        240,
         savedProjectId
       )
       set({
@@ -3703,6 +3980,7 @@ export const useQuickCutGenerationStore = create<
         renderError: message,
         renderPollUrl: null,
         generationStep: 'render',
+        exportPackageReady: true,
       })
       persistSession(get())
     } finally {

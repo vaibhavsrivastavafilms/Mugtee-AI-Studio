@@ -6,6 +6,12 @@ import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { isRemotionRenderAvailable } from '@/lib/remotion/render-reel.server'
 import { hasRunwayApiKey, resolveRunwayVideoProvider } from '@/lib/ai/runway-video'
+import {
+  hasSeedanceApiKey,
+  isSceneVideoGenerationEnabled,
+  resolveSceneVideoProviderId,
+} from '@/lib/video-providers'
+import { isV3PipelineEnabled } from '@/lib/pipeline/v3-feature-flag'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,6 +48,10 @@ export async function GET() {
     videoRenderEnabled: isVideoRenderEnabled(),
     runway: hasRunwayApiKey(),
     videoProvider: isRemotionRenderAvailable() ? 'remotion' : resolveRunwayVideoProvider(),
+    sceneVideoEnabled: isSceneVideoGenerationEnabled(),
+    seedance: hasSeedanceApiKey(),
+    sceneVideoProvider: resolveSceneVideoProviderId(),
+    v3PipelineEnabled: isV3PipelineEnabled(),
     models: providers.models,
   }
 

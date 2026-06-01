@@ -1,21 +1,32 @@
 import 'server-only'
 
+import { generateFluxApiImage, hasFluxApiKey } from '@/lib/image-providers/fluxapi'
 import { generateTogetherImage, hasTogetherApiKey } from '@/lib/image-providers/together'
 import { getPollinationsImageUrl } from '@/lib/image-providers/pollinations'
 
-export type ImageProviderName = 'together' | 'pollinations'
+export type ImageProviderName = 'fluxapi' | 'together' | 'pollinations'
 
 export type GenerateImageResult = {
   url: string
   provider: ImageProviderName
 }
 
-/** Try Together AI first, then Pollinations. Returns null when both fail. */
+/** Try FluxAPI Kontext, then Together AI, then Pollinations. Returns null when all fail. */
 export async function generateImage(prompt: string): Promise<GenerateImageResult | null> {
   const trimmed = prompt.trim()
   if (!trimmed) return null
 
   console.log('[IMAGE_PROVIDER] Starting image generation')
+
+  if (hasFluxApiKey()) {
+    console.log('[IMAGE_PROVIDER] Trying FluxAPI.ai (Kontext)')
+    const url = await generateFluxApiImage(trimmed)
+    if (url) {
+      console.log('[IMAGE_SUCCESS] fluxapi')
+      return { url, provider: 'fluxapi' }
+    }
+    console.log('[IMAGE_FALLBACK] together/pollinations after fluxapi')
+  }
 
   if (hasTogetherApiKey()) {
     console.log('[IMAGE_PROVIDER] Trying Together AI (FLUX.1-schnell)')
@@ -39,4 +50,5 @@ export async function generateImage(prompt: string): Promise<GenerateImageResult
   }
 }
 
+export { hasFluxApiKey } from '@/lib/image-providers/fluxapi'
 export { hasTogetherApiKey } from '@/lib/image-providers/together'

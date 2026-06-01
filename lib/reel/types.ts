@@ -32,6 +32,8 @@ export type ReelTimelineClip = {
   startSec: number
   endSec: number
   image: string | null
+  /** AI-generated scene clip — preferred over static image when present */
+  video?: string | null
   voiceSegment: ReelVoiceSegment
   caption: ReelCaptionCue
   animation: ReelAnimation

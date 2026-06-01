@@ -430,23 +430,46 @@ export default function ScriptWorkspace() {
           {/* V3.3 — Full ↔ Narration toggle. Strips scene headers & descriptions to spoken lines only. */}
           {fullScript && (
             <div className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5 h-9 min-h-[44px] sm:min-h-0" role="radiogroup" aria-label="Script view mode">
-              <button
-                type="button"
-                role="radio"
-                onClick={() => setViewMode('full')}
-                aria-checked={viewMode === 'full'}
-                aria-label="Full script view"
-                className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition ${viewMode === 'full' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
-              >Full</button>
-              <button
-                type="button"
-                role="radio"
-                onClick={() => setViewMode('narration')}
-                aria-checked={viewMode === 'narration'}
-                aria-label="Narration only — spoken lines without scene labels"
-                className={`px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 ${viewMode === 'narration' ? 'bg-gold-500/15 text-gold-200' : 'text-luxe/70 hover:text-luxe'}`}
-                title="Show only the spoken narration (no scene labels)"
-              ><Volume2 className="w-3 h-3" /> Narration</button>
+              {viewMode === 'full' ? (
+                <button
+                  type="button"
+                  role="radio"
+                  onClick={() => setViewMode('full')}
+                  aria-checked="true"
+                  aria-label="Full script view"
+                  className="px-2.5 h-8 rounded text-[11px] tracking-wide transition bg-gold-500/15 text-gold-200"
+                >Full</button>
+              ) : (
+                <button
+                  type="button"
+                  role="radio"
+                  onClick={() => setViewMode('full')}
+                  aria-checked="false"
+                  aria-label="Full script view"
+                  className="px-2.5 h-8 rounded text-[11px] tracking-wide transition text-luxe/70 hover:text-luxe"
+                >Full</button>
+              )}
+              {viewMode === 'narration' ? (
+                <button
+                  type="button"
+                  role="radio"
+                  onClick={() => setViewMode('narration')}
+                  aria-checked="true"
+                  aria-label="Narration only — spoken lines without scene labels"
+                  className="px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 bg-gold-500/15 text-gold-200"
+                  title="Show only the spoken narration (no scene labels)"
+                ><Volume2 className="w-3 h-3" /> Narration</button>
+              ) : (
+                <button
+                  type="button"
+                  role="radio"
+                  onClick={() => setViewMode('narration')}
+                  aria-checked="false"
+                  aria-label="Narration only — spoken lines without scene labels"
+                  className="px-2.5 h-8 rounded text-[11px] tracking-wide transition inline-flex items-center gap-1 text-luxe/70 hover:text-luxe"
+                  title="Show only the spoken narration (no scene labels)"
+                ><Volume2 className="w-3 h-3" /> Narration</button>
+              )}
             </div>
           )}
           {/* V3.8 — Workspace toolbar consolidated. Generate Voiceover stays primary

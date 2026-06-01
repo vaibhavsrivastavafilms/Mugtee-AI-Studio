@@ -98,6 +98,7 @@ export function composeReelTimeline(input: ComposeReelTimelineInput): ReelTimeli
 
     const voiceSegment = voiceSegments[i]!
     const image = scene.imageUrl?.trim() || resolveScenePreviewUrl(scene, i) || null
+    const video = scene.videoUrl?.trim() || null
 
     return {
       sceneId,
@@ -106,6 +107,7 @@ export function composeReelTimeline(input: ComposeReelTimelineInput): ReelTimeli
       startSec,
       endSec,
       image,
+      video,
       voiceSegment,
       caption: buildCaptionCueForSegment(voiceSegment),
       animation: animationForScene(

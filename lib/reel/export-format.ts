@@ -39,6 +39,7 @@ export function buildStoryboardManifest(timeline: ReelTimeline): string {
     sceneId: clip.sceneId,
     title: clip.title,
     image: clip.image,
+    video: clip.video ?? null,
     startSec: clip.startSec,
     endSec: clip.endSec,
     duration: clip.duration,
