@@ -26,9 +26,6 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { useDraftRegenerationGuard } from '@/components/trust/draft-protection-dialog'
-import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
-import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
-import { companionCopy } from '@/lib/companion/microcopy'
 import { MotionStagePanel, MotionStageShell } from '@/components/quick-cut/motion-stage-panel'
 import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
@@ -183,7 +180,6 @@ export function GenerationStagePanel({
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const duration = useQuickCutGenerationStore((s) => s.duration)
   const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
   const updateReelTimelineClip = useQuickCutGenerationStore((s) => s.updateReelTimelineClip)
   const storyboardTracked = useRef(false)
@@ -404,12 +400,6 @@ export function GenerationStagePanel({
             }
             directorEdit={directorEditEnabled}
           />
-          {(script?.trim() || hook?.trim()) ? (
-            <>
-              <EmotionalStoryCard hook={hook} script={script} scenes={scenes} duration={duration} />
-              <ViewerJourneyPreview hook={hook} script={script} scenes={scenes} duration={duration} />
-            </>
-          ) : null}
         </div>
         </>
       ) : (
