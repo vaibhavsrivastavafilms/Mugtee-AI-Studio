@@ -2,11 +2,14 @@
 
 ## Overview
 
-The Reel Composer Pass transforms separate Hook, Script, Scenes, Visuals, and Voice assets into a **synchronized, ready-to-edit reel timeline**. Creators see what appears when, what is spoken, and how the reel flows — before export or full Remotion render.
+The Reel Composer Pass transforms separate Hook, Script, Scenes, Visuals, and
+Voice assets into a **synchronized, ready-to-edit reel timeline**. Creators see
+what appears when, what is spoken, and how the reel flows — before export or
+full Remotion render.
 
 ## Timeline Architecture
 
-```
+```text
 Generation Pipeline (runPipeline — unchanged order)
   Hook → Script → Scenes → Visuals → Voice → Motion → Export
                                               ↓
@@ -23,21 +26,23 @@ Generation Pipeline (runPipeline — unchanged order)
 
 Each clip binds one scene beat:
 
-| Field | Source |
-|-------|--------|
-| `sceneId`, `image` | `GeneratedScene` + preview URL fallback |
-| `duration`, `startSec`, `endSec` | Scene timing intelligence + voice duration |
-| `voiceSegment` | Per-scene narration split from script/scene descriptions |
-| `caption` | Word-level cue points from narration window |
-| `animation` | `motionPresetIdFromBlueprint` / `assignSceneMotion` — not random |
+| Field                            | Source                                                           |
+| -------------------------------- | ---------------------------------------------------------------- |
+| `sceneId`, `image`               | `GeneratedScene` + preview URL fallback                          |
+| `duration`, `startSec`, `endSec` | Scene timing intelligence + voice duration                       |
+| `voiceSegment`                   | Per-scene narration split from script/scene descriptions         |
+| `caption`                        | Word-level cue points from narration window                      |
+| `animation`                      | `motionPresetIdFromBlueprint` / `assignSceneMotion` — not random |
 
-Persisted in `cinematic_projects.timeline_state` as `{ reelTimeline: ReelTimeline }`.
+Persisted in `cinematic_projects.timeline_state` as `{ reelTimeline:
+ReelTimeline }`.
 
 ## Synchronization Logic
 
 ### Phase 1 — Timeline engine (`lib/reel/`)
 
-- `types.ts` — `ReelTimeline`, `ReelTimelineClip`, `ReelVoiceSegment`, `ReelCaptionCue`, `ReelAnimation`
+- `types.ts` — `ReelTimeline`, `ReelTimelineClip`, `ReelVoiceSegment`,
+  `ReelCaptionCue`, `ReelAnimation`
 - `compose-reel-timeline.ts` — maps store assets → timeline
 - `parse-reel-timeline.ts` — hydration from DB
 
@@ -59,7 +64,8 @@ Persisted in `cinematic_projects.timeline_state` as `{ reelTimeline: ReelTimelin
 ### Phase 4 — Animation mapping
 
 - Reuses `motionPresetIdFromBlueprint` and `assignSceneMotion`
-- Suspense → `push_in`, Luxury → `luxury_reveal`, Documentary → `documentary_drift`, Action → `battle_tracking`
+- Suspense → `push_in`, Luxury → `luxury_reveal`, Documentary →
+  `documentary_drift`, Action → `battle_tracking`
 - Manual overrides via `setSceneMotionPreset` trigger re-compose
 
 ### Phase 5 — Captions (`caption-sync.ts`)
@@ -76,7 +82,8 @@ Persisted in `cinematic_projects.timeline_state` as `{ reelTimeline: ReelTimelin
 
 ### Phase 7 — Timeline editing
 
-- `updateReelTimelineClip(sceneId, patch)` — duration, animation preset, caption text
+- `updateReelTimelineClip(sceneId, patch)` — duration, animation preset, caption
+  text
 - `DirectorTimeline` inline editor for duration + motion preset
 - Persists to `timeline_state` without full regen
 
@@ -84,13 +91,13 @@ Persisted in `cinematic_projects.timeline_state` as `{ reelTimeline: ReelTimelin
 
 Extended `buildCreatorPackZip` when `reelTimeline` present:
 
-| File | Contents |
-|------|----------|
-| `voice.mp3` | Full narration (existing) |
-| `captions.srt` | Scene + word-level SRT |
-| `timeline.json` | Full clip manifest (fps, resolution, timings) |
-| `storyboard.json` | Frame manifest with narration + animation |
-| `script.txt` | Full script (existing) |
+| File              | Contents                                      |
+| ----------------- | --------------------------------------------- |
+| `voice.mp3`       | Full narration (existing)                     |
+| `captions.srt`    | Scene + word-level SRT                        |
+| `timeline.json`   | Full clip manifest (fps, resolution, timings) |
+| `storyboard.json` | Frame manifest with narration + animation     |
+| `script.txt`      | Full script (existing)                        |
 
 ### Phase 9 — Director view
 
@@ -104,18 +111,22 @@ Extended `buildCreatorPackZip` when `reelTimeline` present:
 
 - State: `reelTimeline: ReelTimeline | null`
 - Actions: `composeReelTimeline()`, `updateReelTimelineClip()`
-- Called after: motion assignment, pipeline complete, voice regen, motion preset change
+- Called after: motion assignment, pipeline complete, voice regen, motion preset
+  change
 - **Does not modify `runPipeline` step order** — compose runs after assets exist
 
 ## Remotion Integration
 
-- Timeline `animation.presetId` aligns with `lib/motion/motion-presets.ts` → `ReelScene.tsx` via existing `buildReelSceneInput` / `remotionConfigForScene`
-- Full MP4 export path unchanged; timeline provides edit-ready metadata for external NLEs
-- Future: pass `ReelTimeline` directly into `ReelComposition` for frame-accurate render
+- Timeline `animation.presetId` aligns with `lib/motion/motion-presets.ts` →
+  `ReelScene.tsx` via existing `buildReelSceneInput` / `remotionConfigForScene`
+- Full MP4 export path unchanged; timeline provides edit-ready metadata for
+  external NLEs
+- Future: pass `ReelTimeline` directly into `ReelComposition` for frame-accurate
+  render
 
 ## Files Created
 
-```
+```text
 lib/reel/types.ts
 lib/reel/scene-timing.ts
 lib/reel/voice-sync.ts
@@ -134,7 +145,7 @@ components/reel-composer/DirectorTimeline.tsx
 
 ## Files Modified
 
-```
+```text
 stores/quick-cut-generation-store.ts
 lib/cinematic/quick-cut/project-hydration.ts
 lib/cinematic-projects.ts
@@ -145,14 +156,21 @@ components/quick-cut/generation-stage-panel.tsx
 
 ## Follow-ups
 
-1. **Incremental compose after voice** (before images) — show narration timing early with placeholder frames
-2. **Remotion render from timeline** — use clip `startSec`/`duration` in `ReelComposition` instead of scene.duration heuristics
-3. **Word-level alignment from ElevenLabs timestamps** when API returns character-level timing
-4. **Director workflow step** in `MISSION_STEPS` for stacked workspace continuity
-5. **Server export route** — `/api/reels/export-package` for timeline.json + SRT without client ZIP
+1. **Incremental compose after voice** (before images) — show narration timing
+   early with placeholder frames
+2. **Remotion render from timeline** — use clip `startSec`/`duration` in
+   `ReelComposition` instead of scene.duration heuristics
+3. **Word-level alignment from ElevenLabs timestamps** when API returns
+   character-level timing
+4. **Director workflow step** in `MISSION_STEPS` for stacked workspace
+   continuity
+5. **Server export route** — `/api/reels/export-package` for timeline.json + SRT
+   without client ZIP
 
 ## Build Status (verification pass)
 
 - `npx tsc --noEmit` — **passes** (no reel-composer type errors)
-- `next build` — **webpack compiles successfully**; lint phase fails on pre-existing unrelated ESLint errors elsewhere in the repo
-- `runPipeline` — **unchanged**; compose hooks remain additive post voice/motion/export
+- `next build` — **webpack compiles successfully**; lint phase fails on
+  pre-existing unrelated ESLint errors elsewhere in the repo
+- `runPipeline` — **unchanged**; compose hooks remain additive post
+  voice/motion/export

@@ -40,9 +40,14 @@
 
 ### Global Audits
 
-- **Nested interactives:** No `button`-in-`button` or `Link`-in-`button` patterns found in `components/`. Timeline clip controls remain flat sibling `<button>` elements inside non-interactive track lanes.
-- **`role=` / `aria-` / `tabIndex=`:** Tab patterns corrected in creator showcase; timeline tracks use valid `role="group"`; voice picker uses valid `aria-selected` strings.
-- **List semantics:** Activity timeline `<ol>` fixed; other lists in codebase already wrap items in `<li>`.
+- **Nested interactives:** No `button`-in-`button` or `Link`-in-`button`
+  patterns found in `components/`. Timeline clip controls remain flat sibling
+  `<button>` elements inside non-interactive track lanes.
+- **`role=` / `aria-` / `tabIndex=`:** Tab patterns corrected in creator
+  showcase; timeline tracks use valid `role="group"`; voice picker uses valid
+  `aria-selected` strings.
+- **List semantics:** Activity timeline `<ol>` fixed; other lists in codebase
+  already wrap items in `<li>`.
 
 ---
 
@@ -82,10 +87,14 @@ Microsoft Edge Tools and markdownlint issues from the Problems panel.
 
 ## Accessibility Improvements Summary
 
-- **Tabs:** Creator showcase category filter now follows the WAI-ARIA tabs pattern (tablist → tab + tabpanel linkage).
-- **Timeline:** Reel composer tracks expose labeled groups; each clip segment is a single flat button with an explicit seek label.
-- **Lists:** Project activity timeline uses valid `<ol>` → `<li>` structure for screen readers and HTML validators.
-- **Tooling:** ESLint + jsx-a11y (via `next/core-web-vitals`) is now runnable in CI/local without interactive setup.
+- **Tabs:** Creator showcase category filter now follows the WAI-ARIA tabs
+  pattern (tablist → tab + tabpanel linkage).
+- **Timeline:** Reel composer tracks expose labeled groups; each clip segment is
+  a single flat button with an explicit seek label.
+- **Lists:** Project activity timeline uses valid `<ol>` → `<li>` structure for
+  screen readers and HTML validators.
+- **Tooling:** ESLint + jsx-a11y (via `next/core-web-vitals`) is now runnable in
+  CI/local without interactive setup.
 
 ---
 
@@ -93,9 +102,13 @@ Microsoft Edge Tools and markdownlint issues from the Problems panel.
 
 Lint and build complete with **warnings only** (no errors):
 
-- **`react/no-unescaped-entities`** — apostrophes/quotes in blog posts, legal copy, and some dialogs (downgraded to `warn` in `.eslintrc.json` for prose-heavy pages).
-- **`@next/next/no-img-element`** — legacy `<img>` tags in calendar, pipeline, media, etc.
-- **`react-hooks/exhaustive-deps`** — optional dependency arrays in several hooks (pre-existing).
+- **`react/no-unescaped-entities`** — apostrophes/quotes in blog posts, legal
+  copy, and some dialogs (downgraded to `warn` in `.eslintrc.json` for
+  prose-heavy pages).
+- **`@next/next/no-img-element`** — legacy `<img>` tags in calendar, pipeline,
+  media, etc.
+- **`react-hooks/exhaustive-deps`** — optional dependency arrays in several
+  hooks (pre-existing).
 
 These do not fail `npm run lint` or `npm run build`.
 

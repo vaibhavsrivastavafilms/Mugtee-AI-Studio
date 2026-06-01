@@ -10,6 +10,7 @@ import {
   parseOutputAlignmentControls,
   parseSceneBlueprints,
 } from '@/lib/cinematic/scene-blueprint'
+import { parseVisualBible } from '@/lib/cinematic/visual-bible'
 import { logError } from '@/lib/workspace/validation'
 import {
   FeatureUsageFeatures,
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       storyBible: parseStoryBible(raw?.storyBible),
       contentBrief: normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief) ?? undefined,
       sceneBlueprints: parseSceneBlueprints(raw?.sceneBlueprints ?? raw?.scene_blueprints),
+      visualBible: parseVisualBible(raw?.visualBible ?? raw?.visual_bible),
       outputAlignmentControls: parseOutputAlignmentControls(
         raw?.outputAlignmentControls ?? raw?.output_alignment_controls
       ),

@@ -1,6 +1,7 @@
 # Mugtee V3 — Cinematic AI Creation Pipeline
 
-Multi-stage AI production system: creator directs a film with an AI sidekick. **Integrates existing modules** — does not replace `runPipeline`.
+Multi-stage AI production system: creator directs a film with an AI sidekick.
+**Integrates existing modules** — does not replace `runPipeline`.
 
 ## Feature flag
 
@@ -19,28 +20,30 @@ When flag is **off**, behavior is unchanged — legacy `runPipeline` only.
 When flag is **on**:
 
 - `/api/quick-cut/config` returns `v3PipelineEnabled: true`
-- Store runs Creative Director after content brief (rules sync + optional `/api/v3/creative-director`)
-- `syncV3PipelineState()` builds scene plan, visual bible, flux prompts, motion, voice plan, timeline tracks at pipeline end
+- Store runs Creative Director after content brief (rules sync + optional
+  `/api/v3/creative-director`)
+- `syncV3PipelineState()` builds scene plan, visual bible, flux prompts, motion,
+  voice plan, timeline tracks at pipeline end
 - `CreatorEditor` can show V3 stage strip
 
 ## 10-stage mapping
 
-| Stage | V3 ID | Existing implementation | Status |
-|-------|--------|----------------------|--------|
-| 1 Creative Director | `creative_director` | `lib/content-director/creative-director-brief.ts`, `/api/v3/creative-director` | **Shipped** |
-| 2 Scene Planner | `scene_planner` | `lib/cinematic/scene-blueprint.ts`, `/api/generate-scenes` | **Integrated** |
-| 3 Visual Bible | `visual_bible` | `lib/cinematic/visual-bible.ts` | **Shipped** |
-| 4 Flux Image Engine | `flux_image_engine` | `buildBlueprintImagePrompt` + `/api/generate-images` (FluxAPI Kontext → Together schnell) | **Integrated** |
-| 5 Seedance Motion | `seedance_motion` | `lib/video-providers/*`, `runSceneVideoGeneration` | **Integrated** |
-| 6 Voice Director | `voice_director` | `lib/voice/voiceDirector.ts`, `/api/generate-voice` | **Integrated** |
-| 7 Timeline Composer | `timeline_composer` | `lib/reel/compose-reel-timeline.ts`, `DirectorTimeline` | **Partial** — music track placeholder |
-| 8 Creator Editor | `creator_editor` | `components/editor/creator-editor.tsx` | **Partial** — shell + reorder/trim/regen |
-| 9 Memory System | `memory_system` | `lib/memory/v3-creator-preferences.ts` | **Partial** — in-session; no DB persist yet |
-| 10 Export Studio | `export_studio` | `lib/quick-cut/creator-pack-export.client.ts` | **Integrated** |
+| Stage               | V3 ID               | Existing implementation                                                                   | Status                                      |
+| ------------------- | ------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1 Creative Director | `creative_director` | `lib/content-director/creative-director-brief.ts`, `/api/v3/creative-director`            | **Shipped**                                 |
+| 2 Scene Planner     | `scene_planner`     | `lib/cinematic/scene-blueprint.ts`, `/api/generate-scenes`                                | **Integrated**                              |
+| 3 Visual Bible      | `visual_bible`      | `lib/cinematic/visual-bible.ts`                                                           | **Shipped**                                 |
+| 4 Flux Image Engine | `flux_image_engine` | `buildBlueprintImagePrompt` + `/api/generate-images` (FluxAPI Kontext → Together schnell) | **Integrated**                              |
+| 5 Seedance Motion   | `seedance_motion`   | `lib/video-providers/*`, `runSceneVideoGeneration`                                        | **Integrated**                              |
+| 6 Voice Director    | `voice_director`    | `lib/voice/voiceDirector.ts`, `/api/generate-voice`                                       | **Integrated**                              |
+| 7 Timeline Composer | `timeline_composer` | `lib/reel/compose-reel-timeline.ts`, `DirectorTimeline`                                   | **Partial** — music track placeholder       |
+| 8 Creator Editor    | `creator_editor`    | `components/editor/creator-editor.tsx`                                                    | **Partial** — shell + reorder/trim/regen    |
+| 9 Memory System     | `memory_system`     | `lib/memory/v3-creator-preferences.ts`                                                    | **Partial** — in-session; no DB persist yet |
+| 10 Export Studio    | `export_studio`     | `lib/quick-cut/creator-pack-export.client.ts`                                             | **Integrated**                              |
 
 ## Architecture
 
-```
+```text
 runPipeline (unchanged entry)
     │
     ├─ MUGTEE_V3_PIPELINE=false → legacy flow only
@@ -62,71 +65,97 @@ Types: `lib/pipeline/v3-types.ts`
 
 ## Files created
 
-| File | Purpose |
-|------|---------|
-| `lib/pipeline/v3-types.ts` | Stage types and pipeline state |
-| `lib/pipeline/v3-feature-flag.ts` | `MUGTEE_V3_PIPELINE` helper |
-| `lib/pipeline/v3-cinematic-pipeline.ts` | Orchestrator + stage runners |
-| `lib/pipeline/index.ts` | Barrel exports |
-| `lib/cinematic/visual-bible.ts` | Visual Bible generate/merge |
-| `lib/content-director/creative-director-brief.ts` | Full CreativeDirectorBrief |
-| `lib/memory/v3-creator-preferences.ts` | creator_style, preferred_hooks, etc. |
-| `app/api/v3/creative-director/route.ts` | LLM creative director API |
-| `components/editor/creator-editor.tsx` | CapCut-style editor shell |
-| `MUGTEE_V3_PIPELINE_REPORT.md` | This document |
+| File                                              | Purpose                              |
+| ------------------------------------------------- | ------------------------------------ |
+| `lib/pipeline/v3-types.ts`                        | Stage types and pipeline state       |
+| `lib/pipeline/v3-feature-flag.ts`                 | `MUGTEE_V3_PIPELINE` helper          |
+| `lib/pipeline/v3-cinematic-pipeline.ts`           | Orchestrator + stage runners         |
+| `lib/pipeline/index.ts`                           | Barrel exports                       |
+| `lib/cinematic/visual-bible.ts`                   | Visual Bible generate/merge          |
+| `lib/content-director/creative-director-brief.ts` | Full CreativeDirectorBrief           |
+| `lib/memory/v3-creator-preferences.ts`            | creator_style, preferred_hooks, etc. |
+| `app/api/v3/creative-director/route.ts`           | LLM creative director API            |
+| `components/editor/creator-editor.tsx`            | CapCut-style editor shell            |
+| `MUGTEE_V3_PIPELINE_REPORT.md`                    | This document                        |
 
 ## Files modified
 
-| File | Change |
-|------|--------|
+| File                                   | Change                                                        |
+| -------------------------------------- | ------------------------------------------------------------- |
 | `stores/quick-cut-generation-store.ts` | V3 state, `syncV3PipelineState`, `runV3Stage`, pipeline hooks |
-| `app/api/quick-cut/config/route.ts` | Expose `v3PipelineEnabled` |
+| `app/api/quick-cut/config/route.ts`    | Expose `v3PipelineEnabled`                                    |
 
 ## FluxAPI image setup (local)
 
-1. Copy `FLUXAPI_KEY=` from `.env.example` into `.env.local` (never commit `.env.local`).
-2. Set the key from [FluxAPI.ai](https://fluxapi.ai/) dashboard → API Key Management.
+1. Copy `FLUXAPI_KEY=` from `.env.example` into `.env.local` (never commit
+   `.env.local`).
+2. Set the key from [FluxAPI.ai](https://fluxapi.ai/) dashboard → API Key
+   Management.
 3. Restart `npm run dev` so Next.js loads the new env.
-4. Provider chain: `lib/image-providers/index.ts` → FluxAPI Kontext → Together `FLUX.1-schnell` → Pollinations.
+4. Provider chain: `lib/image-providers/index.ts` → FluxAPI Kontext → Together
+   `FLUX.1-schnell` → Pollinations.
 
-Optional: `FLUXAPI_MODEL` (default `flux-kontext-pro`), `FLUXAPI_ASPECT_RATIO` (default `9:16`). Alias: `FLUX_API_KEY`.
+**API reference:** [Flux Kontext quickstart](https://docs.fluxapi.ai/quickstart)
+· [FLUX.1 Kontext dev product page](https://fluxapi.ai/flux-1-kontext-dev-api)
+
+Endpoints (Bearer auth):
+
+- `POST https://api.fluxapi.ai/api/v1/flux/kontext/generate` — submit task
+- `GET https://api.fluxapi.ai/api/v1/flux/kontext/record-info?taskId=…` — poll
+  (`successFlag`: 0=generating, 1=success, 2=create failed, 3=gen failed)
+
+Optional env:
+
+| Variable | Default | Notes |
+| -------- | ------- | ----- |
+| `FLUXAPI_MODEL` | `flux-kontext-pro` | or `flux-kontext-max` (not `flux-1-kontext-dev`) |
+| `FLUXAPI_ASPECT_RATIO` | `9:16` | vertical reels |
+| `FLUXAPI_PROMPT_UPSAMPLING` | off | API prompt enhancement |
+| `FLUX_API_KEY` | — | alias for `FLUXAPI_KEY` |
+
+Implementation: `lib/image-providers/fluxapi.ts`. Scene / Visual Bible prompts
+are built in `lib/cinematic/generation.ts` + `generate-scene-images.ts` and
+passed as the Kontext `prompt` field (~3–5s inference per docs).
 
 ## Environment variables
 
-| Variable | Stage | Required |
-|----------|-------|----------|
-| `MUGTEE_V3_PIPELINE` | All V3 | Yes (to enable) |
-| `OPENAI_API_KEY` | Creative Director LLM, script fallback | Optional |
-| `ANTHROPIC_API_KEY` | Script generation | Optional |
-| `GEMINI_API_KEY` | Script (free tier) | Optional |
-| `FLUXAPI_KEY` | Flux Kontext Pro images (FluxAPI.ai) | Preferred for images |
-| `TOGETHER_API_KEY` | FLUX.1-schnell images (Together) | Fallback when FluxAPI unset/fails |
-| `ELEVENLABS_API_KEY` | Voice Director | For voice |
-| `SEEDANCE_API_KEY` or `VIDEO_GENERATION_ENABLED` | Scene video clips | Optional |
-| `MUGTEE_V3_CREATIVE_LLM` | Creative Director AI pass | Optional |
-| `CONTENT_BRIEF_LLM` | Also enables creative LLM | Optional |
-| `VIDEO_RENDER_ENABLED` | MP4 export | Optional |
+| Variable                                         | Stage                                  | Required                          |
+| ------------------------------------------------ | -------------------------------------- | --------------------------------- |
+| `MUGTEE_V3_PIPELINE`                             | All V3                                 | Yes (to enable)                   |
+| `OPENAI_API_KEY`                                 | Creative Director LLM, script fallback | Optional                          |
+| `ANTHROPIC_API_KEY`                              | Script generation                      | Optional                          |
+| `GEMINI_API_KEY`                                 | Script (free tier)                     | Optional                          |
+| `FLUXAPI_KEY`                                    | Flux Kontext Pro images (FluxAPI.ai)   | Preferred for images              |
+| `TOGETHER_API_KEY`                               | FLUX.1-schnell images (Together)       | Fallback when FluxAPI unset/fails |
+| `ELEVENLABS_API_KEY`                             | Voice Director                         | For voice                         |
+| `SEEDANCE_API_KEY` or `VIDEO_GENERATION_ENABLED` | Scene video clips                      | Optional                          |
+| `MUGTEE_V3_CREATIVE_LLM`                         | Creative Director AI pass              | Optional                          |
+| `CONTENT_BRIEF_LLM`                              | Also enables creative LLM              | Optional                          |
+| `VIDEO_RENDER_ENABLED`                           | MP4 export                             | Optional                          |
 
 ## Migration from `runPipeline`
 
 1. **No breaking changes** — `runPipeline` remains the entry point.
 2. Enable `MUGTEE_V3_PIPELINE=true` in env.
-3. V3 artifacts populate `v3PipelineState`, `creativeDirectorBrief`, `visualBible` on the store.
-4. For stage-only execution: `useQuickCutGenerationStore.getState().runV3Stage('visual_bible')`.
-5. For full custom orchestration: import `runV3Stage` from `@/lib/pipeline` with a `V3PipelineContext`.
+3. V3 artifacts populate `v3PipelineState`, `creativeDirectorBrief`,
+   `visualBible` on the store.
+4. For stage-only execution:
+   `useQuickCutGenerationStore.getState().runV3Stage('visual_bible')`.
+5. For full custom orchestration: import `runV3Stage` from `@/lib/pipeline` with
+   a `V3PipelineContext`.
 
 ### `runPipeline` step → V3 stage map
 
-| Generation step | V3 stages |
-|-----------------|-----------|
-| `analyzing`, `title`, `hook` | `creative_director` |
-| `script` | `creative_director`, `scene_planner` |
-| `scenes` | `scene_planner`, `visual_bible` |
-| `images` | `flux_image_engine` |
-| `motion` | `seedance_motion` |
-| `voice` | `voice_director` |
-| `render` | `timeline_composer` |
-| `complete` | `export_studio`, `memory_system` |
+| Generation step              | V3 stages                            |
+| ---------------------------- | ------------------------------------ |
+| `analyzing`, `title`, `hook` | `creative_director`                  |
+| `script`                     | `creative_director`, `scene_planner` |
+| `scenes`                     | `scene_planner`, `visual_bible`      |
+| `images`                     | `flux_image_engine`                  |
+| `motion`                     | `seedance_motion`                    |
+| `voice`                      | `voice_director`                     |
+| `render`                     | `timeline_composer`                  |
+| `complete`                   | `export_studio`, `memory_system`     |
 
 ## What ships now vs phase 2
 
@@ -147,7 +176,8 @@ Optional: `FLUXAPI_MODEL` (default `flux-kontext-pro`), `FLUXAPI_ASPECT_RATIO` (
 - [ ] Per-scene voice regen API (today: full voice regen only)
 - [ ] Music track generation / library integration
 - [ ] Creator Editor in main studio tab (wire into `WorkflowStackedPanel`)
-- [ ] Storyboard PDF export dedicated route (creator-pack already includes assets)
+- [ ] Storyboard PDF export dedicated route (creator-pack already includes
+  assets)
 - [x] Flux Kontext provider (`lib/image-providers/fluxapi.ts`, `FLUXAPI_KEY`)
 - [ ] V3 mission steps in `WorkflowTimeline` (10 steps vs 9)
 - [ ] Memory persist to Supabase creator profile

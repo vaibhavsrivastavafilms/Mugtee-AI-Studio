@@ -55,6 +55,12 @@ const EMPTY_FORM: FormState = {
   experience: '',
 }
 
+const selectTriggerClassName =
+  'h-10 bg-[#111111] border-white/[0.08] text-luxe/90 hover:border-gold-500/25 focus:ring-gold-500/20'
+
+const selectContentClassName =
+  'bg-[#0a0a0a] border-white/[0.08] text-luxe/90'
+
 function formFromProfile(profile: CreatorMemoryProfile): FormState {
   return {
     creatorName: profile.creatorName ?? '',
@@ -219,13 +225,13 @@ export function CreatorProfileOnboardingModal({
                     Platform
                   </label>
                   <Select
-                    value={form.primaryPlatform}
+                    value={form.primaryPlatform || undefined}
                     onValueChange={(v) => update({ primaryPlatform: v })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] h-10">
+                    <SelectTrigger className={selectTriggerClassName}>
                       <SelectValue placeholder="Primary platform" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={selectContentClassName}>
                       {CREATOR_PLATFORMS.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.label}
@@ -237,10 +243,10 @@ export function CreatorProfileOnboardingModal({
                 <div className="space-y-1.5">
                   <label className="text-[10px] tracking-wider uppercase text-luxe/45">Niche</label>
                   <Select value={form.niche} onValueChange={(v) => update({ niche: v })}>
-                    <SelectTrigger className="bg-white/[0.03] h-10">
+                    <SelectTrigger className={selectTriggerClassName}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={selectContentClassName}>
                       {NICHES.map((n) => (
                         <SelectItem key={n.id} value={n.id}>
                           {n.label}
@@ -255,13 +261,13 @@ export function CreatorProfileOnboardingModal({
                 <div className="space-y-1.5">
                   <label className="text-[10px] tracking-wider uppercase text-luxe/45">Goal</label>
                   <Select
-                    value={form.creatorGoal}
+                    value={form.creatorGoal || undefined}
                     onValueChange={(v) => update({ creatorGoal: v })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] h-10">
+                    <SelectTrigger className={selectTriggerClassName}>
                       <SelectValue placeholder="What are you building toward?" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={selectContentClassName}>
                       {CREATOR_GOALS.map((g) => (
                         <SelectItem key={g.id} value={g.id}>
                           {g.label}
@@ -275,13 +281,13 @@ export function CreatorProfileOnboardingModal({
                     Content style
                   </label>
                   <Select
-                    value={form.contentStyle}
+                    value={form.contentStyle || undefined}
                     onValueChange={(v) => update({ contentStyle: v })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] h-10">
+                    <SelectTrigger className={selectTriggerClassName}>
                       <SelectValue placeholder="Your format" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={selectContentClassName}>
                       {CREATOR_CONTENT_STYLES.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.label}
@@ -296,11 +302,14 @@ export function CreatorProfileOnboardingModal({
                 <label className="text-[10px] tracking-wider uppercase text-luxe/45">
                   Experience level
                 </label>
-                <Select value={form.experience} onValueChange={(v) => update({ experience: v })}>
-                  <SelectTrigger className="bg-white/[0.03] h-10">
+                <Select
+                  value={form.experience || undefined}
+                  onValueChange={(v) => update({ experience: v })}
+                >
+                  <SelectTrigger className={selectTriggerClassName}>
                     <SelectValue placeholder="Your level" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={selectContentClassName}>
                     {EXPERIENCE_LEVELS.map((l) => (
                       <SelectItem key={l.id} value={l.id}>
                         {l.label}

@@ -1,8 +1,12 @@
 import 'server-only'
 
+/** Flux Kontext REST API — https://docs.fluxapi.ai/quickstart */
 const FLUXAPI_BASE = 'https://api.fluxapi.ai/api/v1/flux/kontext'
+/** API model ids (not the marketing name "flux-1-kontext-dev"). */
 const DEFAULT_MODEL = 'flux-kontext-pro'
 const DEFAULT_ASPECT = '9:16'
+const POLL_INTERVAL_MS = 3_000
+const DEFAULT_MAX_POLL_ATTEMPTS = 40
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -36,12 +40,24 @@ type FluxTaskStatus = {
   }
 }
 
+export type FluxKontextOptions = {
+  aspectRatio?: string
+  model?: string
+  outputFormat?: 'jpeg' | 'png'
+  promptUpsampling?: boolean
+}
+
 export async function createFluxKontextTask(
   prompt: string,
-  options?: { aspectRatio?: string; model?: string }
+  options?: FluxKontextOptions
 ): Promise<string | null> {
   const key = getFluxApiKey()
   if (!key) return null
+
+  const promptUpsamplingEnv = process.env.FLUXAPI_PROMPT_UPSAMPLING?.trim().toLowerCase()
+  const promptUpsampling =
+    options?.promptUpsampling ??
+    (promptUpsamplingEnv === 'true' || promptUpsamplingEnv === '1')
 
   const res = await fetch(`${FLUXAPI_BASE}/generate`, {
     method: 'POST',
@@ -54,7 +70,8 @@ export async function createFluxKontextTask(
       aspectRatio: options?.aspectRatio ?? process.env.FLUXAPI_ASPECT_RATIO?.trim() ?? DEFAULT_ASPECT,
       model: options?.model ?? process.env.FLUXAPI_MODEL?.trim() ?? DEFAULT_MODEL,
       enableTranslation: true,
-      outputFormat: 'jpeg',
+      outputFormat: options?.outputFormat ?? 'jpeg',
+      ...(promptUpsampling ? { promptUpsampling: true } : {}),
     }),
     signal: AbortSignal.timeout(120_000),
   })
@@ -98,10 +115,10 @@ export async function waitForFluxKontextImage(
   taskId: string,
   options?: { maxAttempts?: number }
 ): Promise<string | null> {
-  const maxAttempts = options?.maxAttempts ?? 60
+  const maxAttempts = options?.maxAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await delay(attempt === 0 ? 2000 : 3000)
+    await delay(POLL_INTERVAL_MS)
 
     const status = await retrieveFluxKontextTask(taskId)
     if (!status) continue
@@ -128,8 +145,11 @@ export async function waitForFluxKontextImage(
 }
 
 /** Generate an image via FluxAPI.ai Kontext (async task + poll). */
-export async function generateFluxApiImage(prompt: string): Promise<string | null> {
-  const taskId = await createFluxKontextTask(prompt)
+export async function generateFluxApiImage(
+  prompt: string,
+  options?: FluxKontextOptions
+): Promise<string | null> {
+  const taskId = await createFluxKontextTask(prompt, options)
   if (!taskId) return null
   return waitForFluxKontextImage(taskId)
 }
