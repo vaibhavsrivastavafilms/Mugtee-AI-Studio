@@ -6,12 +6,12 @@ import { reelExportPollPath } from '@/lib/reels/export-paths'
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
 
 export const REEL_EXPORT_PROGRESS_CAP = 95
-/** UI retry prompt when export appears stalled (e.g. stuck at render step %). */
-export const REEL_EXPORT_STUCK_MS = 3 * 60 * 1000
+/** UI + auto-retry when export appears stalled (e.g. stuck at render step %). */
+export const REEL_EXPORT_STUCK_MS = 30_000
 /** Hard client timeout for a single export poll session. */
 export const REEL_EXPORT_MAX_MS = 5 * 60 * 1000
 export const REEL_EXPORT_STUCK_MSG =
-  'Reel export is taking longer than expected — tap Retry export.'
+  'Export taking longer than expected — Retry export'
 
 const POLL_INTERVAL_MS = 1500
 const FETCH_TIMEOUT_MS = 15_000
