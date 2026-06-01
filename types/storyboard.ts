@@ -1,4 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { roundTimelineSec } from '@/lib/cinematic/scene-image-prompt'
 
 /** Single visual beat from the Storyboard SOP — one still frame per major moment. */
 export interface StoryboardScene {
@@ -74,14 +75,16 @@ export function buildVisualTimeline(scenes: StoryboardScene[]): VisualTimelineEn
   let cursor = 0
   return scenes.map((scene, index) => {
     const dur = Math.max(1, scene.duration || 4)
+    const startSec = roundTimelineSec(cursor)
+    const endSec = roundTimelineSec(cursor + dur)
     const entry: VisualTimelineEntry = {
       sceneId: scene.id,
       index: index + 1,
-      startSec: cursor,
-      endSec: cursor + dur,
+      startSec,
+      endSec,
       label: scene.visualFocus.trim() || scene.action.trim() || `Scene ${index + 1}`,
     }
-    cursor += dur
+    cursor = endSec
     return entry
   })
 }

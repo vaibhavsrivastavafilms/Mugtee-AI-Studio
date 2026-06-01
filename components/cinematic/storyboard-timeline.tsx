@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, Sparkles, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { sceneScrollTargetId } from '@/lib/cinematic/storyboard-scroll'
+import { formatTimelineSecRange, roundTimelineSec } from '@/lib/cinematic/scene-image-prompt'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 function formatContinuity(scene: GeneratedScene): string {
@@ -17,9 +18,11 @@ function formatContinuity(scene: GeneratedScene): string {
 }
 
 function formatPacing(scene: GeneratedScene, index: number, scenes: GeneratedScene[]): string {
-  const start = scenes.slice(0, index).reduce((sum, s) => sum + (s.duration ?? 4), 0)
-  const end = start + (scene.duration ?? 4)
-  return `${start}s–${end}s`
+  const start = roundTimelineSec(
+    scenes.slice(0, index).reduce((sum, s) => sum + (s.duration ?? 4), 0)
+  )
+  const end = roundTimelineSec(start + (scene.duration ?? 4))
+  return formatTimelineSecRange(start, end)
 }
 
 type StoryboardTimelineProps = {

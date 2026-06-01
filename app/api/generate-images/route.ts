@@ -97,10 +97,24 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (result.duplicateImageWarnings?.length) {
+      console.warn('[generate-images] duplicate scene image URLs', result.duplicateImageWarnings)
+    }
+    if (result.duplicatePromptSceneIds?.length) {
+      console.warn('[generate-images] duplicate image prompts', result.duplicatePromptSceneIds)
+    }
+
     return NextResponse.json({
       scenes: result.scenes,
       mock: result.mock,
       characterDescription: result.characterDescription,
+      ...(result.duplicateImageWarnings?.length
+        ? { duplicateImageWarnings: result.duplicateImageWarnings }
+        : {}),
+      ...(result.retriedSceneIds?.length ? { retriedSceneIds: result.retriedSceneIds } : {}),
+      ...(result.duplicatePromptSceneIds?.length
+        ? { duplicatePromptSceneIds: result.duplicatePromptSceneIds }
+        : {}),
       ...(result.alignmentResults?.length
         ? { alignmentResults: result.alignmentResults }
         : {}),

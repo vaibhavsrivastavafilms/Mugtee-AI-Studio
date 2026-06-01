@@ -42,6 +42,14 @@ import {
   scoreSceneAlignment,
   validateSequenceCoherence,
 } from '@/lib/cinematic/output-alignment'
+import {
+  appendPromptSuffix,
+  duplicateImageVariationSuffix,
+  findConsecutiveDuplicateSceneImages,
+  findDuplicateImagePromptFingerprints,
+  imagePromptFingerprint,
+  type SceneImageDuplicate,
+} from '@/lib/cinematic/scene-image-prompt'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -87,6 +95,12 @@ export type GenerateSceneImagesResult = {
     issues: string[]
   }>
   sequenceCoherence?: { coherent: boolean; score: number; issues: string[] }
+  /** Scene ids that received the same imageUrl as the prior scene */
+  duplicateImageWarnings?: SceneImageDuplicate[]
+  /** Scene ids regenerated after duplicate URL detection */
+  retriedSceneIds?: string[]
+  /** Scene ids whose final prompts fingerprint-collided (logged server-side) */
+  duplicatePromptSceneIds?: string[]
 }
 
 function promptContext(
@@ -178,20 +192,26 @@ export async function generateSceneImages(
 
   let anyMock = !canGenerate
   const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
-  const alignmentResults: GenerateSceneImagesResult['alignmentResults'] = []
+  const alignmentResults: NonNullable<GenerateSceneImagesResult['alignmentResults']> = []
   const updated = input.scenes.map((scene) => ({ ...scene }))
   let storyBibleLogged = false
+  const retriedSceneIds: string[] = []
+  const promptFingerprints: Array<{ sceneId: string; prompt: string }> = []
 
-  for (let i = 0; i < updated.length; i++) {
-    const scene = updated[i]
-    if (!scene) continue
-    if (idFilter && !idFilter.has(scene.id)) continue
+  const targets = updated
+    .map((scene, index) => ({ scene, index }))
+    .filter(({ scene }) => scene && (!idFilter || idFilter.has(scene.id)))
 
+  async function renderSceneStill(
+    scene: GeneratedScene,
+    index: number,
+    duplicateRetry = 0
+  ): Promise<GeneratedScene> {
     const blueprint = blueprintMap.get(scene.id) ?? null
     const ctx = promptContext(
       input,
       scene,
-      i,
+      index,
       updated.length,
       blueprint,
       consistency,
@@ -238,14 +258,23 @@ export async function generateSceneImages(
     } else if (!scene.imagePrompt?.trim()) {
       scene.imagePrompt = scenePrompt
     }
+
+    if (duplicateRetry > 0) {
+      scenePrompt = appendPromptSuffix(
+        scenePrompt,
+        duplicateImageVariationSuffix(index + 1, duplicateRetry)
+      )
+    }
+
+    promptFingerprints.push({ sceneId: scene.id, prompt: scenePrompt })
+
     const filename = input.userId
-      ? `${input.userId}/faceless/scene_${scene.id}_${Date.now()}.png`
-      : `anon/faceless/scene_${scene.id}_${Date.now()}.png`
+      ? `${input.userId}/faceless/scene_${scene.id}_${Date.now()}_${duplicateRetry}.png`
+      : `anon/faceless/scene_${scene.id}_${Date.now()}_${duplicateRetry}.png`
 
     let imageUrl: string | null = null
     const attempted: string[] = []
 
-    // Primary: FluxAPI Kontext → Together → Pollinations
     attempted.push('fluxapi-together-pollinations')
     try {
       const result = await generateSceneImage(scenePrompt, {
@@ -259,7 +288,6 @@ export async function generateSceneImages(
       if (err instanceof ImageGenerationUnavailableError) throw err
     }
 
-    // Fallback: OpenAI Images API (disabled in free-tier-only mode)
     if (!imageUrl && allowDalleImages()) {
       attempted.push('openai')
       const dallePrompt = buildDalleSceneImagePrompt(scene, {
@@ -280,8 +308,25 @@ export async function generateSceneImages(
       if (canGenerate && attempted.length > 0) {
         imageFailures.push({ sceneId: scene.id, attempted })
       }
-      imageUrl = placeholderSceneImageUrl(scene, i)
+      imageUrl = placeholderSceneImageUrl(scene, index)
       anyMock = true
+    }
+
+    const prevScene = index > 0 ? updated[index - 1] : null
+    const prevUrl = prevScene?.imageUrl?.trim()
+    if (
+      !input.variation &&
+      imageUrl &&
+      prevUrl &&
+      imageUrl.trim() === prevUrl &&
+      duplicateRetry < 1
+    ) {
+      console.warn(
+        '[generate-scene-images] duplicate imageUrl vs previous scene — retrying',
+        { sceneId: scene.id, previousSceneId: prevScene?.id, fingerprint: imagePromptFingerprint(scenePrompt) }
+      )
+      retriedSceneIds.push(scene.id)
+      return renderSceneStill(scene, index, duplicateRetry + 1)
     }
 
     if (input.variation) {
@@ -289,8 +334,19 @@ export async function generateSceneImages(
     } else {
       scene.imageUrl = imageUrl
     }
-    updated[i] = scene
+    return scene
   }
+
+  for (const { scene, index } of targets) {
+    updated[index] = await renderSceneStill(scene, index)
+  }
+
+  const duplicateImageWarnings = findConsecutiveDuplicateSceneImages(updated)
+  if (duplicateImageWarnings.length) {
+    console.warn('[generate-scene-images] consecutive duplicate scene images', duplicateImageWarnings)
+  }
+
+  const duplicatePromptSceneIds = findDuplicateImagePromptFingerprints(promptFingerprints)
 
   return {
     scenes: ensureScenesHaveImagePrompts(updated),
@@ -303,6 +359,11 @@ export async function generateSceneImages(
           degradedSceneIds: imageFailures.map((f) => f.sceneId),
           imageFailures,
         }
+      : {}),
+    ...(duplicateImageWarnings.length ? { duplicateImageWarnings } : {}),
+    ...(retriedSceneIds.length ? { retriedSceneIds } : {}),
+    ...(duplicatePromptSceneIds.length
+      ? { duplicatePromptSceneIds }
       : {}),
   }
 }

@@ -3018,52 +3018,56 @@ export const useQuickCutGenerationStore = create<
           return null
         })
 
-        await Promise.all(
-          scenesToRender.map(async ({ scene, index }) => {
-            set({ directingSceneLabel: `Directing Scene ${index + 1}…` })
-            try {
-              const imgResult = await fetchSceneImages(
-                {
-                  ...get(),
-                  scenes: get().scenes.length ? get().scenes : scenes,
-                  characterDescription,
-                  hook: scriptHook,
-                  script,
-                  storyBible: get().storyBible,
-                },
-                [scene.id],
-                false,
-                regenFresh ? index + 1 : 0
+        for (const { scene, index } of scenesToRender) {
+          set({ directingSceneLabel: `Directing Scene ${index + 1}…` })
+          try {
+            const imgResult = await fetchSceneImages(
+              {
+                ...get(),
+                scenes: get().scenes.length ? get().scenes : scenes,
+                characterDescription,
+                hook: scriptHook,
+                script,
+                storyBible: get().storyBible,
+              },
+              [scene.id],
+              false,
+              regenFresh ? index + 1 : 0
+            )
+            useQuickCutGenerationStore.setState((state) => {
+              const baseScenes = state.scenes.length ? state.scenes : scenes
+              const patchById = new Map(
+                imgResult.scenes.map((s) => [s.id, s] as const)
               )
-              useQuickCutGenerationStore.setState((state) => {
-                const baseScenes = state.scenes.length ? state.scenes : scenes
-                const merged = mergeScenesById(baseScenes, imgResult.scenes, [scene.id])
-                const firstHasImage = Boolean(merged[0]?.imageUrl?.trim())
-                return {
-                  scenes: merged,
-                  storyboard: merged,
-                  characterDescription:
-                    imgResult.characterDescription || state.characterDescription,
-                  sectionStatus: {
-                    ...state.sectionStatus,
-                    thumbnail: firstHasImage ? 'completed' : state.sectionStatus.thumbnail,
-                  },
-                }
-              })
-              scenes = get().scenes
-              if (imgResult.mock) {
-                imgMock = true
-                anyMock = true
-                noteMissing('images')
+              const patch = patchById.get(scene.id)
+              const merged = patch
+                ? mergeScenesById(baseScenes, [patch], [scene.id])
+                : baseScenes
+              const firstHasImage = Boolean(merged[0]?.imageUrl?.trim())
+              return {
+                scenes: merged,
+                storyboard: merged,
+                characterDescription:
+                  imgResult.characterDescription || state.characterDescription,
+                sectionStatus: {
+                  ...state.sectionStatus,
+                  thumbnail: firstHasImage ? 'completed' : state.sectionStatus.thumbnail,
+                },
               }
-            } catch (err) {
-              if (err instanceof ImageGenerationUnavailableError) throw err
+            })
+            scenes = get().scenes
+            if (imgResult.mock) {
               imgMock = true
               anyMock = true
               noteMissing('images')
             }
-          })
-        )
+          } catch (err) {
+            if (err instanceof ImageGenerationUnavailableError) throw err
+            imgMock = true
+            anyMock = true
+            noteMissing('images')
+          }
+        }
 
         scenes = get().scenes.length ? get().scenes : scenes
         set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
@@ -3483,7 +3487,10 @@ export const useQuickCutGenerationStore = create<
 
     try {
       const result = await fetchSceneImages(state, [sceneId], false, state.previousHooks.length)
-      const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
+      const patch = result.scenes.find((s) => s.id === sceneId)
+      const scenes = patch
+        ? mergeScenesById(state.scenes, [patch], [sceneId])
+        : state.scenes
       const updated = scenes.find((s) => s.id === sceneId)
       let variationHistory = state.variationHistory
       if (updated?.imageUrl) {
@@ -3579,7 +3586,10 @@ export const useQuickCutGenerationStore = create<
         true,
         sceneVersions + 1
       )
-      const scenes = mergeScenesById(state.scenes, result.scenes, [sceneId])
+      const patch = result.scenes.find((s) => s.id === sceneId)
+      const scenes = patch
+        ? mergeScenesById(state.scenes, [patch], [sceneId])
+        : state.scenes
       const updated = scenes.find((s) => s.id === sceneId)
       let variationHistory = state.variationHistory
       const altUrl = updated?.variationImageUrl ?? updated?.imageUrl
