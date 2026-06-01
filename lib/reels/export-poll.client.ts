@@ -3,6 +3,7 @@ import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { reelExportPollPath } from '@/lib/reels/export-paths'
 import { EXPORT_STAGE_LABELS } from '@/lib/reels/export-stages'
+import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 
 /** Client helpers for GET /api/reels/export/:jobId poll responses. */
 
@@ -249,7 +250,7 @@ export async function pollReelExportJob(
     })
 
     if (job.status === 'failed') {
-      throw new Error(creatorFriendlyMessage(job.error, 'export'))
+      throw new Error(friendlyReelRenderError(job.error))
     }
 
     if (job.status === 'completed' && job.reelUrl) {

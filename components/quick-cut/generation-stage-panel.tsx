@@ -173,6 +173,9 @@ export function GenerationStagePanel({
   const regenerateVoice = useQuickCutGenerationStore((s) => s.regenerateVoice)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
+  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
+  const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
@@ -577,7 +580,26 @@ export function GenerationStagePanel({
         <div className="space-y-3">
           {videoUrl ? (
             <p className="text-[12px] text-gold-200/90">Download ready — MP4 reel is live.</p>
-          ) : (
+          ) : renderError || sectionStatus.export === 'failed' ? (
+            <>
+              <p className="text-[12px] text-red-300/90" role="alert">
+                {renderError || 'Export failed — try again.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => void retryVideoRender()}
+                disabled={isRenderingVideo}
+                className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/80 hover:text-gold-200 transition-colors disabled:opacity-50"
+              >
+                {isRenderingVideo ? (
+                  <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="w-3 h-3" aria-hidden />
+                )}
+                Retry compile
+              </button>
+            </>
+          ) : isRenderingVideo ? (
             <>
               <p className="text-[12px] text-luxe/70 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-gold-400/80 shrink-0" />
@@ -587,9 +609,13 @@ export function GenerationStagePanel({
                 Assembling film → rendering reel → download ready. Preview animates while the MP4 encodes.
               </p>
             </>
+          ) : (
+            <p className="text-[12px] text-luxe/55 italic">
+              Compile MP4 to finish export.
+            </p>
           )}
         </div>,
-        generationStep === 'render' && !videoUrl,
+        isRenderingVideo && !videoUrl && !renderError && sectionStatus.export !== 'failed',
         'export'
       )
 

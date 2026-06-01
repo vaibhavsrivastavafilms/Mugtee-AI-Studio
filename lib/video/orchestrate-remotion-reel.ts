@@ -27,6 +27,8 @@ import {
   renderRemotionReelMock,
 } from '@/lib/remotion/render-reel.server'
 import { retryWithBackoff } from '@/lib/video/retry.server'
+import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   assertAllScenesHaveExportImages,
   findScenesMissingExportImages,
@@ -272,8 +274,9 @@ export async function orchestrateRemotionReel(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
+    const exportError = friendlyReelRenderErrorFromUnknown(err)
     logError('orchestrate.remotion-reel', err)
-    exportLog.error('render', err, { jobId, projectId: input.projectId })
+    exportLog.error('render', err, { jobId, projectId: input.projectId, reason: exportError })
 
     if (input.userId && input.projectId) {
       await updateProjectReelStatus({
@@ -282,6 +285,16 @@ export async function orchestrateRemotionReel(
         reelStatus: 'failed',
         reelJobId: null,
       }).catch(() => undefined)
+      void createSupabaseServerClient()
+        .from('cinematic_projects')
+        .update({
+          generation_error: exportError.slice(0, 500),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', input.projectId)
+        .eq('user_id', input.userId)
+        .then(() => undefined)
+        .catch(() => undefined)
     }
 
     updateRenderJob(jobId, {
