@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isFreeTierOnly } from '@/lib/ai/free-tier'
-import { synthesizeSpeechBuffer } from '@/lib/ai/synthesize-speech'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { trimNarrationForMaxDuration } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
 import {
   FeatureUsageFeatures,
@@ -10,21 +8,27 @@ import {
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import { generateVoice } from '@/lib/voice/generateVoice'
+import { selectVoiceProfile } from '@/lib/voice/voiceProfiles'
+import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { parseSceneBlueprints } from '@/lib/cinematic/scene-blueprint'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const BUCKET = 'project-assets'
+function parseScenes(raw: unknown): GeneratedScene[] {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((s) => s && typeof s === 'object') as GeneratedScene[]
+}
 
 export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const script = typeof raw?.script === 'string' ? raw.script : ''
-
-    const waveform = Array.from({ length: 24 }, (_, i) => {
-      const base = 0.25 + Math.sin(i * 0.55) * 0.2
-      return Math.min(0.95, Math.max(0.12, base + (i % 5 === 0 ? 0.35 : 0)))
-    })
+    const niche = typeof raw?.niche === 'string' ? raw.niche : undefined
+    const tone = typeof raw?.tone === 'string' ? raw.tone : undefined
+    const voiceProfileId =
+      typeof raw?.voiceProfileId === 'string' ? raw.voiceProfileId : undefined
 
     const elevenLabsVoiceId =
       typeof raw?.elevenLabsVoiceId === 'string'
@@ -35,21 +39,40 @@ export async function POST(req: NextRequest) {
     const voiceName =
       typeof raw?.voiceName === 'string' ? raw.voiceName.trim() : undefined
 
-    const { buffer, provider, voiceName: resolvedName, fallbackMessage } =
-      await synthesizeSpeechBuffer(script, {
+    const profile = voiceProfileId
+      ? undefined
+      : selectVoiceProfile({ niche, tone })
+
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      const blocked = await guardUsageLimit(user.id, 'generations')
+      if (blocked) return blocked
+    }
+
+    const result = await generateVoice(
+      {
+        script,
+        userId: user?.id,
+        projectId: parseFeatureUsageProjectId(raw) ?? undefined,
+        niche,
+        tone,
+        voiceProfileId: voiceProfileId ?? profile?.id,
         elevenLabsVoiceId,
-        voiceName,
-      })
-    const narration = trimNarrationForMaxDuration(
-      script
-        .replace(/Scene\s+\d+[^\n]*/gi, '')
-        .replace(/Visual:[^\n]*/gi, '')
-        .replace(/\[0:\d+[^\]]*\]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
+        voiceName: voiceName ?? profile?.label,
+        scenes: parseScenes(raw?.scenes),
+        sceneBlueprints: parseSceneBlueprints(
+          raw?.sceneBlueprints ?? raw?.scene_blueprints
+        ),
+        skipCache: raw?.skipCache === true,
+      },
+      supabase
     )
 
-    if (!buffer || !narration || narration.length < 12) {
+    if (!result.buffer && !result.audioUrl) {
       return NextResponse.json(
         {
           error: isFreeTierOnly()
@@ -57,58 +80,15 @@ export async function POST(req: NextRequest) {
             : 'Voice generation requires ELEVENLABS_API_KEY, OPENAI_API_KEY, or EMERGENT_LLM_KEY.',
           audioUrl: null,
           mock: true,
-          waveform,
-          provider: 'none',
-          fallbackMessage,
+          waveform: result.waveform,
+          provider: result.provider,
+          fallbackMessage: result.fallbackMessage,
+          voiceMetadata: result.voiceMetadata,
         },
         { status: 503 }
       )
     }
 
-    const displayName = resolvedName || voiceName || 'Cinematic Narrator'
-
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const blocked = await guardUsageLimit(user.id, 'generations')
-      if (blocked) return blocked
-    }
-
-    if (user) {
-      const filename = `${user.id}/faceless/voice_${Date.now()}.mp3`
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(filename, buffer, { contentType: 'audio/mpeg', upsert: false })
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(filename)
-        if (user) {
-          await trackUsageMetric(user.id, 'generations')
-          void trackFeatureUsage(
-            user.id,
-            FeatureUsageFeatures.VOICE_GENERATION,
-            parseFeatureUsageProjectId(raw)
-          )
-        }
-        return NextResponse.json({
-          audioUrl: pub.publicUrl,
-          voiceName: displayName,
-          elevenLabsVoiceId: elevenLabsVoiceId || null,
-          style: 'warm_documentary',
-          durationSec: Math.min(
-            MAX_VIDEO_DURATION_SEC,
-            Math.max(15, Math.round(narration.length / 14))
-          ),
-          waveform,
-          mock: false,
-          provider,
-          fallbackMessage: fallbackMessage ?? null,
-        })
-      }
-    }
-
-    const dataUri = `data:audio/mpeg;base64,${buffer.toString('base64')}`
     if (user) {
       await trackUsageMetric(user.id, 'generations')
       void trackFeatureUsage(
@@ -117,19 +97,26 @@ export async function POST(req: NextRequest) {
         parseFeatureUsageProjectId(raw)
       )
     }
+
+    const durationSec =
+      result.voiceMetadata?.durationSec ??
+      Math.min(MAX_VIDEO_DURATION_SEC, Math.max(15, Math.round(result.narration.length / 14)))
+
     return NextResponse.json({
-      audioUrl: dataUri,
-      voiceName: displayName,
-      elevenLabsVoiceId: elevenLabsVoiceId || null,
-      style: 'warm_documentary',
-      durationSec: Math.min(
-        MAX_VIDEO_DURATION_SEC,
-        Math.max(15, Math.round(narration.length / 14))
-      ),
-      waveform,
-      mock: false,
-      provider,
-      fallbackMessage: fallbackMessage ?? null,
+      audioUrl: result.audioUrl,
+      voiceName: result.voiceMetadata?.voiceName ?? voiceName ?? 'Cinematic Narrator',
+      elevenLabsVoiceId: result.voiceMetadata?.voiceId ?? elevenLabsVoiceId ?? null,
+      voiceProfileId: result.voiceMetadata?.profileId ?? profile?.id ?? null,
+      style: result.voiceMetadata?.profileId ?? 'warm_documentary',
+      durationSec,
+      waveform: result.waveform,
+      mock: result.mock,
+      provider: result.provider,
+      fallbackMessage: result.fallbackMessage ?? null,
+      voiceMetadata: result.voiceMetadata,
+      sceneVoiceDirections: result.voiceMetadata?.sceneDirections ?? [],
+      fromCache: result.fromCache,
+      narration: result.narration,
     })
   } catch (err) {
     logError('generate-voice', err)

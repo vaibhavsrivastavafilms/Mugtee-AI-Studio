@@ -72,6 +72,31 @@ function QuickCutHomeInner({ embedded = false }: { embedded?: boolean }) {
     [runPipeline]
   )
 
+  const autorunRef = useRef(false)
+  useEffect(() => {
+    if (autorunRef.current || !authReady || !signedIn) return
+    if (searchParams?.get('autorun') !== '1') return
+    const topic = searchParams?.get('topic') ?? searchParams?.get('prompt')
+    if (!topic || topic.trim().length < 6) return
+
+    autorunRef.current = true
+    setInitialPrompt(topic)
+
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('autorun')
+      window.history.replaceState({}, '', url.pathname + url.search)
+    }
+
+    void runOrchestration({
+      prompt: topic.trim(),
+      style: 'cinematic_emotional',
+      duration: 60,
+      language: 'en',
+      directorMode: 'storyteller',
+    })
+  }, [authReady, signedIn, searchParams, runOrchestration])
+
   const tryResumePending = useCallback(() => {
     if (!authReady || !signedIn || resumedRef.current || isGenerating) return
     const wantsResume = searchParams?.get('resume') === '1'

@@ -6,6 +6,10 @@ import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import { parseVisualStyle } from '@/lib/cinematic/workflow-state'
 import { parseStoryBible } from '@/lib/cinematic/story-bible'
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
+import {
+  parseOutputAlignmentControls,
+  parseSceneBlueprints,
+} from '@/lib/cinematic/scene-blueprint'
 import { logError } from '@/lib/workspace/validation'
 import {
   FeatureUsageFeatures,
@@ -76,6 +80,10 @@ export async function POST(req: NextRequest) {
       referenceStyleNote,
       storyBible: parseStoryBible(raw?.storyBible),
       contentBrief: normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief) ?? undefined,
+      sceneBlueprints: parseSceneBlueprints(raw?.sceneBlueprints ?? raw?.scene_blueprints),
+      outputAlignmentControls: parseOutputAlignmentControls(
+        raw?.outputAlignmentControls ?? raw?.output_alignment_controls
+      ),
     })
 
     if (user) {
@@ -91,6 +99,12 @@ export async function POST(req: NextRequest) {
       scenes: result.scenes,
       mock: result.mock,
       characterDescription: result.characterDescription,
+      ...(result.alignmentResults?.length
+        ? { alignmentResults: result.alignmentResults }
+        : {}),
+      ...(result.sequenceCoherence
+        ? { sequenceCoherence: result.sequenceCoherence }
+        : {}),
       ...(result.degradedSceneIds?.length
         ? {
             degraded: true,

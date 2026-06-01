@@ -3,6 +3,7 @@ import {
   type PersistedGenerationStep,
 } from '@/lib/cinematic/generation-state'
 import { logStepComplete } from '@/lib/cinematic/generation-logger'
+import { logPipelineActivity } from '@/lib/trust/activity-events'
 import {
   archiveGeneratedProject,
   updateProject,
@@ -35,6 +36,7 @@ export async function persistStepComplete(
   archiveInput?: ArchiveGeneratedProjectInput
 ): Promise<string | null> {
   logStepComplete(step, state.savedProjectId)
+  logPipelineActivity(step, state.savedProjectId)
 
   let projectId = state.savedProjectId
 

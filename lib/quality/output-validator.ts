@@ -12,7 +12,8 @@ import {
 } from '@/lib/input-understanding/output-validation'
 import { isBannedHookOpening, isBannedTitle } from '@/lib/cinematic/content-angle-engine'
 
-export const MAX_OUTPUT_VALIDATION_RETRIES = 2
+/** Single pass — server returns best candidate; client no longer re-fetches on validation miss. */
+export const MAX_OUTPUT_VALIDATION_RETRIES = 0
 
 export type OutputValidationIssue =
   | 'instruction_leak'

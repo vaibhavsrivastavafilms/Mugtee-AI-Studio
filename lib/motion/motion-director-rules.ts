@@ -32,6 +32,8 @@ export type MotionDirectorInput = {
   totalScenes: number
   mood?: string
   storyBible?: StoryBible | null
+  /** When set, blueprint-driven preset wins over generic hints */
+  blueprintPresetId?: MotionPresetId | null
 }
 
 export type MotionDirectorOutput = {
@@ -104,12 +106,14 @@ function flickerScene(mood: string): boolean {
 }
 
 export function rulesMotionDirector(input: MotionDirectorInput): MotionDirectorOutput {
-  const presetId = selectMotionPresetForScene(
-    input.scene,
-    input.sceneIndex,
-    input.totalScenes,
-    input.storyBible
-  )
+  const presetId =
+    input.blueprintPresetId ??
+    selectMotionPresetForScene(
+      input.scene,
+      input.sceneIndex,
+      input.totalScenes,
+      input.storyBible
+    )
   const mood = sceneMoodText(input)
   const preset = getMotionPreset(presetId)
 

@@ -404,6 +404,8 @@ export type ArchiveGeneratedProjectInput = {
   contentAngleLabel?: string | null
   hookFramework?: string | null
   hookFrameworkLabel?: string | null
+  scene_blueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
+  output_alignment_controls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
 }
 
 function parseCaptions(value: CinematicProjectRow['captions']) {
@@ -750,6 +752,8 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | null
   scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | null
   visual_style?: VisualStyle | Record<string, unknown> | null
+  sceneBlueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
+  outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
   archetypeId?: string | null
@@ -806,7 +810,9 @@ export async function updateProject(
     (state as { narrativeArchetype?: string | null }).narrativeArchetype !== undefined ||
     (state as { contentAngleId?: string | null }).contentAngleId !== undefined ||
     state.series !== undefined ||
-    state.repurposedAssets !== undefined
+    state.repurposedAssets !== undefined ||
+    (state as CinematicProjectPatch).sceneBlueprints !== undefined ||
+    (state as CinematicProjectPatch).outputAlignmentControls !== undefined
   ) {
     const lines = state.captionLines ?? []
     patch.captions = captionsToPayload({
@@ -848,6 +854,8 @@ export async function updateProject(
         (state as { hookFrameworkLabel?: string | null }).hookFrameworkLabel ?? undefined,
       series: state.series ?? undefined,
       repurposedAssets: state.repurposedAssets,
+      sceneBlueprints: (state as CinematicProjectPatch).sceneBlueprints,
+      outputAlignmentControls: (state as CinematicProjectPatch).outputAlignmentControls,
     })
   }
   if (state.status !== undefined) patch.status = state.status
@@ -1108,6 +1116,8 @@ export async function archiveGeneratedProject(
     last_completed_step?: string | null
     repurposedAssets?: RepurposedAssetsMap
     series?: import('@/lib/cinematic/content-series').ContentSeries | null
+    sceneBlueprints?: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
+    outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   }
 
   const archivePatch: ArchivePatch = {
@@ -1156,6 +1166,8 @@ export async function archiveGeneratedProject(
     last_completed_step: input.last_completed_step ?? null,
     repurposedAssets: input.repurposedAssets,
     series: input.series ?? undefined,
+    sceneBlueprints: input.scene_blueprints,
+    outputAlignmentControls: input.output_alignment_controls,
   }
 
   if (input.projectId) {

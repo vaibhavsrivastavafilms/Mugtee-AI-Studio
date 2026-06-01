@@ -6,12 +6,13 @@ import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
 import { CinematicGenerationLoader } from '@/components/v2/cinematic-generation-loader'
-import { CinematicTitleReveal } from '@/components/cinematic/render/cinematic-title-reveal'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-module'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
 import { StoryboardPanel } from '@/components/quick-cut/storyboard-panel'
+import { StoryboardTimeline } from '@/components/cinematic/storyboard-timeline'
 import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
+import { sceneScrollTargetId } from '@/lib/cinematic/storyboard-scroll'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -25,6 +26,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
+import { useDraftRegenerationGuard } from '@/components/trust/draft-protection-dialog'
 import { EmotionalStoryCard } from '@/components/companion/emotional-story-card'
 import { ViewerJourneyPreview } from '@/components/companion/viewer-journey-preview'
 import { companionCopy } from '@/lib/companion/microcopy'
@@ -78,7 +80,8 @@ function SceneBreakdownList({
         ) : (
           <li
             key={scene.id || i}
-            className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5"
+            id={scene.id ? sceneScrollTargetId(scene.id) : undefined}
+            className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5 scroll-mt-24"
           >
             <div className="flex items-center justify-between gap-2 mb-1">
               <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
@@ -141,6 +144,8 @@ export function GenerationStagePanel({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
+  const hookPreview = useQuickCutGenerationStore((s) => s.hookPreview)
+  const hookProgressLabel = useQuickCutGenerationStore((s) => s.hookProgressLabel)
   const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
   const isRegeneratingHook = useQuickCutGenerationStore((s) => s.isRegeneratingHook)
   const isRegeneratingTitle = useQuickCutGenerationStore((s) => s.isRegeneratingTitle)
@@ -167,6 +172,8 @@ export function GenerationStagePanel({
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const voiceName = useQuickCutGenerationStore((s) => s.voiceName)
   const waveform = useQuickCutGenerationStore((s) => s.waveform)
+  const isRegeneratingVoice = useQuickCutGenerationStore((s) => s.isRegeneratingVoice)
+  const regenerateVoice = useQuickCutGenerationStore((s) => s.regenerateVoice)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
@@ -180,6 +187,21 @@ export function GenerationStagePanel({
   const storyboardTracked = useRef(false)
   const hookPanelRef = useRef<HTMLDivElement>(null)
   const scenesPanelRef = useRef<HTMLDivElement>(null)
+  const { requestRegeneration, dialog: draftProtectionDialog } = useDraftRegenerationGuard()
+
+  const guardedRegenerateHook = async () => {
+    if (!hook.trim()) return
+    const choice = await requestRegeneration('hook')
+    if (choice === 'cancel' || choice === 'keep') return
+    await regenerateHook()
+  }
+
+  const guardedRegenerateScript = async () => {
+    if (!script.trim() && scriptBeats.length < 1) return
+    const choice = await requestRegeneration('script')
+    if (choice === 'cancel' || choice === 'keep') return
+    await regenerateScript()
+  }
 
   const directorEditEnabled =
     !isGenerating && !isRegeneratingScript && !isRegeneratingHook
@@ -243,75 +265,97 @@ export function GenerationStagePanel({
               angleLabel={contentAngleLabel}
               hookFrameworkLabel={hookFrameworkLabel}
             />
-            <CinematicTitleReveal
-              title={title}
-              subtitle={hook ? 'Hook ready — open Hook tab' : 'Generating hook…'}
-              className="!text-left items-start"
-            />
+            <p className="font-display text-lg sm:text-xl text-[#F4E7C1] tracking-tight leading-snug">
+              {title}
+            </p>
           </div>
         ) : (
           <p className="text-[12px] text-luxe/55 italic flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
-            Generating viral title…
+            {hookProgressLabel ?? 'Generating viral title…'}
           </p>
         ),
-        generationStep === 'title' || generationStep === 'analyzing' || isRegeneratingTitle,
+        generationStep === 'title' ||
+          generationStep === 'analyzing' ||
+          isRegeneratingTitle,
         'hook'
       )
 
     case 'hook':
-      return shell(
-        'Opening hook',
-        <Film className="w-3 h-3" />,
-        hook ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
-                Hook Variant: v{hookVariantNumber}
-              </span>
-              {!isGenerating ? (
-                <button
-                  type="button"
-                  onClick={() => void regenerateHook()}
-                  disabled={isRegeneratingHook}
-                  className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
+      return (
+        <>
+          {draftProtectionDialog}
+          {shell(
+            'Opening hook',
+            <Film className="w-3 h-3" />,
+            hook || hookPreview ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
+                    Hook Variant: v{hookVariantNumber}
+                    {hookPreview && !hook ? ' · preview' : ''}
+                  </span>
+                  {!isGenerating ? (
+                    <button
+                      type="button"
+                      onClick={() => void guardedRegenerateHook()}
+                      disabled={isRegeneratingHook}
+                      className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
+                    >
+                      {isRegeneratingHook ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                      Mugtee&apos;s Hook
+                    </button>
+                  ) : null}
+                </div>
+                <ContentAngleLabel
+                  angleLabel={contentAngleLabel}
+                  hookFrameworkLabel={hookFrameworkLabel}
+                />
+                <RewriteProvider
+                  containerRef={hookPanelRef}
+                  enabled={directorEditEnabled && Boolean(hook)}
+                  defaultContentType="hook"
+                  className="relative"
                 >
-                  {isRegeneratingHook ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3 h-3" />
-                  )}
-                  Mugtee&apos;s Hook
-                </button>
-              ) : null}
-            </div>
-            <ContentAngleLabel
-              angleLabel={contentAngleLabel}
-              hookFrameworkLabel={hookFrameworkLabel}
-            />
-            <RewriteProvider
-              containerRef={hookPanelRef}
-              enabled={directorEditEnabled}
-              defaultContentType="hook"
-              className="relative"
-            >
-              <p
-                data-rewrite-type="hook"
-                className="select-text font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug"
-              >
-                {hook}
-              </p>
-            </RewriteProvider>
-          </div>
-        ) : (
-          <p className="text-[12px] text-luxe/55 italic">Crafting hook…</p>
-        ),
-        generationStep === 'hook' || isRegeneratingHook,
-        'hook'
+                  <p
+                    data-rewrite-type="hook"
+                    className={cn(
+                      'select-text font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug',
+                      hookPreview && !hook && 'opacity-80 animate-pulse'
+                    )}
+                  >
+                    {hook || hookPreview}
+                  </p>
+                </RewriteProvider>
+                {hookProgressLabel && !hook ? (
+                  <p className="text-[11px] text-luxe/45 italic">{hookProgressLabel}</p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[12px] text-luxe/55 italic flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
+                  {hookProgressLabel ?? 'Crafting hook…'}
+                </p>
+              </div>
+            ),
+            generationStep === 'hook' ||
+              generationStep === 'title' ||
+              generationStep === 'analyzing' ||
+              isRegeneratingHook,
+            'hook'
+          )}
+        </>
       )
 
     case 'script':
       return script || scriptBeats.length || hook ? (
+        <>
+          {draftProtectionDialog}
         <div className={cn('space-y-2', className)}>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <SectionStatusBadge section="script" status={sectionStatus.script} />
@@ -322,7 +366,7 @@ export function GenerationStagePanel({
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => void regenerateScript()}
+                onClick={() => void guardedRegenerateScript()}
                 disabled={isRegeneratingScript}
                 className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/75 hover:text-gold-200 transition-colors disabled:opacity-50"
               >
@@ -368,6 +412,7 @@ export function GenerationStagePanel({
             </>
           ) : null}
         </div>
+        </>
       ) : (
         shell(
           'Cinematic script',
@@ -388,6 +433,11 @@ export function GenerationStagePanel({
               Cinematic continuity active
             </p>
           ) : null}
+          <StoryboardTimeline
+            scenes={scenes}
+            loading={generationStep === 'scenes'}
+            className="mb-2"
+          />
           {shell(
             'Scene breakdown',
             <Film className="w-3 h-3" />,
@@ -508,7 +558,9 @@ export function GenerationStagePanel({
             hook={hook}
             audioRef={audioRef}
             loading={generationStep === 'voice'}
+            regenerating={isRegeneratingVoice}
             voiceName={voiceName}
+            onRegenerate={() => void regenerateVoice()}
           />
         </div>
       )

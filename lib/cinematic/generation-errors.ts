@@ -45,4 +45,4 @@ export function toUserGenerationError(err: unknown): string {
 }
 
 export const GENERATION_RECOVERY_MESSAGE =
-  "Your project is safe. We couldn't complete the next step — you can continue from where we left off."
+  'Your previous outputs are safe. We can retry only the step that was interrupted.'

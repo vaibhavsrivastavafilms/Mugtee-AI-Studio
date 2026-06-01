@@ -67,10 +67,10 @@ export function GenerationRecoveryPanel({
     >
       <div className="space-y-2">
         <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/80">
-          Story shaping paused
+          Generation interrupted
         </p>
         <h3 className="font-display text-xl sm:text-2xl text-[#F4E7C1] italic">
-          Your project is safe
+          Your previous outputs are safe
         </h3>
         <p className="text-sm text-luxe/70 max-w-md mx-auto leading-relaxed">
           {GENERATION_RECOVERY_MESSAGE}
@@ -125,7 +125,7 @@ export function GenerationRecoveryPanel({
               Continuing…
             </>
           ) : (
-            'Continue Generation'
+            'Retry Step →'
           )}
         </button>
         <Link

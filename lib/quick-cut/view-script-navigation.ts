@@ -3,8 +3,8 @@
 import { useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { openQuickCutProjectHref } from '@/lib/create/routes'
+import { navigateToStep } from '@/lib/workflow/workflow-navigation'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 
 export const GENERATION_STAGE_PANEL_SELECTOR = '[data-generation-stage-panel]'
 
@@ -29,9 +29,7 @@ export function hasGenerationStagePanel(pathname: string): boolean {
 }
 
 export function focusScriptStageInView() {
-  useQuickCutGenerationStore.getState().setActiveStageTab('script', true)
-  useStudioWorkspaceStore.getState().setActiveStage('script')
-  scrollToGenerationStagePanel()
+  navigateToStep('script')
 }
 
 export function viewScriptNavigationTarget(
@@ -49,8 +47,6 @@ export function useViewScriptNavigation(projectIdOverride?: string | null) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
-  const setActiveStage = useStudioWorkspaceStore((s) => s.setActiveStage)
 
   const projectId = projectIdOverride ?? savedProjectId
 
@@ -58,14 +54,12 @@ export function useViewScriptNavigation(projectIdOverride?: string | null) {
     const target = viewScriptNavigationTarget(pathname, projectId)
 
     if (target === 'in-view') {
-      setActiveStageTab('script', true)
-      setActiveStage('script')
-      scrollToGenerationStagePanel()
+      navigateToStep('script')
       return
     }
 
     router.push(target.href)
-  }, [pathname, projectId, router, setActiveStage, setActiveStageTab])
+  }, [pathname, projectId, router])
 
   return { navigateToScript }
 }

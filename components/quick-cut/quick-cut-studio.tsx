@@ -10,13 +10,14 @@ import {
   QuickCutGenerationFooter,
 } from '@/components/quick-cut/generation-footer'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
-import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
 import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save-project-button'
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
 import { SeriesContextPanel } from '@/components/quick-cut/series-context-panel'
 import { episodeTopic } from '@/lib/cinematic/content-series'
 import { GenerationResultsSection } from '@/components/quick-cut/generation-results-section'
+import { WorkflowHeader } from '@/components/workflow/workflow-header'
+import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { cn } from '@/lib/utils'
@@ -135,7 +136,9 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
 
   return (
     <>
-      <div className={cn('space-y-5 min-w-0', GENERATION_FOOTER_CLEARANCE)}>
+      <div className={cn('space-y-4 min-w-0', GENERATION_FOOTER_CLEARANCE)}>
+          <WorkflowHeader className="sticky top-0 z-30 -mx-0.5 px-0.5 py-2 -mt-1 mb-1 bg-[#050505]/92 backdrop-blur-xl border-b border-white/[0.06]" />
+
           <div className="flex flex-col items-center">
             {showCinematicAssembly ? (
               <CinematicAssemblyScreen
@@ -173,12 +176,9 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
             <RecommendedNextSteps />
           ) : null}
 
-          <GenerationStagePanel tab={activeStageTab} audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
+          <WorkflowStackedPanel audioRef={voiceAudioRef} onRegenerate={onRegenerate} />
 
-          {(scenes.length > 0 || storyBible) &&
-          (activeStageTab === 'scenes' ||
-            activeStageTab === 'visuals' ||
-            isComplete) ? (
+          {(scenes.length > 0 || storyBible) ? (
             <StoryboardContinuityPanel className="max-w-2xl mx-auto w-full" />
           ) : null}
 

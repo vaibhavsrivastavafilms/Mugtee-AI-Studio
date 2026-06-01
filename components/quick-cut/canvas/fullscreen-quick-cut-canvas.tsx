@@ -20,6 +20,7 @@ import {
 } from '@/lib/cinematic/quick-cut/preview-session'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { AskMugteeSuggestionChips } from '@/components/quick-cut/canvas/ask-mugtee-suggestion-chips'
+import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
 import { CinematicCanvasBackground } from '@/components/quick-cut/canvas/cinematic-canvas-background'
 import { CinematicPromptInput } from '@/components/quick-cut/canvas/cinematic-prompt-input'
 import { FloatingMicButton } from '@/components/quick-cut/canvas/floating-mic-button'
@@ -79,9 +80,7 @@ import {
   type MugteeConversationLaunchPayload,
 } from '@/components/create/mugtee-conversation-entry'
 import type { CreatorBlueprint } from '@/lib/cinematic/creator-blueprints'
-import { GuidedCreationPrompt } from '@/components/onboarding/guided-creation-prompt'
-import { SuggestionChips } from '@/components/onboarding/suggestion-chips'
-import { WhatMugteeGenerates } from '@/components/onboarding/what-mugtee-generates'
+import { FirstActivationPanel } from '@/components/onboarding/first-activation-panel'
 import { resolveActivePipelineError, shouldClearIdleExportErrors } from '@/lib/cinematic/quick-cut/pipeline-error.client'
 import {
   isFirstTimeUser,
@@ -206,6 +205,10 @@ export function FullscreenQuickCutCanvas({
 
   useEffect(() => {
     setShowActivationHints(isFirstTimeUser())
+    if (isFirstTimeUser()) {
+      setExperienceLevel('noob')
+      setUseConversationEntry(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -271,18 +274,11 @@ export function FullscreenQuickCutCanvas({
     )
   }, [])
 
-  const handlePromptPrefill = useCallback((topic: string) => {
+  const handleInspirationSelect = useCallback((topic: string) => {
     setPrompt(topic)
     setPromptFocused(true)
     promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
-
-  const handleInspirationSelect = useCallback(
-    (topic: string) => {
-      handlePromptPrefill(topic)
-    },
-    [handlePromptPrefill]
-  )
 
   const handleBlueprintSelect = useCallback(
     (blueprint: CreatorBlueprint) => {
@@ -397,13 +393,37 @@ export function FullscreenQuickCutCanvas({
     [launchPipeline, signedIn]
   )
 
+  const handlePromptPrefill = useCallback(
+    (topic: string, options?: { launch?: boolean }) => {
+      setPrompt(topic)
+      setPromptFocused(true)
+      if (options?.launch && topic.trim().length >= 6) {
+        void launchPipeline({
+          ...buildPending(),
+          prompt: topic.trim(),
+        })
+        return
+      }
+      promptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    },
+    [buildPending, launchPipeline]
+  )
+
+  const handleActivationLaunch = useCallback(
+    (topic: string) => {
+      handlePromptPrefill(topic, { launch: true })
+    },
+    [handlePromptPrefill]
+  )
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!canGenerate || isGenerating || !authReady) return
     await launchPipeline(buildPending())
   }
 
-  const showConversation = !directorUi && useConversationEntry
+  const showConversation = !directorUi && useConversationEntry && !showActivationHints
+  const isActivationMode = showActivationHints && !prompt.trim() && !isGenerating
 
   return (
     <div
@@ -430,7 +450,7 @@ export function FullscreenQuickCutCanvas({
               value={experienceLevel}
               onChange={handleExperienceChange}
               compact
-              className="hidden sm:block"
+              className={cn('hidden sm:block', showActivationHints && 'sm:hidden')}
             />
             {signedIn === false ? (
               <Link
@@ -448,10 +468,13 @@ export function FullscreenQuickCutCanvas({
         <div className="flex-1 flex flex-col justify-center min-w-0 w-full max-w-3xl mx-auto xl:max-w-2xl xl:mx-auto xl:pr-[220px] 2xl:pr-[240px]">
           {showConversation ? (
             <>
-              {showActivationHints && !prompt.trim() && !isGenerating ? (
-                <div className="mb-6 space-y-5">
-                  <GuidedCreationPrompt onSelect={handlePromptPrefill} />
-                  <SuggestionChips onSelect={handlePromptPrefill} />
+              {isActivationMode ? (
+                <div className="mb-6">
+                  <FirstActivationPanel
+                    onSelectPrompt={handlePromptPrefill}
+                    onLaunch={handleActivationLaunch}
+                    variant="compact"
+                  />
                 </div>
               ) : null}
               <MugteeConversationEntry
@@ -471,12 +494,12 @@ export function FullscreenQuickCutCanvas({
             </>
           ) : (
             <>
-          {showActivationHints && !prompt.trim() && !isGenerating ? (
-            <div className="mb-6 space-y-5">
-              <GuidedCreationPrompt onSelect={handlePromptPrefill} />
-              <SuggestionChips onSelect={handlePromptPrefill} />
-              <EmptyStateExamples />
-              <WhatMugteeGenerates compact />
+          {isActivationMode ? (
+            <div className="mb-6">
+              <FirstActivationPanel
+                onSelectPrompt={handlePromptPrefill}
+                onLaunch={handleActivationLaunch}
+              />
             </div>
           ) : null}
           <motion.p
@@ -515,7 +538,7 @@ export function FullscreenQuickCutCanvas({
             <CreatorExperienceSelector
               value={experienceLevel}
               onChange={handleExperienceChange}
-              className="sm:hidden mx-auto"
+              className={cn('sm:hidden mx-auto', showActivationHints && 'hidden')}
             />
 
             {directorUi ? (
@@ -542,14 +565,16 @@ export function FullscreenQuickCutCanvas({
               />
             </div>
 
-            <AskMugteeSuggestionChips
-              onSelect={(chip) => {
-                setPrompt(chip)
-                setPromptFocused(true)
-              }}
-            />
+            {!showActivationHints ? (
+              <AskMugteeSuggestionChips
+                onSelect={(chip) => {
+                  setPrompt(chip)
+                  setPromptFocused(true)
+                }}
+              />
+            ) : null}
 
-            {prompt.trim().length >= 6 ? (
+            {!showActivationHints && prompt.trim().length >= 6 ? (
               <div className="space-y-2">
                 <div className="flex justify-center">
                   <ViralProbabilityBadge topic={prompt} hookPreview={prompt} />
@@ -568,21 +593,23 @@ export function FullscreenQuickCutCanvas({
               />
             ) : null}
 
-            <div
-              className={cn(
-                'grid gap-3',
-                directorUi ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
-              )}
-            >
-              <ContentLanguageSelector
-                value={contentLanguage}
-                onChange={handleLanguageChange}
-                autoDetected={creatorLanguage?.projectLanguage === contentLanguage}
-              />
-              {directorUi ? (
-                <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
-              ) : null}
-            </div>
+            {!showActivationHints ? (
+              <div
+                className={cn(
+                  'grid gap-3',
+                  directorUi ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+                )}
+              >
+                <ContentLanguageSelector
+                  value={contentLanguage}
+                  onChange={handleLanguageChange}
+                  autoDetected={creatorLanguage?.projectLanguage === contentLanguage}
+                />
+                {directorUi ? (
+                  <KeywordMoodSelector selected={keywords} onToggle={toggleKeyword} />
+                ) : null}
+              </div>
+            ) : null}
 
             {directorUi ? (
               <>

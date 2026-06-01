@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   hasCompletedFirstGeneration,
@@ -10,66 +10,70 @@ import {
 } from '@/lib/onboarding/onboarding-state'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
-const CHECKLIST = [
-  'Hook',
-  'Script',
-  'Storyboard',
-  'Captions',
-  'Thumbnail Idea',
-] as const
-
 type FirstSuccessCelebrationProps = {
   className?: string
 }
 
 export function FirstSuccessCelebration({ className }: FirstSuccessCelebrationProps) {
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const title = useQuickCutGenerationStore((s) => s.title)
+  const hook = useQuickCutGenerationStore((s) => s.hook)
   const [visible, setVisible] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
   useEffect(() => {
     if (!isComplete || hasCompletedFirstGeneration()) return
     markFirstGeneration()
     setVisible(true)
+    const t = window.setTimeout(() => setRevealed(true), 400)
+    return () => window.clearTimeout(t)
   }, [isComplete])
 
   if (!visible) return null
 
+  const headline = title?.trim() || hook?.trim() || 'Your story'
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'rounded-2xl border border-gold-500/25 bg-gradient-to-b from-gold-500/[0.08] to-black/30 p-5 space-y-4',
+        'relative overflow-hidden rounded-2xl border border-gold-500/20',
+        'bg-gradient-to-b from-black/60 via-[#0a0a0a] to-black/80 p-6 sm:p-8',
         className
       )}
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center justify-center gap-2">
-        <Sparkles className="h-4 w-4 text-gold-300 animate-pulse" aria-hidden />
-        <p className="font-display text-lg text-[#F4E7C1]">Your creator project is ready.</p>
-      </div>
-
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {CHECKLIST.map((item, index) => (
-          <li key={item}>
-            <motion.div
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.08 + index * 0.06, duration: 0.3 }}
-              className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2"
-            >
-              <Check className="h-3.5 w-3.5 text-emerald-300 shrink-0" aria-hidden />
-              <span className="text-sm text-luxe/85">{item}</span>
-            </motion.div>
-          </li>
-        ))}
-      </ul>
-
-      <p className="text-center text-[11px] text-luxe/50">
-        Export, refine, or generate your next idea — you&apos;re activated.
-      </p>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(212,175,55,0.12),transparent_60%)]" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: revealed ? 1 : 0, scale: revealed ? 1 : 0.98 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="relative text-center space-y-3"
+      >
+        <Sparkles className="h-5 w-5 text-gold-300/70 mx-auto" aria-hidden />
+        <p className="font-display text-xl sm:text-2xl text-[#F4E7C1] tracking-tight">
+          Your cinematic story is ready.
+        </p>
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: revealed ? 1 : 0, y: revealed ? 0 : 6 }}
+          transition={{ delay: 0.15, duration: 0.45 }}
+          className="text-sm text-luxe/55 max-w-md mx-auto leading-relaxed italic"
+        >
+          {headline}
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="text-[11px] tracking-[0.2em] uppercase text-gold-300/60 pt-1"
+        >
+          Hook · Script · Visual direction
+        </motion.p>
+      </motion.div>
     </motion.div>
   )
 }

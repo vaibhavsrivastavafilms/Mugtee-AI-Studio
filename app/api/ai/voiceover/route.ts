@@ -23,6 +23,8 @@ import {
 } from '@/lib/cinematic/execution/cinematic-voice-engine'
 import type { CinematicGenerationOutput } from '@/lib/cinematic/generation'
 import { coerceDuration } from '@/lib/workspace/validation'
+import { generateVoice } from '@/lib/voice/generateVoice'
+import { parseSceneBlueprints } from '@/lib/cinematic/scene-blueprint'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -180,89 +182,79 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Narration could not take form — try again' }, { status: 502 })
     }
 
-    // ----- 2. Synthesize narration → MP3 via TTS -----
-    const ttsRes = await fetch(TTS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${EMERGENT_LLM_KEY}` },
-      body: JSON.stringify({
-        model: 'tts-1',
-        voice: style.voice,
-        input: narration.slice(0, 4000),
-        response_format: 'mp3',
-        speed: styleId === 'deep_trailer' ? 0.9 : styleId === 'calm_storyteller' ? 0.95 : 1.0,
-      }),
-    })
-    if (!ttsRes.ok) {
-      const t = await ttsRes.text().catch(() => '')
-      const cat = categorize(ttsRes.status, t)
-      console.error('[voiceover] tts failed', { status: ttsRes.status, code: cat.code, sample: t.slice(0, 300) })
-      // Return narration even if TTS failed — creator can still iterate on text.
-      return NextResponse.json({ narration, voice: style.voice, voice_style: styleId, error: cat.label, code: cat.code }, { status: 502 })
-    }
-    const audioBuf = Buffer.from(await ttsRes.arrayBuffer())
-    if (audioBuf.length < 200) {
-      console.error('[voiceover] suspiciously small audio', { bytes: audioBuf.length })
-      return NextResponse.json({ narration, voice: style.voice, voice_style: styleId, error: 'Voice audio empty — narration preserved' }, { status: 502 })
-    }
-    const audioDataUri = `data:audio/mpeg;base64,${audioBuf.toString('base64')}`
-
-    // Phase 3G — persist voiceover into project_assets so the Library tab
-    // and activity timeline reflect it. Only runs when the client passes a
-    // project_id it owns; otherwise we return the data URI as before
-    // (preview / unsaved generation still works).
-    let persistedAsset: any = null
+    // ----- 2. Synthesize narration → MP3 via Voice Director (ElevenLabs → TTS fallback) -----
     const projectId = String(body?.project_id || '').trim()
-    if (projectId) {
+    const voiceResult = await generateVoice(
+      {
+        script: narration,
+        userId: user.id,
+        projectId: projectId || undefined,
+        tone: styleId,
+        niche: cinematicOutput?.niche,
+        scenes: cinematicOutput?.scenes ?? [],
+        sceneBlueprints: parseSceneBlueprints(
+          (body as Record<string, unknown>)?.sceneBlueprints ??
+            (body as Record<string, unknown>)?.scene_blueprints
+        ),
+        skipCache: false,
+      },
+      supabase
+    )
+
+    const audioBuf = voiceResult.buffer
+    if (!audioBuf || audioBuf.length < 200) {
+      if (!voiceResult.audioUrl) {
+        console.error('[voiceover] voice synthesis failed or empty')
+        return NextResponse.json({
+          narration,
+          voice: style.voice,
+          voice_style: styleId,
+          error: voiceResult.fallbackMessage ?? 'Voice audio empty — narration preserved',
+        }, { status: 502 })
+      }
+    }
+
+    const audioDataUri =
+      voiceResult.audioUrl?.startsWith('data:')
+        ? voiceResult.audioUrl
+        : audioBuf
+          ? `data:audio/mpeg;base64,${audioBuf.toString('base64')}`
+          : voiceResult.audioUrl ?? ''
+
+    let persistedAsset: unknown = null
+    if (projectId && voiceResult.storagePath && voiceResult.audioUrl && !voiceResult.audioUrl.startsWith('data:')) {
       try {
         const { data: piece } = await supabase
-          .from('content_pieces').select('id, title, user_id').eq('id', projectId).single()
+          .from('content_pieces')
+          .select('id, title, user_id')
+          .eq('id', projectId)
+          .single()
         if (piece && piece.user_id === user.id) {
-          const filename = `${user.id}/${projectId}/vo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp3`
-          const { error: upErr } = await supabase.storage.from('project-assets').upload(filename, audioBuf, {
-            contentType: 'audio/mpeg',
-            upsert: false,
-          })
-          if (!upErr) {
-            const { data: pub } = supabase.storage.from('project-assets').getPublicUrl(filename)
-            const { data: row, error: rowErr } = await supabase.from('project_assets').insert({
-              project_id: projectId,
-              user_id: user.id,
-              kind: 'voiceover',
-              url: pub.publicUrl,
-              storage_path: filename,
-              mime_type: 'audio/mpeg',
-              title: piece.title || null,
-              prompt: narration.slice(0, 600),
-              metadata: {
-                voice_style: styleId,
-                voice: style.voice,
-                voice_label: style.label,
-                platform,
-                duration_target: duration,
-                mood: moodLabel || null,
-                bytes: audioBuf.length,
-              },
-            }).select('id, url, kind, metadata, created_at').single()
-            if (!rowErr) persistedAsset = row
-            else console.warn('[voiceover] db insert skipped:', rowErr.message)
-          } else {
-            console.warn('[voiceover] storage upload skipped:', upErr.message)
-          }
+          const { data: row, error: rowErr } = await supabase
+            .from('project_assets')
+            .select('id, url, kind, metadata, created_at')
+            .eq('user_id', user.id)
+            .contains('metadata', { voice_cache_key: voiceResult.voiceMetadata?.cacheKey })
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (!rowErr && row) persistedAsset = row
         }
-      } catch (persistErr: any) {
-        // Persistence is best-effort — never block the playback response.
-        console.warn('[voiceover] persistence soft-fail:', persistErr?.message)
+      } catch (persistErr: unknown) {
+        console.warn('[voiceover] persistence soft-fail:', persistErr instanceof Error ? persistErr.message : persistErr)
       }
     }
 
     return NextResponse.json({
       narration,
       audio: audioDataUri,
-      voice: style.voice,
+      voice: voiceResult.voiceMetadata?.voiceId ?? style.voice,
       voice_style: styleId,
       voice_label: style.label,
-      bytes: audioBuf.length,
-      asset: persistedAsset, // null if unsaved generation, asset row if persisted
+      bytes: audioBuf?.length ?? 0,
+      provider: voiceResult.provider,
+      voiceMetadata: voiceResult.voiceMetadata,
+      asset: persistedAsset,
     })
   } catch (e: any) {
     console.error('[voiceover] unexpected error', e?.message)

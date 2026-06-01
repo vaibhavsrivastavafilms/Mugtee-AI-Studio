@@ -3,12 +3,6 @@
 import { Suspense, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import {
-  MOBILE_TAB_LABELS,
-  MOBILE_WORKSPACE_TABS,
-  workspaceStageToTab,
-  type WorkspaceStage,
-} from '@/lib/studio/workspace-stages'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
@@ -22,6 +16,8 @@ import { StudioGlobalSearchPlaceholder } from '@/components/studio/studio-global
 import { ProjectImprovementActions } from '@/components/retention/project-improvement-actions'
 import { ProjectMomentumBadgesFromStore } from '@/components/retention/project-momentum-badges'
 import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
+import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banner'
+import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
 
 type CreatorCommandCenterProps = {
   projectId?: string
@@ -31,21 +27,15 @@ type CreatorCommandCenterProps = {
 function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCenterProps) {
   useQuickCutProjectHydration(projectId)
 
-  const activeStage = useStudioWorkspaceStore((s) => s.activeStage)
-  const setActiveStage = useStudioWorkspaceStore((s) => s.setActiveStage)
   const resetForProject = useStudioWorkspaceStore((s) => s.resetForProject)
-  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
+  const projectTitle = useQuickCutGenerationStore((s) => s.title)
 
   useEffect(() => {
     if (!projectId) return
     resetForProject(isComplete ? 'export' : 'idea')
-  }, [projectId, resetForProject])
-
-  const handleMobileTab = (stage: WorkspaceStage) => {
-    setActiveStage(stage)
-    setActiveStageTab(workspaceStageToTab(stage), true)
-  }
+  }, [projectId, resetForProject, isComplete])
 
   return (
     <div
@@ -56,6 +46,10 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
     >
       <StudioCommandPalettePlaceholder />
       <StudioGlobalSearchPlaceholder />
+
+      {!projectId ? (
+        <ProjectRecoveryBanner className="mb-3" />
+      ) : null}
 
       <div className="mb-3 space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -75,7 +69,13 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         )}
       >
         <StudioSidebar projectId={projectId} />
-        <StoryTimeline />
+        <div className="hidden lg:flex flex-col gap-3 min-h-0 border-r border-white/[0.06] p-2 overflow-y-auto scrollbar-luxe">
+          <StoryTimeline />
+          <QuickCutActivityTimeline
+            projectId={savedProjectId}
+            title={projectTitle || undefined}
+          />
+        </div>
 
         <div className="flex flex-col min-h-0 min-w-0 border-t lg:border-t-0 border-white/[0.06]">
           <StudioMainWorkspace projectId={projectId} />
@@ -83,35 +83,6 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
 
         <StudioDirectorPanel />
       </motion.div>
-
-      <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.08] bg-[#050505]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
-        aria-label="Workspace stages"
-      >
-        <ul className="flex items-stretch justify-around px-1 pt-1">
-          {MOBILE_WORKSPACE_TABS.map((stage) => {
-            const active = activeStage === stage
-            return (
-              <li key={stage} className="flex-1 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => handleMobileTab(stage)}
-                  className={cn(
-                    'w-full py-2.5 px-1 text-[9px] tracking-[0.12em] uppercase transition',
-                    active
-                      ? 'text-gold-200 border-t-2 border-gold-500/70 -mt-px'
-                      : 'text-luxe/45 border-t-2 border-transparent'
-                  )}
-                >
-                  {MOBILE_TAB_LABELS[stage] ?? stage}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </nav>
-
-      <div className="lg:hidden h-16 shrink-0" aria-hidden />
     </div>
   )
 }

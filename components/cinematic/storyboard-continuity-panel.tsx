@@ -60,10 +60,27 @@ function Field({
   )
 }
 
+const ANIMATION_STYLES = [
+  { id: 'cinematic', label: 'Cinematic' },
+  { id: 'documentary', label: 'Documentary' },
+  { id: 'dynamic', label: 'Dynamic' },
+  { id: 'subtle', label: 'Subtle' },
+] as const
+
+const CONSISTENCY_LEVELS = [
+  { id: 'strict', label: 'Strict' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'loose', label: 'Loose' },
+] as const
+
 export function StoryboardContinuityPanel({ className }: { className?: string }) {
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const updateStoryBible = useQuickCutGenerationStore((s) => s.updateStoryBible)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const outputAlignmentControls = useQuickCutGenerationStore((s) => s.outputAlignmentControls)
+  const setOutputAlignmentControls = useQuickCutGenerationStore(
+    (s) => s.setOutputAlignmentControls
+  )
 
   if (!storyBible && scenes.length === 0) return null
 
@@ -160,6 +177,74 @@ export function StoryboardContinuityPanel({ className }: { className?: string })
           multiline
           onChange={(visualStyle) => updateStoryBible({ visualStyle })}
         />
+      </div>
+
+      <div className="border-t border-white/[0.06] pt-4 space-y-3">
+        <div>
+          <h4 className="text-[11px] tracking-[0.18em] uppercase text-gold-300/80">
+            Output alignment
+          </h4>
+          <p className="text-[10px] text-luxe/50 mt-1 leading-relaxed">
+            Tune visuals and motion without regenerating the full project. Changes apply on next
+            scene image or motion refresh.
+          </p>
+        </div>
+        <Field
+          label="Visual style note"
+          value={outputAlignmentControls.visualStyle ?? ''}
+          onChange={(visualStyle) => setOutputAlignmentControls({ visualStyle })}
+        />
+        <Field
+          label="Camera language"
+          value={outputAlignmentControls.cameraLanguage ?? ''}
+          onChange={(cameraLanguage) => setOutputAlignmentControls({ cameraLanguage })}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70">
+              Character consistency
+            </span>
+            <select
+              value={outputAlignmentControls.characterConsistency ?? 'balanced'}
+              onChange={(e) =>
+                setOutputAlignmentControls({
+                  characterConsistency: e.target.value as 'strict' | 'balanced' | 'loose',
+                })
+              }
+              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-[12px] text-[#F4E7C1] focus:border-gold-500/35 focus:outline-none"
+            >
+              {CONSISTENCY_LEVELS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[9px] tracking-[0.2em] uppercase text-gold-300/70">
+              Animation style
+            </span>
+            <select
+              value={outputAlignmentControls.animationStyle ?? 'cinematic'}
+              onChange={(e) =>
+                setOutputAlignmentControls({
+                  animationStyle: e.target.value as
+                    | 'cinematic'
+                    | 'documentary'
+                    | 'dynamic'
+                    | 'subtle',
+                })
+              }
+              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-[12px] text-[#F4E7C1] focus:border-gold-500/35 focus:outline-none"
+            >
+              {ANIMATION_STYLES.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
     </section>
   )

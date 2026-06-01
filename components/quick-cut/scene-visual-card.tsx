@@ -11,6 +11,7 @@ import {
 } from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { sceneScrollTargetId } from '@/lib/cinematic/storyboard-scroll'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import { MotionPresetSelect } from '@/components/quick-cut/motion-preset-control'
 import type { MotionPresetId } from '@/lib/motion/motion-presets'
@@ -61,8 +62,9 @@ export function SceneVisualCard({
 
   return (
     <div
+      id={scene.id ? sceneScrollTargetId(scene.id) : undefined}
       className={cn(
-        'rounded-lg border border-white/[0.06] bg-black/40 overflow-hidden',
+        'rounded-lg border border-white/[0.06] bg-black/40 overflow-hidden scroll-mt-24',
         loading && 'shimmer-cinematic'
       )}
     >

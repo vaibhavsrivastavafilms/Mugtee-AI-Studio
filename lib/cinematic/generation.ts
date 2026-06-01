@@ -61,6 +61,13 @@ import {
 import type { ScriptArchetypeMeta } from '@/lib/cinematic/script-archetypes'
 import type { NarrativeStructureMeta } from '@/lib/cinematic/narrative-structure-engine'
 import { assignBeatLabels } from '@/lib/cinematic/narrative-structure-engine'
+import {
+  buildBlueprintImagePrompt,
+  parseOutputAlignmentControls,
+  parseSceneBlueprints,
+  type SceneBlueprint,
+  type VisualConsistencyPack,
+} from '@/lib/cinematic/scene-blueprint'
 
 export { coerceVoiceStyle, recommendVoiceStyle, voiceStyleLabel }
 
@@ -108,6 +115,10 @@ export type SceneImagePromptContext = {
   hasReferenceStyle?: boolean
   /** Project-wide visual continuity lock from story bible */
   storyBible?: StoryBible | null
+  /** Scene blueprint — single source of truth for image body */
+  sceneBlueprint?: SceneBlueprint | null
+  /** Cross-scene visual consistency references */
+  visualConsistency?: VisualConsistencyPack | null
   /** Content Director brief — injected once for thumbnail/scene alignment */
   contentBriefSection?: string
   previousScene?: Pick<
@@ -169,6 +180,12 @@ export function buildSceneOnlyImageBody(
   >,
   ctx?: SceneImagePromptContext
 ): string {
+  if (ctx?.sceneBlueprint) {
+    return sanitizeSceneOnlyPrompt(
+      buildBlueprintImagePrompt(ctx.sceneBlueprint, ctx.visualConsistency ?? null)
+    )
+  }
+
   const custom = sanitizeSceneOnlyPrompt(
     (scene.imagePrompt || scene.visualPrompt || '').trim()
   )
@@ -969,6 +986,9 @@ export type CaptionsPayload = {
       projectId?: string
     }>
   }
+  /** Output alignment pass — scene visual blueprints */
+  sceneBlueprints?: SceneBlueprint[]
+  outputAlignmentControls?: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
 }
 
 export function captionsToPayload(state: {
@@ -994,6 +1014,8 @@ export function captionsToPayload(state: {
   hookFrameworkLabel?: string
   repurposedAssets?: CaptionsPayload['repurposedAssets']
   series?: CaptionsPayload['series']
+  sceneBlueprints?: SceneBlueprint[]
+  outputAlignmentControls?: CaptionsPayload['outputAlignmentControls']
 }): CaptionsPayload {
   return {
     text: state.captionLines.join('\n') || state.hook || '',
@@ -1019,6 +1041,12 @@ export function captionsToPayload(state: {
     hookFrameworkLabel: state.hookFrameworkLabel,
     repurposedAssets: state.repurposedAssets,
     series: state.series,
+    ...(state.sceneBlueprints?.length
+      ? { sceneBlueprints: state.sceneBlueprints }
+      : {}),
+    ...(state.outputAlignmentControls
+      ? { outputAlignmentControls: state.outputAlignmentControls }
+      : {}),
   }
 }
 
@@ -1048,6 +1076,8 @@ export function parseCaptionsPayload(
   hookFrameworkLabel?: string
   series?: CaptionsPayload['series']
   repurposedAssets?: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
+  sceneBlueprints?: SceneBlueprint[]
+  outputAlignmentControls?: CaptionsPayload['outputAlignmentControls']
 } {
   if (typeof value === 'string') {
     return {
@@ -1182,5 +1212,9 @@ export function parseCaptionsPayload(
     hookFrameworkLabel,
     series,
     repurposedAssets,
+    sceneBlueprints: parseSceneBlueprints(value?.sceneBlueprints),
+    outputAlignmentControls: parseOutputAlignmentControls(
+      value?.outputAlignmentControls
+    ),
   }
 }

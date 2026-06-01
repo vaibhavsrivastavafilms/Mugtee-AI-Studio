@@ -48,6 +48,10 @@ import {
 } from '@/lib/motion/motion-presets'
 import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
 import { resolveActiveThumbnailUrl } from '@/lib/cinematic/thumbnail-cover'
+import {
+  buildBlueprintsForScenes,
+  DEFAULT_OUTPUT_ALIGNMENT_CONTROLS,
+} from '@/lib/cinematic/scene-blueprint'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -90,6 +94,8 @@ export type QuickCutProjectHydrationPatch = {
   voiceUrl: string | null
   elevenLabsVoiceId: string | null
   voiceName: string | null
+  voiceProfileId: string | null
+  voiceMetadata: import('@/lib/voice/generateVoice').VoiceMetadata | null
   videoUrl: string | null
   renderPollUrl: string | null
   renderError: string | null
@@ -134,6 +140,8 @@ export type QuickCutProjectHydrationPatch = {
   repurposedAssets: import('@/lib/cinematic/content-repurpose').RepurposedAssetsMap
   contentSeries: ContentSeries | null
   sceneMotion: SceneMotionMap
+  sceneBlueprints: import('@/lib/cinematic/scene-blueprint').SceneBlueprint[]
+  outputAlignmentControls: import('@/lib/cinematic/scene-blueprint').OutputAlignmentControls
   thumbnailImageUrl: string | null
 }
 
@@ -148,8 +156,21 @@ export function buildQuickCutHydrationFromRow(
   const baseScenes = ensureScenesHavePreviewUrls(
     ensureScenesHaveImagePrompts(storeScenesToGenerated(state.scenes))
   )
+  const sceneBlueprints = parsedCaptions.sceneBlueprints?.length
+    ? parsedCaptions.sceneBlueprints
+    : buildBlueprintsForScenes(baseScenes, {
+        script: state.script,
+        visualStyle: (row.visual_style as VisualStyle | null) ?? null,
+        storyBible,
+      })
+  const outputAlignmentControls = parsedCaptions.outputAlignmentControls?.animationStyle
+    ? parsedCaptions.outputAlignmentControls
+    : { ...DEFAULT_OUTPUT_ALIGNMENT_CONTROLS }
   if (Object.keys(sceneMotion).length < 1 && baseScenes.some((s) => s.imageUrl)) {
-    sceneMotion = assignSceneMotion(baseScenes, storyBible, null)
+    sceneMotion = assignSceneMotion(baseScenes, storyBible, null, {
+      sceneBlueprints,
+      outputAlignmentControls,
+    })
   }
   const scenes = applySceneMotionToScenes(baseScenes, sceneMotion)
   const thumbnailImageUrl = resolveActiveThumbnailUrl(row.thumbnail_url, scenes)
@@ -188,6 +209,8 @@ export function buildQuickCutHydrationFromRow(
     voiceUrl: state.voice?.audioUrl ?? null,
     elevenLabsVoiceId: state.voice?.voiceId ?? null,
     voiceName: state.voice?.voiceName ?? null,
+    voiceProfileId: state.voice?.style ?? state.voice?.metadata?.profileId ?? null,
+    voiceMetadata: state.voice?.metadata ?? null,
     videoUrl: reelUrl,
     renderPollUrl,
     exportExpired: reelFailed && !videoReady && !renderPollUrl,
@@ -243,6 +266,8 @@ export function buildQuickCutHydrationFromRow(
     visualStyle: (row.visual_style as VisualStyle | null) ?? null,
     storyBible,
     sceneMotion,
+    sceneBlueprints,
+    outputAlignmentControls,
     viralScript: (row.viral_script as ViralScript | null) ?? null,
     variationHistory:
       (row.variation_history as VariationHistory | null) ?? emptyVariationHistory(),
