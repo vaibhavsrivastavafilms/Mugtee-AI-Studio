@@ -204,6 +204,15 @@ export function applyBlueprintToScene(
   scene: GeneratedScene,
   blueprint: SceneBlueprint
 ): GeneratedScene {
+  const beatLine = (scene.description || scene.visualPrompt || '').trim()
+  const existingPrompt = scene.imagePrompt?.trim()
+  const blueprintPrompt = buildBlueprintImagePrompt(blueprint, null)
+  const imagePrompt =
+    existingPrompt && beatLine && existingPrompt.includes(beatLine.slice(0, 40))
+      ? existingPrompt
+      : beatLine
+        ? `${beatLine.slice(0, 200)} — ${blueprintPrompt}`.slice(0, 900)
+        : blueprintPrompt
   return {
     ...scene,
     cameraAngle: blueprint.cameraAngle,
@@ -211,8 +220,8 @@ export function applyBlueprintToScene(
     environment: blueprint.location,
     colorPalette: blueprint.colorPalette,
     movementStyle: blueprint.movementStyle,
-    visualPrompt: buildBlueprintVisualPrompt(blueprint),
-    imagePrompt: buildBlueprintImagePrompt(blueprint, null),
+    visualPrompt: beatLine || buildBlueprintVisualPrompt(blueprint),
+    imagePrompt,
   }
 }
 

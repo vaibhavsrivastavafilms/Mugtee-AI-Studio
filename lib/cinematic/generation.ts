@@ -33,6 +33,10 @@ import {
   type ViralStructureAnalysis,
 } from '@/lib/cinematic/viral-structure'
 import { clampSceneDurationsToTarget } from '@/lib/cinematic/scene-duration'
+import {
+  mergeBeatLineWithSceneBody,
+  sceneBeatNarration,
+} from '@/lib/cinematic/scene-image-prompt'
 import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 import {
   prependReferenceStylePrefix,
@@ -189,10 +193,13 @@ export function buildSceneOnlyImageBody(
   >,
   ctx?: SceneImagePromptContext
 ): string {
+  const beatLine = sceneBeatNarration(scene)
+
   if (ctx?.sceneBlueprint) {
-    return sanitizeSceneOnlyPrompt(
+    const blueprintBody = sanitizeSceneOnlyPrompt(
       buildBlueprintImagePrompt(ctx.sceneBlueprint, ctx.visualConsistency ?? null)
     )
+    return mergeBeatLineWithSceneBody(beatLine, blueprintBody, ctx)
   }
 
   const custom = sanitizeSceneOnlyPrompt(
@@ -201,10 +208,12 @@ export function buildSceneOnlyImageBody(
   const narrative = (scene.description || scene.title || '').trim()
 
   const lines: string[] = []
-  if (custom) {
+  if (custom && custom !== sanitizeSceneOnlyPrompt(beatLine)) {
     lines.push(custom)
   } else if (narrative) {
     lines.push(narrative.slice(0, 320))
+  } else if (beatLine) {
+    lines.push(beatLine.slice(0, 320))
   }
 
   if (ctx?.characterDescription?.trim()) {
@@ -221,7 +230,11 @@ export function buildSceneOnlyImageBody(
     )
   }
 
-  return lines.join(' ').replace(/\s+/g, ' ').trim()
+  const body = lines.join(' ').replace(/\s+/g, ' ').trim()
+  if (ctx?.sceneIndex != null) {
+    return mergeBeatLineWithSceneBody(beatLine, body, ctx)
+  }
+  return body
 }
 
 /** Style / camera metadata layer — separate from scene description (reference + visualStyle). */
@@ -698,14 +711,15 @@ function beatsToScenes(
     const role = scenePacingRole(sceneIndex, beats.length)
     const visual = normalizeVisualDirection({}, niche, role)
     const durSec = parseBeatDurationSec(beat.duration) ?? 4
+    const narration = beat.narration.trim()
     return ensureSceneImagePrompt({
       id: `scene-${sceneIndex}`,
       title: beat.label?.trim() || `Beat ${sceneIndex}`,
       description: beat.narration,
       duration: Math.min(Math.max(durSec, 2), 8),
-      imagePrompt: '',
+      imagePrompt: narration ? sanitizeSceneOnlyPrompt(narration.slice(0, 320)) : '',
       ...visual,
-      visualPrompt: beat.narration.trim() || visual.visualPrompt,
+      visualPrompt: narration || visual.visualPrompt,
     })
   })
   return clampSceneDurationsToTarget(

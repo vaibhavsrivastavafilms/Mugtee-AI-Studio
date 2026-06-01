@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StoryboardScene, VisualTimelineEntry } from '@/types/storyboard'
+import { formatTimelineSecRange } from '@/lib/cinematic/scene-image-prompt'
 
 function SopSceneCard({
   entry,
@@ -50,7 +51,7 @@ function SopSceneCard({
             {meta?.visualFocus || entry.label}
           </p>
           <p className="text-[9px] text-luxe/35 tabular-nums mt-0.5">
-            {entry.startSec}s–{entry.endSec}s
+            {formatTimelineSecRange(entry.startSec, entry.endSec)}
           </p>
         </div>
       </div>
