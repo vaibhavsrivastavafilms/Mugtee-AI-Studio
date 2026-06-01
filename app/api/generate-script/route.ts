@@ -45,6 +45,7 @@ import {
   resolveParsedIntentSync,
   serializeParsedIntent,
 } from '@/lib/input-understanding'
+import { getLastProviderForTask } from '@/lib/ai/providers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -403,6 +404,9 @@ export async function POST(req: NextRequest) {
         sceneCount: result.sceneCount,
         visualTimeline: result.visualTimeline,
         narrativeFrameworkId: result.narrativeFrameworkId,
+        ...(getLastProviderForTask('script')
+          ? { aiProvider: getLastProviderForTask('script') }
+          : {}),
         ...research,
       })
     } catch (err) {

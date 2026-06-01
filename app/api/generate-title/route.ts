@@ -20,6 +20,10 @@ import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import {
+  generateHookViaRouter,
+  hasAnyTextProviderKey,
+} from '@/lib/ai/providers/generation-bridge'
+import {
   logParsedIntent,
   pickValidatedHook,
   pickValidatedTitle,
@@ -27,6 +31,7 @@ import {
   resolveParsedIntentSync,
   serializeParsedIntent,
 } from '@/lib/input-understanding'
+import { getLastProviderForTask } from '@/lib/ai/providers'
 import {
   getHookGenerationCache,
   hashHookGenerationKey,
@@ -174,8 +179,30 @@ export async function POST(req: NextRequest) {
           recentTitles
         )
       ),
-      Promise.resolve(
-        pickValidatedHook(
+      (async () => {
+        const aiHook = hasAnyTextProviderKey()
+          ? await generateHookViaRouter({
+              topic: generationTopic,
+              niche: virlo.topicAnalysis.niche,
+              tone: parsedIntent.tone,
+              platform,
+              emotionalGoal: virlo.emotionalGoal,
+              previousHooks: avoid,
+              contentAngleLabel: contentAngle.label,
+              hookFrameworkLabel: hookFramework.label,
+              parsedIntent,
+              contentBrief: contentBrief ?? undefined,
+            })
+          : null
+
+        if (aiHook?.hook) {
+          return {
+            value: { text: aiHook.hook, variant: hookFramework.id },
+            retries: 0,
+          }
+        }
+
+        return pickValidatedHook(
           (attempt) =>
             buildHookCandidatePool(
               generationTopic,
@@ -189,11 +216,12 @@ export async function POST(req: NextRequest) {
           parsedIntent.rawInput,
           recentTitles
         )
-      ),
+      })(),
     ])
 
     let title = titleResult.value
     let hook = hookResult.value.text
+    const hookSource = hasAnyTextProviderKey() ? 'ai-router-or-virlo' : 'virlo'
 
     if (contentBrief) {
       hook = alignOutputToBrief(hook, contentBrief, 'hook').text
@@ -206,9 +234,12 @@ export async function POST(req: NextRequest) {
       hook,
       niche: virlo.topicAnalysis.niche,
       mock: false,
-      source: 'virlo',
+      source: hookSource,
       parsedIntent: serializeParsedIntent(parsedIntent),
       validationRetries: titleResult.retries + hookResult.retries,
+      ...(getLastProviderForTask('hook')
+        ? { aiProvider: getLastProviderForTask('hook') }
+        : {}),
       virlo: {
         ...meta,
         hookVariant: hookResult.value.variant,
