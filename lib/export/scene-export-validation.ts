@@ -79,6 +79,34 @@ export function sceneExportReadiness(scenes: GeneratedScene[] | SceneExportImage
   }
 }
 
+export const VOICE_REQUIRED_EXPORT_MSG = 'Add voiceover before exporting.'
+
+/** Client + server pre-export gate: voice narration and a still for every scene. */
+export function reelExportReadiness(
+  scenes: GeneratedScene[] | SceneExportImageSource[],
+  voiceUrl: string | null | undefined
+): {
+  ready: boolean
+  missing: MissingExportScene[]
+  message: string | null
+} {
+  if (scenes.length < 1) {
+    return {
+      ready: false,
+      missing: [],
+      message: 'At least one storyboard scene is required.',
+    }
+  }
+  const sceneCheck = sceneExportReadiness(scenes)
+  if (!sceneCheck.ready) {
+    return sceneCheck
+  }
+  if (!voiceUrl?.trim()) {
+    return { ready: false, missing: [], message: VOICE_REQUIRED_EXPORT_MSG }
+  }
+  return { ready: true, missing: [], message: null }
+}
+
 export function isMissingScenesExportError(message: string | null | undefined): boolean {
   return Boolean(message?.trim().startsWith('Cannot export reel —'))
 }

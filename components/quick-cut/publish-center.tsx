@@ -157,9 +157,13 @@ export function PublishCenter({ className }: { className?: string }) {
           <p className="text-xs text-luxe/70 mt-1 leading-relaxed italic">
             {readiness.projectReadyForPublishing
               ? 'Everything\'s lined up — export, queue, and ship when you\'re ready.'
-              : readiness.project.hookGenerated && !readiness.project.videoRendered
-                ? 'Strong draft — finish voice or render, then we\'ll prep platform assets.'
-                : 'I\'ll walk you through what\'s missing before you hit publish.'}
+              : !readiness.project.voiceGenerated
+                ? 'Strong draft — add voiceover before exporting.'
+                : !readiness.project.videoRendered
+                  ? renderError
+                    ? renderError
+                    : 'Strong draft — compile your MP4, then we\'ll prep platform assets.'
+                  : 'I\'ll walk you through what\'s missing before you hit publish.'}
           </p>
         </div>
       </div>

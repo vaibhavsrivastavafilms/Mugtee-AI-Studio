@@ -22,6 +22,7 @@ import {
   missingScenesExportMessage,
   resolveSceneExportImageUrl,
   findScenesMissingExportImages,
+  VOICE_REQUIRED_EXPORT_MSG,
 } from '@/lib/export/scene-export-validation'
 import {
   recordExportMetricFailure,
@@ -156,19 +157,18 @@ export function projectRowToExportPollResponse(row: CinematicProjectRow) {
   const completed = hasValidUrl && (status === 'completed' || !row.reel_job_id?.trim())
   const reelKey = (row.reel_status ?? '').toLowerCase()
   const stageInfo = REEL_STATUS_PROGRESS[reelKey]
+  const failureMessage =
+    status === 'failed' ? row.generation_error?.trim() || EXPORT_STAGE_LABELS.failed : null
   return {
     status: completed ? 'completed' : status,
     progress: completed ? 100 : stageInfo?.progress ?? (status === 'failed' ? 0 : 35),
     label: completed
       ? EXPORT_STAGE_LABELS.ready
       : status === 'failed'
-        ? EXPORT_STAGE_LABELS.failed
+        ? failureMessage ?? EXPORT_STAGE_LABELS.failed
         : stageInfo?.label ?? EXPORT_STAGE_LABELS.encoding,
     reelUrl: completed ? reelUrl : null,
-    error:
-      status === 'failed'
-        ? row.generation_error?.trim() || EXPORT_STAGE_LABELS.failed
-        : null,
+    error: failureMessage,
   }
 }
 
@@ -267,7 +267,7 @@ export async function queueReelExportForProject(params: {
     : null
 
   if (params.includeVoiceover && !voiceUrl) {
-    throw new Error('Voice narration is required before exporting a reel.')
+    throw new Error(VOICE_REQUIRED_EXPORT_MSG)
   }
 
   const jobId = `reel-${uuidv4()}-${Date.now()}`
@@ -318,6 +318,17 @@ export async function queueReelExportForProject(params: {
     reelJobId: jobId,
   }).catch(() => undefined)
 
+  void createSupabaseServerClient()
+    .from('cinematic_projects')
+    .update({
+      generation_error: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.row.id)
+    .eq('user_id', params.userId)
+    .then(() => undefined)
+    .catch(() => undefined)
+
   const input = {
     idea: params.row.prompt || params.row.title || 'cinematic-story',
     title: params.row.title || 'Untitled reel',
@@ -344,19 +355,20 @@ export async function queueReelExportForProject(params: {
       .catch((err) => {
         logError('reels.export.async', err)
         recordExportMetricFailure()
+        const exportError = friendlyExportError(err)
         exportLog.error('async export', err, {
           jobId,
           projectId: params.row.id,
           userId: params.userId,
+          reason: exportError,
         })
         updateRenderJob(jobId, {
           status: 'failed',
           stage: 'error',
-          label: friendlyExportError(err),
-          error: friendlyExportError(err),
+          label: exportError,
+          error: exportError,
           percent: 0,
         })
-        const exportError = friendlyExportError(err)
         void createSupabaseServerClient()
           .from('cinematic_projects')
           .update({

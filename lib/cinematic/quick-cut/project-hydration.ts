@@ -12,6 +12,8 @@ import {
 } from '@/lib/cinematic-projects'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
+import { EXPORT_STAGE_LABELS } from '@/lib/reels/export-stages'
+import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
@@ -246,7 +248,7 @@ export function buildQuickCutHydrationFromRow(
     renderError: videoReady
       ? null
       : reelFailed
-        ? row.generation_error?.trim() || 'Export expired. Regenerate export.'
+        ? friendlyReelRenderError(row.generation_error?.trim() || EXPORT_STAGE_LABELS.failed)
         : null,
     generationStep:
       row.generation_status === 'failed'

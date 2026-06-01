@@ -77,7 +77,7 @@ import type { ContentSeries } from '@/lib/cinematic/content-series'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
-import { sceneExportReadiness } from '@/lib/export/scene-export-validation'
+import { sceneExportReadiness, reelExportReadiness } from '@/lib/export/scene-export-validation'
 import {
   pollSceneVideoJobs,
   queueSceneVideos,
@@ -1577,7 +1577,7 @@ async function pollRenderJob(
 }
 
 async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boolean) {
-  const readiness = sceneExportReadiness(state.scenes)
+  const readiness = reelExportReadiness(state.scenes, state.voiceUrl)
   if (!readiness.ready && readiness.message) {
     return {
       renderRes: { ok: false, status: 400 } as Response,
@@ -3889,7 +3889,29 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
-    set({ renderError: null, isRenderingVideo: true, exportExpired: false, renderStartedAt: Date.now() })
+    const preflight = reelExportReadiness(state.scenes, state.voiceUrl)
+    if (!preflight.ready && preflight.message) {
+      patchSectionStatus(set, get, 'export', 'failed')
+      set({
+        renderError: friendlyReelRenderError(preflight.message),
+        renderPollUrl: null,
+        exportExpired: false,
+        isRenderingVideo: false,
+        generationStep: 'complete',
+      })
+      persistSession(get())
+      return
+    }
+
+    patchSectionStatus(set, get, 'export', 'generating')
+    set({
+      renderError: null,
+      renderStatusLabel: null,
+      renderPollUrl: null,
+      isRenderingVideo: true,
+      exportExpired: false,
+      renderStartedAt: Date.now(),
+    })
 
     try {
       try {
@@ -3903,15 +3925,20 @@ export const useQuickCutGenerationStore = create<
 
       const { renderRes, renderData } = await requestVideoRender(get(), true)
       if (!renderRes.ok) {
+        const renderError = friendlyReelRenderError(
+          String(renderData?.error || 'Video render unavailable')
+        )
+        patchSectionStatus(set, get, 'export', 'failed')
         set({
-          renderError: friendlyReelRenderError(
-            String(renderData?.error || 'Video render unavailable')
-          ),
+          renderError,
+          renderPollUrl: null,
+          generationStep: 'complete',
         })
         return
       }
 
       if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
+        patchSectionStatus(set, get, 'export', 'completed')
         set({
           videoUrl: renderData.videoUrl,
           renderPollUrl: null,
@@ -3931,6 +3958,7 @@ export const useQuickCutGenerationStore = create<
 
       const sync = await requestVideoRender(state, false)
       if (sync.renderRes.ok && typeof sync.renderData.videoUrl === 'string') {
+        patchSectionStatus(set, get, 'export', 'completed')
         set({
           videoUrl: sync.renderData.videoUrl,
           renderPollUrl: null,
@@ -3941,18 +3969,22 @@ export const useQuickCutGenerationStore = create<
         return
       }
 
+      patchSectionStatus(set, get, 'export', 'failed')
       set({
         renderError: friendlyReelRenderError(
           String(sync.renderData?.error || 'Video render unavailable')
         ),
-        generationStep: 'render',
+        renderPollUrl: null,
+        generationStep: 'complete',
       })
     } catch (err) {
+      patchSectionStatus(set, get, 'export', 'failed')
       set({
         renderError: friendlyReelRenderError(
           err instanceof Error ? err.message : 'Video render unavailable'
         ),
-        generationStep: 'render',
+        renderPollUrl: null,
+        generationStep: 'complete',
       })
     } finally {
       set({ isRenderingVideo: false })
@@ -3983,7 +4015,12 @@ export const useQuickCutGenerationStore = create<
     const { renderPollUrl, videoUrl, videoRenderEnabled, isRenderingVideo, savedProjectId } = get()
     if (!videoRenderEnabled || !renderPollUrl || videoUrl || isRenderingVideo) return
 
-    set({ isRenderingVideo: true, renderStartedAt: Date.now() })
+    patchSectionStatus(set, get, 'export', 'generating')
+    set({
+      isRenderingVideo: true,
+      renderError: null,
+      renderStartedAt: Date.now(),
+    })
     try {
       const url = await pollRenderJob(
         renderPollUrl,
@@ -3995,6 +4032,7 @@ export const useQuickCutGenerationStore = create<
         },
         savedProjectId
       )
+      patchSectionStatus(set, get, 'export', 'completed')
       set({
         videoUrl: url,
         renderPollUrl: null,
@@ -4006,7 +4044,9 @@ export const useQuickCutGenerationStore = create<
       })
       persistSession(get())
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Video render timed out'
+      const message = friendlyReelRenderError(
+        err instanceof Error ? err.message : 'Video render timed out'
+      )
       if (
         (message.includes('Export job expired') || message.includes('Retry export')) &&
         savedProjectId
@@ -4016,6 +4056,7 @@ export const useQuickCutGenerationStore = create<
         )
         const recovered = await fetchProjectReelDownload(savedProjectId)
         if (recovered.reelUrl) {
+          patchSectionStatus(set, get, 'export', 'completed')
           set({
             videoUrl: recovered.reelUrl,
             renderPollUrl: null,
@@ -4028,20 +4069,22 @@ export const useQuickCutGenerationStore = create<
           persistSession(get())
           return
         }
+        patchSectionStatus(set, get, 'export', 'failed')
         set({
           videoUrl: null,
           renderError: EXPORT_EXPIRED_MSG,
           renderPollUrl: null,
           exportExpired: true,
-          generationStep: 'render',
+          generationStep: 'complete',
         })
         persistSession(get())
         return
       }
+      patchSectionStatus(set, get, 'export', 'failed')
       set({
         renderError: message,
         renderPollUrl: null,
-        generationStep: 'render',
+        generationStep: 'complete',
         exportPackageReady: true,
       })
       persistSession(get())

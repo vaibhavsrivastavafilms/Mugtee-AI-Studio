@@ -37,12 +37,32 @@ export function isReelExportNoticeMessage(msg: string | null | undefined): boole
   )
 }
 
+const GENERIC_EXPORT_FAILURES = new Set([
+  'Reel export failed',
+  'Reel render failed — preview is still available.',
+  'Export failed. Try again in a moment.',
+])
+
+function isUserFacingExportValidation(msg: string): boolean {
+  return (
+    msg.startsWith('Cannot export reel —') ||
+    msg.startsWith('Add voiceover') ||
+    msg.includes('required before exporting') ||
+    msg.includes('storyboard scene is required') ||
+    msg.includes('Export assets are missing') ||
+    msg.includes('Export job expired') ||
+    msg.includes('Add storyboard images and voice')
+  )
+}
+
 /** User-facing copy when server-side reel render fails. */
 export function friendlyReelRenderError(raw: string | null | undefined): string {
   if (!raw?.trim()) return REEL_EXPORT_UNAVAILABLE_MSG
   const msg = raw.trim()
+  if (isUserFacingExportValidation(msg)) return msg.slice(0, 160)
   if (isRenderDisabledMessage(msg)) return REEL_EXPORT_DISABLED_MSG
   if (isTransientRenderFailure(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
+  if (GENERIC_EXPORT_FAILURES.has(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
   return msg.slice(0, 160)
 }
 

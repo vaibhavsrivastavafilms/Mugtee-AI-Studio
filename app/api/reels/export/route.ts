@@ -12,9 +12,11 @@ import { resolveProjectScenes } from '@/lib/cinematic-projects'
 import {
   findScenesMissingExportImages,
   missingScenesExportMessage,
+  VOICE_REQUIRED_EXPORT_MSG,
 } from '@/lib/export/scene-export-validation'
 import { logError } from '@/lib/workspace/validation'
 import { exportLog } from '@/lib/export/export-log.server'
+import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
 import {
   FeatureUsageFeatures,
   trackFeatureUsage,
@@ -117,12 +119,15 @@ export async function POST(req: NextRequest) {
 
     if (!projectCanExportReel(row) && !timelineOverride) {
       const missing = findScenesMissingExportImages(resolveProjectScenes(row))
+      const voiceUrl = row.voice?.audioUrl?.trim() ?? null
       return NextResponse.json(
         {
           error:
             missing.length > 0
               ? missingScenesExportMessage(missing)
-              : 'Add storyboard images and voice narration before exporting a reel.',
+              : !voiceUrl
+                ? VOICE_REQUIRED_EXPORT_MSG
+                : 'Add storyboard images and voice narration before exporting a reel.',
         },
         { status: 400 }
       )
@@ -149,12 +154,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ jobId, status })
   } catch (err) {
     logError('reels.export.post', err)
-    exportLog.error('export request', err, { route: 'POST /api/reels/export' })
-    const message = err instanceof Error ? err.message : 'Reel export failed'
+    const message = friendlyReelRenderErrorFromUnknown(err)
+    exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: message })
     const clientError =
       message.startsWith('Cannot export reel') ||
       message.includes('required before exporting') ||
-      message.includes('At least one storyboard')
+      message.includes('At least one storyboard') ||
+      message.startsWith('Add voiceover')
     return NextResponse.json(
       { error: message, status: 'failed' },
       { status: clientError ? 400 : 500 }

@@ -29,6 +29,27 @@ const HTTP_MESSAGES: Record<number, string> = {
 const TECHNICAL =
   /failed|error|unexpected|required|missing|provider|queue|processing|render|invalid|timeout|quota|unauthor|internal server|http\s*\d|json|stack|exception|econnrefused|fetch/i
 
+const RAW_SAFE = new Set([
+  'Export job expired — retry export',
+  'Connection lost — your work is saved. Try again.',
+  'This step took too long — your work is saved. Try again.',
+  'Reel export timed out — try again',
+  'Story shaping paused — your premise is saved',
+  'Story shaping paused — try again',
+  'Add voiceover before exporting.',
+])
+
+function isExportValidationMessage(msg: string): boolean {
+  return (
+    msg.startsWith('Cannot export reel —') ||
+    msg.startsWith('Add voiceover') ||
+    msg.includes('required before exporting') ||
+    msg.includes('storyboard scene is required') ||
+    msg.includes('Export assets are missing') ||
+    msg.includes('Add storyboard images and voice')
+  )
+}
+
 export function creatorFriendlyFromHttp(
   status: number,
   context: CreatorErrorContext = 'generic'
@@ -53,6 +74,7 @@ export function creatorFriendlyMessage(
     const msg = err.message.trim()
     if (!msg) return fallback
     if (RAW_SAFE.has(msg)) return msg
+    if (isExportValidationMessage(msg)) return msg
     if (msg.startsWith('Cannot export reel —')) return msg
     if (TECHNICAL.test(msg)) return fallback
     return msg
@@ -60,22 +82,14 @@ export function creatorFriendlyMessage(
 
   if (typeof err === 'string' && err.trim()) {
     const msg = err.trim()
+    if (RAW_SAFE.has(msg)) return msg
+    if (isExportValidationMessage(msg)) return msg
     if (msg.startsWith('Cannot export reel —')) return msg
     if (!TECHNICAL.test(msg)) return msg
   }
 
   return fallback
 }
-
-/** Messages already written for creators — pass through unchanged. */
-const RAW_SAFE = new Set([
-  'Export job expired — retry export',
-  'Connection lost — your work is saved. Try again.',
-  'This step took too long — your work is saved. Try again.',
-  'Reel export timed out — try again',
-  'Story shaping paused — your premise is saved',
-  'Story shaping paused — try again',
-])
 
 export function creatorFriendlyFromResponse(
   res: Response,
