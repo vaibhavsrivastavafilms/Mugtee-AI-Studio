@@ -33,10 +33,9 @@ import { buildQuickCutScriptText } from '@/lib/quick-cut/download-script'
 import {
   ASSET_UNAVAILABLE_MSG,
   EXPORT_EXPIRED_MSG,
-  isQuickCutMp4DownloadReady,
   resolveQuickCutExportAssets,
 } from '@/lib/quick-cut/asset-availability'
-import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
+import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
@@ -57,6 +56,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
+import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
 import { OutputQualityBadges } from '@/components/proof/output-quality-badges'
 import { OutputRatingCard } from '@/components/feedback/output-rating-card'
 import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
@@ -102,6 +102,7 @@ export function GenerationResultsSection({
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const niche = useQuickCutGenerationStore((s) => s.niche)
   const setProjectId = useCompanionStore((s) => s.setProjectId)
@@ -112,6 +113,7 @@ export function GenerationResultsSection({
   const lastSavedAt = useQuickCutGenerationStore((s) => s.lastSavedAt)
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
 
   const returningCreatorRef = useRef(hasCompletedFirstGeneration())
 
@@ -140,7 +142,6 @@ export function GenerationResultsSection({
   })
   const hasScript = exportAssets.script
   const hasNarration = exportAssets.narration
-  const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
   const reelReadiness = useReelDownloadReadiness({
     projectId: savedProjectId,
     videoUrl,
@@ -148,21 +149,32 @@ export function GenerationResultsSection({
     renderPollUrl,
     exportExpired,
   })
-  const mp4DownloadReady = isQuickCutMp4DownloadReady({
+  const mp4Export = resolveMp4ExportUiState({
+    scenes,
+    voiceUrl,
     videoUrl,
     videoRenderEnabled,
     exportExpired,
+    exportPackageReady,
     isRenderingVideo,
     renderPollUrl,
     renderError,
     downloadValidated: videoUrl?.trim()
       ? reelReadiness.ready || !savedProjectId
       : undefined,
+    reelValidating: reelReadiness.validating,
+    downloadingMp4,
   })
-  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired && !reelReadiness.validating)
-  const mp4Compiling =
-    isRenderingVideo ||
-    (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
+  const {
+    canCompileMp4,
+    mp4DownloadReady,
+    mp4Compiling,
+    exportReadyBadge,
+    hasMp4Action: hasMp4,
+    mp4ButtonEnabled,
+  } = mp4Export
+
+  useReelExportAutoResume({ canCompileMp4 })
 
   const durationLabel = useMemo(() => {
     const sceneTotal = scenes.length > 0 ? sumSceneDurationSec(scenes) : 0
@@ -281,7 +293,7 @@ export function GenerationResultsSection({
     hookGenerated: Boolean(hook?.trim()),
     storyboardReady: scenes.length > 0,
     captionReady,
-    exportReady: hasMp4,
+    exportReady: exportReadyBadge,
   }
 
   return (
@@ -358,7 +370,7 @@ export function GenerationResultsSection({
           type="button"
           data-recommend-target="mp4-export"
           onClick={() => void handleDownloadMp4()}
-          disabled={!hasMp4 || downloadingMp4 || mp4Compiling || exportExpired || reelReadiness.validating}
+          disabled={!mp4ButtonEnabled}
           className={hasMp4 ? primaryActionClass : secondaryActionClass}
         >
           {downloadingMp4 || mp4Compiling || reelReadiness.validating ? (
@@ -374,6 +386,16 @@ export function GenerationResultsSection({
                 ? 'Download MP4'
                 : 'Compile MP4'}
         </button>
+
+        {reelReadiness.validationError && !mp4Compiling ? (
+          <button
+            type="button"
+            onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
+            className={cn(actionButtonClass, 'border border-gold-500/30 bg-gold-500/[0.06] text-gold-200')}
+          >
+            Retry export
+          </button>
+        ) : null}
 
         {reelReadiness.validationError && !mp4Compiling ? (
           <p className="w-full text-center text-[11px] text-amber-200/80" role="status">

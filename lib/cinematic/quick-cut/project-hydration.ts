@@ -94,6 +94,7 @@ export type QuickCutProjectHydrationPatch = {
   renderPollUrl: string | null
   renderError: string | null
   exportExpired: boolean
+  exportPackageReady: boolean
   generationStep: QuickCutGenerationStep
   isComplete: boolean
   isGenerating: false
@@ -164,6 +165,12 @@ export function buildQuickCutHydrationFromRow(
     !videoReady && inProgressReel && row.reel_job_id?.trim()
       ? reelExportPollPath(row.reel_job_id.trim(), row.id)
       : null
+  const contentComplete = Boolean(
+    row.reel_url ||
+      row.video_url ||
+      (scenes.length > 0 && (state.scriptBeats.length > 0 || state.script.trim()))
+  )
+  const exportPackageReady = !videoReady && !inProgressReel && !reelFailed && contentComplete
 
   return {
     savedProjectId: row.id,
@@ -184,6 +191,7 @@ export function buildQuickCutHydrationFromRow(
     videoUrl: reelUrl,
     renderPollUrl,
     exportExpired: reelFailed && !videoReady && !renderPollUrl,
+    exportPackageReady,
     renderError: videoReady
       ? null
       : reelFailed

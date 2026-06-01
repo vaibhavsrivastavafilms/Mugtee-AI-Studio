@@ -3280,7 +3280,17 @@ export const useQuickCutGenerationStore = create<
     try {
       const res = await fetch('/api/quick-cut/config')
       const config = (await res.json().catch(() => ({}))) as Record<string, boolean>
-      set({ videoRenderEnabled: config.videoRenderEnabled === true })
+      const videoRenderEnabled = config.videoRenderEnabled === true
+      set({ videoRenderEnabled })
+      const state = get()
+      if (
+        videoRenderEnabled &&
+        state.renderPollUrl &&
+        !state.videoUrl &&
+        !state.isRenderingVideo
+      ) {
+        void get().resumeRenderPoll()
+      }
     } catch {
       /* non-blocking */
     }
