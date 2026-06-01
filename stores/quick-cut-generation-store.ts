@@ -2556,6 +2556,9 @@ export const useQuickCutGenerationStore = create<
         const exportDone = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
         const exportFailed = videoRenderEnabled && Boolean(renderError) && !videoUrl
 
+        const exportStillRunning =
+          videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError
+
         if (exportDone) {
           set({ lastCompletedStep: 'export' })
           patchSectionStatus(set, get, 'export', 'completed')
@@ -2575,6 +2578,8 @@ export const useQuickCutGenerationStore = create<
         } else if (exportFailed && renderError) {
           patchSectionStatus(set, get, 'export', 'failed')
           logStepFailed('export', get().savedProjectId, renderError)
+        } else if (!exportStillRunning) {
+          patchSectionStatus(set, get, 'export', 'idle')
         }
         genPerf.end('export')
       }
