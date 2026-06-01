@@ -37,6 +37,7 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const stageTabPinned = useQuickCutGenerationStore((s) => s.stageTabPinned)
+  const EXPORT_STAGE_TABS = ['complete', 'publish', 'repurpose'] as const
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
@@ -55,11 +56,20 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const prompt = useQuickCutGenerationStore((s) => s.prompt)
 
   useEffect(() => {
+    if (
+      stageTabPinned &&
+      activeStage === 'export' &&
+      EXPORT_STAGE_TABS.includes(
+        activeStageTab as (typeof EXPORT_STAGE_TABS)[number]
+      )
+    ) {
+      return
+    }
     const tab = workspaceStageToTab(activeStage)
     if (activeStageTab !== tab) {
       setActiveStageTab(tab, true)
     }
-  }, [activeStage, activeStageTab, setActiveStageTab])
+  }, [activeStage, activeStageTab, setActiveStageTab, stageTabPinned])
 
   useEffect(() => {
     if (stageTabPinned) return

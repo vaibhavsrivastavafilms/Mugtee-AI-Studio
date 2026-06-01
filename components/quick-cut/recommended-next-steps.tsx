@@ -6,24 +6,8 @@ import {
   recommendedNextStepsFromStore,
   type RecommendedNextStep,
 } from '@/lib/quick-cut/recommended-next-steps'
+import { executeRecommendedNextStep } from '@/lib/quick-cut/recommend-step-navigation'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-
-function scrollToRecommendTarget(target: string) {
-  window.setTimeout(() => {
-    const el = document.querySelector(`[data-recommend-target="${target}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, 120)
-}
-
-function triggerRecommendTarget(target: string) {
-  window.setTimeout(() => {
-    const el = document.querySelector(
-      `[data-recommend-target="${target}"]`
-    ) as HTMLButtonElement | null
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el?.click()
-  }, 120)
-}
 
 function RecommendationCard({
   step,
@@ -73,7 +57,6 @@ export function RecommendedNextSteps({ className }: { className?: string }) {
   const repurposedAssets = useQuickCutGenerationStore((s) => s.repurposedAssets)
   const contentSeries = useQuickCutGenerationStore((s) => s.contentSeries)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
 
   const steps = recommendedNextStepsFromStore({
     title,
@@ -96,16 +79,7 @@ export function RecommendedNextSteps({ className }: { className?: string }) {
   })
 
   const handleAction = (step: RecommendedNextStep) => {
-    if (step.tabTarget) {
-      setActiveStageTab(step.tabTarget, true)
-    }
-    if (step.actionType === 'trigger-element' && step.scrollTarget) {
-      triggerRecommendTarget(step.scrollTarget)
-      return
-    }
-    if (step.scrollTarget) {
-      scrollToRecommendTarget(step.scrollTarget)
-    }
+    executeRecommendedNextStep(step)
   }
 
   if (steps.length === 0) return null
