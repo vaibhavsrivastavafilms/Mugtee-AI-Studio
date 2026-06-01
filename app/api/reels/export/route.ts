@@ -15,6 +15,8 @@ import {
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import { parseTimelineProject } from '@/types/timeline'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -95,7 +97,20 @@ export async function POST(req: NextRequest) {
     const renderBlocked = await guardUsageLimit(auth.user!.id, 'renders')
     if (renderBlocked) return renderBlocked
 
-    if (!projectCanExportReel(row)) {
+    const timelineOverride = parseTimelineProject(parsed.body!.timelineJson)
+    if (timelineOverride) {
+      const supabase = createSupabaseServerClient()
+      await supabase
+        .from('cinematic_projects')
+        .update({
+          timeline_json: timelineOverride,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId)
+        .eq('user_id', auth.user!.id)
+    }
+
+    if (!projectCanExportReel(row) && !timelineOverride) {
       return NextResponse.json(
         {
           error:
