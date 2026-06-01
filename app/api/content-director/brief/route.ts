@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     logParsedIntent(parsedIntent)
 
     const creativeBrief = normalizeCreativeBrief(raw?.creativeBrief ?? raw?.creative_brief)
-    const useAi = raw?.rulesOnly !== true
+    const useAi = process.env.CONTENT_BRIEF_LLM === 'true' && raw?.rulesOnly !== true
 
     const result = await generateContentBrief(
       {

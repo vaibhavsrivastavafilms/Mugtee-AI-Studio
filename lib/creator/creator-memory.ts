@@ -382,6 +382,11 @@ export function creatorProfileDirective(
   ].join('\n')
 }
 
+/** Synchronous localStorage cache — use for instant pipeline cold start. */
+export function getCachedCreatorMemoryProfile(): CreatorMemoryProfile {
+  return readCachedCreatorProfile()
+}
+
 function readCachedCreatorProfile(): CreatorMemoryProfile {
   if (typeof window === 'undefined') return {}
   try {
