@@ -28,11 +28,9 @@ import {
   triggerCreatorPackDownload,
   type CreatorPackExportResult,
 } from '@/lib/quick-cut/creator-pack-export.client'
-import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import {
   ASSET_UNAVAILABLE_MSG,
   EXPORT_EXPIRED_MSG,
-  isQuickCutMp4DownloadReady,
   resolveQuickCutExportAssets,
 } from '@/lib/quick-cut/asset-availability'
 import { AnalyticsEvents } from '@/lib/analytics/events'
@@ -42,10 +40,8 @@ import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { QuickCutPlatformExportProfiles } from '@/components/quick-cut/platform-export-profiles'
 import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
-import {
-  isReelExportStuck,
-  REEL_EXPORT_STUCK_MS,
-} from '@/lib/reels/export-poll.client'
+import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
+import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
 import { toast } from 'sonner'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -120,6 +116,7 @@ export function QuickCutDownloadPanel({
   const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
   const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
 
   const [downloadingMp4, setDownloadingMp4] = useState(false)
   const [downloadingMp3, setDownloadingMp3] = useState(false)
@@ -127,11 +124,9 @@ export function QuickCutDownloadPanel({
     useState<SceneImageExportSize | null>(null)
   const [assetError, setAssetError] = useState<string | null>(null)
   const [showExportFeedback, setShowExportFeedback] = useState(false)
-  const pollStartedRef = useRef(false)
   const exportTrackedRef = useRef(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
-  const renderStartedAt = useQuickCutGenerationStore((s) => s.renderStartedAt)
   const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
 
   type CreatorPackState = 'idle' | 'preparing' | 'ready' | 'error'
@@ -171,7 +166,6 @@ export function QuickCutDownloadPanel({
   const hasScript = exportAssets.script
   const hasImages = exportAssets.images
   const hasNarration = exportAssets.narration
-  const canCompileMp4 = quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled)
   const reelReadiness = useReelDownloadReadiness({
     projectId: savedProjectId,
     videoUrl,
@@ -179,80 +173,34 @@ export function QuickCutDownloadPanel({
     renderPollUrl,
     exportExpired,
   })
-  const mp4DownloadReady = isQuickCutMp4DownloadReady({
+  const mp4Export = resolveMp4ExportUiState({
+    scenes,
+    voiceUrl,
     videoUrl,
     videoRenderEnabled,
     exportExpired,
+    exportPackageReady,
     isRenderingVideo,
     renderPollUrl,
     renderError,
     downloadValidated: videoUrl?.trim()
       ? reelReadiness.ready || !savedProjectId
       : undefined,
+    reelValidating: reelReadiness.validating,
+    downloadingMp4,
   })
-  const hasMp4 = mp4DownloadReady || (canCompileMp4 && !exportExpired && !reelReadiness.validating)
-  const mp4Compiling =
-    isRenderingVideo ||
-    (videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError)
+  const {
+    canCompileMp4,
+    mp4DownloadReady,
+    mp4Compiling,
+    hasMp4Action: hasMp4,
+  } = mp4Export
+
+  useReelExportAutoResume({ canCompileMp4 })
 
   useEffect(() => {
     void syncVideoRenderConfig()
   }, [syncVideoRenderConfig])
-
-  useEffect(() => {
-    if (!videoRenderEnabled) {
-      pollStartedRef.current = false
-      return
-    }
-    if (videoUrl || renderError || isRenderingVideo) {
-      pollStartedRef.current = false
-      return
-    }
-    if (!canCompileMp4 && !renderPollUrl) {
-      pollStartedRef.current = false
-      return
-    }
-    if (pollStartedRef.current) return
-
-    pollStartedRef.current = true
-    const run = renderPollUrl ? resumeRenderPoll() : retryVideoRender()
-    void run.finally(() => {
-      pollStartedRef.current = false
-    })
-  }, [
-    videoRenderEnabled,
-    videoUrl,
-    renderPollUrl,
-    renderError,
-    isRenderingVideo,
-    canCompileMp4,
-    resumeRenderPoll,
-    retryVideoRender,
-  ])
-
-  useEffect(() => {
-    if (!videoRenderEnabled || !mp4Compiling || !renderStartedAt) return
-
-    const timer = setTimeout(() => {
-      if (!isReelExportStuck(renderStartedAt)) return
-      if (isRenderingVideo) {
-        useQuickCutGenerationStore.setState({ isRenderingVideo: false })
-      }
-      pollStartedRef.current = false
-      toast.message('Export taking longer than expected — retrying…', { duration: 4000 })
-      void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())
-    }, REEL_EXPORT_STUCK_MS)
-
-    return () => clearTimeout(timer)
-  }, [
-    videoRenderEnabled,
-    mp4Compiling,
-    renderStartedAt,
-    isRenderingVideo,
-    renderPollUrl,
-    resumeRenderPoll,
-    retryVideoRender,
-  ])
 
   const scriptInput = { title, hook, script, scriptBeats, payoff, cta, isUnlimited }
 
@@ -568,7 +516,9 @@ export function QuickCutDownloadPanel({
                 ? reelReadiness.label
                 : mp4Compiling || reelReadiness.validating
                   ? renderStatusLabel || 'Preparing your video…'
-                  : renderError
+                  : reelReadiness.validationError
+                    ? reelReadiness.validationError
+                    : renderError
                     ? renderError
                     : canCompileMp4
                       ? 'Ken Burns motion · captions · voiceover'
@@ -632,10 +582,10 @@ export function QuickCutDownloadPanel({
               <Loader2 className="w-3 h-3 animate-spin" />
               Rendering reel…
             </button>
-          ) : renderError ? (
+          ) : renderError || reelReadiness.validationError ? (
             <button
               type="button"
-              onClick={() => void retryVideoRender()}
+              onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
               className={secondaryButtonClass}
             >
               Retry compile

@@ -2,6 +2,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 
+import { isSameOriginReelDownloadUrl } from '@/lib/export/reel-same-origin'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 
 export const ASSET_UNAVAILABLE_MSG = 'Asset unavailable. Regenerate required.'
@@ -23,6 +24,7 @@ export function isQuickCutMp4DownloadReady(input: {
   const url = input.videoUrl?.trim()
   if (!url || !isValidReelDownloadUrl(url)) return false
   if (input.videoRenderEnabled && input.renderError?.trim()) return false
+  if (isSameOriginReelDownloadUrl(url)) return true
   if (input.downloadValidated === false) return false
   return true
 }

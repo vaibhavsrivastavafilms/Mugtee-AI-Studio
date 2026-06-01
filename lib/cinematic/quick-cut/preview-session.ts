@@ -88,6 +88,9 @@ export function restoreQuickCutPreviewSession(options?: { allowOnFreshCreate?: b
   })
 
   void useQuickCutGenerationStore.getState().syncVideoRenderConfig()
+  if (renderPollUrl && !videoUrl) {
+    void useQuickCutGenerationStore.getState().resumeRenderPoll()
+  }
   return true
 }
 

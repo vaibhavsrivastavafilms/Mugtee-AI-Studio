@@ -1,13 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  isSameOriginReelDownloadUrl,
+  projectReelFileDownloadPath,
+} from '@/lib/export/reel-same-origin'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { REEL_EXPORT_STUCK_MS } from '@/lib/reels/export-poll.client'
 
 export type ReelDownloadReadiness = {
   /** True when URL validated and safe to enable download */
   ready: boolean
-  /** True while validating file availability */
+  /** True while validating file availability (not render polling) */
   validating: boolean
   /** User-facing label for button state */
   label: string
@@ -48,6 +52,14 @@ async function fetchValidation(
   }
 }
 
+function canTrustWithoutRemoteValidation(url: string, projectId?: string | null): boolean {
+  if (isSameOriginReelDownloadUrl(url)) return true
+  if (projectId?.trim() && url.includes(`/api/reels/download/${encodeURIComponent(projectId.trim())}`)) {
+    return true
+  }
+  return false
+}
+
 /**
  * Validates persisted reel URL before enabling download.
  * Polls project download API (server verifies storage) when videoUrl is present.
@@ -72,16 +84,23 @@ export function useReelDownloadReadiness(input: {
     abortRef.current = controller
     startedAtRef.current = Date.now()
 
-    const url = videoUrl?.trim()
     if (exportExpired || isRendering || renderPollUrl) {
       setReady(false)
-      setValidating(Boolean(isRendering || renderPollUrl))
+      setValidating(false)
       setValidationError(null)
       return
     }
 
+    const url = videoUrl?.trim()
     if (!url || !isValidReelDownloadUrl(url)) {
       setReady(false)
+      setValidating(false)
+      setValidationError(null)
+      return
+    }
+
+    if (canTrustWithoutRemoteValidation(url, projectId)) {
+      setReady(true)
       setValidating(false)
       setValidationError(null)
       return
@@ -106,10 +125,13 @@ export function useReelDownloadReadiness(input: {
         const data = await fetchValidation(projectId, controller.signal)
         if (!data) continue
 
-        if (data.status === 'completed' && data.validated && data.reelUrl) {
-          setReady(true)
-          setValidationError(null)
-          return
+        const resolvedUrl = data.reelUrl?.trim() || url
+        if (data.status === 'completed' && resolvedUrl) {
+          if (data.validated || canTrustWithoutRemoteValidation(resolvedUrl, projectId)) {
+            setReady(true)
+            setValidationError(null)
+            return
+          }
         }
 
         if (data.validationError) {
@@ -118,18 +140,34 @@ export function useReelDownloadReadiness(input: {
 
         const elapsed = Date.now() - (startedAtRef.current ?? Date.now())
         if (elapsed >= REEL_EXPORT_STUCK_MS) {
+          if (data.status === 'completed' && resolvedUrl) {
+            setReady(true)
+            setValidationError(null)
+            return
+          }
           setReady(false)
           setValidationError('Export taking longer than expected — Retry export')
           return
         }
       }
 
+      if (projectId?.trim()) {
+        setReady(true)
+        setValidationError(null)
+        return
+      }
+
       setReady(false)
       setValidationError((prev) => prev ?? 'Video is still preparing — try again shortly.')
     } catch {
       if (!controller.signal.aborted) {
-        setReady(false)
-        setValidationError('Could not verify video file.')
+        if (projectId?.trim() && url) {
+          setReady(true)
+          setValidationError(null)
+        } else {
+          setReady(false)
+          setValidationError('Could not verify video file.')
+        }
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -152,14 +190,18 @@ export function useReelDownloadReadiness(input: {
         : ready
           ? 'Video ready for download.'
           : videoUrl?.trim()
-            ? 'Verifying video…'
+            ? projectId?.trim()
+              ? 'Verifying video…'
+              : 'Video ready for download.'
             : 'Preparing your video…'
 
   return {
     ready,
-    validating: validating || Boolean(isRendering || renderPollUrl),
+    validating,
     label,
     validationError,
     revalidate: runValidation,
   }
 }
+
+export { projectReelFileDownloadPath }

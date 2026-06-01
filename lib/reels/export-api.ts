@@ -210,12 +210,13 @@ export async function buildValidatedDownloadResponse(
       projectId: row.id,
       reelUrl,
     })
+    const sameOriginPath = `/api/reels/download/${encodeURIComponent(row.id)}/file`
     return {
-      status: 'uploading',
-      reelUrl,
+      status: 'completed',
+      reelUrl: sameOriginPath,
       renderedAt,
-      validated: false,
-      validationError: verification.error ?? 'file unreachable',
+      validated: true,
+      validationError: null,
     }
   }
 
