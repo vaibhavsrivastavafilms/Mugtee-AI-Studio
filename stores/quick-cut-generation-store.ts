@@ -111,6 +111,8 @@ import {
   getEffectiveCreatorProfile,
   rememberCreativeSession,
   fetchCreatorMemoryProfile,
+  getCachedCreatorMemoryProfile,
+  hasCreatorProfileContent,
   type CreatorMemoryProfile,
   type CreatorProfileOverride,
 } from '@/lib/creator/creator-memory'
@@ -125,6 +127,7 @@ import {
 } from '@/lib/memory/learning-loop'
 import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
+import { generateRulesContentBriefSync } from '@/lib/content-director/rules-content-brief'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import {
   logParsedIntent,
@@ -249,7 +252,7 @@ export type QuickCutGenerationStep =
 
 export const STEP_PROGRESS: Record<QuickCutGenerationStep, number> = {
   idle: 0,
-  analyzing: 0,
+  analyzing: 5,
   title: 10,
   hook: 15,
   script: 30,
@@ -497,7 +500,7 @@ const INITIAL: QuickCutGenerationState = {
   voiceFallbackMessage: null,
   waveform: [],
   progress: 0,
-  eta: 14,
+  eta: 0,
   videoUrl: null,
   renderPollUrl: null,
   renderError: null,
@@ -1273,6 +1276,11 @@ function appendNotes(
   return parts.filter(Boolean).join('\n\n')
 }
 
+function computeStepEta(progress: number): number {
+  if (progress <= 0) return 0
+  return Math.max(0, Math.round((100 - progress) * 0.14))
+}
+
 function setStep(
   set: (patch: Partial<QuickCutGenerationState>) => void,
   get: () => QuickCutGenerationState,
@@ -1285,7 +1293,7 @@ function setStep(
     eta:
       step === 'complete' || step === 'render'
         ? 0
-        : Math.max(0, Math.round((100 - progress) * 0.14)),
+        : computeStepEta(progress),
   }
   if (!get().stageTabPinned) {
     const tab = generationStepToTab(step)
@@ -1581,7 +1589,7 @@ export const useQuickCutGenerationStore = create<
   runPipeline: async (input) => {
     /*
      * Quick Cut pipeline order:
-     * 1. Content Director brief (sequential — gates all outputs)
+     * 1. Rules content brief (sync) + parallel: memory hydrate, config fetch
      * 2. Parallel: hook/title + deep research + script (script uses brief, not hook)
      * 3. Parallel: visual direction (scenes) + voice
      * 4. Storyboard images (parallel per scene; thumbnail = scene 1)
@@ -1739,7 +1747,7 @@ export const useQuickCutGenerationStore = create<
         activeStageTab: 'title',
         stageTabPinned: false,
         progress: 0,
-        eta: 14,
+        eta: 0,
         lastCompletedStep: null,
         failedAtStep: null,
         sectionStatus: resetSectionStatus(),
@@ -1750,14 +1758,21 @@ export const useQuickCutGenerationStore = create<
     pipelineStartedAt = Date.now()
     genPerf.start('pipeline')
 
-    const loadedCreatorProfile = await fetchCreatorMemoryProfile()
     const creatorProfileOverride =
       input.creatorProfileOverride ??
       (regenFresh ? prior.creatorProfileOverride : null) ??
       null
-    set({ creatorProfile: loadedCreatorProfile, creatorProfileOverride })
+    set({
+      creatorProfile: getCachedCreatorMemoryProfile(),
+      creatorProfileOverride,
+    })
+    void fetchCreatorMemoryProfile().then((profile) => {
+      if (hasCreatorProfileContent(profile)) {
+        set({ creatorProfile: profile })
+      }
+    })
 
-    trackEvent(AnalyticsEvents.GENERATION_STARTED, {
+    void trackEvent(AnalyticsEvents.GENERATION_STARTED, {
       projectId: preserveProjectId,
       metadata: {
         resume: isResume,
@@ -1766,17 +1781,25 @@ export const useQuickCutGenerationStore = create<
         style: tone,
       },
     })
-    trackFirstGenerationStarted({ projectId: preserveProjectId })
+    void trackFirstGenerationStarted({ projectId: preserveProjectId })
 
     let anyMock = false
     const missingKeys = new Set<string>()
+    let config: Record<string, boolean> = {}
+    let videoRenderEnabled = get().videoRenderEnabled
+    let freeTier = false
 
-    const configRes = await fetch('/api/quick-cut/config')
-    const config = (await configRes.json().catch(() => ({}))) as Record<string, boolean>
-    const videoRenderEnabled = config.videoRenderEnabled === true
-    set({ videoRenderEnabled })
+    const configPromise = fetch('/api/quick-cut/config')
+      .then((res) => res.json().catch(() => ({})) as Promise<Record<string, boolean>>)
+      .then((cfg) => {
+        config = cfg
+        videoRenderEnabled = cfg.videoRenderEnabled === true
+        freeTier = cfg.freeTierOnly === true
+        set({ videoRenderEnabled })
+        return cfg
+      })
+      .catch(() => ({} as Record<string, boolean>))
 
-    const freeTier = config.freeTierOnly === true
     const noteMissing = (step: 'script' | 'images' | 'voice' | 'video') => {
       if (step === 'script' && config.script !== true) {
         if (freeTier) {
@@ -1809,48 +1832,34 @@ export const useQuickCutGenerationStore = create<
       if (!isResume || !get().contentBrief) {
         patchSectionStatus(set, get, 'contentDirectorBrief', 'generating')
         genPerf.start('content_brief')
-        try {
-          const briefResult = await pipelineFetchJson<{
-            brief?: ContentBrief
-            durationMs?: number
-            source?: string
-          }>('/api/content-director/brief', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-              contentBriefApiPayload(
-                {
-                  prompt,
-                  parsedIntent,
-                  style: tone,
-                  duration,
-                  niche: get().niche,
-                  language,
-                  directorMode,
-                },
-                blueprintPlatform
-              )
-            ),
-            maxRetries: 1,
-          })
-          if (briefResult.res.ok && briefResult.data.brief) {
-            set({ contentBrief: briefResult.data.brief })
-            genPerf.log('content_brief', briefResult.data.source ?? 'generated', {
-              durationMs: briefResult.data.durationMs,
-            })
-          }
-        } catch {
-          /* brief is best-effort — downstream prompts still have topic/style */
-        }
-        patchSectionStatus(
-          set,
-          get,
-          'contentDirectorBrief',
-          get().contentBrief ? 'completed' : 'failed'
+        const briefResult = generateRulesContentBriefSync(
+          contentBriefApiPayload(
+            {
+              prompt,
+              parsedIntent,
+              style: tone,
+              duration,
+              niche: get().niche,
+              language,
+              directorMode,
+            },
+            blueprintPlatform
+          ),
+          parsedIntent
         )
+        set({
+          contentBrief: briefResult.brief,
+          progress: 8,
+          eta: computeStepEta(8),
+        })
+        genPerf.log('content_brief', briefResult.source, {
+          durationMs: briefResult.durationMs,
+        })
         genPerf.end('content_brief')
+        patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
       } else {
         patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
+        set({ progress: 8, eta: computeStepEta(8) })
       }
 
       const sessionContentBrief = get().contentBrief
@@ -1918,6 +1927,7 @@ export const useQuickCutGenerationStore = create<
           ? (async () => {
               patchSectionStatus(set, get, 'hook', 'generating')
               genPerf.start('hook')
+              genPerf.log('hook', `started ${Date.now() - pipelineStartedAt}ms after pipeline click`)
               setStep(set, get, 'title')
               const titleHookResult = await fetchValidatedTitleHook(
                 {
@@ -1971,6 +1981,7 @@ export const useQuickCutGenerationStore = create<
           : Promise.resolve(),
         needsScript
           ? (async () => {
+              await configPromise
               if (researchTask) await researchTask
 
               setStep(set, get, 'script')

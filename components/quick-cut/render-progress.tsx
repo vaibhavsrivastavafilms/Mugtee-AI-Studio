@@ -69,7 +69,7 @@ export function RenderProgress({ className }: { className?: string }) {
             {exportStuck ? REEL_EXPORT_STUCK_MSG : progressLabel || 'Preparing…'}
           </p>
           <span className="text-[10px] text-luxe/45 tabular-nums">
-            {progress}%{!isComplete && eta > 0 ? ` · ~${eta}s` : ''}
+            {progress}%{!isComplete && eta > 0 && progress > 0 ? ` · ~${eta}s` : ''}
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
