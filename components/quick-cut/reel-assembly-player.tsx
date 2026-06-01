@@ -923,7 +923,13 @@ export function ReelAssemblyPlayer({
 
             >
 
-              <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <img
+                src={url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
 
             </button>
 

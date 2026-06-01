@@ -77,8 +77,8 @@ async function compileProjectMp4Inner(
     return (row.reel_url ?? row.video_url)!.trim()
   }
 
-  const configRes = await fetch('/api/quick-cut/config')
-  const config = (await configRes.json()) as {
+  const { fetchQuickCutConfig } = await import('@/lib/quick-cut/quick-cut-config-cache.client')
+  const config = (await fetchQuickCutConfig()) as {
     videoRenderEnabled?: boolean
     remotion?: boolean
     ffmpeg?: boolean

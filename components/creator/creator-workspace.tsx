@@ -40,6 +40,7 @@ function QuickModeLink() {
   return (
     <Link
       href={createEntryHref('quick')}
+      prefetch
       className={cn(
         'group flex items-center gap-3 rounded-xl border border-gold-500/25',
         'bg-gold-500/[0.06] p-4 hover:border-gold-500/40 transition-colors'

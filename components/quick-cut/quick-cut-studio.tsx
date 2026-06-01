@@ -1,8 +1,10 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { useFeedbackStore } from '@/stores/feedback-store'
 import { useRouter } from 'next/navigation'
+import { useShallow } from 'zustand/react/shallow'
 import {
   GENERATION_FOOTER_CLEARANCE,
   QuickCutGenerationFooter,
@@ -14,40 +16,86 @@ import { QuickCutSaveProjectButton } from '@/components/quick-cut/quick-cut-save
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
 import { SeriesContextPanel } from '@/components/quick-cut/series-context-panel'
 import { episodeTopic } from '@/lib/cinematic/content-series'
-import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
 import { GenerationResultsSection } from '@/components/quick-cut/generation-results-section'
-import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { cn } from '@/lib/utils'
-import { StoryboardContinuityPanel } from '@/components/cinematic/storyboard-continuity-panel'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+
+const CinematicAssemblyScreen = dynamic(
+  () =>
+    import('@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen').then(
+      (m) => m.CinematicAssemblyScreen
+    ),
+  { ssr: false }
+)
+
+const ReelAssemblyPlayer = dynamic(
+  () =>
+    import('@/components/quick-cut/reel-assembly-player').then((m) => m.ReelAssemblyPlayer),
+  { ssr: false }
+)
+
+const StoryboardContinuityPanel = dynamic(
+  () =>
+    import('@/components/cinematic/storyboard-continuity-panel').then(
+      (m) => m.StoryboardContinuityPanel
+    ),
+  { ssr: false }
+)
 
 export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) {
   const router = useRouter()
-  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
-  const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
-  const stageTabPinned = useQuickCutGenerationStore((s) => s.stageTabPinned)
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
-  const script = useQuickCutGenerationStore((s) => s.script)
-  const scenes = useQuickCutGenerationStore((s) => s.scenes)
-  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
+  const {
+    generationStep,
+    activeStageTab,
+    stageTabPinned,
+    title,
+    hook,
+    script,
+    scenes,
+    voiceUrl,
+    videoUrl,
+    isComplete,
+    savedProjectId,
+    isGenerating,
+    generationState,
+    assemblyPreviewAutoplay,
+    generationStatus,
+    setActiveStageTab,
+    lastCompletedStep,
+    failedAtStep,
+    resumeGeneration,
+    contentSeries,
+    storyBible,
+    runPipeline,
+  } = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      generationStep: s.generationStep,
+      activeStageTab: s.activeStageTab,
+      stageTabPinned: s.stageTabPinned,
+      title: s.title,
+      hook: s.hook,
+      script: s.script,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      isComplete: s.isComplete,
+      savedProjectId: s.savedProjectId,
+      isGenerating: s.isGenerating,
+      generationState: s.generationState,
+      assemblyPreviewAutoplay: s.assemblyPreviewAutoplay,
+      generationStatus: s.generationStatus,
+      setActiveStageTab: s.setActiveStageTab,
+      lastCompletedStep: s.lastCompletedStep,
+      failedAtStep: s.failedAtStep,
+      resumeGeneration: s.resumeGeneration,
+      contentSeries: s.contentSeries,
+      storyBible: s.storyBible,
+      runPipeline: s.runPipeline,
+    }))
+  )
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
-  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
-  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const generationState = useQuickCutGenerationStore((s) => s.generationState)
-  const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
-  const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
-  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
-  const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
-  const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
-  const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
-  const contentSeries = useQuickCutGenerationStore((s) => s.contentSeries)
-  const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
-  const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
 
   useEffect(() => {
     if (stageTabPinned) return

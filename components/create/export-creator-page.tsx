@@ -14,8 +14,14 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 
-import { CinematicRenderExperience } from '@/components/cinematic/render'
+import dynamic from 'next/dynamic'
 import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
+
+const CinematicRenderExperience = dynamic(
+  () =>
+    import('@/components/cinematic/render').then((m) => m.CinematicRenderExperience),
+  { ssr: false }
+)
 
 import { useCreateProjectHydration } from '@/hooks/use-create-project-hydration'
 

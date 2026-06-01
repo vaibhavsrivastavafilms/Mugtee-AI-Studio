@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -57,7 +58,13 @@ import {
   saveCreatorExperiencePreference,
   type CreatorExperienceLevel,
 } from '@/lib/cinematic/creator-experience-level'
-import { DirectorModeSelector } from '@/components/quick-cut/canvas/director-mode-selector'
+const DirectorModeSelector = dynamic(
+  () =>
+    import('@/components/quick-cut/canvas/director-mode-selector').then(
+      (m) => m.DirectorModeSelector
+    ),
+  { ssr: false }
+)
 import { CreatorExperienceSelector } from '@/components/create/creator-experience-selector'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generations-strip'
