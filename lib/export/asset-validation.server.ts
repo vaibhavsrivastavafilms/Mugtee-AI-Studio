@@ -5,6 +5,10 @@ import { resolveProjectScenes } from '@/lib/cinematic-projects'
 import { parseReelTimeline } from '@/lib/reel/parse-reel-timeline'
 import { retryWithBackoff } from '@/lib/video/retry.server'
 import { scenesForReelExport } from '@/lib/reels/export-api'
+import {
+  findScenesMissingExportImages,
+  missingScenesExportMessage,
+} from '@/lib/export/scene-export-validation'
 
 export type ExportAssetValidation = {
   valid: boolean
@@ -61,16 +65,44 @@ export async function validateExportAssets(params: {
     }
   }
 
+  const scenesMissingImages = findScenesMissingExportImages(scenes)
   const imageUrls = exportScenes
     .map((s) => s.imageUrl?.trim())
     .filter((u): u is string => Boolean(u))
-  let imagesExist = imageUrls.length > 0
-  if (!imagesExist) {
+  let imagesExist = scenesMissingImages.length === 0 && imageUrls.length > 0
+  if (scenesMissingImages.length > 0) {
+    missing.push('images')
+  } else if (!imagesExist) {
     missing.push('images')
   } else {
-    const checks = await Promise.all(imageUrls.slice(0, 6).map((url) => assetReachable(url)))
-    imagesExist = checks.some(Boolean)
-    if (!imagesExist) missing.push('images')
+    const checks = await Promise.all(imageUrls.map((url) => assetReachable(url)))
+    const unreachable = exportScenes
+      .map((scene, i) => ({ scene, index: i + 1, url: scene.imageUrl?.trim() }))
+      .filter((row, i) => row.url && !checks[i])
+    imagesExist = checks.every(Boolean)
+    if (!imagesExist) {
+      missing.push('images')
+      if (unreachable.length > 0) {
+        const nums = unreachable.map((r) => r.index)
+        const sceneWord = nums.length === 1 ? 'Scene' : 'Scenes'
+        const verb = nums.length === 1 ? 'is' : 'are'
+        const list =
+          nums.length === 1
+            ? String(nums[0])
+            : nums.length === 2
+              ? `${nums[0]} and ${nums[1]}`
+              : `${nums.slice(0, -1).join(', ')}, and ${nums[nums.length - 1]}`
+        return {
+          valid: false,
+          voiceExists,
+          imagesExist: false,
+          captionsExist: false,
+          timelineExists: Boolean(timeline?.clips?.length),
+          missing,
+          message: `Cannot export reel — ${sceneWord.toLowerCase()} ${list} ${verb} missing reachable storyboard images (link may have expired). Regenerate them, then try export again.`,
+        }
+      }
+    }
   }
 
   const timelineExists = Boolean(timeline?.clips?.length)
@@ -84,9 +116,22 @@ export async function validateExportAssets(params: {
   }
 
   const valid = missing.length === 0
-  const message = valid
-    ? null
-    : `Missing asset detected — ${missing.join(', ')}. Regenerating asset may be required.`
+  let message: string | null = null
+  if (!valid) {
+    if (scenesMissingImages.length > 0) {
+      message = missingScenesExportMessage(scenesMissingImages)
+    } else if (missing.includes('voice') && !voiceUrl) {
+      message = 'Voice narration is required before exporting a reel.'
+    } else if (missing.includes('voice')) {
+      message = 'Voice narration file is missing or unreachable. Regenerate voice, then try export again.'
+    } else if (missing.includes('images')) {
+      message = 'Storyboard images are missing or unreachable. Regenerate scenes, then try export again.'
+    } else if (missing.includes('captions')) {
+      message = 'Captions or script text is required for export with captions enabled.'
+    } else {
+      message = `Missing asset detected — ${missing.join(', ')}. Regenerating asset may be required.`
+    }
+  }
 
   return {
     valid,

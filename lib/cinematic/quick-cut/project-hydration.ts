@@ -246,7 +246,7 @@ export function buildQuickCutHydrationFromRow(
     renderError: videoReady
       ? null
       : reelFailed
-        ? 'Export expired. Regenerate export.'
+        ? row.generation_error?.trim() || 'Export expired. Regenerate export.'
         : null,
     generationStep:
       row.generation_status === 'failed'

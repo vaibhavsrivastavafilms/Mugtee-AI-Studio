@@ -37,6 +37,10 @@ import {
   resolveQuickCutExportAssets,
 } from '@/lib/quick-cut/asset-availability'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
+import {
+  findScenesMissingExportImages,
+  isMissingScenesExportError,
+} from '@/lib/export/scene-export-validation'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
@@ -116,6 +120,9 @@ export function GenerationResultsSection({
   const updateReelTimelineClip = useQuickCutGenerationStore((s) => s.updateReelTimelineClip)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
   const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
+  const regenerateMissingSceneImages = useQuickCutGenerationStore(
+    (s) => s.regenerateMissingSceneImages
+  )
 
   const returningCreatorRef = useRef(hasCompletedFirstGeneration())
 
@@ -292,6 +299,14 @@ export function GenerationResultsSection({
     }
   }, [hasScript, scriptInput])
 
+  const missingExportScenes = useMemo(
+    () => findScenesMissingExportImages(scenes),
+    [scenes]
+  )
+  const showRegenerateMissingScenes =
+    missingExportScenes.length > 0 &&
+    (isMissingScenesExportError(renderError) || (!videoUrl && !mp4Compiling))
+
   const hasScriptContent = Boolean(script?.trim() || scriptBeats.length || hook?.trim())
   const captionReady = Boolean(cta?.trim() || script?.trim())
   const outputQuality = {
@@ -357,6 +372,24 @@ export function GenerationResultsSection({
         <p className="text-[11px] text-amber-200/80 text-center" role="alert">
           {assetError}
         </p>
+      ) : null}
+
+      {renderError && !videoUrl ? (
+        <p className="text-[11px] text-amber-200/80 text-center" role="alert">
+          {renderError}
+        </p>
+      ) : null}
+
+      {showRegenerateMissingScenes ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => void regenerateMissingSceneImages()}
+            className={secondaryActionClass}
+          >
+            Regenerate missing scenes ({missingExportScenes.map((s) => s.index).join(', ')})
+          </button>
+        </div>
       ) : null}
 
       <ProactiveSuggestions

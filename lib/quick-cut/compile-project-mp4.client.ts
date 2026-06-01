@@ -1,6 +1,12 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { loadProject, resolveProjectScenes } from '@/lib/cinematic-projects'
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
+import {
+  allScenesHaveExportImages,
+  missingScenesExportMessage,
+  resolveSceneExportImageUrl,
+  findScenesMissingExportImages,
+} from '@/lib/export/scene-export-validation'
 
 let compileInFlight: Promise<string> | null = null
 let compileInFlightProjectId: string | null = null
@@ -19,17 +25,11 @@ export function quickCutCanCompileMp4(
   videoRenderEnabled: boolean
 ): boolean {
   if (!videoRenderEnabled || !voiceUrl?.trim() || scenes.length < 1) return false
-  return scenes.some((scene) => Boolean(scene.imageUrl?.trim()))
+  return allScenesHaveExportImages(scenes)
 }
 
 export function resolvePersistedSceneImageUrl(scene: CinematicScene): string | null {
-  if (scene.imageUrl?.trim()) return scene.imageUrl.trim()
-  const active = scene.storyboardImages?.find(
-    (img) => img.id === scene.activeStoryboardId
-  )?.url
-  if (active?.trim()) return active.trim()
-  const first = scene.storyboardImages?.[0]?.url
-  return first?.trim() ? first.trim() : null
+  return resolveSceneExportImageUrl(scene)
 }
 
 /** True when the project has scene stills and narration audio to compile an MP4. */
@@ -39,7 +39,7 @@ export function projectCanCompileMp4(
 ): boolean {
   if (!voice?.audioUrl?.trim()) return false
   if (scenes.length < 1) return false
-  return scenes.some((scene) => Boolean(resolvePersistedSceneImageUrl(scene)))
+  return allScenesHaveExportImages(scenes)
 }
 
 async function requestReelExport(projectId: string) {
@@ -70,6 +70,10 @@ async function compileProjectMp4Inner(
   const scenes = resolveProjectScenes(row)
 
   if (!projectCanCompileMp4(scenes, row.voice)) {
+    const missing = findScenesMissingExportImages(scenes)
+    if (missing.length > 0) {
+      throw new Error(missingScenesExportMessage(missing))
+    }
     throw new Error('Add storyboard images and voice narration before compiling MP4.')
   }
 

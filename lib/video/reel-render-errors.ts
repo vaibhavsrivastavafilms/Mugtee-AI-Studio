@@ -15,6 +15,7 @@ function isRenderDisabledMessage(msg: string): boolean {
 }
 
 function isTransientRenderFailure(msg: string): boolean {
+  if (msg.startsWith('Cannot export reel —')) return false
   return (
     msg.includes('Remotion') ||
     msg.includes('FFmpeg') ||
