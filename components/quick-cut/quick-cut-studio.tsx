@@ -31,9 +31,11 @@ const CinematicAssemblyScreen = dynamic(
   { ssr: false }
 )
 
-const ReelAssemblyPlayer = dynamic(
+const PreviewExportTabbedPanel = dynamic(
   () =>
-    import('@/components/quick-cut/reel-assembly-player').then((m) => m.ReelAssemblyPlayer),
+    import('@/components/quick-cut/preview-export-tabbed-panel').then(
+      (m) => m.PreviewExportTabbedPanel
+    ),
   { ssr: false }
 )
 
@@ -61,7 +63,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
     savedProjectId,
     isGenerating,
     generationState,
-    assemblyPreviewAutoplay,
     generationStatus,
     setActiveStageTab,
     lastCompletedStep,
@@ -85,7 +86,6 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
       savedProjectId: s.savedProjectId,
       isGenerating: s.isGenerating,
       generationState: s.generationState,
-      assemblyPreviewAutoplay: s.assemblyPreviewAutoplay,
       generationStatus: s.generationStatus,
       setActiveStageTab: s.setActiveStageTab,
       lastCompletedStep: s.lastCompletedStep,
@@ -152,22 +152,11 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
                 className="w-full max-w-md mx-auto"
               />
             ) : (
-              <ReelAssemblyPlayer
-                scenes={scenes}
-                title={title}
-                hook={hook}
-                script={script}
-                videoUrl={videoUrl}
-                voiceUrl={voiceUrl}
+              <PreviewExportTabbedPanel
                 audioRef={voiceAudioRef}
                 isLive={!isComplete}
-                generationStep={isComplete ? 'complete' : generationStep}
-                mp4Compiling={generationStep === 'render' && !videoUrl}
-                autoPlayPreview={
-                  (isComplete && Boolean(voiceUrl) && !videoUrl) ||
-                  assemblyPreviewAutoplay
-                }
-                className="mx-auto"
+                generationStep={generationStep}
+                className="w-full max-w-md mx-auto"
               />
             )}
           </div>
