@@ -48,12 +48,17 @@ export function agentsForPipelineStep(step: string): AgentLabel[] {
 export function activeAgentsForGeneration(generationStep: string): AgentLabel[] {
   const map: Record<string, AgentPipelineStage[]> = {
     idle: ['research', 'trend'],
+    analyzing: ['research', 'memory'],
+    title: ['research', 'hook'],
     hook: ['hook', 'memory'],
     script: ['story', 'memory'],
     scenes: ['story', 'growth'],
     images: ['growth', 'memory'],
+    motion: ['story', 'growth'],
     voice: ['growth'],
+    render: ['growth', 'memory'],
     complete: ['memory', 'growth'],
+    error: ['hook', 'memory'],
   }
   const ids = map[generationStep] ?? ['research', 'story']
   return AGENT_LABELS.filter((a) => ids.includes(a.id))

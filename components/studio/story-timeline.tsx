@@ -168,6 +168,17 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
             <motion.button
               key={stage}
               type="button"
+              data-workflow-tab={
+                stage === 'hook'
+                  ? 'hook'
+                  : stage === 'idea'
+                    ? 'title'
+                    : stage === 'storyboard' || stage === 'motion'
+                      ? 'visuals'
+                      : stage === 'export'
+                        ? 'complete'
+                        : stage
+              }
               initial={false}
               animate={{ opacity: 1, x: 0 }}
               onClick={() => handleSelect(stage)}

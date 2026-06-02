@@ -114,9 +114,18 @@ export function GenerationStagePanel({
     })
   }, [tab, scenes.length, savedProjectId])
 
-  const shell = (label: string, icon: ReactNode, children: ReactNode, loading?: boolean, section?: SectionId) => (
+  const shell = (
+    label: string,
+    icon: ReactNode,
+    children: ReactNode,
+    loading?: boolean,
+    section?: SectionId,
+    workflowTab?: QuickCutStageTab
+  ) => (
     <div
       data-generation-stage-panel
+      data-workflow-tab={workflowTab}
+      id={workflowTab ? `workflow-stage-${workflowTab}` : undefined}
       className={cn(
         'rounded-xl border border-white/[0.08] bg-black/30 p-4 min-h-[120px]',
         loading && 'shimmer-cinematic',
@@ -177,7 +186,8 @@ export function GenerationStagePanel({
         generationStep === 'title' ||
           generationStep === 'analyzing' ||
           isRegeneratingTitle,
-        'hook'
+        'hook',
+        'title'
       )
 
     case 'hook':
@@ -246,6 +256,7 @@ export function GenerationStagePanel({
               generationStep === 'title' ||
               generationStep === 'analyzing' ||
               isRegeneratingHook,
+            'hook',
             'hook'
           )}
         </>
