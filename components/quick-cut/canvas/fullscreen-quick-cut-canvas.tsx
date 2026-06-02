@@ -271,7 +271,7 @@ export function FullscreenQuickCutCanvas({
   const readiness =
     prompt.trim().length >= 6 ? 1 : Math.min(0.85, (prompt.trim().length / 6) * 0.85 + (imageRef ? 0.15 : 0) + (voiceNote ? 0.15 : 0))
 
-  const loginHref = `/login?next=${encodeURIComponent(LOGIN_AFTER_QUICK_CUT)}`
+  const loginHref = `/auth/login?next=${encodeURIComponent(LOGIN_AFTER_QUICK_CUT)}`
 
   const toggleKeyword = useCallback((keyword: MoodKeyword) => {
     setKeywords((prev) =>

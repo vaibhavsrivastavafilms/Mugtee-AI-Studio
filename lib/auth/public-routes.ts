@@ -24,8 +24,26 @@ const PUBLIC_PREFIXES = [
   '/about',
   '/privacy',
   '/terms',
-  '/api/',
 ]
+
+/** API routes that intentionally work without a session (guest flows, config, leads). */
+const PUBLIC_API_EXACT = new Set([
+  '/api/guest-hook',
+  '/api/lead',
+  '/api/quick-cut/config',
+  '/api/showcase/projects',
+])
+
+const PUBLIC_API_PREFIXES: string[] = []
+
+export function isPublicApiPath(pathname: string): boolean {
+  const path = pathname.split('?')[0] || '/'
+  if (PUBLIC_API_EXACT.has(path)) return true
+  for (const prefix of PUBLIC_API_PREFIXES) {
+    if (path === prefix || path.startsWith(prefix)) return true
+  }
+  return false
+}
 
 /** App routes that require a session (middleware redirect). */
 const PROTECTED_PREFIXES = [
@@ -55,6 +73,7 @@ export function isPublicPath(pathname: string): boolean {
   const path = pathname.split('?')[0] || '/'
   if (PUBLIC_EXACT.has(path)) return true
   if (path.startsWith('/cinematic/examples')) return true
+  if (path.startsWith('/api/') && isPublicApiPath(path)) return true
   for (const prefix of PUBLIC_PREFIXES) {
     if (path === prefix || path.startsWith(prefix)) return true
   }

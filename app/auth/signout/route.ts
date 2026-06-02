@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 async function handle(request: NextRequest) {
-  const response = NextResponse.redirect(new URL('/signin', request.url))
+  const response = NextResponse.redirect(new URL('/auth/login', request.url))
 
   const env = getSupabasePublicEnv()
   if (env) {

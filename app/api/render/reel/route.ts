@@ -5,7 +5,7 @@ import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
 import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
 import { runExportInBackground } from '@/lib/export/export-background.server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth/require-auth'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
@@ -51,11 +51,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'At least one scene is required' }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    trackUserId = user?.id ?? null
+    const auth = await requireAuth()
+    if (auth.response) return auth.response
+    trackUserId = auth.user.id
 
     if (!isVideoRenderEnabled()) {
       const disabledMsg =
@@ -95,7 +93,7 @@ export async function POST(req: NextRequest) {
       voiceAudioPath: null,
       voiceUrl,
       subtitles: [],
-      userId: user?.id ?? null,
+      userId: auth.user.id,
       projectId: projectId ?? null,
     }
 

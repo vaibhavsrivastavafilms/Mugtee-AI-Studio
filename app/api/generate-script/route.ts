@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth/require-auth'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   buildMockCinematicOutput,
@@ -127,13 +128,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const auth = await requireAuth()
+    if (auth.response) return auth.response
+    const user = auth.user
     const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
-    }
 
     const limitBlocked = await guardUsageLimit(user.id, 'generations')
     if (limitBlocked) return limitBlocked

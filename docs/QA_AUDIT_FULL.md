@@ -50,7 +50,11 @@ Scores are **evidence-weighted**: code paths and existing audits carry primary w
 | `GET /home`, `/auth/login` | **200** (**live-tested**) — pages reachable; auth wall not verified without session |
 | `GET /api/ai/providers/health` | **403** in production (**live-tested**) — expected lockdown |
 
-> **Note:** Prior audits ([EXPORT_AUDIT.md](./EXPORT_AUDIT.md), [SITE_UX_AUDIT.md](./SITE_UX_AUDIT.md)) assumed `VIDEO_RENDER_ENABLED` was unset on Vercel. **Live config now reports render enabled.** Residual MP4 failure mode shifts from config gate → Remotion/serverless reliability, asset validation, and poll/timeout bugs (code-inferred).
+> **Note:** Prior audits ([EXPORT_AUDIT.md](./EXPORT_AUDIT.md),
+> [SITE_UX_AUDIT.md](./SITE_UX_AUDIT.md)) assumed `VIDEO_RENDER_ENABLED`
+> was unset on Vercel. **Live config now reports render enabled.** Residual
+> MP4 failure mode shifts from config gate → Remotion/serverless reliability,
+> asset validation, and poll/timeout bugs (code-inferred).
 
 ---
 
@@ -70,10 +74,10 @@ Scores are **evidence-weighted**: code paths and existing audits carry primary w
 
 | ID | Severity | Finding | Evidence | Label |
 |----|----------|---------|----------|-------|
-| AUTH-01 | P2 | **No password reset** — Google-only; no recovery flow | No `resetPasswordForEmail` or forgot-password UI | code-inferred |
-| AUTH-02 | P2 | **Sign-out redirects to `/signin`** — route not found | `app/auth/signout/route.ts` L7 | code-inferred |
-| AUTH-03 | P1 | **`/api/*` public at middleware** — routes must self-enforce auth | `lib/auth/public-routes.ts` includes `/api/` | code-inferred |
-| AUTH-04 | P2 | Inconsistent login paths (`/login` vs `/auth/login`) | `app/cinematic/layout.tsx` vs canonical | code-inferred |
+| AUTH-01 | P2 | ~~**No password reset**~~ **Resolved** — `/auth/forgot-password` (email when `NEXT_PUBLIC_SUPABASE_EMAIL_AUTH=true`, else Google-only copy) | `components/auth/forgot-password-content.tsx` | fixed 2026-06-03 |
+| AUTH-02 | P2 | ~~**Sign-out redirects to `/signin`**~~ **Resolved** — redirects to `/auth/login` | `app/auth/signout/route.ts` | fixed 2026-06-03 |
+| AUTH-03 | P1 | ~~**`/api/*` public at middleware**~~ **Resolved** — narrow public API list + `requireAuth()` on high-cost routes | `lib/auth/public-routes.ts`, `lib/auth/require-auth.ts`, generate-* / render/reel | fixed 2026-06-03 |
+| AUTH-04 | P2 | ~~Inconsistent login paths~~ **Resolved** — canonical `/auth/login`; `/login` and `/signin` redirect | `app/login/page.tsx`, `app/signin/page.tsx`, `app/cinematic/layout.tsx` | fixed 2026-06-03 |
 
 ---
 
@@ -200,10 +204,10 @@ Per [current-architecture.md](./current-architecture.md) §11: no merge layer; s
 
 ### Gaps
 
-| ID | Severity | Finding |
-|----|----------|---------|
-| REG-01 | P2 | `regenerate-hook` uses hardcoded `gpt-4o-mini`, not AI router |
-| REG-02 | P3 | No dedicated `/api/regenerate-script` — reuses full generate-script |
+| ID     | Severity | Finding                                           |
+| ------ | -------- | ------------------------------------------------- |
+| REG-01 | P2       | Hook regen hardcodes gpt-4o-mini, skips AI router |
+| REG-02 | P3       | No regenerate-script API; reuses generate-script  |
 
 ---
 
@@ -262,10 +266,10 @@ FluxAPI Kontext → Together FLUX.1-schnell → Pollinations (keyless URL)
 
 ### Gaps
 
-| ID | Severity | Finding |
-|----|----------|---------|
-| IMG-01 | P2 | Gemini image code is dead — wasted maintenance surface |
-| IMG-02 | P3 | Pollinations as last resort — quality/consistency variable for production |
+| ID     | Severity | Finding                                        |
+| ------ | -------- | ---------------------------------------------- |
+| IMG-01 | P2       | Gemini image code is dead; maintenance surface |
+| IMG-02 | P3       | Pollinations fallback; quality varies in prod  |
 
 ---
 
