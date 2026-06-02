@@ -11,6 +11,7 @@ import {
   applyEmotionalEscalation,
   scoreEmotionalArc,
 } from '@/lib/cinematic/execution/emotional-escalation-system'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import { selectCinematicHook } from '@/lib/cinematic/execution/cinematic-hook-engine'
 import { alignOpeningSceneWithHook } from '@/lib/cinematic/execution/visual-hook-architecture'
 import { enhanceStoryboardScenes } from '@/lib/cinematic/execution/cinematic-storyboard-engine'
@@ -36,10 +37,12 @@ export function enhanceScreenplayOutput(
   output: CinematicGenerationOutput,
   context: ScreenplayEnhanceContext
 ): CinematicGenerationOutput {
-  const hook = selectCinematicHook(
-    context.hookVariations ?? [],
-    context.niche,
-    output.hook
+  const hook = formatFinalHook(
+    selectCinematicHook(
+      context.hookVariations ?? [],
+      context.niche,
+      output.hook
+    )
   )
 
   let scenes = applyEmotionalEscalation(output.scenes, context.niche)

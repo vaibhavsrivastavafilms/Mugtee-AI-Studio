@@ -9,6 +9,7 @@ import {
   type RegenProjectContext,
   type RegenSceneInput,
 } from '@/lib/cinematic/regen-context'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import {
   isHookTooSimilar,
   rotatedHookFramework,
@@ -87,7 +88,12 @@ export function normalizeHookRegen(
     pickStrongestHook(variations, ctx.niche) ||
     ctx.hook
 
-  return { hook }
+  const emotion =
+    ctx.contentBrief?.emotionalAngle?.trim() ||
+    ctx.emotionalGoal?.replace(/_/g, ' ').trim() ||
+    undefined
+
+  return { hook: formatFinalHook(hook, { emotion }) }
 }
 
 export function mockHookRegen(ctx: RegenProjectContext): {

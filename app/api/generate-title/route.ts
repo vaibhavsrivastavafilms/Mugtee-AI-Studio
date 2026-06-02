@@ -16,6 +16,7 @@ import {
 import { inferNicheFromBrief } from '@/lib/cinematic/niches'
 import { coerceTopic, logError } from '@/lib/workspace/validation'
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
@@ -225,6 +226,8 @@ export async function POST(req: NextRequest) {
 
     if (contentBrief) {
       hook = alignOutputToBrief(hook, contentBrief, 'hook').text
+    } else {
+      hook = formatFinalHook(hook)
     }
 
     const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)

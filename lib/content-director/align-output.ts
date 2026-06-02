@@ -1,4 +1,8 @@
 import type { ContentBrief } from '@/lib/content-director/content-brief'
+import {
+  formatFinalHook,
+  hookStartsWithEmotionalLabel,
+} from '@/lib/cinematic/hook-format'
 
 export type AlignOutputResult = {
   aligned: boolean
@@ -54,7 +58,12 @@ export function alignOutputToBrief(
     issues.push(`Tone "${brief.tone}" not reflected in wording.`)
   }
 
-  if (kind !== 'visual' && brief.emotionalAngle && !sharesToken(body, brief.emotionalAngle)) {
+  const missingEmotionalAngle =
+    kind !== 'visual' &&
+    Boolean(brief.emotionalAngle) &&
+    !sharesToken(body, brief.emotionalAngle)
+
+  if (missingEmotionalAngle) {
     issues.push('Emotional angle from brief is weak or missing.')
   }
 
@@ -69,22 +78,31 @@ export function alignOutputToBrief(
   }
 
   if (issues.length === 0) {
-    return { aligned: true, issues: [], text: body }
+    const finalized =
+      kind === 'hook'
+        ? formatFinalHook(body, { emotion: brief.emotionalAngle })
+        : body
+    return { aligned: true, issues: [], text: finalized }
   }
 
-  const prefix =
-    kind === 'hook'
-      ? brief.emotionalAngle
-        ? `${brief.emotionalAngle}. `
-        : ''
-      : ''
+  const shouldPrependEmotion =
+    kind === 'hook' &&
+    missingEmotionalAngle &&
+    Boolean(brief.emotionalAngle) &&
+    !hookStartsWithEmotionalLabel(body, brief.emotionalAngle)
+
+  const prefix = shouldPrependEmotion ? `${brief.emotionalAngle}. ` : ''
 
   const suffix =
     kind === 'caption' && brief.ctaDirection
       ? ` ${brief.ctaDirection}`
       : ''
 
-  const adjusted = `${prefix}${body}${suffix}`.trim()
+  let adjusted = `${prefix}${body}${suffix}`.trim()
+  if (kind === 'hook') {
+    adjusted = formatFinalHook(adjusted, { emotion: brief.emotionalAngle })
+  }
+
   return {
     aligned: false,
     issues,
