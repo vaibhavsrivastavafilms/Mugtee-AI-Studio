@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { ImageOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ReelTimeline } from '@/lib/reel/types'
 import { motionPresetLabel } from '@/lib/motion/motion-presets'
@@ -88,7 +89,10 @@ function VisualTrack({
                 unoptimized
               />
             ) : (
-              <span className="absolute inset-0 bg-white/[0.04]" />
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-white/[0.04] text-white/35">
+                <ImageOff className="w-3 h-3 shrink-0" aria-hidden />
+                <span className="text-[6px] tracking-wider uppercase">Missing</span>
+              </span>
             )}
             <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[7px] text-gold-200/90 px-0.5 truncate">
               {motionPresetLabel(clip.animation.presetId)}
