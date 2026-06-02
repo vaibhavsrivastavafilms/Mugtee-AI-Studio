@@ -108,6 +108,12 @@ export default function FounderDashboardPage() {
             Conversion analytics <ExternalLink className="w-3 h-3" />
           </Link>
           <Link
+            href="/admin/export-funnel"
+            className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
+          >
+            MP4 export funnel <ExternalLink className="w-3 h-3" />
+          </Link>
+          <Link
             href="/admin/validation"
             className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
           >

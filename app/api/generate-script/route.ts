@@ -32,6 +32,8 @@ import {
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
 import { trackServerError } from '@/lib/analytics/track-server-event'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { normalizeCreativeBrief } from '@/lib/companion/creative-discovery'
 import { normalizeCreatorMemory } from '@/lib/companion/creator-memory'
 import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
@@ -384,6 +386,19 @@ export async function POST(req: NextRequest) {
         FeatureUsageFeatures.SCRIPT_GENERATION,
         parseFeatureUsageProjectId(raw)
       )
+
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.STORY_GENERATED,
+        userId: user.id,
+        page: '/api/generate-script',
+        metadata: {
+          projectId: parseFeatureUsageProjectId(raw),
+          hook: Boolean(result.output?.hook?.trim()),
+          script: Boolean(result.output?.script?.trim()),
+          scenes: (result.sceneCount ?? 0) > 0,
+          scene_count: result.sceneCount ?? 0,
+        },
+      })
 
       console.log('[SCRIPT_DEBUG] before response')
       return NextResponse.json({

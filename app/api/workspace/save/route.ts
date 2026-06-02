@@ -19,6 +19,8 @@ import {
   coerceTopic, coercePlatform, coerceTone, coerceDuration,
   normalizeOutput, logError, EMPTY_OUTPUT,
 } from '@/lib/workspace/validation'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -105,6 +107,13 @@ export async function POST(req: NextRequest) {
     }
 
     await trackUsageMetric(user.id, 'projects')
+
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.PROJECT_CREATED,
+      userId: user.id,
+      page: '/api/workspace/save',
+      metadata: { projectId: data.id, source: 'content_pieces' },
+    })
 
     return NextResponse.json({ id: data.id })
   } catch (e: any) {

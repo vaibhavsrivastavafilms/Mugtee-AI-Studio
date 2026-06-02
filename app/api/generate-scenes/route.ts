@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 
 import { createCachedOpenAIChatCompletion } from '@/lib/ai/cached-openai-chat.server'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
@@ -141,6 +143,29 @@ export async function POST(req: NextRequest) {
           FeatureUsageFeatures.STORYBOARD_GENERATION,
           parseFeatureUsageProjectId(raw)
         )
+        const scenes = Array.isArray(body.scenes) ? body.scenes : []
+        void trackMp4ExportServer({
+          event: Mp4ExportEvents.STORYBOARD_GENERATED,
+          userId: user.id,
+          page: '/api/generate-scenes',
+          metadata: {
+            projectId: parseFeatureUsageProjectId(raw),
+            scene_count: scenes.length,
+            images_count: 0,
+          },
+        })
+        void trackMp4ExportServer({
+          event: Mp4ExportEvents.STORY_GENERATED,
+          userId: user.id,
+          page: '/api/generate-scenes',
+          metadata: {
+            projectId: parseFeatureUsageProjectId(raw),
+            hook: false,
+            script: Boolean(script?.trim()),
+            scenes: scenes.length > 0,
+            scene_count: scenes.length,
+          },
+        })
       }
       return NextResponse.json(body)
     }

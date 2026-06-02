@@ -9,6 +9,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import {
+  trackMp4ExportServer,
+  trackMp4FailedServer,
+} from '@/lib/analytics/mp4-export-track.server'
+import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,18 +25,9 @@ function friendlyError(err: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
+  let trackUserId: string | null = null
+  let trackProjectId: string | null = null
   try {
-    if (!isVideoRenderEnabled()) {
-      return NextResponse.json(
-        {
-          error:
-            'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.',
-          status: 'disabled',
-        },
-        { status: 503 }
-      )
-    }
-
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const idea = typeof raw?.idea === 'string' ? raw.idea : 'cinematic-story'
     const title = typeof raw?.title === 'string' ? raw.title : idea
@@ -41,8 +38,16 @@ export async function POST(req: NextRequest) {
     const sceneMotion = parseSceneMotionMap(raw?.sceneMotion)
     const asyncMode = raw?.async === true
     const projectId = typeof raw?.projectId === 'string' ? raw.projectId : undefined
+    trackProjectId = projectId ?? null
 
     if (scenes.length < 1) {
+      void trackMp4FailedServer({
+        userId: trackUserId,
+        projectId: trackProjectId,
+        stage: 'validation',
+        err: 'At least one scene is required',
+        route: 'POST /api/render/reel',
+      })
       return NextResponse.json({ error: 'At least one scene is required' }, { status: 400 })
     }
 
@@ -50,8 +55,36 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+    trackUserId = user?.id ?? null
+
+    if (!isVideoRenderEnabled()) {
+      const disabledMsg =
+        'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.'
+      void trackMp4FailedServer({
+        userId: trackUserId,
+        projectId: trackProjectId,
+        stage: 'validation',
+        err: disabledMsg,
+        route: 'POST /api/render/reel',
+      })
+      return NextResponse.json({ error: disabledMsg, status: 'disabled' }, { status: 503 })
+    }
 
     const jobId = `reel-${uuidv4()}-${Date.now()}`
+    const imageCount = scenes.filter((s) => s.imageUrl?.trim()).length
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.MP4_STARTED,
+      userId: trackUserId,
+      page: '/api/render/reel',
+      metadata: {
+        projectId: trackProjectId,
+        image_count: imageCount,
+        scene_count: scenes.length,
+        has_voice: Boolean(voiceUrl),
+        expected_duration_sec: computeRenderTotalSec(scenes),
+        async: asyncMode,
+      },
+    })
     const baseUrl = req.nextUrl.origin
 
     const input = {
@@ -107,6 +140,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = friendlyError(err)
     logError('render-reel', err)
+    void trackMp4FailedServer({
+      userId: trackUserId,
+      projectId: trackProjectId,
+      stage: 'render_segments',
+      err,
+      route: 'POST /api/render/reel',
+    })
     return NextResponse.json({ error: message, status: 'failed' }, { status: 500 })
   }
 }

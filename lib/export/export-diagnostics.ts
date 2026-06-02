@@ -1,4 +1,9 @@
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import {
+  classifyMp4ExportError,
+  Mp4ExportEvents,
+  trackMp4ExportClient,
+} from '@/lib/analytics/mp4-export-events'
 import { trackError, trackEvent } from '@/lib/analytics/track-event'
 
 type ExportTiming = {
@@ -15,10 +20,17 @@ function sessionKey(projectId?: string | null): string {
 /** Mark export job start for duration metrics. */
 export function recordExportStarted(projectId?: string | null): void {
   timings.set(sessionKey(projectId), { startedAt: Date.now(), projectId })
+  trackEvent(AnalyticsEvents.EXPORT_STARTED, {
+    projectId,
+    metadata: { asset: 'video_mp4', phase: 'export' },
+  })
 }
 
-/** Record successful export completion. */
-export function recordExportSuccess(projectId?: string | null): void {
+/** Record successful export completion (render finished, pre-download). */
+export function recordExportSuccess(
+  projectId?: string | null,
+  extra?: Record<string, unknown>
+): void {
   const key = sessionKey(projectId)
   const timing = timings.get(key)
   const durationMs = timing ? Date.now() - timing.startedAt : undefined
@@ -26,7 +38,15 @@ export function recordExportSuccess(projectId?: string | null): void {
 
   trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
     projectId,
-    metadata: { success: true, duration_ms: durationMs, phase: 'export' },
+    metadata: { success: true, duration_ms: durationMs, phase: 'export', ...extra },
+  })
+  trackMp4ExportClient(Mp4ExportEvents.MP4_COMPLETED, {
+    projectId,
+    metadata: {
+      success: true,
+      processing_time_ms: durationMs,
+      ...extra,
+    },
   })
 
   if (process.env.NODE_ENV !== 'production') {
@@ -34,11 +54,14 @@ export function recordExportSuccess(projectId?: string | null): void {
   }
 }
 
-/** Record successful browser download. */
-export function recordDownloadSuccess(projectId?: string | null): void {
-  trackEvent('export_downloaded', {
+/** Record successful browser download (final success KPI). */
+export function recordDownloadSuccess(
+  projectId?: string | null,
+  extra?: Record<string, unknown>
+): void {
+  trackMp4ExportClient(Mp4ExportEvents.MP4_DOWNLOADED, {
     projectId,
-    metadata: { success: true, asset: 'video_mp4' },
+    metadata: { success: true, asset: 'video_mp4', ...extra },
   })
 
   if (process.env.NODE_ENV !== 'production') {
@@ -53,9 +76,18 @@ export function recordDownloadFailure(
   context?: Record<string, unknown>
 ): void {
   trackError('download', message, { projectId, ...context })
-  trackEvent('export_downloaded', {
+  const classified = classifyMp4ExportError(message, 'download')
+  trackMp4ExportClient(Mp4ExportEvents.MP4_FAILED, {
     projectId,
-    metadata: { success: false, failure: message.slice(0, 200), asset: 'video_mp4' },
+    metadata: {
+      success: false,
+      stage: classified.stage,
+      error_code: classified.error_code,
+      message: classified.message,
+      failure: message.slice(0, 200),
+      asset: 'video_mp4',
+      ...context,
+    },
   })
 
   if (process.env.NODE_ENV !== 'production') {

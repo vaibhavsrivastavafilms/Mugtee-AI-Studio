@@ -47,6 +47,7 @@ import {
   exportBaseName,
 } from '@/lib/workspace/output-workspace-utils'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { Mp4ExportEvents, trackMp4ExportClient } from '@/lib/analytics/mp4-export-events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { requestExitFeedback } from '@/lib/creator/exit-feedback'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
@@ -351,12 +352,18 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   }, [syncVideoRenderConfig])
 
   const trackExportStarted = useCallback(
-    (asset: string) => {
+    (asset: string, source?: string) => {
+      if (asset === 'video_mp4') {
+        trackMp4ExportClient(Mp4ExportEvents.EXPORT_CLICKED, {
+          projectId: savedProjectId,
+          metadata: { asset, source: source ?? 'unified_export_menu' },
+        })
+      }
       if (exportTrackedRef.current) return
       exportTrackedRef.current = true
       trackEvent(AnalyticsEvents.EXPORT_STARTED, {
         projectId: savedProjectId,
-        metadata: { asset },
+        metadata: { asset, source },
       })
     },
     [savedProjectId]

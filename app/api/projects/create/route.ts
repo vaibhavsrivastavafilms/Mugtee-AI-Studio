@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,6 +42,14 @@ export async function POST(req: Request) {
     }
 
     await trackUsageMetric(user.id, 'projects')
+
+    const projectId = data?.[0]?.id ? String(data[0].id) : null
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.PROJECT_CREATED,
+      userId: user.id,
+      page: '/api/projects/create',
+      metadata: { projectId, source: 'projects_table' },
+    })
 
     return NextResponse.json({
       success: true,

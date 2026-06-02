@@ -17,6 +17,8 @@ import {
   parseFeatureUsageProjectId,
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import {
   IMAGE_GENERATION_UNAVAILABLE,
@@ -102,6 +104,20 @@ export async function POST(req: NextRequest) {
     }
     if (result.duplicatePromptSceneIds?.length) {
       console.warn('[generate-images] duplicate image prompts', result.duplicatePromptSceneIds)
+    }
+
+    if (user) {
+      const withImages = result.scenes.filter((s) => s.imageUrl?.trim()).length
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.STORYBOARD_GENERATED,
+        userId: user.id,
+        page: '/api/generate-images',
+        metadata: {
+          projectId: parseFeatureUsageProjectId(raw),
+          scene_count: result.scenes.length,
+          images_count: withImages,
+        },
+      })
     }
 
     return NextResponse.json({

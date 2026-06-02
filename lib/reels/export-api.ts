@@ -37,6 +37,12 @@ import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import {
+  trackMp4ExportServer,
+  trackMp4FailedServer,
+} from '@/lib/analytics/mp4-export-track.server'
+import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
 
 export type ReelExportStatus =
   | 'pending'
@@ -272,6 +278,24 @@ export async function queueReelExportForProject(params: {
 
   const jobId = `reel-${uuidv4()}-${Date.now()}`
   const exportStartedAt = Date.now()
+  const imageCount = scenes.filter((s) => s.imageUrl?.trim()).length
+  const expectedDurationSec = computeRenderTotalSec(scenes)
+
+  void trackMp4ExportServer({
+    event: Mp4ExportEvents.MP4_STARTED,
+    userId: params.userId,
+    page: '/api/reels/export',
+    metadata: {
+      projectId: params.row.id,
+      image_count: imageCount,
+      scene_count: scenes.length,
+      has_voice: Boolean(voiceUrl),
+      expected_duration_sec: expectedDurationSec,
+      include_voiceover: params.includeVoiceover,
+      include_captions: params.includeCaptions,
+    },
+  })
+
   exportLog.exportStart({
     projectId: params.row.id,
     userId: params.userId,
@@ -356,6 +380,13 @@ export async function queueReelExportForProject(params: {
         logError('reels.export.async', err)
         recordExportMetricFailure()
         const exportError = friendlyExportError(err)
+        void trackMp4FailedServer({
+          userId: params.userId,
+          projectId: params.row.id,
+          stage: 'render_segments',
+          err,
+          route: 'POST /api/reels/export',
+        })
         exportLog.error('async export', err, {
           jobId,
           projectId: params.row.id,

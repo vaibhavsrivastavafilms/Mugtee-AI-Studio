@@ -24,31 +24,38 @@ import {
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { parseTimelineProject } from '@/types/timeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { trackMp4FailedServer } from '@/lib/analytics/mp4-export-track.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
+  let trackUserId: string | null = null
+  let trackProjectId: string | null = null
   try {
-    if (!isVideoRenderEnabled()) {
-      return NextResponse.json(
-        {
-          error:
-            'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.',
-          status: 'failed',
-        },
-        { status: 503 }
-      )
-    }
-
     const auth = await requireCinematicUser()
     if (auth.response) return auth.response
+    trackUserId = auth.user!.id
+
+    if (!isVideoRenderEnabled()) {
+      const disabledMsg =
+        'Reel MP4 export is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.'
+      void trackMp4FailedServer({
+        userId: trackUserId,
+        projectId: null,
+        stage: 'validation',
+        err: disabledMsg,
+        route: 'POST /api/reels/export',
+      })
+      return NextResponse.json({ error: disabledMsg, status: 'failed' }, { status: 503 })
+    }
 
     const parsed = parseJsonBody(await req.json().catch(() => null))
     if (parsed.response) return parsed.response
 
     const projectId = String(parsed.body!.projectId || '').trim()
+    trackProjectId = projectId || null
     const quality = String(parsed.body!.quality || '1080p').trim()
     const includeVoiceover = parsed.body!.includeVoiceover !== false
     const includeCaptions = parsed.body!.includeCaptions !== false
@@ -120,17 +127,20 @@ export async function POST(req: NextRequest) {
     if (!projectCanExportReel(row) && !timelineOverride) {
       const missing = findScenesMissingExportImages(resolveProjectScenes(row))
       const voiceUrl = row.voice?.audioUrl?.trim() ?? null
-      return NextResponse.json(
-        {
-          error:
-            missing.length > 0
-              ? missingScenesExportMessage(missing)
-              : !voiceUrl
-                ? VOICE_REQUIRED_EXPORT_MSG
-                : 'Add storyboard images and voice narration before exporting a reel.',
-        },
-        { status: 400 }
-      )
+      const validationError =
+        missing.length > 0
+          ? missingScenesExportMessage(missing)
+          : !voiceUrl
+            ? VOICE_REQUIRED_EXPORT_MSG
+            : 'Add storyboard images and voice narration before exporting a reel.'
+      void trackMp4FailedServer({
+        userId: auth.user!.id,
+        projectId,
+        stage: 'validation',
+        err: validationError,
+        route: 'POST /api/reels/export',
+      })
+      return NextResponse.json({ error: validationError }, { status: 400 })
     }
 
     const { jobId, status } = await queueReelExportForProject({
@@ -156,6 +166,15 @@ export async function POST(req: NextRequest) {
     logError('reels.export.post', err)
     const message = friendlyReelRenderErrorFromUnknown(err)
     exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: message })
+    if (trackUserId) {
+      void trackMp4FailedServer({
+        userId: trackUserId,
+        projectId: trackProjectId,
+        stage: 'queue',
+        err,
+        route: 'POST /api/reels/export',
+      })
+    }
     const clientError =
       message.startsWith('Cannot export reel') ||
       message.includes('required before exporting') ||

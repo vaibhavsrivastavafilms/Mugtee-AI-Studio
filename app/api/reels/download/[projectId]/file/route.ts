@@ -5,6 +5,8 @@ import { exportLog } from '@/lib/export/export-log.server'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { REEL_BUCKET } from '@/lib/video/reel-storage-upload'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -80,6 +82,17 @@ export async function GET(
       projectId: projectId.trim(),
       filename,
       bytes: size,
+    })
+
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.MP4_DOWNLOADED,
+      userId: auth.user!.id,
+      page: '/api/reels/download/file',
+      metadata: {
+        projectId: projectId.trim(),
+        file_size_bytes: size,
+        source: 'api_reels_download',
+      },
     })
 
     return new NextResponse(buffer, {

@@ -35,6 +35,11 @@ import {
   missingScenesExportMessage,
 } from '@/lib/export/scene-export-validation'
 import { EXPORT_STAGE_LABELS, labelForRenderStage } from '@/lib/reels/export-stages'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import {
+  trackMp4ExportServer,
+  trackMp4FailedServer,
+} from '@/lib/analytics/mp4-export-track.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -253,6 +258,23 @@ export async function orchestrateRemotionReel(
     report('complete', EXPORT_STAGE_LABELS.ready)
     exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
 
+    if (input.userId && input.projectId) {
+      const processingMs = options?.exportStartedAt
+        ? Date.now() - options.exportStartedAt
+        : undefined
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.MP4_COMPLETED,
+        userId: input.userId,
+        page: '/api/render/reel',
+        metadata: {
+          projectId: input.projectId,
+          duration_sec: Math.min(durationSec, MAX_VIDEO_DURATION_SEC),
+          processing_time_ms: processingMs,
+          mock: mock || undefined,
+        },
+      })
+    }
+
     updateRenderJob(jobId, {
       status: 'done',
       percent: 100,
@@ -276,6 +298,20 @@ export async function orchestrateRemotionReel(
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
     const exportError = friendlyReelRenderErrorFromUnknown(err)
     logError('orchestrate.remotion-reel', err)
+    const job = getRenderJob(jobId)
+    const failStage =
+      job?.stage && job.stage !== 'complete' && job.stage !== 'error'
+        ? job.stage
+        : 'unknown'
+    if (input.userId) {
+      void trackMp4FailedServer({
+        userId: input.userId,
+        projectId: input.projectId ?? null,
+        stage: failStage,
+        err,
+        route: 'orchestrateRemotionReel',
+      })
+    }
     exportLog.error('render', err, { jobId, projectId: input.projectId, reason: exportError })
 
     if (input.userId && input.projectId) {
