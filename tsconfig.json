@@ -19,11 +19,6 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -51,7 +46,12 @@
         "./types/*"
       ]
     },
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -63,6 +63,10 @@
     "components/ui/input.tsk"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "public",
+    "next.config.js",
+    "postcss.config.js",
+    "tailwind.config.js"
   ]
 }
