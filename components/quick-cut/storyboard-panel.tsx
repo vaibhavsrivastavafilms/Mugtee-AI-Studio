@@ -26,6 +26,7 @@ export function StoryboardPanel({
   script = '',
   hook = '',
   voiceUrl = null,
+  showTimeline = true,
   className,
 }: {
   scenes: GeneratedScene[]
@@ -38,6 +39,7 @@ export function StoryboardPanel({
   script?: string
   hook?: string
   voiceUrl?: string | null
+  showTimeline?: boolean
   className?: string
 }) {
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
@@ -83,11 +85,13 @@ export function StoryboardPanel({
 
   return (
     <div className={cn('space-y-3', className)}>
-      <StoryboardTimeline
-        scenes={scenes}
-        interactive={interactive}
-        loading={loading}
-      />
+      {showTimeline ? (
+        <StoryboardTimeline
+          scenes={scenes}
+          interactive={interactive}
+          loading={loading}
+        />
+      ) : null}
       <div className="rounded-xl border border-white/[0.08] bg-black/25 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">

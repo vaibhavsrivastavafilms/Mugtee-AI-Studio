@@ -9,9 +9,8 @@ import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-mod
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
 import { StoryboardScenesTabbedPanel } from '@/components/quick-cut/storyboard-scenes-tabbed-panel'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
-import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
-import { PublishCenter } from '@/components/quick-cut/publish-center'
-import { ContentRepurposePanel } from '@/components/quick-cut/content-repurpose-panel'
+import { ExportTabbedPanel } from '@/components/quick-cut/export-tabbed-panel'
+import type { ExportSubTab } from '@/components/quick-cut/export-tabbed-panel'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
 import { displayHookText } from '@/lib/cinematic/hook-format'
@@ -101,7 +100,13 @@ export function GenerationStagePanel({
     !isGenerating && !isRegeneratingScript && !isRegeneratingHook
 
   useEffect(() => {
-    if (tab !== 'scenes' || scenes.length < 1 || storyboardTracked.current) return
+    if (
+      (tab !== 'scenes' && tab !== 'visuals') ||
+      scenes.length < 1 ||
+      storyboardTracked.current
+    ) {
+      return
+    }
     storyboardTracked.current = true
     trackEvent(AnalyticsEvents.STORYBOARD_VIEWED, {
       projectId: savedProjectId,
@@ -308,120 +313,15 @@ export function GenerationStagePanel({
       )
 
     case 'scenes':
+    case 'visuals':
       return (
-        <div className={cn('space-y-2', className)}>
-          {storyBible ? (
-            <p
-              className="text-[10px] tracking-[0.18em] uppercase text-emerald-400/75 px-0.5"
-              title={`${storyBible.visualStyle} · ${storyBible.colorPalette}`}
-            >
-              Cinematic continuity active
-            </p>
-          ) : null}
-          <StoryboardTimeline
-            scenes={scenes}
-            loading={generationStep === 'scenes'}
-            className="mb-2"
-          />
-          {shell(
-            'Scene breakdown',
-            <Film className="w-3 h-3" />,
-            <RewriteProvider
-              containerRef={scenesPanelRef}
-              enabled={directorEditEnabled}
-              defaultContentType="scene"
-              className="relative"
-            >
-              <SceneBreakdownList
-                scenes={scenes}
-                loading={generationStep === 'scenes'}
-                showImages={scenes.some((s) => s.imageUrl?.trim())}
-                exportTitle={title}
-                allowDownload={isComplete}
-                onMotionPresetChange={setSceneMotionPreset}
-              />
-            </RewriteProvider>,
-            generationStep === 'scenes',
-            'visualDirection'
-          )}
-        </div>
+        <StoryboardScenesTabbedPanel
+          className={className}
+          preferredSubTab={tab === 'visuals' ? 'storyboard' : 'breakdown'}
+          scenesPanelRef={scenesPanelRef}
+          directorEditEnabled={directorEditEnabled}
+        />
       )
-
-    case 'visuals': {
-      const imagesLoading = generationStep === 'images'
-      const firstScene = scenes[0]
-      const firstGeneratedUrl = firstScene?.imageUrl?.trim()
-      const thumb =
-        firstGeneratedUrl ||
-        (!imagesLoading && firstScene
-          ? resolveScenePreviewUrl(firstScene, 0)
-          : null)
-
-      return (
-        <div className={cn('space-y-3', className)}>
-          <div className="flex flex-wrap items-center gap-2">
-            <SectionStatusBadge section="storyboard" status={sectionStatus.storyboard} />
-            <SectionStatusBadge section="thumbnail" status={sectionStatus.thumbnail} />
-          </div>
-          {storyBible ? (
-            <p
-              className="text-[10px] tracking-[0.18em] uppercase text-emerald-400/75"
-              title={`${storyBible.visualStyle} · ${storyBible.colorPalette}`}
-            >
-              Visual continuity locked
-            </p>
-          ) : null}
-          {imagesLoading && !firstGeneratedUrl ? (
-            <div className="rounded-xl border border-gold-500/20 bg-black/30 p-3 flex items-center gap-3 shimmer-cinematic">
-              <div className="w-14 aspect-[9/16] rounded-md border border-white/10 shrink-0 bg-white/[0.03] flex items-center justify-center">
-                <Loader2 className="w-4 h-4 animate-spin text-gold-400/70" />
-              </div>
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80 flex items-center gap-1">
-                  <ImageIcon className="w-3 h-3" /> Thumbnail frame
-                </p>
-                <p className="text-[11px] text-luxe/50 mt-0.5">
-                  {directingSceneLabel || 'Generating cinematic stills…'}
-                </p>
-              </div>
-            </div>
-          ) : thumb ? (
-            <div className="rounded-xl border border-gold-500/20 bg-black/30 p-3 flex items-center gap-3">
-              <div className="relative w-14 aspect-[9/16] rounded-md overflow-hidden border border-white/10 shrink-0">
-                <Image
-                  src={thumb}
-                  alt=""
-                  fill
-                  sizes="56px"
-                  className="object-cover"
-                  unoptimized
-                  loading="lazy"
-                />
-              </div>
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gold-300/80 flex items-center gap-1">
-                  <ImageIcon className="w-3 h-3" /> Thumbnail frame
-                </p>
-                <p className="text-[11px] text-luxe/50 mt-0.5">First cinematic still for export</p>
-              </div>
-            </div>
-          ) : null}
-          <StoryboardPanel
-            scenes={scenes}
-            storyboardScenes={storyboardScenes}
-            visualTimeline={visualTimeline}
-            sceneCount={sceneCount}
-            loading={generationStep === 'images'}
-            interactive={isComplete}
-            exportTitle={title}
-            script={script}
-            hook={hook}
-            voiceUrl={voiceUrl}
-            className={className}
-          />
-        </div>
-      )
-    }
 
     case 'motion':
       return (
@@ -513,30 +413,31 @@ export function GenerationStagePanel({
       )
 
     case 'complete':
-      return isComplete ? (
-        <div className={cn('space-y-4', className)}>
-          <ReelComposer
-            timeline={reelTimeline}
-            audioRef={audioRef}
-            showDirectorTracks
-          />
-          <QuickCutDownloadPanel supplementaryOnly />
-        </div>
-      ) : (
-        shell(
-          'Download',
-          <Download className="w-3 h-3" />,
-          <p className="text-[12px] text-luxe/55 italic">
-            {videoUrl ? 'Download ready.' : 'Finishing touches…'}
-          </p>
-        )
+      return isComplete ? null : (
+        <ExportTabbedPanel
+          audioRef={audioRef}
+          className={className}
+          preferredSubTab="download"
+        />
       )
 
     case 'publish':
-      return <PublishCenter className={className} />
+      return (
+        <ExportTabbedPanel
+          audioRef={audioRef}
+          className={className}
+          preferredSubTab={'publish' satisfies ExportSubTab}
+        />
+      )
 
     case 'repurpose':
-      return <ContentRepurposePanel className={className} />
+      return (
+        <ExportTabbedPanel
+          audioRef={audioRef}
+          className={className}
+          preferredSubTab={'repurpose' satisfies ExportSubTab}
+        />
+      )
 
     default:
       return null
