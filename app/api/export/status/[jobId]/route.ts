@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import {
+  exportJobToPollResponse,
+  getExportJob,
+} from '@/lib/export/export-job-service'
+import {
   jobToExportPollResponse,
-  loadExportJobPollResponse,
   loadOwnedCinematicProject,
-  loadOwnedProjectByReelJobId,
-  projectRowToExportPollResponse,
   buildValidatedDownloadResponse,
 } from '@/lib/reels/export-api'
 import { getRenderJob, touchRenderJobHeartbeat } from '@/lib/video/job-store'
@@ -14,8 +15,11 @@ import { exportLog } from '@/lib/export/export-log.server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/**
+ * Durable export status — prefers export_jobs, falls back to ephemeral job-store.
+ */
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ jobId: string }> }
 ) {
   const auth = await requireCinematicUser()
@@ -26,20 +30,17 @@ export async function GET(
     return NextResponse.json({ error: 'jobId required' }, { status: 400 })
   }
 
-  const exportBody = await loadExportJobPollResponse(jobId, auth.user!.id)
-  if (exportBody) {
-    exportLog.poll({
-      jobId,
-      source: 'export_jobs',
-      status: exportBody.status,
-      hasUrl: Boolean(exportBody.reelUrl),
-    })
+  const exportRow = await getExportJob(jobId.trim(), auth.user!.id)
+  if (exportRow) {
+    const body = exportJobToPollResponse(exportRow)
+    exportLog.poll({ jobId, source: 'export_jobs', status: body.status, hasUrl: Boolean(body.reelUrl) })
     return NextResponse.json({
-      status: exportBody.status,
-      progress: exportBody.progress,
-      label: exportBody.label,
-      reelUrl: exportBody.reelUrl,
-      error: exportBody.error,
+      status: body.status,
+      progress: body.progress,
+      label: body.label,
+      reelUrl: body.reelUrl,
+      error: body.error,
+      jobId: body.jobId,
     })
   }
 
@@ -56,63 +57,35 @@ export async function GET(
 
     touchRenderJobHeartbeat(jobId)
     const body = jobToExportPollResponse(job)
-    exportLog.poll({ jobId, source: 'memory', status: body.status, hasUrl: Boolean(body.reelUrl) })
+    exportLog.poll({ jobId, source: 'memory_fallback', status: body.status, hasUrl: Boolean(body.reelUrl) })
     return NextResponse.json({
       status: body.status,
       progress: body.progress,
       label: body.label,
       reelUrl: body.reelUrl,
       error: body.error,
+      jobId: body.jobId,
     })
   }
 
-  const projectId = req.nextUrl.searchParams.get('projectId')?.trim()
-
-  const rowByJob = await loadOwnedProjectByReelJobId(jobId, auth.user!.id)
-  if (rowByJob) {
-    const validated = await buildValidatedDownloadResponse(rowByJob)
-    if (validated.status === 'completed' && validated.reelUrl) {
-      const body = {
-        status: 'completed' as const,
-        progress: 100,
-        label: 'Download ready',
-        reelUrl: validated.reelUrl,
-        error: null,
-      }
-      exportLog.poll({ jobId, source: 'reel_job_id_completed', status: body.status, hasUrl: true })
-      return NextResponse.json(body)
-    }
-    const body = projectRowToExportPollResponse(rowByJob)
-    exportLog.poll({ jobId, source: 'reel_job_id', status: body.status, hasUrl: Boolean(body.reelUrl) })
-    return NextResponse.json(body)
-  }
-
+  const projectId = _req.nextUrl.searchParams.get('projectId')?.trim()
   if (projectId) {
     const row = await loadOwnedCinematicProject(projectId, auth.user!.id)
-    if (row) {
+    if (row?.reel_job_id === jobId) {
       const validated = await buildValidatedDownloadResponse(row)
       if (validated.status === 'completed' && validated.reelUrl) {
-        exportLog.poll({
-          jobId,
-          source: 'projectId_completed',
-          projectId,
-          status: 'completed',
-          hasUrl: true,
-        })
         return NextResponse.json({
           status: 'completed',
           progress: 100,
           label: 'Download ready',
           reelUrl: validated.reelUrl,
           error: null,
+          jobId,
         })
       }
-      const body = projectRowToExportPollResponse(row)
-      exportLog.poll({ jobId, source: 'projectId', projectId, status: body.status, hasUrl: Boolean(body.reelUrl) })
-      return NextResponse.json(body)
     }
   }
 
-  exportLog.error('poll', 'job not found', { jobId, projectId: projectId ?? null })
+  exportLog.error('export.status', 'job not found', { jobId })
   return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 }

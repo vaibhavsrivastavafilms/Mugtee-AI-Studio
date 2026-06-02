@@ -7,6 +7,7 @@ import {
 } from '@/lib/reels/export-poll.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { toast } from 'sonner'
+import { fetchActiveExportForProject } from '@/lib/export/export-resume.client'
 
 const MAX_STUCK_AUTO_RETRIES = 2
 
@@ -30,6 +31,7 @@ export function useReelExportAutoResume(input: {
   const renderStartedAt = useQuickCutGenerationStore((s) => s.renderStartedAt)
   const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
 
   const mp4Compiling =
     isRenderingVideo ||
@@ -41,6 +43,28 @@ export function useReelExportAutoResume(input: {
       stuckToastShownRef.current = false
     }
   }, [mp4Compiling, videoUrl, renderError])
+
+  useEffect(() => {
+    if (!enabled || !videoRenderEnabled || !savedProjectId || renderPollUrl || videoUrl) return
+    let cancelled = false
+    void fetchActiveExportForProject(savedProjectId).then((active) => {
+      if (cancelled || !active.active || !active.pollUrl) return
+      useQuickCutGenerationStore.setState({
+        renderPollUrl: active.pollUrl,
+        renderError: null,
+        exportExpired: false,
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    enabled,
+    videoRenderEnabled,
+    savedProjectId,
+    renderPollUrl,
+    videoUrl,
+  ])
 
   useEffect(() => {
     if (!enabled || !videoRenderEnabled || !renderPollUrl) {

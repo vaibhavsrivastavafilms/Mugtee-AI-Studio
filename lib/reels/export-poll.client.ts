@@ -1,7 +1,7 @@
 import { creatorFriendlyMessage } from '@/lib/errors/creator-friendly-errors'
 import { fetchProjectReelDownload } from '@/lib/quick-cut/asset-availability'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
-import { reelExportPollPath } from '@/lib/reels/export-paths'
+import { exportStatusPollPath, reelExportPollPath } from '@/lib/reels/export-paths'
 import { EXPORT_STAGE_LABELS } from '@/lib/reels/export-stages'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 
@@ -131,26 +131,46 @@ async function fetchWithTimeout(
   }
 }
 
+function resolveDurablePollUrl(pollUrl: string, projectId?: string | null): string {
+  try {
+    const url = new URL(pollUrl, 'http://local')
+    const segments = url.pathname.split('/').filter(Boolean)
+    const jobId = segments[segments.length - 1]
+    if (jobId && (url.pathname.includes('/api/reels/export/') || segments.includes('export'))) {
+      return exportStatusPollPath(jobId, projectId)
+    }
+  } catch {
+    /* use original */
+  }
+  return pollUrl
+}
+
 async function fetchPollJson(
   pollUrl: string,
   projectId?: string | null
 ): Promise<{ res: Response; raw: Record<string, unknown> }> {
+  const durableUrl = resolveDurablePollUrl(pollUrl, projectId)
+  const urlsToTry = durableUrl === pollUrl ? [pollUrl] : [durableUrl, pollUrl]
   let lastError: unknown = null
   for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
     if (attempt > 0) {
       await sleep(FETCH_RETRY_DELAYS_MS[attempt - 1] ?? 3200)
     }
-    try {
-      const res = await fetchWithTimeout(pollUrl, { credentials: 'include' })
-      let raw: Record<string, unknown> = {}
+    for (const url of urlsToTry) {
       try {
-        raw = (await res.json()) as Record<string, unknown>
-      } catch {
-        raw = {}
+        const res = await fetchWithTimeout(url, { credentials: 'include' })
+        let raw: Record<string, unknown> = {}
+        try {
+          raw = (await res.json()) as Record<string, unknown>
+        } catch {
+          raw = {}
+        }
+        if (res.ok || res.status !== 404) {
+          return { res, raw }
+        }
+      } catch (err) {
+        lastError = err
       }
-      return { res, raw }
-    } catch (err) {
-      lastError = err
     }
   }
 
