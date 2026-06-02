@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode, RefObject } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
-import { Film, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
+import { Film, Loader2, Mic, RefreshCw, Sparkles, Video } from 'lucide-react'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-module'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
