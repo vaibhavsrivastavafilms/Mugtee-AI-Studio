@@ -49,6 +49,7 @@ import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resum
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import { VideoRenderDisabledNotice } from '@/components/quick-cut/video-render-disabled-notice'
 import { RegenerateMissingScenesBanner } from '@/components/quick-cut/regenerate-missing-scenes-banner'
+import { BrowserExportPreflight } from '@/components/quick-cut/browser-export-preflight'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -442,6 +443,7 @@ export function ExportTabbedPanel({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
+  const title = useQuickCutGenerationStore((s) => s.title)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
 
@@ -490,6 +492,13 @@ export function ExportTabbedPanel({
         <VideoRenderDisabledNotice />
         <RegenerateMissingScenesBanner />
         <ExportPrimaryDownloadActions />
+        {isComplete && reelTimeline ? (
+          <BrowserExportPreflight
+            timeline={reelTimeline}
+            projectId={projectId}
+            filenameBase={slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')}
+          />
+        ) : null}
         {showRenderStatus ? <ExportRenderStatus /> : null}
         <ExportSummaryGrid embedded />
         {isComplete && reelTimeline ? (
