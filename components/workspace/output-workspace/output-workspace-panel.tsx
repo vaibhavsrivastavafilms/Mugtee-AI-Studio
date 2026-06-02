@@ -25,13 +25,19 @@ const ThumbnailSection = lazy(() =>
 type OutputWorkspacePanelProps = {
   projectId?: string
   className?: string
+  /** Nested inside Export tab — omit outer section chrome */
+  embedded?: boolean
 }
 
 function SectionFallback() {
   return <WorkspaceSectionSkeleton />
 }
 
-export function OutputWorkspacePanel({ projectId, className }: OutputWorkspacePanelProps) {
+export function OutputWorkspacePanel({
+  projectId,
+  className,
+  embedded = false,
+}: OutputWorkspacePanelProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
@@ -52,20 +58,28 @@ export function OutputWorkspacePanel({ projectId, className }: OutputWorkspacePa
     <RewriteProvider containerRef={containerRef}>
       <div
         ref={containerRef}
-        className={cn('space-y-4 pt-2 border-t border-white/[0.06]', className)}
+        className={cn(
+          'space-y-4',
+          !embedded && 'pt-2 border-t border-white/[0.06]',
+          className
+        )}
         aria-label="Export workspace"
       >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div>
-            <p className="text-[9px] tracking-[0.24em] uppercase text-gold-300/70">
-              Export workspace
-            </p>
-            <p className="text-[11px] text-luxe/50 mt-0.5 italic">
-              Captions, thumbnails, and platform exports — hook, script, and scenes live above.
-            </p>
+        {!embedded ? (
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div>
+              <p className="text-[9px] tracking-[0.24em] uppercase text-gold-300/70">
+                Export workspace
+              </p>
+              <p className="text-[11px] text-luxe/50 mt-0.5 italic">
+                Captions, thumbnails, and platform exports — hook, script, and scenes live above.
+              </p>
+            </div>
+            <PlatformModeToggle />
           </div>
-          <PlatformModeToggle />
-        </div>
+        ) : (
+          <PlatformModeToggle className="justify-end" />
+        )}
 
         {scenes.length > 0 && savedProjectId ? (
           <Link

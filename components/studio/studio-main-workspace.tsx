@@ -6,13 +6,12 @@ import { QuickCutHome } from '@/components/quick-cut/quick-cut-home'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { CinematicAssemblyScreen } from '@/components/quick-cut/cinematic-assembly/cinematic-assembly-screen'
 import { GenerationResultsSection } from '@/components/quick-cut/generation-results-section'
-import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
+import { PreviewExportTabbedPanel } from '@/components/quick-cut/preview-export-tabbed-panel'
 import {
   GENERATION_FOOTER_CLEARANCE,
   QuickCutGenerationFooter,
 } from '@/components/quick-cut/generation-footer'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
-import { OutputWorkspacePanel } from '@/components/workspace/output-workspace/output-workspace-panel'
 import { WorkflowHeader } from '@/components/workflow/workflow-header'
 import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -48,7 +47,6 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const generationState = useQuickCutGenerationStore((s) => s.generationState)
-  const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
@@ -148,21 +146,12 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
               className="w-full max-w-md mx-auto"
             />
           ) : (
-            <ReelAssemblyPlayer
-              scenes={scenes}
-              title={title}
-              hook={hook}
-              script={script}
-              videoUrl={videoUrl}
-              voiceUrl={voiceUrl}
+            <PreviewExportTabbedPanel
               audioRef={voiceAudioRef}
               isLive={!isComplete}
-              generationStep={isComplete ? 'complete' : generationStep}
-              mp4Compiling={generationStep === 'render' && !videoUrl}
-              autoPlayPreview={
-                (isComplete && Boolean(voiceUrl) && !videoUrl) || assemblyPreviewAutoplay
-              }
-              className="mx-auto"
+              generationStep={generationStep}
+              projectId={projectId}
+              className="w-full max-w-md mx-auto"
             />
           )}
         </div>
@@ -175,10 +164,6 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
           audioRef={voiceAudioRef}
           onRegenerate={() => resetQuickCutForFreshCreate()}
         />
-
-        {(Boolean(script.trim()) || Boolean(hook.trim()) || scenes.length > 0) ? (
-          <OutputWorkspacePanel projectId={projectId} />
-        ) : null}
       </div>
 
       <QuickCutGenerationFooter />

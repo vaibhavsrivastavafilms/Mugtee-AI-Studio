@@ -248,7 +248,13 @@ function RepurposeOutputView({
   }
 }
 
-export function ContentRepurposePanel({ className }: { className?: string }) {
+export function ContentRepurposePanel({
+  className,
+  embedded = false,
+}: {
+  className?: string
+  embedded?: boolean
+}) {
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
@@ -341,11 +347,17 @@ export function ContentRepurposePanel({ className }: { className?: string }) {
 
   return (
     <div className={cn('space-y-4', className)}>
-      <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3">
-        <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
-          <Sparkles className="w-3 h-3" />
-          Repurpose Content
-        </div>
+      <div
+        className={cn(
+          embedded ? 'space-y-3' : 'rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3'
+        )}
+      >
+        {!embedded ? (
+          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+            <Sparkles className="w-3 h-3" />
+            Repurpose Content
+          </div>
+        ) : null}
         <p className="text-[11px] text-luxe/55 leading-relaxed">
           Turn this reel into platform-native formats using your title, hook, script, storyboard,
           and creator profile.
