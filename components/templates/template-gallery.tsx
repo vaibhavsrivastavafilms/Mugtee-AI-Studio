@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Sparkles, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StyleTemplate } from '@/lib/templates/style-templates'
@@ -55,6 +55,8 @@ export function TemplateGallery({
   const [recommendations, setRecommendations] = useState<TemplateRecommendation[]>([])
   const [recommendLoading, setRecommendLoading] = useState(false)
   const [recommendSource, setRecommendSource] = useState<string | null>(null)
+  const suggestAttemptRef = useRef(0)
+  const lastShownIdsRef = useRef<string[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -86,15 +88,22 @@ export function TemplateGallery({
     [templates, previewId, selectedId]
   )
 
-  const fetchRecommendations = useCallback(async () => {
+  const fetchRecommendations = useCallback(async (manual = false) => {
     const idea = ideaForRecommend.trim()
     if (idea.length < 6) return
+    const diversityAttempt = manual ? suggestAttemptRef.current + 1 : 0
+    if (manual) suggestAttemptRef.current = diversityAttempt
     setRecommendLoading(true)
     try {
       const res = await fetch('/api/templates/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea }),
+        body: JSON.stringify({
+          idea,
+          diversityAttempt,
+          excludeIds: manual ? lastShownIdsRef.current : [],
+          refreshSeed: manual ? Date.now() : undefined,
+        }),
       })
       const json = (await res.json()) as {
         recommendations?: TemplateRecommendation[]
@@ -103,6 +112,7 @@ export function TemplateGallery({
       if (Array.isArray(json.recommendations)) {
         setRecommendations(json.recommendations)
         setRecommendSource(json.source ?? null)
+        lastShownIdsRef.current = json.recommendations.map((r) => r.id)
       }
     } catch {
       setRecommendations([])
@@ -112,13 +122,15 @@ export function TemplateGallery({
   }, [ideaForRecommend])
 
   useEffect(() => {
+    suggestAttemptRef.current = 0
+    lastShownIdsRef.current = []
     if (ideaForRecommend.trim().length < 12) {
       setRecommendations([])
       setRecommendSource(null)
       return
     }
     const timer = window.setTimeout(() => {
-      void fetchRecommendations()
+      void fetchRecommendations(false)
     }, 700)
     return () => window.clearTimeout(timer)
   }, [ideaForRecommend, fetchRecommendations])
@@ -142,7 +154,7 @@ export function TemplateGallery({
         {ideaForRecommend.trim().length >= 6 ? (
           <button
             type="button"
-            onClick={() => void fetchRecommendations()}
+            onClick={() => void fetchRecommendations(true)}
             disabled={recommendLoading}
             className="inline-flex items-center justify-center gap-2 text-[10px] tracking-[0.18em] uppercase px-3 py-2 rounded-full border border-gold-500/30 text-gold-200/90 hover:bg-gold-500/10 transition disabled:opacity-50"
           >
@@ -158,11 +170,18 @@ export function TemplateGallery({
 
       {recommendations.length > 0 ? (
         <div className="rounded-xl border border-gold-500/20 bg-gold-500/[0.04] p-3 space-y-2">
-          <p className="text-[9px] tracking-[0.22em] uppercase text-gold-300/70">
-            Suggested for your idea
+          <p className="text-[9px] tracking-[0.22em] uppercase text-gold-300/70 flex flex-wrap items-center gap-2">
+            <span>Suggested for your idea</span>
             {recommendSource ? (
-              <span className="text-luxe/40 normal-case tracking-normal ml-2">
-                ({recommendSource === 'ai' ? 'AI' : 'keyword match'})
+              <span
+                className={cn(
+                  'normal-case tracking-normal text-[8px] px-1.5 py-0.5 rounded border',
+                  recommendSource === 'ai'
+                    ? 'border-violet-500/30 text-violet-200/80 bg-violet-500/10'
+                    : 'border-sky-500/25 text-sky-200/70 bg-sky-500/10'
+                )}
+              >
+                {recommendSource === 'ai' ? 'AI' : 'Keywords'}
               </span>
             ) : null}
           </p>
@@ -226,7 +245,7 @@ export function TemplateGallery({
               key={template.id}
               type="button"
               role="option"
-              aria-selected={selected}
+              aria-selected={selected ? 'true' : 'false'}
               onClick={() => onSelect(template)}
               onMouseEnter={() => setPreviewId(template.id)}
               onMouseLeave={() => setPreviewId((id) => (id === template.id ? null : id))}
