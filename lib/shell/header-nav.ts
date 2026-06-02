@@ -1,4 +1,5 @@
 export type HeaderNavId =
+  | 'home'
   | 'create'
   | 'video'
   | 'projects'
@@ -9,6 +10,7 @@ export type HeaderNavId =
   | 'settings'
 
 export const HEADER_NAV = [
+  { id: 'home' as const, label: 'Home', href: '/home' },
   { id: 'create' as const, label: 'Create', href: '/studio/create?mode=quick' },
   { id: 'video' as const, label: 'Demo', href: '/studio/video' },
   { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
@@ -24,6 +26,9 @@ export function headerNavActive(
   pathname: string,
   tab: string | null
 ): boolean {
+  if (id === 'home') {
+    return pathname === '/home' || pathname.startsWith('/home/')
+  }
   if (id === 'video') {
     return pathname.startsWith('/studio/video')
   }

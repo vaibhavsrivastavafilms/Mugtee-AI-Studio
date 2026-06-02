@@ -1,0 +1,3 @@
+# Placeholder for Mugtee GLB avatar asset.
+# Drop mugtee.glb here — the Live Companion auto-detects via HEAD /models/mugtee.glb
+# and falls back to the procedural R3F mascot when absent.

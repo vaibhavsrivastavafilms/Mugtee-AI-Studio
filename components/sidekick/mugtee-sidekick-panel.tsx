@@ -60,6 +60,12 @@ function SidekickCard({
         <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
           Mugtee · Sidekick
         </p>
+        <Link
+          href="/home"
+          className="text-[9px] tracking-[0.16em] uppercase text-gold-300/55 hover:text-gold-200 transition"
+        >
+          Open Live Companion →
+        </Link>
       </div>
       <div className="space-y-2">
         <p className="text-sm text-luxe/90 leading-relaxed">{brief.greeting}</p>
