@@ -195,11 +195,6 @@ export function resolvePlatformVideoAssetState(input: PlatformExportInput): Plat
   })
   if (mp4DownloadReady) return 'ready'
 
-  const canCompile =
-    input.mp4CanCompile ??
-    quickCutCanCompileMp4(input.scenes, input.voiceUrl, input.videoRenderEnabled)
-  if (canCompile && !input.exportExpired) return 'ready'
-
   const url = input.videoUrl?.trim()
   if (url && isValidReelDownloadUrl(url)) return 'preparing'
 
