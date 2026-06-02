@@ -1,27 +1,20 @@
 'use client'
 
-import Image from 'next/image'
 import { useEffect, useRef, type ReactNode, RefObject } from 'react'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
-import { Film, ImageIcon, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
-import { CinematicGenerationLoader } from '@/components/v2/cinematic-generation-loader'
+import { Film, Loader2, Mic, RefreshCw, Sparkles, Video, Download } from 'lucide-react'
 import { CinematicVoicePreview } from '@/components/quick-cut/cinematic-voice-preview'
 import { VoiceSelectionModule } from '@/components/quick-cut/voice-selection-module'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
-import { StoryboardPanel } from '@/components/quick-cut/storyboard-panel'
-import { StoryboardTimeline } from '@/components/cinematic/storyboard-timeline'
-import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
-import { sceneScrollTargetId } from '@/lib/cinematic/storyboard-scroll'
-import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
+import { StoryboardScenesTabbedPanel } from '@/components/quick-cut/storyboard-scenes-tabbed-panel'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
 import { PublishCenter } from '@/components/quick-cut/publish-center'
 import { ContentRepurposePanel } from '@/components/quick-cut/content-repurpose-panel'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { cn } from '@/lib/utils'
-import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
+import { displayHookText } from '@/lib/cinematic/hook-format'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { NarrativeStructureLabel } from '@/components/quick-cut/narrative-structure-label'
 import { ContentAngleLabel } from '@/components/quick-cut/content-angle-label'
@@ -31,101 +24,6 @@ import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
 import type { SectionId } from '@/lib/cinematic/section-generation-status'
-
-function SceneBreakdownList({
-  scenes,
-  loading,
-  showImages,
-  exportTitle,
-  allowDownload,
-  onMotionPresetChange,
-}: {
-  scenes: GeneratedScene[]
-  loading?: boolean
-  showImages?: boolean
-  exportTitle?: string
-  allowDownload?: boolean
-  onMotionPresetChange?: (sceneId: string, presetId: import('@/lib/motion/motion-presets').MotionPresetId) => void
-}) {
-  const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
-  if (scenes.length === 0 && !loading) {
-    return (
-      <p className="text-[12px] text-luxe/55 italic text-center py-6">
-        Building scene breakdown…
-      </p>
-    )
-  }
-
-  return (
-    <ul className="space-y-2 max-h-[min(420px,50vh)] overflow-y-auto scrollbar-luxe">
-      {scenes.map((scene, i) =>
-        showImages ? (
-          <li key={scene.id || i}>
-            <SceneVisualCard
-              scene={scene}
-              index={i}
-              compact
-              exportBaseName={exportBase}
-              allowDownload={allowDownload}
-              onMotionPresetChange={
-                onMotionPresetChange
-                  ? (presetId) => onMotionPresetChange(scene.id, presetId)
-                  : undefined
-              }
-            />
-          </li>
-        ) : (
-          <li
-            key={scene.id || i}
-            id={scene.id ? sceneScrollTargetId(scene.id) : undefined}
-            className="rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5 scroll-mt-24"
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
-                SCENE {String(i + 1).padStart(2, '0')}
-              </span>
-              <span className="text-[10px] text-luxe/40">{scene.duration ?? 4}s</span>
-            </div>
-            <p className="text-sm text-luxe/90 font-medium leading-snug">
-              {scene.title || `Beat ${i + 1}`}
-            </p>
-            {scene.description ? (
-              <p
-                data-rewrite-type="scene"
-                className="select-text text-[11px] text-luxe/55 leading-relaxed mt-0.5 line-clamp-3"
-              >
-                {scene.description}
-              </p>
-            ) : null}
-            {scene.cameraAngle ? (
-              <p className="text-[10px] text-luxe/40 mt-1 tracking-wide">
-                {scene.cameraAngle} · {scene.lightingMood}
-              </p>
-            ) : null}
-            {scene.imagePrompt ? (
-              <div className="mt-2 pt-2 border-t border-white/[0.06]">
-                <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/60 mb-0.5">
-                  Image prompt
-                </p>
-                <p
-                  data-rewrite-type="visual_direction"
-                  className="select-text text-[11px] text-luxe/65 leading-relaxed line-clamp-4"
-                >
-                  {scene.imagePrompt}
-                </p>
-              </div>
-            ) : null}
-          </li>
-        )
-      )}
-      {loading && scenes.length === 0 ? (
-        <li>
-          <CinematicGenerationLoader step="scenes" message="Structuring beats…" />
-        </li>
-      ) : null}
-    </ul>
-  )
-}
 
 export function GenerationStagePanel({
   tab,
@@ -141,6 +39,7 @@ export function GenerationStagePanel({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
+  const displayHook = displayHookText(hook)
   const hookPreview = useQuickCutGenerationStore((s) => s.hookPreview)
   const hookProgressLabel = useQuickCutGenerationStore((s) => s.hookProgressLabel)
   const hookVariantNumber = useQuickCutGenerationStore((s) => s.hookVariantNumber)
@@ -294,7 +193,7 @@ export function GenerationStagePanel({
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
                     Hook Variant: v{hookVariantNumber}
-                    {hookPreview && !hook ? ' · preview' : ''}
+                    {hookPreview && !displayHook ? ' · preview' : ''}
                   </span>
                   {!isGenerating ? (
                     <button
@@ -318,7 +217,7 @@ export function GenerationStagePanel({
                 />
                 <RewriteProvider
                   containerRef={hookPanelRef}
-                  enabled={directorEditEnabled && Boolean(hook)}
+                  enabled={directorEditEnabled && Boolean(displayHook)}
                   defaultContentType="hook"
                   className="relative"
                 >
@@ -326,13 +225,13 @@ export function GenerationStagePanel({
                     data-rewrite-type="hook"
                     className={cn(
                       'select-text font-display text-lg sm:text-xl text-[#F4E7C1] italic leading-snug',
-                      hookPreview && !hook && 'opacity-80 animate-pulse'
+                      hookPreview && !displayHook && 'opacity-80 animate-pulse'
                     )}
                   >
-                    {hook || hookPreview}
+                    {displayHook || hookPreview}
                   </p>
                 </RewriteProvider>
-                {hookProgressLabel && !hook ? (
+                {hookProgressLabel && !displayHook ? (
                   <p className="text-[11px] text-luxe/45 italic">{hookProgressLabel}</p>
                 ) : null}
               </div>
@@ -392,7 +291,7 @@ export function GenerationStagePanel({
           />
           <LiveScriptReveal
             script={script}
-            hook={hook}
+            hook={displayHook}
             scriptBeats={scriptBeats}
             payoff={payoff}
             cta={cta}

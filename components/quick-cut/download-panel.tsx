@@ -14,10 +14,13 @@ const secondaryButtonClass =
 export function QuickCutDownloadPanel({
   className,
   supplementaryOnly = false,
+  embedded = false,
 }: {
   className?: string
   /** Hide video/script/narration menu items when primary actions live in GenerationResultsSection */
   supplementaryOnly?: boolean
+  /** Strip outer card when nested inside ExportTabbedPanel */
+  embedded?: boolean
 }) {
   const [showExportFeedback, setShowExportFeedback] = useState(false)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
@@ -44,20 +47,29 @@ export function QuickCutDownloadPanel({
 
   return (
     <div
+      data-recommend-target="creator-pack"
       className={cn(
-        'rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3 min-w-0 overflow-x-hidden',
+        embedded ? 'space-y-3 min-w-0 overflow-x-hidden' : 'rounded-xl border border-white/[0.08] bg-black/30 p-4 space-y-3 min-w-0 overflow-x-hidden',
         className
       )}
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
-            <Download className="w-3 h-3" />
-            {supplementaryOnly ? 'More export assets' : 'Download assets'}
-          </div>
-          <p className="text-[11px] text-luxe/45 mt-1">
-            All exports in one menu — scene images, creator pack, and platform ZIPs.
-          </p>
+          {embedded ? (
+            <p className="text-[10px] tracking-[0.18em] uppercase text-gold-300/70">
+              {supplementaryOnly ? 'More export assets' : 'Download assets'}
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-gold-300/85">
+                <Download className="w-3 h-3" />
+                {supplementaryOnly ? 'More export assets' : 'Download assets'}
+              </div>
+              <p className="text-[11px] text-luxe/45 mt-1">
+                All exports in one menu — scene images, creator pack, and platform ZIPs.
+              </p>
+            </>
+          )}
         </div>
         <UnifiedExportMenu
           supplementaryOnly={supplementaryOnly}

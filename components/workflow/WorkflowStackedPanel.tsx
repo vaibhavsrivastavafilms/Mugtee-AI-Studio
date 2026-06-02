@@ -104,21 +104,27 @@ export function WorkflowStackedPanel({
             {step.id === 'hook' && title.trim() && !hook.trim() ? (
               <GenerationStagePanel tab="title" onRegenerate={onRegenerate} />
             ) : null}
-            <GenerationStagePanel
-              tab={step.tab}
-              audioRef={audioRef}
-              onRegenerate={onRegenerate}
-              className="border-0 bg-transparent p-0 min-h-0"
-            />
-            {step.id === 'export' && (generationStep === 'render' || isRenderingExport(isComplete, videoUrl)) ? (
-              <GenerationStagePanel tab="render" className="border-0 bg-transparent p-0 min-h-0 mt-2" />
-            ) : null}
             {step.id === 'export' && isComplete ? (
-              <div className="space-y-3 mt-2">
-                <GenerationStagePanel tab="publish" className="border-0 bg-transparent p-0 min-h-0" />
-                <GenerationStagePanel tab="repurpose" className="border-0 bg-transparent p-0 min-h-0" />
-              </div>
-            ) : null}
+              <p className="text-[11px] text-luxe/50 italic px-0.5">
+                Preview, downloads, publish, and repurpose live in the tabbed panel above.
+              </p>
+            ) : (
+              <>
+                <GenerationStagePanel
+                  tab={step.tab}
+                  audioRef={audioRef}
+                  onRegenerate={onRegenerate}
+                  className="border-0 bg-transparent p-0 min-h-0"
+                />
+                {step.id === 'export' &&
+                (generationStep === 'render' || isRenderingExport(isComplete, videoUrl)) ? (
+                  <GenerationStagePanel
+                    tab="render"
+                    className="border-0 bg-transparent p-0 min-h-0 mt-2"
+                  />
+                ) : null}
+              </>
+            )}
           </WorkflowSection>
         )
       })}
