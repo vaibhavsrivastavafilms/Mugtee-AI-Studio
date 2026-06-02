@@ -1,8 +1,8 @@
-// Phase \u2014 Sponsor / Affiliate click tracker + redirect.
+// Phase — Sponsor / Affiliate click tracker + redirect.
 //
 // Flow per spec:
 //   GET /api/sponsor/<slug>
-//   1. Resolve sponsor from /lib/sponsors.ts (slug \u2192 final affiliate URL)
+//   1. Resolve sponsor from /lib/sponsors.ts (slug → final affiliate URL)
 //   2. If user is authenticated, INSERT a row into sponsor_clicks (rewarded only if first today)
 //   3. 302 redirect to the sponsor's affiliate URL
 //   4. Anonymous users still get the redirect, but no DB write and no credits.
@@ -10,7 +10,7 @@
 // Idempotency: server enforces ONE rewarded claim per user+sponsor per UTC day. Subsequent
 // clicks on the same day still insert (for analytics) but with rewarded=false, credits_given=0.
 //
-// Safety: query params from the URL are NEVER forwarded to the sponsor URL \u2014 the affiliate
+// Safety: query params from the URL are NEVER forwarded to the sponsor URL — the affiliate
 // URL is read straight from the trusted config in lib/sponsors.ts.
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,6 +18,7 @@ import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { getSponsor } from '@/lib/sponsors'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,7 +44,81 @@ function utcDayBounds(): { startISO: string; endISO: string } {
   return { startISO: start.toISOString(), endISO: end.toISOString() }
 }
 
-// GET handler \u2014 logs + redirects.
+type ClickRecordResult = {
+  rewarded: boolean
+  alreadyClaimedToday: boolean
+  creditsGiven: number
+}
+
+async function readEligibility(
+  supabase: NonNullable<ReturnType<typeof getSupabase>>,
+  userId: string,
+  slug: string,
+): Promise<{ rewarded: boolean; alreadyClaimedToday: boolean }> {
+  const { startISO, endISO } = utcDayBounds()
+  const { data: priorRewarded } = await supabase
+    .from('sponsor_clicks')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('sponsor', slug)
+    .eq('rewarded', true)
+    .gte('created_at', startISO)
+    .lt('created_at', endISO)
+    .limit(1)
+    .maybeSingle()
+
+  const alreadyClaimedToday = !!priorRewarded
+  return { rewarded: !alreadyClaimedToday, alreadyClaimedToday }
+}
+
+async function recordClick(
+  userId: string,
+  slug: string,
+  reward: number,
+): Promise<ClickRecordResult> {
+  const service = createSupabaseServiceClient()
+  if (service) {
+    const { data, error } = await service.rpc('record_sponsor_click', {
+      p_user_id: userId,
+      p_sponsor: slug,
+      p_reward: reward,
+    })
+    if (!error && data && typeof data === 'object') {
+      const row = data as Record<string, unknown>
+      return {
+        rewarded: !!row.rewarded,
+        alreadyClaimedToday: !!row.already_claimed_today,
+        creditsGiven: Number(row.credits_given || 0),
+      }
+    }
+    if (error) {
+      console.warn('[Sponsor Click] rpc failed', error.message)
+    }
+  }
+
+  const supabase = getSupabase()
+  if (!supabase) {
+    return { rewarded: false, alreadyClaimedToday: false, creditsGiven: 0 }
+  }
+
+  const { rewarded, alreadyClaimedToday } = await readEligibility(supabase, userId, slug)
+  const creditsGiven = rewarded ? reward : 0
+
+  const { error: insertError } = await supabase.from('sponsor_clicks').insert({
+    user_id: userId,
+    sponsor: slug,
+    rewarded,
+    credits_given: creditsGiven,
+  })
+
+  if (insertError) {
+    console.warn('[Sponsor Click] insert failed', insertError.message)
+  }
+
+  return { rewarded, alreadyClaimedToday, creditsGiven }
+}
+
+// GET handler — logs + redirects.
 // Optional ?check=1 returns JSON (no redirect) so the UI can pre-flight eligibility.
 export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
   const slug = (params?.name || '').toLowerCase().trim()
@@ -60,34 +135,14 @@ export async function GET(req: NextRequest, { params }: { params: { name: string
   let alreadyClaimedToday = false
 
   if (user && supabase) {
-    const { startISO, endISO } = utcDayBounds()
-    // Has this user already had a REWARDED click for this sponsor today?
-    const { data: priorRewarded } = await supabase
-      .from('sponsor_clicks')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('sponsor', slug)
-      .eq('rewarded', true)
-      .gte('created_at', startISO)
-      .lt('created_at', endISO)
-      .limit(1)
-      .maybeSingle()
-
-    alreadyClaimedToday = !!priorRewarded
-    rewarded = !alreadyClaimedToday
-
-    if (!checkOnly) {
-      // Idempotent INSERT: always log the click for analytics; only the FIRST today is rewarded.
-      try {
-        await supabase.from('sponsor_clicks').insert({
-          user_id: user.id,
-          sponsor: slug,
-          rewarded,
-          credits_given: rewarded ? sponsor.reward : 0,
-        })
-      } catch (e) {
-        console.warn('[Sponsor Click] insert failed', (e as any)?.message || e)
-      }
+    if (checkOnly) {
+      const eligibility = await readEligibility(supabase, user.id, slug)
+      rewarded = eligibility.rewarded
+      alreadyClaimedToday = eligibility.alreadyClaimedToday
+    } else {
+      const result = await recordClick(user.id, slug, sponsor.reward)
+      rewarded = result.rewarded
+      alreadyClaimedToday = result.alreadyClaimedToday
     }
   }
 
@@ -101,6 +156,6 @@ export async function GET(req: NextRequest, { params }: { params: { name: string
     })
   }
 
-  // Default path \u2014 redirect to the affiliate URL. Use 302 so browsers do not cache.
+  // Default path — redirect to the affiliate URL. Use 302 so browsers do not cache.
   return NextResponse.redirect(sponsor.url, { status: 302 })
 }

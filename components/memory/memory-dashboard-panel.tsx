@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useCreatorMemoryStore } from '@/stores/creator-memory-store'
 import { dashboardInsights } from '@/lib/memory/companion-messages'
 import { topNodesByType } from '@/lib/memory/knowledge-graph'
+import { normalizeThemeLabel } from '@/lib/cinematic/hook-format'
 import { relationshipLabel, relationshipProgress } from '@/lib/memory/relationship-score'
 import { RelationshipBadge } from '@/components/memory/relationship-badge'
 import { CreatorTimeline } from '@/components/memory/creator-timeline'
@@ -13,6 +14,19 @@ import { CreatorTimeline } from '@/components/memory/creator-timeline'
 type MemoryDashboardPanelProps = {
   className?: string
   compact?: boolean
+}
+
+function dedupeThemes(themes: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of themes) {
+    const label = normalizeThemeLabel(raw)
+    const key = label.toLowerCase()
+    if (!label || seen.has(key)) continue
+    seen.add(key)
+    out.push(label)
+  }
+  return out
 }
 
 export function MemoryDashboardPanel({ className, compact }: MemoryDashboardPanelProps) {
@@ -27,7 +41,7 @@ export function MemoryDashboardPanel({ className, compact }: MemoryDashboardPane
 
   const insights = dashboardInsights(profile)
   const hooks = topNodesByType(profile.memoryGraph, 'hook', 5)
-  const themes = profile.creatorMemory.commonThemes ?? []
+  const themes = dedupeThemes(profile.creatorMemory.commonThemes ?? [])
   const progress = relationshipProgress(profile.relationshipScore)
   const dna = profile.creatorDna
 

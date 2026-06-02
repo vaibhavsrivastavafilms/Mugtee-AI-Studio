@@ -67,10 +67,27 @@ export function removeDuplicateEmotionPrefix(hook: string, emotion: string): str
 
 /** Dedupe repeated "Word. Word." opener when emotion string is unknown. */
 export function dedupeRepeatedLabelPrefix(hook: string): string {
-  return hook.replace(/^([A-Za-z][A-Za-z\s'-]{0,40}?)\.\s+\1\.\s*/i, (_, label: string) => {
-    const trimmed = label.trim()
-    return trimmed ? `${trimmed}. ` : ''
-  })
+  let text = hook
+  let prev = ''
+  while (prev !== text) {
+    prev = text
+    text = text.replace(/^([A-Za-z][A-Za-z\s'-]{0,40}?)\.\s+\1\.\s*/i, (_, label: string) => {
+      const trimmed = label.trim()
+      return trimmed ? `${trimmed}. ` : ''
+    })
+  }
+  return text
+}
+
+/** Normalize theme/emotion chips for memory display — dedupe labels like "Hope. Hope." */
+export function normalizeThemeLabel(theme: string): string {
+  const trimmed = theme.replace(/^["']|["']$/g, '').trim()
+  if (!trimmed) return trimmed
+  const firstWord = trimmed.match(/^([A-Za-z][A-Za-z\s'-]{0,40}?)\./)?.[1]?.trim()
+  if (firstWord && trimmed.toLowerCase().startsWith(`${firstWord.toLowerCase()}. ${firstWord.toLowerCase()}.`)) {
+    return dedupeRepeatedLabelPrefix(trimmed)
+  }
+  return trimmed
 }
 
 export function hookStartsWithEmotionalLabel(hook: string, emotion: string): boolean {
