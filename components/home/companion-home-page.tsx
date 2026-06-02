@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MugteeAvatar } from '@/components/avatar'
+import { CompanionAgentStrip } from '@/components/home/companion-agent-strip'
 import { CompanionPromptBar } from '@/components/home/companion-prompt-bar'
 import { RecentOpportunities } from '@/components/home/recent-opportunities'
 import { useMugteeCompanionStore } from '@/stores/mugtee-companion-store'
@@ -37,6 +38,7 @@ export function CompanionHomePage() {
         <h1 className="font-display text-xl sm:text-2xl text-gold-gradient mt-1">
           Mugtee
         </h1>
+        <CompanionAgentStrip className="mt-3" />
       </header>
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full gap-6 pb-36 sm:pb-40">
