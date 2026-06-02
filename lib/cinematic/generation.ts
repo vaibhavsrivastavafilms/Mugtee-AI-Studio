@@ -11,6 +11,7 @@ import {
   pickStrongestHook,
   validateCinematicOutput,
 } from '@/lib/cinematic/validation'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import {
   enhanceScreenplayOutput,
   type ScreenplayEnhanceContext,
@@ -536,10 +537,11 @@ export function normalizeCinematicOutput(
     : []
 
   const hookFromModel = coerceString(src.hook, '')
-  const hook =
+  const hook = formatFinalHook(
     hookFromModel ||
-    pickStrongestHook(hookVariations, niche) ||
-    pickStrongestHook([coerceString(src.summary, '', 180)], niche)
+      pickStrongestHook(hookVariations, niche) ||
+      pickStrongestHook([coerceString(src.summary, '', 180)], niche)
+  )
 
   const scriptBeatsRaw = parseScriptBeats(src.scriptBeats ?? src.script_beats)
   let scriptSections = parseScriptSections(src.script_sections ?? src.scriptSections)

@@ -170,6 +170,7 @@ import type {
   VisualBible,
 } from '@/lib/pipeline/v3-types'
 import { isV3PipelineEnabledFromConfig } from '@/lib/pipeline/v3-feature-flag'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import {
   logParsedIntent,
@@ -2550,9 +2551,6 @@ export const useQuickCutGenerationStore = create<
 
                 title = titleHookResult.title
                 hook = titleHookResult.hook
-                if (sessionContentBrief && hook) {
-                  hook = alignOutputToBrief(hook, sessionContentBrief, 'hook').text
-                }
                 virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
                 if (titleData.mock === true) anyMock = true
 
@@ -3695,8 +3693,9 @@ export const useQuickCutGenerationStore = create<
         { select: true }
       )
 
+      const hookEmotion = state.contentBrief?.emotionalAngle?.trim()
       set({
-        hook: result.hook,
+        hook: formatFinalHook(result.hook, { emotion: hookEmotion }),
         previousHooks: nextPrevious,
         hookVariantNumber,
         hookFramework: result.hookFramework ?? state.hookFramework,

@@ -22,6 +22,7 @@ import {
   updateProject as updateProjectRow,
 } from '@/lib/cinematic-projects'
 import type { ScriptBeat } from '@/types/cinematic-script'
+import { formatFinalHook } from '@/lib/cinematic/hook-format'
 
 export type CinematicProjectStatus =
   | 'idle'
@@ -514,7 +515,7 @@ export function applyGenerationToStore(
 export function applyCinematicGeneration(output: CinematicGenerationOutput) {
   useCinematicProjectStore.setState({
     title: output.title,
-    hook: output.hook,
+    hook: formatFinalHook(output.hook),
     summary: output.summary,
     script: output.script,
     scriptBeats: output.scriptBeats,
