@@ -87,7 +87,13 @@ export async function middleware(request: NextRequest) {
     }
 
     // Signed-in users should not see the login form again after OAuth.
-    if (user && (pathname === '/login' || pathname === '/signin' || pathname === '/auth/login')) {
+    if (pathname === '/signin') {
+      const loginUrl = new URL('/auth/login', request.url)
+      loginUrl.search = request.nextUrl.search
+      return NextResponse.redirect(loginUrl)
+    }
+
+    if (user && (pathname === '/login' || pathname === '/auth/login')) {
       const next = resolvePostLoginRedirect({
         nextParam: request.nextUrl.searchParams.get('next'),
         redirectCookie: request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value,

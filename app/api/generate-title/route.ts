@@ -18,7 +18,7 @@ import { coerceTopic, logError } from '@/lib/workspace/validation'
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { formatFinalHook } from '@/lib/cinematic/hook-format'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth/require-auth'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import {
   generateHookViaRouter,
@@ -93,14 +93,12 @@ export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const blocked = await guardUsageLimit(user.id, 'generations')
-      if (blocked) return blocked
-    }
+    const auth = await requireAuth()
+    if (auth.response) return auth.response
+    const user = auth.user
+
+    const blocked = await guardUsageLimit(user.id, 'generations')
+    if (blocked) return blocked
 
     const rawInput = coerceTopic(raw?.idea ?? raw?.prompt ?? raw?.topic)
     if (rawInput.length < 3) {
@@ -158,7 +156,7 @@ export async function POST(req: NextRequest) {
     if (isHookGenerationCacheEnabled()) {
       const cached = getHookGenerationCache(cacheKey)
       if (cached) {
-        if (user) await trackUsageMetric(user.id, 'generations')
+        await trackUsageMetric(user.id, 'generations')
         return NextResponse.json({ ...cached, cacheHit: true })
       }
     }
@@ -259,20 +257,18 @@ export async function POST(req: NextRequest) {
       setHookGenerationCache(cacheKey, payload)
     }
 
-    if (user) {
-      await trackUsageMetric(user.id, 'generations')
-      void trackMp4ExportServer({
-        event: Mp4ExportEvents.STORY_GENERATED,
-        userId: user.id,
-        page: '/api/generate-title',
-        metadata: {
-          hook: true,
-          script: false,
-          scenes: false,
-          projectId: parseFeatureUsageProjectId(raw),
-        },
-      })
-    }
+    await trackUsageMetric(user.id, 'generations')
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.STORY_GENERATED,
+      userId: user.id,
+      page: '/api/generate-title',
+      metadata: {
+        hook: true,
+        script: false,
+        scenes: false,
+        projectId: parseFeatureUsageProjectId(raw),
+      },
+    })
 
     return NextResponse.json(payload)
   } catch (err) {

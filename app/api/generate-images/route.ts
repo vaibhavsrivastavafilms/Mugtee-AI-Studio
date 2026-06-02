@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth/require-auth'
 import { generateSceneImages } from '@/lib/cinematic/generate-scene-images'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
@@ -38,14 +38,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'scenes array required' }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const blocked = await guardUsageLimit(user.id, 'generations')
-      if (blocked) return blocked
-    }
+    const auth = await requireAuth()
+    if (auth.response) return auth.response
+    const user = auth.user
+
+    const blocked = await guardUsageLimit(user.id, 'generations')
+    if (blocked) return blocked
 
     const sceneIds = Array.isArray(raw?.sceneIds)
       ? (raw.sceneIds as string[]).filter((id) => typeof id === 'string')
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
       variation: raw?.variation === true,
       diversityAttempt:
         typeof raw?.diversityAttempt === 'number' ? raw.diversityAttempt : 0,
-      userId: user?.id,
+      userId: user.id,
       hasReferenceStyle:
         raw?.hasReferenceStyle === true || Boolean(referenceStyleNote?.trim()),
       referenceStyleNote,
@@ -96,14 +94,12 @@ export async function POST(req: NextRequest) {
       ),
     })
 
-    if (user) {
-      await trackUsageMetric(user.id, 'generations')
-      void trackFeatureUsage(
-        user.id,
-        FeatureUsageFeatures.IMAGE_GENERATION,
-        parseFeatureUsageProjectId(raw)
-      )
-    }
+    await trackUsageMetric(user.id, 'generations')
+    void trackFeatureUsage(
+      user.id,
+      FeatureUsageFeatures.IMAGE_GENERATION,
+      parseFeatureUsageProjectId(raw)
+    )
 
     if (result.duplicateImageWarnings?.length) {
       console.warn('[generate-images] duplicate scene image URLs', result.duplicateImageWarnings)
@@ -112,19 +108,17 @@ export async function POST(req: NextRequest) {
       console.warn('[generate-images] duplicate image prompts', result.duplicatePromptSceneIds)
     }
 
-    if (user) {
-      const withImages = result.scenes.filter((s) => s.imageUrl?.trim()).length
-      void trackMp4ExportServer({
-        event: Mp4ExportEvents.STORYBOARD_GENERATED,
-        userId: user.id,
-        page: '/api/generate-images',
-        metadata: {
-          projectId: parseFeatureUsageProjectId(raw),
-          scene_count: result.scenes.length,
-          images_count: withImages,
-        },
-      })
-    }
+    const withImages = result.scenes.filter((s) => s.imageUrl?.trim()).length
+    void trackMp4ExportServer({
+      event: Mp4ExportEvents.STORYBOARD_GENERATED,
+      userId: user.id,
+      page: '/api/generate-images',
+      metadata: {
+        projectId: parseFeatureUsageProjectId(raw),
+        scene_count: result.scenes.length,
+        images_count: withImages,
+      },
+    })
 
     return NextResponse.json({
       scenes: result.scenes,

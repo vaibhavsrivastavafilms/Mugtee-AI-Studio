@@ -42,7 +42,7 @@ import { validateSequenceCoherence } from '@/lib/cinematic/output-alignment'
 
 import { normalizeContentBrief } from '@/lib/content-director/content-brief'
 import { coerceDuration, coerceTopic, logError } from '@/lib/workspace/validation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth/require-auth'
 import {
   FeatureUsageFeatures,
   parseFeatureUsageProjectId,
@@ -126,47 +126,43 @@ export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const blocked = await guardUsageLimit(user.id, 'generations')
-      if (blocked) return blocked
-    }
+    const auth = await requireAuth()
+    if (auth.response) return auth.response
+    const user = auth.user
+
+    const blocked = await guardUsageLimit(user.id, 'generations')
+    if (blocked) return blocked
 
     const finish = async (body: Record<string, unknown>) => {
-      if (user) {
-        await trackUsageMetric(user.id, 'generations')
-        void trackFeatureUsage(
-          user.id,
-          FeatureUsageFeatures.STORYBOARD_GENERATION,
-          parseFeatureUsageProjectId(raw)
-        )
-        const scenes = Array.isArray(body.scenes) ? body.scenes : []
-        void trackMp4ExportServer({
-          event: Mp4ExportEvents.STORYBOARD_GENERATED,
-          userId: user.id,
-          page: '/api/generate-scenes',
-          metadata: {
-            projectId: parseFeatureUsageProjectId(raw),
-            scene_count: scenes.length,
-            images_count: 0,
-          },
-        })
-        void trackMp4ExportServer({
-          event: Mp4ExportEvents.STORY_GENERATED,
-          userId: user.id,
-          page: '/api/generate-scenes',
-          metadata: {
-            projectId: parseFeatureUsageProjectId(raw),
-            hook: false,
-            script: Boolean(script?.trim()),
-            scenes: scenes.length > 0,
-            scene_count: scenes.length,
-          },
-        })
-      }
+      await trackUsageMetric(user.id, 'generations')
+      void trackFeatureUsage(
+        user.id,
+        FeatureUsageFeatures.STORYBOARD_GENERATION,
+        parseFeatureUsageProjectId(raw)
+      )
+      const scenes = Array.isArray(body.scenes) ? body.scenes : []
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.STORYBOARD_GENERATED,
+        userId: user.id,
+        page: '/api/generate-scenes',
+        metadata: {
+          projectId: parseFeatureUsageProjectId(raw),
+          scene_count: scenes.length,
+          images_count: 0,
+        },
+      })
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.STORY_GENERATED,
+        userId: user.id,
+        page: '/api/generate-scenes',
+        metadata: {
+          projectId: parseFeatureUsageProjectId(raw),
+          hook: false,
+          script: Boolean(script?.trim()),
+          scenes: scenes.length > 0,
+          scene_count: scenes.length,
+        },
+      })
       return NextResponse.json(body)
     }
 

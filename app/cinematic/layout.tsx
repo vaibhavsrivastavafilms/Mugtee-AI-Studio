@@ -29,7 +29,7 @@ export default async function CinematicLayout({
       pathname.startsWith('/cinematic') && pathname.length > 1
         ? pathname
         : '/cinematic/create'
-    redirect(`/login?next=${encodeURIComponent(next)}`)
+    redirect(`/auth/login?next=${encodeURIComponent(next)}`)
   }
 
   return <div className="min-h-screen bg-background text-foreground">{children}</div>

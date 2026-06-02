@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { OAuthLoadingState } from '@/components/auth/oauth-loading-state'
 import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { track } from '@/lib/posthog'
+import { isEmailAuthEnabled } from '@/lib/auth/email-auth-enabled'
 import { APP_ROUTE_LOGIN_FALLBACK } from '@/lib/auth/public-routes'
 import { safeRelative } from '@/lib/url'
 import type { CreatorMode } from '@/lib/create/routes'
@@ -165,6 +166,23 @@ export function LoginContent() {
 
           <p className="text-center text-[11px] text-[var(--v2-text-secondary)] mt-4 leading-relaxed">
             New here? Your studio is created automatically.
+          </p>
+
+          <p className="text-center text-[11px] text-[var(--v2-text-secondary)] mt-3 leading-relaxed">
+            {isEmailAuthEnabled() ? (
+              <>
+                <Link href="/auth/forgot-password" className="text-[var(--v2-gold)]/90 hover:underline">
+                  Forgot password?
+                </Link>
+              </>
+            ) : (
+              <>
+                Sign in with Google only —{' '}
+                <Link href="/auth/forgot-password" className="text-[var(--v2-gold)]/90 hover:underline">
+                  learn more
+                </Link>
+              </>
+            )}
           </p>
 
           <div className="my-6 h-px bg-[var(--v2-border)]" />
