@@ -26,6 +26,7 @@ import {
   extractCreatorBlueprintFromCaptions,
   normalizeCreatorBlueprintId,
 } from '@/lib/cinematic/creator-blueprints'
+import { extractStyleTemplateIdFromCaptions } from '@/lib/templates/style-templates'
 import {
   emptyVariationHistory,
   type VariationHistory,
@@ -123,6 +124,7 @@ export type QuickCutProjectHydrationPatch = {
   language: ProjectLanguage
   directorMode: DirectorMode
   blueprintId: string | null
+  styleTemplateId: string | null
   visualStyle: VisualStyle | null
   storyBible: StoryBible | null
   viralScript: ViralScript | null
@@ -293,6 +295,10 @@ export function buildQuickCutHydrationFromRow(
     blueprintId: normalizeCreatorBlueprintId(
       extractCreatorBlueprintFromCaptions(row.captions)
     ),
+    styleTemplateId:
+      (typeof row.style_template_id === 'string' && row.style_template_id.trim()) ||
+      extractStyleTemplateIdFromCaptions(row.captions) ||
+      null,
     visualStyle: (row.visual_style as VisualStyle | null) ?? null,
     storyBible,
     sceneMotion,

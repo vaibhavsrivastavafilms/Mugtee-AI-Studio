@@ -157,6 +157,7 @@ import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { generateRulesContentBriefSync } from '@/lib/content-director/rules-content-brief'
 import { generateRulesCreativeDirectorBriefSync } from '@/lib/content-director/creative-director-brief'
+import { applyStyleTemplate as applyStyleTemplateFields } from '@/lib/templates/style-templates'
 import {
   EMPTY_V3_PIPELINE_STATE,
   syncV3StateFromContext,
@@ -444,6 +445,7 @@ interface QuickCutGenerationStateBase {
   language: ProjectLanguage
   directorMode: DirectorMode
   blueprintId: string | null
+  styleTemplateId: string | null
   niche: CinematicNiche
   style: string
   duration: number
@@ -545,6 +547,8 @@ interface QuickCutGenerationActions {
   syncVideoRenderConfig: () => Promise<void>
   saveProject: () => Promise<string | null>
   setCreatorBlueprint: (blueprintId: string | null) => void
+  applyStyleTemplate: (templateId: string) => void
+  setStyleTemplateId: (templateId: string | null) => void
   loadSavedProject: (
     projectId: string,
     options?: { stageTab?: QuickCutStageTab }
@@ -629,6 +633,7 @@ const INITIAL: QuickCutGenerationState = {
   language: 'en',
   directorMode: DEFAULT_DIRECTOR_MODE,
   blueprintId: null,
+  styleTemplateId: null,
   niche: 'storytelling',
   style: 'cinematic',
   duration: 60,
@@ -1050,6 +1055,7 @@ function buildArchiveInput(
     language: state.language,
     directorMode: state.directorMode,
     blueprintId: state.blueprintId ?? undefined,
+    styleTemplateId: state.styleTemplateId ?? undefined,
     archetypeId: state.scriptArchetypeId ?? undefined,
     archetypeLabel: state.scriptArchetypeLabel ?? undefined,
     archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
@@ -1352,6 +1358,7 @@ async function fetchSceneImages(
     | 'style'
     | 'visualStyle'
     | 'storyBible'
+    | 'styleTemplateId'
     | 'language'
     | 'imageNote'
     | 'contentBrief'
@@ -1382,6 +1389,7 @@ async function fetchSceneImages(
       style: state.style,
       visualStyle: state.visualStyle ?? undefined,
       storyBible: state.storyBible ?? undefined,
+      styleTemplateId: state.styleTemplateId ?? undefined,
       language: state.language,
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
@@ -1430,6 +1438,7 @@ async function fetchThumbnailCoverImage(
     | 'style'
     | 'visualStyle'
     | 'storyBible'
+    | 'styleTemplateId'
     | 'language'
     | 'imageNote'
     | 'contentBrief'
@@ -1460,6 +1469,7 @@ async function fetchThumbnailCoverImage(
       style: state.style,
       visualStyle: state.visualStyle ?? undefined,
       storyBible: state.storyBible ?? undefined,
+      styleTemplateId: state.styleTemplateId ?? undefined,
       language: state.language,
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
@@ -2123,6 +2133,27 @@ export const useQuickCutGenerationStore = create<
   setCreatorBlueprint: (blueprintId) =>
     set({ blueprintId: normalizeCreatorBlueprintId(blueprintId) }),
 
+  setStyleTemplateId: (templateId) =>
+    set({ styleTemplateId: templateId?.trim() || null }),
+
+  applyStyleTemplate: (templateId) => {
+    const applied = applyStyleTemplateFields(templateId)
+    if (!applied) return
+    const state = get()
+    set({
+      styleTemplateId: applied.styleTemplateId,
+      visualStyle: applied.visualStyle,
+      storyBible: applied.storyBible,
+      characterDescription: applied.characterDescription || state.characterDescription,
+      outputAlignmentControls: {
+        ...state.outputAlignmentControls,
+        ...applied.outputAlignmentControls,
+      },
+      ...(applied.niche ? { niche: applied.niche } : {}),
+      ...(applied.style ? { style: applied.style } : {}),
+    })
+  },
+
   followPipelineStage: () => {
     const tab = generationStepToTab(get().generationStep)
     if (tab) set({ activeStageTab: tab, stageTabPinned: false })
@@ -2201,6 +2232,7 @@ export const useQuickCutGenerationStore = create<
           language: prior.language,
           directorMode: prior.directorMode,
           blueprintId: prior.blueprintId,
+          styleTemplateId: prior.styleTemplateId,
           elevenLabsVoiceId: prior.elevenLabsVoiceId,
           voiceName: prior.voiceName,
           originalTranscript: prior.originalTranscript,
@@ -2226,6 +2258,9 @@ export const useQuickCutGenerationStore = create<
     const blueprintId = regenFresh
       ? preserved?.blueprintId ?? normalizeCreatorBlueprintId(input.blueprintId)
       : normalizeCreatorBlueprintId(input.blueprintId)
+    const styleTemplateId = regenFresh
+      ? preserved?.styleTemplateId ?? prior.styleTemplateId
+      : prior.styleTemplateId
     const blueprintPlatform = creatorBlueprintById(blueprintId)?.suggestedPlatform
     const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
     const duration = coerceDuration(input.duration ?? prior.duration ?? 60)
@@ -2263,6 +2298,7 @@ export const useQuickCutGenerationStore = create<
         language,
         directorMode,
         blueprintId,
+        styleTemplateId,
         style: tone,
         duration,
         imageNote: input.imageNote?.trim() || prior.imageNote,
@@ -2278,6 +2314,8 @@ export const useQuickCutGenerationStore = create<
         language,
         directorMode,
         blueprintId,
+        styleTemplateId:
+          regenFresh && !topicChanged ? preserved?.styleTemplateId ?? null : null,
         style: tone,
         duration,
         niche:

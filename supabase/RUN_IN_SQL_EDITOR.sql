@@ -416,6 +416,9 @@ comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggr
 -- Mugtee Timeline Editor (0047) — run supabase/migrations/0047_timeline_json.sql
 -- timeline_json jsonb on cinematic_projects for Remotion timeline editor + export.
 
+-- Mugtee Style Templates (0049) — run supabase/migrations/0049_style_templates.sql
+-- style_templates catalog + cinematic_projects.style_template_id for continuity presets.
+
 -- Optional follow-ups (not required for Quick Cut save):
 -- 0034_creator_profiles.sql, 0036_project_edits.sql, 0037_workspace_preferences.sql,
 -- 0039_creative_companion.sql, 0040–0043 creator agent / companion tables.

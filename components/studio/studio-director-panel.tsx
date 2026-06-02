@@ -11,6 +11,8 @@ import { ContentReadinessTracker } from '@/components/workspace/content-readines
 import { cn } from '@/lib/utils'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { StyleTemplatePicker } from '@/components/templates/style-template-picker'
+import { getStyleTemplateById } from '@/lib/templates/style-templates'
 
 type StudioDirectorPanelProps = {
   className?: string
@@ -25,6 +27,9 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
   const duration = useQuickCutGenerationStore((s) => s.duration)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
+  const styleTemplateId = useQuickCutGenerationStore((s) => s.styleTemplateId)
+  const applyStyleTemplate = useQuickCutGenerationStore((s) => s.applyStyleTemplate)
+  const prompt = useQuickCutGenerationStore((s) => s.prompt)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
 
@@ -73,6 +78,22 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
         />
 
         <CreatorToneMemory style={style} niche={niche} className="text-left" />
+
+        <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-2">
+          <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/65">
+            Style template
+          </p>
+          <StyleTemplatePicker
+            selectedId={styleTemplateId}
+            ideaForRecommend={prompt}
+            onSelect={(template) => applyStyleTemplate(template.id)}
+          />
+          {getStyleTemplateById(styleTemplateId)?.name ? (
+            <p className="text-[11px] text-luxe/55">
+              Active: {getStyleTemplateById(styleTemplateId)?.name}
+            </p>
+          ) : null}
+        </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3">
           <div className="flex items-center gap-2 text-gold-300/75 mb-2">

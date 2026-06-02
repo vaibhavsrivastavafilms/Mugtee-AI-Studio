@@ -18,7 +18,7 @@ function requireBrowserClient() {
 
 /** User-facing hint when the cinematic_projects table has not been created. */
 export const CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE =
-  'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql in the Supabase SQL editor (cinematic_projects migrations 0014–0038), then retry save.'
+  'Project library is not set up yet. Run supabase/RUN_IN_SQL_EDITOR.sql in the Supabase SQL editor (cinematic_projects migrations 0014–0049), then retry save.'
 
 /** @deprecated Use {@link CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE} or {@link getCinematicProjectsMigrationHint}. */
 export const CINEMATIC_PROJECTS_MIGRATION_HINT = CINEMATIC_PROJECTS_MIGRATION_HINT_TABLE
@@ -44,6 +44,7 @@ const OPTIONAL_CINEMATIC_PROJECT_COLUMNS = new Set([
   'timeline_state',
   'timeline_json',
   'panel_preferences',
+  'style_template_id',
 ])
 
 const COLUMN_MIGRATION: Record<string, string> = {
@@ -77,6 +78,7 @@ const COLUMN_MIGRATION: Record<string, string> = {
   timeline_state: '0037',
   timeline_json: '0047',
   panel_preferences: '0037',
+  style_template_id: '0049',
 }
 
 /** Supabase Dashboard → SQL Editor link derived from NEXT_PUBLIC_SUPABASE_URL. */
@@ -327,6 +329,8 @@ export type CinematicProjectRow = {
   generation_error?: string | null
   last_completed_step?: string | null
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | Record<string, unknown> | null
+  /** Selected style template slug (migration 0049). */
+  style_template_id?: string | null
   /** Per-scene motion preset map (migration 0038). */
   scene_motion?: import('@/lib/motion/motion-presets').SceneMotionMap | Record<string, unknown> | null
   /** Reel composer timeline (migration 0037). */
@@ -387,6 +391,7 @@ export type ArchiveGeneratedProjectInput = {
   language?: ProjectLanguage | string
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
+  styleTemplateId?: string | null
   series?: import('@/lib/cinematic/content-series').ContentSeries | null
   input_type?: string
   original_transcript?: string
@@ -678,6 +683,9 @@ export async function createProject(
   if ((state as { story_bible?: unknown }).story_bible !== undefined) {
     insertRow.story_bible = (state as { story_bible?: unknown }).story_bible
   }
+  if ((state as { styleTemplateId?: string | null }).styleTemplateId !== undefined) {
+    insertRow.style_template_id = (state as { styleTemplateId?: string | null }).styleTemplateId
+  }
   if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
     insertRow.scene_motion = (state as { scene_motion?: unknown }).scene_motion
   }
@@ -768,6 +776,7 @@ export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   timeline_json?: import('@/types/timeline').TimelineProject | Record<string, unknown> | null
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
+  styleTemplateId?: string | null
   archetypeId?: string | null
   archetypeLabel?: string | null
   archetypeDisplay?: string | null
@@ -818,6 +827,7 @@ export async function updateProject(
     state.niche !== undefined ||
     (state as { directorMode?: string }).directorMode !== undefined ||
     (state as { blueprintId?: string | null }).blueprintId !== undefined ||
+    (state as { styleTemplateId?: string | null }).styleTemplateId !== undefined ||
     (state as { archetypeId?: string | null }).archetypeId !== undefined ||
     (state as { narrativeArchetype?: string | null }).narrativeArchetype !== undefined ||
     (state as { contentAngleId?: string | null }).contentAngleId !== undefined ||
@@ -839,6 +849,8 @@ export async function updateProject(
       directorMode: (state as { directorMode?: string }).directorMode,
       blueprintId:
         (state as { blueprintId?: string | null }).blueprintId ?? undefined,
+      styleTemplateId:
+        (state as { styleTemplateId?: string | null }).styleTemplateId ?? undefined,
       archetypeId: (state as { archetypeId?: string | null }).archetypeId ?? undefined,
       archetypeLabel:
         (state as { archetypeLabel?: string | null }).archetypeLabel ?? undefined,
@@ -905,6 +917,9 @@ export async function updateProject(
   }
   if ((state as { story_bible?: unknown }).story_bible !== undefined) {
     patch.story_bible = (state as { story_bible?: unknown }).story_bible
+  }
+  if ((state as { styleTemplateId?: string | null }).styleTemplateId !== undefined) {
+    patch.style_template_id = (state as { styleTemplateId?: string | null }).styleTemplateId
   }
   if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
     patch.scene_motion = (state as { scene_motion?: unknown }).scene_motion
@@ -1115,6 +1130,7 @@ export async function archiveGeneratedProject(
     mode?: 'quick' | 'director'
     directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
     blueprintId?: string | null
+    styleTemplateId?: string | null
     archetypeId?: string | null
     archetypeLabel?: string | null
     archetypeDisplay?: string | null
@@ -1166,6 +1182,7 @@ export async function archiveGeneratedProject(
     mode: input.mode,
     directorMode: input.directorMode,
     blueprintId: input.blueprintId,
+    styleTemplateId: input.styleTemplateId ?? undefined,
     archetypeId: input.archetypeId ?? undefined,
     archetypeLabel: input.archetypeLabel ?? undefined,
     archetypeDisplay: input.archetypeDisplay ?? undefined,
@@ -1225,6 +1242,7 @@ export async function archiveGeneratedProject(
       mode: input.mode,
       directorMode: input.directorMode,
       blueprintId: input.blueprintId,
+      styleTemplateId: input.styleTemplateId ?? undefined,
       archetypeId: input.archetypeId ?? undefined,
       archetypeLabel: input.archetypeLabel ?? undefined,
       archetypeDisplay: input.archetypeDisplay ?? undefined,

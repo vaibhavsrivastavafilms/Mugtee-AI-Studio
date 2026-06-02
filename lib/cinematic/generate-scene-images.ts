@@ -50,6 +50,7 @@ import {
   imagePromptFingerprint,
   type SceneImageDuplicate,
 } from '@/lib/cinematic/scene-image-prompt'
+import { resolveStyleTemplatePromptPrefix } from '@/lib/templates/style-templates'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -77,6 +78,7 @@ export type GenerateSceneImagesInput = {
   /** V3 Visual Bible — merged into blueprints and injected into Flux prompts */
   visualBible?: VisualBible | null
   outputAlignmentControls?: OutputAlignmentControls | null
+  styleTemplateId?: string | null
 }
 
 export type GenerateSceneImagesResult = {
@@ -135,6 +137,7 @@ function promptContext(
     visualConsistency: visualConsistency ?? undefined,
     visualBibleSection,
     contentBriefSection: formatContentBriefForPrompt(input.contentBrief),
+    styleTemplatePrefix: resolveStyleTemplatePromptPrefix(input.styleTemplateId),
     previousScene:
       index > 0
         ? {

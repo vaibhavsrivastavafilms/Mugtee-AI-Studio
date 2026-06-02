@@ -85,6 +85,12 @@ export async function POST(req: NextRequest) {
       contentBrief: normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief) ?? undefined,
       sceneBlueprints: parseSceneBlueprints(raw?.sceneBlueprints ?? raw?.scene_blueprints),
       visualBible: parseVisualBible(raw?.visualBible ?? raw?.visual_bible),
+      styleTemplateId:
+        typeof raw?.styleTemplateId === 'string'
+          ? raw.styleTemplateId
+          : typeof raw?.style_template_id === 'string'
+            ? raw.style_template_id
+            : undefined,
       outputAlignmentControls: parseOutputAlignmentControls(
         raw?.outputAlignmentControls ?? raw?.output_alignment_controls
       ),
