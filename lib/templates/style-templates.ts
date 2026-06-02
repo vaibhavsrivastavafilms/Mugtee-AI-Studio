@@ -151,8 +151,49 @@ export function resolveStyleTemplatePromptPrefix(
   return formatStyleTemplatePromptPrefix(getStyleTemplateById(templateId))
 }
 
+export type RecommendKeywordOptions = {
+  limit?: number
+  /** Increments on each manual "Suggest styles" click to rotate picks. */
+  diversityAttempt?: number
+  /** Template ids to deprioritize (last shown on regenerate). */
+  excludeIds?: string[]
+}
+
+function shuffleWithSeed<T>(arr: T[], seed: number): T[] {
+  const copy = [...arr]
+  let s = seed > 0 ? seed : 1
+  for (let i = copy.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff
+    const j = s % (i + 1)
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+function reasonFromTemplate(template: StyleTemplate, score: number): string {
+  const desc = template.description.trim()
+  if (desc.length > 0) {
+    return desc.length > 140 ? `${desc.slice(0, 137)}…` : desc
+  }
+  if (score > 0) {
+    return `${template.category} — ${template.mood}`
+  }
+  return `${template.name}: ${template.mood}`
+}
+
 /** Keyword fallback when LLM keys are unavailable. */
-export function recommendTemplatesByKeywords(idea: string, limit = 3): TemplateRecommendation[] {
+export function recommendTemplatesByKeywords(
+  idea: string,
+  limitOrOptions: number | RecommendKeywordOptions = 3
+): TemplateRecommendation[] {
+  const opts: RecommendKeywordOptions =
+    typeof limitOrOptions === 'number' ? { limit: limitOrOptions } : limitOrOptions
+  const limit = opts.limit ?? 3
+  const diversityAttempt = Math.max(0, opts.diversityAttempt ?? 0)
+  const excludeSet = new Set(
+    (opts.excludeIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
+  )
+
   const text = idea.toLowerCase()
   const scores = BUILTIN_STYLE_TEMPLATES.map((template) => {
     const corpus = [
@@ -192,16 +233,39 @@ export function recommendTemplatesByKeywords(idea: string, limit = 3): TemplateR
   })
 
   scores.sort((a, b) => b.score - a.score)
-  const top = scores.filter((s) => s.score > 0).slice(0, limit)
-  const picked = top.length > 0 ? top : scores.slice(0, limit)
 
-  return picked.map(({ template, score }) => ({
+  const scoreById = new Map(scores.map((s) => [s.template.id, s.score]))
+  const ranked = scores.map((s) => s.template)
+  let pool = scores.filter((s) => s.score > 0).map((s) => s.template)
+  if (pool.length === 0) pool = [...ranked]
+
+  const withoutExcluded = pool.filter((t) => !excludeSet.has(t.id))
+  if (withoutExcluded.length >= limit) {
+    pool = withoutExcluded
+  } else {
+    const backfill = ranked.filter((t) => !excludeSet.has(t.id) && !pool.some((p) => p.id === t.id))
+    pool = [...withoutExcluded, ...backfill]
+  }
+  if (pool.length === 0) {
+    pool = BUILTIN_STYLE_TEMPLATES.filter((t) => !excludeSet.has(t.id))
+  }
+
+  const poolSize = Math.min(Math.max(limit * 4, 12), pool.length)
+  const candidatePool = pool.slice(0, poolSize)
+  const shuffled =
+    diversityAttempt > 0 || excludeSet.size > 0
+      ? shuffleWithSeed(candidatePool, diversityAttempt + idea.length)
+      : candidatePool
+  const start = diversityAttempt > 0 ? diversityAttempt % shuffled.length : 0
+  const picked: StyleTemplate[] = []
+  for (let i = 0; picked.length < limit && i < shuffled.length; i++) {
+    picked.push(shuffled[(start + i) % shuffled.length]!)
+  }
+
+  return picked.map((template) => ({
     id: template.id,
     name: template.name,
-    reason:
-      score > 0
-        ? `Matches your idea’s themes with ${template.category} visual language.`
-        : `Popular ${template.category} preset for consistent cinematic continuity.`,
+    reason: reasonFromTemplate(template, scoreById.get(template.id) ?? 0),
   }))
 }
 
