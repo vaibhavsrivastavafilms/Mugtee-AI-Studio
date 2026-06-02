@@ -121,3 +121,15 @@ export function resolveActiveThumbnailUrl(
   const alt = scenes.find((s) => isRealSceneImageUrl(s.imageUrl))
   return alt?.imageUrl?.trim() ?? null
 }
+
+/** Append cache-bust param for browser display after regeneration. */
+export function withThumbnailDisplayUrl(
+  url: string | null | undefined,
+  cacheBust?: number | null
+): string | null {
+  const trimmed = url?.trim()
+  if (!trimmed) return null
+  if (cacheBust == null) return trimmed
+  const sep = trimmed.includes('?') ? '&' : '?'
+  return `${trimmed}${sep}tb=${cacheBust}`
+}
