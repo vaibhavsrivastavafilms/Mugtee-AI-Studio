@@ -25,6 +25,8 @@ import {
 } from '@/lib/sidekick/creator-journey'
 import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { toast } from 'sonner'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { useShallow } from 'zustand/react/shallow'
 
 const LS_COLLAPSED = 'mugtee:sidekick:collapsed:v1'
 const LS_JOURNEY_LEVEL = 'mugtee:creator-journey-level:v1'
@@ -177,6 +179,19 @@ export function MugteeSidekickPanel() {
     })
   }
 
+  const { generationStep, isComplete, isGenerating } = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      generationStep: s.generationStep,
+      isComplete: s.isComplete,
+      isGenerating: s.isGenerating,
+    }))
+  )
+
+  const hideMobileBar =
+    isGenerating ||
+    isComplete ||
+    (generationStep !== 'idle' && generationStep !== 'error')
+
   if (!visible) return null
 
   const profileLoaded = Boolean(profile.creatorName || profile.niche)
@@ -218,7 +233,12 @@ export function MugteeSidekickPanel() {
         </div>
       </aside>
 
-      <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 pointer-events-none">
+      <div
+        className={cn(
+          'lg:hidden fixed inset-x-0 bottom-0 z-30 pointer-events-none',
+          hideMobileBar && 'hidden'
+        )}
+      >
         <div className="pointer-events-auto mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"

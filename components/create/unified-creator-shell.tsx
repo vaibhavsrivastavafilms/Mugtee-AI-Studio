@@ -58,7 +58,7 @@ export function UnifiedCreatorShell({
   const workflowNav = projectId ? projectWorkflowNav(projectId, mode) : null
 
   return (
-    <div className="min-h-[calc(100dvh-4rem)] flex flex-col max-w-[1600px] mx-auto w-full min-w-0 overflow-x-hidden">
+    <div className="min-h-[calc(100dvh-4rem)] flex flex-col max-w-[1600px] mx-auto w-full min-w-0 overflow-x-hidden pb-[max(1rem,env(safe-area-inset-bottom))]">
       {(title || subtitle || workflowNav) && (
         <div className="mb-5 sm:mb-6 space-y-4">
           {(title || subtitle) && (

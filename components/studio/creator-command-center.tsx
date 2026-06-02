@@ -17,6 +17,7 @@ import { CreateNewProjectButton } from '@/components/retention/create-new-projec
 import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banner'
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
+import { StudioMobileProjectStrip } from '@/components/studio/studio-mobile-project-strip'
 
 type CreatorCommandCenterProps = {
   projectId?: string
@@ -50,11 +51,12 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         <ProjectRecoveryBanner className="mb-3" />
       ) : null}
 
-      <div className="mb-3 space-y-2">
+      <div className="mb-3 space-y-2 min-w-0">
+        <StudioMobileProjectStrip />
         <div className="flex justify-end">
           <CreateNewProjectButton variant="inline" />
         </div>
-        <StudioStatusBar />
+        <StudioStatusBar className="hidden lg:flex" />
       </div>
 
       <motion.div
@@ -62,7 +64,7 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          'flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[240px_200px_minmax(0,1fr)_300px]',
+          'flex-1 min-h-0 min-w-0 flex flex-col lg:grid lg:grid-cols-[240px_200px_minmax(0,1fr)_300px]',
           'rounded-2xl border border-white/[0.06] bg-black/25 backdrop-blur-md overflow-hidden'
         )}
       >

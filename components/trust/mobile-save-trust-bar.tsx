@@ -24,10 +24,10 @@ export function MobileSaveTrustBar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'lg:hidden fixed top-[3.25rem] inset-x-0 z-40',
+        'lg:hidden sticky top-0 z-30 shrink-0',
         'border-b border-gold-500/10 bg-black/88 backdrop-blur-md',
         'px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]',
-        'py-1.5 flex items-center justify-center',
+        'py-1.5 flex items-center justify-center min-w-0',
         className
       )}
       aria-label="Save status"

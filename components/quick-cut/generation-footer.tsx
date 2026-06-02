@@ -12,8 +12,9 @@ import { useMissionStore } from '@/stores/mission-store'
 import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
-/** Bottom padding for scrollable content so it clears the fixed generation footer. */
-export const GENERATION_FOOTER_CLEARANCE = 'pb-24 sm:pb-20'
+/** Bottom padding for scrollable content so it clears the fixed generation footer (+ mobile sidekick). */
+export const GENERATION_FOOTER_CLEARANCE =
+  'pb-[max(8.5rem,calc(6.5rem+env(safe-area-inset-bottom)))] sm:pb-28 lg:pb-20'
 
 function XpFloat() {
   const floatingXp = useMissionStore((s) => s.floatingXp)

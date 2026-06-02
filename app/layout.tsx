@@ -105,7 +105,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <head>{/* suppress PerformanceServerTiming DataCloneError */}<script dangerouslySetInnerHTML={{ __html: 'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);' }} />{adsenseClient ? <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossOrigin="anonymous" /> : null}</head>
-      <body className="min-h-screen bg-background text-foreground antialiased scrollbar-luxe">
+      <body className="min-h-screen min-w-0 bg-background text-foreground antialiased scrollbar-luxe overflow-x-clip">
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
         {/* PWA — offline shell + static precache (production only). */}
