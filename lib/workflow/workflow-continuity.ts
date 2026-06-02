@@ -18,8 +18,7 @@ export const STACKED_WORKFLOW_STEPS: {
 }[] = [
   { id: 'hook', tab: 'hook', label: 'Hook' },
   { id: 'script', tab: 'script', label: 'Script' },
-  { id: 'scenes', tab: 'scenes', label: 'Scenes' },
-  { id: 'visuals', tab: 'visuals', label: 'Visuals' },
+  { id: 'scenes', tab: 'scenes', label: 'Scenes & Storyboard' },
   { id: 'voice', tab: 'voice', label: 'Voice' },
   { id: 'export', tab: 'complete', label: 'Export' },
 ]
@@ -97,10 +96,8 @@ export function inferNextIncompleteStackedStep(
     const hasContent =
       (step.id === 'hook' && Boolean(input.hook.trim())) ||
       (step.id === 'script' && Boolean(input.script.trim())) ||
-      (step.id === 'scenes' && input.scenesCount > 0) ||
-      (step.id === 'visuals' &&
-        input.scenesCount > 0 &&
-        input.sectionStatus.storyboard !== 'idle') ||
+      (step.id === 'scenes' &&
+        (input.scenesCount > 0 || input.sectionStatus.storyboard !== 'idle')) ||
       (step.id === 'voice' && Boolean(input.voiceUrl?.trim())) ||
       (step.id === 'export' &&
         (input.exportPackageReady || Boolean(input.videoUrl?.trim())))
@@ -150,8 +147,8 @@ export function isStackedSectionVisible(
   return (
     (stepId === 'hook' && Boolean(input.hook.trim())) ||
     (stepId === 'script' && Boolean(input.script.trim())) ||
-    (stepId === 'scenes' && input.scenesCount > 0) ||
-    (stepId === 'visuals' && input.scenesCount > 0) ||
+    (stepId === 'scenes' &&
+      (input.scenesCount > 0 || input.sectionStatus.storyboard !== 'idle')) ||
     (stepId === 'voice' && Boolean(input.voiceUrl?.trim()))
   )
 }
