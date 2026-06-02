@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import type { ReelTimeline, ReelTimelineClip } from '@/lib/reel/types'
 
@@ -18,7 +18,7 @@ async function loadImageSource(url: string): Promise<HTMLImageElement> {
 }
 
 function drawClip(
-  ctx: CanvasRenderingContext2D,
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   source: CanvasImageSource,
   width: number,
   height: number
@@ -76,7 +76,7 @@ export async function renderTimelineToFrames(
       : document.createElement('canvas')
     frameCanvas.width = settings.width
     frameCanvas.height = settings.height
-    const frameCtx = frameCanvas.getContext('2d')
+    const frameCtx = frameCanvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
     if (!frameCtx) throw new Error('2D canvas context unavailable')
     drawClip(frameCtx, source, settings.width, settings.height)
 
