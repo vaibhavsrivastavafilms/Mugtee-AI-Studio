@@ -7,6 +7,7 @@ import { requestRewriteSelection } from '@/lib/rewrite/rewrite-api'
 import { useRewriteStore } from '@/stores/rewrite-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
+import { displayHookText } from '@/lib/cinematic/hook-format'
 import { WorkspaceSectionShell } from '@/components/workspace/output-workspace/workspace-section-shell'
 import { SectionActionButton } from '@/components/workspace/output-workspace/section-action-button'
 
@@ -33,16 +34,17 @@ export function HookSection({ loading }: HookSectionProps) {
 
   const [busyAction, setBusyAction] = useState<'copy' | 'improve' | 'regen' | null>(null)
 
-  const hasHook = Boolean(hook?.trim())
+  const displayHook = displayHookText(hook ?? '')
+  const hasHook = Boolean(displayHook)
 
   const runImprove = useCallback(async () => {
     if (!hasHook) return
     setBusyAction('improve')
     setRewriteLoading(true)
     try {
-      const { output } = await requestRewriteSelection(hook, 'stronger_opening', {
+      const { output } = await requestRewriteSelection(displayHook, 'stronger_opening', {
         content_type: 'hook',
-        full_text: [hook, script].filter(Boolean).join('\n\n'),
+        full_text: [displayHook, script].filter(Boolean).join('\n\n'),
         title: title || undefined,
         niche: niche || undefined,
         tone: style || undefined,
@@ -51,7 +53,7 @@ export function HookSection({ loading }: HookSectionProps) {
         language: language || undefined,
       })
       applyDirectorRewrite({
-        original: hook,
+        original: displayHook,
         replacement: output,
         variant: 'stronger_opening',
         contentType: 'hook',
@@ -66,8 +68,8 @@ export function HookSection({ loading }: HookSectionProps) {
     }
   }, [
     applyDirectorRewrite,
+    displayHook,
     hasHook,
-    hook,
     language,
     niche,
     savedProjectId,
@@ -82,10 +84,10 @@ export function HookSection({ loading }: HookSectionProps) {
   const runCopy = useCallback(async () => {
     if (!hasHook) return
     setBusyAction('copy')
-    const ok = await copyTextToClipboard(hook)
+    const ok = await copyTextToClipboard(displayHook)
     toast[ok ? 'success' : 'error'](ok ? 'Hook copied' : 'Could not copy hook')
     setBusyAction(null)
-  }, [hasHook, hook])
+  }, [displayHook, hasHook])
 
   const runRegenerate = useCallback(async () => {
     setBusyAction('regen')
@@ -135,7 +137,7 @@ export function HookSection({ loading }: HookSectionProps) {
         data-rewrite-type="hook"
         className="select-text text-base sm:text-lg text-[#F4E7C1] font-display italic leading-relaxed"
       >
-        {hook}
+        {displayHook}
       </p>
     </WorkspaceSectionShell>
   )

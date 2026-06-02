@@ -24,6 +24,7 @@ import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
 import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-button'
 import { LiveScriptReveal } from '@/components/quick-cut/live-script-reveal'
+import { displayHookText } from '@/lib/cinematic/hook-format'
 import { relSavedLabel } from '@/stores/cinematic-project'
 import { sumSceneDurationSec } from '@/lib/cinematic/scene-duration'
 import { formatPlaybackTime } from '@/lib/media/format-playback-time'
@@ -83,6 +84,7 @@ export function GenerationResultsSection({
 
   const title = useQuickCutGenerationStore((s) => s.title)
   const hook = useQuickCutGenerationStore((s) => s.hook)
+  const displayHook = displayHookText(hook)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
   const payoff = useQuickCutGenerationStore((s) => s.payoff)
@@ -500,7 +502,7 @@ export function GenerationResultsSection({
             />
             <LiveScriptReveal
               script={script}
-              hook={hook}
+              hook={displayHook}
               scriptBeats={scriptBeats}
               payoff={payoff}
               cta={cta}
