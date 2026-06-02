@@ -4,7 +4,10 @@ import { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { copyTextToClipboard, deriveThumbnailConcept } from '@/lib/workspace/output-workspace-utils'
-import { resolveActiveThumbnailUrl } from '@/lib/cinematic/thumbnail-cover'
+import {
+  resolveActiveThumbnailUrl,
+  withThumbnailDisplayUrl,
+} from '@/lib/cinematic/thumbnail-cover'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { WorkspaceSectionShell } from '@/components/workspace/output-workspace/workspace-section-shell'
 import { SectionActionButton } from '@/components/workspace/output-workspace/section-action-button'
@@ -20,6 +23,7 @@ export function ThumbnailSection({ loading }: ThumbnailSectionProps) {
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
   const visualStyle = useQuickCutGenerationStore((s) => s.visualStyle)
   const thumbnailImageUrl = useQuickCutGenerationStore((s) => s.thumbnailImageUrl)
+  const thumbnailDisplayBust = useQuickCutGenerationStore((s) => s.thumbnailDisplayBust)
   const isRegeneratingThumbnail = useQuickCutGenerationStore((s) => s.isRegeneratingThumbnail)
   const regenerateThumbnailImage = useQuickCutGenerationStore((s) => s.regenerateThumbnailImage)
 
@@ -37,8 +41,12 @@ export function ThumbnailSection({ loading }: ThumbnailSectionProps) {
   )
 
   const displayImageUrl = useMemo(
-    () => resolveActiveThumbnailUrl(thumbnailImageUrl, scenes),
-    [thumbnailImageUrl, scenes]
+    () =>
+      withThumbnailDisplayUrl(
+        resolveActiveThumbnailUrl(thumbnailImageUrl, scenes),
+        thumbnailDisplayBust || null
+      ),
+    [thumbnailImageUrl, scenes, thumbnailDisplayBust]
   )
 
   const hasConcept = Boolean(thumbnailConcept.trim())

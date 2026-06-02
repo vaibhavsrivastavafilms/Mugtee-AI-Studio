@@ -409,6 +409,8 @@ interface QuickCutGenerationStateBase {
   regeneratingSceneIds: string[]
   /** Dedicated cover image — persisted as thumbnail_url */
   thumbnailImageUrl: string | null
+  /** Bumped on each thumbnail regen so the UI reloads the image. */
+  thumbnailDisplayBust: number
   isRegeneratingThumbnail: boolean
   directingSceneLabel: string | null
   voiceUrl: string | null
@@ -597,6 +599,7 @@ const INITIAL: QuickCutGenerationState = {
   directingSceneLabel: null,
   regeneratingSceneIds: [],
   thumbnailImageUrl: null,
+  thumbnailDisplayBust: 0,
   isRegeneratingThumbnail: false,
   voiceUrl: null,
   elevenLabsVoiceId: null,
@@ -1418,7 +1421,8 @@ async function fetchThumbnailCoverImage(
     | 'language'
     | 'imageNote'
     | 'contentBrief'
-  >
+  >,
+  options?: { variation?: boolean; diversityAttempt?: number }
 ): Promise<string | null> {
   const coverScene = buildThumbnailCoverScene({
     hook: state.hook,
@@ -1432,6 +1436,11 @@ async function fetchThumbnailCoverImage(
     body: JSON.stringify({
       scenes: [coverScene],
       sceneIds: [THUMBNAIL_COVER_SCENE_ID],
+      variation: options?.variation === true,
+      diversityAttempt:
+        typeof options?.diversityAttempt === 'number'
+          ? options.diversityAttempt
+          : 0,
       characterDescription: state.characterDescription || undefined,
       virlo: state.virlo ?? undefined,
       hook: state.hook,
@@ -1462,8 +1471,11 @@ async function fetchThumbnailCoverImage(
   const scenes = Array.isArray(data.scenes)
     ? (data.scenes as GeneratedScene[])
     : []
-  const url = scenes.find((s) => s.id === THUMBNAIL_COVER_SCENE_ID)?.imageUrl
-  return url?.trim() || null
+  const cover = scenes.find((s) => s.id === THUMBNAIL_COVER_SCENE_ID)
+  const url = options?.variation
+    ? cover?.variationImageUrl?.trim() || cover?.imageUrl?.trim()
+    : cover?.imageUrl?.trim()
+  return url || null
 }
 
 async function persistThumbnailUrl(
@@ -3445,19 +3457,30 @@ export const useQuickCutGenerationStore = create<
 
     set({ isRegeneratingThumbnail: true, directingSceneLabel: 'Composing cover…' })
     try {
-      const coverUrl = await fetchThumbnailCoverImage(state)
+      const diversityAttempt = Math.max(1, (state.thumbnailDisplayBust % 64) + 1)
+      const coverUrl = await fetchThumbnailCoverImage(state, {
+        variation: true,
+        diversityAttempt,
+      })
       if (!coverUrl) {
-        const fallback = resolveActiveThumbnailUrl(null, state.scenes)
-        if (fallback) {
-          set({ thumbnailImageUrl: fallback })
-          void persistThumbnailUrl(state.savedProjectId, fallback)
-          toast.success('Using storyboard frame as cover')
+        if (!state.thumbnailImageUrl?.trim()) {
+          const fallback = resolveActiveThumbnailUrl(null, state.scenes)
+          if (fallback) {
+            set({ thumbnailImageUrl: fallback })
+            void persistThumbnailUrl(state.savedProjectId, fallback)
+            toast.success('Using storyboard frame as cover')
+          } else {
+            toast.error('Could not generate thumbnail image')
+          }
         } else {
-          toast.error('Could not generate thumbnail image')
+          toast.error('Could not regenerate thumbnail image')
         }
         return
       }
-      set({ thumbnailImageUrl: coverUrl })
+      set({
+        thumbnailImageUrl: coverUrl,
+        thumbnailDisplayBust: Date.now(),
+      })
       void persistThumbnailUrl(state.savedProjectId, coverUrl)
       patchSectionStatus(set, get, 'thumbnail', 'completed')
       persistSession(get())
