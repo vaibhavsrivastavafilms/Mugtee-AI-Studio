@@ -10,7 +10,7 @@ import '@/lib/remotion/compositions/ReelParticleOverlay'
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
-import { bundle } from '@remotion/bundler'
+import { bundle, type WebpackOverrideFn } from '@remotion/bundler'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import {
@@ -34,9 +34,7 @@ let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
 
 /** Remotion's bundler does not read tsconfig paths — mirror @/* aliases for composition imports. */
-function remotionWebpackOverride<T extends { resolve?: { alias?: Record<string, string> } }>(
-  config: T
-): T {
+const remotionWebpackOverride: WebpackOverrideFn = (config) => {
   const root = process.cwd()
   const alias = {
     ...(typeof config.resolve?.alias === 'object' && !Array.isArray(config.resolve.alias)

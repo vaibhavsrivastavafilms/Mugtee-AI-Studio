@@ -51,27 +51,28 @@ export function RecentOpportunities({
       </p>
       <ul className="space-y-2">
         {recentOpportunities.map((item, i) => (
-          <motion.li
-            key={item.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-          >
-            <Link
-              href={item.href}
-              className="block rounded-xl border border-gold-500/15 bg-gold-500/[0.04] px-4 py-3 hover:border-gold-500/30 hover:bg-gold-500/[0.07] transition group"
+          <li key={item.id}>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
             >
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-gold-400/80 mt-0.5 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm text-luxe/90 font-medium leading-snug group-hover:text-gold-100 transition">
-                    {item.title}
-                  </p>
-                  <p className="text-[11px] text-luxe/55 mt-1 line-clamp-2">&ldquo;{item.hook}&rdquo;</p>
+              <Link
+                href={item.href}
+                className="block rounded-xl border border-gold-500/15 bg-gold-500/[0.04] px-4 py-3 hover:border-gold-500/30 hover:bg-gold-500/[0.07] transition group"
+              >
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-gold-400/80 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-luxe/90 font-medium leading-snug group-hover:text-gold-100 transition">
+                      {item.title}
+                    </p>
+                    <p className="text-[11px] text-luxe/55 mt-1 line-clamp-2">&ldquo;{item.hook}&rdquo;</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </motion.li>
+              </Link>
+            </motion.div>
+          </li>
         ))}
       </ul>
     </section>
