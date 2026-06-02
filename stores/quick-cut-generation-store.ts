@@ -170,7 +170,10 @@ import type {
   VisualBible,
 } from '@/lib/pipeline/v3-types'
 import { isV3PipelineEnabledFromConfig } from '@/lib/pipeline/v3-feature-flag'
-import { formatFinalHook } from '@/lib/cinematic/hook-format'
+import {
+  formatFinalHook,
+  resolveHookAfterScript,
+} from '@/lib/cinematic/hook-format'
 import { alignOutputToBrief } from '@/lib/content-director/align-output'
 import {
   logParsedIntent,
@@ -846,11 +849,19 @@ function applyScriptOutput(
   scriptBeats: ScriptBeat[]
   payoff: string
   cta: string
+  hook: string
 } {
+  const scriptText = typeof output?.script === 'string' ? output.script : ''
+  const outputHook = typeof output?.hook === 'string' ? output.hook : ''
+  const normalizedHook = resolveHookAfterScript({
+    titleHook: hook,
+    outputHook,
+    script: scriptText,
+  })
   const cinematic = resolveCinematicScript({
     scriptBeats: output?.scriptBeats as ScriptBeat[] | undefined,
-    script: typeof output?.script === 'string' ? output.script : '',
-    hook: typeof output?.hook === 'string' ? output.hook : hook,
+    script: scriptText,
+    hook: normalizedHook,
     payoff: typeof output?.payoff === 'string' ? output.payoff : '',
     cta: typeof output?.cta === 'string' ? output.cta : '',
   })
@@ -859,6 +870,7 @@ function applyScriptOutput(
     scriptBeats: cinematic.scriptBeats,
     payoff: cinematic.payoff,
     cta: cinematic.cta,
+    hook: formatFinalHook(cinematic.hook || normalizedHook),
   }
 }
 
@@ -2562,7 +2574,7 @@ export const useQuickCutGenerationStore = create<
                 const titleData = titleHookResult.data
 
                 title = titleHookResult.title
-                hook = titleHookResult.hook
+                hook = formatFinalHook(titleHookResult.hook)
                 virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
                 if (titleData.mock === true) anyMock = true
 
@@ -2682,9 +2694,17 @@ export const useQuickCutGenerationStore = create<
                 script = alignOutputToBrief(script, sessionContentBrief, 'script').text
               }
               scriptTitle = String(output?.title ?? get().title ?? title)
-              scriptHook = String(output?.hook ?? get().hook ?? hook)
+              scriptHook = resolveHookAfterScript({
+                titleHook: get().hook || hook,
+                outputHook: String(output?.hook ?? ''),
+                script: applied.script,
+                emotion: sessionContentBrief?.emotionalAngle,
+              })
               if (sessionContentBrief && scriptHook) {
-                scriptHook = alignOutputToBrief(scriptHook, sessionContentBrief, 'hook').text
+                scriptHook = formatFinalHook(
+                  alignOutputToBrief(scriptHook, sessionContentBrief, 'hook').text,
+                  { emotion: sessionContentBrief.emotionalAngle }
+                )
               }
               if (scriptData.mock === true) {
                 anyMock = true
@@ -3872,7 +3892,7 @@ export const useQuickCutGenerationStore = create<
     const history = applyHookVersionSelection(state.variationHistory, versionId)
     const version = history.hooks.find((h) => h.id === versionId)
     if (!version) return
-    set({ variationHistory: history, hook: version.text })
+    set({ variationHistory: history, hook: formatFinalHook(version.text) })
     persistSession(get())
   },
 

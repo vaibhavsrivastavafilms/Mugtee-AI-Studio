@@ -15,6 +15,13 @@ const nextConfig = {
       '@remotion/bundler',
       'remotion',
     ],
+    // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them.
+    outputFileTracingIncludes: {
+      '/api/render/reel': ['./lib/remotion/compositions/**/*'],
+      '/api/quick-cut/config': ['./lib/remotion/compositions/**/*'],
+      '/api/reels/export': ['./lib/remotion/compositions/**/*'],
+      '/api/timeline/render': ['./lib/remotion/compositions/**/*'],
+    },
   },
 
   images: {

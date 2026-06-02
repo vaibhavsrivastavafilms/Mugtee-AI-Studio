@@ -1,5 +1,12 @@
 import 'server-only'
 
+// Vercel NFT only ships files with static import chains; Remotion bundle() reads these from disk.
+import '@/lib/remotion/compositions/Root'
+import '@/lib/remotion/compositions/ReelComposition'
+import '@/lib/remotion/compositions/MugteeComposition'
+import '@/lib/remotion/compositions/ReelScene'
+import '@/lib/remotion/compositions/ReelParticleOverlay'
+
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'

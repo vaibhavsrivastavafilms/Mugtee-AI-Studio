@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { Film } from 'lucide-react'
+import { displayHookText } from '@/lib/cinematic/hook-format'
 import { cn } from '@/lib/utils'
 import type { ScriptBeat } from '@/types/cinematic-script'
 
@@ -75,10 +76,11 @@ export function ScriptBeatsDisplay({
 
   if (!hook && !scriptBeats.length) return null
 
+  const displayHook = displayHookText(hook)
   const selectClass = selectable ? 'select-text' : 'select-none'
 
   let step = 0
-  const showHook = hook && revealedCount > step++
+  const showHook = displayHook && revealedCount > step++
   const visibleBeats = scriptBeats.filter((_, i) => revealedCount > step + i)
   step += scriptBeats.length
   const showPayoff = payoff && revealedCount > step++
@@ -104,7 +106,7 @@ export function ScriptBeatsDisplay({
               selectClass
             )}
           >
-            {hook}
+            {displayHook}
           </p>
         </BeatCard>
       ) : null}
