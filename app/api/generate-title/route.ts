@@ -33,6 +33,9 @@ import {
   serializeParsedIntent,
 } from '@/lib/input-understanding'
 import { getLastProviderForTask } from '@/lib/ai/providers'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
+import { parseFeatureUsageProjectId } from '@/lib/analytics/feature-usage'
 import {
   getHookGenerationCache,
   hashHookGenerationKey,
@@ -256,7 +259,20 @@ export async function POST(req: NextRequest) {
       setHookGenerationCache(cacheKey, payload)
     }
 
-    if (user) await trackUsageMetric(user.id, 'generations')
+    if (user) {
+      await trackUsageMetric(user.id, 'generations')
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.STORY_GENERATED,
+        userId: user.id,
+        page: '/api/generate-title',
+        metadata: {
+          hook: true,
+          script: false,
+          scenes: false,
+          projectId: parseFeatureUsageProjectId(raw),
+        },
+      })
+    }
 
     return NextResponse.json(payload)
   } catch (err) {

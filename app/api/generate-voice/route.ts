@@ -7,6 +7,8 @@ import {
   parseFeatureUsageProjectId,
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { generateVoice } from '@/lib/voice/generateVoice'
 import { selectVoiceProfile } from '@/lib/voice/voiceProfiles'
@@ -101,6 +103,20 @@ export async function POST(req: NextRequest) {
     const durationSec =
       result.voiceMetadata?.durationSec ??
       Math.min(MAX_VIDEO_DURATION_SEC, Math.max(15, Math.round(result.narration.length / 14)))
+
+    if (user) {
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.VOICE_GENERATED,
+        userId: user.id,
+        page: '/api/generate-voice',
+        metadata: {
+          projectId: parseFeatureUsageProjectId(raw),
+          provider: result.provider ?? 'unknown',
+          duration_sec: durationSec,
+          mock: result.mock ?? false,
+        },
+      })
+    }
 
     return NextResponse.json({
       audioUrl: result.audioUrl,

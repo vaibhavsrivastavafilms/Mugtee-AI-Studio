@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { trackServerEvent } from '@/lib/analytics/track-server-event'
 import { APP_ROUTE_LOGIN_FALLBACK } from '@/lib/auth/public-routes'
 import {
@@ -95,6 +97,12 @@ export async function GET(request: NextRequest) {
     if (user) {
       await trackServerEvent({
         event: AnalyticsEvents.SIGNUP_COMPLETED,
+        userId: user.id,
+        page: '/auth/callback',
+        metadata: { provider: 'google', source: 'auth_callback' },
+      })
+      void trackMp4ExportServer({
+        event: Mp4ExportEvents.USER_SIGNUP,
         userId: user.id,
         page: '/auth/callback',
         metadata: { provider: 'google', source: 'auth_callback' },

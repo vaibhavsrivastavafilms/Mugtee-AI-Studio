@@ -42,6 +42,7 @@ import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.cl
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useUsage } from '@/lib/usage'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { Mp4ExportEvents, trackMp4ExportClient } from '@/lib/analytics/mp4-export-events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
@@ -217,9 +218,13 @@ function ExportPrimaryDownloadActions() {
     if (downloadingMp4) return
     if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
     if (!(await guardExport())) return
+    trackMp4ExportClient(Mp4ExportEvents.EXPORT_CLICKED, {
+      projectId: savedProjectId,
+      metadata: { asset: 'video_mp4', source: 'export_tabbed_panel' },
+    })
     trackEvent(AnalyticsEvents.EXPORT_STARTED, {
       projectId: savedProjectId,
-      metadata: { asset: 'video_mp4' },
+      metadata: { asset: 'video_mp4', source: 'export_tabbed_panel' },
     })
     setAssetError(null)
     setDownloadingMp4(true)
