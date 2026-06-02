@@ -5,15 +5,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bell,
-  Check,
   Clapperboard,
   Film,
   Image as ImageIcon,
   Sparkles,
-  Trash2,
   Users2,
   Zap,
 } from 'lucide-react'
+import { NotificationPanel } from '@/components/shell/notification-panel'
 import { cn } from '@/lib/utils'
 import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
 import { useStore } from '@/lib/store'
@@ -230,6 +229,7 @@ export function HeaderRightActions({ user }: { user: User }) {
         <NotificationPanel
           open={bellOpen}
           onClose={() => setBellOpen(false)}
+          anchorRef={bellRef}
           notifications={notifications}
           unreadCount={unreadCount}
           markAllRead={markAllRead}
@@ -292,120 +292,6 @@ export function HeaderRightActions({ user }: { user: User }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </>
-  )
-}
-
-function NotificationPanel({
-  open,
-  onClose,
-  notifications,
-  unreadCount,
-  markAllRead,
-  deleteNotification,
-  onNotifClick,
-}: {
-  open: boolean
-  onClose: () => void
-  notifications: Array<{
-    id: string
-    title: string
-    message?: string | null
-    created_at: string
-    read: boolean
-    link?: string | null
-  }>
-  unreadCount: number
-  markAllRead: () => void
-  deleteNotification: (id: string) => void
-  onNotifClick: (n: { id: string; read: boolean; link?: string | null }) => void
-}) {
-  return (
-    <>
-      <AnimatePresence>
-        {open ? (
-          <motion.button
-            key="notif-backdrop"
-            type="button"
-            aria-label="Close notifications"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[55] lg:hidden"
-          />
-        ) : null}
-      </AnimatePresence>
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            key="notif-panel"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className={cn(
-              'glass-strong shadow-cinema overflow-hidden flex flex-col',
-              'fixed left-2 right-2 top-[68px] z-[60] rounded-2xl max-h-[80vh]',
-              'lg:absolute lg:left-auto lg:right-0 lg:top-full lg:mt-2 lg:w-[360px] lg:rounded-xl lg:z-50'
-            )}
-          >
-            <div className="flex items-center justify-between p-3 border-b border-white/[0.06] shrink-0">
-              <div className="text-sm font-medium">Notifications</div>
-              {unreadCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => markAllRead()}
-                  className="text-[11px] text-gold-300 hover:text-gold-200 inline-flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-gold-500/10"
-                >
-                  <Check className="w-3 h-3" /> Mark all read
-                </button>
-              ) : null}
-            </div>
-            <div className="overflow-y-auto scrollbar-luxe flex-1 lg:max-h-[70vh]">
-              {notifications.length === 0 ? (
-                <div className="py-10 text-center text-sm text-muted-foreground">All caught up.</div>
-              ) : (
-                notifications.slice(0, 30).map((n) => (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      'flex items-start gap-2 px-3 py-2.5 border-b border-white/[0.04]',
-                      !n.read && 'bg-gold-500/[0.04]'
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onNotifClick(n)}
-                      className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-white/[0.03] -my-2.5 py-2.5 -ml-3 pl-3 rounded-none"
-                    >
-                      <div
-                        className={cn(
-                          'mt-1 w-1.5 h-1.5 rounded-full shrink-0',
-                          n.read ? 'bg-transparent' : 'bg-gold-400'
-                        )}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{n.title}</div>
-                        {n.message ? (
-                          <div className="text-xs text-muted-foreground line-clamp-2">{n.message}</div>
-                        ) : null}
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Delete notification"
-                      onClick={() => deleteNotification(n.id)}
-                      className="p-2 rounded hover:bg-white/5 text-muted-foreground hover:text-red-300 shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
     </>
   )
 }

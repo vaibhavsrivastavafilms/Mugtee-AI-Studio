@@ -1,5 +1,6 @@
 'use client'
-import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon, Check, X as XIcon, Trash2, Zap, Sparkles } from 'lucide-react'
+import { Menu, Search, Bell, Plus, Film, Users2, Clapperboard, Image as ImageIcon, Zap, Sparkles } from 'lucide-react'
+import { NotificationPanel } from '@/components/shell/notification-panel'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -13,7 +14,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PLATFORM_META } from '@/lib/dummy-data'
-import { formatDistanceToNow, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export function Topbar({ user, onMenu }: { user: { email?: string | null; user_metadata?: any }; onMenu: () => void }) {
@@ -143,82 +143,17 @@ export function Topbar({ user, onMenu }: { user: { email?: string | null; user_m
               )}
             </button>
 
-            {/* Phase V1.2 mobile-fix — Backdrop (mobile only). Sits ABOVE hero/FAB/quick-actions (z-[55]) but BELOW the drawer (z-[60]). Tap to close. */}
-            <AnimatePresence>
-              {bellOpen && (
-                <motion.button
-                  key="notif-backdrop"
-                  type="button"
-                  aria-label="Close notifications"
-                  onClick={() => setBellOpen(false)}
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[55] lg:hidden"
-                />
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {bellOpen && (
-                <motion.div
-                  key="notif-panel"
-                  /* Mobile (<lg): fixed full-width drawer slides down from the top, contained inside viewport,
-                     own scroll, 80vh cap, sits above backdrop. Desktop (lg+): original right-aligned dropdown. */
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className={cn(
-                    'glass-strong shadow-cinema overflow-hidden flex flex-col',
-                    // Mobile: fixed full-width drawer pinned just under the topbar
-                    'fixed left-2 right-2 top-[68px] z-[60] rounded-2xl max-h-[80vh]',
-                    // Desktop: revert to anchored dropdown
-                    'lg:absolute lg:left-auto lg:right-0 lg:top-full lg:mt-2 lg:w-[360px] lg:max-w-[92vw] lg:rounded-xl lg:z-50',
-                  )}
-                >
-                  <div className="flex items-center justify-between p-3 border-b border-white/[0.06] shrink-0">
-                    <div className="text-sm font-medium">Notifications</div>
-                    <div className="flex items-center gap-1">
-                      {unreadCount > 0 && (
-                        <button onClick={() => markAllRead()} className="text-[11px] text-gold-300 hover:text-gold-200 inline-flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-gold-500/10 min-h-[32px]">
-                          <Check className="w-3 h-3" /> Mark all read
-                        </button>
-                      )}
-                      {/* Mobile-only close button — desktop closes via outside click */}
-                      <button
-                        onClick={() => setBellOpen(false)}
-                        aria-label="Close"
-                        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-muted-foreground hover:text-luxe"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overflow-y-auto scrollbar-luxe flex-1 lg:max-h-[70vh] overscroll-contain">
-                    {notifications.length === 0 ? (
-                      <div className="py-10 text-center text-sm text-muted-foreground">All caught up.</div>
-                    ) : notifications.slice(0, 30).map(n => (
-                      <div key={n.id} className={cn('group flex items-start gap-2 px-3 py-3 sm:py-2.5 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.03] active:bg-white/[0.06] transition',
-                        !n.read && 'bg-gold-500/[0.04]')}
-                        onClick={() => onNotifClick(n)}
-                      >
-                        <div className={cn('mt-1 w-1.5 h-1.5 rounded-full shrink-0', n.read ? 'bg-transparent' : 'bg-gold-400 shadow-gold-glow')} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{n.title}</div>
-                          {n.message && <div className="text-xs text-muted-foreground line-clamp-2 sm:truncate">{n.message}</div>}
-                          <div className="text-[10px] text-muted-foreground/80 mt-0.5">{formatDistanceToNow(parseISO(n.created_at), { addSuffix: true })}</div>
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id) }}
-                          aria-label="Delete notification"
-                          className="lg:opacity-0 lg:group-hover:opacity-100 p-2 rounded hover:bg-white/5 text-muted-foreground hover:text-red-300 min-w-[36px] min-h-[36px] inline-flex items-center justify-center">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <NotificationPanel
+              open={bellOpen}
+              onClose={() => setBellOpen(false)}
+              anchorRef={bellRef}
+              notifications={notifications}
+              unreadCount={unreadCount}
+              markAllRead={markAllRead}
+              deleteNotification={deleteNotification}
+              onNotifClick={onNotifClick}
+              showTimestamps
+            />
           </div>
 
           {/* V3.8 — Watch-Ad inline banner (auto-hides on paid/unlimited or when > 5 credits) */}
