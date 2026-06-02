@@ -576,6 +576,8 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
           cta,
           scenes,
           voiceUrl,
+          videoUrl,
+          videoRenderEnabled,
           researchReport,
           savedProjectId,
           isUnlimited,
@@ -616,6 +618,8 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     savedProjectId,
     isUnlimited,
     isGenerating,
+    videoUrl,
+    videoRenderEnabled,
     trackExportStarted,
     guardExport,
     reelTimeline,
@@ -690,7 +694,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     }
     if (creatorPackState === 'error') return 'Unable to create Creator Pack — tap to retry'
     if (hasAnyCreatorPackAsset) {
-      return 'ZIP bundle — script, storyboard, images, narration & metadata'
+      return 'ZIP bundle — script, storyboard, images, narration, video & metadata'
     }
     return ASSET_UNAVAILABLE_MSG
   }, [creatorPackState, creatorPackProgress, hasAnyCreatorPackAsset])

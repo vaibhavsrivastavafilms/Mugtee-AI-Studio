@@ -8,6 +8,7 @@ import {
   isRealSceneImageUrl,
 } from '@/lib/quick-cut/asset-availability'
 import { fetchMp3Blob } from '@/lib/quick-cut/download-audio'
+import { fetchMp4Bytes } from '@/lib/quick-cut/fetch-mp4-bytes.client'
 import {
   fetchSceneImageBlob,
   sceneImageFilename,
@@ -39,6 +40,8 @@ export type CreatorPackExportInput = {
   cta?: string
   scenes: GeneratedScene[]
   voiceUrl: string | null
+  videoUrl?: string | null
+  videoRenderEnabled?: boolean
   researchReport?: DeepResearchReport | null
   savedProjectId?: string | null
   isUnlimited?: boolean
@@ -273,6 +276,32 @@ export async function buildCreatorPackZip(
     included.push('thumbnail-prompt.txt')
   } else {
     warnings.push('thumbnail-prompt.txt skipped — no thumbnail prompt available')
+  }
+
+  report('Fetching video…', 85)
+
+  const mp4Filename = `${exportBase}.mp4`
+  if (input.videoRenderEnabled !== false) {
+    try {
+      const videoBytes = await fetchMp4Bytes({
+        videoUrl: input.videoUrl ?? null,
+        voiceUrl: input.voiceUrl,
+        scenes: input.scenes,
+        videoRenderEnabled: input.videoRenderEnabled ?? true,
+        savedProjectId: input.savedProjectId,
+        onProgress: (phase) => report(phase, 88),
+      })
+      if (videoBytes && videoBytes.length > 0) {
+        entries.push({ path: mp4Filename, data: videoBytes })
+        included.push(mp4Filename)
+      } else {
+        warnings.push(`${mp4Filename} skipped — no video available`)
+      }
+    } catch {
+      warnings.push(`${mp4Filename} skipped — video fetch failed`)
+    }
+  } else {
+    warnings.push(`${mp4Filename} skipped — video render disabled on server`)
   }
 
   report('Finalizing archive…', 90)

@@ -1,12 +1,8 @@
-import {
-  compileProjectMp4,
-  quickCutCanCompileMp4,
-} from '@/lib/quick-cut/compile-project-mp4.client'
+import { fetchMp4Bytes } from '@/lib/quick-cut/fetch-mp4-bytes.client'
 import {
   fetchSceneImageBlob,
   slugifyExportBase,
 } from '@/lib/quick-cut/download-scene-image'
-import { projectMp4FileDownloadPath } from '@/lib/quick-cut/resolve-mp4-download.client'
 import {
   buildInstagramCaption,
   buildInstagramCoverTitle,
@@ -47,54 +43,6 @@ export type PlatformPackExportResult = {
 export type PlatformPackExportProgress = {
   phase: string
   progress: number
-}
-
-async function fetchMp4Bytes(input: PlatformExportInput): Promise<Uint8Array | null> {
-  const { savedProjectId: projectId } = input
-  let videoUrl = input.videoUrl?.trim() || null
-  const canCompile = quickCutCanCompileMp4(
-    input.scenes,
-    input.voiceUrl,
-    input.videoRenderEnabled
-  )
-
-  if (!videoUrl && canCompile && projectId) {
-    videoUrl = await compileProjectMp4(projectId)
-  }
-
-  if (projectId) {
-    const res = await fetch(projectMp4FileDownloadPath(projectId), {
-      credentials: 'include',
-    })
-    if (res.ok) {
-      return blobToUint8Array(await res.blob())
-    }
-  }
-
-  if (videoUrl) {
-    const sameOrigin =
-      videoUrl.startsWith('/') ||
-      (typeof window !== 'undefined' &&
-        new URL(videoUrl, window.location.origin).origin === window.location.origin)
-
-    const res = await fetch(
-      videoUrl,
-      sameOrigin ? { credentials: 'include' } : undefined
-    )
-    if (res.ok) {
-      return blobToUint8Array(await res.blob())
-    }
-
-    if (canCompile && projectId) {
-      const compiledUrl = await compileProjectMp4(projectId)
-      const retry = await fetch(compiledUrl, { credentials: 'include' })
-      if (retry.ok) {
-        return blobToUint8Array(await retry.blob())
-      }
-    }
-  }
-
-  return null
 }
 
 /** Builds a platform-specific export ZIP from project store data. Skips missing assets. */
@@ -206,7 +154,14 @@ export async function buildPlatformPackZip(
   report('Fetching video…', 55)
 
   const videoFilename = profileId === 'instagram' ? 'reel-video.mp4' : 'video.mp4'
-  const videoBytes = await fetchMp4Bytes(input)
+  const videoBytes = await fetchMp4Bytes({
+    videoUrl: input.videoUrl,
+    voiceUrl: input.voiceUrl,
+    scenes: input.scenes,
+    videoRenderEnabled: input.videoRenderEnabled,
+    savedProjectId: input.savedProjectId,
+    onProgress: (phase) => report(phase, 55),
+  })
   if (videoBytes) {
     entries.push({ path: videoFilename, data: videoBytes })
     included.push(videoFilename)
