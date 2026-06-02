@@ -3,8 +3,7 @@
 import { useEffect, useState, type RefObject } from 'react'
 import { Play } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ReelAssemblyPlayer } from '@/components/quick-cut/reel-assembly-player'
-import { ReelComposer } from '@/components/reel-composer/ReelComposer'
+import { OutputWindow } from '@/components/quick-cut/output-window'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
 import {
@@ -148,54 +147,47 @@ export function PreviewExportTabbedPanel({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="preview" className="mt-0 space-y-4 focus-visible:outline-none">
-          {reelTimeline ? (
-            <ReelComposer
-              timeline={reelTimeline}
-              audioRef={audioRef}
-              className="mx-auto"
-              showDirectorTracks
-            />
-          ) : null}
-
-          <ReelAssemblyPlayer
-            scenes={scenes}
+        <TabsContent value="preview" className="mt-0 space-y-3 focus-visible:outline-none">
+          <OutputWindow
+            audioRef={audioRef}
             title={title}
             hook={hook}
             script={script}
+            scenes={scenes}
             videoUrl={videoUrl}
             voiceUrl={voiceUrl}
-            audioRef={audioRef}
+            reelTimeline={reelTimeline}
             isLive={isLive}
-            generationStep={playerGenerationStep}
+            generationStep={generationStep}
+            playerGenerationStep={playerGenerationStep}
             mp4Compiling={mp4Compiling}
             autoPlayPreview={
               (Boolean(voiceUrl) && !videoUrl) || assemblyPreviewAutoplay
             }
-            hideInlineActions
             showInsightTabs={showInsightTabs}
-            className="mx-auto"
+            footer={
+              <>
+                {renderError && !videoUrl ? (
+                  <p className="text-[11px] text-amber-200/80 text-center" role="alert">
+                    {renderError}
+                  </p>
+                ) : null}
+                {showRegenerateMissingScenes ? (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => void regenerateMissingSceneImages()}
+                      className={secondaryActionClass}
+                    >
+                      Regenerate missing scenes (
+                      {missingExportScenes.map((s) => s.index).join(', ')})
+                    </button>
+                  </div>
+                ) : null}
+                <ReflectionLoop />
+              </>
+            }
           />
-
-          {renderError && !videoUrl ? (
-            <p className="text-[11px] text-amber-200/80 text-center" role="alert">
-              {renderError}
-            </p>
-          ) : null}
-
-          {showRegenerateMissingScenes ? (
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => void regenerateMissingSceneImages()}
-                className={secondaryActionClass}
-              >
-                Regenerate missing scenes ({missingExportScenes.map((s) => s.index).join(', ')})
-              </button>
-            </div>
-          ) : null}
-
-          <ReflectionLoop />
         </TabsContent>
 
         <TabsContent value="export" className="mt-0 focus-visible:outline-none">

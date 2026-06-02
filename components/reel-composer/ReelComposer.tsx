@@ -21,11 +21,14 @@ export function ReelComposer({
   audioRef: externalAudioRef,
   className,
   showDirectorTracks = true,
+  /** Director tracks only — no duplicate 9:16 preview (use with OutputWindow / ReelAssemblyPlayer). */
+  timelineOnly = false,
 }: {
   timeline: ReelTimeline | null
   audioRef?: React.RefObject<HTMLAudioElement | null>
   className?: string
   showDirectorTracks?: boolean
+  timelineOnly?: boolean
 }) {
   const internalAudioRef = useRef<HTMLAudioElement | null>(null)
   const audioRef = externalAudioRef ?? internalAudioRef
@@ -107,7 +110,8 @@ export function ReelComposer({
   }
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn(timelineOnly ? 'space-y-2' : 'space-y-3', className)}>
+      {!timelineOnly ? (
       <div className="relative mx-auto w-full max-w-[220px] aspect-[9/16] rounded-xl overflow-hidden border border-gold-500/25 bg-black shadow-gold-glow/20">
         {activeClip?.image ? (
           <Image
@@ -140,7 +144,9 @@ export function ReelComposer({
           </div>
         ) : null}
       </div>
+      ) : null}
 
+      {!timelineOnly ? (
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -165,6 +171,7 @@ export function ReelComposer({
           {formatPlaybackTime(currentTimeSec)} / {formatPlaybackTime(totalSec)}
         </span>
       </div>
+      ) : null}
 
       {showDirectorTracks ? (
         <DirectorTimeline

@@ -88,6 +88,12 @@ export function ReelAssemblyPlayer({
   /** Pull-out insight tabs on reel preview (export / results view) */
   showInsightTabs = false,
 
+  /** Hide title/hook cards (shown in OutputWindow metadata strip) */
+  hideTitleHook = false,
+
+  /** Hide scene thumbnail strip when director mini-timeline is shown */
+  hideSceneThumbnails = false,
+
   className,
 
 }: {
@@ -138,6 +144,10 @@ export function ReelAssemblyPlayer({
   hideInlineActions?: boolean
 
   showInsightTabs?: boolean
+
+  hideTitleHook?: boolean
+
+  hideSceneThumbnails?: boolean
 
   className?: string
 
@@ -715,7 +725,7 @@ export function ReelAssemblyPlayer({
 
 
 
-      {(title || hook) ? (
+      {!hideTitleHook && (title || hook) ? (
 
         <div className="space-y-2 px-0.5">
 
@@ -907,7 +917,7 @@ export function ReelAssemblyPlayer({
 
 
 
-      {animateFrames && frames.length > 1 ? (
+      {!hideSceneThumbnails && animateFrames && frames.length > 1 ? (
 
         <div className="flex gap-1.5 justify-center px-1">
 
