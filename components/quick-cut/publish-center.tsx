@@ -4,6 +4,7 @@ import {
   Check,
   Circle,
   Loader2,
+  Minus,
   Package,
   Radio,
   RefreshCw,
@@ -14,25 +15,48 @@ import {
 import { cn } from '@/lib/utils'
 import { MugteeOrb } from '@/components/mugtee/mugtee-orb'
 import { resolvePublishReadiness } from '@/lib/quick-cut/asset-availability'
+import { REEL_EXPORT_DISABLED_USER_MSG } from '@/lib/video/reel-render-errors'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { BufferQueueButton } from '@/components/integrations/buffer-queue-button'
 import { useStore } from '@/lib/store'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
+function ReadinessRow({
+  label,
+  ready,
+  status,
+}: {
+  label: string
+  ready: boolean
+  status?: 'ready' | 'missing' | 'unavailable' | 'pending'
+}) {
+  const resolved = status ?? (ready ? 'ready' : 'missing')
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <span className="text-[11px] text-luxe/75">{label}</span>
       <span
         className={cn(
           'inline-flex items-center gap-1 text-[10px] tracking-[0.12em] uppercase font-semibold',
-          ready ? 'text-emerald-300/90' : 'text-luxe/35'
+          resolved === 'ready' && 'text-emerald-300/90',
+          resolved === 'missing' && 'text-luxe/35',
+          resolved === 'unavailable' && 'text-amber-200/70',
+          resolved === 'pending' && 'text-gold-300/75'
         )}
       >
-        {ready ? (
+        {resolved === 'ready' ? (
           <>
             <Check className="w-3 h-3" aria-hidden />
             Ready
+          </>
+        ) : resolved === 'pending' ? (
+          <>
+            <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
+            In progress
+          </>
+        ) : resolved === 'unavailable' ? (
+          <>
+            <Minus className="w-3 h-3" aria-hidden />
+            Server off
           </>
         ) : (
           <>
@@ -113,6 +137,7 @@ function usePublishReadinessState() {
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
@@ -130,6 +155,7 @@ function usePublishReadinessState() {
     videoRenderEnabled,
     isGenerating,
     exportExpired,
+    exportPackageReady,
     isRenderingVideo,
     renderPollUrl,
     renderError,
@@ -140,6 +166,8 @@ function usePublishReadinessState() {
     hook,
     script,
     videoUrl,
+    videoRenderEnabled,
+    exportPackageReady,
     isRenderingVideo,
     renderPollUrl,
     renderError,
@@ -154,19 +182,24 @@ export function ExportSummaryGrid({
   className?: string
   embedded?: boolean
 }) {
-  const { readiness } = usePublishReadinessState()
+  const { readiness, videoRenderEnabled, exportPackageReady } = usePublishReadinessState()
 
   const grid = (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {(Object.entries(readiness.exports) as [keyof typeof readiness.exports, boolean][]).map(
-        ([key, ready]) => (
+        ([key, ready]) => {
+          const mp4Unavailable = key === 'mp4' && !videoRenderEnabled && !ready
+          const mp4PackageReady = key === 'mp4' && !videoRenderEnabled && exportPackageReady
+          return (
           <div
             key={key}
             className={cn(
               'rounded-lg border px-3 py-2 flex items-center justify-between gap-2',
-              ready
+              ready || mp4PackageReady
                 ? 'border-gold-500/25 bg-gold-500/[0.06]'
-                : 'border-white/[0.06] bg-black/40'
+                : mp4Unavailable
+                  ? 'border-amber-500/20 bg-amber-500/[0.04]'
+                  : 'border-white/[0.06] bg-black/40'
             )}
           >
             <span className="text-[10px] tracking-[0.14em] uppercase text-luxe/70">
@@ -174,11 +207,15 @@ export function ExportSummaryGrid({
             </span>
             {ready ? (
               <Check className="w-3 h-3 text-emerald-300/90 shrink-0" aria-label="Available" />
+            ) : mp4Unavailable ? (
+              <Minus className="w-3 h-3 text-amber-200/70 shrink-0" aria-label="Server unavailable" />
+            ) : mp4PackageReady ? (
+              <Package className="w-3 h-3 text-gold-300/80 shrink-0" aria-label="Package export" />
             ) : (
               <Circle className="w-2.5 h-2.5 text-luxe/30 shrink-0" aria-label="Missing" />
             )}
           </div>
-        )
+        )}
       )}
     </div>
   )
@@ -206,7 +243,26 @@ export function PublishCenterIntro({
   className?: string
   embedded?: boolean
 }) {
-  const { readiness, renderError } = usePublishReadinessState()
+  const { readiness, renderError, videoRenderEnabled, exportPackageReady } =
+    usePublishReadinessState()
+
+  const publishHint = (() => {
+    if (readiness.projectReadyForPublishing) {
+      return "Everything's lined up — export, queue, and ship when you're ready."
+    }
+    if (!readiness.project.voiceGenerated) {
+      return 'Strong draft — add voiceover before exporting.'
+    }
+    if (!videoRenderEnabled) {
+      return exportPackageReady
+        ? 'MP4 compile is off on this server — download your storyboard package and preview below.'
+        : REEL_EXPORT_DISABLED_USER_MSG
+    }
+    if (!readiness.project.videoRendered) {
+      return renderError || "Strong draft — compile your MP4, then we'll prep platform assets."
+    }
+    return "I'll walk you through what's missing before you hit publish."
+  })()
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -223,17 +279,7 @@ export function PublishCenterIntro({
             <Sparkles className="w-3 h-3" />
             Mugtee · Publish
           </p>
-          <p className="text-xs text-luxe/70 mt-1 leading-relaxed italic">
-            {readiness.projectReadyForPublishing
-              ? "Everything's lined up — export, queue, and ship when you're ready."
-              : !readiness.project.voiceGenerated
-                ? 'Strong draft — add voiceover before exporting.'
-                : !readiness.project.videoRendered
-                  ? renderError
-                    ? renderError
-                    : 'Strong draft — compile your MP4, then we\'ll prep platform assets.'
-                  : "I'll walk you through what's missing before you hit publish."}
-          </p>
+          <p className="text-xs text-luxe/70 mt-1 leading-relaxed italic">{publishHint}</p>
         </div>
       </div>
 
@@ -264,6 +310,8 @@ export function PublishReadinessSection({
   const {
     readiness,
     videoUrl,
+    videoRenderEnabled,
+    exportPackageReady,
     isRenderingVideo,
     renderPollUrl,
     renderError,
@@ -275,13 +323,27 @@ export function PublishReadinessSection({
   const visualsReady =
     readiness.project.storyboardGenerated && readiness.project.sceneImagesGenerated
 
-  const projectItems: { label: string; ready: boolean }[] = [
+  const projectItems: {
+    label: string
+    ready: boolean
+    status?: 'ready' | 'missing' | 'unavailable' | 'pending'
+  }[] = [
     { label: 'Title Generated', ready: readiness.project.titleGenerated },
     { label: 'Hook Generated', ready: readiness.project.hookGenerated },
     { label: 'Script Generated', ready: readiness.project.scriptGenerated },
     { label: 'Visuals Ready', ready: visualsReady },
     { label: 'Voice Generated', ready: readiness.project.voiceGenerated },
-    { label: 'Video Rendered', ready: readiness.project.videoRendered },
+    {
+      label: 'Video Rendered',
+      ready: readiness.project.videoRendered || (exportPackageReady && !videoRenderEnabled),
+      status: !videoRenderEnabled
+        ? exportPackageReady
+          ? 'ready'
+          : 'unavailable'
+        : isRenderingVideo
+          ? 'pending'
+          : undefined,
+    },
     { label: 'Creator Pack Available', ready: readiness.project.creatorPackAvailable },
   ]
 
@@ -317,8 +379,11 @@ export function PublishReadinessSection({
         <div className="divide-y divide-white/[0.06]">
           {projectItems.map((item) => (
             <div key={item.label}>
-              <ReadinessRow label={item.label} ready={item.ready} />
-              {item.label === 'Video Rendered' && !item.ready ? (
+              <ReadinessRow label={item.label} ready={item.ready} status={item.status} />
+              {item.label === 'Video Rendered' &&
+              !item.ready &&
+              videoRenderEnabled &&
+              item.status !== 'unavailable' ? (
                 <div className="pb-2 pl-0 flex flex-wrap items-center gap-2">
                   <button
                     type="button"

@@ -917,9 +917,9 @@ export function ReelAssemblyPlayer({
 
 
 
-      {!hideSceneThumbnails && animateFrames && frames.length > 1 ? (
+      {!hideSceneThumbnails && animateFrames && frames.length > 0 ? (
 
-        <div className="flex gap-1.5 justify-center px-1">
+        <div className="flex gap-1.5 justify-center px-1 overflow-x-auto scrollbar-luxe pb-0.5">
 
           {frames.map((url, i) => (
 
@@ -935,7 +935,7 @@ export function ReelAssemblyPlayer({
 
               className={cn(
 
-                'relative w-10 aspect-[9/16] rounded-md overflow-hidden border transition-all',
+                'relative w-10 sm:w-11 aspect-[9/16] rounded-md overflow-hidden border transition-all shrink-0 touch-manipulation',
 
                 i === frameIndex
 
@@ -951,7 +951,8 @@ export function ReelAssemblyPlayer({
                 src={url}
                 alt=""
                 fill
-                sizes="40px"
+                unoptimized
+                sizes="44px"
                 className="object-cover"
               />
 

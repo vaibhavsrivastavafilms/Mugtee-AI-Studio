@@ -5,10 +5,6 @@ import Image from 'next/image'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-function isNativeImageSrc(src: string) {
-  return src.startsWith('data:') || src.startsWith('blob:')
-}
-
 /** Crossfades storyboard frames — keeps previous image visible during variant switches. */
 export function StoryboardCrossfadeImage({
   src,
@@ -70,7 +66,7 @@ export function StoryboardCrossfadeImage({
           alt=""
           aria-hidden
           fill
-          unoptimized={isNativeImageSrc(previousSrc)}
+          unoptimized
           sizes="100vw"
           className={
             'object-cover transition-opacity duration-560 ease-out pointer-events-none ' +
@@ -82,7 +78,7 @@ export function StoryboardCrossfadeImage({
         src={currentSrc}
         alt={alt}
         fill
-        unoptimized={isNativeImageSrc(currentSrc)}
+        unoptimized
         sizes="100vw"
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
