@@ -6,21 +6,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OutputWindow } from '@/components/quick-cut/output-window'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
+import { RegenerateMissingScenesBanner } from '@/components/quick-cut/regenerate-missing-scenes-banner'
 import {
   ExportTabbedPanel,
   stageTabToExportSubTab,
 } from '@/components/quick-cut/export-tabbed-panel'
-import {
-  findScenesMissingExportImages,
-  isMissingScenesExportError,
-} from '@/lib/export/scene-export-validation'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
+import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
-
-const secondaryActionClass =
-  'inline-flex min-h-[44px] flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold tracking-[0.12em] uppercase transition-opacity disabled:opacity-50 border border-gold-500/30 bg-gold-500/[0.06] text-gold-200 hover:bg-gold-500/10'
 
 export type PreviewExportSubTab = 'preview' | 'export'
 
@@ -56,9 +51,6 @@ export function PreviewExportTabbedPanel({
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
-  const regenerateMissingSceneImages = useQuickCutGenerationStore(
-    (s) => s.regenerateMissingSceneImages
-  )
   const storeGenerationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
@@ -97,11 +89,6 @@ export function PreviewExportTabbedPanel({
     renderError,
   })
   const { mp4Compiling } = mp4Export
-
-  const missingExportScenes = findScenesMissingExportImages(scenes)
-  const showRegenerateMissingScenes =
-    missingExportScenes.length > 0 &&
-    (isMissingScenesExportError(renderError) || (!videoUrl && !mp4Compiling))
 
   const playerGenerationStep = isComplete && !isLive ? 'complete' : generationStep
 
@@ -169,21 +156,10 @@ export function PreviewExportTabbedPanel({
               <>
                 {renderError && !videoUrl ? (
                   <p className="text-[11px] text-amber-200/80 text-center" role="alert">
-                    {renderError}
+                    {friendlyReelRenderError(renderError)}
                   </p>
                 ) : null}
-                {showRegenerateMissingScenes ? (
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => void regenerateMissingSceneImages()}
-                      className={secondaryActionClass}
-                    >
-                      Regenerate missing scenes (
-                      {missingExportScenes.map((s) => s.index).join(', ')})
-                    </button>
-                  </div>
-                ) : null}
+                <RegenerateMissingScenesBanner />
                 <ReflectionLoop />
               </>
             }

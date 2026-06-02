@@ -226,6 +226,7 @@ export type PublishReadinessInput = {
   videoRenderEnabled: boolean
   isGenerating: boolean
   exportExpired?: boolean
+  exportPackageReady?: boolean
   isRenderingVideo?: boolean
   renderPollUrl?: string | null
   renderError?: string | null
@@ -273,10 +274,13 @@ export function resolvePublishReadiness(input: PublishReadinessInput): PublishRe
     renderPollUrl: input.renderPollUrl,
     renderError: input.renderError,
   })
+  const packageExportReady = Boolean(input.exportPackageReady)
+  const mp4ServerDisabled = !input.videoRenderEnabled
   const creatorPackAvailable =
     scriptGenerated && (sceneImagesGenerated || voiceGenerated || titleGenerated)
 
-  const verticalVideoReady = videoRendered
+  const verticalVideoReady =
+    videoRendered || (mp4ServerDisabled && packageExportReady && sceneImagesGenerated)
   const captionReady = hookGenerated || scriptGenerated
 
   const project = {
@@ -290,7 +294,11 @@ export function resolvePublishReadiness(input: PublishReadinessInput): PublishRe
     creatorPackAvailable,
   }
 
-  const projectReadyForPublishing = Object.values(project).every(Boolean)
+  const projectReadyForPublishing = mp4ServerDisabled
+    ? Object.entries(project).every(([key, ready]) =>
+        key === 'videoRendered' ? ready || packageExportReady : ready
+      )
+    : Object.values(project).every(Boolean)
 
   return {
     project,

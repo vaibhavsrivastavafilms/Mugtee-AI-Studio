@@ -46,6 +46,9 @@ import { Mp4ExportEvents, trackMp4ExportClient } from '@/lib/analytics/mp4-expor
 import { trackEvent } from '@/lib/analytics/track-event'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
+import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
+import { VideoRenderDisabledNotice } from '@/components/quick-cut/video-render-disabled-notice'
+import { RegenerateMissingScenesBanner } from '@/components/quick-cut/regenerate-missing-scenes-banner'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -81,9 +84,11 @@ function ExportRenderStatus() {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
 
   if (videoUrl?.trim()) return null
+  if (!videoRenderEnabled) return null
 
   const failed = Boolean(renderError) || sectionStatus.export === 'failed'
 
@@ -115,7 +120,7 @@ function ExportRenderStatus() {
             {renderStatusLabel || 'Rendering reel…'}
           </p>
           <p className="text-[11px] text-luxe/45">
-            Assembling film → rendering reel → download ready.
+            Step 1: Assembling film · Step 2: Rendering reel · Step 3: Download ready
           </p>
         </>
       ) : (
@@ -256,14 +261,16 @@ function ExportPrimaryDownloadActions() {
         setShowExportFeedback(true)
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+      const message = friendlyReelRenderError(
+        err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+      )
       const expired = message === EXPORT_EXPIRED_MSG || message.includes('Export job expired')
       useQuickCutGenerationStore.setState({
         renderError: message,
         ...(expired ? { exportExpired: true, videoUrl: null } : {}),
       })
       setAssetError(message)
-      toast.error('Download failed. Please try again.', { id: 'mp4-export-progress' })
+      toast.error(message, { id: 'mp4-export-progress' })
     } finally {
       setDownloadingMp4(false)
     }
@@ -480,6 +487,8 @@ export function ExportTabbedPanel({
       </TabsList>
 
       <TabsContent value="download" className="mt-0 space-y-3 focus-visible:outline-none">
+        <VideoRenderDisabledNotice />
+        <RegenerateMissingScenesBanner />
         <ExportPrimaryDownloadActions />
         {showRenderStatus ? <ExportRenderStatus /> : null}
         <ExportSummaryGrid embedded />

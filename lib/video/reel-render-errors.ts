@@ -2,8 +2,16 @@
 export const REEL_EXPORT_UNAVAILABLE_MSG =
   'Reel export is temporarily unavailable — your preview still works.'
 
-export const REEL_EXPORT_DISABLED_MSG =
+/** Dev-only — operators enable VIDEO_RENDER_ENABLED in .env.local */
+export const REEL_EXPORT_DISABLED_DEV_MSG =
   'MP4 export is disabled on this server. Add VIDEO_RENDER_ENABLED=true (or VIDEO_RENDER_MOCK=true for local dev) to .env.local and restart the dev server.'
+
+/** Production-facing — no env jargon for creators */
+export const REEL_EXPORT_DISABLED_USER_MSG =
+  'MP4 export is temporarily unavailable on this server. Preview your reel and download script, storyboard images, and narration below.'
+
+/** @deprecated Use REEL_EXPORT_DISABLED_USER_MSG for UI; dev copy in REEL_EXPORT_DISABLED_DEV_MSG */
+export const REEL_EXPORT_DISABLED_MSG = REEL_EXPORT_DISABLED_USER_MSG
 
 function isRenderDisabledMessage(msg: string): boolean {
   const lower = msg.toLowerCase()
@@ -29,7 +37,8 @@ export function isReelExportNoticeMessage(msg: string | null | undefined): boole
   const trimmed = msg.trim()
   return (
     trimmed === REEL_EXPORT_UNAVAILABLE_MSG ||
-    trimmed === REEL_EXPORT_DISABLED_MSG ||
+    trimmed === REEL_EXPORT_DISABLED_USER_MSG ||
+    trimmed === REEL_EXPORT_DISABLED_DEV_MSG ||
     trimmed.includes('VIDEO_RENDER') ||
     trimmed.includes('MP4 export') ||
     trimmed.includes('Reel export') ||
@@ -60,7 +69,7 @@ export function friendlyReelRenderError(raw: string | null | undefined): string 
   if (!raw?.trim()) return REEL_EXPORT_UNAVAILABLE_MSG
   const msg = raw.trim()
   if (isUserFacingExportValidation(msg)) return msg.slice(0, 160)
-  if (isRenderDisabledMessage(msg)) return REEL_EXPORT_DISABLED_MSG
+  if (isRenderDisabledMessage(msg)) return REEL_EXPORT_DISABLED_USER_MSG
   if (isTransientRenderFailure(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
   if (GENERIC_EXPORT_FAILURES.has(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
   return msg.slice(0, 160)

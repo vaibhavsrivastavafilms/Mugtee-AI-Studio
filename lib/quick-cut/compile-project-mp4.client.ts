@@ -88,9 +88,8 @@ async function compileProjectMp4Inner(
     ffmpeg?: boolean
   }
   if (!config.videoRenderEnabled) {
-    throw new Error(
-      'MP4 compile is not enabled on this server. Set VIDEO_RENDER_ENABLED=true or VIDEO_RENDER_MOCK=true in .env.local.'
-    )
+    const { REEL_EXPORT_DISABLED_USER_MSG } = await import('@/lib/video/reel-render-errors')
+    throw new Error(REEL_EXPORT_DISABLED_USER_MSG)
   }
   if (!config.remotion && !config.ffmpeg) {
     throw new Error('Reel render is not available on this server.')

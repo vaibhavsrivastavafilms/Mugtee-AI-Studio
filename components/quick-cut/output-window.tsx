@@ -111,7 +111,7 @@ export function OutputWindow({
           autoPlayPreview={autoPlayPreview}
           hideInlineActions
           hideTitleHook
-          hideSceneThumbnails={hasDirectorTimeline}
+          hideSceneThumbnails={false}
           showInsightTabs={showInsightTabs}
           className="mx-auto"
         />
