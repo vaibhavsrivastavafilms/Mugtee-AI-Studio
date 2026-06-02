@@ -16,6 +16,9 @@ export const dynamic = 'force-dynamic'
 type RecommendBody = {
   idea?: string
   prompt?: string
+  diversityAttempt?: number
+  excludeIds?: string[]
+  refreshSeed?: number
 }
 
 type LlmRecommendationRow = {
@@ -49,19 +52,42 @@ function normalizeLlmRecommendations(raw: unknown): TemplateRecommendation[] {
       reason:
         typeof row.reason === 'string' && row.reason.trim()
           ? row.reason.trim().slice(0, 280)
-          : `Strong fit for ${template.category.toLowerCase()} continuity.`,
+          : template.description.trim().slice(0, 280) ||
+            `${template.category} — ${template.mood}`,
     })
     if (out.length >= 3) break
   }
   return out
 }
 
-async function recommendViaLlm(idea: string): Promise<TemplateRecommendation[] | null> {
+type LlmRecommendOptions = {
+  excludeIds?: string[]
+  diversityAttempt?: number
+}
+
+async function recommendViaLlm(
+  idea: string,
+  options: LlmRecommendOptions = {}
+): Promise<TemplateRecommendation[] | null> {
   if (!hasAnyTextProviderKey()) return null
+
+  const excludeIds = (options.excludeIds ?? [])
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0 && BUILTIN_TEMPLATE_BY_ID[id])
+  const diversityAttempt = Math.max(0, options.diversityAttempt ?? 0)
+
+  const excludeNote =
+    excludeIds.length > 0
+      ? `\nDo NOT use these template ids (already shown): ${excludeIds.join(', ')}. Pick 3 different ids from the catalog.`
+      : ''
+  const refreshNote =
+    diversityAttempt > 0
+      ? `\nThis is suggestion refresh #${diversityAttempt}. Vary your picks — explore strong alternates, not the same obvious trio.`
+      : ''
 
   const systemPrompt = `You are Mugtee's style template recommender. Pick exactly 3 templates from the catalog that best match the creator's idea. Return JSON only:
 {"recommendations":[{"id":"template-id","name":"Template Name","reason":"One sentence why"}]}
-Use only ids from the catalog. Reasons must be specific to the idea.`
+Use only ids from the catalog. Reasons must be specific to the idea and distinct per template.${excludeNote}${refreshNote}`
 
   const userPrompt = `Creator idea:\n${idea.slice(0, 1200)}\n\nTemplate catalog:\n${catalogForPrompt()}`
 
@@ -70,7 +96,7 @@ Use only ids from the catalog. Reasons must be specific to the idea.`
       systemPrompt,
       userPrompt,
       topic: idea.slice(0, 200),
-      temperature: 0.4,
+      temperature: diversityAttempt > 0 ? 0.72 : 0.4,
       contextInput: { topic: idea.slice(0, 200), tone: 'cinematic' },
     })
 
@@ -99,9 +125,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'idea must be at least 3 characters' }, { status: 400 })
   }
 
-  const llm = await recommendViaLlm(idea)
-  const recommendations = llm ?? recommendTemplatesByKeywords(idea, 3)
-  const source = llm ? 'ai' : 'keywords'
+  const diversityAttempt =
+    typeof body.diversityAttempt === 'number' && Number.isFinite(body.diversityAttempt)
+      ? Math.max(0, Math.floor(body.diversityAttempt))
+      : 0
+  const excludeIds = Array.isArray(body.excludeIds)
+    ? body.excludeIds.filter((id): id is string => typeof id === 'string')
+    : []
+
+  const llm = await recommendViaLlm(idea, { excludeIds, diversityAttempt })
+  const excludeSet = new Set(excludeIds.map((id) => id.trim()).filter(Boolean))
+  let recommendations =
+    llm?.filter((rec) => !excludeSet.has(rec.id)) ??
+    recommendTemplatesByKeywords(idea, {
+      limit: 3,
+      diversityAttempt,
+      excludeIds,
+    })
+  let source: 'ai' | 'keywords' = llm ? 'ai' : 'keywords'
+
+  if (llm && recommendations.length < 3) {
+    const fill = recommendTemplatesByKeywords(idea, {
+      limit: 3 - recommendations.length,
+      diversityAttempt,
+      excludeIds: [...excludeIds, ...recommendations.map((r) => r.id)],
+    })
+    const seen = new Set(recommendations.map((r) => r.id))
+    for (const row of fill) {
+      if (seen.has(row.id)) continue
+      seen.add(row.id)
+      recommendations.push(row)
+      if (recommendations.length >= 3) break
+    }
+  }
 
   return NextResponse.json({
     ok: true,
