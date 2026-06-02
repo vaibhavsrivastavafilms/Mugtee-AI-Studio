@@ -139,6 +139,8 @@ export type SceneImagePromptContext = {
   contentBriefSection?: string
   /** V3 Visual Bible block — global art style, lens, palette lock */
   visualBibleSection?: string
+  /** Style template prompt_prefix — continuity preset layer */
+  styleTemplatePrefix?: string
   previousScene?: Pick<
     GeneratedScene,
     | 'title'
@@ -290,6 +292,7 @@ export function buildSceneImagePrompt(
     ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
 
   const parts: string[] = []
+  if (ctx?.styleTemplatePrefix?.trim()) parts.push(ctx.styleTemplatePrefix.trim())
   if (ctx?.contentBriefSection?.trim()) parts.push(ctx.contentBriefSection.trim())
   const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
   if (continuity) parts.push(continuity)
@@ -1028,6 +1031,7 @@ export type CaptionsPayload = {
   suggestedVoiceStyle?: string
   directorMode?: string
   blueprintId?: string
+  styleTemplateId?: string
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1070,6 +1074,7 @@ export function captionsToPayload(state: {
   hashtags?: string[]
   directorMode?: string
   blueprintId?: string
+  styleTemplateId?: string
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1098,6 +1103,7 @@ export function captionsToPayload(state: {
     suggestedVoiceStyle: state.suggestedVoiceStyle,
     directorMode: state.directorMode,
     blueprintId: state.blueprintId,
+    styleTemplateId: state.styleTemplateId,
     archetypeId: state.archetypeId,
     archetypeLabel: state.archetypeLabel,
     archetypeDisplay: state.archetypeDisplay,
@@ -1134,6 +1140,7 @@ export function parseCaptionsPayload(
   text: string
   directorMode?: string
   blueprintId?: string
+  styleTemplateId?: string
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1198,6 +1205,10 @@ export function parseCaptionsPayload(
   const blueprintId =
     typeof value?.blueprintId === 'string' && value.blueprintId.trim()
       ? value.blueprintId.trim()
+      : undefined
+  const styleTemplateId =
+    typeof value?.styleTemplateId === 'string' && value.styleTemplateId.trim()
+      ? value.styleTemplateId.trim()
       : undefined
   const archetypeId =
     typeof value?.archetypeId === 'string' && value.archetypeId.trim()
@@ -1271,6 +1282,7 @@ export function parseCaptionsPayload(
     text,
     directorMode,
     blueprintId,
+    styleTemplateId,
     archetypeId,
     archetypeLabel,
     archetypeDisplay,

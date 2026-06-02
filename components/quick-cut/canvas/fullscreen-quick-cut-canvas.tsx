@@ -71,6 +71,7 @@ import { RecentGenerationsStrip } from '@/components/quick-cut/recent-generation
 import { CreatorInspiration } from '@/components/creator-inspiration'
 import { EmptyStateExamples } from '@/components/proof/empty-state-examples'
 import { CreatorBlueprintSection } from '@/components/create/creator-blueprint-section'
+import { TemplateGallery } from '@/components/templates/template-gallery'
 import { KnowledgeSuggestions } from '@/components/create/knowledge-suggestions'
 import { AudienceSimulatorCard } from '@/components/agent/audience-simulator-card'
 import { ViralProbabilityBadge } from '@/components/agent/viral-probability-badge'
@@ -159,6 +160,8 @@ export function FullscreenQuickCutCanvas({
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
   const blueprintId = useQuickCutGenerationStore((s) => s.blueprintId)
   const setCreatorBlueprint = useQuickCutGenerationStore((s) => s.setCreatorBlueprint)
+  const styleTemplateId = useQuickCutGenerationStore((s) => s.styleTemplateId)
+  const applyStyleTemplate = useQuickCutGenerationStore((s) => s.applyStyleTemplate)
 
   const voiceAppendRef = useRef('')
   const promptFormRef = useRef<HTMLFormElement>(null)
@@ -533,6 +536,15 @@ export function FullscreenQuickCutCanvas({
               <CreatorBlueprintSection
                 selectedBlueprintId={blueprintId}
                 onSelectBlueprint={handleBlueprintSelect}
+              />
+            ) : null}
+
+            {directorUi ? (
+              <TemplateGallery
+                selectedId={styleTemplateId}
+                ideaForRecommend={prompt}
+                onSelect={(template) => applyStyleTemplate(template.id)}
+                className="pt-1"
               />
             ) : null}
 

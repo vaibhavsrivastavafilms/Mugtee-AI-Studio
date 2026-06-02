@@ -64,6 +64,8 @@ export type StoryboardGenerationInput = {
   allScenes?: RegenSceneInput[]
   /** Project-wide story bible continuity lock */
   storyBible?: StoryBible | null
+  /** Style template prompt_prefix */
+  styleTemplatePrefix?: string
 }
 
 export function buildNicheStyleLock(niche: CinematicNiche, style: string): string {
@@ -178,6 +180,10 @@ export function buildStoryboardPrompt(
   const lines = [
     'Cinematic director storyboard frame for a vertical creator reel.',
   ]
+
+  if (input.styleTemplatePrefix?.trim()) {
+    lines.unshift(input.styleTemplatePrefix.trim())
+  }
 
   const continuity = formatStoryBibleForPrompt(input.storyBible)
   if (continuity) lines.unshift(continuity)
