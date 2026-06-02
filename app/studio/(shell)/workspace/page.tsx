@@ -12,7 +12,7 @@ function WorkspacePageInner() {
   const projectId = searchParams.get('project') ?? undefined
 
   return (
-    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6">
+    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-w-0 overflow-x-hidden flex flex-col">
       <SessionContinuityGuard projectId={projectId} />
       <MobileSaveTrustBar />
       <CreatorCommandCenter projectId={projectId} />

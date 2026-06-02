@@ -81,7 +81,7 @@ export function QuickCutCard({
             mode="quick"
             label="Start Quick Cut"
             params={topicParams}
-            className="bg-gold-gradient text-black shadow-gold-glow hover:opacity-95 min-w-[220px]"
+            className="bg-gold-gradient text-black shadow-gold-glow hover:opacity-95 w-full max-w-xs sm:w-auto sm:min-w-[220px]"
           />
         </motion.div>
       </div>

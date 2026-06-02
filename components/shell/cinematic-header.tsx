@@ -144,7 +144,7 @@ function CinematicHeaderInner({
         <div
           ref={searchRef}
           className={cn(
-            'relative flex-1 min-w-0 mx-1 sm:mx-2',
+            'relative flex-1 min-w-0 mx-1 sm:mx-2 max-w-[38vw] sm:max-w-none',
             variant === 'portal' && 'max-w-md ml-auto'
           )}
         >

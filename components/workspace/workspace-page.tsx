@@ -580,10 +580,10 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-noir-radial">
-      <div className="flex flex-1 min-h-0">
-      {/* LEFT SIDEBAR */}
-      <aside className="lg:w-64 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-black/40 backdrop-blur-xl">
+    <div className="flex min-h-[100dvh] flex-col bg-noir-radial overflow-x-hidden min-w-0">
+      <div className="flex flex-1 min-h-0 min-w-0 flex-col lg:flex-row">
+      {/* LEFT SIDEBAR — desktop only; mobile uses strip nav in main */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 border-r border-white/[0.06] bg-black/40 backdrop-blur-xl">
         <div className="p-4 lg:p-5 space-y-5">
           <Link href="/workspace" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-gold-glow">
@@ -647,8 +647,34 @@ export default function WorkspacePage({ embeddedProjectId }: { embeddedProjectId
       </aside>
 
       {/* CENTER PANEL */}
-      <main className="flex-1 px-4 lg:px-10 py-8 lg:py-12 max-w-3xl mx-auto w-full overflow-y-auto pb-56 lg:pb-64">
-        <div className="space-y-1 mb-3">
+      <main className="flex-1 min-w-0 px-4 lg:px-10 py-6 sm:py-8 lg:py-12 max-w-3xl mx-auto w-full overflow-y-auto overflow-x-hidden pb-[max(14rem,calc(11rem+env(safe-area-inset-bottom)))] lg:pb-64">
+        <nav
+          aria-label="Workspace navigation"
+          className="lg:hidden -mx-1 mb-4 flex gap-1 overflow-x-auto scroll-touch scrollbar-none snap-x snap-mandatory pb-1"
+        >
+          {[
+            { href: '/workspace', label: 'Create', active: true },
+            { href: '/workspace?tab=script', label: 'Scripts' },
+            { href: '/media?tab=images', label: 'Storyboards' },
+            { href: '/media?tab=narrations', label: 'Voice' },
+            { href: '/media', label: 'Library' },
+            { href: '/settings', label: 'Settings' },
+          ].map((item) => (
+            <Link
+              key={item.href + item.label}
+              href={item.href}
+              className={cn(
+                'shrink-0 snap-center px-3 py-2 rounded-full text-[11px] font-medium tracking-wide transition',
+                item.active
+                  ? 'bg-gold-500/15 text-gold-200 border border-gold-500/35'
+                  : 'text-luxe/70 border border-white/[0.06] hover:bg-white/[0.04]'
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="space-y-1 mb-3 min-w-0">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-[10px] tracking-[0.28em] uppercase text-gold-400/80 flex items-center gap-1.5">
             <Clapperboard className="w-3 h-3" /> Director Mode

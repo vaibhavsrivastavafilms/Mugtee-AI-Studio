@@ -57,7 +57,7 @@ export default function CinematicAppShell({
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               className="relative z-0 flex-1 flex flex-col lg:flex-row min-w-0 w-full min-h-0"
             >
-              <div className="flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-24 lg:pb-6">
+              <div className="flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-6">
                 {children}
               </div>
               <MugteeSidekickPanel />
