@@ -16,6 +16,13 @@ import { orchestrateRemotionReel } from '@/lib/video/orchestrate-remotion-reel'
 import { updateProjectReelStatus } from '@/lib/video/reel-storage-upload'
 import { exportLog } from '@/lib/export/export-log.server'
 import { runExportInBackground } from '@/lib/export/export-background.server'
+import {
+  enqueueExportJob,
+  exportJobToPollResponse,
+  findActiveExportJobForProject,
+  getExportJob,
+  syncExportJobFromRenderJob,
+} from '@/lib/export/export-job-service'
 import { validateExportAssets } from '@/lib/export/asset-validation.server'
 import {
   allScenesHaveExportImages,
@@ -59,7 +66,7 @@ export type ReelExportRequest = {
   includeCaptions?: boolean
 }
 
-export { reelExportPollPath } from '@/lib/reels/export-paths'
+export { reelExportPollPath, exportStatusPollPath } from '@/lib/reels/export-paths'
 
 export function mapJobToExportStatus(job: RenderJobStatus): ReelExportStatus {
   if (job.status === 'failed') return 'failed'
@@ -154,6 +161,22 @@ export async function loadOwnedProjectByReelJobId(
 
   if (error || !data) return null
   return data as CinematicProjectRow
+}
+
+/** Prefer durable export_jobs over cinematic_projects.reel_status. */
+export async function exportJobPollResponseForProject(
+  projectId: string,
+  userId: string
+): Promise<ReturnType<typeof exportJobToPollResponse> | null> {
+  const active = await findActiveExportJobForProject(projectId, userId)
+  if (active) return exportJobToPollResponse(active)
+  return null
+}
+
+export async function loadExportJobPollResponse(jobId: string, userId: string) {
+  const row = await getExportJob(jobId, userId)
+  if (!row) return null
+  return exportJobToPollResponse(row)
 }
 
 export function projectRowToExportPollResponse(row: CinematicProjectRow) {
@@ -335,6 +358,19 @@ export async function queueReelExportForProject(params: {
     userId: params.userId,
   })
 
+  await enqueueExportJob({
+    id: jobId,
+    userId: params.userId,
+    projectId: params.row.id,
+    metadata: {
+      jobType: 'reel-mp4',
+      includeVoiceover: params.includeVoiceover,
+      includeCaptions: params.includeCaptions,
+      label: 'Queued…',
+      stage: 'prepare',
+    },
+  })
+
   await updateProjectReelStatus({
     userId: params.userId,
     projectId: params.row.id,
@@ -399,6 +435,14 @@ export async function queueReelExportForProject(params: {
           label: exportError,
           error: exportError,
           percent: 0,
+        })
+        void syncExportJobFromRenderJob({
+          jobId,
+          status: 'failed',
+          progress: 0,
+          error: exportError,
+          label: exportError,
+          stage: 'error',
         })
         void createSupabaseServerClient()
           .from('cinematic_projects')

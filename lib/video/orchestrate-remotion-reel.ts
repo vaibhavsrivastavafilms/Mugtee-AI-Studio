@@ -40,6 +40,8 @@ import {
   trackMp4ExportServer,
   trackMp4FailedServer,
 } from '@/lib/analytics/mp4-export-track.server'
+import { syncExportJobFromRenderJob } from '@/lib/export/export-job-service'
+import { REEL_BUCKET } from '@/lib/video/reel-storage-upload'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -81,6 +83,15 @@ export async function orchestrateRemotionReel(
     const friendly = label ?? reelStageLabel(stage)
     const percent = STAGE_PERCENT[stage]
     updateRenderJob(jobId, { percent, stage, label: friendly, status: 'running' })
+    const exportStatus =
+      stage === 'upload' ? 'uploading' : stage === 'complete' ? 'completed' : 'rendering'
+    void syncExportJobFromRenderJob({
+      jobId,
+      status: exportStatus,
+      progress: percent,
+      label: friendly,
+      stage,
+    })
     options?.onProgress?.(percent, stage, friendly)
   }
 
@@ -285,6 +296,17 @@ export async function orchestrateRemotionReel(
       mock,
     })
 
+    void syncExportJobFromRenderJob({
+      jobId,
+      status: 'completed',
+      progress: 100,
+      label: 'Download ready',
+      stage: 'complete',
+      renderUrl: videoUrl,
+      storagePath,
+      storageBucket: REEL_BUCKET,
+    })
+
     return {
       videoUrl,
       thumbnailUrl,
@@ -339,6 +361,14 @@ export async function orchestrateRemotionReel(
       label: message.slice(0, 120),
       error: message,
       percent: 0,
+    })
+    void syncExportJobFromRenderJob({
+      jobId,
+      status: 'failed',
+      progress: 0,
+      label: message.slice(0, 120),
+      stage: 'error',
+      error: exportError,
     })
     throw err
   }
