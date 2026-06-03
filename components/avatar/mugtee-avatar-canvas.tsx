@@ -24,6 +24,10 @@ export function AvatarCanvasSkeleton({ className }: { className?: string }) {
   )
 }
 
+const MUGTEE_GLB_ENABLED =
+  typeof process !== 'undefined' &&
+  process.env.NEXT_PUBLIC_MUGTEE_GLB === '1'
+
 export function MugteeAvatarCanvas({
   state = 'idle',
   animated = true,
@@ -34,12 +38,16 @@ export function MugteeAvatarCanvas({
   state?: MugteeAvatarState
   animated?: boolean
   className?: string
+  /** When false, skips GLB probe (default). Set true only with NEXT_PUBLIC_MUGTEE_GLB=1. */
   useGlb?: boolean
   onError?: () => void
 }) {
   const [failed, setFailed] = useState(false)
-  const [glbAvailable, setGlbAvailable] = useState<boolean | null>(null)
+  const [glbAvailable, setGlbAvailable] = useState<boolean>(
+    () => useGlb === true && MUGTEE_GLB_ENABLED
+  )
   const motionOk = animated && !prefersReducedMotion()
+  const wantGlb = useGlb === true && MUGTEE_GLB_ENABLED
 
   const handleError = useCallback(() => {
     setFailed(true)
@@ -47,7 +55,7 @@ export function MugteeAvatarCanvas({
   }, [onError])
 
   useEffect(() => {
-    if (useGlb === false) {
+    if (!wantGlb) {
       setGlbAvailable(false)
       return
     }
@@ -66,36 +74,36 @@ export function MugteeAvatarCanvas({
     return () => {
       cancelled = true
     }
-  }, [useGlb])
+  }, [wantGlb])
 
   if (failed) return null
 
-  const preferGlb = glbAvailable === true
+  const preferGlb = wantGlb && glbAvailable
 
   return (
     <div className={cn('relative h-full w-full touch-none', className)}>
-      {glbAvailable === null ? (
-        <AvatarCanvasSkeleton />
-      ) : (
-        <Suspense fallback={<AvatarCanvasSkeleton />}>
-          <Canvas
-            dpr={[1, 1.5]}
-            gl={{
-              alpha: true,
-              antialias: true,
-              powerPreference: 'low-power',
-              failIfMajorPerformanceCaveat: false,
-            }}
-            camera={{ position: [0, 0.15, 2.1], fov: 38 }}
-            onCreated={({ gl }) => {
-              gl.setClearColor(0x000000, 0)
-              gl.domElement.addEventListener('webglcontextlost', (event) => {
-                event.preventDefault()
-                handleError()
-              })
-            }}
-            style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
-          >
+      <Suspense fallback={<AvatarCanvasSkeleton />}>
+        <Canvas
+          frameloop={motionOk ? 'always' : 'demand'}
+          dpr={[1, 1.25]}
+          gl={{
+            alpha: true,
+            antialias: false,
+            powerPreference: 'low-power',
+            failIfMajorPerformanceCaveat: true,
+          }}
+          camera={{ position: [0, 0.15, 2.1], fov: 38 }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0)
+            const onLost = (event: Event) => {
+              event.preventDefault()
+              gl.dispose()
+              handleError()
+            }
+            gl.domElement.addEventListener('webglcontextlost', onLost)
+          }}
+          style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
+        >
             <ambientLight intensity={0.35} />
             <directionalLight position={[2, 3, 4]} intensity={0.9} color="#ffe8b0" />
             <directionalLight position={[-2, 1, -1]} intensity={0.25} color="#d4af37" />
@@ -105,9 +113,8 @@ export function MugteeAvatarCanvas({
             ) : (
               <MugteeProceduralModel state={state} animated={motionOk} />
             )}
-          </Canvas>
-        </Suspense>
-      )}
+        </Canvas>
+      </Suspense>
     </div>
   )
 }

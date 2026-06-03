@@ -12,7 +12,7 @@
 -- IDEMPOTENT: safe to re-run.
 -- =============================================================
 alter table public.team_activity
-  add column if not exists project_id uuid references public..select(id) on delete cascade,
+  add column if not exists project_id uuid references public.content_pieces(id) on delete cascade,
   add column if not exists event_type text,
   add column if not exists metadata   jsonb not null default '{}'::jsonb;
 

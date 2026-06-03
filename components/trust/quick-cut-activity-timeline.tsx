@@ -55,7 +55,9 @@ export function QuickCutActivityTimeline({
       const { data } = await supabase
         .from('team_activity')
         .select('id, event_type, target, created_at')
-        .eq('project_id', projectId)
+        .or(
+          `project_id.eq.${projectId},metadata->>cinematic_project_id.eq.${projectId}`
+        )
         .order('created_at', { ascending: false })
         .limit(limit)
 

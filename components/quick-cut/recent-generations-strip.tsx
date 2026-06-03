@@ -144,7 +144,11 @@ export function RecentGenerationsStrip({ limit = 8 }: { limit?: number }) {
                         alt={p.title}
                         fill
                         sizes="188px"
+                        unoptimized
                         className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                        }}
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">

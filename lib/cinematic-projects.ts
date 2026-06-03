@@ -81,6 +81,16 @@ const COLUMN_MIGRATION: Record<string, string> = {
   style_template_id: '0049',
 }
 
+/** Optional columns confirmed missing in this browser session — skip on later saves. */
+const omittedOptionalColumns = new Set<string>()
+const warnedOptionalColumns = new Set<string>()
+
+function stripOmittedOptionalColumns(payload: Record<string, unknown>): void {
+  for (const col of omittedOptionalColumns) {
+    delete payload[col]
+  }
+}
+
 /** Supabase Dashboard → SQL Editor link derived from NEXT_PUBLIC_SUPABASE_URL. */
 export function getSupabaseSqlEditorUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -217,6 +227,7 @@ async function mutateCinematicProjectRow(
 ): Promise<CinematicProjectRow> {
   const supabase = requireBrowserClient()
   let payload = { ...row }
+  stripOmittedOptionalColumns(payload)
   const maxAttempts = OPTIONAL_CINEMATIC_PROJECT_COLUMNS.size + 2
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -240,9 +251,13 @@ async function mutateCinematicProjectRow(
       info.column in payload
     ) {
       delete payload[info.column]
-      console.warn(
-        `[cinematic-projects] Retrying save without optional column: ${info.column}`
-      )
+      omittedOptionalColumns.add(info.column)
+      if (!warnedOptionalColumns.has(info.column)) {
+        warnedOptionalColumns.add(info.column)
+        console.warn(
+          `[cinematic-projects] Optional column unavailable (${info.column}); saves omit it until migration ${COLUMN_MIGRATION[info.column] ?? '0037+'} is applied.`
+        )
+      }
       continue
     }
 

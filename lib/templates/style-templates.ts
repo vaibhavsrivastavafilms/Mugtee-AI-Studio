@@ -297,6 +297,14 @@ export async function fetchStyleTemplates(): Promise<StyleTemplate[]> {
       .order('category')
       .order('name')
 
+    if (
+      error &&
+      (error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        (error as { status?: number }).status === 404)
+    ) {
+      return listBuiltinStyleTemplates()
+    }
     if (error || !data?.length) return listBuiltinStyleTemplates()
     return data.map((row) => rowToTemplate(row as Record<string, unknown>))
   } catch {
