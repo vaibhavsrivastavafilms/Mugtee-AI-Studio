@@ -1350,6 +1350,7 @@ async function fetchSceneImages(
   state: Pick<
     QuickCutGenerationState,
     | 'scenes'
+    | 'savedProjectId'
     | 'characterDescription'
     | 'virlo'
     | 'hook'
@@ -1380,6 +1381,8 @@ async function fetchSceneImages(
     body: JSON.stringify({
       scenes: state.scenes,
       sceneIds,
+      projectId: state.savedProjectId ?? undefined,
+      project_id: state.savedProjectId ?? undefined,
       variation,
       characterDescription: state.characterDescription || undefined,
       virlo: state.virlo ?? undefined,
@@ -1429,6 +1432,7 @@ async function fetchSceneImages(
 async function fetchThumbnailCoverImage(
   state: Pick<
     QuickCutGenerationState,
+    | 'savedProjectId'
     | 'hook'
     | 'title'
     | 'scenes'
@@ -1457,6 +1461,8 @@ async function fetchThumbnailCoverImage(
     body: JSON.stringify({
       scenes: [coverScene],
       sceneIds: [THUMBNAIL_COVER_SCENE_ID],
+      projectId: state.savedProjectId ?? undefined,
+      project_id: state.savedProjectId ?? undefined,
       variation: options?.variation === true,
       diversityAttempt:
         typeof options?.diversityAttempt === 'number'

@@ -3,18 +3,12 @@ import { requireCinematicUser, parseJsonBody } from '@/lib/cinematic/regen-auth'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import {
   loadOwnedCinematicProject,
-  projectCanExportReel,
+  getExportReadinessForProject,
   queueReelExportForProject,
   buildValidatedDownloadResponse,
 } from '@/lib/reels/export-api'
 import { findActiveExportJobForProject } from '@/lib/export/export-job-service'
 import { exportStatusPollPath } from '@/lib/reels/export-paths'
-import { resolveProjectScenes } from '@/lib/cinematic-projects'
-import {
-  findScenesMissingExportImages,
-  missingScenesExportMessage,
-  VOICE_REQUIRED_EXPORT_MSG,
-} from '@/lib/export/scene-export-validation'
 import { logError } from '@/lib/workspace/validation'
 import { exportLog } from '@/lib/export/export-log.server'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
@@ -120,23 +114,34 @@ export async function POST(req: NextRequest) {
         .eq('user_id', auth.user!.id)
     }
 
-    if (!projectCanExportReel(row) && !timelineOverride) {
-      const missing = findScenesMissingExportImages(resolveProjectScenes(row))
-      const voiceUrl = row.voice?.audioUrl?.trim() ?? null
-      const validationError =
-        missing.length > 0
-          ? missingScenesExportMessage(missing)
-          : !voiceUrl
-            ? VOICE_REQUIRED_EXPORT_MSG
-            : 'Add storyboard images and voice narration before exporting a reel.'
-      void trackMp4FailedServer({
-        userId: auth.user!.id,
-        projectId,
-        stage: 'validation',
-        err: validationError,
-        route: 'POST /api/reels/export',
+    if (!timelineOverride) {
+      const readiness = await getExportReadinessForProject(row, auth.user!.id, {
+        includeVoiceover,
       })
-      return NextResponse.json({ error: validationError }, { status: 400 })
+      if (!readiness.canExport) {
+        const validationError =
+          readiness.message ??
+          'Add storyboard images and voice narration before exporting a reel.'
+        void trackMp4FailedServer({
+          userId: auth.user!.id,
+          projectId,
+          stage: 'validation',
+          err: validationError,
+          route: 'POST /api/reels/export',
+        })
+        return NextResponse.json(
+          {
+            error: validationError,
+            canExport: readiness.canExport,
+            imageCount: readiness.imageCount,
+            requiredImages: readiness.requiredImages,
+            voiceoverCount: readiness.voiceoverCount,
+            assetCount: readiness.assetCount,
+            missingAssets: readiness.missingAssets,
+          },
+          { status: 400 }
+        )
+      }
     }
 
     const { jobId, status } = await queueReelExportForProject({
