@@ -50,6 +50,9 @@ Give actionable creative direction: hooks, pacing, emotion, audience fit.
 Keep replies concise unless the user asks for depth.`,
 }
 
+/** Stable first line — safe for SSR / Zustand initial state (no Math.random). */
+export const COMPANION_GREETING_DEFAULT = MUGTEE_PERSONALITY.greetingVariants[0]
+
 export function pickPersonalityLine(
   pool: keyof Pick<
     MugteePersonalityProfile,

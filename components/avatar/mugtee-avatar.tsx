@@ -67,9 +67,11 @@ export function MugteeAvatar({
   priority = false,
 }: MugteeAvatarProps) {
   const px = MUGTEE_AVATAR_SIZE_PX[size]
+  const [mounted, setMounted] = useState(false)
   const [use2D, setUse2D] = useState<boolean | null>(null)
 
   useEffect(() => {
+    setMounted(true)
     setUse2D(shouldPrefer2DFallback())
   }, [])
 
@@ -92,7 +94,7 @@ export function MugteeAvatar({
           className="absolute left-1/2 top-[20%] z-[1] h-[18%] w-[38%] -translate-x-1/2 rounded-full bg-amber-300/50 blur-md animate-pulse pointer-events-none"
         />
       ) : null}
-      {use2D === null ? (
+      {!mounted || use2D === null ? (
         <AvatarCanvasSkeleton />
       ) : show3D ? (
         <MugteeAvatarCanvas
