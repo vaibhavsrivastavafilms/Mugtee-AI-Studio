@@ -8,8 +8,14 @@ import {
   findScenesMissingExportImages,
   missingScenesExportMessage,
   resolveSceneExportImageUrl,
+  sceneHasExportableStoryboard,
   VOICE_REQUIRED_EXPORT_MSG,
 } from '@/lib/export/scene-export-validation'
+import {
+  refreshAllSceneStoryboardUrls,
+  type LegacyAssetLookup,
+} from '@/lib/storyboard/storyboard-url-service.server'
+import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
 export type ExportMissingAsset = {
   kind: 'image' | 'voice' | 'scene'
@@ -37,6 +43,7 @@ export type ProjectAssetCounts = {
   imageAssets: Array<{
     id: string
     url: string
+    storagePath: string | null
     sceneId: string | null
     sequenceIndex: number | null
   }>
@@ -49,7 +56,7 @@ export async function loadProjectAssetCounts(
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase
     .from('project_assets')
-    .select('id, kind, url, metadata')
+    .select('id, kind, url, storage_path, metadata')
     .eq('project_id', projectId)
     .eq('user_id', userId)
     .in('kind', ['image', 'voiceover'])
@@ -79,9 +86,11 @@ export async function loadProjectAssetCounts(
           : typeof meta.sequenceIndex === 'number'
             ? meta.sequenceIndex
             : null
+      const storagePath = row.storage_path?.trim() || extractStoragePathFromUrl(row.url) || null
       return {
         id: row.id,
         url: row.url!.trim(),
+        storagePath,
         sceneId,
         sequenceIndex,
       }
@@ -96,24 +105,29 @@ export function hydrateScenesFromProjectAssets(
 ): CinematicScene[] {
   if (imageAssets.length < 1 || scenes.length < 1) return scenes
 
-  const bySceneId = new Map<string, string>()
-  const bySequence = new Map<number, string>()
+  const bySceneId = new Map<string, { url: string; storagePath: string | null }>()
+  const bySequence = new Map<number, { url: string; storagePath: string | null }>()
   for (const asset of imageAssets) {
+    const entry = { url: asset.url, storagePath: asset.storagePath }
     if (asset.sceneId && !bySceneId.has(asset.sceneId)) {
-      bySceneId.set(asset.sceneId, asset.url)
+      bySceneId.set(asset.sceneId, entry)
     }
     if (asset.sequenceIndex != null && !bySequence.has(asset.sequenceIndex)) {
-      bySequence.set(asset.sequenceIndex, asset.url)
+      bySequence.set(asset.sequenceIndex, entry)
     }
   }
 
   return scenes.map((scene, index) => {
-    if (resolveSceneExportImageUrl(scene)) return scene
+    if (sceneHasExportableStoryboard(scene)) return scene
     const fromId = scene.id ? bySceneId.get(scene.id) : undefined
     const fromSeq = bySequence.get(index + 1)
-    const url = fromId ?? fromSeq
-    if (!url) return scene
-    return { ...scene, imageUrl: url }
+    const hit = fromId ?? fromSeq
+    if (!hit) return scene
+    return {
+      ...scene,
+      imageUrl: hit.url,
+      ...(hit.storagePath ? { imageAssetPath: hit.storagePath } : {}),
+    }
   })
 }
 
@@ -160,8 +174,14 @@ export async function resolveExportScenes(
     assetCounts = await loadProjectAssetCounts(row.id, userId)
   }
 
-  const scenes = hydrateScenesFromProjectAssets(baseScenes, assetCounts.imageAssets)
-  const after = scenes.filter((s) => resolveSceneExportImageUrl(s)).length
+  const hydrated = hydrateScenesFromProjectAssets(baseScenes, assetCounts.imageAssets)
+  const lookup: LegacyAssetLookup = {
+    projectId: row.id,
+    userId,
+    imageAssets: assetCounts.imageAssets,
+  }
+  const scenes = await refreshAllSceneStoryboardUrls(hydrated, { lookup })
+  const after = scenes.filter((s) => sceneHasExportableStoryboard(s)).length
   return {
     scenes,
     assetCounts,
@@ -178,7 +198,7 @@ export function buildExportReadiness(params: {
   const includeVoice = params.includeVoiceover !== false
   const sceneCount = params.scenes.length
   const requiredImages = sceneCount
-  const imageCount = params.scenes.filter((s) => resolveSceneExportImageUrl(s)).length
+  const imageCount = params.scenes.filter((s) => sceneHasExportableStoryboard(s)).length
   const voiceUrl = params.voiceUrl?.trim() ?? null
   const hasVoice = Boolean(voiceUrl)
   const missingAssets: ExportMissingAsset[] = []

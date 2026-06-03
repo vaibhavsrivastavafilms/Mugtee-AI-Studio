@@ -385,6 +385,7 @@ export async function queueReelExportForProject(params: {
 
   const validation = await validateExportAssets({
     row: exportRow,
+    userId: params.userId,
     includeVoiceover: params.includeVoiceover,
     includeCaptions: params.includeCaptions,
   })

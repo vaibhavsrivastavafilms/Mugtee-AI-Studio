@@ -96,6 +96,8 @@ export type GeneratedScene = {
   movementStyle: string
   /** Populated after /api/generate-images */
   imageUrl?: string | null
+  /** Durable Supabase path for imageUrl refresh on load/export. */
+  imageAssetPath?: string | null
   /** Populated after Seedance scene video generation */
   videoUrl?: string | null
   videoThumbnailUrl?: string | null

@@ -1,14 +1,20 @@
 import 'server-only'
 
 import type { CinematicProjectRow } from '@/lib/cinematic-projects'
-import { resolveProjectScenes } from '@/lib/cinematic-projects'
 import { parseReelTimeline } from '@/lib/reel/parse-reel-timeline'
 import { retryWithBackoff } from '@/lib/video/retry.server'
 import { scenesForReelExport } from '@/lib/reels/export-api'
 import {
   findScenesMissingExportImages,
   missingScenesExportMessage,
+  resolveSceneExportAssetPath,
+  resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
+import { resolveExportScenes } from '@/lib/export/export-readiness.server'
+import {
+  refreshStoryboardUrl,
+  storyboardStorageExists,
+} from '@/lib/storyboard/storyboard-url-service.server'
 
 export type ExportAssetValidation = {
   valid: boolean
@@ -43,14 +49,28 @@ async function assetReachable(url: string): Promise<boolean> {
   }
 }
 
+function formatUnreachableSceneMessage(indices: number[]): string {
+  const nums = indices
+  const sceneWord = nums.length === 1 ? 'Scene' : 'Scenes'
+  const verb = nums.length === 1 ? 'is' : 'are'
+  const list =
+    nums.length === 1
+      ? String(nums[0])
+      : nums.length === 2
+        ? `${nums[0]} and ${nums[1]}`
+        : `${nums.slice(0, -1).join(', ')}, and ${nums[nums.length - 1]}`
+  return `Cannot export reel — ${sceneWord.toLowerCase()} ${list} ${verb} missing reachable storyboard images (link may have expired). Regenerate them, then try export again.`
+}
+
 /** Pre-render validation — surfaces missing assets before FFmpeg/Remotion starts. */
 export async function validateExportAssets(params: {
   row: CinematicProjectRow
+  userId: string
   includeVoiceover: boolean
   includeCaptions: boolean
 }): Promise<ExportAssetValidation> {
   const missing: string[] = []
-  const scenes = resolveProjectScenes(params.row)
+  const { scenes } = await resolveExportScenes(params.row, params.userId)
   const exportScenes = scenesForReelExport(scenes)
   const voiceUrl = params.row.voice?.audioUrl?.trim() ?? null
   const timeline = parseReelTimeline(params.row.timeline_state)
@@ -66,32 +86,45 @@ export async function validateExportAssets(params: {
   }
 
   const scenesMissingImages = findScenesMissingExportImages(scenes)
-  const imageUrls = exportScenes
-    .map((s) => s.imageUrl?.trim())
-    .filter((u): u is string => Boolean(u))
-  let imagesExist = scenesMissingImages.length === 0 && imageUrls.length > 0
+  let imagesExist = scenesMissingImages.length === 0 && exportScenes.length > 0
+
   if (scenesMissingImages.length > 0) {
     missing.push('images')
   } else if (!imagesExist) {
     missing.push('images')
   } else {
-    const checks = await Promise.all(imageUrls.map((url) => assetReachable(url)))
-    const unreachable = exportScenes
-      .map((scene, i) => ({ scene, index: i + 1, url: scene.imageUrl?.trim() }))
-      .filter((row, i) => row.url && !checks[i])
-    imagesExist = checks.every(Boolean)
+    const unreachableIndices: number[] = []
+
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i]
+      const assetPath = resolveSceneExportAssetPath(scene)
+      let imageUrl = resolveSceneExportImageUrl(scene)
+
+      if (assetPath) {
+        const exists = await storyboardStorageExists(assetPath)
+        if (!exists) {
+          unreachableIndices.push(i + 1)
+          continue
+        }
+        const refreshed = await refreshStoryboardUrl(assetPath)
+        if (refreshed) imageUrl = refreshed
+      }
+
+      if (!imageUrl?.trim()) {
+        unreachableIndices.push(i + 1)
+        continue
+      }
+
+      const reachable = await assetReachable(imageUrl)
+      if (!reachable && !assetPath) {
+        unreachableIndices.push(i + 1)
+      }
+    }
+
+    imagesExist = unreachableIndices.length === 0
     if (!imagesExist) {
       missing.push('images')
-      if (unreachable.length > 0) {
-        const nums = unreachable.map((r) => r.index)
-        const sceneWord = nums.length === 1 ? 'Scene' : 'Scenes'
-        const verb = nums.length === 1 ? 'is' : 'are'
-        const list =
-          nums.length === 1
-            ? String(nums[0])
-            : nums.length === 2
-              ? `${nums[0]} and ${nums[1]}`
-              : `${nums.slice(0, -1).join(', ')}, and ${nums[nums.length - 1]}`
+      if (unreachableIndices.length > 0) {
         return {
           valid: false,
           voiceExists,
@@ -99,7 +132,7 @@ export async function validateExportAssets(params: {
           captionsExist: false,
           timelineExists: Boolean(timeline?.clips?.length),
           missing,
-          message: `Cannot export reel — ${sceneWord.toLowerCase()} ${list} ${verb} missing reachable storyboard images (link may have expired). Regenerate them, then try export again.`,
+          message: formatUnreachableSceneMessage(unreachableIndices),
         }
       }
     }

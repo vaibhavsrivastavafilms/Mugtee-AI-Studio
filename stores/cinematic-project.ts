@@ -46,6 +46,8 @@ export interface StoryboardImage {
   id: string
   url: string
   variantLabel: string
+  /** Supabase storage path — durable; url is refreshed on load/export. */
+  assetPath?: string
 }
 
 export interface CinematicScene {
@@ -67,6 +69,8 @@ export interface CinematicScene {
   lighting?: string
   sound?: string
   imageUrl?: string
+  /** Primary still storage path when imageUrl is ephemeral. */
+  imageAssetPath?: string
   storyboardImages?: StoryboardImage[]
   activeStoryboardId?: string
   metadata?: Record<string, unknown>

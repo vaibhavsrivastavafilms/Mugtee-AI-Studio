@@ -5,14 +5,25 @@ export type SceneExportImageSource = {
   id: string
   title?: string | null
   imageUrl?: string | null
+  imageAssetPath?: string | null
   activeStoryboardId?: string | null
-  storyboardImages?: { id: string; url?: string | null }[] | null
+  storyboardImages?: { id: string; url?: string | null; assetPath?: string | null }[] | null
 }
 
 export type MissingExportScene = {
   index: number
   id: string
   title: string
+}
+
+export function resolveSceneExportAssetPath(scene: SceneExportImageSource): string | null {
+  if (scene.imageAssetPath?.trim()) return scene.imageAssetPath.trim()
+  const active = scene.storyboardImages?.find(
+    (img) => img.id === scene.activeStoryboardId
+  )
+  if (active?.assetPath?.trim()) return active.assetPath.trim()
+  const first = scene.storyboardImages?.[0]?.assetPath
+  return first?.trim() ? first.trim() : null
 }
 
 export function resolveSceneExportImageUrl(scene: SceneExportImageSource): string | null {
@@ -25,17 +36,21 @@ export function resolveSceneExportImageUrl(scene: SceneExportImageSource): strin
   return first?.trim() ? first.trim() : null
 }
 
+export function sceneHasExportableStoryboard(scene: SceneExportImageSource): boolean {
+  return Boolean(resolveSceneExportImageUrl(scene) || resolveSceneExportAssetPath(scene))
+}
+
 export function findScenesMissingExportImages(
   scenes: SceneExportImageSource[]
 ): MissingExportScene[] {
   return scenes
     .map((scene, index) => ({
+      scene,
       index: index + 1,
       id: scene.id,
       title: scene.title?.trim() || `Scene ${index + 1}`,
-      imageUrl: resolveSceneExportImageUrl(scene),
     }))
-    .filter((row) => !row.imageUrl)
+    .filter(({ scene }) => !sceneHasExportableStoryboard(scene))
     .map(({ index, id, title }) => ({ index, id, title }))
 }
 
