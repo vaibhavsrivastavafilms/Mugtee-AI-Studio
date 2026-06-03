@@ -108,7 +108,7 @@ export default function AdminFeedbackPage() {
           Window
           <select
             value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
+            onChange={(e) => setDays(Number(e.currentTarget.value))}
             className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-luxe/80"
           >
             <option value={30}>30 days</option>
