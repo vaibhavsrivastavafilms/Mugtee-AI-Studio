@@ -65,31 +65,34 @@ const nextConfig = {
   },
 
   async headers() {
+    // Cross-origin isolation for browser MP4 export (SharedArrayBuffer + threaded ffmpeg.wasm).
+    // Scoped to /studio/* only — avoids breaking marketing/auth pages and strict COEP on third parties.
+    // credentialless COEP: allows Supabase/CDN images with crossOrigin="anonymous" without CORP.
+    // same-origin-allow-popups COOP: keeps Supabase/Google OAuth popups working.
+    const crossOriginIsolationHeaders = [
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+      { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+    ]
+
     return [
       {
         source: '/ffmpeg/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          // Same-origin assets; CORP helps if COEP pages fetch these cross-origin.
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
         ],
+      },
+      {
+        source: '/studio/:path*',
+        headers: crossOriginIsolationHeaders,
       },
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
     ]

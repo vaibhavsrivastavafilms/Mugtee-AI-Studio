@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { AlertTriangle, Cpu, Download, Loader2, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBrowserExport } from '@/lib/export/use-browser-export.client'
@@ -59,6 +59,17 @@ export function BrowserExportPreflight({
     }
   }, [capabilities.recommendedStrategy])
 
+  useEffect(() => {
+    const sab = typeof SharedArrayBuffer
+    console.info('[Mugtee browser export diagnostics]', {
+      crossOriginIsolated: capabilities.crossOriginIsolated,
+      sharedArrayBuffer: sab,
+      canUseThreadedFFmpeg: capabilities.canUseThreadedFFmpeg,
+      recommendedStrategy: capabilities.recommendedStrategy,
+      hardwareConcurrency: capabilities.hardwareConcurrency,
+    })
+  }, [capabilities])
+
   return (
     <div
       className={cn(
@@ -97,6 +108,14 @@ export function BrowserExportPreflight({
         ) : null}
         <span>{capabilities.crossOriginIsolated ? 'COI' : 'single-thread'}</span>
       </div>
+
+      <p
+        className="text-[9px] font-mono text-luxe/35 leading-relaxed"
+        data-testid="browser-export-diagnostics"
+      >
+        coi={String(capabilities.crossOriginIsolated)} · sab={typeof SharedArrayBuffer} · threaded=
+        {String(capabilities.canUseThreadedFFmpeg)}
+      </p>
 
       {capabilities.warnings.length > 0 ? (
         <ul className="space-y-1 text-[11px] text-amber-200/75" role="status">

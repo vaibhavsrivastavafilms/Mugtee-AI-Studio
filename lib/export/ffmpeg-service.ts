@@ -55,36 +55,53 @@ export async function initFFmpeg(options?: {
   if (loadPromise) return loadPromise
 
   loadPromise = (async () => {
-    const ffmpeg = new FFmpeg()
-    ffmpeg.on('log', ({ message }) => {
-      pushLog(message)
-      options?.onLog?.({ level: 'info', message })
-    })
-    ffmpeg.on('progress', ({ progress, time }) => {
-      options?.onProgress?.({
-        ratio: Math.min(1, Math.max(0, progress)),
-        timeMs: typeof time === 'number' ? time * 1000 : undefined,
-      })
-    })
-
     const base = ffmpegCoreBaseUrl()
-    const useThreaded = Boolean(options?.threaded)
-    const coreJs = useThreaded ? 'ffmpeg-core-mt.js' : 'ffmpeg-core.js'
-    const coreWasm = useThreaded ? 'ffmpeg-core-mt.wasm' : 'ffmpeg-core.wasm'
+    const wantThreaded = Boolean(options?.threaded)
 
-    await ffmpeg.load({
-      classWorkerURL: `${base}/ffmpeg-class-worker.js`,
-      coreURL: await toBlobURL(`${base}/${coreJs}`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${base}/${coreWasm}`, 'application/wasm'),
-      ...(useThreaded
-        ? {
-            workerURL: await toBlobURL(`${base}/ffmpeg-core.worker.js`, 'text/javascript'),
-          }
-        : {}),
-    })
+    const attachListeners = (ffmpeg: FFmpeg) => {
+      ffmpeg.on('log', ({ message }) => {
+        pushLog(message)
+        options?.onLog?.({ level: 'info', message })
+      })
+      ffmpeg.on('progress', ({ progress, time }) => {
+        options?.onProgress?.({
+          ratio: Math.min(1, Math.max(0, progress)),
+          timeMs: typeof time === 'number' ? time * 1000 : undefined,
+        })
+      })
+    }
 
-    ffmpegInstance = ffmpeg
-    return ffmpeg
+    const loadCore = async (useThreaded: boolean): Promise<FFmpeg> => {
+      const ffmpeg = new FFmpeg()
+      attachListeners(ffmpeg)
+      const coreJs = useThreaded ? 'ffmpeg-core-mt.js' : 'ffmpeg-core.js'
+      const coreWasm = useThreaded ? 'ffmpeg-core-mt.wasm' : 'ffmpeg-core.wasm'
+
+      await ffmpeg.load({
+        classWorkerURL: `${base}/ffmpeg-class-worker.js`,
+        coreURL: await toBlobURL(`${base}/${coreJs}`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${base}/${coreWasm}`, 'application/wasm'),
+        ...(useThreaded
+          ? {
+              workerURL: await toBlobURL(`${base}/ffmpeg-core.worker.js`, 'text/javascript'),
+            }
+          : {}),
+      })
+      return ffmpeg
+    }
+
+    try {
+      ffmpegInstance = await loadCore(wantThreaded)
+    } catch (err) {
+      if (wantThreaded) {
+        pushLog('Threaded FFmpeg load failed; falling back to single-thread core.')
+        ffmpegInstance = await loadCore(false)
+      } else {
+        throw err
+      }
+    }
+
+    return ffmpegInstance
   })()
 
   try {
