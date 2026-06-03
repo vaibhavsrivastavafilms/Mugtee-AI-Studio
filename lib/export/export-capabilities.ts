@@ -77,7 +77,11 @@ export function detectExportCapabilities(): ExportCapabilities {
     warnings.push('WebCodecs unavailable — using FFmpeg frame encode fallback.')
   }
   if (!canUseThreadedFFmpeg) {
-    warnings.push('Single-thread FFmpeg only (COOP/COEP + SharedArrayBuffer not enabled).')
+    warnings.push(
+      'Single-thread FFmpeg only (enable COOP/COEP on /studio/* for threaded wasm).'
+    )
+  } else {
+    warnings.push('Threaded FFmpeg.wasm available (cross-origin isolated).')
   }
   if (!canUseOffscreenCanvas) {
     warnings.push('OffscreenCanvas unavailable — main-thread canvas rendering.')

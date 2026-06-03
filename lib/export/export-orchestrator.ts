@@ -237,10 +237,13 @@ export async function startExport(
   let timing = newTiming('preparing')
   emit(onProgress, timing, 0, 'Preparing browser export…')
 
+  emit(onProgress, timing, 0.01, 'Loading FFmpeg.wasm…')
   await initFFmpeg({
     threaded: caps.canUseThreadedFFmpeg,
     onProgress: (p) => {
-      if (timing.phase === 'encoding' || timing.phase === 'muxing') {
+      if (timing.phase === 'preparing') {
+        emit(onProgress, timing, 0.01 + p.ratio * 0.04, 'Loading FFmpeg.wasm…')
+      } else if (timing.phase === 'encoding' || timing.phase === 'muxing') {
         emit(onProgress, timing, p.ratio, 'FFmpeg processing…')
       }
     },
