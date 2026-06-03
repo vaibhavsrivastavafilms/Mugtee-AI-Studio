@@ -3318,7 +3318,7 @@ export const useQuickCutGenerationStore = create<
             hook: get().hook,
             theme: useCompanionStore.getState().creativeBrief?.theme,
             tone: get().style,
-            platform: 'instagram',
+            platform: 'instagram_reel',
             format: `${get().duration}s reel`,
             contentType: 'reel',
             scriptExcerpt: get().script?.slice(0, 400),
