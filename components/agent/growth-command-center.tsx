@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CeoBriefingModal } from '@/components/agent/ceo-briefing-modal'
 import { CompetitorInsightsPanel } from '@/components/agent/competitor-insights-panel'
 import { CreatorMissionBoard } from '@/components/agent/creator-mission-board'
@@ -8,15 +9,27 @@ import { IdeaCaptureInput } from '@/components/agent/idea-capture-input'
 import { OpportunityFeed } from '@/components/agent/opportunity-feed'
 import { WeeklyPlannerCard } from '@/components/agent/weekly-planner-card'
 import { RecommendedNextMoveCard } from '@/components/decision/recommended-next-move-card'
+import { BusinessGrowthDashboard } from '@/components/business/business-growth-dashboard'
 import { useCreatorAgentStore } from '@/stores/creator-agent-store'
 
 export function GrowthCommandCenter() {
+  const searchParams = useSearchParams()
   const fetchBriefing = useCreatorAgentStore((s) => s.fetchBriefing)
   const setBriefingOpen = useCreatorAgentStore((s) => s.setBriefingOpen)
 
   useEffect(() => {
     void fetchBriefing()
   }, [fetchBriefing])
+
+  useEffect(() => {
+    const cmd = searchParams?.get('cmd')?.trim()
+    if (!cmd) return
+    void fetch('/api/business/executive-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: cmd }),
+    }).then(() => setBriefingOpen(true))
+  }, [searchParams, setBriefingOpen])
 
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-8 sm:space-y-10">
@@ -40,6 +53,8 @@ export function GrowthCommandCenter() {
           CEO briefing
         </button>
       </header>
+
+      <BusinessGrowthDashboard />
 
       <RecommendedNextMoveCard />
 

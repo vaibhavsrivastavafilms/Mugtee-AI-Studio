@@ -153,6 +153,7 @@ import {
   logProjectSave,
   logScriptRegen,
 } from '@/lib/memory/learning-loop'
+import { logWorkflowCompleteClient } from '@/lib/memory/workflow-learning'
 import { useContentQualityStore } from '@/stores/content-quality-store'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import { generateRulesContentBriefSync } from '@/lib/content-director/rules-content-brief'
@@ -3310,6 +3311,18 @@ export const useQuickCutGenerationStore = create<
             hook: get().hook,
             theme: useCompanionStore.getState().creativeBrief?.theme,
             tone: get().style,
+          })
+          logWorkflowCompleteClient({
+            projectId: get().savedProjectId ?? undefined,
+            title: get().title,
+            hook: get().hook,
+            theme: useCompanionStore.getState().creativeBrief?.theme,
+            tone: get().style,
+            platform: get().platform,
+            format: `${get().duration}s reel`,
+            contentType: 'reel',
+            scriptExcerpt: get().script?.slice(0, 400),
+            eventType: 'export_success',
           })
           const exportId = await persistStepComplete(
             get(),

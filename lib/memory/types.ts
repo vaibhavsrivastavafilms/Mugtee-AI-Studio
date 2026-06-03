@@ -17,9 +17,20 @@ export type CreatorDna = {
   updatedAt?: string
 }
 
+export type MemoryGraphNodeType =
+  | 'topic'
+  | 'project'
+  | 'hook'
+  | 'theme'
+  | 'creator'
+  | 'brand'
+  | 'campaign'
+  | 'content'
+  | 'asset'
+
 export type MemoryGraphNode = {
   id: string
-  type: 'topic' | 'project' | 'hook' | 'theme'
+  type: MemoryGraphNodeType
   label: string
   weight?: number
 }
@@ -105,6 +116,50 @@ export const RELATIONSHIP_THRESHOLDS: { level: RelationshipLevel; minScore: numb
   { level: 'collaborator', minScore: 50 },
   { level: 'explorer', minScore: 0 },
 ]
+
+/** Phase 3 typed agent memories */
+export type MemoryKind = 'identity' | 'brand' | 'workflow' | 'preference' | 'feedback'
+
+export type BrandProfile = {
+  id: string
+  slug: string
+  displayName: string
+  dna: CreatorDna
+  preferences: Record<string, unknown>
+  isDefault: boolean
+}
+
+export type CreatorPattern = {
+  id: string
+  patternType: string
+  label: string
+  strength: number
+  payload?: Record<string, unknown>
+  brandId?: string | null
+}
+
+export type ContentHistoryEntry = {
+  id: string
+  projectId?: string | null
+  brandId?: string | null
+  contentType: string
+  title?: string
+  hook?: string
+  theme?: string
+  platform?: string
+  format?: string
+  at: string
+}
+
+export type RetrievedMemoryBundle = {
+  profile: MemoryProfile
+  brands: BrandProfile[]
+  activeBrand?: BrandProfile | null
+  patterns: CreatorPattern[]
+  history: ContentHistoryEntry[]
+  agentMemories: Array<{ type: MemoryKind; key: string; content: string }>
+  semanticHits: Array<{ text: string; score: number; sourceType: string }>
+}
 
 export const EVENT_SCORE_WEIGHTS: Partial<Record<CreatorEventType, number>> = {
   hook_accept: 3,

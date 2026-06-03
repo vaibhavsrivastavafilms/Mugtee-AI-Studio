@@ -7,11 +7,13 @@ import {
   Bell,
   Clapperboard,
   Film,
+  FolderOpen,
   Image as ImageIcon,
   Sparkles,
   Users2,
   Zap,
 } from 'lucide-react'
+import type { Asset } from '@/lib/assets/types'
 import { NotificationPanel } from '@/components/shell/notification-panel'
 import { cn } from '@/lib/utils'
 import { CreateNewProjectButton } from '@/components/retention/create-new-project-button'
@@ -47,6 +49,22 @@ export function HeaderSearchDropdown({
 }) {
   const router = useRouter()
   const { content, crew, shoots, media } = useStore()
+  const [creativeAssets, setCreativeAssets] = useState<Asset[]>([])
+
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 2) {
+      setCreativeAssets([])
+      return
+    }
+    const t = setTimeout(() => {
+      void fetch(`/api/assets/search?q=${encodeURIComponent(q)}&semantic=1&limit=5`)
+        .then((r) => r.json())
+        .then((d) => setCreativeAssets((d.assets ?? []) as Asset[]))
+        .catch(() => setCreativeAssets([]))
+    }, 280)
+    return () => clearTimeout(t)
+  }, [query])
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -72,8 +90,9 @@ export function HeaderSearchDropdown({
     ? results.content.length +
       results.crew.length +
       results.shoots.length +
-      results.media.length
-    : 0
+      results.media.length +
+      creativeAssets.length
+    : creativeAssets.length
 
   const goto = (path: string) => {
     setQuery('')
@@ -96,9 +115,32 @@ export function HeaderSearchDropdown({
             </div>
           ) : (
             <>
-              {results!.content.length > 0 && (
+              {creativeAssets.length > 0 && (
+                <SearchGroup label="Creative assets" icon={FolderOpen}>
+                  {creativeAssets.map((a) => (
+                    <SearchRow
+                      key={a.id}
+                      title={a.title}
+                      sub={`${a.type}${a.tags[0] ? ` · ${a.tags[0]}` : ''}`}
+                      onClick={() =>
+                        goto(`/studio/assets?q=${encodeURIComponent(a.title)}`)
+                      }
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-xs text-cyan-300/80 hover:bg-white/5 rounded-lg"
+                    onClick={() =>
+                      goto(`/studio/assets?q=${encodeURIComponent(query.trim())}`)
+                    }
+                  >
+                    View all in Asset Library →
+                  </button>
+                </SearchGroup>
+              )}
+              {results && results.content.length > 0 && (
                 <SearchGroup label="Content" icon={Film}>
-                  {results!.content.map((c) => (
+                  {results.content.map((c) => (
                     <SearchRow
                       key={c.id}
                       title={c.title}
@@ -108,9 +150,9 @@ export function HeaderSearchDropdown({
                   ))}
                 </SearchGroup>
               )}
-              {results!.crew.length > 0 && (
+              {results && results.crew.length > 0 && (
                 <SearchGroup label="Crew" icon={Users2}>
-                  {results!.crew.map((c) => (
+                  {results.crew.map((c) => (
                     <SearchRow
                       key={c.id}
                       title={c.name}
@@ -120,9 +162,9 @@ export function HeaderSearchDropdown({
                   ))}
                 </SearchGroup>
               )}
-              {results!.shoots.length > 0 && (
+              {results && results.shoots.length > 0 && (
                 <SearchGroup label="Shoots" icon={Clapperboard}>
-                  {results!.shoots.map((s) => (
+                  {results.shoots.map((s) => (
                     <SearchRow
                       key={s.id}
                       title={s.title}
@@ -132,9 +174,9 @@ export function HeaderSearchDropdown({
                   ))}
                 </SearchGroup>
               )}
-              {results!.media.length > 0 && (
+              {results && results.media.length > 0 && (
                 <SearchGroup label="Media" icon={ImageIcon}>
-                  {results!.media.map((m) => (
+                  {results.media.map((m) => (
                     <SearchRow
                       key={m.id}
                       title={m.title}

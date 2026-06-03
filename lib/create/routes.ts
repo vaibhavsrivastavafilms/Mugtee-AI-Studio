@@ -18,8 +18,13 @@ const STUDIO = {
   growth: '/studio/growth',
   analytics: '/studio/analytics',
   exports: '/studio/exports',
+  assets: '/studio/assets',
   director: '/studio/director',
   settings: '/studio/settings',
+  memory: '/studio/memory',
+  marketplace: '/studio/marketplace',
+  integrations: '/studio/integrations',
+  workspaces: '/studio/workspaces',
 } as const
 
 export { STUDIO }

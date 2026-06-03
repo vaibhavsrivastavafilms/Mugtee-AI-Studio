@@ -13,6 +13,7 @@ import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { StyleTemplatePicker } from '@/components/templates/style-template-picker'
 import { getStyleTemplateById } from '@/lib/templates/style-templates'
+import { MemoryPanel } from '@/components/memory/memory-panel'
 
 type StudioDirectorPanelProps = {
   className?: string
@@ -76,6 +77,8 @@ export function StudioDirectorPanel({ className }: StudioDirectorPanelProps) {
           scenes={scenes}
           duration={duration}
         />
+
+        <MemoryPanel />
 
         <CreatorToneMemory style={style} niche={niche} className="text-left" />
 

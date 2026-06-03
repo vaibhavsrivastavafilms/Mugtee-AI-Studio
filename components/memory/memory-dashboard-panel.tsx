@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { Brain, Sparkles, TrendingUp, Users, Zap } from 'lucide-react'
+import { STUDIO } from '@/lib/create/routes'
 import { cn } from '@/lib/utils'
 import { useCreatorMemoryStore } from '@/stores/creator-memory-store'
 import { dashboardInsights } from '@/lib/memory/companion-messages'
@@ -62,7 +64,15 @@ export function MemoryDashboardPanel({ className, compact }: MemoryDashboardPane
             DNA, hooks, and patterns learned across sessions.
           </p>
         </div>
-        <RelationshipBadge level={profile.relationshipLevel} score={profile.relationshipScore} />
+        <div className="flex flex-col items-end gap-2">
+          <RelationshipBadge level={profile.relationshipLevel} score={profile.relationshipScore} />
+          <Link
+            href={STUDIO.memory}
+            className="text-[10px] text-gold-400/80 hover:text-gold-300"
+          >
+            Full dashboard →
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
