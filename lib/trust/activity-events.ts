@@ -77,8 +77,7 @@ export function logPipelineActivity(
   if (!eventType || !projectId) return
   void logEvent({
     event_type: eventType,
-    project_id: projectId,
     target: title,
-    metadata: { step },
+    metadata: { step, cinematic_project_id: projectId },
   })
 }

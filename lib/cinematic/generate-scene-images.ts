@@ -334,10 +334,32 @@ export async function generateSceneImages(
       return renderSceneStill(scene, index, duplicateRetry + 1)
     }
 
-    const imageAssetPath =
+    let imageAssetPath =
       imageUrl && !imageUrl.startsWith('data:') && imageUrl.includes('/project-assets/')
         ? filename
         : undefined
+
+    if (
+      !input.variation &&
+      imageUrl &&
+      !imageAssetPath &&
+      input.projectId?.trim() &&
+      input.userId?.trim()
+    ) {
+      const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
+      if (isEphemeralRemoteImageUrl(imageUrl)) {
+        const repaired = await persistRemoteImage({
+          remoteUrl: imageUrl,
+          userId: input.userId,
+          filename,
+        })
+        if (repaired && repaired !== imageUrl) {
+          imageUrl = repaired
+          const { extractStoragePathFromUrl } = await import('@/lib/storyboard/storyboard-asset')
+          imageAssetPath = extractStoragePathFromUrl(repaired) ?? filename
+        }
+      }
+    }
 
     if (input.variation) {
       scene.variationImageUrl = imageUrl

@@ -90,9 +90,13 @@ export async function logEvent(input: LogEventInput): Promise<void> {
     const metadata: Record<string, unknown> = {
       ...(input.metadata || {}),
     }
-    if (input.project_id) {
-      metadata.cinematic_project_id = input.project_id
-    }
+    const cinematicProjectId =
+      typeof metadata.cinematic_project_id === 'string'
+        ? metadata.cinematic_project_id.trim() || null
+        : null
+
+    /** Quick Cut IDs are not content_pieces — never FK-bind them (avoids 409 noise). */
+    const useContentFk = Boolean(input.project_id?.trim()) && !cinematicProjectId
 
     const base = {
       user_id: user.id,
@@ -103,7 +107,7 @@ export async function logEvent(input: LogEventInput): Promise<void> {
       metadata,
     }
 
-    if (input.project_id) {
+    if (useContentFk && input.project_id) {
       const withFk = await supabase.from('team_activity').insert({
         ...base,
         project_id: input.project_id,
