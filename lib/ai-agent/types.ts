@@ -122,7 +122,7 @@ export type AgentWorkflowRecord = {
 /** Cmd+K / voice command layer */
 export const CommandIntentSchema = z.object({
   intent: z.string(),
-  args: z.record(z.string(), z.unknown()),
+  args: z.object({}).catchall(z.unknown()),
   confidence: z.number().min(0).max(1).optional(),
 })
 export type CommandIntent = z.infer<typeof CommandIntentSchema>
