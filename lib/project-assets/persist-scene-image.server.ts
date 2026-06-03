@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
 export type PersistSceneImageAssetInput = {
   userId: string
@@ -41,7 +42,8 @@ export async function persistSceneImageAsset(
       user_id: userId,
       kind: 'image',
       url,
-      storage_path: input.storagePath?.trim() || null,
+      storage_path:
+        input.storagePath?.trim() || extractStoragePathFromUrl(url) || null,
       mime_type: 'image/png',
       title: input.title?.trim() || null,
       prompt: input.prompt?.trim() || null,

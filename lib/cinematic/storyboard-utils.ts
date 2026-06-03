@@ -8,12 +8,16 @@ export function normalizeStoryboardImages(raw: unknown): StoryboardImage[] {
       if (!item || typeof item !== 'object') return null
       const row = item as Record<string, unknown>
       const url = typeof row.url === 'string' ? row.url.trim() : ''
+      const assetPath =
+        typeof row.assetPath === 'string' && row.assetPath.trim()
+          ? row.assetPath.trim()
+          : undefined
       const variantLabel =
         typeof row.variantLabel === 'string' ? row.variantLabel.trim() : 'Frame'
       const id =
         typeof row.id === 'string' && row.id.trim() ? row.id.trim() : uuidv4()
-      if (!url) return null
-      return { id, url, variantLabel }
+      if (!url && !assetPath) return null
+      return { id, url: url || '', variantLabel, ...(assetPath ? { assetPath } : {}) }
     })
     .filter(Boolean) as StoryboardImage[]
 }
@@ -45,6 +49,7 @@ export function applyStoryboardToScene(
     storyboardImages: images,
     activeStoryboardId: active?.id,
     imageUrl: active?.url ?? scene.imageUrl,
+    imageAssetPath: active?.assetPath ?? scene.imageAssetPath,
   }
 }
 
@@ -59,6 +64,7 @@ export function selectStoryboardVariant(
     ...scene,
     activeStoryboardId: selected.id,
     imageUrl: selected.url,
+    imageAssetPath: selected.assetPath ?? scene.imageAssetPath,
   }
 }
 

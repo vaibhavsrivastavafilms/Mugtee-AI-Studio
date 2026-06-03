@@ -334,10 +334,16 @@ export async function generateSceneImages(
       return renderSceneStill(scene, index, duplicateRetry + 1)
     }
 
+    const imageAssetPath =
+      imageUrl && !imageUrl.startsWith('data:') && imageUrl.includes('/project-assets/')
+        ? filename
+        : undefined
+
     if (input.variation) {
       scene.variationImageUrl = imageUrl
     } else {
       scene.imageUrl = imageUrl
+      if (imageAssetPath) scene.imageAssetPath = imageAssetPath
       if (input.projectId?.trim() && input.userId?.trim() && imageUrl) {
         const { persistSceneImageAsset } = await import(
           '@/lib/project-assets/persist-scene-image.server'
@@ -346,7 +352,7 @@ export async function generateSceneImages(
           userId: input.userId.trim(),
           projectId: input.projectId.trim(),
           url: imageUrl,
-          storagePath: filename,
+          storagePath: imageAssetPath ?? filename,
           prompt: scenePrompt,
           title: scene.title ?? null,
           sceneId: scene.id,

@@ -299,7 +299,8 @@ async function generateStoryboardImageUrl(params: {
   projectId: string
   visual: SceneVisualDirection
   variantLabel: string
-}): Promise<{ url: string; mock: boolean }> {
+  filename: string
+}): Promise<{ url: string; mock: boolean; assetPath?: string }> {
   const placeholder = () =>
     buildPlaceholderStoryboard(params.sceneIndex, params.variantLabel, params.visual).url
 
@@ -316,7 +317,7 @@ async function generateStoryboardImageUrl(params: {
   ].join('\n')
 
   const cinematic = `${params.prompt}\n\n${cinematicBits}`
-  const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.sceneIndex}_${params.variantIndex}_${Date.now()}.png`
+  const filename = params.filename
 
   // Primary: Together AI → Pollinations
   {
@@ -326,7 +327,7 @@ async function generateStoryboardImageUrl(params: {
     })
     const url = result.url
     if (url && !url.startsWith('data:')) {
-      return { url, mock: false }
+      return { url, mock: false, assetPath: filename }
     }
     if (url) {
       return { url, mock: true }
@@ -343,7 +344,8 @@ async function generateStoryboardImageUrl(params: {
           userId: params.userId,
           filename,
         })
-        return { url, mock: false }
+        const assetPath = url.includes('/project-assets/') ? filename : undefined
+        return { url, mock: false, assetPath }
       }
     } catch {
       /* fall through to placeholder */
@@ -376,6 +378,7 @@ export async function generateSceneStoryboardImages(params: {
   for (let i = 0; i < STORYBOARD_VARIANTS.length; i++) {
     const variant = STORYBOARD_VARIANTS[i]
     const prompt = buildStoryboardPrompt(params.input, i)
+    const filename = `${params.userId}/cinematic/${params.projectId}/sb_${params.input.sceneIndex}_${i}_${Date.now()}.png`
     const result = await generateStoryboardImageUrl({
       prompt,
       styleLock,
@@ -385,13 +388,16 @@ export async function generateSceneStoryboardImages(params: {
       projectId: params.projectId,
       visual,
       variantLabel: variant.label,
+      filename,
     })
     if (result.mock) anyMock = true
     const imageId = uuidv4()
+    const assetPath = result.assetPath ?? undefined
     images.push({
       id: imageId,
       url: result.url,
       variantLabel: variant.label,
+      ...(assetPath ? { assetPath } : {}),
     })
 
     if (i === 0 && result.url && !result.url.startsWith('data:image/svg')) {
@@ -402,6 +408,7 @@ export async function generateSceneStoryboardImages(params: {
         userId: params.userId,
         projectId: params.projectId,
         url: result.url,
+        storagePath: assetPath ?? null,
         prompt,
         title: params.input.scene.title ?? `Scene ${params.input.sceneIndex}`,
         sceneId: params.input.scene.id,
