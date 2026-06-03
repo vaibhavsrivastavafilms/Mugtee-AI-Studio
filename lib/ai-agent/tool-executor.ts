@@ -179,30 +179,26 @@ export async function executeRegisteredTool(
         typeof args.scheduledFor === 'string'
           ? args.scheduledFor
           : new Date(Date.now() + 3600_000).toISOString()
-      const { data: project } = await ctx.supabase
-        .from('cinematic_projects')
-        .select('title, script')
-        .eq('id', projectId)
-        .eq('user_id', ctx.userId)
-        .maybeSingle()
-      const caption = String(
-        args.caption ?? project?.script?.slice(0, 300) ?? project?.title ?? ctx.goal
-      ).slice(0, 2200)
       const { data, error } = await ctx.supabase
         .from('publishing_queue')
         .insert({
           user_id: ctx.userId,
-          title: project?.title ?? 'Mugtee publish',
+          content_id: null,
           platform,
           status: 'queued',
           scheduled_for: scheduledFor,
-          caption,
-          project_id: projectId,
         })
-        .select('id, status, scheduled_for')
+        .select('id, status, scheduled_for, platform')
         .single()
       if (error) throw new Error(error.message)
-      return { queueId: data.id, status: data.status, scheduledFor: data.scheduled_for }
+      return {
+        queueId: data.id,
+        status: data.status,
+        scheduledFor: data.scheduled_for,
+        platform: data.platform,
+        projectId,
+        href: '/automations',
+      }
     }
     case 'generateScript':
     case 'generateInstagramReel': {
@@ -388,6 +384,65 @@ export async function executeRegisteredTool(
           typeof args.engagementScore === 'number' ? args.engagementScore : undefined,
       })
       return { ...drop, href: '/studio/growth' }
+    }
+    case 'connectIntegration': {
+      const provider = String(args.provider ?? 'notion')
+      const result = await connectProvider(ctx.supabase, ctx.userId, provider)
+      return { provider, status: result.row?.status ?? 'connected', stub: true }
+    }
+    case 'executeIntegration': {
+      const provider = String(args.provider ?? 'notion')
+      const action = String(args.action ?? 'list')
+      const result = await runIntegrationAction(
+        ctx.supabase,
+        ctx.userId,
+        provider,
+        action,
+        (args.args as Record<string, unknown>) ?? {}
+      )
+      return { result }
+    }
+    case 'installMarketplaceAgent': {
+      const slug = String(args.agentSlug ?? 'restaurant-agent')
+      const { install, grants } = await installMarketplaceAgent(ctx.supabase, ctx.userId, slug)
+      return { install, grants }
+    }
+    case 'runMarketplaceAgent': {
+      const slug = String(args.agentSlug ?? 'restaurant-agent')
+      const grants =
+        (await loadInstallPermissions(ctx.supabase, ctx.userId, slug)) ||
+        defaultPermissionsForAgent(slug)
+      if (slug === 'restaurant-agent') {
+        const agent = new RestaurantAgent()
+        agent.setPermissionGrants(grants)
+        const result = await agent.run({
+          userId: ctx.userId,
+          goal: ctx.goal,
+          permissions: grants.filter((g) => g.granted).map((g) => g.permission),
+        })
+        return { result }
+      }
+      return { summary: `Stub run for ${slug}`, outputs: { goal: ctx.goal } }
+    }
+    case 'schedulePublish': {
+      const phrase = String(args.phrase ?? ctx.goal)
+      if (/publish|schedule|tomorrow|pm|am/i.test(phrase)) {
+        const row = await scheduleFromPhrase(ctx.supabase, ctx.userId, phrase, {
+          platform: String(args.platform ?? 'instagram'),
+          caption: String(args.caption ?? ''),
+        })
+        return { schedule: row }
+      }
+      const scheduledAt = args.scheduledAt
+        ? new Date(String(args.scheduledAt))
+        : new Date(Date.now() + 86400000)
+      const row = await schedulePublish(ctx.supabase, ctx.userId, {
+        platform: String(args.platform ?? 'instagram'),
+        caption: String(args.caption ?? ''),
+        scheduledAt,
+        contentRef: {},
+      })
+      return { schedule: row }
     }
     default: {
       const _exhaustive: never = tool

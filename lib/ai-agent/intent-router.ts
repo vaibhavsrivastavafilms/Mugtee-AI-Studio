@@ -79,7 +79,7 @@ export function routeIntent(analysis: GoalAnalysis): RoutedIntent {
 
 const LlmIntentSchema = z.object({
   intent: z.string(),
-  args: z.record(z.string(), z.unknown()).default({}),
+  args: z.object({}).catchall(z.unknown()).default({}),
   confidence: z.number().min(0).max(1).optional(),
 })
 

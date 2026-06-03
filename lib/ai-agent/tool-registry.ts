@@ -196,13 +196,13 @@ export const REGISTERED_TOOLS = {
     name: 'businessLeads',
     description: 'Lead capture, scoring, nurturing, and opportunities',
     category: 'business',
-    argsSchema: loose,
+    argsSchema: looseArgs,
   },
   businessRevenue: {
     name: 'businessRevenue',
     description: 'Offers, monetization analysis, and revenue tracking',
     category: 'business',
-    argsSchema: loose,
+    argsSchema: looseArgs,
   },
   businessExecutiveReview: {
     name: 'businessExecutiveReview',
@@ -220,6 +220,49 @@ export const REGISTERED_TOOLS = {
         projectId: z.string().optional(),
         contentAssetId: z.string().optional(),
         engagementScore: z.number().optional(),
+      })
+      .passthrough(),
+  },
+  connectIntegration: {
+    name: 'connectIntegration',
+    description: 'Connect a third-party provider (Notion, Instagram, etc.)',
+    category: 'integration',
+    argsSchema: z.object({ provider: z.string().optional() }).passthrough(),
+  },
+  executeIntegration: {
+    name: 'executeIntegration',
+    description: 'Run an integration action on a connected provider',
+    category: 'integration',
+    argsSchema: z
+      .object({
+        provider: z.string().optional(),
+        action: z.string().optional(),
+        args: z.object({}).catchall(z.unknown()).optional(),
+      })
+      .passthrough(),
+  },
+  installMarketplaceAgent: {
+    name: 'installMarketplaceAgent',
+    description: 'Install a marketplace agent for the current user',
+    category: 'marketplace',
+    argsSchema: z.object({ agentSlug: z.string().optional() }).passthrough(),
+  },
+  runMarketplaceAgent: {
+    name: 'runMarketplaceAgent',
+    description: 'Execute an installed marketplace agent',
+    category: 'marketplace',
+    argsSchema: z.object({ agentSlug: z.string().optional() }).passthrough(),
+  },
+  schedulePublish: {
+    name: 'schedulePublish',
+    description: 'Schedule content publish to a social platform',
+    category: 'publish',
+    argsSchema: z
+      .object({
+        phrase: z.string().optional(),
+        platform: z.string().optional(),
+        caption: z.string().optional(),
+        scheduledAt: z.string().optional(),
       })
       .passthrough(),
   },
