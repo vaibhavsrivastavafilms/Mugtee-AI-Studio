@@ -56,8 +56,11 @@ export async function POST(req: NextRequest) {
           ? raw.imageNote
           : undefined
 
+    const projectId = parseFeatureUsageProjectId(raw)
+
     const result = await generateSceneImages({
       scenes,
+      projectId,
       characterDescription:
         typeof raw?.characterDescription === 'string'
           ? raw.characterDescription

@@ -99,6 +99,7 @@ async function attachSceneImages(
     style: string
     emotionalGoal?: string
     userId: string
+    projectId?: string
   }
 ): Promise<{ scenes: CinematicScene[]; frames: string[]; mock: boolean }> {
   const generated = storeScenesToGenerated(scenes)
@@ -124,6 +125,7 @@ async function attachSceneImages(
     niche: ctx.niche,
     style: ctx.style,
     userId: ctx.userId,
+    projectId: ctx.projectId,
   })
 
   const patchById = new Map(result.scenes.map((s) => [s.id, s]))

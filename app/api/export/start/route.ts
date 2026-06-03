@@ -3,17 +3,11 @@ import { requireCinematicUser, parseJsonBody } from '@/lib/cinematic/regen-auth'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import {
   loadOwnedCinematicProject,
-  projectCanExportReel,
+  getExportReadinessForProject,
   queueReelExportForProject,
   buildValidatedDownloadResponse,
 } from '@/lib/reels/export-api'
 import { findActiveExportJobForProject, exportJobToPollResponse } from '@/lib/export/export-job-service'
-import { resolveProjectScenes } from '@/lib/cinematic-projects'
-import {
-  findScenesMissingExportImages,
-  missingScenesExportMessage,
-  VOICE_REQUIRED_EXPORT_MSG,
-} from '@/lib/export/scene-export-validation'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
@@ -88,15 +82,13 @@ export async function POST(req: NextRequest) {
     const renderBlocked = await guardUsageLimit(auth.user!.id, 'renders')
     if (renderBlocked) return renderBlocked
 
-    if (!projectCanExportReel(row)) {
-      const missing = findScenesMissingExportImages(resolveProjectScenes(row))
-      const voiceUrl = row.voice?.audioUrl?.trim() ?? null
+    const readiness = await getExportReadinessForProject(row, auth.user!.id, {
+      includeVoiceover,
+    })
+    if (!readiness.canExport) {
       const validationError =
-        missing.length > 0
-          ? missingScenesExportMessage(missing)
-          : !voiceUrl
-            ? VOICE_REQUIRED_EXPORT_MSG
-            : 'Add storyboard images and voice narration before exporting a reel.'
+        readiness.message ??
+        'Add storyboard images and voice narration before exporting a reel.'
       void trackMp4FailedServer({
         userId: auth.user!.id,
         projectId,
@@ -104,7 +96,18 @@ export async function POST(req: NextRequest) {
         err: validationError,
         route: 'POST /api/export/start',
       })
-      return NextResponse.json({ error: validationError }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: validationError,
+          canExport: readiness.canExport,
+          imageCount: readiness.imageCount,
+          requiredImages: readiness.requiredImages,
+          voiceoverCount: readiness.voiceoverCount,
+          assetCount: readiness.assetCount,
+          missingAssets: readiness.missingAssets,
+        },
+        { status: 400 }
+      )
     }
 
     const { jobId, status } = await queueReelExportForProject({

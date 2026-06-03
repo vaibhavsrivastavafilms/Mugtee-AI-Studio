@@ -32,6 +32,14 @@ import {
   VOICE_REQUIRED_EXPORT_MSG,
 } from '@/lib/export/scene-export-validation'
 import {
+  buildExportReadiness,
+  getExportReadinessForProject,
+  logExportAssetCounts,
+  resolveExportScenes,
+  type ExportReadinessResult,
+  type ProjectAssetCounts,
+} from '@/lib/export/export-readiness.server'
+import {
   recordExportMetricFailure,
   recordExportMetricSuccess,
 } from '@/lib/export/export-metrics.server'
@@ -128,6 +136,27 @@ export function projectCanExportReel(row: CinematicProjectRow): boolean {
   if (scenes.length < 1) return false
   if (!voiceUrl) return false
   return allScenesHaveExportImages(scenes)
+}
+
+export { getExportReadinessForProject, type ExportReadinessResult }
+
+/** Sync readiness from in-memory scenes (no project_assets hydration). */
+export function exportReadinessFromRow(
+  row: CinematicProjectRow,
+  assetCounts?: ProjectAssetCounts
+): ExportReadinessResult {
+  const scenes = resolveProjectScenes(row)
+  return buildExportReadiness({
+    scenes,
+    voiceUrl: row.voice?.audioUrl,
+    assetCounts:
+      assetCounts ?? {
+        assetCount: 0,
+        imageCount: 0,
+        voiceoverCount: 0,
+        imageAssets: [],
+      },
+  })
 }
 
 export async function loadOwnedCinematicProject(
@@ -281,18 +310,45 @@ export async function queueReelExportForProject(params: {
   includeVoiceover: boolean
   includeCaptions: boolean
 }): Promise<{ jobId: string; status: ReelExportStatus }> {
-  const scenes = scenesForReelExport(resolveProjectScenes(params.row))
+  const { scenes: hydratedStoreScenes, assetCounts, hydratedCount } =
+    await resolveExportScenes(params.row, params.userId)
+
+  logExportAssetCounts({
+    projectId: params.row.id,
+    assetCount: assetCounts.assetCount,
+    imageCount: assetCounts.imageCount,
+    voiceoverCount: assetCounts.voiceoverCount,
+    sceneCount: hydratedStoreScenes.length,
+    hydratedFromAssets: hydratedCount,
+  })
+
+  const readiness = buildExportReadiness({
+    scenes: hydratedStoreScenes,
+    voiceUrl: params.row.voice?.audioUrl,
+    assetCounts,
+    includeVoiceover: params.includeVoiceover,
+  })
+
+  if (!readiness.canExport) {
+    const detail =
+      readiness.missingAssets.length > 0
+        ? readiness.missingAssets.map((m) => m.message).join(' ')
+        : (readiness.message ?? 'Export assets are missing.')
+    throw new Error(detail)
+  }
+
+  const exportRow: CinematicProjectRow =
+    hydratedCount > 0
+      ? { ...params.row, scenes: hydratedStoreScenes, storyboard: hydratedStoreScenes }
+      : params.row
+
+  const scenes = scenesForReelExport(hydratedStoreScenes)
   if (scenes.length < 1) {
     throw new Error('At least one storyboard scene is required.')
   }
 
-  const missingImages = findScenesMissingExportImages(resolveProjectScenes(params.row))
-  if (missingImages.length > 0) {
-    throw new Error(missingScenesExportMessage(missingImages))
-  }
-
   const voiceUrl = params.includeVoiceover
-    ? params.row.voice?.audioUrl?.trim() ?? null
+    ? exportRow.voice?.audioUrl?.trim() ?? null
     : null
 
   if (params.includeVoiceover && !voiceUrl) {
@@ -301,7 +357,7 @@ export async function queueReelExportForProject(params: {
 
   const jobId = `reel-${uuidv4()}-${Date.now()}`
   const exportStartedAt = Date.now()
-  const imageCount = scenes.filter((s) => s.imageUrl?.trim()).length
+  const imageCount = readiness.imageCount
   const expectedDurationSec = computeRenderTotalSec(scenes)
 
   void trackMp4ExportServer({
@@ -328,7 +384,7 @@ export async function queueReelExportForProject(params: {
   })
 
   const validation = await validateExportAssets({
-    row: params.row,
+    row: exportRow,
     includeVoiceover: params.includeVoiceover,
     includeCaptions: params.includeCaptions,
   })
@@ -390,15 +446,15 @@ export async function queueReelExportForProject(params: {
     .catch(() => undefined)
 
   const input = {
-    idea: params.row.prompt || params.row.title || 'cinematic-story',
-    title: params.row.title || 'Untitled reel',
-    script: params.row.script || '',
+    idea: exportRow.prompt || exportRow.title || 'cinematic-story',
+    title: exportRow.title || 'Untitled reel',
+    script: exportRow.script || '',
     scenes,
     voiceAudioPath: null,
     voiceUrl,
     subtitles: params.includeCaptions ? [] : [],
     userId: params.userId,
-    projectId: params.row.id,
+    projectId: exportRow.id,
   }
 
   runExportInBackground(() =>

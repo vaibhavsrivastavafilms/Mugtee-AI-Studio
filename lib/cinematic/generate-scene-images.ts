@@ -68,6 +68,8 @@ export type GenerateSceneImagesInput = {
   /** Rotation index for camera/framing diversity on regen */
   diversityAttempt?: number
   userId?: string
+  /** When set, each generated still is recorded in project_assets (kind=image). */
+  projectId?: string
   /** Reference style image or note present — SOP prefix on image prompt */
   hasReferenceStyle?: boolean
   referenceStyleNote?: string
@@ -336,6 +338,22 @@ export async function generateSceneImages(
       scene.variationImageUrl = imageUrl
     } else {
       scene.imageUrl = imageUrl
+      if (input.projectId?.trim() && input.userId?.trim() && imageUrl) {
+        const { persistSceneImageAsset } = await import(
+          '@/lib/project-assets/persist-scene-image.server'
+        )
+        await persistSceneImageAsset({
+          userId: input.userId.trim(),
+          projectId: input.projectId.trim(),
+          url: imageUrl,
+          storagePath: filename,
+          prompt: scenePrompt,
+          title: scene.title ?? null,
+          sceneId: scene.id,
+          sequenceIndex: index + 1,
+          metadata: { source: 'generate-images', variation: false },
+        })
+      }
     }
     return scene
   }

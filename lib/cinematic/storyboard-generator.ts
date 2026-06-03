@@ -387,11 +387,32 @@ export async function generateSceneStoryboardImages(params: {
       variantLabel: variant.label,
     })
     if (result.mock) anyMock = true
+    const imageId = uuidv4()
     images.push({
-      id: uuidv4(),
+      id: imageId,
       url: result.url,
       variantLabel: variant.label,
     })
+
+    if (i === 0 && result.url && !result.url.startsWith('data:image/svg')) {
+      const { persistSceneImageAsset } = await import(
+        '@/lib/project-assets/persist-scene-image.server'
+      )
+      await persistSceneImageAsset({
+        userId: params.userId,
+        projectId: params.projectId,
+        url: result.url,
+        prompt,
+        title: params.input.scene.title ?? `Scene ${params.input.sceneIndex}`,
+        sceneId: params.input.scene.id,
+        sequenceIndex: params.input.sceneIndex,
+        metadata: {
+          source: 'cinematic-storyboard',
+          variant_label: variant.label,
+          storyboard_image_id: imageId,
+        },
+      })
+    }
   }
 
   return { images, mock: anyMock }
