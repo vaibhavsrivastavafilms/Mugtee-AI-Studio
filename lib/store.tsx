@@ -206,8 +206,12 @@ function StoreProviderConnected({
 
   // ---------- helpers ----------
   const logActivity = useCallback(async (action: string, target: string) => {
-    try { await supabase.from('team_activity').insert({ user_id: userId, actor: userName, action, target }) }
-    catch (e) { console.error('logActivity', e) }
+    const { error } = await supabase
+      .from('team_activity')
+      .insert({ user_id: userId, actor: userName, action, target })
+    if (error && (error as { status?: number }).status !== 409) {
+      console.warn('[logActivity] skipped:', error.message)
+    }
   }, [supabase, userId, userName])
 
   // Phase 5B: lightweight notification helper. Inline insert; never blocks UI.

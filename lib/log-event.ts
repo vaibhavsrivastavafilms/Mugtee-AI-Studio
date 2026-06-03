@@ -56,9 +56,23 @@ const FRIENDLY_ACTION: Record<EventType, string> = {
   content_updated:        'updated',
 }
 
+function isTeamActivityConstraintError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: string; message?: string; status?: number; details?: string }
+  const msg = `${e.message ?? ''} ${e.details ?? ''}`
+  return (
+    e.code === '23503' ||
+    e.status === 409 ||
+    /foreign key|violates foreign key|conflict/i.test(msg)
+  )
+}
+
 /**
  * Best-effort write to team_activity. Silently swallows errors — telemetry
  * must NEVER crash a creator's workflow.
+ *
+ * `project_id` FK targets content_pieces. Cinematic Quick Cut IDs are stored in
+ * metadata.cinematic_project_id when the FK would fail.
  */
 export async function logEvent(input: LogEventInput): Promise<void> {
   if (typeof window === 'undefined') return  // client-only
@@ -72,15 +86,42 @@ export async function logEvent(input: LogEventInput): Promise<void> {
       (user.user_metadata as any)?.name ||
       user.email?.split('@')[0] ||
       'Producer'
-    await supabase.from('team_activity').insert({
-      user_id:    user.id,
+
+    const metadata: Record<string, unknown> = {
+      ...(input.metadata || {}),
+    }
+    if (input.project_id) {
+      metadata.cinematic_project_id = input.project_id
+    }
+
+    const base = {
+      user_id: user.id,
       actor,
-      action:     input.action || FRIENDLY_ACTION[input.event_type] || input.event_type,
-      target:     input.target ?? null,
-      project_id: input.project_id ?? null,
+      action: input.action || FRIENDLY_ACTION[input.event_type] || input.event_type,
+      target: input.target ?? null,
       event_type: input.event_type,
-      metadata:   input.metadata || {},
+      metadata,
+    }
+
+    if (input.project_id) {
+      const withFk = await supabase.from('team_activity').insert({
+        ...base,
+        project_id: input.project_id,
+      })
+      if (!withFk.error) return
+      if (!isTeamActivityConstraintError(withFk.error)) {
+        console.warn('[logEvent] skipped:', withFk.error.message)
+        return
+      }
+    }
+
+    const { error } = await supabase.from('team_activity').insert({
+      ...base,
+      project_id: null,
     })
+    if (error) {
+      console.warn('[logEvent] skipped:', error.message)
+    }
   } catch (e) {
     // Swallow — never block creator UX for activity logs.
     console.warn('[logEvent] skipped:', (e as any)?.message || e)

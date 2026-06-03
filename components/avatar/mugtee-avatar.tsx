@@ -98,6 +98,7 @@ export function MugteeAvatar({
         <MugteeAvatarCanvas
           state={state}
           animated={animated}
+          useGlb={false}
           onError={() => setUse2D(true)}
         />
       ) : (

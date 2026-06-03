@@ -73,7 +73,11 @@ export function LiveStoryboardTileGrid({
                     alt={scene?.title || `Scene ${i + 1}`}
                     fill
                     sizes="74px"
+                    unoptimized
                     className="object-cover"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                    }}
                   />
                   <div
                     className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 pointer-events-none"

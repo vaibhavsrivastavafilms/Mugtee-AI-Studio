@@ -94,6 +94,9 @@ export function SceneVisualCard({
             sizes="200px"
             className="object-cover"
             unoptimized
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
           {variationUrl && generatedUrl ? (
             <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/70 border border-gold-500/30">
