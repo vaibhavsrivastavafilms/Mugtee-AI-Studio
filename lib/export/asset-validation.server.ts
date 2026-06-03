@@ -115,7 +115,22 @@ export async function validateExportAssets(params: {
         continue
       }
 
-      const reachable = await assetReachable(imageUrl)
+      let reachable = await assetReachable(imageUrl)
+      if (!reachable && !assetPath) {
+        const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
+        if (isEphemeralRemoteImageUrl(imageUrl)) {
+          const { repairEphemeralStoryboardScenes } = await import(
+            '@/lib/export/repair-ephemeral-storyboard.server'
+          )
+          const repaired = await repairEphemeralStoryboardScenes({
+            userId: params.userId,
+            projectId: params.row.id,
+            scenes: [scene],
+          })
+          const fixedUrl = resolveSceneExportImageUrl(repaired.scenes[0])
+          if (fixedUrl) reachable = await assetReachable(fixedUrl)
+        }
+      }
       if (!reachable && !assetPath) {
         unreachableIndices.push(i + 1)
       }

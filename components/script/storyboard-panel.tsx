@@ -26,6 +26,7 @@ import {
   Film, Copy, Check, Download, Heart, Camera, Clock, Music2, Sparkles, FileImage, Wand2, Lock, Loader2, Printer
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { shouldUnoptimizeImageSrc } from '@/lib/image/ephemeral-image-url'
 import { toast } from 'sonner'
 
 export interface StoryboardAsset {
@@ -238,6 +239,7 @@ export function StoryboardPanel({ projectId, refreshKey = 0 }: { projectId: stri
                     fill
                     sizes="280px"
                     className="object-cover"
+                    unoptimized={shouldUnoptimizeImageSrc(a.url)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">

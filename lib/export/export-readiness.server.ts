@@ -180,7 +180,19 @@ export async function resolveExportScenes(
     userId,
     imageAssets: assetCounts.imageAssets,
   }
-  const scenes = await refreshAllSceneStoryboardUrls(hydrated, { lookup })
+  let scenes = await refreshAllSceneStoryboardUrls(hydrated, { lookup })
+  const { scenes: repairedScenes, repaired } = await import(
+    '@/lib/export/repair-ephemeral-storyboard.server'
+  ).then((m) =>
+    m.repairEphemeralStoryboardScenes({
+      userId,
+      projectId: row.id,
+      scenes,
+    })
+  )
+  if (repaired > 0) {
+    scenes = await refreshAllSceneStoryboardUrls(repairedScenes, { lookup })
+  }
   const after = scenes.filter((s) => sceneHasExportableStoryboard(s)).length
   return {
     scenes,

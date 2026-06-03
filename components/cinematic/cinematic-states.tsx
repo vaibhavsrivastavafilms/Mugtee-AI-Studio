@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { AlertCircle, Film, RefreshCw, Sparkles } from 'lucide-react'
 import { TRUST_COPY } from '@/lib/creator/trust-copy'
 import { cn } from '@/lib/utils'
+import { shouldUnoptimizeImageSrc } from '@/lib/image/ephemeral-image-url'
 
 /** Fixed-height shimmer block — prevents layout jump while loading. */
 export function CinematicShimmer({ className }: { className?: string }) {
@@ -159,7 +160,7 @@ export function CinematicFadeImage({
           src={displaySrc}
           alt={alt}
           fill
-          unoptimized={displaySrc.startsWith('data:') || displaySrc.startsWith('blob:')}
+          unoptimized={shouldUnoptimizeImageSrc(displaySrc)}
           sizes="(max-width: 768px) 100vw, 400px"
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}

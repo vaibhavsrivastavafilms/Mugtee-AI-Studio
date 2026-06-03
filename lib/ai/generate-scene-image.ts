@@ -140,7 +140,10 @@ export async function persistRemoteImage(params: {
       return uploaded ?? params.remoteUrl
     }
 
-    const imgRes = await fetch(params.remoteUrl)
+    const isPollinations = /pollinations\.ai/i.test(params.remoteUrl)
+    const imgRes = await fetch(params.remoteUrl, {
+      signal: AbortSignal.timeout(isPollinations ? 60_000 : 30_000),
+    })
     if (!imgRes.ok) return params.remoteUrl
     const buffer = Buffer.from(await imgRes.arrayBuffer())
     const uploaded = await uploadImageBuffer({
