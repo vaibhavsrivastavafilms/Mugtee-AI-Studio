@@ -18,10 +18,17 @@ export function CompanionHomePage() {
   const isConversationActive = useMugteeCompanionStore((s) => s.isConversationActive)
   const { loadProfile } = useCompanionMemoryContext()
   const [profile, setProfile] = useState<CreatorMemoryProfile | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     void loadProfile().then(setProfile)
   }, [loadProfile])
+
+  const statusCopy = lastReply || statusLine
 
   return (
     <div className="relative flex flex-col items-center min-h-[calc(100dvh-8rem)] lg:min-h-[calc(100dvh-6rem)] -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6">
@@ -43,7 +50,7 @@ export function CompanionHomePage() {
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full gap-6 pb-36 sm:pb-40">
         <motion.div
-          layout
+          layout={mounted}
           className={cn(
             'relative flex items-center justify-center',
             'w-[min(72vw,320px)] h-[min(72vw,320px)] sm:w-[320px] sm:h-[320px]'
@@ -52,24 +59,36 @@ export function CompanionHomePage() {
           <MugteeAvatar state={avatarState} size="hero" priority animated />
         </motion.div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={lastReply || statusLine}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="max-w-md text-center px-4"
-          >
+        <div className="max-w-md text-center px-4">
+          {mounted ? (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={statusCopy}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+              >
+                <p
+                  className={cn(
+                    'text-sm sm:text-base leading-relaxed',
+                    isConversationActive ? 'text-luxe/90' : 'text-luxe/70'
+                  )}
+                >
+                  {statusCopy}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          ) : (
             <p
               className={cn(
                 'text-sm sm:text-base leading-relaxed',
                 isConversationActive ? 'text-luxe/90' : 'text-luxe/70'
               )}
             >
-              {lastReply || statusLine}
+              {statusCopy}
             </p>
-          </motion.div>
-        </AnimatePresence>
+          )}
+        </div>
 
         <RecentOpportunities profile={profile} />
       </div>

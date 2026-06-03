@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { cn } from '@/lib/utils'
 import { prefersReducedMotion } from '@/lib/webgl/capabilities'
@@ -46,8 +46,28 @@ export function MugteeAvatarCanvas({
   const [glbAvailable, setGlbAvailable] = useState<boolean>(
     () => useGlb === true && MUGTEE_GLB_ENABLED
   )
-  const motionOk = animated && !prefersReducedMotion()
+  const [motionOk, setMotionOk] = useState(false)
+  const [tabVisible, setTabVisible] = useState(true)
+  const contextCleanupRef = useRef<(() => void) | null>(null)
   const wantGlb = useGlb === true && MUGTEE_GLB_ENABLED
+
+  useEffect(() => {
+    setMotionOk(animated && !prefersReducedMotion())
+  }, [animated])
+
+  useEffect(() => {
+    const onVis = () => setTabVisible(!document.hidden)
+    onVis()
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      contextCleanupRef.current?.()
+      contextCleanupRef.current = null
+    }
+  }, [])
 
   const handleError = useCallback(() => {
     setFailed(true)
@@ -84,23 +104,32 @@ export function MugteeAvatarCanvas({
     <div className={cn('relative h-full w-full touch-none', className)}>
       <Suspense fallback={<AvatarCanvasSkeleton />}>
         <Canvas
-          frameloop={motionOk ? 'always' : 'demand'}
+          frameloop={tabVisible && motionOk ? 'always' : 'demand'}
           dpr={[1, 1.25]}
           gl={{
             alpha: true,
             antialias: false,
             powerPreference: 'low-power',
             failIfMajorPerformanceCaveat: true,
+            preserveDrawingBuffer: false,
           }}
           camera={{ position: [0, 0.15, 2.1], fov: 38 }}
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0)
+            const canvas = gl.domElement
             const onLost = (event: Event) => {
               event.preventDefault()
-              gl.dispose()
               handleError()
             }
-            gl.domElement.addEventListener('webglcontextlost', onLost)
+            canvas.addEventListener('webglcontextlost', onLost)
+            contextCleanupRef.current = () => {
+              canvas.removeEventListener('webglcontextlost', onLost)
+              try {
+                gl.dispose()
+              } catch {
+                /* already lost */
+              }
+            }
           }}
           style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
         >

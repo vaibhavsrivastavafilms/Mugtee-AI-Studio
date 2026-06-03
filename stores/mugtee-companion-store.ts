@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import type { MugteeAvatarState } from '@/components/avatar/types'
 import type { DetectedCreatorLanguage } from '@/lib/i18n/detect-creator-language'
 import type { VoiceInputMode } from '@/services/realtime/types'
-import { pickPersonalityLine } from '@/lib/companion/personality'
+import { COMPANION_GREETING_DEFAULT, pickPersonalityLine } from '@/lib/companion/personality'
 import { createStubRealtimePipeline } from '@/services/realtime/pipeline'
 
 export type CompanionMessage = {
@@ -72,7 +72,7 @@ export const useMugteeCompanionStore = create<MugteeCompanionState>((set, get) =
   messages: [],
   detectedLanguage: null,
   recentOpportunities: [],
-  statusLine: pickPersonalityLine('greetingVariants'),
+  statusLine: COMPANION_GREETING_DEFAULT,
 
   setAvatarState: (state) =>
     set((s) => ({
