@@ -20,6 +20,20 @@ export type RetrieveMemoryOptions = {
   includeSemantic?: boolean
 }
 
+/** Infer brand slug from goal text (e.g. "Table Tales reel" → table-tales) */
+export function inferBrandSlugFromGoal(
+  goal: string,
+  brands: { slug: string; displayName: string }[]
+): string | undefined {
+  const lower = goal.toLowerCase()
+  for (const b of brands) {
+    if (lower.includes(b.slug.replace(/-/g, ' ')) || lower.includes(b.slug)) return b.slug
+    if (b.displayName && lower.includes(b.displayName.toLowerCase())) return b.slug
+  }
+  if (lower.includes('table tales')) return 'table-tales'
+  return undefined
+}
+
 async function loadPatterns(
   supabase: SupabaseClient,
   userId: string,
@@ -109,9 +123,13 @@ export async function retrieveCreatorMemory(
   const profile = await loadMemoryProfile(supabase, userId)
   const brands = await listBrandProfiles(supabase, userId)
 
+  const inferredSlug =
+    options.brandSlug ??
+    (options.query ? inferBrandSlugFromGoal(options.query, brands) : undefined)
+
   let activeBrand: BrandProfile | null = null
-  if (options.brandSlug) {
-    activeBrand = await getBrandBySlug(supabase, userId, options.brandSlug)
+  if (inferredSlug) {
+    activeBrand = await getBrandBySlug(supabase, userId, inferredSlug)
   } else {
     activeBrand = brands.find((b) => b.isDefault) ?? brands[0] ?? null
   }
