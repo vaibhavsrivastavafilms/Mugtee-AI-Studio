@@ -10,6 +10,7 @@ import { CreatorProfileOnboardingGate } from '@/components/onboarding/creator-pr
 import { StoreProvider } from '@/lib/store'
 import { AutomationsProvider } from '@/lib/automations-store'
 import { ConfirmProvider } from '@/components/ui/confirm'
+import { MugteeCommandCenter } from '@/components/mugtee-os/mugtee-command-center'
 
 interface User {
   id: string
@@ -72,6 +73,7 @@ export default function CinematicAppShell({
               </div>
               {!isCompanionHome ? <MugteeSidekickPanel /> : null}
             </motion.main>
+            <MugteeCommandCenter />
           </div>
         </ConfirmProvider>
       </AutomationsProvider>

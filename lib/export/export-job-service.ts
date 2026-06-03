@@ -169,6 +169,18 @@ export async function updateExportJob(
     console.error('[export_jobs] update failed', error.message)
     return null
   }
+
+  if (patch.status === 'completed' && data) {
+    const row = data as ExportJobRow
+    void import('@/lib/ecosystem/event-hooks').then(({ onExportCompletedHook }) =>
+      onExportCompletedHook({
+        userId: row.user_id,
+        projectId: row.project_id ?? undefined,
+        jobId: row.id,
+      })
+    )
+  }
+
   return data as ExportJobRow
 }
 

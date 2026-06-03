@@ -55,9 +55,19 @@ export function normalizeMemoryGraph(raw: unknown): MemoryGraph {
         .filter((n): n is Record<string, unknown> => n && typeof n === 'object')
         .map((n) => ({
           id: String(n.id ?? ''),
-          type: (['topic', 'project', 'hook', 'theme'].includes(String(n.type))
+          type: ([
+            'topic',
+            'project',
+            'hook',
+            'theme',
+            'creator',
+            'brand',
+            'campaign',
+            'content',
+            'asset',
+          ].includes(String(n.type))
             ? String(n.type)
-            : 'topic') as 'topic' | 'project' | 'hook' | 'theme',
+            : 'topic') as import('@/lib/memory/types').MemoryGraphNodeType,
           label: String(n.label ?? '').slice(0, 120),
           weight: typeof n.weight === 'number' ? n.weight : undefined,
         }))
