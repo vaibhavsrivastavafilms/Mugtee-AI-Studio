@@ -267,6 +267,10 @@ import {
   trackFirstGenerationStarted,
   trackFirstProjectCreated,
 } from '@/lib/analytics/track-event'
+import {
+  trackExportCompletedAfterCompanion,
+  trackStoryGeneratedAfterCompanion,
+} from '@/lib/companion/analytics'
 import { markFirstGeneration } from '@/lib/onboarding/onboarding-state'
 import {
   deriveScriptText,
@@ -3621,6 +3625,7 @@ export const useQuickCutGenerationStore = create<
             mock: anyMock,
           },
         })
+        trackStoryGeneratedAfterCompanion(get().savedProjectId)
         trackFirstGenerationCompleted({ projectId: get().savedProjectId })
         markFirstGeneration()
         if (mp4Ready) {
@@ -3628,6 +3633,7 @@ export const useQuickCutGenerationStore = create<
             projectId: get().savedProjectId,
             metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
           })
+          trackExportCompletedAfterCompanion(get().savedProjectId)
           trackEvent(AnalyticsEvents.PROJECT_EXPORTED, {
             projectId: get().savedProjectId,
             metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },

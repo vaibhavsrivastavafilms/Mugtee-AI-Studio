@@ -107,7 +107,7 @@ export function CompanionAgentStrip({ className }: { className?: string }) {
             onContextMenu={onContextMenu}
             title={
               agent.id === 'hook'
-                ? `${agent.role} — Ask Mugtee for hook ideas`
+                ? `${agent.role} — Creative director for hook ideas`
                 : `${agent.role} — ${hasMemory ? 'Memory synced' : 'Set up creator profile'} (right-click: open studio)`
             }
             className={cn(

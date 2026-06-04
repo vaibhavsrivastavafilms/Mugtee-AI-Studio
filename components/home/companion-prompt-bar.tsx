@@ -9,8 +9,11 @@ import { useMugteeCompanionStore } from '@/stores/mugtee-companion-store'
 import { useCompanionLanguage } from '@/hooks/use-companion-language'
 import { useSpeechRecognition } from '@/lib/use-voice'
 import { CreatorLanguageIndicator } from '@/components/i18n/creator-language-indicator'
+import { isCompanionExperimentalVoiceEnabled } from '@/lib/companion/access'
+import { trackCompanionUsed } from '@/lib/companion/analytics'
 
 export function CompanionPromptBar() {
+  const experimentalVoice = isCompanionExperimentalVoiceEnabled()
   const inputDraft = useMugteeCompanionStore((s) => s.inputDraft)
   const setInputDraft = useMugteeCompanionStore((s) => s.setInputDraft)
   const submitPrompt = useMugteeCompanionStore((s) => s.submitPrompt)
@@ -64,6 +67,7 @@ export function CompanionPromptBar() {
     if (!text) return
     const lang = detectFromText(text)
     setDetectedLanguage(lang)
+    trackCompanionUsed('live_home', { input_length: text.length })
     await submitPrompt(text)
   }
 
@@ -84,7 +88,7 @@ export function CompanionPromptBar() {
             className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/70 hover:text-gold-200 transition"
           >
             <MessageCircle className="w-3 h-3" />
-            Start conversation
+            Start creative session
           </button>
           {displayLang ? <CreatorLanguageIndicator detected={displayLang} /> : null}
         </div>
@@ -95,7 +99,7 @@ export function CompanionPromptBar() {
               type="text"
               value={inputDraft}
               onChange={(e) => setInputDraft(e.target.value)}
-              placeholder="Ask Mugtee anything..."
+              placeholder="Hook, script, or visual direction…"
               disabled={isProcessing}
               className={cn(
                 'w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 pr-12',
@@ -103,7 +107,7 @@ export function CompanionPromptBar() {
                 'focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/30',
                 'disabled:opacity-60'
               )}
-              aria-label="Ask Mugtee"
+              aria-label="Message Mugtee cinematic guide"
             />
           </div>
 
@@ -117,7 +121,7 @@ export function CompanionPromptBar() {
             )}
             onClick={toggleVoice}
             aria-pressed={voiceActive}
-            aria-label={voiceActive ? 'Stop voice input' : 'Voice input'}
+            aria-label={voiceActive ? 'Stop push-to-talk' : 'Push-to-talk voice input'}
           >
             {voiceActive ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </Button>
@@ -135,7 +139,8 @@ export function CompanionPromptBar() {
 
         {voiceMode === 'push-to-talk' && voiceActive ? (
           <p className="text-[10px] text-gold-300/60 mt-2 px-1 tracking-wide">
-            Push-to-talk active — speak, then send. Hands-free mode coming in V2.
+            Push-to-talk active — speak, then send.
+            {experimentalVoice ? ' Hands-free is experimental.' : null}
           </p>
         ) : null}
       </div>

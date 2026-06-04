@@ -40,7 +40,7 @@ export function CompanionHomePage() {
 
       <header className="relative z-10 pt-2 pb-4 text-center w-full">
         <p className="text-[10px] tracking-[0.32em] uppercase text-gold-400/60">
-          Live Companion
+          Story Companion
         </p>
         <h1 className="font-display text-xl sm:text-2xl text-gold-gradient mt-1">
           Mugtee

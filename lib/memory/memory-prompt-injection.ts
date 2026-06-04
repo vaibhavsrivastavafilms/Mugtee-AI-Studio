@@ -58,7 +58,7 @@ export function formatCreatorMemoryForPrompt(input: MemoryPromptInput): string {
     if (learnings) sections.push(learnings)
     if (relationshipLevel !== 'explorer') {
       sections.push(
-        `COMPANION RELATIONSHIP: ${relationshipLevel.replace(/_/g, ' ')} — personalize tone to match shared history.`
+        `CREATOR RELATIONSHIP: ${relationshipLevel.replace(/_/g, ' ')} — personalize tone to match shared creative history.`
       )
     }
   } else if (input.companionMemory) {

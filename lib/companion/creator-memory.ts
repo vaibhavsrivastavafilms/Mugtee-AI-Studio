@@ -123,7 +123,7 @@ export function buildCreatorMemoryPromptSection(memory?: CreatorMemory | null): 
       : '',
   ].filter(Boolean)
   if (!lines.length) return ''
-  return ['CREATOR COMPANION MEMORY (light bias):', ...lines].join('\n')
+  return ['CREATOR MEMORY (story + visual bias):', ...lines].join('\n')
 }
 
 /** Defaults for discovery chips / suggestions */

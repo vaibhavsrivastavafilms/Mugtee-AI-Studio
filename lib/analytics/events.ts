@@ -58,6 +58,14 @@ export const AnalyticsEvents = {
 
   /** Internal error visibility — category in metadata (openai, api, timeout, export). */
   ANALYTICS_ERROR: 'analytics_error',
+
+  /** Cross-provider style fingerprint drift / consistency retry. */
+  STYLE_FINGERPRINT_DRIFT: 'style_fingerprint_drift',
+
+  /** Live Companion — workflow lift (not chat volume). */
+  COMPANION_USED: 'companion_used',
+  STORY_GENERATED_AFTER_COMPANION: 'story_generated_after_companion',
+  EXPORT_COMPLETED_AFTER_COMPANION: 'export_completed_after_companion',
 } as const
 
 export type AnalyticsEventName = (typeof AnalyticsEvents)[keyof typeof AnalyticsEvents]
