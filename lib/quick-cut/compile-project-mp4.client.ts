@@ -342,7 +342,13 @@ async function compileProjectMp4Inner(
 
 
 
-  const { fetchQuickCutConfig } = await import('@/lib/quick-cut/quick-cut-config-cache.client')
+  const configModule = await import('@/lib/quick-cut/quick-cut-config-cache.client')
+  const fetchQuickCutConfig = configModule.fetchQuickCutConfig
+  if (typeof fetchQuickCutConfig !== 'function') {
+    console.error('[EXPORT] compile function unavailable', { projectId, stage: 'fetchQuickCutConfig' })
+    mugteeExportEnd()
+    throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
+  }
 
   const config = (await fetchQuickCutConfig()) as {
 

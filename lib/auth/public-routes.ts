@@ -14,6 +14,8 @@ const PUBLIC_EXACT = new Set([
   '/offline',
   '/made-with-mugtee',
   '/showcase',
+  '/debug/runtime',
+  '/feedback.html',
 ])
 
 const PUBLIC_PREFIXES = [

@@ -243,6 +243,10 @@ import {
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
 import { fetchQuickCutConfig } from '@/lib/quick-cut/quick-cut-config-cache.client'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
+import {
+  blockMp4CompileIfNeeded,
+  fetchProfilePlanSnapshot,
+} from '@/lib/export/mp4-compile-guard.client'
 import { showPlanLimitToast, handlePlanLimitResponse } from '@/lib/usage/plan-limit-toast.client'
 import { toast } from 'sonner'
 import { handleImageGenerationUnavailableResponse } from '@/lib/cinematic/image-generation-unavailable.client'
@@ -4184,6 +4188,25 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
+    const profile = await fetchProfilePlanSnapshot()
+    if (
+      blockMp4CompileIfNeeded(profile.planType, {
+        trialActive: profile.trialActive,
+        logContext: { source: 'retryVideoRender' },
+      })
+    ) {
+      patchSectionStatus(set, get, 'export', 'failed')
+      set({
+        renderError: null,
+        exportPackageReady:
+          state.scenes.length > 0 &&
+          Boolean(state.voiceUrl?.trim()) &&
+          Boolean(state.script?.trim() || state.hook?.trim()),
+        generationStep: 'complete',
+      })
+      return
+    }
+
     const preflight = reelExportReadiness(state.scenes, state.voiceUrl)
     if (!preflight.ready && preflight.message) {
       patchSectionStatus(set, get, 'export', 'failed')
@@ -4335,6 +4358,16 @@ export const useQuickCutGenerationStore = create<
   resumeRenderPoll: async () => {
     const { renderPollUrl, videoUrl, videoRenderEnabled, isRenderingVideo, savedProjectId } = get()
     if (!videoRenderEnabled || !renderPollUrl || videoUrl || isRenderingVideo) return
+
+    const profile = await fetchProfilePlanSnapshot()
+    if (
+      blockMp4CompileIfNeeded(profile.planType, {
+        trialActive: profile.trialActive,
+        logContext: { source: 'resumeRenderPoll' },
+      })
+    ) {
+      return
+    }
 
     patchSectionStatus(set, get, 'export', 'generating')
     set({

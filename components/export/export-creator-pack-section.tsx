@@ -15,6 +15,7 @@ import { QuickCutViewScriptButton } from '@/components/quick-cut/view-script-but
 import { ExportSatisfactionCard } from '@/components/feedback/export-satisfaction-card'
 import { CreatorPackExportModal } from '@/components/export/creator-pack-export-modal'
 import { ExportDiagnosticsChecklist } from '@/components/export/export-diagnostics-checklist'
+import { ExportDevDiagnosticsPanel } from '@/components/export/export-dev-diagnostics-panel'
 import { downloadMp3File } from '@/lib/quick-cut/download-audio'
 import { slugifyExportBase } from '@/lib/quick-cut/download-scene-image'
 import { buildQuickCutScriptText } from '@/lib/quick-cut/download-script'
@@ -22,6 +23,7 @@ import {
   ASSET_UNAVAILABLE_MSG,
   resolveQuickCutExportAssets,
 } from '@/lib/quick-cut/asset-availability'
+import { blockMp4CompileIfNeeded } from '@/lib/export/mp4-compile-guard.client'
 import { useUnifiedExportActions } from '@/lib/export/use-unified-export-actions.client'
 import { useUsage } from '@/lib/usage'
 import { cn } from '@/lib/utils'
@@ -41,7 +43,7 @@ type ExportCreatorPackSectionProps = {
 }
 
 export function ExportCreatorPackSection({ onOpenDirector }: ExportCreatorPackSectionProps) {
-  const { isUnlimited } = useUsage()
+  const { isUnlimited, trial } = useUsage()
   const {
     assetError,
     showAdvancedMp4Export,
@@ -208,7 +210,23 @@ export function ExportCreatorPackSection({ onOpenDirector }: ExportCreatorPackSe
         {showAdvancedMp4Export && renderError ? (
           <button
             type="button"
-            onClick={() => void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())}
+            onClick={() => {
+              if (
+                blockMp4CompileIfNeeded(trial.planType, {
+                  trialActive: trial.active,
+                  isUnlimited,
+                  logContext: { source: 'export-creator-pack.retryMp4' },
+                })
+              ) {
+                return
+              }
+              const runCompile = renderPollUrl ? resumeRenderPoll : retryVideoRender
+              if (typeof runCompile !== 'function') {
+                console.error('[EXPORT] compile function unavailable', { planType: trial.planType })
+                return
+              }
+              void runCompile()
+            }}
             className={secondaryActionClass}
           >
             <RefreshCw className="w-3.5 h-3.5" aria-hidden />
@@ -232,6 +250,17 @@ export function ExportCreatorPackSection({ onOpenDirector }: ExportCreatorPackSe
           onDismissed={() => setShowExportFeedback(false)}
         />
       ) : null}
+
+      <ExportDevDiagnosticsPanel
+        projectId={savedProjectId}
+        scenes={scenes}
+        voiceUrl={voiceUrl}
+        title={title}
+        hook={hook}
+        script={script}
+        videoRenderEnabled={videoRenderEnabled}
+        isGenerating={isGenerating}
+      />
 
       <CreatorPackExportModal
         open={creatorPackModalOpen}
