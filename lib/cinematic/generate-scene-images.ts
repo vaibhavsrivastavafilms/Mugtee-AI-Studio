@@ -359,6 +359,8 @@ export async function generateSceneImages(
         const { persistSceneImageAsset } = await import(
           '@/lib/project-assets/persist-scene-image.server'
         )
+        const { logPipelineStepStart } = await import('@/lib/cinematic/generation-logger')
+        logPipelineStepStart('assets', input.projectId, { sceneId: scene.id })
         await persistSceneImageAsset({
           userId: input.userId.trim(),
           projectId: input.projectId.trim(),

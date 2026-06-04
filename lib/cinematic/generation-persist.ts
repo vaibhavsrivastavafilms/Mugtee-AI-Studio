@@ -2,7 +2,12 @@ import {
   type GenerationStatus,
   type PersistedGenerationStep,
 } from '@/lib/cinematic/generation-state'
-import { logStepComplete } from '@/lib/cinematic/generation-logger'
+import {
+  logPipelineStepComplete,
+  logPipelineStepError,
+  logPipelineStepStart,
+  logStepComplete,
+} from '@/lib/cinematic/generation-logger'
 import { logPipelineActivity } from '@/lib/trust/activity-events'
 import {
   archiveGeneratedProject,
@@ -37,6 +42,7 @@ export async function persistStepComplete(
 ): Promise<string | null> {
   logStepComplete(step, state.savedProjectId)
   logPipelineActivity(step, state.savedProjectId)
+  logPipelineStepStart('project_save', state.savedProjectId, { generationStep: step })
 
   let projectId = state.savedProjectId
 
@@ -51,8 +57,15 @@ export async function persistStepComplete(
         generation_error: null,
       })
       projectId = row.id
-    } catch {
-      /* partial save best-effort */
+      logPipelineStepComplete('project_save', projectId, {
+        generationStep: step,
+        sceneCount: archiveInput.scenes?.length ?? 0,
+      })
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'archive failed'
+      logPipelineStepError('project_save', state.savedProjectId, reason, {
+        generationStep: step,
+      })
     }
   } else if (projectId) {
     try {

@@ -3,6 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
+import { logStoryboardFrame } from '@/lib/cinematic/generation-logger'
 
 export type PersistSceneImageAssetInput = {
   userId: string
@@ -58,8 +59,23 @@ export async function persistSceneImageAsset(
       sceneId: input.sceneId,
       message: error.message,
     })
+    logStoryboardFrame(projectId, {
+      frameId: input.sceneId ?? 'unknown',
+      imageUrl: url,
+      storagePath: input.storagePath?.trim() || extractStoragePathFromUrl(url) || null,
+      persisted: false,
+    })
     return null
   }
+
+  const storagePath =
+    input.storagePath?.trim() || extractStoragePathFromUrl(url) || null
+  logStoryboardFrame(projectId, {
+    frameId: input.sceneId ?? data?.id ?? 'unknown',
+    imageUrl: data?.url ?? url,
+    storagePath,
+    persisted: Boolean(data?.id),
+  })
 
   return data ? { id: data.id, url: data.url } : null
 }

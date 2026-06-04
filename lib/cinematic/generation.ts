@@ -822,6 +822,9 @@ export function scenesToStore(scenes: GeneratedScene[]): CinematicScene[] {
     camera: scene.cameraAngle,
     lighting: scene.lightingMood,
     imageUrl: scene.imageUrl ?? undefined,
+    ...(scene.imageAssetPath?.trim()
+      ? { imageAssetPath: scene.imageAssetPath.trim() }
+      : {}),
     ...(scene.storyboardImages?.length
       ? {
           storyboardImages: scene.storyboardImages,

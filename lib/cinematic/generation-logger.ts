@@ -2,11 +2,90 @@ import type { PersistedGenerationStep } from '@/lib/cinematic/generation-state'
 
 type LogPayload = Record<string, unknown>
 
+/** Post-voice pipeline audit stages (storyboard → export). */
+export type PipelineAuditStage =
+  | 'storyboard'
+  | 'assets'
+  | 'storage'
+  | 'project_save'
+  | 'project_reload'
+  | 'export'
+
+export type StoryboardFrameLog = {
+  frameId: string
+  imageUrl?: string | null
+  storagePath?: string | null
+  persisted: boolean
+}
+
+export type VideoAssetLog = {
+  videoJobId: string
+  persisted: boolean
+  retrievable: boolean
+}
+
+function shouldLogPipeline(): boolean {
+  return (
+    process.env.PIPELINE_DEBUG === 'true' ||
+    process.env.NODE_ENV !== 'production'
+  )
+}
+
 function payload(projectId?: string | null, extra?: LogPayload): LogPayload {
   return {
     ...(projectId ? { projectId } : {}),
     ...extra,
   }
+}
+
+export function logPipelineStepStart(
+  stage: PipelineAuditStage,
+  projectId?: string | null,
+  extra?: LogPayload
+): void {
+  if (!shouldLogPipeline()) return
+  console.info('[STEP_START]', payload(projectId, { stage, ...extra }))
+}
+
+export function logPipelineStepComplete(
+  stage: PipelineAuditStage,
+  projectId?: string | null,
+  extra?: LogPayload
+): void {
+  if (!shouldLogPipeline()) return
+  console.info('[STEP_COMPLETE]', payload(projectId, { stage, ...extra }))
+}
+
+export function logPipelineStepError(
+  stage: PipelineAuditStage,
+  projectId: string | null | undefined,
+  reason: string,
+  extra?: LogPayload
+): void {
+  if (!shouldLogPipeline()) return
+  console.warn(
+    '[STEP_ERROR]',
+    payload(projectId, { stage, reason: reason.slice(0, 300), ...extra })
+  )
+}
+
+export function logStoryboardFrame(
+  projectId: string | null | undefined,
+  frame: StoryboardFrameLog
+): void {
+  if (!shouldLogPipeline()) return
+  console.info(
+    '[STEP_COMPLETE]',
+    payload(projectId, { stage: 'storyboard', frame })
+  )
+}
+
+export function logVideoAsset(
+  projectId: string | null | undefined,
+  asset: VideoAssetLog
+): void {
+  if (!shouldLogPipeline()) return
+  console.info('[STEP_COMPLETE]', payload(projectId, { stage: 'assets', asset }))
 }
 
 export function logGenerationStart(projectId: string | null, topicPreview: string) {

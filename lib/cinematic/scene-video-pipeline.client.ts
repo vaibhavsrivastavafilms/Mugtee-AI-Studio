@@ -5,6 +5,7 @@ import type { SceneBlueprint } from '@/lib/cinematic/scene-blueprint'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
 import { applyVideoResultToScene } from '@/lib/video/scene-video-shared'
+import { logVideoAsset } from '@/lib/cinematic/generation-logger'
 
 export type SceneVideoJobPoll = {
   jobId: string
@@ -87,8 +88,9 @@ export async function queueSceneVideos(input: {
 export async function pollSceneVideoJobs(
   jobs: SceneVideoJobPoll[],
   onUpdate: (sceneId: string, patch: Partial<GeneratedScene>) => void,
-  options?: { maxAttempts?: number; intervalMs?: number }
+  options?: { maxAttempts?: number; intervalMs?: number; projectId?: string | null }
 ): Promise<void> {
+  const projectId = options?.projectId ?? null
   const pending = new Map(jobs.map((j) => [j.sceneId, j]))
   const maxAttempts = options?.maxAttempts ?? 90
   const intervalMs = options?.intervalMs ?? 4000
@@ -101,6 +103,11 @@ export async function pollSceneVideoJobs(
     for (const [sceneId, job] of [...pending.entries()]) {
       const result = await pollVideoJob(job.pollUrl)
       if (result.status === 'failed' && result.error?.includes('not found')) {
+        logVideoAsset(projectId, {
+          videoJobId: job.jobId,
+          persisted: false,
+          retrievable: false,
+        })
         for (const id of [...pending.keys()]) {
           onUpdate(id, { videoGenerationStatus: 'failed' })
         }
@@ -108,6 +115,11 @@ export async function pollSceneVideoJobs(
         break
       }
       if (result.status === 'done' && result.videoUrl) {
+        logVideoAsset(projectId, {
+          videoJobId: job.jobId,
+          persisted: Boolean(result.videoUrl),
+          retrievable: true,
+        })
         const provider =
           result.provider === 'runway' || result.provider === 'seedance'
             ? result.provider

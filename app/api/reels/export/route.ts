@@ -20,6 +20,11 @@ import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { parseTimelineProject } from '@/types/timeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { trackMp4FailedServer } from '@/lib/analytics/mp4-export-track.server'
+import {
+  logPipelineStepComplete,
+  logPipelineStepError,
+  logPipelineStepStart,
+} from '@/lib/cinematic/generation-logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,6 +149,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    logPipelineStepStart('export', projectId, { quality, includeVoiceover, includeCaptions })
+
     const { jobId, status } = await queueReelExportForProject({
       row,
       userId: auth.user!.id,
@@ -151,6 +158,8 @@ export async function POST(req: NextRequest) {
       includeVoiceover,
       includeCaptions,
     })
+
+    logPipelineStepComplete('export', projectId, { jobId, status })
 
     exportLog.requested({
       projectId,
@@ -167,6 +176,7 @@ export async function POST(req: NextRequest) {
     logError('reels.export.post', err)
     const message = friendlyReelRenderErrorFromUnknown(err)
     exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: message })
+    logPipelineStepError('export', trackProjectId, message)
     if (trackUserId) {
       void trackMp4FailedServer({
         userId: trackUserId,
@@ -180,9 +190,22 @@ export async function POST(req: NextRequest) {
       message.startsWith('Cannot export reel') ||
       message.includes('required before exporting') ||
       message.includes('At least one storyboard') ||
+      message.includes('Storyboard images are missing or unreachable') ||
+      message.includes('missing or unreachable') ||
+      message.includes('Missing asset detected') ||
       message.startsWith('Add voiceover')
+    const stage = message.includes('storyboard') || message.includes('Scene')
+      ? 'storyboard_asset_loading'
+      : message.includes('voice') || message.includes('Voice')
+        ? 'voice_asset_loading'
+        : 'export_queue'
     return NextResponse.json(
-      { error: message, status: 'failed' },
+      {
+        success: false,
+        error: message,
+        status: 'failed',
+        stage,
+      },
       { status: clientError ? 400 : 500 }
     )
   }
