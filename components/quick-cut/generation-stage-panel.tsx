@@ -71,6 +71,7 @@ export function GenerationStagePanel({
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
@@ -384,7 +385,7 @@ export function GenerationStagePanel({
         <div className="space-y-3">
           {videoUrl ? (
             <p className="text-[12px] text-gold-200/90">Download ready — MP4 reel is live.</p>
-          ) : renderError || sectionStatus.export === 'failed' ? (
+          ) : videoRenderEnabled && (renderError || sectionStatus.export === 'failed') ? (
             <>
               <p className="text-[12px] text-red-300/90" role="alert">
                 {renderError || 'Export failed — try again.'}
@@ -415,7 +416,7 @@ export function GenerationStagePanel({
             </>
           ) : (
             <p className="text-[12px] text-luxe/55 italic">
-              Compile MP4 to finish export.
+              Export Creator Pack to finish.
             </p>
           )}
         </div>,

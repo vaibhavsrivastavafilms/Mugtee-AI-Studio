@@ -3508,8 +3508,17 @@ export const useQuickCutGenerationStore = create<
           )
           if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
         } else if (exportFailed && renderError) {
-          patchSectionStatus(set, get, 'export', 'failed')
-          logStepFailed('export', get().savedProjectId, renderError)
+          const hasCreatorPackAssets =
+            get().scenes.length > 0 &&
+            Boolean(get().voiceUrl?.trim()) &&
+            Boolean(get().script?.trim() || get().hook?.trim())
+          if (hasCreatorPackAssets) {
+            exportPackageReady = true
+            patchSectionStatus(set, get, 'export', 'completed')
+          } else {
+            patchSectionStatus(set, get, 'export', 'failed')
+            logStepFailed('export', get().savedProjectId, renderError)
+          }
         } else if (!exportStillRunning) {
           patchSectionStatus(set, get, 'export', 'idle')
         }
@@ -4214,12 +4223,24 @@ export const useQuickCutGenerationStore = create<
         const renderError = friendlyReelRenderError(
           String(renderData?.error || 'Video render unavailable')
         )
-        patchSectionStatus(set, get, 'export', 'failed')
+        const hasCreatorPackAssets =
+          get().scenes.length > 0 &&
+          Boolean(get().voiceUrl?.trim()) &&
+          Boolean(get().script?.trim() || get().hook?.trim())
+        patchSectionStatus(
+          set,
+          get,
+          'export',
+          hasCreatorPackAssets ? 'completed' : 'failed'
+        )
         set({
           renderError,
           renderPollUrl: null,
           generationStep: 'complete',
+          isRenderingVideo: false,
+          ...(hasCreatorPackAssets ? { exportPackageReady: true } : {}),
         })
+        persistSession(get())
         return
       }
 
@@ -4255,23 +4276,37 @@ export const useQuickCutGenerationStore = create<
         return
       }
 
-      patchSectionStatus(set, get, 'export', 'failed')
+      const syncErr = friendlyReelRenderError(
+        String(sync.renderData?.error || 'Video render unavailable')
+      )
+      const packReady =
+        get().scenes.length > 0 &&
+        Boolean(get().voiceUrl?.trim()) &&
+        Boolean(get().script?.trim() || get().hook?.trim())
+      patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
       set({
-        renderError: friendlyReelRenderError(
-          String(sync.renderData?.error || 'Video render unavailable')
-        ),
+        renderError: syncErr,
         renderPollUrl: null,
         generationStep: 'complete',
+        ...(packReady ? { exportPackageReady: true } : {}),
       })
+      persistSession(get())
     } catch (err) {
-      patchSectionStatus(set, get, 'export', 'failed')
+      const message = friendlyReelRenderError(
+        err instanceof Error ? err.message : 'Video render unavailable'
+      )
+      const packReady =
+        get().scenes.length > 0 &&
+        Boolean(get().voiceUrl?.trim()) &&
+        Boolean(get().script?.trim() || get().hook?.trim())
+      patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
       set({
-        renderError: friendlyReelRenderError(
-          err instanceof Error ? err.message : 'Video render unavailable'
-        ),
+        renderError: message,
         renderPollUrl: null,
         generationStep: 'complete',
+        ...(packReady ? { exportPackageReady: true } : {}),
       })
+      persistSession(get())
     } finally {
       set({ isRenderingVideo: false })
     }

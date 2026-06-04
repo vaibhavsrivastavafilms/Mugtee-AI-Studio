@@ -178,6 +178,8 @@ export async function buildCreatorPackZip(
 
   report('Fetching scene images…', 35)
 
+  const storyboardZipEntries: ZipEntry[] = []
+
   if (hasExportableSceneImages(input.scenes, input.isGenerating)) {
     let imageCount = 0
     for (let i = 0; i < input.scenes.length; i++) {
@@ -188,10 +190,12 @@ export async function buildCreatorPackZip(
       try {
         const blob = await fetchSceneImageBlob(url, 'vertical')
         const filename = sceneImageFilename(exportBase, i, 'jpg', 'vertical')
+        const bytes = await blobToUint8Array(blob)
         entries.push({
           path: `scene-images/${filename}`,
-          data: await blobToUint8Array(blob),
+          data: bytes,
         })
+        storyboardZipEntries.push({ path: filename, data: bytes })
         imageCount += 1
         report(`Fetching scene images… (${imageCount})`, 35 + Math.round((imageCount / input.scenes.length) * 25))
       } catch {
@@ -306,6 +310,22 @@ export async function buildCreatorPackZip(
 
   report('Finalizing archive…', 90)
 
+  const storyboardJsonEntry =
+    entries.find((e) => e.path === 'storyboard.json') ??
+    entries.find((e) => e.path === 'storyboard-timeline.json')
+  if (storyboardJsonEntry) {
+    storyboardZipEntries.push({ path: 'storyboard.json', data: storyboardJsonEntry.data })
+  }
+  if (storyboardZipEntries.length > 0) {
+    entries.push({
+      path: 'storyboard.zip',
+      data: await blobToUint8Array(createStoreZip(storyboardZipEntries)),
+    })
+    included.push('storyboard.zip')
+  } else {
+    warnings.push('storyboard.zip skipped — no storyboard assets')
+  }
+
   const metadata: CreatorPackMetadata = {
     format: 'mugtee-creator-pack',
     exportedAt: new Date().toISOString(),
@@ -314,6 +334,24 @@ export async function buildCreatorPackZip(
     included,
     warnings,
   }
+
+  const projectJson = {
+    format: 'mugtee-project',
+    exportedAt: metadata.exportedAt,
+    projectId: metadata.projectId,
+    title: metadata.title,
+    included: metadata.included,
+    warnings: metadata.warnings,
+    sceneCount: input.scenes.length,
+    hasVoice: hasExportableNarration(input.voiceUrl),
+    hasTimeline: Boolean(input.reelTimeline),
+  }
+
+  entries.push({
+    path: 'project.json',
+    data: textToUint8Array(JSON.stringify(projectJson, null, 2)),
+  })
+  included.push('project.json')
 
   entries.push({
     path: 'project-metadata.json',
