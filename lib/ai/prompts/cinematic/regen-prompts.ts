@@ -1,4 +1,8 @@
 import { buildNicheLayer } from '@/lib/cinematic/niches'
+import {
+  buildStyleFingerprint,
+  formatFingerprintForPrompt,
+} from '@/lib/ai/style-fingerprint'
 import { buildHookLayer } from '@/lib/ai/prompts/cinematic/output-format'
 import { buildCaptionLayer } from '@/lib/ai/prompts/cinematic/output-format'
 import { buildVisualLayer, sceneVisualJsonFields } from '@/lib/ai/prompts/cinematic/visual-layer'
@@ -205,11 +209,28 @@ export function buildVisualEnhancePrompt(
   const total = ctx.scenes.length
   const role = scenePacingRole(sceneIndex, total)
 
+  const nicheLock = buildNicheLayer(ctx.niche)
+  const styleFingerprint = formatFingerprintForPrompt(
+    buildStyleFingerprint(
+      {
+        topic: ctx.topic || ctx.prompt,
+        niche: ctx.niche,
+        tone: ctx.tone,
+        duration: ctx.duration,
+        visualStyle: ctx.visualStyle,
+        emotionalGoal: ctx.emotionalGoal,
+      },
+      {},
+      nicheLock
+    )
+  )
+
   return [
     buildPreserveBlock('storyboard', ctx),
     `Enhance ONLY visual direction for Scene ${sceneIndex}. Do NOT change story beat, narration, hook, or pacing role.`,
     `Project: "${ctx.topic || ctx.prompt}" · Niche: ${ctx.niche}`,
-    buildNicheLayer(ctx.niche),
+    nicheLock,
+    styleFingerprint,
     buildVisualLayer(),
     `Scene ${sceneIndex} of ${total} — pacing role: ${role}`,
     `Beat title: "${target.title || `Scene ${sceneIndex}`}"`,

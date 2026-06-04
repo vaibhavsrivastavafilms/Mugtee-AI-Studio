@@ -2,6 +2,10 @@ import { buildNicheLayer, type CinematicNiche } from '@/lib/cinematic/niches'
 import { formatContentBriefForPrompt } from '@/lib/content-director/content-brief'
 import { formatIntentForPrompt } from '@/lib/input-understanding'
 import { formatCreatorMemoryForPrompt } from '@/lib/memory/memory-prompt-injection'
+import {
+  buildStyleFingerprint,
+  formatFingerprintForPrompt,
+} from '@/lib/ai/style-fingerprint'
 import type { ProviderContext, ProviderContextInput } from '@/lib/ai/providers/types'
 
 function coerceNiche(niche?: CinematicNiche | string): CinematicNiche {
@@ -13,6 +17,22 @@ function coerceNiche(niche?: CinematicNiche | string): CinematicNiche {
 export function buildProviderContext(input: ProviderContextInput): ProviderContext {
   const niche = coerceNiche(input.niche)
   const nicheLock = buildNicheLayer(niche)
+  const styleFingerprint = buildStyleFingerprint(
+    {
+      topic: input.topic,
+      niche,
+      tone: input.tone,
+      platform: input.platform,
+      duration: input.duration,
+      visualStyle: input.visualStyle,
+      emotionalGoal: input.emotionalGoal,
+    },
+    {
+      profile: input.memoryProfile,
+      companionMemory: input.companionMemory,
+    },
+    nicheLock
+  )
 
   const sections: string[] = []
 
@@ -38,10 +58,12 @@ export function buildProviderContext(input: ProviderContextInput): ProviderConte
   if (input.platform?.trim()) sections.push(`PLATFORM LOCK: ${input.platform.trim()}`)
 
   sections.push(nicheLock)
+  sections.push(formatFingerprintForPrompt(styleFingerprint))
 
   return {
     injectionBlock: sections.filter(Boolean).join('\n\n'),
     nicheLock,
+    styleFingerprint,
   }
 }
 

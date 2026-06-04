@@ -1,8 +1,10 @@
 import type { CinematicNiche } from '@/lib/cinematic/niches'
+import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { ContentBrief } from '@/lib/content-director/content-brief'
 import type { ParsedCreatorIntent } from '@/lib/input-understanding'
 import type { MemoryProfile } from '@/lib/memory/types'
 import type { CreatorMemory } from '@/lib/companion/types'
+import type { CreatorStyleFingerprint } from '@/lib/ai/style-fingerprint'
 
 /** Supported text-generation providers for Phase 1 routing. */
 export type ProviderId = 'openai' | 'gemini' | 'groq' | 'openrouter' | 'deepseek'
@@ -28,6 +30,9 @@ export type ProviderContextInput = {
   niche?: CinematicNiche | string
   tone?: string
   platform?: string
+  duration?: number
+  visualStyle?: Partial<VisualStyle> | VisualStyle | null
+  emotionalGoal?: string
   parsedIntent?: ParsedCreatorIntent | null
   memoryProfile?: MemoryProfile | null
   companionMemory?: CreatorMemory | null
@@ -38,6 +43,7 @@ export type ProviderContext = {
   /** Merged prompt prefix injected before each provider call */
   injectionBlock: string
   nicheLock: string
+  styleFingerprint: CreatorStyleFingerprint
 }
 
 export type HookInput = {
