@@ -57,6 +57,7 @@ export async function initFFmpeg(options?: {
   loadPromise = (async () => {
     const base = ffmpegCoreBaseUrl()
     const wantThreaded = Boolean(options?.threaded)
+    const loadTimeoutMs = 90_000
 
     const attachListeners = (ffmpeg: FFmpeg) => {
       ffmpeg.on('log', ({ message }) => {
@@ -77,7 +78,7 @@ export async function initFFmpeg(options?: {
       const coreJs = useThreaded ? 'ffmpeg-core-mt.js' : 'ffmpeg-core.js'
       const coreWasm = useThreaded ? 'ffmpeg-core-mt.wasm' : 'ffmpeg-core.wasm'
 
-      await ffmpeg.load({
+      const loadTask = ffmpeg.load({
         classWorkerURL: `${base}/ffmpeg-class-worker.js`,
         coreURL: await toBlobURL(`${base}/${coreJs}`, 'text/javascript'),
         wasmURL: await toBlobURL(`${base}/${coreWasm}`, 'application/wasm'),
@@ -87,6 +88,16 @@ export async function initFFmpeg(options?: {
             }
           : {}),
       })
+
+      await Promise.race([
+        loadTask,
+        new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error(`FFmpeg.wasm load timed out after ${loadTimeoutMs / 1000}s`)),
+            loadTimeoutMs
+          )
+        }),
+      ])
       return ffmpeg
     }
 

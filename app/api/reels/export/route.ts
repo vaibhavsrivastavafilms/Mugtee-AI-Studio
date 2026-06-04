@@ -122,9 +122,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (!timelineOverride) {
-      const readiness = await getExportReadinessForProject(row, auth.user!.id, {
-        includeVoiceover,
-      })
+      let readiness
+      try {
+        readiness = await getExportReadinessForProject(row, auth.user!.id, {
+          includeVoiceover,
+        })
+      } catch (readinessErr) {
+        const validationError = friendlyReelRenderErrorFromUnknown(readinessErr)
+        void trackMp4FailedServer({
+          userId: auth.user!.id,
+          projectId,
+          stage: 'validation',
+          err: validationError,
+          route: 'POST /api/reels/export',
+        })
+        return NextResponse.json(
+          { error: validationError, status: 'failed', stage: 'storyboard_asset_loading' },
+          { status: 400 }
+        )
+      }
       if (!readiness.canExport) {
         const validationError =
           readiness.message ??
@@ -214,7 +230,12 @@ export async function POST(req: NextRequest) {
       message.includes('Storyboard images are missing or unreachable') ||
       message.includes('missing or unreachable') ||
       message.includes('Missing asset detected') ||
-      message.startsWith('Add voiceover')
+      message.includes('Export assets are missing') ||
+      message.includes('missing a storyboard') ||
+      message.includes('missing a storyboard image') ||
+      message.includes('link may have expired') ||
+      message.startsWith('Add voiceover') ||
+      message.startsWith('Add storyboard')
     const stage = message.includes('storyboard') || message.includes('Scene')
       ? 'storyboard_asset_loading'
       : message.includes('voice') || message.includes('Voice')

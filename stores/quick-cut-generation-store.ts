@@ -1634,6 +1634,13 @@ async function pollRenderJob(
   if (typeof pollReelExportJob !== 'function') {
     throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
   }
+  const capProgress =
+    typeof capReelExportProgress === 'function'
+      ? capReelExportProgress
+      : (progress?: number) => {
+          if (typeof progress !== 'number' || !Number.isFinite(progress)) return undefined
+          return Math.min(95, Math.max(0, Math.round(progress)))
+        }
   const startedAt = Date.now()
   useQuickCutGenerationStore.setState({ renderStartedAt: startedAt })
 
@@ -1643,7 +1650,7 @@ async function pollRenderJob(
     onProgress: (patch) => {
       if (patch.label) onUpdate?.({ label: patch.label })
       if (patch.progress !== undefined) {
-        const capped = capReelExportProgress(patch.progress) ?? patch.progress
+        const capped = capProgress(patch.progress) ?? patch.progress
         const exportProgress = Math.max(STEP_PROGRESS.render, capped)
         onUpdate?.({ progress: exportProgress })
         useQuickCutGenerationStore.setState({ progress: exportProgress })
@@ -1709,7 +1716,17 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       }
     }
     if (exportRes.ok && typeof exportData.jobId === 'string') {
-      const { reelExportPollPath } = await import('@/lib/reels/export-paths')
+      const pathsModule = await import('@/lib/reels/export-paths')
+      const reelExportPollPath = pathsModule.reelExportPollPath
+      if (typeof reelExportPollPath !== 'function') {
+        return {
+          renderRes: { ok: false, status: 500 } as Response,
+          renderData: {
+            error: 'Export poll unavailable — refresh the page and try Compile MP4 again.',
+            status: 'failed',
+          },
+        }
+      }
       return {
         renderRes: exportRes,
         renderData: {
