@@ -16,3 +16,5 @@ export {
 } from '@/lib/video-providers/factory'
 export { hasSeedanceApiKey } from '@/lib/video-providers/seedance-client'
 export { SeedanceProvider } from '@/lib/video-providers/seedance-provider'
+export { RunwayProvider } from '@/lib/video-providers/runway-provider'
+export { hasRunwayApiKey } from '@/lib/ai/runway-video'
