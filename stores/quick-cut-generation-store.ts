@@ -1716,9 +1716,24 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
 
     const exportPayload = {
       projectId: state.savedProjectId,
-      quality: '1080p',
+      quality: '1080p' as const,
       includeVoiceover: true,
       includeCaptions: true,
+      scenes: state.scenes.map((s) => ({
+        id: s.id,
+        title: s.title ?? null,
+        imageUrl: s.imageUrl ?? null,
+        imageAssetPath: s.imageAssetPath ?? null,
+      })),
+      storyboards: (state.storyboard ?? state.scenes).map((s) => ({
+        id: s.id,
+        title: s.title ?? null,
+        imageUrl: s.imageUrl ?? null,
+        imageAssetPath: s.imageAssetPath ?? null,
+      })),
+      script: state.script ?? null,
+      voiceUrl: state.voiceUrl ?? null,
+      thumbnailUrl: state.thumbnailImageUrl ?? null,
     }
     console.log('[EXPORT] Payload', exportPayload)
     const exportRes = await fetch('/api/reels/export', {

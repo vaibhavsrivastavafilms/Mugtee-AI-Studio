@@ -162,6 +162,10 @@ async function backfillStoryboardAssets(projectId: string): Promise<void> {
 
 async function requestReelExport(projectId: string) {
 
+  const row = await loadProject(projectId)
+
+  const scenes = ensureExportSafeScenes(resolveProjectScenes(row))
+
   const payload = {
 
     projectId,
@@ -171,6 +175,36 @@ async function requestReelExport(projectId: string) {
     includeVoiceover: true,
 
     includeCaptions: true,
+
+    scenes: scenes.map((s) => ({
+
+      id: s.id,
+
+      title: s.title ?? null,
+
+      imageUrl: s.imageUrl ?? null,
+
+      imageAssetPath: s.imageAssetPath ?? null,
+
+    })),
+
+    storyboards: scenes.map((s) => ({
+
+      id: s.id,
+
+      title: s.title ?? null,
+
+      imageUrl: s.imageUrl ?? null,
+
+      imageAssetPath: s.imageAssetPath ?? null,
+
+    })),
+
+    script: row.script ?? null,
+
+    voiceUrl: row.voice?.audioUrl?.trim() ?? null,
+
+    thumbnailUrl: row.thumbnail_url?.trim() ?? null,
 
   }
 

@@ -14,7 +14,7 @@ export type SceneVideoJobPoll = {
 }
 
 type PollResult = {
-  status: 'queued' | 'running' | 'done' | 'failed'
+  status: 'queued' | 'running' | 'done' | 'failed' | 'skipped'
   videoUrl?: string | null
   thumbnailUrl?: string | null
   error?: string | null
@@ -25,7 +25,7 @@ async function pollVideoJob(pollUrl: string): Promise<PollResult> {
   const res = await fetch(pollUrl, { cache: 'no-store' })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (res.status === 404) {
-    return { status: 'failed', error: 'Video job not found (server restarted)' }
+    return { status: 'skipped', error: 'Video job not found (ephemeral store)' }
   }
   if (!res.ok) {
     return { status: 'failed', error: String(data.error ?? 'Poll failed') }
@@ -102,17 +102,14 @@ export async function pollSceneVideoJobs(
 
     for (const [sceneId, job] of [...pending.entries()]) {
       const result = await pollVideoJob(job.pollUrl)
-      if (result.status === 'failed' && result.error?.includes('not found')) {
+      if (result.status === 'skipped') {
         logVideoAsset(projectId, {
           videoJobId: job.jobId,
           persisted: false,
           retrievable: false,
         })
-        for (const id of [...pending.keys()]) {
-          onUpdate(id, { videoGenerationStatus: 'failed' })
-        }
-        pending.clear()
-        break
+        pending.delete(sceneId)
+        continue
       }
       if (result.status === 'done' && result.videoUrl) {
         logVideoAsset(projectId, {
