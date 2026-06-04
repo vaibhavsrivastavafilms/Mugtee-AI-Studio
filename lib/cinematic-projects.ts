@@ -441,13 +441,24 @@ function parseCaptions(value: CinematicProjectRow['captions']) {
   return parseCaptionsPayload(value)
 }
 
-/** Prefer `scenes`; fall back to archived `storyboard` mirror when scenes are empty. */
+/** Prefer `scenes`; fall back to `storyboard` when scenes are empty or lack export stills. */
 export function resolveProjectScenes(
   row: Pick<CinematicProjectRow, 'scenes' | 'storyboard'>
 ): CinematicScene[] {
   const fromScenes = Array.isArray(row.scenes) ? row.scenes : []
   const fromStoryboard = Array.isArray(row.storyboard) ? row.storyboard : []
-  const raw = fromScenes.length > 0 ? fromScenes : fromStoryboard
+  const sceneHasStills = (s: CinematicScene | Record<string, unknown>) => {
+    const row = s as CinematicScene
+    return Boolean(row.imageUrl?.trim()) || Boolean(row.imageAssetPath?.trim())
+  }
+  const scenesWithStills = fromScenes.filter(sceneHasStills).length
+  const storyboardWithStills = fromStoryboard.filter(sceneHasStills).length
+  const raw =
+    fromScenes.length > 0 && (scenesWithStills > 0 || storyboardWithStills === 0)
+      ? fromScenes
+      : fromStoryboard.length > 0
+        ? fromStoryboard
+        : fromScenes
   return sanitizeScenesFromPersistence(raw as CinematicScene[])
 }
 

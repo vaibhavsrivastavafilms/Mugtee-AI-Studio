@@ -33,6 +33,7 @@ import {
 import {
   buildExportReadiness,
   getExportReadinessForProject,
+  loadProjectAssetCounts,
   logExportAssetCounts,
   resolveExportScenes,
   type ExportReadinessResult,
@@ -57,6 +58,7 @@ import {
   trackMp4FailedServer,
 } from '@/lib/analytics/mp4-export-track.server'
 import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
+import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
 
 export type ReelExportStatus =
   | 'pending'
@@ -300,9 +302,28 @@ export async function queueReelExportForProject(params: {
   baseUrl: string
   includeVoiceover: boolean
   includeCaptions: boolean
+  /** Scenes already hydrated by route readiness — avoids duplicate backfill on POST. */
+  hydratedScenes?: CinematicScene[]
 }): Promise<{ jobId: string; status: ReelExportStatus }> {
-  const { scenes: hydratedStoreScenes, assetCounts, hydratedCount } =
-    await resolveExportScenes(params.row, params.userId)
+  exportApiCheckpoint('queue_start', { projectId: params.row.id })
+  let hydratedStoreScenes: CinematicScene[]
+  let assetCounts: Awaited<ReturnType<typeof loadProjectAssetCounts>>
+  let hydratedCount = 0
+
+  if (params.hydratedScenes?.length) {
+    hydratedStoreScenes = params.hydratedScenes
+    assetCounts = await loadProjectAssetCounts(params.row.id, params.userId)
+    exportApiCheckpoint('storyboard_processing', {
+      projectId: params.row.id,
+      source: 'route_hydrated',
+      sceneCount: hydratedStoreScenes.length,
+    })
+  } else {
+    const resolved = await resolveExportScenes(params.row, params.userId)
+    hydratedStoreScenes = resolved.scenes
+    assetCounts = resolved.assetCounts
+    hydratedCount = resolved.hydratedCount
+  }
 
   logExportAssetCounts({
     projectId: params.row.id,
@@ -381,6 +402,7 @@ export async function queueReelExportForProject(params: {
     userId: params.userId,
     includeVoiceover: params.includeVoiceover,
     includeCaptions: params.includeCaptions,
+    hydratedScenes: hydratedStoreScenes,
   })
   exportLog.assetValidation({
     jobId,
@@ -451,6 +473,7 @@ export async function queueReelExportForProject(params: {
     projectId: exportRow.id,
   }
 
+  exportApiCheckpoint('background_scheduled', { projectId: params.row.id, jobId })
   runExportInBackground(() =>
     orchestrateRemotionReel(input, {
       jobId,

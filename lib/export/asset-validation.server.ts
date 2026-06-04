@@ -12,6 +12,8 @@ import {
 } from '@/lib/export/scene-export-validation'
 import { resolveExportScenes } from '@/lib/export/export-readiness.server'
 import { refreshStoryboardUrl, storyboardStorageExists } from '@/lib/storyboard/storyboard-url-service.server'
+import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import type { CinematicScene } from '@/stores/cinematic-project'
 
 export type ExportAssetValidation = {
   valid: boolean
@@ -70,9 +72,19 @@ export async function validateExportAssets(params: {
   userId: string
   includeVoiceover: boolean
   includeCaptions: boolean
+  /** When set, skip a second full storyboard backfill (queue already hydrated). */
+  hydratedScenes?: CinematicScene[]
 }): Promise<ExportAssetValidation> {
   const missing: string[] = []
-  const { scenes } = await resolveExportScenes(params.row, params.userId)
+  exportApiCheckpoint('image_assets_loaded', {
+    projectId: params.row.id,
+    phase: 'validate_export_assets',
+    hydrated: Boolean(params.hydratedScenes?.length),
+  })
+  const scenes =
+    params.hydratedScenes?.length
+      ? params.hydratedScenes
+      : (await resolveExportScenes(params.row, params.userId, { skipHeavyBackfill: true })).scenes
   const exportScenes = scenesForReelExport(scenes)
   const voiceUrl = params.row.voice?.audioUrl?.trim() ?? null
   const timeline = parseReelTimeline(params.row.timeline_state)
