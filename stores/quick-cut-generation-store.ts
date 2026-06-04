@@ -218,8 +218,22 @@ import {
   logGenerationResumed,
   logGenerationStart,
   logGenerationSuccess,
+  logPipelineStepStart,
+  logStepComplete,
   logStepFailed,
+  logStoryboardFrame,
 } from '@/lib/cinematic/generation-logger'
+import {
+  armPipelineWatchdog,
+  clearPipelineWatchdog,
+  logStateTransition,
+  logStepShouldRunDecision,
+  logTraceEnter,
+  logTraceExit,
+  runTracedStep,
+  shouldTracePipeline,
+} from '@/lib/pipeline/pipeline-trace'
+import { withStepTimeout } from '@/lib/pipeline/with-step-timeout'
 import {
   pipelineFetch,
   pipelineFetchJson,
@@ -932,6 +946,13 @@ function buildGenerationOutput(
       colorPalette: s.colorPalette || visualDefaults.colorPalette,
       movementStyle: s.movementStyle || visualDefaults.movementStyle,
       imageUrl: s.imageUrl,
+      ...(s.imageAssetPath?.trim() ? { imageAssetPath: s.imageAssetPath.trim() } : {}),
+      ...(s.storyboardImages?.length
+        ? {
+            storyboardImages: s.storyboardImages,
+            activeStoryboardId: s.activeStoryboardId,
+          }
+        : {}),
     })),
     captions: state.script.split('\n').filter(Boolean).slice(0, 8),
     captionPack: {
@@ -1151,15 +1172,19 @@ async function runSceneVideoGeneration(
       return { scenes, storyboard: scenes }
     })
 
-    await pollSceneVideoJobs(jobs, (sceneId, patch) => {
-      useQuickCutGenerationStore.setState((prev) => {
-        const scenes = prev.scenes.map((scene) =>
-          scene.id === sceneId ? { ...scene, ...patch } : scene
-        )
-        return { scenes, storyboard: scenes }
-      })
-      get().composeReelTimeline()
-    })
+    await pollSceneVideoJobs(
+      jobs,
+      (sceneId, patch) => {
+        useQuickCutGenerationStore.setState((prev) => {
+          const scenes = prev.scenes.map((scene) =>
+            scene.id === sceneId ? { ...scene, ...patch } : scene
+          )
+          return { scenes, storyboard: scenes }
+        })
+        get().composeReelTimeline()
+      },
+      { projectId: state.savedProjectId }
+    )
   } catch {
     /* non-blocking — image fallback preserved */
   } finally {
@@ -1376,7 +1401,9 @@ async function fetchSceneImages(
   mock: boolean
   characterDescription?: string
 }> {
-  const res = await fetch('/api/generate-images', {
+  const res = await withStepTimeout(
+    'storyboard_images',
+    fetch('/api/generate-images', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1403,8 +1430,13 @@ async function fetchSceneImages(
       visualBible: state.visualBible ?? undefined,
       outputAlignmentControls: state.outputAlignmentControls,
     }),
-  })
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  }),
+    60_000
+  )
+  const data = (await res.json().catch((err) => {
+    console.warn('[STEP_FAILURE]', { step: 'storyboard_images', error: String(err) })
+    return {}
+  })) as Record<string, unknown>
   if (handlePlanLimitResponse(res, data)) {
     throw new PlanLimitError(
       typeof data.error === 'string' ? data.error : undefined
@@ -1566,6 +1598,7 @@ function setStep(
   get: () => QuickCutGenerationState,
   step: QuickCutGenerationStep
 ) {
+  const previousState = get().generationStep
   const progress = STEP_PROGRESS[step]
   const patch: Partial<QuickCutGenerationState> = {
     generationStep: step,
@@ -1581,6 +1614,11 @@ function setStep(
     patch.currentWorkflowStep = workflowStepFromGenerationStep(step)
   }
   set(patch)
+  if (previousState !== step) {
+    logStateTransition(previousState, step, {
+      projectId: get().savedProjectId ?? undefined,
+    })
+  }
 }
 
 async function pollRenderJob(
@@ -2886,16 +2924,22 @@ export const useQuickCutGenerationStore = create<
       let waveform: number[] = get().waveform
       let voiceFallbackMessage: string | null = get().voiceFallbackMessage
 
+      logTraceEnter('parallel_visual_voice', {
+        resumeFrom,
+        projectId: preserveProjectId,
+      })
       await Promise.all([
         stepShouldRun(resumeFrom, 'visual_direction')
-          ? (async () => {
+          ? runTracedStep(
+              'visual_direction',
+              async () => {
               patchSectionStatus(set, get, 'visualDirection', 'generating')
               genPerf.start('visual_direction')
               setStep(set, get, 'scenes')
               const storyboardFromScript = get().storyboardScenes
-              const { res: scenesRes, data: scenesData } = await pipelineFetchJson(
-                '/api/generate-scenes',
-                {
+              const { res: scenesRes, data: scenesData } = await withStepTimeout(
+                'visual_direction',
+                pipelineFetchJson('/api/generate-scenes', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -2915,7 +2959,8 @@ export const useQuickCutGenerationStore = create<
                       : {}),
                   }),
                   maxRetries: 2,
-                }
+                }),
+                90_000
               )
               if (!scenesRes.ok) {
                 patchSectionStatus(set, get, 'visualDirection', 'failed')
@@ -2979,10 +3024,14 @@ export const useQuickCutGenerationStore = create<
               if (scenesId) set({ savedProjectId: scenesId, saveState: 'saved' })
               patchSectionStatus(set, get, 'visualDirection', 'completed')
               genPerf.end('visual_direction')
-            })()
+            },
+              { projectId: preserveProjectId, timeoutMs: 90_000 }
+            )
           : Promise.resolve(),
         stepShouldRun(resumeFrom, 'voice')
-          ? (async () => {
+          ? runTracedStep(
+              'voice',
+              async () => {
               patchSectionStatus(set, get, 'voice', 'generating')
               genPerf.start('voice')
               setStep(set, get, 'voice')
@@ -2999,9 +3048,9 @@ export const useQuickCutGenerationStore = create<
               }
 
               const { elevenLabsVoiceId, voiceName: selectedVoiceName, voiceProfileId } = get()
-              const { res: voiceRes, data: voiceData } = await pipelineFetchJson(
-                '/api/generate-voice',
-                {
+              const { res: voiceRes, data: voiceData } = await withStepTimeout(
+                'voice',
+                pipelineFetchJson('/api/generate-voice', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -3015,7 +3064,8 @@ export const useQuickCutGenerationStore = create<
                     sceneBlueprints: get().sceneBlueprints,
                     project_id: get().savedProjectId ?? undefined,
                   }),
-                }
+                }),
+                60_000
               )
               if (voiceRes.ok) {
                 voiceUrl = typeof voiceData.audioUrl === 'string' ? voiceData.audioUrl : null
@@ -3075,9 +3125,26 @@ export const useQuickCutGenerationStore = create<
               if (voiceId) set({ savedProjectId: voiceId, saveState: 'saved' })
               patchSectionStatus(set, get, 'voice', voiceRes.ok ? 'completed' : 'failed')
               genPerf.end('voice')
-            })()
+              if (shouldTracePipeline()) {
+                console.info(
+                  '[STEP_COMPLETE]',
+                  { step: 'voice', nextStep: 'storyboard', projectId: get().savedProjectId }
+                )
+              }
+              armPipelineWatchdog('post_voice_await_storyboard', {
+                projectId: get().savedProjectId,
+                resumeFrom,
+              })
+            },
+              { projectId: preserveProjectId, timeoutMs: 60_000 }
+            )
           : Promise.resolve(),
       ])
+      logTraceExit('parallel_visual_voice', {
+        sceneCount: get().scenes.length,
+        resumeFrom,
+        projectId: get().savedProjectId,
+      })
 
       if (!get().storyBible && scenes.length > 0) {
         const fallbackBible = buildStoryBibleFromVisualDirection({
@@ -3102,6 +3169,7 @@ export const useQuickCutGenerationStore = create<
         patchSectionStatus(set, get, 'storyboard', 'generating')
         patchSectionStatus(set, get, 'thumbnail', 'generating')
         genPerf.start('storyboard')
+        logPipelineStepStart('storyboard', get().savedProjectId)
         set({ directingSceneLabel: 'Composing visuals…' })
 
         const scenesToRender = scenes
@@ -3151,6 +3219,17 @@ export const useQuickCutGenerationStore = create<
               }
             })
             scenes = get().scenes
+            const mergedScene = get().scenes.find((s) => s.id === scene.id)
+            if (mergedScene) {
+              logStoryboardFrame(get().savedProjectId, {
+                frameId: mergedScene.id,
+                imageUrl: mergedScene.imageUrl,
+                storagePath: mergedScene.imageAssetPath ?? null,
+                persisted: Boolean(
+                  mergedScene.imageAssetPath?.trim() || mergedScene.imageUrl?.trim()
+                ),
+              })
+            }
             if (imgResult.mock) {
               imgMock = true
               anyMock = true
@@ -4242,6 +4321,7 @@ export const useQuickCutGenerationStore = create<
       if (inferProjectMode(row) === 'director') return false
 
       const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
+      logPipelineStepStart('project_reload', projectId, { source: 'loadSavedProject' })
       const workflow = restoreWorkflowContinuity()
       set({
         ...INITIAL,

@@ -13,6 +13,11 @@ import {
 
 const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7
 
+import {
+  logPipelineStepComplete,
+  logPipelineStepStart,
+} from '@/lib/cinematic/generation-logger'
+
 function devLog(event: string, payload: Record<string, unknown>): void {
   if (process.env.NODE_ENV === 'production') return
   console.info(`[Storyboard Recovery] ${event}`, payload)
@@ -26,6 +31,7 @@ export async function refreshStoryboardUrl(
   const path = assetPath?.trim()
   if (!isDurableStoryboardPath(path)) return null
 
+  logPipelineStepStart('storage', null, { assetPath: path })
   const client = supabase ?? createSupabaseServerClient()
   const { data: signed, error } = await client.storage
     .from(STORYBOARD_STORAGE_BUCKET)
@@ -33,6 +39,7 @@ export async function refreshStoryboardUrl(
 
   if (!error && signed?.signedUrl) {
     devLog('refresh.signed', { assetPath: path })
+    logPipelineStepComplete('storage', null, { assetPath: path, method: 'signed' })
     return signed.signedUrl
   }
 

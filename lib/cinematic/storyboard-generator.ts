@@ -385,6 +385,13 @@ export async function generateSceneStoryboardImages(params: {
       const { persistSceneImageAsset } = await import(
         '@/lib/project-assets/persist-scene-image.server'
       )
+      const { logPipelineStepStart, logStoryboardFrame } = await import(
+        '@/lib/cinematic/generation-logger'
+      )
+      logPipelineStepStart('storyboard', params.projectId, {
+        sceneIndex: params.input.sceneIndex,
+        variant: variant.label,
+      })
       await persistSceneImageAsset({
         userId: params.userId,
         projectId: params.projectId,
@@ -399,6 +406,12 @@ export async function generateSceneStoryboardImages(params: {
           variant_label: variant.label,
           storyboard_image_id: imageId,
         },
+      })
+      logStoryboardFrame(params.projectId, {
+        frameId: imageId,
+        imageUrl: result.url,
+        storagePath: assetPath ?? null,
+        persisted: Boolean(assetPath),
       })
     }
   }

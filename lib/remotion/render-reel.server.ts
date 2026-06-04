@@ -28,7 +28,15 @@ import {
   assertAllScenesHaveExportImages,
   findScenesMissingExportImages,
   missingScenesExportMessage,
+  resolveSceneExportAssetPath,
+  resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
+import { refreshStoryboardUrl } from '@/lib/storyboard/storyboard-url-service.server'
+import {
+  logPipelineStepComplete,
+  logPipelineStepError,
+  logPipelineStepStart,
+} from '@/lib/cinematic/generation-logger'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
@@ -97,14 +105,26 @@ export async function renderRemotionReel(
     )
 
     assertAllScenesHaveExportImages(timedScenes)
+    logPipelineStepStart('export', null, { phase: 'remotion_download_assets', sceneCount: timedScenes.length })
 
     const reelScenes: ReelSceneInput[] = []
     let thumbnailLocalPath: string | null = null
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
-      const imageUrl = scene.imageUrl?.trim()
+      let imageUrl =
+        resolveSceneExportImageUrl(scene)?.trim() ?? scene.imageUrl?.trim() ?? ''
+      if (!imageUrl) {
+        const assetPath = resolveSceneExportAssetPath(scene)
+        if (assetPath) {
+          imageUrl = (await refreshStoryboardUrl(assetPath))?.trim() ?? ''
+        }
+      }
       if (!imageUrl) {
         const missing = findScenesMissingExportImages(timedScenes)
+        logPipelineStepError('export', null, missingScenesExportMessage(missing), {
+          sceneIndex: i + 1,
+          sceneId: scene.id,
+        })
         throw new Error(missingScenesExportMessage(missing))
       }
       const ext = extFromUrl(imageUrl, '.jpg')
@@ -188,6 +208,7 @@ export async function renderRemotionReel(
 
     const durationSec = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
     input.onProgress?.('Reel encode complete', 95)
+    logPipelineStepComplete('export', null, { phase: 'remotion_render_done', durationSec })
 
     return {
       outputPath: input.outputPath,

@@ -61,6 +61,11 @@ import {
   mergeSceneVideosIntoScenes,
   parseSceneVideosFromCaptions,
 } from '@/lib/video/scene-video-shared'
+import {
+  logPipelineStepComplete,
+  logPipelineStepStart,
+  logStoryboardFrame,
+} from '@/lib/cinematic/generation-logger'
 
 export function inferOpenStageTab(row: CinematicProjectRow): QuickCutStageTab {
   const scenes = resolveProjectScenes(row)
@@ -162,6 +167,7 @@ export function buildQuickCutHydrationFromRow(
   row: CinematicProjectRow,
   stageTab?: QuickCutStageTab
 ): QuickCutProjectHydrationPatch {
+  logPipelineStepStart('project_reload', row.id)
   const state = rowToState(row)
   const parsedCaptions = parseCaptionsPayload(row.captions)
   const storyBible = resolveStoryBibleFromRow(row)
@@ -212,6 +218,15 @@ export function buildQuickCutHydrationFromRow(
   const persistedTimeline = parseTimelineState(
     (row as { timeline_state?: unknown }).timeline_state
   )
+  for (const scene of scenes) {
+    logStoryboardFrame(row.id, {
+      frameId: scene.id,
+      imageUrl: scene.imageUrl,
+      storagePath: scene.imageAssetPath ?? null,
+      persisted: Boolean(scene.imageAssetPath?.trim() || scene.imageUrl?.trim()),
+    })
+  }
+
   const reelTimeline =
     persistedTimeline ??
     composeReelTimeline({
@@ -224,6 +239,12 @@ export function buildQuickCutHydrationFromRow(
       script: state.script,
       targetDurationSec: state.duration,
     })
+
+  logPipelineStepComplete('project_reload', row.id, {
+    sceneCount: scenes.length,
+    hasVoice: Boolean(state.voice?.audioUrl?.trim()),
+    hasReel: Boolean(reelUrl?.trim()),
+  })
 
   return {
     savedProjectId: row.id,
