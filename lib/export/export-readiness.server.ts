@@ -172,9 +172,11 @@ export async function resolveExportScenes(
   )
   const scenesWithImages = baseScenes.filter((s) => resolveSceneExportImageUrl(s))
   if (scenesWithImages.length > assetCounts.imageCount) {
-    const { backfillProjectAssetsFromScenes } = await import(
-      '@/lib/project-assets/persist-scene-image.server'
-    )
+    const persistMod = await import('@/lib/project-assets/persist-scene-image.server')
+    const backfillProjectAssetsFromScenes = persistMod.backfillProjectAssetsFromScenes
+    if (typeof backfillProjectAssetsFromScenes !== 'function') {
+      throw new Error('Storyboard asset backfill is unavailable on this server.')
+    }
     await backfillProjectAssetsFromScenes({
       userId,
       projectId: row.id,
@@ -191,9 +193,11 @@ export async function resolveExportScenes(
     imageAssets: assetCounts.imageAssets,
   }
   let scenes = await refreshAllSceneStoryboardUrls(hydrated, { lookup })
-  const { backfillStoryboardAssetsForProject } = await import(
-    '@/lib/storyboard/backfill-storyboard-assets.server'
-  )
+  const backfillMod = await import('@/lib/storyboard/backfill-storyboard-assets.server')
+  const backfillStoryboardAssetsForProject = backfillMod.backfillStoryboardAssetsForProject
+  if (typeof backfillStoryboardAssetsForProject !== 'function') {
+    throw new Error('Storyboard recovery is unavailable on this server.')
+  }
   const backfill = await backfillStoryboardAssetsForProject({
     row: { ...row, scenes },
     userId,
