@@ -39,6 +39,7 @@ export async function buildCreatorTwinPrompt(
   const combined = injectContext(input.userPrompt, {
     injectionBlock: [twinBlock, providerCtx.injectionBlock].filter(Boolean).join('\n\n'),
     nicheLock: providerCtx.nicheLock,
+    styleFingerprint: providerCtx.styleFingerprint,
   })
 
   return { prompt: combined, memoryContext: context }

@@ -56,6 +56,9 @@ All router calls prepend:
 - Creator memory profile (`lib/memory/memory-prompt-injection.ts`)
 - Content brief (`lib/content-director/`)
 - Niche lock (`buildNicheLayer` from `lib/cinematic/niches.ts`)
+- **Creator style fingerprint** (`lib/ai/style-fingerprint.ts`) — pacing, rhythm, hook style, visual tone, CTA style
+
+Post-generation, `executeWithStyleGuard` scores output vs fingerprint; scores below 70 trigger one retry on the next fallback provider. Drift is logged as `style_fingerprint_drift` analytics events. See `docs/CREATOR_CONSISTENCY.md`.
 
 ### Reliability
 

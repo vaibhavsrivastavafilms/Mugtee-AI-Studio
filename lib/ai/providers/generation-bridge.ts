@@ -1,14 +1,14 @@
 import {
   buildProviderContext,
-  executeWithFallback,
   getAvailableProviders,
   hasProviderKey,
-  recordLastProvider,
   type ProviderContextInput,
 } from '@/lib/ai/providers'
+import { executeWithStyleGuard } from '@/lib/ai/providers/style-consistency'
 import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { isBannedHookOpening } from '@/lib/cinematic/content-angle-engine'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
+import type { CaptionResult, HookResult, ScriptResult } from '@/lib/ai/providers/types'
 
 export type AiHookGenerationInput = ProviderContextInput & {
   emotionalGoal?: string
@@ -42,29 +42,34 @@ export async function generateHookViaRouter(
   const avoid = input.previousHooks ?? []
 
   try {
-    const result = await executeWithFallback('hook', async (provider) => {
-      const hookResult = await provider.generateHook({
-        topic: input.topic,
-        niche: input.niche ?? 'general',
-        tone: input.tone,
-        platform: input.platform,
-        emotionalGoal: input.emotionalGoal,
-        previousHooks: avoid,
-        contentAngleLabel: input.contentAngleLabel,
-        hookFrameworkLabel: input.hookFrameworkLabel,
-        context,
-      })
-      if (!isValidHook(hookResult.hook, avoid)) {
-        throw new Error('Hook failed validation')
+    const result = await executeWithStyleGuard<HookResult>(
+      'hook',
+      'hook',
+      context.styleFingerprint,
+      (r) => r.hook,
+      async (provider) => {
+        const hookResult = await provider.generateHook({
+          topic: input.topic,
+          niche: input.niche ?? 'general',
+          tone: input.tone,
+          platform: input.platform,
+          emotionalGoal: input.emotionalGoal,
+          previousHooks: avoid,
+          contentAngleLabel: input.contentAngleLabel,
+          hookFrameworkLabel: input.hookFrameworkLabel,
+          context,
+        })
+        if (!isValidHook(hookResult.hook, avoid)) {
+          throw new Error('Hook failed validation')
+        }
+        return hookResult
       }
-      return hookResult
-    })
+    )
 
-    recordLastProvider('hook', result.provider)
     return {
       hook: result.hook,
       title: result.title,
-      provider: result.provider,
+      provider: result.styleProvider,
       source: 'ai-router',
     }
   } catch (err) {
@@ -91,19 +96,74 @@ export type AiScriptRouterInput = {
   contextInput?: ProviderContextInput
 }
 
-export async function generateScriptViaRouter(input: AiScriptRouterInput) {
-  const context = input.contextInput ? buildProviderContext(input.contextInput) : undefined
+function scriptTextForScoring(parsed: Record<string, unknown>): string | Record<string, unknown> {
+  const script = typeof parsed.script === 'string' ? parsed.script : ''
+  const hook = typeof parsed.hook === 'string' ? parsed.hook : ''
+  if (script.trim()) return script
+  return { hook, ...parsed }
+}
 
-  const result = await executeWithFallback('script', async (provider) =>
-    provider.generateScript({
-      systemPrompt: input.systemPrompt,
-      userPrompt: input.userPrompt,
-      topic: input.topic,
-      temperature: input.temperature,
-      context,
-    })
+export async function generateScriptViaRouter(input: AiScriptRouterInput) {
+  const context = buildProviderContext(
+    input.contextInput ?? { topic: input.topic }
   )
 
-  recordLastProvider('script', result.provider)
-  return result
+  const result = await executeWithStyleGuard<ScriptResult>(
+    'script',
+    'script',
+    context.styleFingerprint,
+    (r) => scriptTextForScoring(r.parsed),
+    async (provider) =>
+      provider.generateScript({
+        systemPrompt: input.systemPrompt,
+        userPrompt: input.userPrompt,
+        topic: input.topic,
+        temperature: input.temperature,
+        context,
+      })
+  )
+
+  return {
+    parsed: result.parsed,
+    provider: result.styleProvider,
+    attemptedProviders: result.attemptedProviders,
+  }
+}
+
+export type AiCaptionRouterInput = ProviderContextInput & {
+  script?: string
+}
+
+/** Caption generation via multi-provider router with style consistency guard. */
+export async function generateCaptionViaRouter(input: AiCaptionRouterInput) {
+  const context = buildProviderContext(input)
+
+  const result = await executeWithStyleGuard<CaptionResult>(
+    'caption',
+    'caption',
+    context.styleFingerprint,
+    (r) => {
+      const text =
+        typeof r.captions.summary === 'string'
+          ? r.captions.summary
+          : typeof r.captions.caption === 'string'
+            ? r.captions.caption
+            : JSON.stringify(r.captions)
+      return text
+    },
+    async (provider) =>
+      provider.generateCaption({
+        topic: input.topic,
+        niche: input.niche ?? 'general',
+        tone: input.tone,
+        platform: input.platform,
+        script: input.script,
+        context,
+      })
+  )
+
+  return {
+    captions: result.captions,
+    provider: result.styleProvider,
+  }
 }

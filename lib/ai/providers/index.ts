@@ -14,6 +14,20 @@ export type {
 export { AIProviderError } from '@/lib/ai/providers/types'
 
 export { buildProviderContext, injectContext } from '@/lib/ai/providers/context-injection'
+export { executeWithStyleGuard } from '@/lib/ai/providers/style-consistency'
+export {
+  buildStyleFingerprint,
+  formatFingerprintForPrompt,
+  mergeFingerprintDefaults,
+  type CreatorStyleFingerprint,
+  type StyleFingerprintProjectInput,
+} from '@/lib/ai/style-fingerprint'
+export {
+  scoreOutputConsistency,
+  isStyleConsistent,
+  STYLE_CONSISTENCY_THRESHOLD,
+  type StyleConsistencyStep,
+} from '@/lib/ai/style-fingerprint-validation'
 export {
   getAvailableProviders,
   getProviderChain,
