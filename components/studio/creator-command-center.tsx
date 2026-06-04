@@ -10,6 +10,7 @@ import { StudioSidebar } from '@/components/studio/studio-sidebar'
 import { StoryTimeline } from '@/components/studio/story-timeline'
 import { StudioMainWorkspace } from '@/components/studio/studio-main-workspace'
 import { StudioDirectorPanel } from '@/components/studio/studio-director-panel'
+import { StyleLibrarySidebar } from '@/components/templates/style-library-sidebar'
 import { StudioStatusBar } from '@/components/studio/studio-status-bar'
 import { StudioCommandPalettePlaceholder } from '@/components/studio/studio-command-palette-placeholder'
 import { StudioGlobalSearchPlaceholder } from '@/components/studio/studio-global-search-placeholder'
@@ -28,14 +29,22 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
   useQuickCutProjectHydration(projectId)
 
   const resetForProject = useStudioWorkspaceStore((s) => s.resetForProject)
+  const setPanelPreferences = useStudioWorkspaceStore((s) => s.setPanelPreferences)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const projectTitle = useQuickCutGenerationStore((s) => s.title)
+  const styleTemplateId = useQuickCutGenerationStore((s) => s.styleTemplateId)
 
   useEffect(() => {
     if (!projectId) return
     resetForProject(isComplete ? 'export' : 'idea')
   }, [projectId, resetForProject, isComplete])
+
+  useEffect(() => {
+    if (styleTemplateId) {
+      setPanelPreferences({ styleLibraryCollapsed: true })
+    }
+  }, [styleTemplateId, setPanelPreferences])
 
   return (
     <div
@@ -64,7 +73,7 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          'flex-1 min-h-0 min-w-0 flex flex-col lg:grid lg:grid-cols-[240px_200px_minmax(0,1fr)_300px]',
+          'flex-1 min-h-0 min-w-0 flex flex-col lg:grid lg:grid-cols-[240px_200px_minmax(0,1fr)_auto_300px]',
           'rounded-2xl border border-white/[0.06] bg-black/25 backdrop-blur-md overflow-hidden'
         )}
       >
@@ -86,6 +95,7 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
           <StudioMainWorkspace projectId={projectId} />
         </div>
 
+        <StyleLibrarySidebar />
         <StudioDirectorPanel />
       </motion.div>
     </div>
