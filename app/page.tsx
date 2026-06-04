@@ -34,10 +34,16 @@ const CinematicHomePage = nextDynamic(
       default: m.default,
     })),
   {
-    ssr: false,
     loading: () => (
-      <div className="flex h-[100dvh] items-center justify-center bg-[#050505]">
-        <div className="h-12 w-12 animate-pulse rounded-2xl bg-gradient-to-br from-[#E8C547] to-[#B8962E] shadow-[0_0_24px_rgba(212,175,55,0.35)]" />
+      <div
+        data-cinematic-home
+        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#050505]"
+        aria-busy="true"
+        aria-label="Loading Mugtee homepage"
+      >
+        <div className="flex flex-1 items-center justify-center">
+          <div className="h-12 w-12 animate-pulse rounded-2xl bg-gradient-to-br from-[#E8C547] to-[#B8962E] shadow-[0_0_24px_rgba(212,175,55,0.35)]" />
+        </div>
       </div>
     ),
   }

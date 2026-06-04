@@ -3,6 +3,7 @@
 import { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useMounted } from '@/lib/hooks/use-mounted'
 import { CinematicHeader } from '@/components/shell/cinematic-header'
 import { StudioPromptBar } from '@/components/shell/studio-prompt-bar'
 import { MugteeSidekickPanel } from '@/components/sidekick/mugtee-sidekick-panel'
@@ -34,6 +35,7 @@ export default function CinematicAppShell({
     'Producer'
 
   const pathname = usePathname() ?? ''
+  const mounted = useMounted()
   const isCompanionHome = pathname === '/home' || pathname.startsWith('/home/')
   const creatorMode = creatorModeFromPathname(pathname)
   const isV4CreatorRoute = creatorMode === 'quick' || creatorMode === 'director'
@@ -66,7 +68,7 @@ export default function CinematicAppShell({
             <CreatorProfileOnboardingGate />
 
             <motion.main
-              initial={{ opacity: 0 }}
+              initial={mounted ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               className="relative z-0 flex-1 flex flex-col lg:flex-row min-w-0 w-full min-h-0"

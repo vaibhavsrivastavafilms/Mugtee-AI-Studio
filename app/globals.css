@@ -109,6 +109,13 @@
       overflow-x: hidden;
     }
   }
+  /* Cinematic `/` — lock viewport scroll without client-only style mutation */
+  html:has([data-cinematic-home]),
+  html:has([data-cinematic-home]) body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    height: 100%;
+  }
 }
 
 @layer components {

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Play, Sparkles } from 'lucide-react'
+import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import { cn } from '@/lib/utils'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { useRouter } from 'next/navigation'
@@ -21,6 +22,9 @@ type CinematicHeroProps = {
 export function CinematicHero({ className }: CinematicHeroProps) {
   const router = useRouter()
   const { ready, user } = useAuthHydration()
+  const fadeUp = useCinematicMotionInitial({ opacity: 0, y: 8 })
+  const fadeUpH1 = useCinematicMotionInitial({ opacity: 0, y: 10 })
+  const fadeIn = useCinematicMotionInitial({ opacity: 0 })
 
   const handleStart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -40,7 +44,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={fadeUp}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="inline-flex items-center gap-1.5 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 mb-2"
@@ -52,7 +56,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
       </motion.div>
 
       <motion.h1
-        initial={{ opacity: 0, y: 10 }}
+        initial={fadeUpH1}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.65, delay: 0.05 }}
         className="font-display text-2xl sm:text-3xl lg:text-[2.35rem] leading-tight text-[#D4AF37] italic"
@@ -61,7 +65,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
       </motion.h1>
 
       <motion.p
-        initial={{ opacity: 0 }}
+        initial={fadeIn}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.12 }}
         className="mt-1.5 max-w-xl mx-auto text-xs sm:text-sm text-white/55"
@@ -70,7 +74,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
       </motion.p>
 
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={fadeUp}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.18 }}
         className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:gap-3"

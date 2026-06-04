@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { motion } from 'framer-motion'
+import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import {
   Clapperboard,
   Download,
@@ -38,6 +39,7 @@ export const WorkflowPipeline = memo(function WorkflowPipeline({
   className,
   orientation = 'vertical',
 }: WorkflowPipelineProps) {
+  const stepInitial = useCinematicMotionInitial({ opacity: 0, scale: 0.92 })
   const isVertical = orientation === 'vertical'
 
   return (
@@ -87,7 +89,7 @@ export const WorkflowPipeline = memo(function WorkflowPipeline({
                   />
                 ) : null}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.92 }}
+                  initial={stepInitial}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.04, duration: 0.35 }}
                   className={cn(

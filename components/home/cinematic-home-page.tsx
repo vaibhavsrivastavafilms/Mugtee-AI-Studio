@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { CinematicHomeHeader } from '@/components/home/CinematicHomeHeader'
 import { CinematicHero } from '@/components/home/CinematicHero'
 import { QuickCutCard } from '@/components/home/QuickCutCard'
@@ -10,21 +9,11 @@ import { TrustBar } from '@/components/home/TrustBar'
 
 /** Single-screen 100vh cinematic homepage — Quick Cut + Director previews. */
 export default function CinematicHomePage() {
-  useEffect(() => {
-    const html = document.documentElement
-    const body = document.body
-    const prevHtml = html.style.overflow
-    const prevBody = body.style.overflow
-    html.style.overflow = 'hidden'
-    body.style.overflow = 'hidden'
-    return () => {
-      html.style.overflow = prevHtml
-      body.style.overflow = prevBody
-    }
-  }, [])
-
   return (
-    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#050505] text-white">
+    <div
+      data-cinematic-home
+      className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#050505] text-white"
+    >
       <div
         className="pointer-events-none fixed inset-0 -z-10 opacity-30"
         aria-hidden
