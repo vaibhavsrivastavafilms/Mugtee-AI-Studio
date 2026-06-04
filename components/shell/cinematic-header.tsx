@@ -8,7 +8,8 @@ import { Command, Menu, Plus, Search, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { creatorModeFromPathname, quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
-import { HEADER_NAV, headerNavActive } from '@/lib/shell/header-nav'
+import { headerNavActive, headerNavForCompanionAccess } from '@/lib/shell/header-nav'
+import { useCompanionAccess } from '@/hooks/use-companion-access'
 import {
   HeaderRightActions,
   HeaderSearchDropdown,
@@ -63,6 +64,8 @@ function CinematicHeaderInner({
   const isWorkspaceRoute = pathname.startsWith('/studio/workspace')
   const creatorMode = creatorModeFromPathname(pathname)
   const isV4CreatorRoute = creatorMode === 'quick' || creatorMode === 'director'
+  const { enabled: companionEnabled } = useCompanionAccess()
+  const navItems = headerNavForCompanionAccess(companionEnabled)
 
   const openCommandPalette = () => {
     window.dispatchEvent(
@@ -132,7 +135,7 @@ function CinematicHeaderInner({
         ) : null}
 
         <nav className="hidden lg:flex items-center gap-0.5 ml-2 xl:ml-6">
-          {HEADER_NAV.map((item) => {
+          {navItems.map((item) => {
             const active = headerNavActive(item.id, pathname, tab)
             return (
               <Link
@@ -275,7 +278,7 @@ function CinematicHeaderInner({
               <Suspense fallback={null}>
                 <ModeSwitcher className="shrink-0 mr-2" />
               </Suspense>
-              {HEADER_NAV.map((item) => {
+              {navItems.map((item) => {
                 const active = headerNavActive(item.id, pathname, tab)
                 return (
                   <Link

@@ -1,5 +1,5 @@
 /**
- * Human Creative Companion — centralized copy map.
+ * Story Companion — centralized copy for the creator workflow extension.
  * Prefer these over generic "Generate" / "Success" language in high-traffic UI.
  */
 

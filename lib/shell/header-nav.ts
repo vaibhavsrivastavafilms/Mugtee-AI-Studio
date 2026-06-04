@@ -10,8 +10,14 @@ export type HeaderNavId =
   | 'exports'
   | 'settings'
 
+export const COMPANION_HEADER_NAV_ITEM = {
+  id: 'home' as const,
+  label: 'Companion',
+  href: '/home',
+}
+
 export const HEADER_NAV = [
-  { id: 'home' as const, label: 'Home', href: '/home' },
+  COMPANION_HEADER_NAV_ITEM,
   { id: 'create' as const, label: 'Create', href: '/studio/quick' },
   { id: 'video' as const, label: 'Demo', href: '/studio/video' },
   { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
@@ -22,6 +28,11 @@ export const HEADER_NAV = [
   { id: 'exports' as const, label: 'Exports', href: '/studio/exports' },
   { id: 'settings' as const, label: 'Settings', href: '/studio/settings' },
 ]
+
+export function headerNavForCompanionAccess(showCompanion: boolean) {
+  if (showCompanion) return HEADER_NAV
+  return HEADER_NAV.filter((item) => item.id !== 'home')
+}
 
 export function headerNavActive(
   id: HeaderNavId,

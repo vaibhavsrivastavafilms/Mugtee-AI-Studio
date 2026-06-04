@@ -27,6 +27,7 @@ import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { toast } from 'sonner'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
+import { useCompanionAccess } from '@/hooks/use-companion-access'
 
 const LS_COLLAPSED = 'mugtee:sidekick:collapsed:v1'
 const LS_JOURNEY_LEVEL = 'mugtee:creator-journey-level:v1'
@@ -45,11 +46,13 @@ function SidekickCard({
   journey,
   motivation,
   profileLoaded,
+  showCompanionLink,
 }: {
   profile: CreatorMemoryProfile
   journey: CreatorJourneySnapshot | null
   motivation: string
   profileLoaded: boolean
+  showCompanionLink: boolean
 }) {
   const brief = useMemo(() => buildTodaysBrief(profile, null), [profile])
 
@@ -58,14 +61,16 @@ function SidekickCard({
       <div className="flex flex-col items-center gap-2 rounded-xl border border-gold-500/15 bg-gold-500/[0.03] px-3 py-4">
         <MugteeSidekickAvatar size="lg" priority />
         <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
-          Mugtee · Sidekick
+          Mugtee · Cinematic guide
         </p>
-        <Link
-          href="/home"
-          className="text-[9px] tracking-[0.16em] uppercase text-gold-300/55 hover:text-gold-200 transition"
-        >
-          Open Live Companion →
-        </Link>
+        {showCompanionLink ? (
+          <Link
+            href="/home"
+            className="text-[9px] tracking-[0.16em] uppercase text-gold-300/55 hover:text-gold-200 transition"
+          >
+            Open Story Companion →
+          </Link>
+        ) : null}
       </div>
       <div className="space-y-2">
         <p className="text-sm text-luxe/90 leading-relaxed">{brief.greeting}</p>
@@ -117,6 +122,7 @@ function SidekickCard({
 export function MugteeSidekickPanel() {
   const pathname = usePathname() ?? ''
   const visible = isSidekickRoute(pathname)
+  const { enabled: companionEnabled } = useCompanionAccess()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [tick, setTick] = useState(0)
@@ -208,6 +214,7 @@ export function MugteeSidekickPanel() {
       journey={journey}
       motivation={motivation}
       profileLoaded={profileLoaded}
+      showCompanionLink={companionEnabled}
     />
   )
 

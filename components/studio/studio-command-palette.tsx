@@ -12,6 +12,7 @@ import {
   Palette,
   Sparkles,
   Wand2,
+  MessageCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-cre
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { workspaceStageToTab } from '@/lib/studio/workspace-stages'
+import { useCompanionAccess } from '@/hooks/use-companion-access'
 
 type StudioCommand = {
   id: string
@@ -53,6 +55,7 @@ export function StudioCommandPalette() {
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
   const setPanelPreferences = useStudioWorkspaceStore((s) => s.setPanelPreferences)
   const setContextSectionExpanded = useStudioWorkspaceStore((s) => s.setContextSectionExpanded)
+  const { enabled: companionEnabled } = useCompanionAccess()
 
   const openStyleDrawer = useCallback(() => {
     setContextSectionExpanded('system', true)
@@ -79,6 +82,17 @@ export function StudioCommandPalette() {
           router.push(createEntryHref('quick'))
         },
       },
+      ...(companionEnabled
+        ? [
+            {
+              id: 'open-story-companion',
+              label: 'Open Story Companion',
+              keywords: ['companion', 'mugtee', 'guide', 'director', 'chat'],
+              icon: MessageCircle,
+              run: () => router.push('/home'),
+            } satisfies StudioCommand,
+          ]
+        : []),
       {
         id: 'generate-storyboard',
         label: 'Generate Storyboard',
@@ -226,6 +240,7 @@ export function StudioCommandPalette() {
         : []),
     ],
     [
+      companionEnabled,
       goStage,
       isGenerating,
       openStyleDrawer,

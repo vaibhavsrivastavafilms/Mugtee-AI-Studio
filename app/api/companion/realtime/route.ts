@@ -11,6 +11,7 @@ import {
   type CreatorLanguageCode,
 } from '@/lib/i18n/detect-creator-language'
 import type { RealtimeBrainResponse } from '@/services/realtime/types'
+import { isCompanionExperimentalVoiceEnabled } from '@/lib/companion/access'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,7 +30,7 @@ type RealtimeBody = {
 
 function stubReply(message: string): RealtimeBrainResponse {
   return {
-    reply: `Got it — "${message.slice(0, 80)}". Live voice is scaffolding in V1; wire production TTS when ready. Try Create for a full reel workflow.`,
+    reply: `Got it — "${message.slice(0, 80)}". Open Quick Cut to run the full pipeline: hook → script → storyboard → export.`,
     avatarState: 'speaking',
   }
 }
@@ -134,9 +135,10 @@ export async function GET() {
     version: 'v1-stub',
     features: {
       pushToTalk: true,
-      handsFree: false,
+      handsFree: isCompanionExperimentalVoiceEnabled(),
       tts: false,
       lipSync: false,
+      visemes: false,
       glbAvatar: true,
     },
   })

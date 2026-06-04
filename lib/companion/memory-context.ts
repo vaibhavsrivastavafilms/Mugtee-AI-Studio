@@ -36,5 +36,9 @@ export function buildCompanionBrainPrompt(ctx: CompanionBrainContext): string {
     sections.push(mugteeLanguageSystemHint(ctx.language).trim())
   }
 
+  sections.push(
+    'SCOPE: Creator output only — hooks, scripts, visual direction, niche, storyboard. No life coaching, productivity tips, or generic assistant chatter.'
+  )
+
   return sections.join('\n\n')
 }

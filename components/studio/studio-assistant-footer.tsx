@@ -5,12 +5,15 @@ import { Loader2, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
+import { useCompanionAccess } from '@/hooks/use-companion-access'
+import { trackCompanionUsed } from '@/lib/companion/analytics'
 
 type StudioAssistantFooterProps = {
   className?: string
 }
 
 export function StudioAssistantFooter({ className }: StudioAssistantFooterProps) {
+  const { enabled: companionEnabled, loading: companionLoading } = useCompanionAccess()
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [lastReply, setLastReply] = useState<string | null>(null)
@@ -30,19 +33,22 @@ export function StudioAssistantFooter({ className }: StudioAssistantFooterProps)
         throw new Error(data.error || 'Assistant unavailable')
       }
       const reply = data.reply?.trim() || 'Mugtee is thinking — try again in a moment.'
+      trackCompanionUsed('studio_footer', { has_reply: Boolean(reply) })
       setLastReply(reply)
       setMessage('')
       toast.message('Mugtee', { description: reply.slice(0, 120) })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not reach assistant')
+      toast.error(err instanceof Error ? err.message : 'Could not reach your cinematic guide')
     } finally {
       setBusy(false)
     }
   }, [busy, message])
 
+  if (companionLoading || !companionEnabled) return null
+
   return (
     <div className={cn('shrink-0 p-3 border-t border-white/[0.06]', className)}>
-      <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/40 mb-2">AI Assistant</p>
+      <p className="text-[9px] tracking-[0.2em] uppercase text-luxe/40 mb-2">Story Companion</p>
       {lastReply ? (
         <p className="text-[10px] text-luxe/50 leading-snug mb-2 line-clamp-2">{lastReply}</p>
       ) : null}
@@ -56,7 +62,7 @@ export function StudioAssistantFooter({ className }: StudioAssistantFooterProps)
               void send()
             }
           }}
-          placeholder="Ask anything about your project…"
+          placeholder="Hook, script, or visual direction…"
           disabled={busy}
           className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[12px] text-luxe placeholder:text-luxe/35 focus:outline-none focus:border-director-primary/40"
         />
@@ -65,7 +71,7 @@ export function StudioAssistantFooter({ className }: StudioAssistantFooterProps)
           disabled={busy || !message.trim()}
           onClick={() => void send()}
           className={cn(directorBtnPrimary, 'h-9 w-9 px-0 shrink-0')}
-          aria-label="Send to assistant"
+          aria-label="Send to story companion"
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
