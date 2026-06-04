@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import {
   Captions,
   ChevronDown,
@@ -35,6 +36,7 @@ type QuickCutCardProps = {
 }
 
 export function QuickCutCard({ className }: QuickCutCardProps) {
+  const cardInitial = useCinematicMotionInitial({ opacity: 0, x: -12 })
   const [idea, setIdea] = useState(
     'A man who lost everything but never lost hope.'
   )
@@ -56,7 +58,7 @@ export function QuickCutCard({ className }: QuickCutCardProps) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, x: -12 }}
+      initial={cardInitial}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.55 }}
       whileHover={{ y: -2 }}

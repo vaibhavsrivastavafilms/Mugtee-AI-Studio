@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import {
   Armchair,
   ChevronLeft,
@@ -41,6 +42,7 @@ type DirectorModeCardProps = {
 }
 
 export function DirectorModeCard({ className }: DirectorModeCardProps) {
+  const cardInitial = useCinematicMotionInitial({ opacity: 0, x: 12 })
   const [scene, setScene] = useState(3)
   const [activeStep, setActiveStep] = useState('storyboard')
 
@@ -51,7 +53,7 @@ export function DirectorModeCard({ className }: DirectorModeCardProps) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, x: 12 }}
+      initial={cardInitial}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.55 }}
       whileHover={{ y: -2 }}
