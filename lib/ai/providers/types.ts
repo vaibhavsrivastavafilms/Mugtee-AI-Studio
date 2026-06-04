@@ -5,6 +5,7 @@ import type { ParsedCreatorIntent } from '@/lib/input-understanding'
 import type { MemoryProfile } from '@/lib/memory/types'
 import type { CreatorMemory } from '@/lib/companion/types'
 import type { CreatorStyleFingerprint } from '@/lib/ai/style-fingerprint'
+import type { DirectorStudioContext } from '@/lib/director/types'
 
 /** Supported text-generation providers for Phase 1 routing. */
 export type ProviderId = 'openai' | 'gemini' | 'groq' | 'openrouter' | 'deepseek'
@@ -37,6 +38,7 @@ export type ProviderContextInput = {
   memoryProfile?: MemoryProfile | null
   companionMemory?: CreatorMemory | null
   contentBrief?: ContentBrief | null
+  directorStudioContext?: DirectorStudioContext | null
 }
 
 export type ProviderContext = {

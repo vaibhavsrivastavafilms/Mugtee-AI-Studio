@@ -49,6 +49,10 @@ import {
   serializeParsedIntent,
 } from '@/lib/input-understanding'
 import { getLastProviderForTask } from '@/lib/ai/providers'
+import {
+  parseDirectorStudioContextFromBody,
+  resolveDirectorStudioContextFromProject,
+} from '@/lib/director/resolve-director-context.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -313,10 +317,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const projectIdForDirector = parseFeatureUsageProjectId(raw)
+    const directorStudioContext =
+      parseDirectorStudioContextFromBody(raw.directorStudioContext) ??
+      (await resolveDirectorStudioContextFromProject(projectIdForDirector, user.id))
+
     const input = {
       topic,
       rawInput,
       parsedIntent,
+      directorStudioContext: directorStudioContext ?? undefined,
       platform,
       tone,
       duration,

@@ -21,6 +21,8 @@ import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { StudioMobileProjectStrip } from '@/components/studio/studio-mobile-project-strip'
 import { StoryTimeline } from '@/components/studio/story-timeline'
+import { DirectorStudioWorkflow } from '@/components/studio/director-studio-workflow'
+import { isDirectorStudioV2Enabled } from '@/lib/director/feature-flag'
 
 type CreatorCommandCenterProps = {
   projectId?: string
@@ -69,19 +71,31 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
     scenes.length > 0 ||
     prompt.trim().length >= 6
 
+  const directorStudioV2 = isDirectorStudioV2Enabled()
+
   const showV5Editor = useMemo(() => {
+    if (directorStudioV2) return false
     if (showRecovery || showCinematicAssembly || !hasWorkspaceContent) return false
     if (activeStage === 'research' || activeStage === 'idea' || activeStage === 'export') {
       return scenes.length > 0 && activeStage !== 'export'
     }
     return scenes.length > 0
   }, [
+    directorStudioV2,
     showRecovery,
     showCinematicAssembly,
     hasWorkspaceContent,
     activeStage,
     scenes.length,
   ])
+
+  if (directorStudioV2) {
+    return (
+      <div className={cn('flex flex-col flex-1 min-h-0', className)}>
+        <DirectorStudioWorkflow projectId={projectId} />
+      </div>
+    )
+  }
 
   return (
     <div

@@ -121,6 +121,8 @@ export type ScriptGenerationInput = {
   memoryProfile?: import('@/lib/memory/types').MemoryProfile | null
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
   recentNarrativeFrameworks?: string[]
+  /** Hollywood AI Studio — injected after director approval */
+  directorStudioContext?: import('@/lib/director/types').DirectorStudioContext | null
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -159,6 +161,7 @@ type GenInput = {
   contentBrief?: import('@/lib/content-director/content-brief').ContentBrief | null
   parsedIntent?: import('@/lib/input-understanding').ParsedCreatorIntent | null
   narrativeFramework?: SelectedNarrativeFramework
+  directorStudioContext?: import('@/lib/director/types').DirectorStudioContext | null
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -334,6 +337,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
           memoryProfile: input.memoryProfile,
           companionMemory: input.companionMemory,
           contentBrief: input.contentBrief,
+          directorStudioContext: input.directorStudioContext,
         },
       })
       if (process.env.NODE_ENV === 'development') {
@@ -549,6 +553,7 @@ export async function runScriptGeneration(
     contentBrief: input.contentBrief,
     parsedIntent: input.parsedIntent,
     narrativeFramework,
+    directorStudioContext: input.directorStudioContext,
   }
 
   if (!hasScriptGenerationKey()) {
