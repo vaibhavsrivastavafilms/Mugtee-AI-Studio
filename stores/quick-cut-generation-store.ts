@@ -1628,6 +1628,26 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
   }
 
   if (state.savedProjectId && asyncMode) {
+    try {
+      const backfillRes = await fetch(
+        `/api/projects/${encodeURIComponent(state.savedProjectId)}/backfill-storyboard-assets`,
+        { method: 'POST' }
+      )
+      if (backfillRes.ok) {
+        const backfillData = (await backfillRes.json()) as {
+          scenes?: typeof state.scenes
+        }
+        if (Array.isArray(backfillData.scenes) && backfillData.scenes.length > 0) {
+          useQuickCutGenerationStore.setState({
+            scenes: backfillData.scenes,
+            storyboard: backfillData.scenes,
+          })
+        }
+      }
+    } catch {
+      /* server export path also backfills */
+    }
+
     const exportRes = await fetch('/api/reels/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

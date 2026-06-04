@@ -278,6 +278,7 @@ export async function generateSceneImages(
       : `anon/faceless/scene_${scene.id}_${Date.now()}_${duplicateRetry}.png`
 
     let imageUrl: string | null = null
+    let imageAssetPath: string | undefined
     const attempted: string[] = []
 
     attempted.push('fluxapi-together-pollinations')
@@ -288,6 +289,7 @@ export async function generateSceneImages(
         hasReferenceStyle: ctx.hasReferenceStyle,
       })
       imageUrl = result.url
+      if (result.assetPath) imageAssetPath = result.assetPath
       if (result.provider) attempted.push(result.provider)
     } catch (err) {
       if (err instanceof ImageGenerationUnavailableError) throw err
@@ -334,10 +336,9 @@ export async function generateSceneImages(
       return renderSceneStill(scene, index, duplicateRetry + 1)
     }
 
-    let imageAssetPath =
-      imageUrl && !imageUrl.startsWith('data:') && imageUrl.includes('/project-assets/')
-        ? filename
-        : undefined
+    if (!imageAssetPath && imageUrl && imageUrl.includes('/project-assets/')) {
+      imageAssetPath = filename
+    }
 
     if (
       !input.variation &&
