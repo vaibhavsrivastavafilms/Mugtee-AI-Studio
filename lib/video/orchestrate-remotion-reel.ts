@@ -42,6 +42,11 @@ import {
 } from '@/lib/analytics/mp4-export-track.server'
 import { syncExportJobFromRenderJob } from '@/lib/export/export-job-service'
 import { REEL_BUCKET } from '@/lib/video/reel-storage-upload'
+import {
+  exportApiCheckpoint,
+  ffmpegCheckpoint,
+} from '@/lib/export/export-api-checkpoints.server'
+import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -161,7 +166,11 @@ export async function orchestrateRemotionReel(
     }
 
     report('render_segments', EXPORT_STAGE_LABELS.timeline)
+    exportApiCheckpoint('remotion_start', { jobId, projectId: input.projectId })
     exportLog.ffmpegStarted({ jobId, projectId: input.projectId, mock: process.env.VIDEO_RENDER_MOCK === 'true' })
+    ffmpegCheckpoint('loaded', { available: isFfmpegAvailable(), mock: process.env.VIDEO_RENDER_MOCK === 'true' })
+    exportApiCheckpoint('ffmpeg_start', { jobId, mock: process.env.VIDEO_RENDER_MOCK === 'true' })
+    ffmpegCheckpoint('start', { jobId, provider: 'remotion' })
 
     const mock = process.env.VIDEO_RENDER_MOCK === 'true'
     let durationSec = 0
@@ -193,6 +202,7 @@ export async function orchestrateRemotionReel(
     }
 
     report('assemble', EXPORT_STAGE_LABELS.encoding)
+    ffmpegCheckpoint('done', { jobId, durationSec })
     exportLog.ffmpegCompleted({ jobId, projectId: input.projectId, durationSec })
     exportLog.renderComplete({ jobId, projectId: input.projectId, durationSec })
 
@@ -201,6 +211,7 @@ export async function orchestrateRemotionReel(
     let thumbnailUrl: string | null = null
 
     report('upload', EXPORT_STAGE_LABELS.uploading)
+    exportApiCheckpoint('upload_start', { jobId, projectId: input.projectId })
     exportLog.uploadStarted({ jobId, projectId: input.projectId })
 
     if (input.userId && input.projectId) {
@@ -267,6 +278,7 @@ export async function orchestrateRemotionReel(
     await fs.unlink(outputPath).catch(() => undefined)
 
     report('complete', EXPORT_STAGE_LABELS.ready)
+    exportApiCheckpoint('completed', { jobId, projectId: input.projectId, videoUrl })
     exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
 
     if (input.userId && input.projectId) {
@@ -318,6 +330,10 @@ export async function orchestrateRemotionReel(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
+    const stack = err instanceof Error ? err.stack : undefined
+    if (message.toLowerCase().includes('ffmpeg') || stack?.toLowerCase().includes('ffmpeg')) {
+      ffmpegCheckpoint('failed', { jobId, message, stack: stack?.slice(0, 2000) })
+    }
     const exportError = friendlyReelRenderErrorFromUnknown(err)
     logError('orchestrate.remotion-reel', err)
     const job = getRenderJob(jobId)

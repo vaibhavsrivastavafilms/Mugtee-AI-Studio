@@ -21,23 +21,53 @@ import {
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { parseTimelineProject } from '@/types/timeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { validateExportRequestPayload } from '@/lib/export/export-schema'
+import {
+  summarizeExportPayload,
+  validateExportPayloadStructure,
+  validateExportRequestPayload,
+} from '@/lib/export/export-schema'
 import { mergeClientExportSnapshot } from '@/lib/export/merge-client-export-snapshot.server'
+import { collectPayloadMissingAssets } from '@/lib/export/export-payload-assets.server'
 import { trackMp4FailedServer } from '@/lib/analytics/mp4-export-track.server'
 import {
   logPipelineStepComplete,
   logPipelineStepError,
   logPipelineStepStart,
 } from '@/lib/cinematic/generation-logger'
+import {
+  exportApiCheckpoint,
+  exportApiFatal,
+} from '@/lib/export/export-api-checkpoints.server'
+import type { CinematicScene } from '@/stores/cinematic-project'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
+function isClientExportError(message: string): boolean {
+  return (
+    message.startsWith('Cannot export reel') ||
+    message.includes('required before exporting') ||
+    message.includes('At least one storyboard') ||
+    message.includes('Storyboard images are missing or unreachable') ||
+    message.includes('missing or unreachable') ||
+    message.includes('Missing asset detected') ||
+    message.includes('Export assets are missing') ||
+    message.includes('missing a storyboard') ||
+    message.includes('missing a storyboard image') ||
+    message.includes('link may have expired') ||
+    message.startsWith('Add voiceover') ||
+    message.startsWith('Add storyboard') ||
+    message.includes('imageUrl or imageAssetPath') ||
+    message.includes('unavailable on this server')
+  )
+}
+
 export async function POST(req: NextRequest) {
   let trackUserId: string | null = null
   let trackProjectId: string | null = null
   try {
+    exportApiCheckpoint('request_received')
     const auth = await requireCinematicUser()
     if (auth.response) return auth.response
     trackUserId = auth.user!.id
@@ -62,12 +92,9 @@ export async function POST(req: NextRequest) {
     const parsed = parseJsonBody(rawBody)
     if (parsed.response) return parsed.response
 
-    console.log('EXPORT REQUEST')
-    console.log(JSON.stringify(parsed.body, null, 2))
-
     const validatedBody = validateExportRequestPayload(parsed.body)
     if (!validatedBody.ok) {
-      console.error(validatedBody.fieldErrors)
+      console.error('[EXPORT API] payload_validation_failed', validatedBody.fieldErrors)
       return NextResponse.json(
         {
           success: false,
@@ -83,8 +110,53 @@ export async function POST(req: NextRequest) {
     }
 
     const body = validatedBody.data
+    const structure = validateExportPayloadStructure(body)
+    if (!structure.ok) {
+      console.error('[EXPORT API] payload_structure_failed', structure.issues)
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'EXPORT_FAILED',
+          error: structure.message,
+          message: structure.message,
+          status: 'failed',
+          stage: 'request_validation',
+          validation: structure.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    const summary = summarizeExportPayload(body)
+    trackProjectId = body.projectId
+    console.log('[EXPORT API] payload summary', summary)
+    console.table([
+      { kind: 'scenes', count: summary.sceneCount },
+      { kind: 'storyboards', count: summary.storyboardCount },
+      { kind: 'captions', count: summary.captionCount },
+    ])
+    exportApiCheckpoint('payload_validated', summary)
+
+    const payloadMissing = collectPayloadMissingAssets({
+      data: body,
+      includeVoiceover: body.includeVoiceover,
+    })
+    if (payloadMissing.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'EXPORT_FAILED',
+          error: payloadMissing[0]!.message,
+          message: payloadMissing[0]!.message,
+          status: 'failed',
+          stage: 'payload_asset_validation',
+          missingAssets: payloadMissing,
+        },
+        { status: 400 }
+      )
+    }
+
     const projectId = body.projectId
-    trackProjectId = projectId
     const quality = body.quality
     const includeVoiceover = body.includeVoiceover
     const includeCaptions = body.includeCaptions
@@ -95,8 +167,10 @@ export async function POST(req: NextRequest) {
     }
 
     row = mergeClientExportSnapshot(row, body)
+    exportApiCheckpoint('storyboard_processing', { projectId, phase: 'merge_client_snapshot' })
 
     if (row.reel_url?.trim()) {
+      exportApiCheckpoint('completed', { projectId, source: 'existing_reel_url' })
       return NextResponse.json({
         jobId: null,
         status: 'completed',
@@ -106,6 +180,7 @@ export async function POST(req: NextRequest) {
 
     const validated = await buildValidatedDownloadResponse(row)
     if (validated.status === 'completed' && validated.reelUrl) {
+      exportApiCheckpoint('completed', { projectId, source: 'validated_download' })
       return NextResponse.json({
         jobId: null,
         status: 'completed',
@@ -139,38 +214,44 @@ export async function POST(req: NextRequest) {
         .eq('user_id', auth.user!.id)
     }
 
+    let hydratedScenes: CinematicScene[] | undefined
     if (!timelineOverride) {
       let readiness
       try {
+        exportApiCheckpoint('storyboard_processing', { projectId, phase: 'readiness' })
         readiness = await getExportReadinessForProject(row, auth.user!.id, {
           includeVoiceover,
         })
-      } catch (readinessErr) {
-        const validationError = friendlyReelRenderErrorFromUnknown(readinessErr)
-        console.error('[EXPORT_VALIDATION]', {
+        hydratedScenes = readiness.scenes
+        exportApiCheckpoint('image_assets_loaded', {
           projectId,
-          stage: 'readiness_exception',
-          error: validationError,
-          detail: readinessErr instanceof Error ? readinessErr.message : String(readinessErr),
+          sceneCount: readiness.sceneCount,
+          imageCount: readiness.imageCount,
         })
+      } catch (readinessErr) {
+        const rawMessage =
+          readinessErr instanceof Error ? readinessErr.message : String(readinessErr)
+        exportApiFatal(readinessErr, { projectId, stage: 'readiness_exception' })
+        const validationError = friendlyReelRenderErrorFromUnknown(readinessErr)
         void trackMp4FailedServer({
           userId: auth.user!.id,
           projectId,
           stage: 'validation',
-          err: validationError,
+          err: readinessErr,
           route: 'POST /api/reels/export',
         })
         return NextResponse.json(
           {
             success: false,
             code: 'EXPORT_FAILED',
-            error: validationError,
+            error: rawMessage,
             message: validationError,
             status: 'failed',
             stage: 'storyboard_asset_loading',
             validation: { code: 'readiness_exception', message: validationError },
+            stack: readinessErr instanceof Error ? readinessErr.stack : undefined,
           },
-          { status: 400 }
+          { status: isClientExportError(rawMessage) ? 400 : 500 }
         )
       }
       if (!readiness.canExport) {
@@ -182,9 +263,6 @@ export async function POST(req: NextRequest) {
           stage: 'readiness',
           error: validationError,
           missingAssets: readiness.missingAssets,
-          imageCount: readiness.imageCount,
-          requiredImages: readiness.requiredImages,
-          voiceoverCount: readiness.voiceoverCount,
         })
         void trackMp4FailedServer({
           userId: auth.user!.id,
@@ -220,7 +298,7 @@ export async function POST(req: NextRequest) {
 
     logPipelineStepStart('export', projectId, { quality, includeVoiceover, includeCaptions })
 
-    const preQueueScenes = resolveProjectScenes(row)
+    const preQueueScenes = hydratedScenes ?? resolveProjectScenes(row)
     logExportAssetCounts({
       projectId,
       assetCount: 0,
@@ -239,18 +317,15 @@ export async function POST(req: NextRequest) {
         baseUrl: req.nextUrl.origin,
         includeVoiceover,
         includeCaptions,
+        hydratedScenes,
       }))
     } catch (queueErr) {
-      console.error('[EXPORT_QUEUE]', {
-        projectId,
-        message:
-          queueErr instanceof Error ? queueErr.message : String(queueErr),
-        stack: queueErr instanceof Error ? queueErr.stack?.slice(0, 2000) : undefined,
-      })
+      exportApiFatal(queueErr, { projectId, stage: 'export_queue' })
       throw queueErr
     }
 
     logPipelineStepComplete('export', projectId, { jobId, status })
+    exportApiCheckpoint('completed', { projectId, jobId, status })
 
     exportLog.requested({
       projectId,
@@ -269,21 +344,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ jobId, status, success: true })
   } catch (err) {
     logError('reels.export.post', err)
-    const message = friendlyReelRenderErrorFromUnknown(err)
-    const stack =
-      err instanceof Error && err.stack ? err.stack.slice(0, 4000) : undefined
-    const errName = err instanceof Error ? err.name : typeof err
-    console.error('[EXPORT_FATAL]', err)
-    console.error('[EXPORT_FATAL]', {
+    const rawMessage = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error && err.stack ? err.stack : undefined
+    const friendly = friendlyReelRenderErrorFromUnknown(err)
+    exportApiFatal(err, {
       route: 'POST /api/reels/export',
       projectId: trackProjectId,
       userId: trackUserId,
-      errName,
-      message,
-      stack,
     })
-    exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: message })
-    logPipelineStepError('export', trackProjectId, message)
+    exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: friendly })
+    logPipelineStepError('export', trackProjectId, friendly)
     if (trackUserId) {
       void trackMp4FailedServer({
         userId: trackUserId,
@@ -293,34 +363,22 @@ export async function POST(req: NextRequest) {
         route: 'POST /api/reels/export',
       })
     }
-    const clientError =
-      message.startsWith('Cannot export reel') ||
-      message.includes('required before exporting') ||
-      message.includes('At least one storyboard') ||
-      message.includes('Storyboard images are missing or unreachable') ||
-      message.includes('missing or unreachable') ||
-      message.includes('Missing asset detected') ||
-      message.includes('Export assets are missing') ||
-      message.includes('missing a storyboard') ||
-      message.includes('missing a storyboard image') ||
-      message.includes('link may have expired') ||
-      message.startsWith('Add voiceover') ||
-      message.startsWith('Add storyboard')
-    const stage = message.includes('storyboard') || message.includes('Scene')
-      ? 'storyboard_asset_loading'
-      : message.includes('voice') || message.includes('Voice')
-        ? 'voice_asset_loading'
-        : 'export_queue'
-    const httpStatus = clientError ? 400 : 500
+    const stage =
+      rawMessage.includes('storyboard') || rawMessage.includes('Scene')
+        ? 'storyboard_asset_loading'
+        : rawMessage.includes('voice') || rawMessage.includes('Voice')
+          ? 'voice_asset_loading'
+          : 'export_queue'
+    const httpStatus = isClientExportError(rawMessage) ? 400 : 500
     return NextResponse.json(
       {
         success: false,
         code: 'EXPORT_FAILED',
-        error: message,
-        message,
+        error: rawMessage,
+        message: friendly,
         status: 'failed',
         stage,
-        ...(httpStatus === 500 ? { stack } : {}),
+        stack,
       },
       { status: httpStatus }
     )

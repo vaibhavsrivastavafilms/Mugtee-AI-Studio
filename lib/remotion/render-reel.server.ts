@@ -37,6 +37,7 @@ import {
   logPipelineStepError,
   logPipelineStepStart,
 } from '@/lib/cinematic/generation-logger'
+import { remotionCheckpoint } from '@/lib/export/export-api-checkpoints.server'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
@@ -68,12 +69,14 @@ const remotionWebpackOverride: WebpackOverrideFn = (config) => {
 async function getServeUrl(): Promise<string> {
   if (cachedBundleLocation) return cachedBundleLocation
   if (!bundlePromise) {
+    remotionCheckpoint('bundle_start', { entry: 'lib/remotion/compositions/index.ts' })
     const entry = path.join(process.cwd(), 'lib', 'remotion', 'compositions', 'index.ts')
     bundlePromise = bundle({
       entryPoint: entry,
       webpackOverride: remotionWebpackOverride,
     }).then((location) => {
       cachedBundleLocation = location
+      remotionCheckpoint('bundle_done', { serveUrl: location })
       return location
     })
   }
@@ -186,12 +189,28 @@ export async function renderRemotionReel(
     input.onProgress?.('Rendering reel with Remotion…', 40)
 
     const serveUrl = await getServeUrl()
-    const composition = await selectComposition({
-      serveUrl,
-      id: REEL_COMPOSITION_ID,
-      inputProps: compositionProps,
-    })
+    remotionCheckpoint('composition_lookup', { compositionId: REEL_COMPOSITION_ID })
+    let composition
+    try {
+      composition = await selectComposition({
+        serveUrl,
+        id: REEL_COMPOSITION_ID,
+        inputProps: compositionProps,
+      })
+      remotionCheckpoint('composition_found', {
+        compositionId: REEL_COMPOSITION_ID,
+        durationInFrames: composition.durationInFrames,
+        fps: composition.fps,
+      })
+    } catch (compErr) {
+      remotionCheckpoint('composition_missing', {
+        compositionId: REEL_COMPOSITION_ID,
+        error: compErr instanceof Error ? compErr.message : String(compErr),
+      })
+      throw compErr
+    }
 
+    remotionCheckpoint('render_media_start', { outputPath: input.outputPath })
     await renderMedia({
       serveUrl,
       composition,
@@ -208,6 +227,7 @@ export async function renderRemotionReel(
 
     const durationSec = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
     input.onProgress?.('Reel encode complete', 95)
+    remotionCheckpoint('render_media_done', { durationSec, outputPath: input.outputPath })
     logPipelineStepComplete('export', null, { phase: 'remotion_render_done', durationSec })
 
     return {

@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+
 type BackgroundTask = Promise<unknown>
 
 /**
@@ -7,16 +9,17 @@ type BackgroundTask = Promise<unknown>
  * Falls back to fire-and-forget locally when @vercel/functions is unavailable.
  */
 export function runExportInBackground(task: () => BackgroundTask): void {
+  exportApiCheckpoint('background_scheduled', { phase: 'runExportInBackground' })
   let promise: BackgroundTask
   try {
     promise = task()
   } catch (err) {
-    console.error('[export] background task sync failed', err)
+    console.error('[EXPORT API FATAL] background task sync failed', err)
     return
   }
 
   promise = promise.catch((err) => {
-    console.error('[export] background task failed', err)
+    console.error('[EXPORT API FATAL] background task failed', err)
   })
 
   try {
