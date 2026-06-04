@@ -5,9 +5,9 @@ import { getCanonicalSiteUrl } from '@/lib/url'
 export const dynamic = 'force-dynamic'
 
 const SITE_URL = getCanonicalSiteUrl()
-const HOME_TITLE = 'Mugtee · AI Production OS for Creators'
+const HOME_TITLE = 'Mugtee AI Studio · Direct Cinematic Stories with AI'
 const HOME_DESCRIPTION =
-  'Turn any idea into creator-ready hooks, scripts, storyboards, and exports in one cinematic AI studio built for creators.'
+  'From idea to cinematic reel — Quick Cut and Director Mode in one seamless AI studio.'
 
 export const metadata: Metadata = {
   title: HOME_TITLE,
@@ -28,22 +28,22 @@ export const metadata: Metadata = {
   },
 }
 
-const CinematicLandingPage = nextDynamic(
+const CinematicHomePage = nextDynamic(
   () =>
-    import('@/components/v2/v2-landing-page').then((m) => ({
+    import('@/components/home/cinematic-home-page').then((m) => ({
       default: m.default,
     })),
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-[100dvh] bg-[var(--v2-bg)] flex items-center justify-center">
-        <div className="w-12 h-12 rounded-2xl bg-gold-gradient animate-pulse shadow-gold-glow" />
+      <div className="flex h-[100dvh] items-center justify-center bg-[#050505]">
+        <div className="h-12 w-12 animate-pulse rounded-2xl bg-gradient-to-br from-[#E8C547] to-[#B8962E] shadow-[0_0_24px_rgba(212,175,55,0.35)]" />
       </div>
     ),
   }
 )
 
-/** Public cinematic landing — Quick Cut portal at `/` for all users. */
+/** Public cinematic landing — single-screen 100vh Quick Cut + Director previews. */
 export default function Index() {
-  return <CinematicLandingPage />
+  return <CinematicHomePage />
 }
