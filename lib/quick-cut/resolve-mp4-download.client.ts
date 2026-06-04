@@ -4,6 +4,7 @@ import { downloadMp4File } from '@/lib/quick-cut/download-mp4'
 import {
   recordDownloadFailure,
   recordDownloadSuccess,
+  recordExportFailure,
   recordExportStarted,
   recordExportSuccess,
 } from '@/lib/export/export-diagnostics'
@@ -60,8 +61,14 @@ async function compileAndDownload(
     throw new Error(ASSET_UNAVAILABLE_MSG)
   }
   recordExportStarted(projectId)
-  onProgress?.('Preparing your video…')
-  const videoUrl = await compileProjectMp4(projectId, { onProgress })
+  if (typeof onProgress === 'function') {
+    onProgress('Preparing your video…')
+  }
+  const onCompileProgress =
+    typeof onProgress === 'function'
+      ? onProgress
+      : undefined
+  const videoUrl = await compileProjectMp4(projectId, { onProgress: onCompileProgress })
   recordExportSuccess(projectId)
 
   if (!isValidReelDownloadUrl(videoUrl)) {
@@ -126,6 +133,9 @@ export async function resolveMp4Download(
     throw new Error(ASSET_UNAVAILABLE_MSG)
   } catch (err) {
     const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+    if (params.compileIfNeeded && projectId) {
+      recordExportFailure(message, projectId)
+    }
     recordDownloadFailure(message, projectId)
     throw err
   }

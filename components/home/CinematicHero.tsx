@@ -56,8 +56,8 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         transition={{ duration: 0.65 }}
         className="font-display text-2xl sm:text-3xl lg:text-[2.5rem] leading-tight text-white"
       >
-        Direct Cinematic Stories With{' '}
-        <span className="text-[#D4AF37] italic">AI</span>
+        Your Cinematic{' '}
+        <span className="text-[#D4AF37] italic">AI Studio</span>
       </motion.h1>
 
       <motion.p
@@ -66,7 +66,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         transition={{ duration: 0.6, delay: 0.08 }}
         className="mt-2 max-w-lg mx-auto text-xs sm:text-sm text-white/55"
       >
-        From idea to cinematic reel. Choose your workflow.
+        Idea → hook → script → visual direction → storyboard → voice → export.
       </motion.p>
 
       <motion.div

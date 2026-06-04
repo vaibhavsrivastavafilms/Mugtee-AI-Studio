@@ -56,7 +56,7 @@ export function PipelineFeatures({ className }: { className?: string }) {
             <span className="text-gold-gradient">export</span>
           </h2>
           <p className="mt-2 text-sm text-luxe/55 max-w-lg mx-auto">
-            Each stage is live, in beta, or coming soon — mapped honestly.
+            Each stage is live, in beta, or locked — mapped honestly.
           </p>
         </motion.div>
 

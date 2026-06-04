@@ -1,3 +1,7 @@
+/** Creator-facing message when MP4 export fails — project data is preserved. */
+export const CINEMATIC_EXPORT_FAILURE_MSG =
+  "We couldn't complete the cinematic export. Your project is safe. Please retry."
+
 /** Shown when server-side MP4 export is unavailable but in-browser preview works. */
 export const REEL_EXPORT_UNAVAILABLE_MSG =
   'Reel export is temporarily unavailable — your preview still works.'
@@ -50,6 +54,8 @@ const GENERIC_EXPORT_FAILURES = new Set([
   'Reel export failed',
   'Reel render failed — preview is still available.',
   'Export failed. Try again in a moment.',
+  'Video render unavailable',
+  'Export poll unavailable — refresh the page and try Compile MP4 again.',
 ])
 
 function isUserFacingExportValidation(msg: string): boolean {
@@ -70,8 +76,9 @@ export function friendlyReelRenderError(raw: string | null | undefined): string 
   const msg = raw.trim()
   if (isUserFacingExportValidation(msg)) return msg.slice(0, 160)
   if (isRenderDisabledMessage(msg)) return REEL_EXPORT_DISABLED_USER_MSG
-  if (isTransientRenderFailure(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
-  if (GENERIC_EXPORT_FAILURES.has(msg)) return REEL_EXPORT_UNAVAILABLE_MSG
+  if (isTransientRenderFailure(msg)) return CINEMATIC_EXPORT_FAILURE_MSG
+  if (GENERIC_EXPORT_FAILURES.has(msg)) return CINEMATIC_EXPORT_FAILURE_MSG
+  if (msg.toLowerCase().includes('is not a function')) return CINEMATIC_EXPORT_FAILURE_MSG
   return msg.slice(0, 160)
 }
 

@@ -10,8 +10,9 @@ import { getCanonicalSiteUrl } from '@/lib/url'
 
 const SITE_URL = getCanonicalSiteUrl()
 const SITE_NAME = 'Mugtee'
-const SITE_TAGLINE = 'AI Production OS for Creators'
-const SITE_DESCRIPTION = 'Cinematic AI workspace for creators, agencies, and brands. Plan, script, schedule, and ship viral content — all in one premium production hub.'
+const SITE_TAGLINE = 'Your Cinematic AI Studio'
+const SITE_DESCRIPTION =
+  'Turn stories into cinematic moments — hook, script, storyboard, voice, and export-ready Creator Packs.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

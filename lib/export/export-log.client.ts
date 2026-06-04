@@ -43,6 +43,32 @@ export function mugteeExportEnd(): void {
   }
 }
 
+function exportSceneListCount(list: unknown[] | null | undefined): number {
+  return Array.isArray(list) && list.length > 0 ? list.length : 0
+}
+
+function snapshotSceneCounts(input: {
+  scenes?: unknown[] | null
+  storyboards?: unknown[] | null
+  payload?: unknown
+}): { sceneCount: number; storyboardCount: number } {
+  const sceneCount = exportSceneListCount(input.scenes)
+  const storyboardCount = exportSceneListCount(input.storyboards)
+  if (storyboardCount > 0 || sceneCount > 0) {
+    return {
+      sceneCount: sceneCount || storyboardCount,
+      storyboardCount: storyboardCount || sceneCount,
+    }
+  }
+  const payload = input.payload as { scenes?: unknown[]; storyboards?: unknown[] } | null
+  const fromPayloadScenes = exportSceneListCount(payload?.scenes)
+  const fromPayloadStoryboards = exportSceneListCount(payload?.storyboards)
+  return {
+    sceneCount: fromPayloadScenes || fromPayloadStoryboards,
+    storyboardCount: fromPayloadStoryboards || fromPayloadScenes,
+  }
+}
+
 export function mugteeExportSnapshot(input: {
   projectId?: string | null
   scenes?: unknown[] | null
@@ -50,10 +76,11 @@ export function mugteeExportSnapshot(input: {
   payload?: unknown
   stage: string
 }): void {
+  const counts = snapshotSceneCounts(input)
   mugteeExportLog(input.stage, {
     Project: input.projectId ?? null,
-    'Scenes count': input.scenes?.length ?? 0,
-    'Storyboards count': input.storyboards?.length ?? input.scenes?.length ?? 0,
+    'Scenes count': counts.sceneCount,
+    'Storyboards count': counts.storyboardCount,
     Payload: input.payload ?? null,
   })
 }

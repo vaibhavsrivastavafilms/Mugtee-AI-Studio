@@ -2546,7 +2546,7 @@ function NavLink({
   if (soon) {
     return (
       <div
-        title="Coming soon"
+        title="Locked feature — join waitlist on pricing"
         className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] cursor-not-allowed opacity-70 ${cls}`}
       >
         {inner}

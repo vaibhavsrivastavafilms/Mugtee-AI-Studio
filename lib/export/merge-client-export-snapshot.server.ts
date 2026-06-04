@@ -3,6 +3,11 @@ import 'server-only'
 import { resolveProjectScenes, type CinematicProjectRow } from '@/lib/cinematic-projects'
 import type { CinematicScene } from '@/stores/cinematic-project'
 import type { ExportRequestPayload } from '@/lib/export/export-schema'
+import {
+  resolveSceneExportAssetPath,
+  resolveSceneExportImageUrl,
+  type SceneExportImageSource,
+} from '@/lib/export/scene-export-validation'
 
 type ClientSceneRow = {
   id: string
@@ -14,20 +19,42 @@ type ClientSceneRow = {
 function pickClientScenes(body: ExportRequestPayload): ClientSceneRow[] | null {
   const fromStoryboards = body.storyboards
   const fromScenes = body.scenes
-  const list = (fromStoryboards?.length ? fromStoryboards : fromScenes) ?? null
+  const list =
+    fromStoryboards && fromStoryboards.length > 0
+      ? fromStoryboards
+      : fromScenes && fromScenes.length > 0
+        ? fromScenes
+        : null
   if (!list?.length) return null
-  return list
+  return list.map(normalizeClientSceneRow)
+}
+
+function normalizeClientSceneRow(client: ClientSceneRow): ClientSceneRow {
+  const source = client as SceneExportImageSource
+  const imageUrl =
+    client.imageUrl?.trim() || resolveSceneExportImageUrl(source) || client.imageUrl
+  const imageAssetPath =
+    client.imageAssetPath?.trim() ||
+    resolveSceneExportAssetPath(source) ||
+    client.imageAssetPath
+  return {
+    ...client,
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(imageAssetPath ? { imageAssetPath } : {}),
+  }
 }
 
 function mergeSceneRow(existing: CinematicScene, client: ClientSceneRow): CinematicScene {
-  const imageUrl = existing.imageUrl?.trim() || client.imageUrl?.trim() || existing.imageUrl
+  const normalized = normalizeClientSceneRow(client)
+  const imageUrl =
+    existing.imageUrl?.trim() || normalized.imageUrl?.trim() || existing.imageUrl
   const imageAssetPath =
     existing.imageAssetPath?.trim() ||
-    client.imageAssetPath?.trim() ||
+    normalized.imageAssetPath?.trim() ||
     existing.imageAssetPath
   return {
     ...existing,
-    ...(client.title?.trim() ? { title: client.title.trim() } : {}),
+    ...(normalized.title?.trim() ? { title: normalized.title.trim() } : {}),
     ...(imageUrl ? { imageUrl } : {}),
     ...(imageAssetPath ? { imageAssetPath } : {}),
   }
@@ -54,13 +81,16 @@ export function mergeClientExportSnapshot(
       })
       next = { ...next, scenes: merged, storyboard: merged }
     } else {
-      const merged: CinematicScene[] = clientScenes.map((s, index) => ({
-        id: s.id,
-        index: index + 1,
-        title: s.title?.trim() || `Scene ${index + 1}`,
-        imageUrl: s.imageUrl?.trim() || undefined,
-        imageAssetPath: s.imageAssetPath?.trim() || undefined,
-      }))
+      const merged: CinematicScene[] = clientScenes.map((s, index) => {
+        const normalized = normalizeClientSceneRow(s)
+        return {
+          id: normalized.id,
+          index: index + 1,
+          title: normalized.title?.trim() || `Scene ${index + 1}`,
+          imageUrl: normalized.imageUrl?.trim() || undefined,
+          imageAssetPath: normalized.imageAssetPath?.trim() || undefined,
+        }
+      })
       next = { ...next, scenes: merged, storyboard: merged }
     }
   }

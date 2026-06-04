@@ -6,14 +6,20 @@ import { QuickCutCard } from '@/components/home/QuickCutCard'
 import { DirectorModeCard } from '@/components/home/DirectorModeCard'
 import { WorkflowPipeline } from '@/components/home/WorkflowPipeline'
 import { TrustBar } from '@/components/home/TrustBar'
+import { DemoReelSection } from '@/components/home/DemoReelSection'
+import { CreatorShowcase } from '@/components/home/CreatorShowcase'
+import { SocialProofSection } from '@/components/home/SocialProofSection'
+import Link from 'next/link'
+import { goldButton } from '@/components/home/cinematic-home-styles'
 
-/** Single-screen 100vh cinematic homepage — Quick Cut + Director previews. */
+/** Cinematic homepage — hero viewport + scrollable proof, showcase, and pricing CTA. */
 export default function CinematicHomePage() {
   return (
     <div
       data-cinematic-home
-      className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#050505] text-white"
+      className="min-h-[100dvh] bg-[#050505] text-white"
     >
+      <div className="flex min-h-[100dvh] flex-col">
       <div
         className="pointer-events-none fixed inset-0 -z-10 opacity-30"
         aria-hidden
@@ -45,6 +51,33 @@ export default function CinematicHomePage() {
         </main>
 
         <TrustBar />
+      </div>
+
+      <DemoReelSection />
+      <CreatorShowcase />
+      <SocialProofSection />
+
+      <section
+        id="pricing-cta"
+        className="border-t border-white/[0.06] px-4 py-14 text-center sm:px-6"
+      >
+        <p className="text-[10px] uppercase tracking-[0.32em] text-[#D4AF37]/70">Cinematic Story Pipeline</p>
+        <h2 className="mt-2 font-display text-2xl text-white">Your Cinematic AI Studio</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-white/50">
+          Begin free. Creator at ₹599/mo and Pro at ₹999/mo — join the waitlist; billing opens soon.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/pricing" className={goldButton}>
+            View pricing
+          </Link>
+          <Link
+            href="/pricing#faq"
+            className="inline-flex min-h-[44px] items-center rounded-xl border border-white/20 px-5 text-[11px] uppercase tracking-[0.14em] text-white/80"
+          >
+            FAQ
+          </Link>
+        </div>
+      </section>
       </div>
     </div>
   )

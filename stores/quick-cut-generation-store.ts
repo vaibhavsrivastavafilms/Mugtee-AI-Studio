@@ -79,6 +79,10 @@ import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import { sceneExportReadiness, reelExportReadiness } from '@/lib/export/scene-export-validation'
 import {
+  pickExportStoryboardScenes,
+  scenesToExportRequestPayload,
+} from '@/lib/export/export-request-payload.client'
+import {
   pollSceneVideoJobs,
   queueSceneVideos,
 } from '@/lib/cinematic/scene-video-pipeline.client'
@@ -1718,23 +1722,14 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       console.warn('[EXPORT] Backfill request failed', err)
     }
 
+    const exportScenes = pickExportStoryboardScenes(state.storyboard, state.scenes)
+    const exportSnapshot = scenesToExportRequestPayload(exportScenes)
     const exportPayload = {
       projectId: state.savedProjectId,
       quality: '1080p' as const,
       includeVoiceover: true,
       includeCaptions: true,
-      scenes: state.scenes.map((s) => ({
-        id: s.id,
-        title: s.title ?? null,
-        imageUrl: s.imageUrl ?? null,
-        imageAssetPath: s.imageAssetPath ?? null,
-      })),
-      storyboards: (state.storyboard ?? state.scenes).map((s) => ({
-        id: s.id,
-        title: s.title ?? null,
-        imageUrl: s.imageUrl ?? null,
-        imageAssetPath: s.imageAssetPath ?? null,
-      })),
+      ...exportSnapshot,
       script: state.script ?? null,
       voiceUrl: state.voiceUrl ?? null,
       thumbnailUrl: state.thumbnailImageUrl ?? null,

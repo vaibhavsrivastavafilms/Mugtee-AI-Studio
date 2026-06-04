@@ -96,7 +96,7 @@ export async function orchestrateRemotionReel(
   }
 
   try {
-    if (!isRemotionRenderAvailable()) {
+    if (typeof isRemotionRenderAvailable !== 'function' || !isRemotionRenderAvailable()) {
       throw new Error(
         'Reel render is not enabled. Set VIDEO_RENDER_ENABLED=true on the server.'
       )

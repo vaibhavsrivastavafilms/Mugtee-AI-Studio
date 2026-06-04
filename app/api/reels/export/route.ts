@@ -230,13 +230,25 @@ export async function POST(req: NextRequest) {
       scenes: preQueueScenes,
     })
 
-    const { jobId, status } = await queueReelExportForProject({
-      row,
-      userId: auth.user!.id,
-      baseUrl: req.nextUrl.origin,
-      includeVoiceover,
-      includeCaptions,
-    })
+    let jobId: string
+    let status: Awaited<ReturnType<typeof queueReelExportForProject>>['status']
+    try {
+      ;({ jobId, status } = await queueReelExportForProject({
+        row,
+        userId: auth.user!.id,
+        baseUrl: req.nextUrl.origin,
+        includeVoiceover,
+        includeCaptions,
+      }))
+    } catch (queueErr) {
+      console.error('[EXPORT_QUEUE]', {
+        projectId,
+        message:
+          queueErr instanceof Error ? queueErr.message : String(queueErr),
+        stack: queueErr instanceof Error ? queueErr.stack?.slice(0, 2000) : undefined,
+      })
+      throw queueErr
+    }
 
     logPipelineStepComplete('export', projectId, { jobId, status })
 
@@ -247,19 +259,26 @@ export async function POST(req: NextRequest) {
       quality,
     })
 
-    await trackUsageMetric(auth.user!.id, 'renders')
+    try {
+      await trackUsageMetric(auth.user!.id, 'renders')
+    } catch (usageErr) {
+      console.warn('[EXPORT_USAGE]', usageErr)
+    }
     void trackFeatureUsage(auth.user!.id, FeatureUsageFeatures.VIDEO_GENERATION, projectId)
 
-    return NextResponse.json({ jobId, status })
+    return NextResponse.json({ jobId, status, success: true })
   } catch (err) {
     logError('reels.export.post', err)
     const message = friendlyReelRenderErrorFromUnknown(err)
     const stack =
       err instanceof Error && err.stack ? err.stack.slice(0, 4000) : undefined
+    const errName = err instanceof Error ? err.name : typeof err
+    console.error('[EXPORT_FATAL]', err)
     console.error('[EXPORT_FATAL]', {
       route: 'POST /api/reels/export',
       projectId: trackProjectId,
       userId: trackUserId,
+      errName,
       message,
       stack,
     })
