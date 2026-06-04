@@ -104,14 +104,17 @@ export async function POST(
   } catch (err) {
     logError('projects.backfill-storyboard-assets', err)
     const message = err instanceof Error ? err.message : 'Failed to backfill storyboard assets'
-    return NextResponse.json({
-      success: true,
-      recovered: false,
-      ok: false,
-      error: message,
-      projectId,
-      missingAssets: [],
-      partialErrors: [message],
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        recovered: false,
+        ok: false,
+        error: message,
+        projectId,
+        missingAssets: [],
+        partialErrors: [message],
+      },
+      { status: 500 }
+    )
   }
 }

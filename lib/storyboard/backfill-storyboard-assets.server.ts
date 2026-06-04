@@ -63,9 +63,11 @@ async function tryPersistRemoteToStorage(params: {
     (persisted.includes('/project-assets/') ? filename : null)
   if (!assetPath || !isDurableStoryboardPath(assetPath)) return null
 
-  const { persistSceneImageAsset } = await import(
-    '@/lib/project-assets/persist-scene-image.server'
-  )
+  const persistMod = await import('@/lib/project-assets/persist-scene-image.server')
+  const persistSceneImageAsset = persistMod.persistSceneImageAsset
+  if (typeof persistSceneImageAsset !== 'function') {
+    throw new Error('persistSceneImageAsset is unavailable on this server.')
+  }
   await persistSceneImageAsset({
     userId: params.userId,
     projectId: params.projectId,
@@ -106,9 +108,11 @@ async function regenerateSceneStill(params: {
     extractStoragePathFromUrl(url) ?? (url.includes('/project-assets/') ? filename : null)
   if (!assetPath || !isDurableStoryboardPath(assetPath)) return null
 
-  const { persistSceneImageAsset } = await import(
-    '@/lib/project-assets/persist-scene-image.server'
-  )
+  const persistMod = await import('@/lib/project-assets/persist-scene-image.server')
+  const persistSceneImageAsset = persistMod.persistSceneImageAsset
+  if (typeof persistSceneImageAsset !== 'function') {
+    throw new Error('persistSceneImageAsset is unavailable on this server.')
+  }
   await persistSceneImageAsset({
     userId: params.userId,
     projectId: params.projectId,

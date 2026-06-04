@@ -1,6 +1,5 @@
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
 import { normalizeStoryboardImages } from '@/lib/cinematic/storyboard-utils'
-import { refreshAllSceneStoryboardUrlsClient } from '@/lib/storyboard/storyboard-url-service.client'
 import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
 /** Drop empty or clearly invalid persisted media URLs (prevents dead network requests). */
@@ -35,7 +34,7 @@ export function sanitizeScenesFromPersistence(scenes: CinematicScene[]): Cinemat
       ...(imageAssetPath ? { imageAssetPath } : {}),
     }
   })
-  return refreshAllSceneStoryboardUrlsClient(sanitized)
+  return sanitized
 }
 
 export function sanitizeVoiceFromPersistence(

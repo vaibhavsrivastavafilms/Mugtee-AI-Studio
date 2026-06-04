@@ -1715,8 +1715,11 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
             storyboard: backfillData.scenes,
           })
         }
-      } else if (backfillRes.status === 400 && backfillData.error) {
-        console.warn('[EXPORT] Backfill validation', backfillData.error)
+      } else if (!backfillRes.ok && backfillData.error) {
+        console.warn('[EXPORT] Backfill failed', {
+          status: backfillRes.status,
+          error: backfillData.error,
+        })
       }
     } catch (err) {
       console.warn('[EXPORT] Backfill request failed', err)
