@@ -8,6 +8,7 @@ export type PanelPreferences = {
   directorPanelOpen: boolean
   sidebarCollapsed: boolean
   continuityExpanded: boolean
+  styleLibraryCollapsed: boolean
 }
 
 /** Target distribution platform for output workspace tone hints. */
@@ -31,6 +32,7 @@ const DEFAULT_PANEL_PREFERENCES: PanelPreferences = {
   directorPanelOpen: true,
   sidebarCollapsed: false,
   continuityExpanded: true,
+  styleLibraryCollapsed: false,
 }
 
 export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
