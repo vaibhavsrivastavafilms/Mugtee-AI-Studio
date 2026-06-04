@@ -1679,36 +1679,59 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
 
   if (state.savedProjectId && asyncMode) {
     try {
+      console.log('[EXPORT] Project', { projectId: state.savedProjectId })
+      console.log('[EXPORT] Scenes', state.scenes.map((s) => ({ id: s.id, imageUrl: s.imageUrl ?? null })))
+      console.log('[EXPORT] Storyboards', state.storyboard?.map((s) => ({
+        id: s.id,
+        imageAssetPath: s.imageAssetPath ?? null,
+      })))
+
       const backfillRes = await fetch(
         `/api/projects/${encodeURIComponent(state.savedProjectId)}/backfill-storyboard-assets`,
         { method: 'POST' }
       )
+      const backfillData = (await backfillRes.json()) as {
+        scenes?: typeof state.scenes
+        error?: string
+        missingAssets?: unknown
+      }
+      console.log('[EXPORT] Backfill', {
+        status: backfillRes.status,
+        ok: backfillRes.ok,
+        error: backfillData.error,
+      })
       if (backfillRes.ok) {
-        const backfillData = (await backfillRes.json()) as {
-          scenes?: typeof state.scenes
-        }
         if (Array.isArray(backfillData.scenes) && backfillData.scenes.length > 0) {
           useQuickCutGenerationStore.setState({
             scenes: backfillData.scenes,
             storyboard: backfillData.scenes,
           })
         }
+      } else if (backfillRes.status === 400 && backfillData.error) {
+        console.warn('[EXPORT] Backfill validation', backfillData.error)
       }
-    } catch {
-      /* server export path also backfills */
+    } catch (err) {
+      console.warn('[EXPORT] Backfill request failed', err)
     }
 
+    const exportPayload = {
+      projectId: state.savedProjectId,
+      quality: '1080p',
+      includeVoiceover: true,
+      includeCaptions: true,
+    }
+    console.log('[EXPORT] Payload', exportPayload)
     const exportRes = await fetch('/api/reels/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        projectId: state.savedProjectId,
-        quality: '1080p',
-        includeVoiceover: true,
-        includeCaptions: true,
-      }),
+      body: JSON.stringify(exportPayload),
     })
     const exportData = (await exportRes.json()) as Record<string, unknown>
+    console.log('[EXPORT] Export API response', {
+      status: exportRes.status,
+      ok: exportRes.ok,
+      exportData,
+    })
     if (exportRes.ok && exportData.status === 'completed' && typeof exportData.reelUrl === 'string') {
       return {
         renderRes: exportRes,

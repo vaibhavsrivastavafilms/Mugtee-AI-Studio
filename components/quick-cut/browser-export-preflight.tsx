@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Cpu, Download, Loader2, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBrowserExport } from '@/lib/export/use-browser-export.client'
@@ -43,6 +43,12 @@ export function BrowserExportPreflight({
     runExport,
   } = useBrowserExport({ timeline, projectId, filenameBase })
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const durationSec = timeline?.totalDurationSec ?? 0
   const clipCount = timeline?.clips?.length ?? 0
 
@@ -60,6 +66,7 @@ export function BrowserExportPreflight({
   }, [capabilities.recommendedStrategy])
 
   useEffect(() => {
+    if (!mounted) return
     const sab = typeof SharedArrayBuffer
     console.info('[Mugtee browser export diagnostics]', {
       crossOriginIsolated: capabilities.crossOriginIsolated,
@@ -68,21 +75,10 @@ export function BrowserExportPreflight({
       recommendedStrategy: capabilities.recommendedStrategy,
       hardwareConcurrency: capabilities.hardwareConcurrency,
     })
-  }, [capabilities])
+  }, [mounted, capabilities])
 
-  return (
-    <div
-      className={cn(
-        'rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 space-y-3',
-        className
-      )}
-      data-testid="browser-export-preflight"
-    >
-      <div className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-gold-300/80">
-        <Monitor className="w-3 h-3 shrink-0" aria-hidden />
-        Browser export (local)
-      </div>
-
+  const capabilityDetails = mounted ? (
+    <>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-luxe/70">
         <dt>Resolution</dt>
         <dd className="text-right text-luxe/90">
@@ -116,6 +112,25 @@ export function BrowserExportPreflight({
         coi={String(capabilities.crossOriginIsolated)} · sab={typeof SharedArrayBuffer} · threaded=
         {String(capabilities.canUseThreadedFFmpeg)}
       </p>
+    </>
+  ) : (
+    <p className="text-[11px] text-luxe/50">Loading export diagnostics…</p>
+  )
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 space-y-3',
+        className
+      )}
+      data-testid="browser-export-preflight"
+    >
+      <div className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-gold-300/80">
+        <Monitor className="w-3 h-3 shrink-0" aria-hidden />
+        Browser export (local)
+      </div>
+
+      {capabilityDetails}
 
       {capabilities.warnings.length > 0 ? (
         <ul className="space-y-1 text-[11px] text-amber-200/75" role="status">

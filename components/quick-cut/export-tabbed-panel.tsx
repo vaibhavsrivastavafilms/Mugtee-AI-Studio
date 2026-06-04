@@ -50,6 +50,13 @@ import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import { VideoRenderDisabledNotice } from '@/components/quick-cut/video-render-disabled-notice'
 import { RegenerateMissingScenesBanner } from '@/components/quick-cut/regenerate-missing-scenes-banner'
 import { BrowserExportPreflight } from '@/components/quick-cut/browser-export-preflight'
+import { ExportErrorBoundary } from '@/components/quick-cut/export-error-boundary'
+import { evaluateExportGuard } from '@/lib/export/export-guards.client'
+import {
+  mugteeExportGroup,
+  mugteeExportSnapshot,
+  mugteeExportEnd,
+} from '@/lib/export/export-log.client'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
@@ -223,7 +230,28 @@ function ExportPrimaryDownloadActions() {
   const handleDownloadMp4 = useCallback(async () => {
     if (downloadingMp4) return
     if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
+
+    const guard = evaluateExportGuard({
+      projectId: savedProjectId,
+      script: script || hook,
+      scenes,
+      voiceUrl,
+      requireVoice: true,
+    })
+    if (!guard.allowed) {
+      setAssetError(guard.message ?? 'Generate storyboard before exporting.')
+      toast.error(guard.message ?? 'Generate storyboard before exporting.')
+      return
+    }
+
     if (!(await guardExport())) return
+    mugteeExportGroup('compile_click', { projectId: savedProjectId })
+    mugteeExportSnapshot({
+      stage: 'click',
+      projectId: savedProjectId,
+      scenes,
+      storyboards: scenes,
+    })
     trackMp4ExportClient(Mp4ExportEvents.EXPORT_CLICKED, {
       projectId: savedProjectId,
       metadata: { asset: 'video_mp4', source: 'export_tabbed_panel' },
@@ -274,6 +302,7 @@ function ExportPrimaryDownloadActions() {
       toast.error(message, { id: 'mp4-export-progress' })
     } finally {
       setDownloadingMp4(false)
+      mugteeExportEnd()
     }
   }, [
     videoUrl,
@@ -285,6 +314,10 @@ function ExportPrimaryDownloadActions() {
     guardExport,
     mp4Compiling,
     reelReadiness.validating,
+    script,
+    hook,
+    scenes,
+    voiceUrl,
   ])
 
   const handleDownloadMp3 = useCallback(async () => {
@@ -495,22 +528,24 @@ export function ExportTabbedPanel({
       </TabsList>
 
       <TabsContent value="download" className="mt-0 space-y-3 focus-visible:outline-none">
-        <VideoRenderDisabledNotice />
-        <RegenerateMissingScenesBanner />
-        <ExportPrimaryDownloadActions />
-        {isComplete && reelTimeline ? (
-          <BrowserExportPreflight
-            timeline={reelTimeline}
-            projectId={projectId}
-            filenameBase={slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')}
-          />
-        ) : null}
-        {showRenderStatus ? <ExportRenderStatus /> : null}
-        <ExportSummaryGrid embedded />
-        {isComplete && reelTimeline ? (
-          <ReelComposer timeline={reelTimeline} audioRef={audioRef} showDirectorTracks />
-        ) : null}
-        <QuickCutDownloadPanel embedded supplementaryOnly={isComplete} />
+        <ExportErrorBoundary>
+          <VideoRenderDisabledNotice />
+          <RegenerateMissingScenesBanner />
+          <ExportPrimaryDownloadActions />
+          {isComplete && reelTimeline ? (
+            <BrowserExportPreflight
+              timeline={reelTimeline}
+              projectId={projectId}
+              filenameBase={slugifyExportBase(title || 'mugtee-reel', 'mugtee-reel')}
+            />
+          ) : null}
+          {showRenderStatus ? <ExportRenderStatus /> : null}
+          <ExportSummaryGrid embedded />
+          {isComplete && reelTimeline ? (
+            <ReelComposer timeline={reelTimeline} audioRef={audioRef} showDirectorTracks />
+          ) : null}
+          <QuickCutDownloadPanel embedded supplementaryOnly={isComplete} />
+        </ExportErrorBoundary>
       </TabsContent>
 
       <TabsContent value="publish" className="mt-0 space-y-3 focus-visible:outline-none">

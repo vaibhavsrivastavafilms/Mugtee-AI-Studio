@@ -46,6 +46,19 @@ export function getFFmpegLogs(): FFmpegLogEntry[] {
   return logBuffer.map((message) => ({ level: 'info' as const, message }))
 }
 
+function assertFfmpegRuntime(): void {
+  if (typeof FFmpeg !== 'function') {
+    throw new FFmpegServiceError(
+      'FFmpeg.wasm unavailable — refresh the page and try browser export again.'
+    )
+  }
+  if (typeof toBlobURL !== 'function' || typeof fetchFile !== 'function') {
+    throw new FFmpegServiceError(
+      'FFmpeg utilities unavailable — refresh the page and try browser export again.'
+    )
+  }
+}
+
 export async function initFFmpeg(options?: {
   threaded?: boolean
   onLog?: (entry: FFmpegLogEntry) => void
@@ -55,6 +68,7 @@ export async function initFFmpeg(options?: {
   if (loadPromise) return loadPromise
 
   loadPromise = (async () => {
+    assertFfmpegRuntime()
     const base = ffmpegCoreBaseUrl()
     const wantThreaded = Boolean(options?.threaded)
     const loadTimeoutMs = 90_000
