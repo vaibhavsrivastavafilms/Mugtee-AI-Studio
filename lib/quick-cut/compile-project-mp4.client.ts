@@ -42,6 +42,16 @@ export function projectCanCompileMp4(
   return allScenesHaveExportImages(scenes)
 }
 
+async function backfillStoryboardAssets(projectId: string): Promise<void> {
+  try {
+    await fetch(`/api/projects/${encodeURIComponent(projectId)}/backfill-storyboard-assets`, {
+      method: 'POST',
+    })
+  } catch {
+    /* server export path also backfills */
+  }
+}
+
 async function requestReelExport(projectId: string) {
   const exportRes = await fetch('/api/reels/export', {
     method: 'POST',
@@ -95,6 +105,8 @@ async function compileProjectMp4Inner(
     throw new Error('Reel render is not available on this server.')
   }
 
+  await backfillStoryboardAssets(projectId)
+
   const { renderRes, renderData } = await requestReelExport(projectId)
   if (!renderRes.ok) {
     throw new Error(String(renderData?.error || 'Video render unavailable'))
@@ -111,7 +123,11 @@ async function compileProjectMp4Inner(
     if (typeof pollReelExportJob !== 'function') {
       throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
     }
-    const { reelExportPollPath } = await import('@/lib/reels/export-paths')
+    const pathsModule = await import('@/lib/reels/export-paths')
+    const reelExportPollPath = pathsModule.reelExportPollPath
+    if (typeof reelExportPollPath !== 'function') {
+      throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
+    }
     return pollReelExportJob(reelExportPollPath(jobId, projectId), {
       onProgress: (patch) => {
         if (patch.label) options?.onProgress?.(patch.label)

@@ -457,11 +457,17 @@ export function ExportTabbedPanel({
     [activeStageTab, preferredSubTab]
   )
 
-  const [subTab, setSubTab] = useState<ExportSubTab>(tabFromStore)
+  const [mounted, setMounted] = useState(false)
+  const [subTab, setSubTab] = useState<ExportSubTab>('download')
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     setSubTab(tabFromStore)
-  }, [tabFromStore])
+  }, [mounted, tabFromStore])
 
   const tabs = (
     <Tabs
