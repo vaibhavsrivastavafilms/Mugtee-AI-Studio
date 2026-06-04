@@ -341,6 +341,20 @@ export async function generateSceneStoryboardImages(params: {
   userId: string
   projectId: string
 }): Promise<{ images: StoryboardImage[]; mock: boolean }> {
+  const { logStoryboardInput, logStoryboardStart } = await import(
+    '@/lib/pipeline/pipeline-trace'
+  )
+  logStoryboardStart('generateSceneStoryboardImages', {
+    projectId: params.projectId,
+    sceneIndex: params.input.sceneIndex,
+  })
+  logStoryboardInput({
+    projectId: params.projectId,
+    sceneId: params.input.scene.id,
+    sceneIndex: params.input.sceneIndex,
+    totalScenes: params.input.totalScenes,
+  })
+
   const styleLock = buildNicheStyleLock(params.input.niche, params.input.style)
   const visual = sceneVisualFromInput(
     params.input.scene,

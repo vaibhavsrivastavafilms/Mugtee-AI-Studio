@@ -94,9 +94,10 @@ export function logGenerationStart(projectId: string | null, topicPreview: strin
 
 export function logStepComplete(
   step: PersistedGenerationStep,
-  projectId?: string | null
+  projectId?: string | null,
+  extra?: LogPayload
 ) {
-  console.info('[STEP_COMPLETE]', payload(projectId, { step }))
+  console.info('[STEP_COMPLETE]', payload(projectId, { step, ...extra }))
 }
 
 export function logStepFailed(

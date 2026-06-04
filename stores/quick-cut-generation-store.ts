@@ -219,7 +219,6 @@ import {
   logGenerationStart,
   logGenerationSuccess,
   logPipelineStepStart,
-  logStepComplete,
   logStepFailed,
   logStoryboardFrame,
 } from '@/lib/cinematic/generation-logger'
@@ -227,6 +226,7 @@ import {
   armPipelineWatchdog,
   clearPipelineWatchdog,
   logStateTransition,
+  logStepFailure,
   logStepShouldRunDecision,
   logTraceEnter,
   logTraceExit,
@@ -3159,12 +3159,20 @@ export const useQuickCutGenerationStore = create<
         set({ storyBible: fallbackBible })
       }
 
-      if (stepShouldRun(resumeFrom, 'storyboard')) {
+      const storyboardShouldRun = stepShouldRun(resumeFrom, 'storyboard')
+      logStepShouldRunDecision(resumeFrom, 'storyboard', storyboardShouldRun)
+
+      if (storyboardShouldRun) {
         scenes = stripSceneImages(scenes)
       }
 
       let imgMock = false
-      if (stepShouldRun(resumeFrom, 'storyboard')) {
+      if (storyboardShouldRun) {
+        clearPipelineWatchdog()
+        logTraceEnter('storyboard', {
+          sceneCount: scenes.length,
+          projectId: get().savedProjectId,
+        })
         setStep(set, get, 'images')
         patchSectionStatus(set, get, 'storyboard', 'generating')
         patchSectionStatus(set, get, 'thumbnail', 'generating')
@@ -3237,6 +3245,7 @@ export const useQuickCutGenerationStore = create<
             }
           } catch (err) {
             if (err instanceof ImageGenerationUnavailableError) throw err
+            logStepFailure('storyboard_scene', err, { sceneId: scene.id, index })
             imgMock = true
             anyMock = true
             noteMissing('images')
@@ -3244,6 +3253,10 @@ export const useQuickCutGenerationStore = create<
         }
 
         scenes = get().scenes.length ? get().scenes : scenes
+        logTraceExit('storyboard', {
+          sceneCount: scenes.length,
+          projectId: get().savedProjectId,
+        })
         set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
         patchSectionStatus(set, get, 'storyboard', 'completed')
         const sceneOneThumb = resolveActiveThumbnailUrl(null, scenes)
@@ -3252,10 +3265,14 @@ export const useQuickCutGenerationStore = create<
         }
         genPerf.end('storyboard')
 
-        const storyboardId = await persistStepComplete(
-          get(),
-          'storyboard',
-          buildArchiveInput(get(), buildGenerationOutput(get()))
+        const storyboardId = await withStepTimeout(
+          'project_save_storyboard',
+          persistStepComplete(
+            get(),
+            'storyboard',
+            buildArchiveInput(get(), buildGenerationOutput(get()))
+          ),
+          60_000
         )
         if (storyboardId) set({ savedProjectId: storyboardId, saveState: 'saved' })
 
@@ -3307,7 +3324,7 @@ export const useQuickCutGenerationStore = create<
         void runSceneVideoGeneration(get, set)
       }
 
-      const assemblyPresentation = stepShouldRun(resumeFrom, 'storyboard')
+      const assemblyPresentation = storyboardShouldRun
         ? runCinematicAssemblyPresentation(get, set)
         : null
 
