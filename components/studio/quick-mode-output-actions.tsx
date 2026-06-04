@@ -2,28 +2,48 @@
 
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
-  Download,
+  Copy,
   Flame,
+  Layers,
+  MoreHorizontal,
   Palette,
   RefreshCw,
+  Share2,
   Sparkles,
+  TrendingUp,
+  Wand2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { directorWorkspaceHref } from '@/lib/create/routes'
+import { duplicateProject } from '@/lib/cinematic-projects'
 import { requestRewriteSelection } from '@/lib/rewrite/rewrite-api'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useRewriteStore } from '@/stores/rewrite-store'
-import { studioBtnOutline, studioBtnPrimary } from '@/lib/studio/studio-design-tokens'
-import { Button } from '@/components/ui/button'
-
+import { studioBtnOutline } from '@/lib/studio/studio-design-tokens'
+import { UnifiedExportMenu } from '@/components/export/unified-export-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 type QuickModeOutputActionsProps = {
   projectId?: string
   className?: string
+  showRegenerateAll?: boolean
+  onRegenerateAll?: () => void
 }
 
-export function QuickModeOutputActions({ projectId, className }: QuickModeOutputActionsProps) {
+export function QuickModeOutputActions({
+  projectId,
+  className,
+  showRegenerateAll,
+  onRegenerateAll,
+}: QuickModeOutputActionsProps) {
+  const router = useRouter()
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
@@ -33,27 +53,17 @@ export function QuickModeOutputActions({ projectId, className }: QuickModeOutput
   const language = useQuickCutGenerationStore((s) => s.language)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
-  const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
-  const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
-  const resumeRenderPoll = useQuickCutGenerationStore((s) => s.resumeRenderPoll)
-  const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
   const runPipeline = useQuickCutGenerationStore((s) => s.runPipeline)
   const prompt = useQuickCutGenerationStore((s) => s.prompt)
   const duration = useQuickCutGenerationStore((s) => s.duration)
   const directorMode = useQuickCutGenerationStore((s) => s.directorMode)
-  const styleTemplateId = useQuickCutGenerationStore((s) => s.styleTemplateId)
+  const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
 
   const applyDirectorRewrite = useRewriteStore((s) => s.applyDirectorRewrite)
   const [viralBusy, setViralBusy] = useState(false)
+  const [dupBusy, setDupBusy] = useState(false)
 
   const pid = projectId ?? savedProjectId
-
-  const handleExport = useCallback(() => {
-    useQuickCutGenerationStore.getState().setActiveStageTab('complete', true)
-    if (!isGenerating && !isRenderingVideo) {
-      void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())
-    }
-  }, [isGenerating, isRenderingVideo, renderPollUrl, resumeRenderPoll, retryVideoRender])
 
   const handleRegenerate = useCallback(() => {
     const trimmed = prompt.trim()
@@ -71,15 +81,7 @@ export function QuickModeOutputActions({ projectId, className }: QuickModeOutput
       regenFresh: true,
       skipResearch: true,
     })
-  }, [
-    directorMode,
-    duration,
-    language,
-    prompt,
-    runPipeline,
-    savedProjectId,
-    style,
-  ])
+  }, [directorMode, duration, language, prompt, runPipeline, savedProjectId, style])
 
   const handleMakeMoreViral = useCallback(async () => {
     const source = script?.trim() || hook?.trim()
@@ -108,7 +110,7 @@ export function QuickModeOutputActions({ projectId, className }: QuickModeOutput
         script: script?.trim() ? output : script,
         hook: hook?.trim() && !script?.trim() ? output : hook,
       })
-      toast.success('Script updated — re-run export if needed')
+      toast.success('Updated for higher retention')
     } catch {
       toast.error('Could not apply viral rewrite')
     } finally {
@@ -130,64 +132,163 @@ export function QuickModeOutputActions({ projectId, className }: QuickModeOutput
     window.dispatchEvent(new CustomEvent('mugtee:open-style-drawer'))
   }, [])
 
+  const handlePublish = useCallback(() => {
+    setActiveStageTab('publish', true)
+    if (pid) router.push(directorWorkspaceHref(pid, { tab: 'publish' }))
+  }, [pid, router, setActiveStageTab])
+
+  const handleRepurpose = useCallback(() => {
+    setActiveStageTab('repurpose', true)
+    if (pid) router.push(directorWorkspaceHref(pid, { tab: 'repurpose' }))
+  }, [pid, router, setActiveStageTab])
+
+  const handleDuplicate = useCallback(async () => {
+    if (!pid) {
+      toast.error('Save your reel before duplicating')
+      return
+    }
+    setDupBusy(true)
+    try {
+      const row = await duplicateProject(pid)
+      router.push(directorWorkspaceHref(row.id))
+      toast.success('Project duplicated')
+    } catch {
+      toast.error('Could not duplicate project')
+    } finally {
+      setDupBusy(false)
+    }
+  }, [pid, router])
+
+  const chipBtn = cn(
+    studioBtnOutline,
+    'h-9 rounded-xl px-3 normal-case tracking-normal text-xs gap-1.5 shrink-0'
+  )
+
   return (
     <div className={cn('space-y-3', className)}>
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Button
-          type="button"
-          onClick={handleExport}
-          disabled={isGenerating || isRenderingVideo}
-          className={cn(studioBtnPrimary, 'flex-1 h-10 rounded-xl normal-case tracking-normal text-sm')}
-        >
-          <Download className="w-4 h-4" />
-          Export
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleRegenerate}
-          disabled={isGenerating}
-          className={cn(studioBtnOutline, 'flex-1 h-10 rounded-xl normal-case tracking-normal text-sm')}
-        >
-          <RefreshCw className="w-4 h-4" />
-          Regenerate
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
+      {showRegenerateAll ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onRegenerateAll ?? handleRegenerate}
+            disabled={isGenerating}
+            className={cn(
+              studioBtnOutline,
+              'h-8 rounded-lg px-3 normal-case tracking-normal text-xs gap-1.5'
+            )}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Regenerate All
+          </button>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <UnifiedExportMenu
+          includeTextExports
+          label="Export"
+          className="shrink-0"
+          onExportComplete={() => setActiveStageTab('complete', true)}
+        />
+
         <button
           type="button"
           onClick={() => void handleMakeMoreViral()}
           disabled={viralBusy || isGenerating}
-          className={cn(studioBtnOutline, 'h-9 rounded-full px-3 normal-case tracking-normal text-xs gap-1.5')}
+          className={chipBtn}
         >
           {viralBusy ? (
             <Sparkles className="w-3.5 h-3.5 animate-pulse" />
           ) : (
-            <Flame className="w-3.5 h-3.5" />
+            <TrendingUp className="w-3.5 h-3.5" />
           )}
           Make More Viral
         </button>
+
+        <button type="button" onClick={openCreativeSystem} className={chipBtn}>
+          <Wand2 className="w-3.5 h-3.5" />
+          Change System
+        </button>
+
         <button
           type="button"
-          onClick={openCreativeSystem}
-          className={cn(studioBtnOutline, 'h-9 rounded-full px-3 normal-case tracking-normal text-xs gap-1.5')}
+          onClick={handleRegenerate}
+          disabled={isGenerating}
+          className={chipBtn}
         >
-          <Palette className="w-3.5 h-3.5" />
-          Change System
-          {styleTemplateId ? null : null}
+          <RefreshCw className="w-3.5 h-3.5" />
+          Regenerate
         </button>
-      </div>
-      {pid ? (
-        <p className="text-center text-[11px] text-luxe/45">
-          Need full control?{' '}
-          <Link
-            href={directorWorkspaceHref(pid)}
-            className="text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline"
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className={cn(chipBtn, 'px-2.5')} aria-label="More actions">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="min-w-[11rem] rounded-xl border border-white/[0.08] bg-[#0D0D0D] p-1"
           >
-            Open Director Mode
-          </Link>
-        </p>
-      ) : null}
+            <DropdownMenuItem
+              className="text-xs gap-2 rounded-lg cursor-pointer"
+              onClick={() => void handleDuplicate()}
+              disabled={dupBusy}
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-xs gap-2 rounded-lg cursor-pointer"
+              onClick={handlePublish}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Publish
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-xs gap-2 rounded-lg cursor-pointer"
+              onClick={handleRepurpose}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Repurpose
+            </DropdownMenuItem>
+            {pid ? (
+              <DropdownMenuItem asChild className="text-xs gap-2 rounded-lg cursor-pointer">
+                <Link href={directorWorkspaceHref(pid)}>
+                  <Palette className="w-3.5 h-3.5" />
+                  Open Director Mode
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )
+}
+
+/** Feature footer row for Quick Mode panels */
+export function QuickModeFeatureFooter({ className }: { className?: string }) {
+  const items = [
+    { icon: Sparkles, label: 'AI-Powered' },
+    { icon: Flame, label: 'Lightning Fast' },
+    { icon: TrendingUp, label: 'High Retention' },
+    { icon: Share2, label: 'Multi-Platform' },
+  ] as const
+
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-2 text-[10px] text-luxe/45',
+        className
+      )}
+    >
+      {items.map(({ icon: Icon, label }) => (
+        <span key={label} className="inline-flex items-center gap-1.5">
+          <Icon className="w-3 h-3 text-violet-300/60" aria-hidden />
+          {label}
+        </span>
+      ))}
     </div>
   )
 }

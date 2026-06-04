@@ -56,7 +56,9 @@ export default function CinematicAppShell({
               aria-hidden
             />
 
-            <CinematicHeader user={user} variant="app" />
+            {!isV4CreatorRoute || creatorMode !== 'quick' ? (
+              <CinematicHeader user={user} variant="app" />
+            ) : null}
             {!isCompanionHome && !pathname.startsWith('/studio/workspace') && !isV4CreatorRoute ? (
               <StudioPromptBar />
             ) : null}
@@ -75,6 +77,8 @@ export default function CinematicAppShell({
                     ? 'flex-1 flex flex-col min-w-0 w-full min-h-0'
                     : pathname.startsWith('/studio/workspace')
                       ? 'flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden'
+                      : creatorMode === 'quick'
+                      ? 'flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden p-0 pb-[max(4rem,calc(3rem+env(safe-area-inset-bottom)))] lg:pb-0'
                       : isV4CreatorRoute
                       ? 'flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 lg:py-5 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-5'
                       : 'flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-6'
@@ -82,7 +86,7 @@ export default function CinematicAppShell({
               >
                 {children}
               </div>
-              {!isCompanionHome ? <MugteeSidekickPanel /> : null}
+              {!isCompanionHome && creatorMode !== 'quick' ? <MugteeSidekickPanel /> : null}
             </motion.main>
             <MugteeCommandCenter />
           </div>
