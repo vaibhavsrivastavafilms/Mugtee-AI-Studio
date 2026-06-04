@@ -14,9 +14,19 @@ export type ExportRequestSceneRow = {
 }
 
 /** Map scene/storyboard state to export API rows (includes storyboardImages fallback). */
-export function sceneToExportRequestRow(scene: SceneExportImageSource): ExportRequestSceneRow {
+export function resolveExportSceneId(scene: SceneExportImageSource, index: number): string {
+  if (typeof scene.id === 'string' && scene.id.trim()) return scene.id.trim()
+  const alt = (scene as { sceneId?: string }).sceneId
+  if (typeof alt === 'string' && alt.trim()) return alt.trim()
+  return `scene-${index + 1}`
+}
+
+export function sceneToExportRequestRow(
+  scene: SceneExportImageSource,
+  index = 0
+): ExportRequestSceneRow {
   return {
-    id: scene.id,
+    id: resolveExportSceneId(scene, index),
     title: scene.title ?? null,
     imageUrl: resolveSceneExportImageUrl(scene) ?? null,
     imageAssetPath: resolveSceneExportAssetPath(scene) ?? null,
@@ -27,7 +37,7 @@ export function scenesToExportRequestPayload(scenes: SceneExportImageSource[]): 
   scenes: ExportRequestSceneRow[]
   storyboards: ExportRequestSceneRow[]
 } {
-  const rows = scenes.filter((s) => Boolean(s?.id?.trim())).map(sceneToExportRequestRow)
+  const rows = scenes.map((scene, index) => sceneToExportRequestRow(scene, index))
   return { scenes: rows, storyboards: rows }
 }
 
@@ -36,9 +46,6 @@ export function pickExportStoryboardScenes<T extends SceneExportImageSource>(
   storyboard: T[] | null | undefined,
   scenes: T[]
 ): T[] {
-  const fromStoryboard = Array.isArray(storyboard) ? storyboard.filter((s) => Boolean(s?.id?.trim())) : []
-  const fromScenes = Array.isArray(scenes) ? scenes.filter((s) => Boolean(s?.id?.trim())) : []
-  if (fromStoryboard.length > 0 && fromStoryboard.length >= fromScenes.length) return fromStoryboard
-  if (fromScenes.length > 0) return fromScenes
-  return storyboard?.length ? storyboard : scenes
+  if (storyboard && storyboard.length > 0) return storyboard
+  return scenes
 }

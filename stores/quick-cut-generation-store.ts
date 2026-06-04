@@ -82,6 +82,7 @@ import {
   pickExportStoryboardScenes,
   scenesToExportRequestPayload,
 } from '@/lib/export/export-request-payload.client'
+import { exportPayloadTrace } from '@/lib/export/export-log.client'
 import {
   pollSceneVideoJobs,
   queueSceneVideos,
@@ -1730,16 +1731,28 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
     }
 
     const latest = useQuickCutGenerationStore.getState()
+    exportPayloadTrace('project_loaded', {
+      scenes: latest.scenes,
+      storyboards: latest.storyboard ?? latest.scenes,
+    })
+    exportPayloadTrace('before_backfill', {
+      scenes: latest.scenes,
+      storyboards: latest.storyboard ?? latest.scenes,
+    })
     const exportScenes = pickExportStoryboardScenes(latest.storyboard, latest.scenes)
-    console.log('[EXPORT TRACE] requestVideoRender.pickScenes', {
-      projectId: state.savedProjectId,
-      fromClosureScenes: state.scenes.length,
-      fromClosureStoryboard: state.storyboard?.length ?? 0,
-      pickedCount: exportScenes.length,
-      storeScenes: latest.scenes.length,
-      storeStoryboard: latest.storyboard?.length ?? 0,
+    exportPayloadTrace('after_backfill', {
+      scenes: exportScenes,
+      storyboards: exportScenes,
+    })
+    exportPayloadTrace('before_payload_build', {
+      scenes: exportScenes,
+      storyboards: exportScenes,
     })
     const exportSnapshot = scenesToExportRequestPayload(exportScenes)
+    exportPayloadTrace('after_payload_build', {
+      scenes: exportSnapshot.scenes,
+      storyboards: exportSnapshot.storyboards,
+    })
     const exportPayload = {
       projectId: state.savedProjectId,
       quality: '1080p' as const,
@@ -1750,9 +1763,9 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       voiceUrl: state.voiceUrl ?? null,
       thumbnailUrl: state.thumbnailImageUrl ?? null,
     }
-    console.log('[EXPORT TRACE] requestVideoRender.payload', {
-      sceneRows: exportSnapshot.scenes.length,
-      storyboardRows: exportSnapshot.storyboards.length,
+    exportPayloadTrace('before_api_request', {
+      scenes: exportSnapshot.scenes,
+      storyboards: exportSnapshot.storyboards,
     })
     console.log('[EXPORT] Payload', exportPayload)
     const exportRes = await fetch('/api/reels/export', {
