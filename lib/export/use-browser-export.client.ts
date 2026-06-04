@@ -12,6 +12,13 @@ import {
 } from '@/lib/export/export-orchestrator'
 import type { ReelTimeline } from '@/lib/reel/types'
 import { recordDownloadSuccess, recordExportStarted, recordDownloadFailure } from '@/lib/export/export-diagnostics'
+import { ensureExportSafeTimeline } from '@/lib/export/export-placeholders'
+import {
+  mugteeExportEnd,
+  mugteeExportGroup,
+  mugteeExportSnapshot,
+} from '@/lib/export/export-log.client'
+import { evaluateExportGuard } from '@/lib/export/export-guards.client'
 
 function triggerBlobDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
@@ -55,6 +62,23 @@ export function useBrowserExport(options: {
 
   const runExport = useCallback(async () => {
     if (!timeline || !settings || !canStart) return
+
+    const guard = evaluateExportGuard({
+      projectId,
+      script: timeline.clips.map((c) => c.title).join('\n'),
+      scenes: timeline.clips.map((c) => ({
+        id: c.sceneId,
+        title: c.title,
+        imageUrl: c.image,
+      })),
+      voiceUrl: timeline.voiceUrl,
+    })
+    if (!guard.allowed) {
+      setError(guard.message ?? 'Generate storyboard before exporting.')
+      setPhase('failed')
+      return
+    }
+
     abortRef.current = false
     setRunning(true)
     setError(null)
@@ -62,10 +86,20 @@ export function useBrowserExport(options: {
     setProgress(0)
     recordExportStarted(projectId)
 
+    const safeTimeline = ensureExportSafeTimeline(timeline)
+    mugteeExportGroup('browser_click', { projectId: projectId ?? null })
+    mugteeExportSnapshot({
+      stage: 'click',
+      projectId,
+      scenes: safeTimeline.clips,
+      storyboards: safeTimeline.clips,
+      payload: { strategy: capabilities.recommendedStrategy, settings },
+    })
+
     const job: BrowserExportJob = {
       id: `browser-${Date.now()}`,
       projectId,
-      timeline,
+      timeline: safeTimeline,
       settings,
       strategy: capabilities.recommendedStrategy,
     }
@@ -85,11 +119,13 @@ export function useBrowserExport(options: {
       setPhase('complete')
       setProgress(1)
       setMessage('Download started')
+      mugteeExportEnd()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Browser export failed'
       setError(msg)
       setPhase('failed')
       recordDownloadFailure(msg, projectId, { source: 'browser_export' })
+      mugteeExportEnd()
     } finally {
       setRunning(false)
     }

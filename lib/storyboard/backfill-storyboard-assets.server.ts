@@ -6,6 +6,7 @@ import { resolveProjectScenes } from '@/lib/cinematic-projects'
 import { generateSceneImageOpenAIPrimary } from '@/lib/ai/generate-scene-image-openai-primary'
 import { persistRemoteImage } from '@/lib/ai/generate-scene-image'
 import {
+  findScenesMissingExportImages,
   resolveSceneExportAssetPath,
   resolveSceneExportImageUrl,
   sceneHasExportableStoryboard,
@@ -23,6 +24,10 @@ import {
   type LegacyAssetLookup,
 } from '@/lib/storyboard/storyboard-url-service.server'
 import type { ProjectAssetCounts } from '@/lib/export/export-readiness.server'
+import {
+  attachFallbackImage,
+  createPlaceholderStoryboard,
+} from '@/lib/export/export-placeholders'
 
 function recoveryLog(event: string, payload: Record<string, unknown>): void {
   if (process.env.NODE_ENV === 'production') return
@@ -34,7 +39,10 @@ export type BackfillStoryboardResult = {
   repaired: number
   regenerated: number
   recoveredFromAssets: number
+  placeholderAttached: number
   persisted: boolean
+  missingSceneIds: string[]
+  errors: string[]
 }
 
 async function tryPersistRemoteToStorage(params: {
@@ -124,10 +132,29 @@ export async function backfillStoryboardAssetsForProject(params: {
   supabase?: SupabaseClient
   persistScenes?: boolean
   allowRegenerate?: boolean
+  attachPlaceholders?: boolean
 }): Promise<BackfillStoryboardResult> {
   const userId = params.userId.trim()
   const projectId = params.row.id.trim()
-  const supabase = params.supabase ?? createSupabaseServerClient()
+  let supabase: SupabaseClient
+  try {
+    supabase = params.supabase ?? createSupabaseServerClient()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Supabase unavailable'
+    return {
+      scenes: resolveProjectScenes(params.row),
+      repaired: 0,
+      regenerated: 0,
+      recoveredFromAssets: 0,
+      placeholderAttached: 0,
+      persisted: false,
+      missingSceneIds: findScenesMissingExportImages(resolveProjectScenes(params.row)).map(
+        (m) => m.id
+      ),
+      errors: [message],
+    }
+  }
+
   let scenes = resolveProjectScenes(params.row)
   const lookup: LegacyAssetLookup = {
     projectId,
@@ -135,31 +162,65 @@ export async function backfillStoryboardAssetsForProject(params: {
     imageAssets: params.assetCounts?.imageAssets,
   }
 
-  scenes = await refreshAllSceneStoryboardUrls(scenes, { lookup, supabase })
+  try {
+    scenes = await refreshAllSceneStoryboardUrls(scenes, { lookup, supabase })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    recoveryLog('refresh.initial_failed', { projectId, message })
+  }
 
   let repaired = 0
   let regenerated = 0
   let recoveredFromAssets = 0
+  let placeholderAttached = 0
+  const errors: string[] = []
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i]
-    let assetPath = resolveSceneExportAssetPath(scene)
-    if (assetPath && (await storyboardStorageExists(assetPath, supabase))) {
-      continue
-    }
+    try {
+      let assetPath = resolveSceneExportAssetPath(scene)
+      if (assetPath && (await storyboardStorageExists(assetPath, supabase))) {
+        continue
+      }
 
-    const imageUrl = resolveSceneExportImageUrl(scene)
-    if (!assetPath && imageUrl) {
-      const fromAssets = lookup.imageAssets?.find(
-        (a) => a.sceneId === scene.id || a.sequenceIndex === i + 1
-      )
-      if (fromAssets?.storagePath && isDurableStoryboardPath(fromAssets.storagePath)) {
-        assetPath = fromAssets.storagePath
-        recoveredFromAssets += 1
-        recoveryLog('project_assets.storage_path', { sceneId: scene.id, assetPath })
-      } else if (fromAssets?.url) {
+      const imageUrl = resolveSceneExportImageUrl(scene)
+      if (!imageUrl) {
+        console.warn('[EXPORT] Missing image for scene', scene.id)
+        continue
+      }
+
+      if (!assetPath && imageUrl) {
+        const fromAssets = lookup.imageAssets?.find(
+          (a) => a.sceneId === scene.id || a.sequenceIndex === i + 1
+        )
+        if (fromAssets?.storagePath && isDurableStoryboardPath(fromAssets.storagePath)) {
+          assetPath = fromAssets.storagePath
+          recoveredFromAssets += 1
+          recoveryLog('project_assets.storage_path', { sceneId: scene.id, assetPath })
+        } else if (fromAssets?.url) {
+          const refetched = await tryPersistRemoteToStorage({
+            remoteUrl: fromAssets.url,
+            userId,
+            projectId,
+            scene,
+            sequenceIndex: i + 1,
+          })
+          if (refetched) {
+            scenes[i] = {
+              ...scene,
+              imageUrl: refetched.url,
+              imageAssetPath: refetched.assetPath,
+            }
+            repaired += 1
+            recoveryLog('project_assets.refetch', { sceneId: scene.id })
+            continue
+          }
+        }
+      }
+
+      if (imageUrl && isEphemeralRemoteImageUrl(imageUrl)) {
         const refetched = await tryPersistRemoteToStorage({
-          remoteUrl: fromAssets.url,
+          remoteUrl: imageUrl,
           userId,
           projectId,
           scene,
@@ -172,57 +233,58 @@ export async function backfillStoryboardAssetsForProject(params: {
             imageAssetPath: refetched.assetPath,
           }
           repaired += 1
-          recoveryLog('project_assets.refetch', { sceneId: scene.id })
+          recoveryLog('ephemeral.refetch', { sceneId: scene.id })
           continue
         }
-      }
-    }
 
-    if (imageUrl && isEphemeralRemoteImageUrl(imageUrl)) {
-      const refetched = await tryPersistRemoteToStorage({
-        remoteUrl: imageUrl,
-        userId,
-        projectId,
-        scene,
-        sequenceIndex: i + 1,
-      })
-      if (refetched) {
-        scenes[i] = {
-          ...scene,
-          imageUrl: refetched.url,
-          imageAssetPath: refetched.assetPath,
-        }
-        repaired += 1
-        recoveryLog('ephemeral.refetch', { sceneId: scene.id })
-        continue
-      }
-
-      if (params.allowRegenerate !== false) {
-        const regen = await regenerateSceneStill({
-          scene,
-          userId,
-          projectId,
-          sequenceIndex: i + 1,
-        })
-        if (regen) {
-          scenes[i] = {
-            ...scene,
-            imageUrl: regen.url,
-            imageAssetPath: regen.assetPath,
+        if (params.allowRegenerate !== false) {
+          const regen = await regenerateSceneStill({
+            scene,
+            userId,
+            projectId,
+            sequenceIndex: i + 1,
+          })
+          if (regen) {
+            scenes[i] = {
+              ...scene,
+              imageUrl: regen.url,
+              imageAssetPath: regen.assetPath,
+            }
+            regenerated += 1
+            recoveryLog('ephemeral.regenerate', { sceneId: scene.id })
           }
-          regenerated += 1
-          recoveryLog('ephemeral.regenerate', { sceneId: scene.id })
         }
       }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push(`Scene ${scene.id}: ${message}`)
+      recoveryLog('scene.error', { sceneId: scene.id, message })
     }
   }
 
-  scenes = await refreshAllSceneStoryboardUrls(scenes, { lookup, supabase })
+  try {
+    scenes = await refreshAllSceneStoryboardUrls(scenes, { lookup, supabase })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    errors.push(`refresh: ${message}`)
+    recoveryLog('refresh.final_failed', { projectId, message })
+  }
+
+  if (params.attachPlaceholders !== false) {
+    scenes = scenes.map((scene, index) => {
+      if (sceneHasExportableStoryboard(scene)) {
+        return attachFallbackImage(scene, index)
+      }
+      placeholderAttached += 1
+      recoveryLog('placeholder.attach', { sceneId: scene.id, index: index + 1 })
+      return createPlaceholderStoryboard(scene, index)
+    })
+  }
 
   let persisted = false
   if (
     params.persistScenes !== false &&
-    (repaired > 0 || regenerated > 0 || recoveredFromAssets > 0)
+    (repaired > 0 || regenerated > 0 || recoveredFromAssets > 0 || placeholderAttached > 0)
   ) {
     const { error } = await supabase
       .from('cinematic_projects')
@@ -253,13 +315,19 @@ export async function backfillStoryboardAssetsForProject(params: {
     repaired,
     regenerated,
     recoveredFromAssets,
+    errors: errors.length,
   })
+
+  const missingSceneIds = findScenesMissingExportImages(scenes).map((m) => m.id)
 
   return {
     scenes,
     repaired,
     regenerated,
     recoveredFromAssets,
+    placeholderAttached,
     persisted,
+    missingSceneIds,
+    errors,
   }
 }

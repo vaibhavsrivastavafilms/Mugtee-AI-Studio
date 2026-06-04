@@ -25,6 +25,13 @@ import type {
   BrowserExportSettings,
   BrowserExportTiming,
 } from '@/lib/export/browser-export-types'
+import { ensureExportSafeTimeline } from '@/lib/export/export-placeholders'
+import {
+  mugteeExportGroup,
+  mugteeExportLog,
+  mugteeExportSnapshot,
+  mugteeExportEnd,
+} from '@/lib/export/export-log.client'
 
 export type { BrowserExportJob, BrowserExportPhase, BrowserExportProgress, BrowserExportResult }
 
@@ -223,6 +230,20 @@ export async function startExport(
   job: BrowserExportJob,
   onProgress?: PhaseCallback
 ): Promise<BrowserExportResult> {
+  const timeline = ensureExportSafeTimeline(job.timeline)
+  mugteeExportGroup('compiler_start', { projectId: job.projectId ?? null })
+  mugteeExportSnapshot({
+    stage: 'compiler',
+    projectId: job.projectId,
+    scenes: timeline.clips,
+    storyboards: timeline.clips,
+    payload: {
+      strategy: job.strategy,
+      settings: job.settings,
+      clipCount: timeline.clips.length,
+    },
+  })
+
   const caps = detectExportCapabilities()
   if (caps.blockers.length) {
     throw new Error(caps.blockers.join(' '))
@@ -254,7 +275,7 @@ export async function startExport(
 
   let frames: RenderedFrame[] = []
   try {
-    frames = await renderTimelineToFrames(job.timeline, job.settings, (ratio) => {
+    frames = await renderTimelineToFrames(timeline, job.settings, (ratio) => {
       emit(onProgress, timing, ratio * 0.45, 'Rendering frames…')
     })
 
@@ -310,6 +331,7 @@ export async function startExport(
 
     timing = advancePhase(timing, 'complete')
     emit(onProgress, timing, 1, 'Export complete')
+    mugteeExportLog('compiler.complete', { projectId: job.projectId ?? null })
 
     return {
       blob: finalBlob,
@@ -327,9 +349,11 @@ export async function startExport(
           ? err.message
           : 'Browser export failed'
     emit(onProgress, timing, 0, message)
+    mugteeExportEnd()
     throw err
   } finally {
     await revokeRenderedFrames(frames)
+    mugteeExportEnd()
   }
 }
 

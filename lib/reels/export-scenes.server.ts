@@ -2,6 +2,7 @@ import 'server-only'
 
 import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import type { CinematicScene } from '@/stores/cinematic-project'
+import { ensureExportSafeScenes } from '@/lib/export/export-placeholders'
 import {
   resolveSceneExportAssetPath,
   resolveSceneExportImageUrl,
@@ -9,14 +10,14 @@ import {
 
 /** Map hydrated cinematic scenes to Remotion export input (no import from export-api). */
 export function scenesForReelExport(scenes: CinematicScene[]) {
-  const withImages = scenes.map((scene) => {
+  const safeScenes = ensureExportSafeScenes(scenes)
+  const withImages = safeScenes.map((scene) => {
     const imageUrl = resolveSceneExportImageUrl(scene)
     const imageAssetPath =
       resolveSceneExportAssetPath(scene) || scene.imageAssetPath?.trim() || undefined
-    if (!imageUrl && !imageAssetPath) return scene
     return {
       ...scene,
-      ...(imageUrl ? { imageUrl } : {}),
+      imageUrl: imageUrl ?? scene.imageUrl,
       imageAssetPath,
     }
   })
