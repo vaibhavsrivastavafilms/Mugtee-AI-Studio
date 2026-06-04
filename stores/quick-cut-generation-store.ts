@@ -1729,7 +1729,16 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       console.warn('[EXPORT] Backfill request failed', err)
     }
 
-    const exportScenes = pickExportStoryboardScenes(state.storyboard, state.scenes)
+    const latest = useQuickCutGenerationStore.getState()
+    const exportScenes = pickExportStoryboardScenes(latest.storyboard, latest.scenes)
+    console.log('[EXPORT TRACE] requestVideoRender.pickScenes', {
+      projectId: state.savedProjectId,
+      fromClosureScenes: state.scenes.length,
+      fromClosureStoryboard: state.storyboard?.length ?? 0,
+      pickedCount: exportScenes.length,
+      storeScenes: latest.scenes.length,
+      storeStoryboard: latest.storyboard?.length ?? 0,
+    })
     const exportSnapshot = scenesToExportRequestPayload(exportScenes)
     const exportPayload = {
       projectId: state.savedProjectId,
@@ -1741,6 +1750,10 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       voiceUrl: state.voiceUrl ?? null,
       thumbnailUrl: state.thumbnailImageUrl ?? null,
     }
+    console.log('[EXPORT TRACE] requestVideoRender.payload', {
+      sceneRows: exportSnapshot.scenes.length,
+      storyboardRows: exportSnapshot.storyboards.length,
+    })
     console.log('[EXPORT] Payload', exportPayload)
     const exportRes = await fetch('/api/reels/export', {
       method: 'POST',

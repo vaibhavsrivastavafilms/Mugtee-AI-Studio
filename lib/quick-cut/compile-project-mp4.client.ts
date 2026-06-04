@@ -1,6 +1,7 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 
-import { loadProject, resolveProjectScenes } from '@/lib/cinematic-projects'
+import { loadProject, resolveProjectScenes, type CinematicProjectRow } from '@/lib/cinematic-projects'
+import { invalidateProjectHydrationCache } from '@/lib/cinematic/project-hydration-cache.client'
 
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
 
@@ -136,6 +137,10 @@ async function backfillStoryboardAssets(projectId: string): Promise<void> {
 
     mugteeExportLog('backfill.response', { projectId, status: res.status, body })
 
+    if (res.ok) {
+      invalidateProjectHydrationCache(projectId)
+    }
+
     if (!res.ok) {
 
       mugteeExportLog('backfill.non_ok', { status: res.status, error: body.error })
@@ -162,12 +167,16 @@ async function backfillStoryboardAssets(projectId: string): Promise<void> {
 
 
 
-async function requestReelExport(projectId: string) {
-
-  const row = await loadProject(projectId)
-
-  const scenes = ensureExportSafeScenes(resolveProjectScenes(row))
-
+async function requestReelExport(
+  projectId: string,
+  hydratedScenes: CinematicScene[],
+  rowSnapshot: Pick<CinematicProjectRow, 'script' | 'voice' | 'thumbnail_url'>
+) {
+  const scenes = ensureExportSafeScenes(hydratedScenes)
+  console.log('[EXPORT TRACE] requestReelExport.scenes', {
+    projectId,
+    sceneCount: scenes.length,
+  })
   const snapshot = scenesToExportRequestPayload(scenes)
 
   const payload = {
@@ -182,11 +191,11 @@ async function requestReelExport(projectId: string) {
 
     ...snapshot,
 
-    script: row.script ?? null,
+    script: rowSnapshot.script ?? null,
 
-    voiceUrl: row.voice?.audioUrl?.trim() ?? null,
+    voiceUrl: rowSnapshot.voice?.audioUrl?.trim() ?? null,
 
-    thumbnailUrl: row.thumbnail_url?.trim() ?? null,
+    thumbnailUrl: rowSnapshot.thumbnail_url?.trim() ?? null,
 
   }
 
@@ -368,9 +377,9 @@ async function compileProjectMp4Inner(
 
   await backfillStoryboardAssets(projectId)
 
+  console.log('[EXPORT TRACE] compile.before_api_request', { projectId, sceneCount: scenes.length })
 
-
-  const { renderRes, renderData } = await requestReelExport(projectId)
+  const { renderRes, renderData } = await requestReelExport(projectId, scenes, row)
 
   if (!renderRes.ok) {
 
