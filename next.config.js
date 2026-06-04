@@ -66,12 +66,25 @@ const nextConfig = {
 
   async headers() {
     // Cross-origin isolation for browser MP4 export (SharedArrayBuffer + threaded ffmpeg.wasm).
-    // Scoped to /studio/* only — avoids breaking marketing/auth pages and strict COEP on third parties.
-    // credentialless COEP: allows Supabase/CDN images with crossOrigin="anonymous" without CORP.
-    // same-origin-allow-popups COOP: keeps Supabase/Google OAuth popups working.
+    // credentialless COEP: enables crossOriginIsolated in Chromium while allowing Supabase/CDN
+    // images with crossOrigin="anonymous". same-origin-allow-popups COOP: OAuth popups work.
     const crossOriginIsolationHeaders = [
       { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
       { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+    ]
+
+    const crossOriginIsolationRoutes = [
+      '/create/:path*',
+      '/quick-cut/:path*',
+      '/workspace',
+      '/workspace/:path*',
+      '/project/:path*',
+      '/cinematic/:path*',
+    ]
+
+    const studioCrossOriginIsolationHeaders = [
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+      { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
     ]
 
     return [
@@ -79,14 +92,19 @@ const nextConfig = {
         source: '/ffmpeg/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-          // Same-origin assets; CORP helps if COEP pages fetch these cross-origin.
           { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       },
       {
         source: '/studio/:path*',
-        headers: crossOriginIsolationHeaders,
+        headers: studioCrossOriginIsolationHeaders,
       },
+      ...crossOriginIsolationRoutes.map((source) => ({
+        source,
+        headers: crossOriginIsolationHeaders,
+      })),
       {
         source: '/(.*)',
         headers: [

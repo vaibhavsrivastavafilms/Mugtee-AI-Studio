@@ -17,6 +17,8 @@ import {
   useStudioWorkspaceStore,
   type ContextSectionId,
 } from '@/stores/studio-workspace-store'
+import { blockMp4CompileIfNeeded } from '@/lib/export/mp4-compile-guard.client'
+import { useUsage } from '@/lib/usage'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { getStyleTemplateById } from '@/lib/templates/style-templates'
 import { StyleLibraryDrawer } from '@/components/templates/style-library-drawer'
@@ -102,6 +104,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
   const niche = useQuickCutGenerationStore((s) => s.niche)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const { trial, isUnlimited } = useUsage()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [directorToolsOpen, setDirectorToolsOpen] = useState(false)
@@ -145,10 +148,24 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
     (activeStageTab === 'scenes' || activeStageTab === 'visuals' || isComplete)
 
   const handleCompile = () => {
+    if (
+      blockMp4CompileIfNeeded(trial.planType, {
+        trialActive: trial.active,
+        isUnlimited,
+        logContext: { source: 'studio-inspector.handleCompile' },
+      })
+    ) {
+      return
+    }
     useStudioWorkspaceStore.getState().setActiveStage('export')
     setActiveStageTab('complete', true)
     if (!isGenerating) {
-      void (renderPollUrl ? resumeRenderPoll() : retryVideoRender())
+      const runCompile = renderPollUrl ? resumeRenderPoll : retryVideoRender
+      if (typeof runCompile !== 'function') {
+        console.error('[EXPORT] compile function unavailable', { planType: trial.planType })
+        return
+      }
+      void runCompile()
     }
   }
 

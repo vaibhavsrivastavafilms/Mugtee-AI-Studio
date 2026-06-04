@@ -52,6 +52,7 @@ import { AnalyticsEvents } from '@/lib/analytics/events'
 import { Mp4ExportEvents, trackMp4ExportClient } from '@/lib/analytics/mp4-export-events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { requestExitFeedback } from '@/lib/creator/exit-feedback'
+import { blockMp4CompileIfNeeded } from '@/lib/export/mp4-compile-guard.client'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
@@ -91,7 +92,7 @@ function platformZipDisabledReason(profileId: PlatformExportId, input: PlatformE
 
 export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) {
   const { supplementaryOnly = false, includeTextExports = true, onExportComplete } = options
-  const { isUnlimited } = useUsage()
+  const { isUnlimited, trial } = useUsage()
 
   const store = useQuickCutGenerationStore(
     useShallow((s) => ({
@@ -412,6 +413,15 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
 
   const handleDownloadMp4 = useCallback(async () => {
     if (downloadingMp4) return
+    if (
+      blockMp4CompileIfNeeded(trial.planType, {
+        trialActive: trial.active,
+        isUnlimited,
+        logContext: { source: 'handleDownloadMp4' },
+      })
+    ) {
+      return
+    }
     if (!videoUrl?.trim() && !canCompileMp4 && !savedProjectId) return
     if (!(await guardExport())) return
     trackExportStarted('video_mp4')
@@ -432,7 +442,15 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
         toast.success('Video ready for download.', { id: 'mp4-export-progress' })
         notifyExportComplete()
       } else {
-        await retryVideoRender()
+        const compileFn = retryVideoRender
+        if (typeof compileFn !== 'function') {
+          console.error('[EXPORT] compile function unavailable', {
+            planType: trial.planType,
+            source: 'handleDownloadMp4.retryVideoRender',
+          })
+          return
+        }
+        await compileFn()
         const url = useQuickCutGenerationStore.getState().videoUrl
         const err = useQuickCutGenerationStore.getState().renderError
         if (!url) throw new Error(err || 'Video compile failed')
@@ -471,6 +489,9 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     mp4Compiling,
     reelReadiness.validating,
     notifyExportComplete,
+    trial.planType,
+    trial.active,
+    isUnlimited,
   ])
 
   const handleDownloadImages = useCallback(

@@ -55,6 +55,10 @@ async function compileAndDownload(
   filename: string,
   onProgress?: (label: string) => void
 ): Promise<string> {
+  if (typeof compileProjectMp4 !== 'function') {
+    console.error('[EXPORT] compile function unavailable', { projectId })
+    throw new Error(ASSET_UNAVAILABLE_MSG)
+  }
   recordExportStarted(projectId)
   onProgress?.('Preparing your video…')
   const videoUrl = await compileProjectMp4(projectId, { onProgress })
