@@ -7,6 +7,7 @@ import { InstallMugteeBanner } from '@/components/pwa/install-mugtee-banner'
 import { OfflineGate } from '@/components/app/offline-gate'
 import { AppBootstrapProvider } from '@/components/app/app-bootstrap-provider'
 import { getCanonicalSiteUrl } from '@/lib/url'
+import { Analytics } from '@vercel/analytics/next'
 
 const SITE_URL = getCanonicalSiteUrl()
 const SITE_NAME = 'Mugtee'
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppBootstrapProvider>{children}</AppBootstrapProvider>
         </OfflineGate>
         <Toaster theme="dark" position="top-right" toastOptions={{ style: { background: 'rgba(20,16,12,0.95)', border: '1px solid rgba(212,175,55,0.25)', color: '#E8D9A8' } }} />
+        <Analytics />
       </body>
     </html>
   )
