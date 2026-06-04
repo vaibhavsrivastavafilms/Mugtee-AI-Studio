@@ -12,7 +12,7 @@ import { ProjectImprovementActions } from '@/components/retention/project-improv
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { studioBtnPrimary } from '@/lib/studio/studio-design-tokens'
+import { directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import {
   useStudioWorkspaceStore,
   type ContextSectionId,
@@ -180,7 +180,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
                   })
                   setEditingTitle(false)
                 }}
-                className="flex-1 h-7 px-2 rounded-md bg-white/[0.04] border border-studio-primary/30 text-sm text-luxe"
+                className="flex-1 h-7 px-2 rounded-md bg-white/[0.04] border border-director-primary/30 text-sm text-luxe"
               />
             ) : (
               <>
@@ -219,7 +219,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
               <motion.div
-                className="h-full bg-studio-primary"
+                className="h-full bg-director-primary"
                 initial={false}
                 animate={{ width: `${progress}%` }}
               />
@@ -234,7 +234,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
           id="director"
           title="Director AI"
           badge={
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider bg-studio-primary text-white tabular-nums">
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider bg-director-primary text-white tabular-nums">
               AI
             </span>
           }
@@ -263,7 +263,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
               <MemoryPanel />
               <CreatorToneMemory style={style} niche={niche} className="text-left" />
               <div className="rounded-lg border border-white/[0.06] bg-black/40 p-2">
-                <div className="flex items-center gap-2 text-studio-primary/80 mb-1">
+                <div className="flex items-center gap-2 text-director-primary/80 mb-1">
                   <Wand2 className="w-3 h-3" />
                   <p className="text-[9px] tracking-[0.16em] uppercase">Rewrite toolbar</p>
                 </div>
@@ -295,7 +295,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(true)}
-                  className="shrink-0 h-7 px-2 rounded-md border border-white/[0.1] text-[9px] tracking-[0.14em] uppercase text-luxe/70 hover:border-studio-primary/40 transition"
+                  className="shrink-0 h-7 px-2 rounded-md border border-white/[0.1] text-[9px] tracking-[0.14em] uppercase text-luxe/70 hover:border-director-primary/40 transition"
                 >
                   Change
                 </button>
@@ -378,7 +378,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
           type="button"
           disabled={isRenderingVideo}
           onClick={handleCompile}
-          className={cn(studioBtnPrimary, 'w-full h-10 text-[11px]')}
+          className={cn(directorBtnPrimary, 'w-full h-10 text-[11px]')}
         >
           {isRenderingVideo ? (
             <>Compiling…</>

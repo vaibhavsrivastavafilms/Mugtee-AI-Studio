@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { Keyboard, Lightbulb, Plus, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { studioBtnOutline, studioBtnPrimary } from '@/lib/studio/studio-design-tokens'
+import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import { StudioSceneCard } from '@/components/studio/studio-scene-card'
 import { sceneScrollTargetId } from '@/lib/cinematic/storyboard-scroll'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -72,7 +72,7 @@ export function StudioScenesWorkspace({ className }: StudioScenesWorkspaceProps)
     <RewriteProvider containerRef={containerRef}>
       <div ref={containerRef} className={cn('flex flex-col min-h-0 h-full', className)}>
         <div className="shrink-0 px-4 pt-4 pb-3 border-b border-white/[0.06]">
-          <p className="text-[10px] tracking-[0.22em] uppercase text-studio-primary font-semibold">
+          <p className="text-[10px] tracking-[0.22em] uppercase text-director-primary font-semibold">
             Scenes
           </p>
           <div className="flex items-start justify-between gap-3 mt-1">
@@ -89,7 +89,7 @@ export function StudioScenesWorkspace({ className }: StudioScenesWorkspaceProps)
                 type="button"
                 disabled={isGenerating || regeneratingAll || scenes.length === 0}
                 onClick={() => void handleRegenerateAll()}
-                className={studioBtnOutline}
+                className={directorBtnOutline}
               >
                 <RefreshCw
                   className={cn('w-3.5 h-3.5', regeneratingAll && 'animate-spin')}
@@ -100,7 +100,7 @@ export function StudioScenesWorkspace({ className }: StudioScenesWorkspaceProps)
                 type="button"
                 disabled={isGenerating}
                 onClick={() => void handleAddScene()}
-                className={studioBtnPrimary}
+                className={directorBtnPrimary}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Scene
@@ -150,7 +150,7 @@ export function StudioScenesWorkspace({ className }: StudioScenesWorkspaceProps)
             className={cn(
               'w-full flex items-center justify-center gap-2 py-3 rounded-xl',
               'border border-dashed border-white/[0.12] text-[11px] tracking-[0.14em] uppercase text-luxe/50',
-              'hover:border-studio-primary/40 hover:text-studio-primary transition disabled:opacity-40'
+              'hover:border-director-primary/40 hover:text-director-primary transition disabled:opacity-40'
             )}
           >
             <Plus className="w-4 h-4" />
@@ -160,7 +160,7 @@ export function StudioScenesWorkspace({ className }: StudioScenesWorkspaceProps)
 
         <div className="shrink-0 px-4 py-2.5 border-t border-white/[0.06] space-y-2 bg-[#0D0D0F]/90">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-            <Lightbulb className="w-4 h-4 text-studio-primary shrink-0" />
+            <Lightbulb className="w-4 h-4 text-director-primary shrink-0" />
             <p className="text-[11px] text-luxe/55">
               <span className="text-luxe/75 font-medium">Tips · </span>
               Great! Your storyboard is looking good.

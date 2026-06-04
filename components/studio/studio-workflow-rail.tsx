@@ -162,8 +162,8 @@ export function StudioWorkflowRail({ className }: StudioWorkflowRailProps) {
               title={label}
               className={cn(
                 'relative w-full flex flex-col items-center gap-0.5 rounded-lg px-1 py-2 transition',
-                isSelected && 'bg-studio-primary-muted',
-                isSelected && 'before:absolute before:right-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-studio-primary',
+                isSelected && 'bg-director-primary-muted',
+                isSelected && 'before:absolute before:right-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-director-primary',
                 !isSelected && 'hover:bg-white/[0.03]'
               )}
             >
@@ -171,7 +171,7 @@ export function StudioWorkflowRail({ className }: StudioWorkflowRailProps) {
                 <span
                   className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-md',
-                    isSelected && 'text-studio-primary',
+                    isSelected && 'text-director-primary',
                     isDone && !isSelected && 'text-emerald-400',
                     !isDone && !isSelected && 'text-luxe/40'
                   )}
@@ -187,13 +187,13 @@ export function StudioWorkflowRail({ className }: StudioWorkflowRailProps) {
                 ) : !isDone && !isSelected ? (
                   <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border border-luxe/25" />
                 ) : isSelected ? (
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-studio-primary shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-director-primary shadow-[0_0_8px_rgba(231,197,106,0.65)]" />
                 ) : null}
               </span>
               <span
                 className={cn(
                   'text-[8px] tracking-[0.06em] uppercase leading-none text-center',
-                  isSelected ? 'text-studio-primary font-medium' : 'text-luxe/45'
+                  isSelected ? 'text-director-primary font-medium' : 'text-luxe/45'
                 )}
               >
                 {label}
@@ -220,7 +220,7 @@ export function StudioWorkflowRail({ className }: StudioWorkflowRailProps) {
                 cy="22"
                 r={ringRadius}
                 fill="none"
-                stroke="#8b5cf6"
+                stroke="#E7C56A"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
@@ -234,12 +234,12 @@ export function StudioWorkflowRail({ className }: StudioWorkflowRailProps) {
           <p className="text-[8px] text-luxe/40 text-center leading-tight">
             {completedCount} of {totalSteps} steps
           </p>
-          <p className="text-[8px] text-studio-primary/80 text-center italic">Almost there!</p>
+          <p className="text-[8px] text-director-primary/80 text-center italic">Almost there!</p>
         </div>
 
         <div className="flex flex-col items-center gap-1 pt-1 border-t border-white/[0.05]">
           <Avatar className="h-8 w-8 border border-white/[0.08]">
-            <AvatarFallback className="bg-studio-primary-muted text-[10px] text-studio-primary">
+            <AvatarFallback className="bg-director-primary-muted text-[10px] text-director-primary">
               {initials || 'MC'}
             </AvatarFallback>
           </Avatar>

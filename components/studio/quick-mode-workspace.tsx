@@ -32,8 +32,8 @@ import {
 } from '@/lib/studio/quick-create-options'
 import {
   quickModePanelClass,
-  studioGradientPrimary,
-} from '@/lib/studio/studio-design-tokens'
+  quickGradientPrimary,
+} from '@/lib/studio/quick-mode-tokens'
 import { AgentWorkflowStrip } from '@/components/agent/agent-workflow-strip'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { OutputWindow } from '@/components/quick-cut/output-window'
@@ -412,7 +412,7 @@ function QuickModeWorkspaceInner() {
               disabled={!canGenerate || isGenerating}
               className={cn(
                 'flex-1 h-11 rounded-xl font-medium text-sm gap-2 inline-flex items-center justify-center text-white shadow-[0_0_24px_-6px_rgba(139,92,246,0.55)] transition disabled:opacity-40',
-                studioGradientPrimary
+                quickGradientPrimary
               )}
             >
               {isGenerating ? (

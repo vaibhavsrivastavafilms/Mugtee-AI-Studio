@@ -154,7 +154,7 @@ export function StudioWorkspaceTopbar({
                 setEditingTitle(false)
               }
             }}
-            className="w-full h-7 px-2 rounded-md bg-white/[0.04] border border-[#8b5cf6]/40 text-sm text-luxe focus:outline-none"
+            className="w-full h-7 px-2 rounded-md bg-white/[0.04] border border-gold-500/40 text-sm text-luxe focus:outline-none"
           />
         ) : (
           <>
@@ -186,7 +186,7 @@ export function StudioWorkspaceTopbar({
         onClick={openPalette}
         className={cn(
           'flex-1 max-w-xl mx-auto hidden md:flex items-center gap-2 h-9 px-3 rounded-full',
-          'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-[#8b5cf6]/30 hover:bg-violet-500/[0.06] transition'
+          'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-gold-500/30 hover:bg-gold-500/[0.06] transition'
         )}
       >
         <Search className="w-3.5 h-3.5 shrink-0" />
@@ -226,7 +226,7 @@ export function StudioWorkspaceTopbar({
         <button
           type="button"
           onClick={openPalette}
-          className="md:hidden p-2 rounded-lg text-luxe/50 hover:text-[#8b5cf6] transition"
+          className="md:hidden p-2 rounded-lg text-luxe/50 hover:text-gold-300 transition"
           aria-label="Commands"
         >
           <Command className="w-4 h-4" />

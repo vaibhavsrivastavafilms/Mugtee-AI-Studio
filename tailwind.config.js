@@ -36,12 +36,17 @@ module.exports = {
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
-        studio: {
+        quick: {
           primary: '#8b5cf6',
           'primary-hover': '#7c3aed',
           'primary-muted': 'rgba(139, 92, 246, 0.14)',
-          cyan: '#22d3ee',
-          success: '#34D399',
+          surface: '#050505',
+          raised: '#0D0D0D',
+        },
+        director: {
+          primary: '#E7C56A',
+          'primary-hover': '#D4AF37',
+          'primary-muted': 'rgba(231, 197, 106, 0.14)',
           surface: '#060606',
           raised: '#0D0D0D',
         },

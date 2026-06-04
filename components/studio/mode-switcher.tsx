@@ -57,7 +57,7 @@ export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) 
               active
                 ? id === 'quick'
                   ? 'bg-[#8b5cf6] text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.55)]'
-                  : 'bg-violet-500/20 text-violet-100 border border-violet-400/30 shadow-[0_0_16px_-6px_rgba(139,92,246,0.35)]'
+                  : 'bg-gold-gradient text-black border border-gold-500/35 shadow-gold-glow'
                 : 'text-muted-foreground hover:text-luxe hover:bg-white/[0.04]'
             )}
           >

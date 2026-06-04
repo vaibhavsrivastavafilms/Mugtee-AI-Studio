@@ -109,9 +109,9 @@ export function TimelineStudioPanel({ projectId: _projectId, className }: Timeli
     }))
 
     return [
-      { id: 'video', label: 'Video', color: 'bg-studio-primary/70', segments: videoSegs },
-      { id: 'broll', label: 'B-Roll', color: 'bg-violet-500/40', segments: videoSegs.slice(0, 1) },
-      { id: 'images', label: 'Images', color: 'bg-studio-primary/50', segments: videoSegs },
+      { id: 'video', label: 'Video', color: 'bg-director-primary/70', segments: videoSegs },
+      { id: 'broll', label: 'B-Roll', color: 'bg-gold-500/40', segments: videoSegs.slice(0, 1) },
+      { id: 'images', label: 'Images', color: 'bg-director-primary/50', segments: videoSegs },
       { id: 'voice', label: 'Voiceover', color: 'bg-emerald-500/50', segments: voiceSegs },
       { id: 'music', label: 'Music', color: 'bg-emerald-600/35', segments: [] },
       { id: 'sfx', label: 'SFX', color: 'bg-amber-600/40', segments: [] },
@@ -162,7 +162,7 @@ export function TimelineStudioPanel({ projectId: _projectId, className }: Timeli
           <button
             type="button"
             onClick={() => setPlaying((p) => !p)}
-            className="p-1.5 rounded-lg text-studio-primary hover:bg-studio-primary-muted"
+            className="p-1.5 rounded-lg text-director-primary hover:bg-director-primary-muted"
             aria-label={playing ? 'Pause' : 'Play'}
           >
             {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}

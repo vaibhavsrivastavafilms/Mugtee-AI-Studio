@@ -22,7 +22,7 @@ import { duplicateProject } from '@/lib/cinematic-projects'
 import { requestRewriteSelection } from '@/lib/rewrite/rewrite-api'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useRewriteStore } from '@/stores/rewrite-store'
-import { studioBtnOutline } from '@/lib/studio/studio-design-tokens'
+import { quickBtnOutline } from '@/lib/studio/quick-mode-tokens'
 import { UnifiedExportMenu } from '@/components/export/unified-export-menu'
 import {
   DropdownMenu,
@@ -160,7 +160,7 @@ export function QuickModeOutputActions({
   }, [pid, router])
 
   const chipBtn = cn(
-    studioBtnOutline,
+    quickBtnOutline,
     'h-9 rounded-xl px-3 normal-case tracking-normal text-xs gap-1.5 shrink-0'
   )
 
@@ -173,7 +173,7 @@ export function QuickModeOutputActions({
             onClick={onRegenerateAll ?? handleRegenerate}
             disabled={isGenerating}
             className={cn(
-              studioBtnOutline,
+              quickBtnOutline,
               'h-8 rounded-lg px-3 normal-case tracking-normal text-xs gap-1.5'
             )}
           >
