@@ -42,8 +42,8 @@ module.exports = {
           'primary-muted': 'rgba(139, 92, 246, 0.14)',
           cyan: '#22d3ee',
           success: '#34D399',
-          surface: '#0a0a0c',
-          raised: '#121216',
+          surface: '#060606',
+          raised: '#0D0D0D',
         },
         gold: {
           50:  'hsl(var(--accent-h) var(--accent-s) 95%)',

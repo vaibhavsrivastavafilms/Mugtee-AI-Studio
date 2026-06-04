@@ -1,14 +1,16 @@
 'use client'
 
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
 import { useStudioWorkspaceStore } from '@/stores/studio-workspace-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
-import { StudioWorkflowRail } from '@/components/studio/studio-workflow-rail'
-import { StoryTimeline } from '@/components/studio/story-timeline'
+import { ProjectNavRail } from '@/components/studio/project-nav-rail'
+import { WorkflowContextPanel } from '@/components/studio/workflow-context-panel'
+import { MainWorkspaceTabs } from '@/components/studio/main-workspace-tabs'
+import { TimelineStudioPanel } from '@/components/studio/timeline-studio-panel'
 import { StudioMainWorkspace } from '@/components/studio/studio-main-workspace'
 import { StudioInspectorPanel } from '@/components/studio/studio-inspector-panel'
 import { StudioWorkspaceTopbar } from '@/components/studio/studio-workspace-topbar'
@@ -18,6 +20,7 @@ import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banne
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
 import { MugteeFollowUpActions } from '@/components/quick-cut/mugtee-follow-up-actions'
 import { StudioMobileProjectStrip } from '@/components/studio/studio-mobile-project-strip'
+import { StoryTimeline } from '@/components/studio/story-timeline'
 
 type CreatorCommandCenterProps = {
   projectId?: string
@@ -28,9 +31,18 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
   useQuickCutProjectHydration(projectId)
 
   const resetForProject = useStudioWorkspaceStore((s) => s.resetForProject)
+  const activeStage = useStudioWorkspaceStore((s) => s.activeStage)
+
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const projectTitle = useQuickCutGenerationStore((s) => s.title)
+  const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
+  const generationState = useQuickCutGenerationStore((s) => s.generationState)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const script = useQuickCutGenerationStore((s) => s.script)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
+  const prompt = useQuickCutGenerationStore((s) => s.prompt)
   const { userName } = useStore()
 
   const shellUser = {
@@ -40,18 +52,45 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
 
   useEffect(() => {
     if (!projectId) return
-    resetForProject(isComplete ? 'export' : 'idea')
+    resetForProject(isComplete ? 'export' : 'scenes')
   }, [projectId, resetForProject, isComplete])
+
+  const showRecovery = generationStep === 'error' || generationStatus === 'failed'
+  const showCinematicAssembly =
+    generationState === 'assembling' ||
+    generationState === 'revealing' ||
+    generationState === 'preview'
+
+  const hasWorkspaceContent =
+    isGenerating ||
+    isComplete ||
+    generationStep !== 'idle' ||
+    Boolean(script.trim()) ||
+    scenes.length > 0 ||
+    prompt.trim().length >= 6
+
+  const showV5Editor = useMemo(() => {
+    if (showRecovery || showCinematicAssembly || !hasWorkspaceContent) return false
+    if (activeStage === 'research' || activeStage === 'idea' || activeStage === 'export') {
+      return scenes.length > 0 && activeStage !== 'export'
+    }
+    return scenes.length > 0
+  }, [
+    showRecovery,
+    showCinematicAssembly,
+    hasWorkspaceContent,
+    activeStage,
+    scenes.length,
+  ])
 
   return (
     <div
       className={cn(
-        'flex flex-col min-h-[calc(100dvh-5rem)] lg:min-h-[calc(100dvh-4.5rem)] -mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6',
+        'flex flex-col min-h-[calc(100dvh-5rem)] lg:min-h-[calc(100dvh-4.5rem)] -mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 bg-[#060606]',
         className
       )}
     >
       <StudioGlobalSearchPlaceholder />
-
       <StudioWorkspaceTopbar user={shellUser} className="hidden lg:flex" />
 
       {!projectId ? (
@@ -69,30 +108,43 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          'hidden lg:grid flex-1 min-h-0 min-w-0 lg:grid-cols-[72px_minmax(0,1fr)_320px]',
-          'bg-[#0a0a0c] overflow-hidden'
+          'hidden lg:grid flex-1 min-h-0 min-w-0 overflow-hidden',
+          showV5Editor
+            ? 'lg:grid-cols-[260px_340px_minmax(0,1fr)_320px]'
+            : 'lg:grid-cols-[260px_minmax(0,1fr)_320px]'
         )}
       >
-        <StudioWorkflowRail />
+        <ProjectNavRail />
 
-        <div className="lg:hidden shrink-0 border-b border-white/[0.06] px-2 py-2 overflow-x-auto">
-          <StoryTimeline compact className="w-full" />
-        </div>
+        {showV5Editor ? <WorkflowContextPanel /> : null}
 
-        <div className="flex flex-col min-h-0 min-w-0 border-t lg:border-t-0 border-white/[0.06] bg-[#0D0D0F]">
-          <StudioMainWorkspace projectId={projectId} />
+        <div className="flex flex-col min-h-0 min-w-0 border-x border-white/[0.06] bg-[#060606]">
+          {showV5Editor ? (
+            <>
+              <MainWorkspaceTabs projectId={projectId} className="flex-1 min-h-0" />
+              <TimelineStudioPanel projectId={projectId} />
+            </>
+          ) : (
+            <StudioMainWorkspace projectId={projectId} className="flex-1" />
+          )}
         </div>
 
         <StudioInspectorPanel projectId={projectId} />
+      </motion.div>
 
-        <div className="lg:hidden shrink-0 border-t border-white/[0.06] px-3 py-2 space-y-2">
+      <div className="lg:hidden flex flex-col flex-1 min-h-0">
+        <div className="shrink-0 border-b border-white/[0.06] px-2 py-2 overflow-x-auto">
+          <StoryTimeline compact className="w-full" />
+        </div>
+        <StudioMainWorkspace projectId={projectId} className="flex-1" />
+        <div className="shrink-0 border-t border-white/[0.06] px-3 py-2 space-y-2">
           <MugteeFollowUpActions />
           <QuickCutActivityTimeline
             projectId={savedProjectId}
             title={projectTitle || undefined}
           />
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

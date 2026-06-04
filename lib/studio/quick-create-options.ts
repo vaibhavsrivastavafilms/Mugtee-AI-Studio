@@ -1,10 +1,11 @@
-/** Quick Mode composer chips and output targets (V4 mock). */
+/** Quick Mode composer chips (reference UX). */
 export const V4_QUICK_PROMPT_CHIPS = [
   'Psychology Reel',
   'Motivational Short',
   'Restaurant Storytelling',
-  'Faceless Documentary',
-  'Finance Explainer',
+  'Daily Habits',
+  'Business Reel',
+  'History Reel',
 ] as const
 
 export const QUICK_DURATION_OPTIONS = [
@@ -27,8 +28,28 @@ export const QUICK_CHIP_SEEDS: Record<string, string> = {
     'Create a motivational short about discipline, self-belief, and showing up every day.',
   'Restaurant Storytelling':
     'Create a cinematic restaurant storytelling reel about legacy, flavor, and belonging.',
-  'Faceless Documentary':
-    'Create a faceless documentary-style short about a hidden truth that changes perspective.',
-  'Finance Explainer':
-    'Create a finance explainer reel that simplifies a money mistake most people make.',
+  'Daily Habits':
+    'Create a daily habits reel about small routines that compound into life-changing results.',
+  'Business Reel':
+    'Create a business reel that explains one high-leverage lesson for entrepreneurs.',
+  'History Reel':
+    'Create a history reel that reveals a surprising story most people never learned.',
 }
+
+export const QUICK_TONE_OPTIONS = [
+  { value: 'cinematic_emotional', label: 'Cinematic Emotional' },
+  { value: 'cinematic', label: 'Cinematic Documentary' },
+  { value: 'motivational', label: 'Motivational' },
+  { value: 'educational', label: 'Educational' },
+  { value: 'storytelling', label: 'Storytelling' },
+] as const
+
+export const QUICK_AUDIENCE_OPTIONS = [
+  { value: 'general', label: 'General Audience' },
+  { value: 'gen_z', label: 'Gen Z / Short-form' },
+  { value: 'professionals', label: 'Professionals' },
+  { value: 'founders', label: 'Founders & Creators' },
+  { value: 'wellness', label: 'Wellness Seekers' },
+] as const
+
+export const PROMPT_MAX_CHARS = 500

@@ -232,9 +232,9 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
 
         <InspectorSection
           id="director"
-          title="Director"
+          title="Director AI"
           badge={
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider bg-studio-primary text-white">
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider bg-studio-primary text-white tabular-nums">
               AI
             </span>
           }

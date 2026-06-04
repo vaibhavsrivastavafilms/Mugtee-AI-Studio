@@ -13,7 +13,6 @@ import {
 } from '@/components/quick-cut/generation-footer'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
 import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
-import { StudioScenesWorkspace } from '@/components/studio/studio-scenes-workspace'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { tabToWorkspaceStage, workspaceStageToTab } from '@/lib/studio/workspace-stages'
@@ -29,8 +28,6 @@ type StudioMainWorkspaceProps = {
 }
 
 const EXPORT_STAGE_TABS = ['complete', 'publish', 'repurpose'] as const
-const SCENE_STAGES = new Set(['scenes', 'storyboard'])
-
 export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspaceProps) {
   const router = useRouter()
   const voiceAudioRef = useRef<HTMLAudioElement>(null)
@@ -94,9 +91,6 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
     scenes.length > 0 ||
     prompt.trim().length >= 6
 
-  const useScenesLayout =
-    SCENE_STAGES.has(activeStage) && scenes.length > 0 && !showCinematicAssembly && !isComplete
-
   if (activeStage === 'research') {
     return (
       <main className={cn('flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-luxe p-4', className)}>
@@ -146,15 +140,6 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
     return (
       <main className={cn('flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-luxe', className)}>
         <QuickCutHome embedded />
-      </main>
-    )
-  }
-
-  if (useScenesLayout) {
-    return (
-      <main className={cn('flex-1 min-w-0 min-h-0 flex flex-col', className)}>
-        <StudioScenesWorkspace className="flex-1" />
-        <QuickCutGenerationFooter />
       </main>
     )
   }

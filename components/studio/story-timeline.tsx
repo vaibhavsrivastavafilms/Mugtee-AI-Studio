@@ -13,6 +13,7 @@ import {
   Mic,
   Search,
   Sparkles,
+  Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -26,14 +27,15 @@ import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const STAGE_ICONS: Record<WorkspaceStage, typeof Lightbulb> = {
-  idea: Lightbulb,
   research: Search,
+  idea: Lightbulb,
   hook: Sparkles,
   script: FileText,
   scenes: Clapperboard,
   storyboard: Clapperboard,
   motion: Sparkles,
   voice: Mic,
+  timeline: Timer,
   export: Download,
 }
 
@@ -98,14 +100,15 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
   const handleSelect = (stage: WorkspaceStage) => {
     setActiveStage(stage)
     const tabMap = {
-      idea: 'title',
       research: 'script',
+      idea: 'title',
       hook: 'hook',
       script: 'script',
       scenes: 'scenes',
       storyboard: 'visuals',
-      motion: 'visuals',
+      motion: 'motion',
       voice: 'voice',
+      timeline: 'render',
       export: 'complete',
     } as const
     setActiveStageTab(tabMap[stage], true)

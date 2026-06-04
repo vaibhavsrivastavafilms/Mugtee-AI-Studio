@@ -18,8 +18,8 @@ type ModeSwitcherProps = {
 }
 
 const MODES: { id: CreatorMode; label: string; shortLabel: string; icon: typeof Zap }[] = [
-  { id: 'quick', label: 'Quick', shortLabel: 'Quick', icon: Zap },
-  { id: 'director', label: 'Director', shortLabel: 'Director', icon: Clapperboard },
+  { id: 'quick', label: 'Quick Mode', shortLabel: 'Quick', icon: Zap },
+  { id: 'director', label: 'Director Mode', shortLabel: 'Director', icon: Clapperboard },
 ]
 
 export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) {
