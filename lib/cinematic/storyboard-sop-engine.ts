@@ -39,6 +39,12 @@ export async function runStoryboardSop(
   durationSec: number,
   options: Partial<Omit<StoryboardSopGenerationInput, 'script' | 'durationSec'>> = {}
 ): Promise<StoryboardSopResult | null> {
+  const { logStoryboardInput, logStoryboardStart } = await import(
+    '@/lib/pipeline/pipeline-trace'
+  )
+  logStoryboardStart('runStoryboardSop', { durationSec, scriptLen: script.length })
+  logStoryboardInput({ durationSec, scriptPreview: script.slice(0, 120) })
+
   const input: StoryboardSopGenerationInput = {
     script,
     durationSec,

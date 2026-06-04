@@ -8,6 +8,8 @@ import {
   logPipelineStepStart,
   logStepComplete,
 } from '@/lib/cinematic/generation-logger'
+import { logStepFailure } from '@/lib/pipeline/pipeline-trace'
+import { withStepTimeout } from '@/lib/pipeline/with-step-timeout'
 import { logPipelineActivity } from '@/lib/trust/activity-events'
 import {
   archiveGeneratedProject,
@@ -48,14 +50,18 @@ export async function persistStepComplete(
 
   if (archiveInput && (state.script || state.scenes.length > 0)) {
     try {
-      const row = await archiveGeneratedProject({
-        ...archiveInput,
-        projectId: state.savedProjectId,
-        generation_status: 'generating',
-        generation_step: step,
-        last_completed_step: step,
-        generation_error: null,
-      })
+      const row = await withStepTimeout(
+        'project_save',
+        archiveGeneratedProject({
+          ...archiveInput,
+          projectId: state.savedProjectId,
+          generation_status: 'generating',
+          generation_step: step,
+          last_completed_step: step,
+          generation_error: null,
+        }),
+        60_000
+      )
       projectId = row.id
       logPipelineStepComplete('project_save', projectId, {
         generationStep: step,
@@ -66,17 +72,22 @@ export async function persistStepComplete(
       logPipelineStepError('project_save', state.savedProjectId, reason, {
         generationStep: step,
       })
+      logStepFailure('project_save', err, { generationStep: step })
     }
   } else if (projectId) {
     try {
-      await persistGenerationFields(projectId, {
-        generation_status: 'generating',
-        generation_step: step,
-        last_completed_step: step,
-        generation_error: null,
-      })
-    } catch {
-      /* non-blocking */
+      await withStepTimeout(
+        'project_save',
+        persistGenerationFields(projectId, {
+          generation_status: 'generating',
+          generation_step: step,
+          last_completed_step: step,
+          generation_error: null,
+        }),
+        60_000
+      )
+    } catch (err) {
+      logStepFailure('project_save', err, { generationStep: step, projectId })
     }
   }
 

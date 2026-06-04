@@ -10,12 +10,13 @@ export type PersistedGenerationStep =
   | 'voice'
   | 'export'
 
+/** Matches Quick Cut runtime order: voice runs before storyboard image gen. */
 export const PERSISTED_STEP_ORDER: PersistedGenerationStep[] = [
   'hook',
   'script',
   'visual_direction',
-  'storyboard',
   'voice',
+  'storyboard',
   'export',
 ]
 
@@ -48,11 +49,19 @@ export function inferLastCompletedStep(state: {
   isComplete?: boolean
 }): PersistedGenerationStep | null {
   if (state.videoUrl || state.isComplete) return 'export'
-  if (state.voiceUrl) return 'voice'
   const scenes = state.scenes ?? []
-  if (scenes.some((s) => typeof s === 'object' && s && 'imageUrl' in s && (s as { imageUrl?: string }).imageUrl)) {
+  if (
+    scenes.some(
+      (s) =>
+        typeof s === 'object' &&
+        s &&
+        'imageUrl' in s &&
+        Boolean((s as { imageUrl?: string }).imageUrl?.trim())
+    )
+  ) {
     return 'storyboard'
   }
+  if (state.voiceUrl) return 'voice'
   if (scenes.length > 0) return 'visual_direction'
   if (state.script?.trim()) return 'script'
   if (state.hook?.trim()) return 'hook'
