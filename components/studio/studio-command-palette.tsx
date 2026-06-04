@@ -2,13 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Command, Download, Film, Layers, Library, Palette, Sparkles, Wand2 } from 'lucide-react'
+import {
+  Command,
+  Download,
+  Film,
+  Layers,
+  Library,
+  Mic,
+  Palette,
+  Sparkles,
+  Wand2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   createEntryHref,
   createProjectHref,
   commandCenterWorkspaceHref,
+  directorWorkspaceHref,
   STUDIO,
 } from '@/lib/create/routes'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -128,11 +139,42 @@ export function StudioCommandPalette() {
         },
       },
       {
-        id: 'improve-hook',
-        label: 'Improve Hook',
-        keywords: ['rewrite', 'opening'],
+        id: 'rewrite-hook',
+        label: 'Rewrite Hook',
+        keywords: ['rewrite', 'opening', 'improve hook'],
         icon: Wand2,
         run: () => goStage('hook'),
+      },
+      {
+        id: 'generate-voice',
+        label: 'Generate Voice',
+        keywords: ['voiceover', 'narration', 'elevenlabs'],
+        icon: Mic,
+        run: () => goStage('voice'),
+      },
+      {
+        id: 'open-timeline',
+        label: 'Open Timeline',
+        keywords: ['timeline', 'tracks', 'edit'],
+        icon: Layers,
+        run: () => {
+          if (savedProjectId) {
+            router.push(directorWorkspaceHref(savedProjectId, { tab: 'motion' }))
+            return
+          }
+          toast.message('Timeline Studio ships in Phase 6', {
+            description: 'Generate a reel first, then open Director Mode for the full timeline.',
+          })
+        },
+      },
+      {
+        id: 'open-director-mode',
+        label: 'Open Director Mode',
+        keywords: ['director', 'advanced', 'workspace'],
+        icon: Film,
+        run: () => {
+          router.push(directorWorkspaceHref(savedProjectId ?? undefined))
+        },
       },
       {
         id: 'export-assets',

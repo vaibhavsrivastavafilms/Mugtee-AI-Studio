@@ -19,16 +19,20 @@ import { useRewriteStore } from '@/stores/rewrite-store'
 import { HeaderRightActions } from '@/components/shell/cinematic-header-app-actions'
 import { SaveStatusIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { ModeSwitcher } from '@/components/studio/mode-switcher'
-
 type StudioWorkspaceTopbarProps = {
   user: {
     email?: string | null
     user_metadata?: Record<string, unknown>
   }
   className?: string
+  variant?: 'quick' | 'director'
 }
 
-export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbarProps) {
+export function StudioWorkspaceTopbar({
+  user,
+  className,
+  variant = 'director',
+}: StudioWorkspaceTopbarProps) {
   const title = useQuickCutGenerationStore((s) => s.title)
   const saveState = useQuickCutGenerationStore((s) => s.saveState)
   const lastSavedAt = useQuickCutGenerationStore((s) => s.lastSavedAt)
@@ -53,6 +57,67 @@ export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbar
 
   const savedLabel = relSavedLabel(lastSavedAt)
   const showSaved = saveState === 'saved' || (savedLabel && saveState !== 'saving')
+
+  if (variant === 'quick') {
+    return (
+      <header
+        className={cn(
+          'shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 px-3 sm:px-4 h-14 border-b border-white/[0.06] bg-[#050505]/95 backdrop-blur-xl',
+          className
+        )}
+      >
+        <Link href={STUDIO.quick} className="flex items-center gap-2.5 min-w-0 justify-self-start">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] font-display text-sm font-bold text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.55)]">
+            M
+          </span>
+          <span className="hidden sm:block min-w-0">
+            <span className="block font-display text-sm text-luxe leading-none tracking-wide">
+              MUGTEE
+            </span>
+            <span className="block text-[9px] tracking-[0.22em] uppercase text-luxe/45 mt-0.5">
+              AI Creator Operating System
+            </span>
+          </span>
+        </Link>
+
+        <ModeSwitcher className="justify-self-center" />
+
+        <div className="flex items-center gap-0.5 sm:gap-1 justify-self-end min-w-0">
+          <button
+            type="button"
+            onClick={openPalette}
+            className={cn(
+              'hidden md:flex items-center gap-2 h-9 px-3 rounded-full max-w-[220px] lg:max-w-[280px]',
+              'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-violet-400/30 transition'
+            )}
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[11px] truncate">
+              <span className="text-luxe/35 mr-1">⌘K</span>
+              Search or run command…
+            </span>
+          </button>
+          <button
+            type="button"
+            className="hidden sm:flex p-2 rounded-lg text-luxe/50 hover:text-luxe hover:bg-white/[0.04] transition"
+            aria-label="Help"
+            title="Studio shortcuts: ⌘K commands"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={openPalette}
+            className="md:hidden p-2 rounded-lg text-luxe/50 hover:text-violet-300 transition"
+            aria-label="Commands"
+          >
+            <Command className="w-4 h-4" />
+          </button>
+          <HeaderRightActions user={user} />
+        </div>
+      </header>
+    )
+  }
 
   return (
     <header
@@ -89,7 +154,7 @@ export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbar
                 setEditingTitle(false)
               }
             }}
-            className="w-full h-7 px-2 rounded-md bg-white/[0.04] border border-studio-primary/40 text-sm text-luxe focus:outline-none"
+            className="w-full h-7 px-2 rounded-md bg-white/[0.04] border border-[#8b5cf6]/40 text-sm text-luxe focus:outline-none"
           />
         ) : (
           <>
@@ -121,7 +186,7 @@ export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbar
         onClick={openPalette}
         className={cn(
           'flex-1 max-w-xl mx-auto hidden md:flex items-center gap-2 h-9 px-3 rounded-full',
-          'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-studio-primary/30 hover:bg-studio-primary-muted transition'
+          'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-[#8b5cf6]/30 hover:bg-violet-500/[0.06] transition'
         )}
       >
         <Search className="w-3.5 h-3.5 shrink-0" />
@@ -161,7 +226,7 @@ export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbar
         <button
           type="button"
           onClick={openPalette}
-          className="md:hidden p-2 rounded-lg text-luxe/50 hover:text-studio-primary transition"
+          className="md:hidden p-2 rounded-lg text-luxe/50 hover:text-[#8b5cf6] transition"
           aria-label="Commands"
         >
           <Command className="w-4 h-4" />
