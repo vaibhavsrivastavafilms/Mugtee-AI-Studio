@@ -92,7 +92,7 @@ export function resolveRecommendedNextSteps(
   ) {
     candidates.push({
       id: 'compile-mp4',
-      title: 'Compile MP4',
+      title: 'Export Creator Pack',
       explanation: 'Your storyboard and voice are ready — compile the synced reel.',
       actionType: 'scroll-section',
       tabTarget: 'complete',

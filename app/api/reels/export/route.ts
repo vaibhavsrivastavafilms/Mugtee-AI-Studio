@@ -52,7 +52,10 @@ export async function POST(req: NextRequest) {
         err: disabledMsg,
         route: 'POST /api/reels/export',
       })
-      return NextResponse.json({ error: disabledMsg, status: 'failed' }, { status: 503 })
+      return NextResponse.json(
+        { success: false, code: 'EXPORT_FAILED', error: disabledMsg, message: disabledMsg, status: 'failed' },
+        { status: 503 }
+      )
     }
 
     const rawBody = await req.json().catch(() => null)
@@ -67,7 +70,10 @@ export async function POST(req: NextRequest) {
       console.error(validatedBody.fieldErrors)
       return NextResponse.json(
         {
+          success: false,
+          code: 'EXPORT_FAILED',
           error: validatedBody.message,
+          message: validatedBody.message,
           status: 'failed',
           stage: 'request_validation',
           validation: validatedBody.fieldErrors,
@@ -156,7 +162,10 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json(
           {
+            success: false,
+            code: 'EXPORT_FAILED',
             error: validationError,
+            message: validationError,
             status: 'failed',
             stage: 'storyboard_asset_loading',
             validation: { code: 'readiness_exception', message: validationError },
@@ -186,7 +195,10 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json(
           {
+            success: false,
+            code: 'EXPORT_FAILED',
             error: validationError,
+            message: validationError,
             status: 'failed',
             stage: 'export_readiness',
             validation: {
@@ -284,7 +296,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
+        code: 'EXPORT_FAILED',
         error: message,
+        message,
         status: 'failed',
         stage,
         ...(httpStatus === 500 ? { stack } : {}),

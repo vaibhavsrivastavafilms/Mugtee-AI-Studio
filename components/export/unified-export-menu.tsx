@@ -140,6 +140,28 @@ export function UnifiedExportMenu({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align={align} sideOffset={6} className={menuContentClass}>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className={menuLabelClass}>Creator pack</DropdownMenuLabel>
+          <ExportMenuItem
+            icon={<Package className="w-3.5 h-3.5 shrink-0 text-gold-300/80" aria-hidden />}
+            title={
+              creatorPackLoading
+                ? 'Generating Creator Pack…'
+                : creatorPackState === 'error'
+                  ? 'Retry Creator Pack'
+                  : creatorPackState === 'ready'
+                    ? 'Download Creator Pack'
+                    : 'Export Creator Pack'
+            }
+            subtitle={creatorPackSubtitle}
+            disabled={!creatorPackEnabled && creatorPackState !== 'error'}
+            loading={creatorPackLoading}
+            onSelect={() => void handleExportCreatorPack()}
+          />
+        </DropdownMenuGroup>
+
+        <DropdownMenuSeparator className="bg-white/[0.06] my-1" />
+
         {showVideoGroup ? (
           <>
             <DropdownMenuGroup>
@@ -213,28 +235,6 @@ export function UnifiedExportMenu({
             )
           })}
         </DropdownMenuGroup>
-
-        <DropdownMenuSeparator className="bg-white/[0.06] my-1" />
-
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className={menuLabelClass}>Creator pack</DropdownMenuLabel>
-          <ExportMenuItem
-            icon={<Package className="w-3.5 h-3.5 shrink-0 text-gold-300/80" aria-hidden />}
-            title={
-              creatorPackLoading
-                ? 'Preparing Creator Pack…'
-                : creatorPackState === 'error'
-                  ? 'Retry Creator Pack'
-                  : 'Download Creator Pack ZIP'
-            }
-            subtitle={creatorPackSubtitle}
-            disabled={!creatorPackEnabled && creatorPackState !== 'error'}
-            loading={creatorPackLoading}
-            onSelect={() => void handleExportCreatorPack()}
-          />
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator className="bg-white/[0.06] my-1" />
 
         <DropdownMenuGroup>
           <DropdownMenuLabel className={menuLabelClass}>Platform ZIPs</DropdownMenuLabel>

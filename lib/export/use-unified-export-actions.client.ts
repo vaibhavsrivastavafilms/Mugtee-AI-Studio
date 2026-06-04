@@ -30,6 +30,8 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
+import { evaluateCreatorPackReadiness } from '@/lib/export/creator-pack-readiness.client'
+import { exportDiagnostics } from '@/lib/export/export-diagnostics.client'
 import {
   PLATFORM_EXPORT_IDS,
   PLATFORM_PROFILES,
@@ -163,6 +165,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   const [creatorPackState, setCreatorPackState] = useState<CreatorPackState>('idle')
   const [creatorPackProgress, setCreatorPackProgress] = useState(0)
   const [creatorPackResult, setCreatorPackResult] = useState<CreatorPackExportResult | null>(null)
+  const [creatorPackModalOpen, setCreatorPackModalOpen] = useState(false)
   const [platformExportState, setPlatformExportState] = useState<{
     id: PlatformExportId | null
     progress: number
@@ -342,10 +345,25 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   const hasTextContent = Boolean(exportText.trim())
   const textBaseName = exportBaseName(title)
 
-  const hasAnyCreatorPackAsset =
-    exportAssets.script || exportAssets.images || exportAssets.narration
+  const creatorPackReadiness = useMemo(
+    () =>
+      evaluateCreatorPackReadiness({
+        title,
+        hook,
+        script,
+        scriptBeats,
+        scenes,
+        voiceUrl,
+        isGenerating,
+      }),
+    [title, hook, script, scriptBeats, scenes, voiceUrl, isGenerating]
+  )
 
-  useReelExportAutoResume({ canCompileMp4 })
+  const hasAnyCreatorPackAsset = creatorPackReadiness.canExport
+
+  const showAdvancedMp4Export = videoRenderEnabled && (canCompileMp4 || Boolean(videoUrl?.trim()))
+
+  useReelExportAutoResume({ canCompileMp4: showAdvancedMp4Export && canCompileMp4 })
 
   useEffect(() => {
     void syncVideoRenderConfig()
@@ -564,12 +582,36 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       return
     }
 
+    if (!creatorPackReadiness.canExport) {
+      const message =
+        creatorPackReadiness.missingRequired.length > 0
+          ? `Missing: ${creatorPackReadiness.missingRequired.join(', ')}`
+          : 'Complete storyboard, script, and voice before exporting.'
+      setAssetError(message)
+      toast.error(message)
+      return
+    }
+
+    exportDiagnostics({
+      projectId: savedProjectId,
+      scenes,
+      voiceUrl,
+      title,
+      hook,
+      script,
+      scriptBeats,
+      isGenerating,
+      videoRenderEnabled,
+    })
+
     setCreatorPackState('preparing')
     setCreatorPackProgress(0)
     setCreatorPackResult(null)
+    setCreatorPackModalOpen(true)
     setAssetError(null)
     if (!(await guardExport())) {
       setCreatorPackState('idle')
+      setCreatorPackModalOpen(false)
       return
     }
     trackExportStarted('creator_pack')
@@ -597,6 +639,11 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       )
       setCreatorPackResult(result)
       setCreatorPackState('ready')
+      useQuickCutGenerationStore.setState((s) => ({
+        exportPackageReady: true,
+        renderError: null,
+        sectionStatus: { ...s.sectionStatus, export: 'completed' as const },
+      }))
       triggerCreatorPackDownload(result.blob, result.filename)
       notifyExportComplete()
       window.setTimeout(() => requestExitFeedback('export_inactive'), 800)
@@ -613,6 +660,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       const message = err instanceof Error ? err.message : 'Unable to create Creator Pack.'
       setAssetError(message)
       setCreatorPackState('error')
+      toast.error(message)
     }
   }, [
     title,
@@ -634,6 +682,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     reelTimeline,
     creatorPackState,
     creatorPackResult,
+    creatorPackReadiness,
     notifyExportComplete,
   ])
 
@@ -702,11 +751,20 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
         : 'Preparing Creator Pack…'
     }
     if (creatorPackState === 'error') return 'Unable to create Creator Pack — tap to retry'
+    if (creatorPackState === 'ready') return 'Creator Pack ready — tap to download again'
     if (hasAnyCreatorPackAsset) {
-      return 'ZIP bundle — script, storyboard, images, narration, video & metadata'
+      return 'script.txt · script.docx · captions.txt · voice.mp3 · storyboard.zip · project.json'
+    }
+    if (creatorPackReadiness.missingRequired.length) {
+      return `Missing: ${creatorPackReadiness.missingRequired.join(', ')}`
     }
     return ASSET_UNAVAILABLE_MSG
-  }, [creatorPackState, creatorPackProgress, hasAnyCreatorPackAsset])
+  }, [
+    creatorPackState,
+    creatorPackProgress,
+    hasAnyCreatorPackAsset,
+    creatorPackReadiness.missingRequired,
+  ])
 
   const sceneImagesSubtitle = hasImages
     ? 'All storyboard stills as JPG'
@@ -726,8 +784,9 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     supplementaryOnly,
     includeTextExports,
     // Video
-    showVideoGroup: !supplementaryOnly,
-    mp4Enabled: mp4ButtonEnabled,
+    showVideoGroup: !supplementaryOnly && showAdvancedMp4Export,
+    showAdvancedMp4Export,
+    mp4Enabled: showAdvancedMp4Export && mp4ButtonEnabled,
     mp4DownloadReady,
     mp4Compiling,
     downloadingMp4,
@@ -749,8 +808,12 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     sceneImageDimensions: SCENE_IMAGE_EXPORT_DIMENSIONS,
     // Creator pack
     hasAnyCreatorPackAsset,
+    creatorPackReadiness,
     creatorPackState,
+    creatorPackProgress,
     creatorPackSubtitle,
+    creatorPackModalOpen,
+    setCreatorPackModalOpen,
     handleExportCreatorPack,
     // Platform ZIPs
     platformZipItems,

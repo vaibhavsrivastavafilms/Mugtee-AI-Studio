@@ -181,7 +181,7 @@ export function resolveQuickCutProgressLabel(input: QuickCutProgressLabelInput):
     if (isRenderingVideo || renderPollUrl) {
       return renderStatusLabel || 'Rendering reel…'
     }
-    if (hasImages && hasNarration) return 'Compile MP4 to finish export'
+    if (hasImages && hasNarration) return 'Export Creator Pack to finish'
     return 'Storyboard export ready'
   }
 

@@ -187,11 +187,15 @@ export function BrowserExportPreflight({
         ) : (
           <Download className="w-3.5 h-3.5" aria-hidden />
         )}
-        {running ? 'Exporting in browser…' : 'Export MP4 in browser'}
+        {running
+          ? 'Exporting in browser…'
+          : blocked
+            ? 'Browser rendering unavailable'
+            : 'Advanced: Export MP4 in browser'}
       </button>
 
       <p className="text-[10px] text-luxe/40 leading-relaxed">
-        Client-side path using WebCodecs and FFmpeg.wasm. Server Remotion compile remains available above.
+        Optional advanced path (WebCodecs + FFmpeg.wasm). Creator Pack export is recommended for production.
       </p>
     </div>
   )

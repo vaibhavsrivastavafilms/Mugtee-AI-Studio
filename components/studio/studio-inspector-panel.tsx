@@ -101,6 +101,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
   const style = useQuickCutGenerationStore((s) => s.style)
   const niche = useQuickCutGenerationStore((s) => s.niche)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
+  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [directorToolsOpen, setDirectorToolsOpen] = useState(false)
@@ -381,11 +382,11 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
           className={cn(directorBtnPrimary, 'w-full h-10 text-[11px]')}
         >
           {isRenderingVideo ? (
-            <>Compiling…</>
+            <>{videoRenderEnabled ? 'Compiling…' : 'Preparing pack…'}</>
           ) : (
             <>
               <Rocket className="w-4 h-4" />
-              Compile MP4
+              {videoRenderEnabled ? 'Compile MP4' : 'Export Creator Pack'}
             </>
           )}
         </button>
