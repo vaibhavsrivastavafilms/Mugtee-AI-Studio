@@ -1,0 +1,260 @@
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import type {
+  CameraLanguagePlan,
+  CharacterBible,
+  DirectorBlueprint,
+  DirectorStageProgress,
+  DirectorTreatment,
+  MotionPlan,
+  MusicDirection,
+  StoryDirectionOption,
+  StoryboardPlan,
+  VoiceProfile,
+} from '@/lib/director/types'
+import {
+  normalizeDirectorTreatment,
+} from '@/lib/director/director-treatment'
+import type { ContentAngleId } from '@/lib/cinematic/content-angle-engine'
+
+export async function verifyDirectorProject(projectId: string, userId: string) {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('cinematic_projects')
+    .select('id, user_id, title, prompt, script, scenes')
+    .eq('id', projectId)
+    .single()
+  if (error || !data || data.user_id !== userId) return null
+  return data
+}
+
+export type DirectorStudioSnapshot = {
+  storyDirections: {
+    topic: string
+    options: StoryDirectionOption[]
+    selectedId: string | null
+    activeStoryDirection: StoryDirectionOption | null
+  }
+  directorTreatment: DirectorTreatment | null
+  characterBible: CharacterBible | null
+  cameraLanguage: CameraLanguagePlan | null
+  voiceProfile: VoiceProfile | null
+  musicDirection: MusicDirection | null
+  motionPlan: MotionPlan | null
+  projectState: {
+    directorApproved: boolean
+    blueprintLocked: boolean
+    stageProgress: DirectorStageProgress
+    blueprint: DirectorBlueprint | null
+    storyboardPlan: StoryboardPlan | null
+  }
+}
+
+function parseJson<T>(raw: unknown, fallback: T): T {
+  if (raw === null || raw === undefined) return fallback
+  return raw as T
+}
+
+export async function loadDirectorStudioSnapshot(
+  projectId: string,
+  userId: string
+): Promise<DirectorStudioSnapshot | null> {
+  const project = await verifyDirectorProject(projectId, userId)
+  if (!project) return null
+
+  const supabase = createSupabaseServerClient()
+  const [
+    storyRes,
+    treatmentRes,
+    bibleRes,
+    cameraRes,
+    voiceRes,
+    musicRes,
+    motionRes,
+    stateRes,
+  ] = await Promise.all([
+    supabase.from('story_directions').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('director_treatments').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('character_bibles').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('camera_profiles').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('voice_profiles').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('music_profiles').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('motion_plans').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase.from('director_project_state').select('*').eq('project_id', projectId).maybeSingle(),
+  ])
+
+  const storyRow = storyRes.data
+  const options = parseJson<StoryDirectionOption[]>(storyRow?.options, [])
+  const active = parseJson<StoryDirectionOption | null>(
+    storyRow?.active_story_direction,
+    null
+  )
+
+  return {
+    storyDirections: {
+      topic: storyRow?.topic ?? project.prompt ?? '',
+      options,
+      selectedId: storyRow?.selected_id ?? null,
+      activeStoryDirection: active,
+    },
+    directorTreatment: treatmentRes.data?.payload
+      ? normalizeDirectorTreatment(treatmentRes.data.payload)
+      : null,
+    characterBible: parseJson<CharacterBible | null>(bibleRes.data?.payload, null),
+    cameraLanguage: parseJson<CameraLanguagePlan | null>(
+      cameraRes.data?.camera_language,
+      null
+    ),
+    voiceProfile: parseJson<VoiceProfile | null>(voiceRes.data?.payload, null),
+    musicDirection: parseJson<MusicDirection | null>(musicRes.data?.payload, null),
+    motionPlan: parseJson<MotionPlan | null>(motionRes.data?.payload, null),
+    projectState: {
+      directorApproved: stateRes.data?.director_approved ?? false,
+      blueprintLocked: stateRes.data?.blueprint_locked ?? false,
+      stageProgress: parseJson<DirectorStageProgress>(stateRes.data?.stage_progress, {}),
+      blueprint: parseJson<DirectorBlueprint | null>(stateRes.data?.blueprint, null),
+      storyboardPlan: parseJson<StoryboardPlan | null>(stateRes.data?.storyboard_plan, null),
+    },
+  }
+}
+
+export async function upsertStoryDirections(
+  projectId: string,
+  userId: string,
+  patch: {
+    topic?: string
+    options?: StoryDirectionOption[]
+    selectedId?: string | null
+    activeStoryDirection?: StoryDirectionOption | null
+  }
+) {
+  const supabase = createSupabaseServerClient()
+  const row = {
+    project_id: projectId,
+    user_id: userId,
+    topic: patch.topic ?? '',
+    options: patch.options ?? [],
+    selected_id: patch.selectedId ?? null,
+    active_story_direction: patch.activeStoryDirection ?? null,
+    updated_at: new Date().toISOString(),
+  }
+  return supabase.from('story_directions').upsert(row, { onConflict: 'project_id' })
+}
+
+export async function upsertDirectorTreatment(
+  projectId: string,
+  userId: string,
+  payload: DirectorTreatment
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('director_treatments').upsert(
+    {
+      project_id: projectId,
+      user_id: userId,
+      payload,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'project_id' }
+  )
+}
+
+export async function upsertDirectorProjectState(
+  projectId: string,
+  userId: string,
+  patch: Partial<{
+    directorApproved: boolean
+    blueprintLocked: boolean
+    stageProgress: DirectorStageProgress
+    blueprint: DirectorBlueprint | null
+    storyboardPlan: StoryboardPlan | null
+  }>
+) {
+  const supabase = createSupabaseServerClient()
+  const existing = await supabase
+    .from('director_project_state')
+    .select('*')
+    .eq('project_id', projectId)
+    .maybeSingle()
+
+  const prev = existing.data
+  const row = {
+    project_id: projectId,
+    user_id: userId,
+    director_approved: patch.directorApproved ?? prev?.director_approved ?? false,
+    blueprint_locked: patch.blueprintLocked ?? prev?.blueprint_locked ?? false,
+    stage_progress: patch.stageProgress ?? prev?.stage_progress ?? {},
+    blueprint: patch.blueprint !== undefined ? patch.blueprint : prev?.blueprint ?? null,
+    storyboard_plan:
+      patch.storyboardPlan !== undefined ? patch.storyboardPlan : prev?.storyboard_plan ?? null,
+    updated_at: new Date().toISOString(),
+  }
+  return supabase.from('director_project_state').upsert(row, { onConflict: 'project_id' })
+}
+
+export async function upsertCharacterBible(
+  projectId: string,
+  userId: string,
+  payload: CharacterBible
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('character_bibles').upsert(
+    { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
+    { onConflict: 'project_id' }
+  )
+}
+
+export async function upsertCameraProfile(
+  projectId: string,
+  userId: string,
+  cameraLanguage: CameraLanguagePlan
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('camera_profiles').upsert(
+    {
+      project_id: projectId,
+      user_id: userId,
+      camera_language: cameraLanguage,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'project_id' }
+  )
+}
+
+export async function upsertVoiceProfile(
+  projectId: string,
+  userId: string,
+  payload: VoiceProfile
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('voice_profiles').upsert(
+    { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
+    { onConflict: 'project_id' }
+  )
+}
+
+export async function upsertMusicProfile(
+  projectId: string,
+  userId: string,
+  payload: MusicDirection
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('music_profiles').upsert(
+    { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
+    { onConflict: 'project_id' }
+  )
+}
+
+export async function upsertMotionPlan(
+  projectId: string,
+  userId: string,
+  payload: MotionPlan
+) {
+  const supabase = createSupabaseServerClient()
+  return supabase.from('motion_plans').upsert(
+    { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
+    { onConflict: 'project_id' }
+  )
+}
+
+export function usedAngleIdsFromOptions(options: StoryDirectionOption[]): ContentAngleId[] {
+  return options.map((o) => o.angleId)
+}

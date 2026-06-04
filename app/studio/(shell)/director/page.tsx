@@ -4,6 +4,8 @@ import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
 import { DirectorModeShell } from '@/components/studio/director-mode-shell'
+import { DirectorStudioWorkflow } from '@/components/studio/director-studio-workflow'
+import { isDirectorStudioV2Enabled } from '@/lib/director/feature-flag'
 import { storeCreatorMode } from '@/lib/create/mode-selection'
 
 function DirectorModePageInner() {
@@ -14,9 +16,15 @@ function DirectorModePageInner() {
     storeCreatorMode('director')
   }, [])
 
+  const studioV2 = isDirectorStudioV2Enabled()
+
   return (
     <DirectorModeShell projectId={projectId}>
-      <CreatorCommandCenter projectId={projectId} />
+      {studioV2 ? (
+        <DirectorStudioWorkflow projectId={projectId} />
+      ) : (
+        <CreatorCommandCenter projectId={projectId} />
+      )}
     </DirectorModeShell>
   )
 }

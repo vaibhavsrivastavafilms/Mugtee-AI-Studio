@@ -7,6 +7,7 @@ import {
   formatFingerprintForPrompt,
 } from '@/lib/ai/style-fingerprint'
 import type { ProviderContext, ProviderContextInput } from '@/lib/ai/providers/types'
+import { formatDirectorStudioForPrompt } from '@/lib/director/director-context-injection'
 
 function coerceNiche(niche?: CinematicNiche | string): CinematicNiche {
   if (niche && typeof niche === 'string') return niche as CinematicNiche
@@ -56,6 +57,9 @@ export function buildProviderContext(input: ProviderContextInput): ProviderConte
 
   if (input.tone?.trim()) sections.push(`TONE LOCK: ${input.tone.trim()}`)
   if (input.platform?.trim()) sections.push(`PLATFORM LOCK: ${input.platform.trim()}`)
+
+  const directorSection = formatDirectorStudioForPrompt(input.directorStudioContext)
+  if (directorSection) sections.push(directorSection)
 
   sections.push(nicheLock)
   sections.push(formatFingerprintForPrompt(styleFingerprint))
