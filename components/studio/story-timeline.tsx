@@ -11,6 +11,7 @@ import {
   FileText,
   Lightbulb,
   Mic,
+  Search,
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const STAGE_ICONS: Record<WorkspaceStage, typeof Lightbulb> = {
   idea: Lightbulb,
+  research: Search,
   hook: Sparkles,
   script: FileText,
   scenes: Clapperboard,
@@ -97,6 +99,7 @@ export function StoryTimeline({ className, compact }: StoryTimelineProps) {
     setActiveStage(stage)
     const tabMap = {
       idea: 'title',
+      research: 'script',
       hook: 'hook',
       script: 'script',
       scenes: 'scenes',

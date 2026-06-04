@@ -6,6 +6,7 @@ import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store
 /** Command Center pipeline stages (vertical timeline + mobile tabs). */
 export type WorkspaceStage =
   | 'idea'
+  | 'research'
   | 'hook'
   | 'script'
   | 'scenes'
@@ -21,6 +22,7 @@ export type WorkspacePipelineState = 'pending' | 'in_progress' | 'done' | 'faile
 
 export const WORKSPACE_STAGE_ORDER: WorkspaceStage[] = [
   'idea',
+  'research',
   'hook',
   'script',
   'scenes',
@@ -32,6 +34,7 @@ export const WORKSPACE_STAGE_ORDER: WorkspaceStage[] = [
 
 export const WORKSPACE_STAGE_LABELS: Record<WorkspaceStage, string> = {
   idea: 'Idea',
+  research: 'Research',
   hook: 'Hook',
   script: 'Script',
   scenes: 'Scenes',
@@ -55,6 +58,7 @@ export const WORKSPACE_STAGE_SECTION: Partial<Record<WorkspaceStage, SectionId>>
 /** Generation steps that indicate a stage is actively running. */
 export const WORKSPACE_STAGE_GENERATION_STEPS: Record<WorkspaceStage, QuickCutGenerationStep[]> = {
   idea: ['analyzing', 'title'],
+  research: ['analyzing', 'script'],
   hook: ['hook'],
   script: ['script'],
   scenes: ['scenes'],
@@ -85,6 +89,8 @@ export function workspaceStageToTab(stage: WorkspaceStage): QuickCutStageTab {
   switch (stage) {
     case 'idea':
       return 'title'
+    case 'research':
+      return 'script'
     case 'hook':
       return 'hook'
     case 'script':
@@ -231,6 +237,13 @@ export function resolveWorkspacePipelineState(
   if (stage === 'export') return resolveExportPipelineState(input)
   if (stage === 'motion') return resolveMotionPipelineState(input)
   if (stage === 'idea') return resolveIdeaPipelineState(input)
+  if (stage === 'research') {
+    if (input.sectionStatus.contentDirectorBrief === 'completed' && input.prompt.trim().length >= 6) {
+      return 'done'
+    }
+    if (input.isGenerating && input.generationStep === 'analyzing') return 'in_progress'
+    return 'pending'
+  }
 
   const section = WORKSPACE_STAGE_SECTION[stage]
   if (section) {

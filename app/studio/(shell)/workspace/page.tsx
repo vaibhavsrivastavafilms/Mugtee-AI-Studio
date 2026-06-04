@@ -1,31 +1,19 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { STUDIO } from '@/lib/create/routes'
 
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
-import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton'
-import { SessionContinuityGuard } from '@/components/trust/session-continuity-guard'
-import { MobileSaveTrustBar } from '@/components/trust/mobile-save-trust-bar'
+export const dynamic = 'force-dynamic'
 
-function WorkspacePageInner() {
-  const searchParams = useSearchParams()
-  const projectId = searchParams.get('project') ?? undefined
-
-  return (
-    <div className="-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-w-0 overflow-x-hidden flex flex-col">
-      <SessionContinuityGuard projectId={projectId} />
-      <MobileSaveTrustBar />
-      <CreatorCommandCenter projectId={projectId} />
-    </div>
-  )
+type Props = {
+  searchParams: Record<string, string | string[] | undefined>
 }
 
-export default function StudioWorkspacePage() {
-  return (
-    <Suspense
-      fallback={<PageLoadingSkeleton className="p-6 sm:p-8 min-h-[40vh]" />}
-    >
-      <WorkspacePageInner />
-    </Suspense>
-  )
+/** Legacy /studio/workspace — forwards to Director Mode. */
+export default function StudioWorkspaceRedirectPage({ searchParams }: Props) {
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === 'string') qs.set(key, value)
+    else if (Array.isArray(value) && value[0]) qs.set(key, value[0])
+  }
+  const q = qs.toString()
+  redirect(q ? `${STUDIO.director}?${q}` : STUDIO.director)
 }

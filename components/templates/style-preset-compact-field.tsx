@@ -28,18 +28,18 @@ export function StylePresetCompactField({ className }: StylePresetCompactFieldPr
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <LayoutTemplate className="w-3.5 h-3.5 text-gold-300/70 shrink-0" />
         <div className="min-w-0">
-          <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/60">Style preset</p>
+          <p className="text-[9px] tracking-[0.2em] uppercase text-violet-300/60">Creative System</p>
           <p className="text-xs text-luxe/80 truncate">
-            {template ? `${template.name} · ${template.category}` : 'Optional — lock continuity before generate'}
+            {template ? `${template.name} · ${template.category}` : 'Optional — lock look & continuity before generate'}
           </p>
         </div>
       </div>
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
-        className="shrink-0 h-8 px-3 rounded-lg border border-gold-500/30 text-[10px] tracking-[0.16em] uppercase text-gold-100/90 hover:bg-gold-500/10 transition"
+        className="shrink-0 h-8 px-3 rounded-lg border border-violet-500/30 text-[10px] tracking-[0.16em] uppercase text-violet-100/90 hover:bg-violet-500/10 transition"
       >
-        {template ? 'Change style' : 'Browse styles'}
+        {template ? 'Change System' : 'Browse Systems'}
       </button>
       <StyleLibraryDrawer
         open={drawerOpen}

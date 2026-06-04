@@ -4,5 +4,5 @@ export const dynamic = 'force-dynamic'
 
 /** Quick Cut preview session is preserved via localStorage on /create. */
 export default function QuickCutPreviewPage() {
-  redirect('/create?mode=quick')
+  redirect('/studio/quick')
 }

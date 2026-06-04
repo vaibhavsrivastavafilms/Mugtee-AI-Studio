@@ -15,8 +15,9 @@ export function StudioPromptBar() {
 
   if (!inStudio) return null
 
-  // Creator workspace has its own daily prompt headline.
+  // Creator workspace has its own chrome.
   if (pathname === '/studio' || pathname === '/studio/') return null
+  if (pathname.startsWith('/studio/workspace')) return null
 
   return (
     <div className="border-b border-white/[0.04] bg-black/20">

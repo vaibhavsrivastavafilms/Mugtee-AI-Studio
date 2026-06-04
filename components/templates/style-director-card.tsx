@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCircle2, Circle, Palette, Users, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getStyleTemplateById } from '@/lib/templates/style-templates'
@@ -10,6 +10,7 @@ import { StyleLibraryDrawer } from '@/components/templates/style-library-drawer'
 
 type StyleDirectorCardProps = {
   className?: string
+  variant?: 'default' | 'compact'
 }
 
 function StatusRow({
@@ -36,7 +37,7 @@ function StatusRow({
   )
 }
 
-export function StyleDirectorCard({ className }: StyleDirectorCardProps) {
+export function StyleDirectorCard({ className, variant = 'default' }: StyleDirectorCardProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const styleTemplateId = useQuickCutGenerationStore((s) => s.styleTemplateId)
   const storyBible = useQuickCutGenerationStore((s) => s.storyBible)
@@ -45,35 +46,80 @@ export function StyleDirectorCard({ className }: StyleDirectorCardProps) {
   const prompt = useQuickCutGenerationStore((s) => s.prompt)
   const setPanelPreferences = useStudioWorkspaceStore((s) => s.setPanelPreferences)
 
+  useEffect(() => {
+    const open = () => setDrawerOpen(true)
+    window.addEventListener('mugtee:open-style-drawer', open)
+    return () => window.removeEventListener('mugtee:open-style-drawer', open)
+  }, [])
+
   const template = getStyleTemplateById(styleTemplateId)
 
+  const drawer = (
+    <StyleLibraryDrawer
+      open={drawerOpen}
+      onOpenChange={setDrawerOpen}
+      selectedId={styleTemplateId}
+      ideaForRecommend={prompt}
+      onSelect={(t) => {
+        applyStyleTemplate(t.id)
+        setPanelPreferences({ styleLibraryCollapsed: true })
+        setDrawerOpen(false)
+      }}
+    />
+  )
+
   if (!template) {
+    if (variant === 'compact') {
+      return (
+        <div className={cn('space-y-2', className)}>
+          <p className="text-[11px] text-luxe/55">No style preset</p>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="h-7 px-2.5 rounded-md border border-gold-500/30 bg-gold-500/10 text-[9px] tracking-[0.16em] uppercase text-gold-100 hover:bg-gold-500/15 transition"
+          >
+            Change
+          </button>
+          {drawer}
+        </div>
+      )
+    }
     return (
-      <div className={cn('rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-3', className)}>
+      <div className={cn('rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-2', className)}>
         <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/65">Current style</p>
         <p className="text-[11px] text-luxe/55 leading-relaxed">
-          No preset selected. Open the Style Library or browse presets to lock palette and
-          character continuity.
+          No preset selected. Browse presets to lock palette and character continuity.
         </p>
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-lg border border-gold-500/35 bg-gold-500/10 text-[10px] tracking-[0.18em] uppercase text-gold-100 hover:bg-gold-500/15 transition"
+          className="w-full inline-flex items-center justify-center gap-2 h-8 rounded-lg border border-gold-500/35 bg-gold-500/10 text-[10px] tracking-[0.18em] uppercase text-gold-100 hover:bg-gold-500/15 transition"
         >
           <Wand2 className="w-3.5 h-3.5" />
           Choose style
         </button>
-        <StyleLibraryDrawer
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          selectedId={styleTemplateId}
-          ideaForRecommend={prompt}
-          onSelect={(t) => {
-            applyStyleTemplate(t.id)
-            setPanelPreferences({ styleLibraryCollapsed: true })
-            setDrawerOpen(false)
-          }}
-        />
+        {drawer}
+      </div>
+    )
+  }
+
+  if (variant === 'compact') {
+    return (
+      <div className={cn('flex items-start justify-between gap-2', className)}>
+        <div className="min-w-0">
+          <p className="text-[12px] font-medium text-luxe/90 truncate">{template.name}</p>
+          <p className="text-[10px] tracking-[0.14em] uppercase text-gold-300/55 mt-0.5">
+            {template.category}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="shrink-0 h-7 px-2.5 rounded-md border border-white/[0.08] bg-white/[0.03] text-[9px] tracking-[0.16em] uppercase text-luxe/75 hover:text-gold-100 hover:border-gold-500/30 transition"
+        >
+          Change
+        </button>
+        {drawer}
       </div>
     )
   }
@@ -99,7 +145,7 @@ export function StyleDirectorCard({ className }: StyleDirectorCardProps) {
         : 'Balanced'
 
   return (
-    <div className={cn('rounded-xl border border-gold-500/20 bg-black/45 p-3 space-y-3', className)}>
+    <div className={cn('rounded-xl border border-gold-500/20 bg-black/45 p-3 space-y-2', className)}>
       <div className="flex items-center gap-2">
         <Wand2 className="w-3.5 h-3.5 text-gold-300/75" />
         <p className="text-[9px] tracking-[0.2em] uppercase text-gold-300/65">Current style</p>
@@ -112,7 +158,7 @@ export function StyleDirectorCard({ className }: StyleDirectorCardProps) {
         </p>
       </div>
 
-      <div className="space-y-2 pt-1 border-t border-white/[0.06]">
+      <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
         <StatusRow
           label="Continuity"
           value={continuityOk ? 'Locked' : 'Applying…'}
@@ -140,22 +186,12 @@ export function StyleDirectorCard({ className }: StyleDirectorCardProps) {
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
-        className="w-full h-9 rounded-lg border border-white/[0.08] bg-white/[0.03] text-[10px] tracking-[0.18em] uppercase text-luxe/75 hover:text-gold-100 hover:border-gold-500/30 transition"
+        className="w-full h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] text-[10px] tracking-[0.18em] uppercase text-luxe/75 hover:text-gold-100 hover:border-gold-500/30 transition"
       >
         Change style
       </button>
 
-      <StyleLibraryDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        selectedId={styleTemplateId}
-        ideaForRecommend={prompt}
-        onSelect={(t) => {
-          applyStyleTemplate(t.id)
-          setPanelPreferences({ styleLibraryCollapsed: true })
-          setDrawerOpen(false)
-        }}
-      />
+      {drawer}
     </div>
   )
 }

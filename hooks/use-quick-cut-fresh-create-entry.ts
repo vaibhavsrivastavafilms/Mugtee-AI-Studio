@@ -6,7 +6,7 @@ import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-cre
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 /**
- * Bare `/studio/create?mode=quick` (no project id) must always open a fresh canvas.
+ * Bare `/studio/quick` (no project id) must always open a fresh canvas.
  * Resets before child effects run. Skips only while a pipeline is actively in-flight
  * (e.g. after `resume=1` strips the param mid-orchestration).
  */
@@ -15,7 +15,12 @@ export function useQuickCutFreshCreateEntry() {
   const searchParams = useSearchParams()
 
   useLayoutEffect(() => {
-    if (!pathname?.includes('/create')) return
+    const isQuickEntry =
+      pathname?.includes('/studio/quick') ||
+      (pathname?.includes('/create') && searchParams?.get('mode') === 'quick')
+
+    if (!isQuickEntry) return
+    if (searchParams?.get('project')) return
 
     const state = useQuickCutGenerationStore.getState()
     if (state.isGenerating && state.generationInFlight) return

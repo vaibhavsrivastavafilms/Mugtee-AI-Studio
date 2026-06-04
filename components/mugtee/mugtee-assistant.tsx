@@ -275,6 +275,7 @@ export function MugteeAssistant() {
   if (
     pathname === '/studio/video' ||
     pathname === '/studio/create' ||
+    pathname === '/studio/quick' ||
     (pathname === '/create' && createMode === 'quick')
   ) {
     return null

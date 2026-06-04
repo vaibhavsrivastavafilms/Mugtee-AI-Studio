@@ -6,6 +6,7 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  Timer,
   Wand2,
   BookOpen,
 } from 'lucide-react'
@@ -26,9 +27,13 @@ type ImprovementAction = {
 
 type ProjectImprovementActionsProps = {
   className?: string
+  variant?: 'default' | 'compact'
 }
 
-export function ProjectImprovementActions({ className }: ProjectImprovementActionsProps) {
+export function ProjectImprovementActions({
+  className,
+  variant = 'default',
+}: ProjectImprovementActionsProps) {
   const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
   const title = useQuickCutGenerationStore((s) => s.title)
@@ -138,6 +143,18 @@ export function ProjectImprovementActions({ className }: ProjectImprovementActio
       },
     },
     {
+      id: 'increase-retention',
+      label: 'Increase Retention',
+      icon: Timer,
+      description: 'Tighten mid-roll hold and payoff rhythm',
+      run: async () => {
+        const target = hasScript ? script : hook
+        const type: RewriteContentType = hasScript ? 'script' : 'hook'
+        if (!target?.trim()) return
+        await runRewrite(target, 'increase_retention', type)
+      },
+    },
+    {
       id: 'more-viral',
       label: 'Make More Viral',
       icon: Sparkles,
@@ -174,10 +191,45 @@ export function ProjectImprovementActions({ className }: ProjectImprovementActio
 
   const busy = isGenerating || rewriteLoading
 
+  if (variant === 'compact') {
+    return (
+      <ul
+        className={cn('space-y-0.5', className)}
+        aria-label="AI suggestions"
+      >
+        {actions.map((action) => {
+          const loading = activeId === action.id
+          return (
+            <li key={action.id}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => runAction(action.id, action.run)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition',
+                  'text-[11px] text-luxe/75 hover:text-gold-100 hover:bg-white/[0.04]',
+                  'disabled:opacity-40'
+                )}
+              >
+                <span className="text-luxe/30 shrink-0" aria-hidden>
+                  •
+                </span>
+                {loading ? (
+                  <Loader2 className="w-3 h-3 shrink-0 animate-spin text-gold-300" />
+                ) : null}
+                <span className="truncate">{action.label}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+
   return (
     <section
       className={cn(
-        'rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-3',
+        'rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-2',
         className
       )}
       aria-label="Project improvement actions"
@@ -191,7 +243,7 @@ export function ProjectImprovementActions({ className }: ProjectImprovementActio
         </p>
       </div>
 
-      <ul className="grid grid-cols-1 gap-1.5">
+      <ul className="grid grid-cols-1 gap-1">
         {actions.map((action) => {
           const Icon = action.icon
           const loading = activeId === action.id
@@ -203,7 +255,7 @@ export function ProjectImprovementActions({ className }: ProjectImprovementActio
                 disabled={busy}
                 onClick={() => runAction(action.id, action.run)}
                 className={cn(
-                  'w-full h-auto justify-start gap-2.5 px-3 py-2.5 rounded-lg',
+                  'w-full h-auto justify-start gap-2 px-2.5 py-2 rounded-lg',
                   'border border-white/[0.06] bg-black/30 hover:bg-gold-500/[0.06] hover:border-gold-500/25',
                   'text-left disabled:opacity-50'
                 )}

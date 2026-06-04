@@ -11,6 +11,8 @@ import { StoreProvider } from '@/lib/store'
 import { AutomationsProvider } from '@/lib/automations-store'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import { MugteeCommandCenter } from '@/components/mugtee-os/mugtee-command-center'
+import { StudioCommandPalette } from '@/components/studio/studio-command-palette'
+import { creatorModeFromPathname } from '@/lib/create/routes'
 
 interface User {
   id: string
@@ -33,6 +35,8 @@ export default function CinematicAppShell({
 
   const pathname = usePathname() ?? ''
   const isCompanionHome = pathname === '/home' || pathname.startsWith('/home/')
+  const creatorMode = creatorModeFromPathname(pathname)
+  const isV4CreatorRoute = creatorMode === 'quick' || creatorMode === 'director'
 
   return (
     <StoreProvider userId={user.id} userName={name}>
@@ -53,7 +57,10 @@ export default function CinematicAppShell({
             />
 
             <CinematicHeader user={user} variant="app" />
-            {!isCompanionHome ? <StudioPromptBar /> : null}
+            {!isCompanionHome && !pathname.startsWith('/studio/workspace') && !isV4CreatorRoute ? (
+              <StudioPromptBar />
+            ) : null}
+            {isV4CreatorRoute ? <StudioCommandPalette /> : null}
             <CreatorProfileOnboardingGate />
 
             <motion.main
@@ -66,7 +73,11 @@ export default function CinematicAppShell({
                 className={
                   isCompanionHome
                     ? 'flex-1 flex flex-col min-w-0 w-full min-h-0'
-                    : 'flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-6'
+                    : pathname.startsWith('/studio/workspace')
+                      ? 'flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden'
+                      : isV4CreatorRoute
+                      ? 'flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 lg:py-5 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-5'
+                      : 'flex-1 flex flex-col min-w-0 px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 pb-[max(7rem,calc(5.5rem+env(safe-area-inset-bottom)))] lg:pb-6'
                 }
               >
                 {children}

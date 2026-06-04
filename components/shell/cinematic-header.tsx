@@ -4,15 +4,16 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, Plus, Search, X as XIcon } from 'lucide-react'
+import { Command, Menu, Plus, Search, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { quickCutStudioHref, STUDIO } from '@/lib/create/routes'
+import { creatorModeFromPathname, quickCutStudioHref, STUDIO } from '@/lib/create/routes'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { HEADER_NAV, headerNavActive } from '@/lib/shell/header-nav'
 import {
   HeaderRightActions,
   HeaderSearchDropdown,
 } from '@/components/shell/cinematic-header-app-actions'
+import { ModeSwitcher } from '@/components/studio/mode-switcher'
 import { Button } from '@/components/ui/button'
 import { PublicBetaBadge } from '@/components/shell/public-beta-badge'
 type User = { email?: string | null; user_metadata?: Record<string, unknown> }
@@ -59,6 +60,15 @@ function CinematicHeaderInner({
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const isApp = variant === 'app' && !!user
+  const isWorkspaceRoute = pathname.startsWith('/studio/workspace')
+  const creatorMode = creatorModeFromPathname(pathname)
+  const isV4CreatorRoute = creatorMode === 'quick' || creatorMode === 'director'
+
+  const openCommandPalette = () => {
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
+    )
+  }
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -67,6 +77,8 @@ function CinematicHeaderInner({
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
+
+  if (isWorkspaceRoute) return null
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#050505]/75 backdrop-blur-2xl">
@@ -77,7 +89,7 @@ function CinematicHeaderInner({
 
       <div className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 h-14 sm:h-16">
         <Link
-          href={isApp ? STUDIO.create + '?mode=quick' : '/'}
+          href={isApp ? STUDIO.quick : '/'}
           prefetch={isApp}
           className="group flex items-center gap-2.5 shrink-0 min-w-0"
         >
@@ -100,8 +112,8 @@ function CinematicHeaderInner({
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               {isApp ? (
-                <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/55">
-                  Studio
+                <div className="text-[9px] tracking-[0.28em] uppercase text-violet-300/55">
+                  {isV4CreatorRoute ? 'Creator Operating System' : 'Studio'}
                 </div>
               ) : (
                 <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70">
@@ -112,6 +124,12 @@ function CinematicHeaderInner({
             </div>
           </div>
         </Link>
+
+        {isApp ? (
+          <Suspense fallback={null}>
+            <ModeSwitcher compact className="hidden sm:inline-flex shrink-0" />
+          </Suspense>
+        ) : null}
 
         <nav className="hidden lg:flex items-center gap-0.5 ml-2 xl:ml-6">
           {HEADER_NAV.map((item) => {
@@ -141,44 +159,72 @@ function CinematicHeaderInner({
           })}
         </nav>
 
-        <div
-          ref={searchRef}
-          className={cn(
-            'relative flex-1 min-w-0 mx-1 sm:mx-2 max-w-[38vw] sm:max-w-none',
-            variant === 'portal' && 'max-w-md ml-auto'
-          )}
-        >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 pointer-events-none" />
-          <input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              if (isApp) setSearchOpen(true)
-            }}
-            onFocus={() => isApp && setSearchOpen(true)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setQuery('')
-                setSearchOpen(false)
-              }
-            }}
-            placeholder="Search projects, scripts, storyboards..."
+        {isV4CreatorRoute ? (
+          <button
+            type="button"
+            onClick={openCommandPalette}
             className={cn(
-              'w-full h-9 sm:h-10 pl-10 pr-3 rounded-xl text-sm transition-all',
-              'bg-gradient-to-r from-black/60 via-zinc-950/80 to-black/60',
-              'border border-white/[0.08] text-luxe placeholder:text-muted-foreground/70',
-              'focus:outline-none focus:border-gold-500/45 focus:shadow-[0_0_24px_-6px_rgba(212,175,55,0.35)]'
+              'hidden sm:flex flex-1 max-w-md mx-auto items-center gap-2 h-9 px-3 rounded-full',
+              'border border-white/[0.08] bg-white/[0.03] text-luxe/45 hover:border-violet-400/30 hover:bg-violet-500/[0.06] transition'
             )}
-          />
-          {isApp && user ? (
-            <HeaderSearchDropdown
-              query={query}
-              searchOpen={searchOpen}
-              setSearchOpen={setSearchOpen}
-              setQuery={setQuery}
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[12px] truncate">
+              <span className="text-luxe/35 mr-1">⌘K</span>
+              Search or run command…
+            </span>
+          </button>
+        ) : (
+          <div
+            ref={searchRef}
+            className={cn(
+              'relative flex-1 min-w-0 mx-1 sm:mx-2 max-w-[38vw] sm:max-w-none',
+              variant === 'portal' && 'max-w-md ml-auto'
+            )}
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 pointer-events-none" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                if (isApp) setSearchOpen(true)
+              }}
+              onFocus={() => isApp && setSearchOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setQuery('')
+                  setSearchOpen(false)
+                }
+              }}
+              placeholder="Search projects, scripts, storyboards..."
+              className={cn(
+                'w-full h-9 sm:h-10 pl-10 pr-3 rounded-xl text-sm transition-all',
+                'bg-gradient-to-r from-black/60 via-zinc-950/80 to-black/60',
+                'border border-white/[0.08] text-luxe placeholder:text-muted-foreground/70',
+                'focus:outline-none focus:border-gold-500/45 focus:shadow-[0_0_24px_-6px_rgba(212,175,55,0.35)]'
+              )}
             />
-          ) : null}
-        </div>
+            {isApp && user ? (
+              <HeaderSearchDropdown
+                query={query}
+                searchOpen={searchOpen}
+                setSearchOpen={setSearchOpen}
+                setQuery={setQuery}
+              />
+            ) : null}
+          </div>
+        )}
+
+        {isV4CreatorRoute ? (
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            className="sm:hidden p-2 rounded-lg text-luxe/50 hover:text-violet-300 transition"
+            aria-label="Commands"
+          >
+            <Command className="w-4 h-4" />
+          </button>
+        ) : null}
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {isApp && user ? (
@@ -226,6 +272,9 @@ function CinematicHeaderInner({
             className="lg:hidden overflow-hidden border-t border-white/[0.06] bg-black/40"
           >
             <nav className="flex gap-1 overflow-x-auto scroll-touch px-3 py-2.5">
+              <Suspense fallback={null}>
+                <ModeSwitcher className="shrink-0 mr-2" />
+              </Suspense>
               {HEADER_NAV.map((item) => {
                 const active = headerNavActive(item.id, pathname, tab)
                 return (

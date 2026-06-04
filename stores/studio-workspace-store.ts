@@ -4,11 +4,15 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { WorkspaceStage } from '@/lib/studio/workspace-stages'
 
+export type ContextSectionId = 'project' | 'director' | 'system' | 'export'
+
 export type PanelPreferences = {
   directorPanelOpen: boolean
   sidebarCollapsed: boolean
   continuityExpanded: boolean
   styleLibraryCollapsed: boolean
+  directorNotesExpanded: boolean
+  contextSections: Record<ContextSectionId, boolean>
 }
 
 /** Target distribution platform for output workspace tone hints. */
@@ -24,15 +28,25 @@ type StudioWorkspaceState = {
   setActiveSceneIndex: (index: number) => void
   setTimelineCollapsed: (collapsed: boolean) => void
   setPanelPreferences: (prefs: Partial<PanelPreferences>) => void
+  setContextSectionExpanded: (section: ContextSectionId, expanded: boolean) => void
   setTargetPlatform: (platform: WorkspaceTargetPlatform) => void
   resetForProject: (stage?: WorkspaceStage) => void
+}
+
+export const DEFAULT_CONTEXT_SECTIONS: Record<ContextSectionId, boolean> = {
+  project: true,
+  director: false,
+  system: false,
+  export: false,
 }
 
 const DEFAULT_PANEL_PREFERENCES: PanelPreferences = {
   directorPanelOpen: true,
   sidebarCollapsed: false,
-  continuityExpanded: true,
-  styleLibraryCollapsed: false,
+  continuityExpanded: false,
+  styleLibraryCollapsed: true,
+  directorNotesExpanded: false,
+  contextSections: DEFAULT_CONTEXT_SECTIONS,
 }
 
 export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
@@ -50,6 +64,16 @@ export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
         set((state) => ({
           panelPreferences: { ...state.panelPreferences, ...prefs },
         })),
+      setContextSectionExpanded: (section, expanded) =>
+        set((state) => ({
+          panelPreferences: {
+            ...state.panelPreferences,
+            contextSections: {
+              ...state.panelPreferences.contextSections,
+              [section]: expanded,
+            },
+          },
+        })),
       setTargetPlatform: (platform) => set({ targetPlatform: platform }),
       resetForProject: (stage = 'idea') =>
         set({
@@ -64,6 +88,22 @@ export const useStudioWorkspaceStore = create<StudioWorkspaceState>()(
         timelineCollapsed: state.timelineCollapsed,
         targetPlatform: state.targetPlatform,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<StudioWorkspaceState> | undefined
+        if (!p?.panelPreferences) return current
+        return {
+          ...current,
+          ...p,
+          panelPreferences: {
+            ...DEFAULT_PANEL_PREFERENCES,
+            ...p.panelPreferences,
+            contextSections: {
+              ...DEFAULT_CONTEXT_SECTIONS,
+              ...p.panelPreferences?.contextSections,
+            },
+          },
+        }
+      },
     }
   )
 )
