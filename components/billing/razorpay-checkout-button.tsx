@@ -66,7 +66,7 @@ export function RazorpayCheckoutButton({
         key: data.keyId,
         subscription_id: data.subscriptionId,
         name: 'Mugtee',
-        description: plan === 'creator' ? 'Creator plan \u00B7 \u20B9245 / month' : 'Agency plan \u00B7 \u20B9999 / month',
+        description: plan === 'creator' ? 'Creator plan \u00B7 \u20B9599 / month' : 'Pro plan \u00B7 \u20B9999 / month',
         prefill: { email: data.email || '' },
         theme: { color: '#D4AF37', backdrop_color: 'rgba(10,8,7,0.92)' },
         notes: { plan },
@@ -125,7 +125,7 @@ export function RazorpayCheckoutButton({
         ) : (
           <>
             <Crown className="w-4 h-4" />
-            {label || (plan === 'creator' ? 'Upgrade to Creator · ₹245/mo' : 'Upgrade to Agency · ₹999/mo')}
+            {label || (plan === 'creator' ? 'Upgrade to Creator · ₹599/mo' : 'Upgrade to Pro · ₹999/mo')}
             <ArrowRight className="w-4 h-4" />
           </>
         )}

@@ -7,7 +7,15 @@ type BackgroundTask = Promise<unknown>
  * Falls back to fire-and-forget locally when @vercel/functions is unavailable.
  */
 export function runExportInBackground(task: () => BackgroundTask): void {
-  const promise = task().catch((err) => {
+  let promise: BackgroundTask
+  try {
+    promise = task()
+  } catch (err) {
+    console.error('[export] background task sync failed', err)
+    return
+  }
+
+  promise = promise.catch((err) => {
     console.error('[export] background task failed', err)
   })
 

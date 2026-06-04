@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<
     className: 'border-gold-500/30 bg-gold-500/10 text-gold-300/90',
   },
   coming_soon: {
-    label: 'Coming Soon',
+    label: 'Locked',
     className: 'border-white/[0.08] bg-white/[0.03] text-luxe/50',
   },
 }

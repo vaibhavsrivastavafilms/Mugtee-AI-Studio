@@ -15,9 +15,28 @@ export interface PlanSpec {
   interval: 1
 }
 
+function planAmountPaise(envKey: string, fallback: number): number {
+  const raw = process.env[envKey]
+  if (!raw) return fallback
+  const n = Number.parseInt(raw, 10)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
 export const PLAN_SPECS: Record<PlanKey, PlanSpec> = {
-  creator: { key: 'creator', label: 'Creator', amountPaise: 24500, period: 'monthly', interval: 1 },
-  agency:  { key: 'agency',  label: 'Agency',  amountPaise: 99900, period: 'monthly', interval: 1 },
+  creator: {
+    key: 'creator',
+    label: 'Creator',
+    amountPaise: planAmountPaise('RAZORPAY_CREATOR_AMOUNT_PAISE', 59900),
+    period: 'monthly',
+    interval: 1,
+  },
+  agency: {
+    key: 'agency',
+    label: 'Pro',
+    amountPaise: planAmountPaise('RAZORPAY_PRO_AMOUNT_PAISE', 99900),
+    period: 'monthly',
+    interval: 1,
+  },
 }
 
 let _client: Razorpay | null = null

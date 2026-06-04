@@ -9,7 +9,7 @@ export function ComingSoonCards({ className }: { className?: string }) {
     <section className={cn('space-y-4', className)}>
       <div>
         <p className="text-[10px] tracking-[0.32em] uppercase text-luxe/45 mb-1">On the horizon</p>
-        <h2 className="font-display text-lg text-luxe/80">Coming soon to Mugtee</h2>
+        <h2 className="font-display text-lg text-luxe/80">Locked studio features</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {COMING_SOON_FEATURES.map((feature) => (

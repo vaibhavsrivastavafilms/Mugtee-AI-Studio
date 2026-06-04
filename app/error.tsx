@@ -23,9 +23,10 @@ export default function Error({
       >
         M
       </div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-2">Something went wrong</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-2">Something interrupted your session</h1>
       <p className="text-sm text-[#E8D9A8]/70 max-w-sm mb-6">
-        Mugtee hit an unexpected error. Your work is safe — try again or return to the studio.
+        Your project and exports are preserved. Retry this page or return to the studio — nothing was
+        deleted.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button

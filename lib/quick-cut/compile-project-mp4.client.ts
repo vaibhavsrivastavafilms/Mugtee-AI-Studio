@@ -26,6 +26,8 @@ import {
 
 } from '@/lib/export/export-schema'
 
+import { scenesToExportRequestPayload } from '@/lib/export/export-request-payload.client'
+
 import {
 
   mugteeExportEnd,
@@ -166,6 +168,8 @@ async function requestReelExport(projectId: string) {
 
   const scenes = ensureExportSafeScenes(resolveProjectScenes(row))
 
+  const snapshot = scenesToExportRequestPayload(scenes)
+
   const payload = {
 
     projectId,
@@ -176,29 +180,7 @@ async function requestReelExport(projectId: string) {
 
     includeCaptions: true,
 
-    scenes: scenes.map((s) => ({
-
-      id: s.id,
-
-      title: s.title ?? null,
-
-      imageUrl: s.imageUrl ?? null,
-
-      imageAssetPath: s.imageAssetPath ?? null,
-
-    })),
-
-    storyboards: scenes.map((s) => ({
-
-      id: s.id,
-
-      title: s.title ?? null,
-
-      imageUrl: s.imageUrl ?? null,
-
-      imageAssetPath: s.imageAssetPath ?? null,
-
-    })),
+    ...snapshot,
 
     script: row.script ?? null,
 
@@ -227,6 +209,10 @@ async function requestReelExport(projectId: string) {
     stage: 'payload',
 
     projectId,
+
+    scenes: snapshot.scenes,
+
+    storyboards: snapshot.storyboards,
 
     payload,
 
@@ -406,8 +392,6 @@ async function compileProjectMp4Inner(
 
   }
 
-
-
   if (renderData.status === 'completed' && typeof renderData.reelUrl === 'string') {
 
     mugteeExportEnd()
@@ -446,11 +430,14 @@ async function compileProjectMp4Inner(
 
     }
 
+    const onProgress =
+      typeof options?.onProgress === 'function' ? options.onProgress : undefined
+
     const url = await pollReelExportJob(reelExportPollPath(jobId, projectId), {
 
       onProgress: (patch) => {
 
-        if (patch.label) options?.onProgress?.(patch.label)
+        if (patch.label && onProgress) onProgress(patch.label)
 
       },
 

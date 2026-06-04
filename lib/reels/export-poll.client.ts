@@ -270,7 +270,11 @@ export async function pollReelExportJob(
     })
 
     if (job.status === 'failed') {
-      throw new Error(friendlyReelRenderError(job.error))
+      const formatError =
+        typeof friendlyReelRenderError === 'function'
+          ? friendlyReelRenderError
+          : (raw: string | null | undefined) => raw?.trim() || 'Export failed'
+      throw new Error(formatError(job.error))
     }
 
     if (job.status === 'completed' && job.reelUrl) {
