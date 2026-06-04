@@ -11,10 +11,7 @@ import {
   resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
 import { resolveExportScenes } from '@/lib/export/export-readiness.server'
-import {
-  refreshStoryboardUrl,
-  storyboardStorageExists,
-} from '@/lib/storyboard/storyboard-url-service.server'
+import { refreshStoryboardUrl, storyboardStorageExists } from '@/lib/storyboard/storyboard-url-service.server'
 
 export type ExportAssetValidation = {
   valid: boolean
@@ -24,6 +21,11 @@ export type ExportAssetValidation = {
   timelineExists: boolean
   missing: string[]
   message: string | null
+}
+
+function validationLog(event: string, payload: Record<string, unknown>): void {
+  if (process.env.NODE_ENV === 'production') return
+  console.info(`[Export Validation] ${event}`, payload)
 }
 
 async function assetReachable(url: string): Promise<boolean> {
@@ -75,6 +77,12 @@ export async function validateExportAssets(params: {
   const voiceUrl = params.row.voice?.audioUrl?.trim() ?? null
   const timeline = parseReelTimeline(params.row.timeline_state)
 
+  validationLog('start', {
+    projectId: params.row.id,
+    sceneCount: scenes.length,
+    exportSceneCount: exportScenes.length,
+  })
+
   let voiceExists = !params.includeVoiceover
   if (params.includeVoiceover) {
     if (!voiceUrl) {
@@ -90,6 +98,9 @@ export async function validateExportAssets(params: {
 
   if (scenesMissingImages.length > 0) {
     missing.push('images')
+    validationLog('missing_paths', {
+      scenes: scenesMissingImages.map((m) => m.index),
+    })
   } else if (!imagesExist) {
     missing.push('images')
   } else {
@@ -98,40 +109,38 @@ export async function validateExportAssets(params: {
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i]
       const assetPath = resolveSceneExportAssetPath(scene)
-      let imageUrl = resolveSceneExportImageUrl(scene)
 
       if (assetPath) {
         const exists = await storyboardStorageExists(assetPath)
+        validationLog('scene.storage', {
+          sceneIndex: i + 1,
+          assetPath,
+          exists,
+        })
         if (!exists) {
           unreachableIndices.push(i + 1)
           continue
         }
         const refreshed = await refreshStoryboardUrl(assetPath)
-        if (refreshed) imageUrl = refreshed
+        if (refreshed) {
+          validationLog('scene.refreshed', { sceneIndex: i + 1 })
+          continue
+        }
       }
 
+      const imageUrl = resolveSceneExportImageUrl(scene)
       if (!imageUrl?.trim()) {
         unreachableIndices.push(i + 1)
         continue
       }
 
-      let reachable = await assetReachable(imageUrl)
-      if (!reachable && !assetPath) {
-        const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
-        if (isEphemeralRemoteImageUrl(imageUrl)) {
-          const { repairEphemeralStoryboardScenes } = await import(
-            '@/lib/export/repair-ephemeral-storyboard.server'
-          )
-          const repaired = await repairEphemeralStoryboardScenes({
-            userId: params.userId,
-            projectId: params.row.id,
-            scenes: [scene],
-          })
-          const fixedUrl = resolveSceneExportImageUrl(repaired.scenes[0])
-          if (fixedUrl) reachable = await assetReachable(fixedUrl)
-        }
-      }
-      if (!reachable && !assetPath) {
+      const reachable = await assetReachable(imageUrl)
+      validationLog('scene.head', {
+        sceneIndex: i + 1,
+        reachable,
+        hasAssetPath: Boolean(assetPath),
+      })
+      if (!reachable) {
         unreachableIndices.push(i + 1)
       }
     }
@@ -140,6 +149,7 @@ export async function validateExportAssets(params: {
     if (!imagesExist) {
       missing.push('images')
       if (unreachableIndices.length > 0) {
+        validationLog('failed', { unreachable: unreachableIndices })
         return {
           valid: false,
           voiceExists,
@@ -180,6 +190,8 @@ export async function validateExportAssets(params: {
       message = `Missing asset detected — ${missing.join(', ')}. Regenerating asset may be required.`
     }
   }
+
+  validationLog('complete', { projectId: params.row.id, valid, missing })
 
   return {
     valid,

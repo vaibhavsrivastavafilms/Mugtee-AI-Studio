@@ -181,18 +181,17 @@ export async function resolveExportScenes(
     imageAssets: assetCounts.imageAssets,
   }
   let scenes = await refreshAllSceneStoryboardUrls(hydrated, { lookup })
-  const { scenes: repairedScenes, repaired } = await import(
-    '@/lib/export/repair-ephemeral-storyboard.server'
-  ).then((m) =>
-    m.repairEphemeralStoryboardScenes({
-      userId,
-      projectId: row.id,
-      scenes,
-    })
+  const { backfillStoryboardAssetsForProject } = await import(
+    '@/lib/storyboard/backfill-storyboard-assets.server'
   )
-  if (repaired > 0) {
-    scenes = await refreshAllSceneStoryboardUrls(repairedScenes, { lookup })
-  }
+  const backfill = await backfillStoryboardAssetsForProject({
+    row: { ...row, scenes },
+    userId,
+    assetCounts,
+    persistScenes: true,
+    allowRegenerate: true,
+  })
+  scenes = backfill.scenes
   const after = scenes.filter((s) => sceneHasExportableStoryboard(s)).length
   return {
     scenes,

@@ -326,8 +326,12 @@ async function generateStoryboardImageUrl(params: {
       userId: params.userId,
     })
     const url = result.url
-    if (url && !url.startsWith('data:')) {
-      return { url, mock: false, assetPath: filename }
+    const assetPath = result.assetPath ?? filename
+    if (url && !url.startsWith('data:') && !url.includes('pollinations.ai')) {
+      return { url, mock: false, assetPath }
+    }
+    if (url && !url.startsWith('data:') && assetPath) {
+      return { url, mock: false, assetPath }
     }
     if (url) {
       return { url, mock: true }

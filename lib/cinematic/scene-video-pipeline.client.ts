@@ -22,6 +22,9 @@ type PollResult = {
 async function pollVideoJob(pollUrl: string): Promise<PollResult> {
   const res = await fetch(pollUrl, { cache: 'no-store' })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  if (res.status === 404) {
+    return { status: 'failed', error: 'Video job not found (server restarted)' }
+  }
   if (!res.ok) {
     return { status: 'failed', error: String(data.error ?? 'Poll failed') }
   }

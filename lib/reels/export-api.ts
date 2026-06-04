@@ -337,10 +337,11 @@ export async function queueReelExportForProject(params: {
     throw new Error(detail)
   }
 
-  const exportRow: CinematicProjectRow =
-    hydratedCount > 0
-      ? { ...params.row, scenes: hydratedStoreScenes, storyboard: hydratedStoreScenes }
-      : params.row
+  const exportRow: CinematicProjectRow = {
+    ...params.row,
+    scenes: hydratedStoreScenes,
+    storyboard: hydratedStoreScenes,
+  }
 
   const scenes = scenesForReelExport(hydratedStoreScenes)
   if (scenes.length < 1) {

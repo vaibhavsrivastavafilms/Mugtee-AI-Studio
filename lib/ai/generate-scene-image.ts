@@ -6,6 +6,8 @@ import {
 } from '@/lib/ai/free-tier'
 import { getOpenAIClient } from '@/lib/ai/openai-client'
 import { logError } from '@/lib/workspace/validation'
+import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
+import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
 /** Pollinations fallback requires no key — image generation is always available. */
 export function hasImageGenerationKey(): boolean {
@@ -30,19 +32,37 @@ export async function generateSceneImage(
     hasReferenceStyle?: boolean
     aspectRatio?: string
   } = {}
-): Promise<{ url: string | null; provider?: string }> {
+): Promise<{ url: string | null; provider?: string; assetPath?: string }> {
   const result = await generateImage(prompt, {
     aspectRatio: opts.aspectRatio ?? process.env.FLUXAPI_ASPECT_RATIO?.trim() ?? '9:16',
   })
   if (!result) return { url: null }
 
-  if (opts.filename) {
+  const filename =
+    opts.filename ??
+    (opts.userId
+      ? `${opts.userId}/cinematic/auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`
+      : undefined)
+
+  if (filename) {
     const uploaded = await persistRemoteImage({
       remoteUrl: result.url,
       userId: opts.userId,
-      filename: opts.filename,
+      filename,
     })
-    return { url: uploaded, provider: result.provider }
+    const assetPath =
+      extractStoragePathFromUrl(uploaded) ??
+      (uploaded.includes('/project-assets/') ? filename : undefined)
+    if (assetPath && !isEphemeralRemoteImageUrl(uploaded)) {
+      return { url: uploaded, provider: result.provider, assetPath }
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[generate-scene-image] ephemeral URL after persist attempt', {
+        provider: result.provider,
+        filename,
+      })
+    }
+    return { url: uploaded, provider: result.provider, assetPath }
   }
 
   return { url: result.url, provider: result.provider }

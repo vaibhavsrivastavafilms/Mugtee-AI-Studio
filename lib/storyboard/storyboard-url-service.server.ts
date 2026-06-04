@@ -15,7 +15,7 @@ const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7
 
 function devLog(event: string, payload: Record<string, unknown>): void {
   if (process.env.NODE_ENV === 'production') return
-  console.info(`[storyboard-url] ${event}`, payload)
+  console.info(`[Storyboard Recovery] ${event}`, payload)
 }
 
 /** Fresh URL for a stored storyboard object (signed when possible, else public). */
