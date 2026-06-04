@@ -138,7 +138,16 @@ export function logExportAssetCounts(params: {
   voiceoverCount: number
   sceneCount: number
   hydratedFromAssets?: number
+  scenes?: CinematicScene[]
 }): void {
+  const imageAssetPaths =
+    params.scenes?.map((scene, index) => ({
+      sceneIndex: index + 1,
+      sceneId: scene.id,
+      imageAssetPath: scene.imageAssetPath?.trim() || null,
+      hasImageUrl: Boolean(resolveSceneExportImageUrl(scene)),
+    })) ?? []
+
   console.info('[export] pre-export asset counts', {
     projectId: params.projectId,
     assetCount: params.assetCount,
@@ -146,6 +155,7 @@ export function logExportAssetCounts(params: {
     voiceoverCount: params.voiceoverCount,
     sceneCount: params.sceneCount,
     hydratedFromAssets: params.hydratedFromAssets ?? 0,
+    imageAssetPaths,
   })
 }
 
@@ -278,6 +288,7 @@ export async function getExportReadinessForProject(
     voiceoverCount: assetCounts.voiceoverCount,
     sceneCount: scenes.length,
     hydratedFromAssets: hydratedCount,
+    scenes,
   })
   const readiness = buildExportReadiness({
     scenes,

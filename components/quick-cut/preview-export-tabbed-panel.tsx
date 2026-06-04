@@ -59,23 +59,29 @@ export function PreviewExportTabbedPanel({
   const generationStep = generationStepProp ?? storeGenerationStep
   const showInsightTabs = isComplete && !isLive
 
-  const defaultSubTab: PreviewExportSubTab =
-    preferredSubTab ??
-    (generationStep === 'render' || isRenderingVideo || stageTabToExportSubTab(activeStageTab)
-      ? 'export'
-      : 'preview')
-
-  const [subTab, setSubTab] = useState<PreviewExportSubTab>(defaultSubTab)
+  const [mounted, setMounted] = useState(false)
+  const [subTab, setSubTab] = useState<PreviewExportSubTab>('preview')
 
   useEffect(() => {
-    if (preferredSubTab) setSubTab(preferredSubTab)
-  }, [preferredSubTab])
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
-    if (stageTabToExportSubTab(activeStageTab)) {
+    if (!mounted) return
+    if (preferredSubTab) {
+      setSubTab(preferredSubTab)
+      return
+    }
+    if (generationStep === 'render' || isRenderingVideo || stageTabToExportSubTab(activeStageTab)) {
       setSubTab('export')
     }
-  }, [activeStageTab])
+  }, [
+    mounted,
+    preferredSubTab,
+    generationStep,
+    isRenderingVideo,
+    activeStageTab,
+  ])
 
   const mp4Export = resolveMp4ExportUiState({
     scenes,

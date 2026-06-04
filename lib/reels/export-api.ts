@@ -311,6 +311,7 @@ export async function queueReelExportForProject(params: {
     voiceoverCount: assetCounts.voiceoverCount,
     sceneCount: hydratedStoreScenes.length,
     hydratedFromAssets: hydratedCount,
+    scenes: hydratedStoreScenes,
   })
 
   const readiness = buildExportReadiness({
