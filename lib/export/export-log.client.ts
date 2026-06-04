@@ -1,6 +1,15 @@
 'use client'
 
-import { safeExportSceneRows } from '@/lib/export/export-schema'
+
+export function exportPayloadTrace(
+  stage: string,
+  input: { scenes?: unknown[] | null; storyboards?: unknown[] | null }
+): void {
+  if (typeof console === 'undefined') return
+  const scenesLength = Array.isArray(input.scenes) ? input.scenes.length : 0
+  const storyboardsLength = Array.isArray(input.storyboards) ? input.storyboards.length : 0
+  console.log('[TRACE]', stage, { scenesLength, storyboardsLength })
+}
 
 type ExportLogPayload = Record<string, unknown>
 
@@ -46,9 +55,7 @@ export function mugteeExportEnd(): void {
 }
 
 function exportSceneListCount(list: unknown[] | null | undefined): number {
-  if (!Array.isArray(list) || list.length < 1) return 0
-  const safe = safeExportSceneRows(list)
-  return safe.length > 0 ? safe.length : list.length
+  return Array.isArray(list) ? list.length : 0
 }
 
 function snapshotSceneCounts(input: {
@@ -59,17 +66,14 @@ function snapshotSceneCounts(input: {
   const sceneCount = exportSceneListCount(input.scenes)
   const storyboardCount = exportSceneListCount(input.storyboards)
   if (storyboardCount > 0 || sceneCount > 0) {
-    return {
-      sceneCount: sceneCount || storyboardCount,
-      storyboardCount: storyboardCount || sceneCount,
-    }
+    return { sceneCount, storyboardCount }
   }
   const payload = input.payload as { scenes?: unknown[]; storyboards?: unknown[] } | null
   const fromPayloadScenes = exportSceneListCount(payload?.scenes)
   const fromPayloadStoryboards = exportSceneListCount(payload?.storyboards)
   return {
-    sceneCount: fromPayloadScenes || fromPayloadStoryboards,
-    storyboardCount: fromPayloadStoryboards || fromPayloadScenes,
+    sceneCount: fromPayloadScenes,
+    storyboardCount: fromPayloadStoryboards,
   }
 }
 
@@ -81,6 +85,10 @@ export function mugteeExportSnapshot(input: {
   stage: string
 }): void {
   const counts = snapshotSceneCounts(input)
+  exportPayloadTrace(input.stage, {
+    scenes: input.scenes,
+    storyboards: input.storyboards,
+  })
   mugteeExportLog(input.stage, {
     Project: input.projectId ?? null,
     'Scenes count': counts.sceneCount,

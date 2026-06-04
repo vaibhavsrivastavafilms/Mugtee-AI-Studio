@@ -38,7 +38,7 @@ import {
   mugteeExportLog,
 
   mugteeExportSnapshot,
-
+  exportPayloadTrace,
 } from '@/lib/export/export-log.client'
 
 
@@ -173,11 +173,12 @@ async function requestReelExport(
   rowSnapshot: Pick<CinematicProjectRow, 'script' | 'voice' | 'thumbnail_url'>
 ) {
   const scenes = ensureExportSafeScenes(hydratedScenes)
-  console.log('[EXPORT TRACE] requestReelExport.scenes', {
-    projectId,
-    sceneCount: scenes.length,
-  })
+  exportPayloadTrace('before_payload_build', { scenes, storyboards: scenes })
   const snapshot = scenesToExportRequestPayload(scenes)
+  exportPayloadTrace('after_payload_build', {
+    scenes: snapshot.scenes,
+    storyboards: snapshot.storyboards,
+  })
 
   const payload = {
 
@@ -210,6 +211,11 @@ async function requestReelExport(
   }
 
 
+
+  exportPayloadTrace('before_api_request', {
+    scenes: snapshot.scenes,
+    storyboards: snapshot.storyboards,
+  })
 
   mugteeExportGroup('api_request', { projectId })
 
@@ -277,7 +283,7 @@ async function compileProjectMp4Inner(
 
   let scenes = ensureExportSafeScenes(resolveProjectScenes(row))
 
-
+  exportPayloadTrace('project_loaded', { scenes, storyboards: scenes })
 
   mugteeExportSnapshot({
 
@@ -375,9 +381,11 @@ async function compileProjectMp4Inner(
 
 
 
+  exportPayloadTrace('before_backfill', { scenes, storyboards: scenes })
+
   await backfillStoryboardAssets(projectId)
 
-  console.log('[EXPORT TRACE] compile.before_api_request', { projectId, sceneCount: scenes.length })
+  exportPayloadTrace('after_backfill', { scenes, storyboards: scenes })
 
   const { renderRes, renderData } = await requestReelExport(projectId, scenes, row)
 
