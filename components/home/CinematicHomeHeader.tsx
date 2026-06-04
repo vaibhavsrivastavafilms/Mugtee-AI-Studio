@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { authLoginHref, persistModeEntry } from '@/lib/create/mode-selection'
 import { useRouter } from 'next/navigation'
-import { HOME_NAV, goldButton, STUDIO_QUICK } from '@/components/home/cinematic-home-styles'
+import { HOME_NAV, outlineGoldButton, STUDIO_QUICK } from '@/components/home/cinematic-home-styles'
 
 type CinematicHomeHeaderProps = {
   className?: string
@@ -30,24 +30,26 @@ export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
   return (
     <header
       className={cn(
-        'shrink-0 z-50 border-b border-white/[0.06] bg-[#050505]/75 backdrop-blur-md',
+        'shrink-0 z-50 border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-md',
         className
       )}
     >
-      <div className="mx-auto flex h-12 lg:h-14 max-w-[1600px] items-center justify-between gap-3 px-4 sm:px-6">
-        <Link
-          href="/"
-          className="shrink-0 font-display text-[11px] sm:text-xs tracking-[0.28em] uppercase text-[#D4AF37] hover:opacity-90 transition-opacity"
-        >
-          Mugtee AI Studio
+      <div className="mx-auto flex h-14 lg:h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
+        <Link href="/" className="shrink-0 group hover:opacity-90 transition-opacity">
+          <span className="block font-display text-xl sm:text-2xl tracking-[0.12em] uppercase text-[#D4AF37] leading-none">
+            Mugtee
+          </span>
+          <span className="block text-[9px] sm:text-[10px] tracking-[0.32em] uppercase text-white/70 mt-0.5">
+            AI Studio
+          </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
           {HOME_NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-[9px] xl:text-[10px] tracking-[0.22em] uppercase text-white/55 hover:text-[#D4AF37] transition-colors"
+              className="text-[10px] tracking-[0.22em] uppercase text-white/60 hover:text-[#D4AF37] transition-colors"
             >
               {item.label}
             </Link>
@@ -57,10 +59,10 @@ export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
         <button
           type="button"
           onClick={handleStartCreating}
-          className={cn(goldButton, 'shrink-0 px-4 py-2 min-h-[36px] text-[10px]')}
+          className={cn(outlineGoldButton, 'shrink-0 px-4 py-2 min-h-[38px] text-[10px]')}
         >
           Start Creating
-          <Sparkles className="w-3.5 h-3.5" aria-hidden />
+          <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" aria-hidden />
         </button>
       </div>
     </header>
