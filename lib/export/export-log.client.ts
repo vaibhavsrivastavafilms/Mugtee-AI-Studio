@@ -1,5 +1,7 @@
 'use client'
 
+import { safeExportSceneRows } from '@/lib/export/export-schema'
+
 type ExportLogPayload = Record<string, unknown>
 
 let activeGroup: string | null = null
@@ -44,7 +46,9 @@ export function mugteeExportEnd(): void {
 }
 
 function exportSceneListCount(list: unknown[] | null | undefined): number {
-  return Array.isArray(list) && list.length > 0 ? list.length : 0
+  if (!Array.isArray(list) || list.length < 1) return 0
+  const safe = safeExportSceneRows(list)
+  return safe.length > 0 ? safe.length : list.length
 }
 
 function snapshotSceneCounts(input: {
