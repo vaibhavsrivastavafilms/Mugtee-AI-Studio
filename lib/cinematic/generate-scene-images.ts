@@ -7,14 +7,13 @@ import {
   type SceneImagePromptContext,
 } from '@/lib/cinematic/generation'
 import { placeholderSceneImageUrl } from '@/lib/cinematic/scene-preview-url'
-import { allowDalleImages } from '@/lib/ai/free-tier'
 import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
+import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
 import {
-  generateOpenAISceneImage,
-  generateSceneImage,
-  hasImageGenerationKey,
-  persistRemoteImage,
-} from '@/lib/ai/generate-scene-image'
+  generateSceneImageOpenAIPrimary,
+  mapWithConcurrency,
+  OPENAI_IMAGE_CONCURRENCY,
+} from '@/lib/ai/generate-scene-image-openai-primary'
 import type { VirloMetadata } from '@/lib/virlo-engine/types'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import {
@@ -281,9 +280,13 @@ export async function generateSceneImages(
     let imageAssetPath: string | undefined
     const attempted: string[] = []
 
-    attempted.push('fluxapi-together-pollinations')
+    attempted.push('openai-flux-fallback')
     try {
-      const result = await generateSceneImage(scenePrompt, {
+      const dallePrompt = buildDalleSceneImagePrompt(scene, {
+        ...ctx,
+        characterDescription,
+      })
+      const result = await generateSceneImageOpenAIPrimary(dallePrompt, {
         filename,
         userId: input.userId,
         hasReferenceStyle: ctx.hasReferenceStyle,
@@ -293,22 +296,6 @@ export async function generateSceneImages(
       if (result.provider) attempted.push(result.provider)
     } catch (err) {
       if (err instanceof ImageGenerationUnavailableError) throw err
-    }
-
-    if (!imageUrl && allowDalleImages()) {
-      attempted.push('openai')
-      const dallePrompt = buildDalleSceneImagePrompt(scene, {
-        ...ctx,
-        characterDescription,
-      })
-      const remoteUrl = await generateOpenAISceneImage(dallePrompt)
-      if (remoteUrl) {
-        imageUrl = await persistRemoteImage({
-          remoteUrl,
-          userId: input.userId,
-          filename,
-        })
-      }
     }
 
     if (!imageUrl) {
@@ -349,6 +336,7 @@ export async function generateSceneImages(
     ) {
       const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
       if (isEphemeralRemoteImageUrl(imageUrl)) {
+        const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
         const repaired = await persistRemoteImage({
           remoteUrl: imageUrl,
           userId: input.userId,
@@ -387,9 +375,13 @@ export async function generateSceneImages(
     return scene
   }
 
-  for (const { scene, index } of targets) {
-    updated[index] = await renderSceneStill(scene, index)
-  }
+  await mapWithConcurrency(
+    targets,
+    OPENAI_IMAGE_CONCURRENCY,
+    async ({ scene, index }) => {
+      updated[index] = await renderSceneStill(scene, index)
+    }
+  )
 
   const duplicateImageWarnings = findConsecutiveDuplicateSceneImages(updated)
   if (duplicateImageWarnings.length) {

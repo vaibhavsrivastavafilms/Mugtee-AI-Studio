@@ -2,7 +2,6 @@ import 'server-only'
 
 import { v4 as uuidv4 } from 'uuid'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { storeScenesToGenerated } from '@/lib/cinematic/generation'
 import {
   resolveProjectScenes,
   type CinematicProjectRow,
@@ -118,17 +117,9 @@ export function mapProjectReelStatus(
   return 'pending'
 }
 
-function resolvePersistedSceneImageUrl(scene: CinematicScene): string | null {
-  return resolveSceneExportImageUrl(scene)
-}
+import { scenesForReelExport } from '@/lib/reels/export-scenes.server'
 
-export function scenesForReelExport(scenes: CinematicScene[]): GeneratedScene[] {
-  const withImages = scenes.map((scene) => {
-    const imageUrl = resolvePersistedSceneImageUrl(scene)
-    return imageUrl ? { ...scene, imageUrl } : scene
-  })
-  return storeScenesToGenerated(withImages)
-}
+export { scenesForReelExport } from '@/lib/reels/export-scenes.server'
 
 export function projectCanExportReel(row: CinematicProjectRow): boolean {
   const voiceUrl = row.voice?.audioUrl?.trim() ?? null

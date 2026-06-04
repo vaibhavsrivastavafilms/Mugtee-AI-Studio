@@ -16,13 +16,8 @@ import {
   formatStoryBibleForPrompt,
   type StoryBible,
 } from '@/lib/cinematic/story-bible'
-import { allowDalleImages } from '@/lib/ai/free-tier'
-import {
-  generateOpenAISceneImage,
-  generateSceneImage,
-  hasImageGenerationKey,
-  persistRemoteImage,
-} from '@/lib/ai/generate-scene-image'
+import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
+import { generateSceneImageOpenAIPrimary } from '@/lib/ai/generate-scene-image-openai-primary'
 
 export const STORYBOARD_VARIANTS = [
   {
@@ -319,40 +314,22 @@ async function generateStoryboardImageUrl(params: {
   const cinematic = `${params.prompt}\n\n${cinematicBits}`
   const filename = params.filename
 
-  // Primary: Together AI → Pollinations
+  // Primary: OpenAI Images (gpt-image-1) → Flux/Together/Pollinations
   {
-    const result = await generateSceneImage(cinematic, {
+    const result = await generateSceneImageOpenAIPrimary(cinematic, {
       filename,
       userId: params.userId,
     })
     const url = result.url
     const assetPath = result.assetPath ?? filename
-    if (url && !url.startsWith('data:') && !url.includes('pollinations.ai')) {
+    if (url && !url.startsWith('data:') && result.provider === 'openai') {
       return { url, mock: false, assetPath }
     }
-    if (url && !url.startsWith('data:') && assetPath) {
+    if (url && !url.startsWith('data:') && assetPath && !url.includes('pollinations.ai')) {
       return { url, mock: false, assetPath }
     }
-    if (url) {
-      return { url, mock: true }
-    }
-  }
-
-  // Fallback: OpenAI DALL-E 3 (disabled in free-tier-only mode)
-  if (allowDalleImages()) {
-    try {
-      const remoteUrl = await generateOpenAISceneImage(cinematic)
-      if (remoteUrl) {
-        const url = await persistRemoteImage({
-          remoteUrl,
-          userId: params.userId,
-          filename,
-        })
-        const assetPath = url.includes('/project-assets/') ? filename : undefined
-        return { url, mock: false, assetPath }
-      }
-    } catch {
-      /* fall through to placeholder */
+    if (url && !url.startsWith('data:')) {
+      return { url, mock: url.includes('pollinations.ai'), assetPath }
     }
   }
 

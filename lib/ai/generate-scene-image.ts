@@ -9,7 +9,11 @@ import { logError } from '@/lib/workspace/validation'
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
-/** Pollinations fallback requires no key — image generation is always available. */
+/**
+ * Storyboard images: set OPENAI_API_KEY (optional OPENAI_IMAGE_MODEL=gpt-image-1).
+ * Fallback chain after OpenAI: FluxAPI / Together / Pollinations (no key).
+ */
+/** Pollinations fallback requires no key — image generation is always available when OpenAI is off. */
 export function hasImageGenerationKey(): boolean {
   return true
 }

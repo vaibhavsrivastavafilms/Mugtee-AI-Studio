@@ -3,7 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CinematicProjectRow } from '@/lib/cinematic-projects'
 import { resolveProjectScenes } from '@/lib/cinematic-projects'
-import { generateSceneImage } from '@/lib/ai/generate-scene-image'
+import { generateSceneImageOpenAIPrimary } from '@/lib/ai/generate-scene-image-openai-primary'
 import { persistRemoteImage } from '@/lib/ai/generate-scene-image'
 import {
   resolveSceneExportAssetPath,
@@ -86,7 +86,7 @@ async function regenerateSceneStill(params: {
   if (!prompt) return null
 
   const filename = `${params.userId}/cinematic/${params.projectId}/sb_regen_${params.scene.id}_${Date.now()}.png`
-  const result = await generateSceneImage(prompt, {
+  const result = await generateSceneImageOpenAIPrimary(prompt, {
     filename,
     userId: params.userId,
     aspectRatio: '9:16',

@@ -17,6 +17,7 @@ type PollResult = {
   videoUrl?: string | null
   thumbnailUrl?: string | null
   error?: string | null
+  provider?: string | null
 }
 
 async function pollVideoJob(pollUrl: string): Promise<PollResult> {
@@ -33,6 +34,7 @@ async function pollVideoJob(pollUrl: string): Promise<PollResult> {
     videoUrl: typeof data.videoUrl === 'string' ? data.videoUrl : null,
     thumbnailUrl: typeof data.thumbnailUrl === 'string' ? data.thumbnailUrl : null,
     error: typeof data.error === 'string' ? data.error : null,
+    provider: typeof data.provider === 'string' ? data.provider : null,
   }
 }
 
@@ -98,14 +100,25 @@ export async function pollSceneVideoJobs(
 
     for (const [sceneId, job] of [...pending.entries()]) {
       const result = await pollVideoJob(job.pollUrl)
+      if (result.status === 'failed' && result.error?.includes('not found')) {
+        for (const id of [...pending.keys()]) {
+          onUpdate(id, { videoGenerationStatus: 'failed' })
+        }
+        pending.clear()
+        break
+      }
       if (result.status === 'done' && result.videoUrl) {
+        const provider =
+          result.provider === 'runway' || result.provider === 'seedance'
+            ? result.provider
+            : 'runway'
         onUpdate(sceneId, applyVideoResultToScene(
           { id: sceneId } as GeneratedScene,
           {
             videoUrl: result.videoUrl,
             thumbnailUrl: result.thumbnailUrl ?? null,
             duration: 5,
-            provider: 'seedance',
+            provider,
           },
           'ready'
         ))

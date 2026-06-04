@@ -871,6 +871,10 @@ export function storeScenesToGenerated(scenes: CinematicScene[]): GeneratedScene
     colorPalette: scene.colorPalette || '',
     movementStyle: scene.movementStyle || '',
     imageUrl: scene.imageUrl ?? null,
+    imageAssetPath:
+      'imageAssetPath' in scene && typeof scene.imageAssetPath === 'string'
+        ? scene.imageAssetPath
+        : null,
     ...(scene.storyboardImages?.length
       ? { storyboardImages: scene.storyboardImages }
       : {}),

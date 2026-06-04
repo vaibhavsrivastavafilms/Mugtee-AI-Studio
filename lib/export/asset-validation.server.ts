@@ -3,7 +3,7 @@ import 'server-only'
 import type { CinematicProjectRow } from '@/lib/cinematic-projects'
 import { parseReelTimeline } from '@/lib/reel/parse-reel-timeline'
 import { retryWithBackoff } from '@/lib/video/retry.server'
-import { scenesForReelExport } from '@/lib/reels/export-api'
+import { scenesForReelExport } from '@/lib/reels/export-scenes.server'
 import {
   findScenesMissingExportImages,
   missingScenesExportMessage,

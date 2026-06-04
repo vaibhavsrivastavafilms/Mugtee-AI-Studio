@@ -51,7 +51,39 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       logError('workspace.project.db', error, { code: (error as any).code, id })
       return NextResponse.json({ error: 'Could not load project' }, { status: 500 })
     }
-    if (!data) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    if (!data) {
+      const { data: cinematic, error: cinematicErr } = await supabase
+        .from('cinematic_projects')
+        .select('id, user_id, title, prompt, script, platform, tone, duration, updated_at, created_at')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (cinematicErr) {
+        logError('workspace.project.cinematic.db', cinematicErr, { id })
+      }
+
+      if (cinematic && cinematic.user_id === user.id) {
+        const scriptText =
+          typeof cinematic.script === 'string' ? cinematic.script.trim() : ''
+        return NextResponse.json({
+          id: cinematic.id,
+          title: cinematic.title || 'Untitled project',
+          description: cinematic.prompt || cinematic.title || '',
+          platform: reversePlatform(cinematic.platform),
+          tone: coerceTone(cinematic.tone),
+          duration: String(coerceDuration(cinematic.duration)),
+          output: normalizeOutput(
+            { hook: '', script: scriptText, storyboard: '', captions: '', thumbnailIdea: '' },
+            EMPTY_OUTPUT
+          ),
+          updated_at: cinematic.updated_at || cinematic.created_at,
+          legacy: false,
+          source: 'cinematic',
+        })
+      }
+
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
     if (data.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const parsed = safeParse(data.script)

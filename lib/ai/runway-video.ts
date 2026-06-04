@@ -43,6 +43,7 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/** Scene video clips: RUNWAY_API_KEY or RUNWAYML_API_SECRET; optional RUNWAY_MODEL, VIDEO_GENERATION_PROVIDER=runway */
 /** Primary env var per product spec; official Runway docs use RUNWAYML_API_SECRET. */
 export function getRunwayApiKey(): string | undefined {
   return (
