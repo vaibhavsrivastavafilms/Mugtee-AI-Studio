@@ -5,14 +5,15 @@ import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store
 
 /** Command Center pipeline stages (vertical timeline + mobile tabs). */
 export type WorkspaceStage =
-  | 'idea'
   | 'research'
+  | 'idea'
   | 'hook'
   | 'script'
   | 'scenes'
   | 'storyboard'
   | 'motion'
   | 'voice'
+  | 'timeline'
   | 'export'
 
 export type WorkspaceStageStatus = 'completed' | 'active' | 'needs_attention' | 'upcoming'
@@ -21,14 +22,15 @@ export type WorkspaceStageStatus = 'completed' | 'active' | 'needs_attention' | 
 export type WorkspacePipelineState = 'pending' | 'in_progress' | 'done' | 'failed'
 
 export const WORKSPACE_STAGE_ORDER: WorkspaceStage[] = [
-  'idea',
   'research',
+  'idea',
   'hook',
   'script',
   'scenes',
   'storyboard',
   'motion',
   'voice',
+  'timeline',
   'export',
 ]
 
@@ -41,6 +43,7 @@ export const WORKSPACE_STAGE_LABELS: Record<WorkspaceStage, string> = {
   storyboard: 'Storyboard',
   motion: 'Motion',
   voice: 'Voice',
+  timeline: 'Timeline',
   export: 'Export',
 }
 
@@ -65,6 +68,7 @@ export const WORKSPACE_STAGE_GENERATION_STEPS: Record<WorkspaceStage, QuickCutGe
   storyboard: ['images'],
   motion: ['motion'],
   voice: ['voice'],
+  timeline: ['render', 'complete'],
   export: ['render'],
 }
 
@@ -103,6 +107,8 @@ export function workspaceStageToTab(stage: WorkspaceStage): QuickCutStageTab {
       return 'motion'
     case 'voice':
       return 'voice'
+    case 'timeline':
+      return 'render'
     case 'export':
       return 'complete'
   }
@@ -125,7 +131,7 @@ export function tabToWorkspaceStage(tab: QuickCutStageTab): WorkspaceStage | nul
     case 'voice':
       return 'voice'
     case 'render':
-      return 'export'
+      return 'timeline'
     case 'complete':
     case 'publish':
     case 'repurpose':
@@ -235,6 +241,12 @@ export function resolveWorkspacePipelineState(
   }
 
   if (stage === 'export') return resolveExportPipelineState(input)
+  if (stage === 'timeline') {
+    if (isExportDone(input) || input.videoUrl?.trim()) return 'done'
+    if (input.isRenderingVideo || input.generationStep === 'render') return 'in_progress'
+    if (input.sectionStatus.voice === 'completed' || input.isComplete) return 'done'
+    return 'pending'
+  }
   if (stage === 'motion') return resolveMotionPipelineState(input)
   if (stage === 'idea') return resolveIdeaPipelineState(input)
   if (stage === 'research') {
@@ -291,7 +303,7 @@ export function inferActiveWorkspaceStage(input: {
   isGenerating?: boolean
   isRenderingVideo?: boolean
 }): WorkspaceStage {
-  if (input.isRenderingVideo || input.generationStep === 'render') return 'export'
+  if (input.isRenderingVideo || input.generationStep === 'render') return 'timeline'
   if (input.isGenerating) {
     if (input.generationStep === 'motion') return 'motion'
     const tab = generationStepToTab(input.generationStep)

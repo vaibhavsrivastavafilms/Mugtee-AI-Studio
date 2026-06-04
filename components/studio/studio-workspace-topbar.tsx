@@ -18,6 +18,7 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useRewriteStore } from '@/stores/rewrite-store'
 import { HeaderRightActions } from '@/components/shell/cinematic-header-app-actions'
 import { SaveStatusIndicator } from '@/components/quick-cut/generation-save-indicator'
+import { ModeSwitcher } from '@/components/studio/mode-switcher'
 
 type StudioWorkspaceTopbarProps = {
   user: {
@@ -60,14 +61,11 @@ export function StudioWorkspaceTopbar({ user, className }: StudioWorkspaceTopbar
         className
       )}
     >
-      <Link
-        href={STUDIO.quick}
-        className="shrink-0 font-display text-sm font-bold tracking-[0.2em] text-luxe/95 hover:text-white transition"
-      >
-        MUGTEE
-      </Link>
+      <div className="hidden sm:flex shrink-0">
+        <ModeSwitcher />
+      </div>
 
-      <div className="hidden sm:flex items-center gap-2 min-w-0 max-w-[200px] lg:max-w-[260px]">
+      <div className="hidden md:flex items-center gap-2 min-w-0 max-w-[200px] lg:max-w-[240px]">
         {editingTitle ? (
           <input
             autoFocus
