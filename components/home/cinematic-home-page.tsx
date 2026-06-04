@@ -28,10 +28,13 @@ export default function CinematicHomePage() {
       <div className="flex min-h-0 flex-1 flex-col">
         <CinematicHero />
 
-        <main className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto_1fr] gap-1.5 overflow-hidden px-3 pb-1 sm:gap-2 sm:px-4 md:grid-cols-2 md:grid-rows-[1fr_auto] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-rows-1 lg:gap-3 lg:px-6">
+        <main
+          id="showcase"
+          className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto_1fr] gap-2 overflow-hidden px-3 pb-1 sm:gap-2.5 sm:px-4 md:grid-cols-2 md:grid-rows-[1fr_auto] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-rows-1 lg:gap-3 lg:px-6"
+        >
           <QuickCutCard className="min-h-0 overflow-hidden md:col-start-1 md:row-start-1" />
           <WorkflowPipeline
-            className="hidden min-h-0 lg:flex lg:col-start-2 lg:row-start-1"
+            className="hidden min-h-0 lg:flex lg:col-start-2 lg:row-start-1 lg:w-[88px] xl:w-[96px]"
             orientation="vertical"
           />
           <WorkflowPipeline

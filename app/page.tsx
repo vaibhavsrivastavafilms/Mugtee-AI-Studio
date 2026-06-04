@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const SITE_URL = getCanonicalSiteUrl()
 const HOME_TITLE = 'Mugtee AI Studio · Direct Cinematic Stories with AI'
 const HOME_DESCRIPTION =
-  'From idea to cinematic reel — Quick Cut and Director Mode in one seamless AI studio.'
+  'From idea to cinematic reel. Choose your workflow — Quick Cut or Director Mode.'
 
 export const metadata: Metadata = {
   title: HOME_TITLE,

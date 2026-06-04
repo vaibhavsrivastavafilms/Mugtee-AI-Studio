@@ -4,17 +4,15 @@ import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import {
-  Clapperboard,
+  AudioLines,
   Download,
   FileText,
+  LayoutGrid,
   Lightbulb,
-  Mic,
   Palette,
-  Sparkles,
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { glassPanel } from '@/components/home/cinematic-home-styles'
 
 const PIPELINE_STEPS: {
   label: string
@@ -24,9 +22,9 @@ const PIPELINE_STEPS: {
   { label: 'Idea', icon: Lightbulb },
   { label: 'Hook', icon: Zap },
   { label: 'Script', icon: FileText },
-  { label: 'Visual Direction', short: 'Visuals', icon: Palette },
-  { label: 'Storyboard', icon: Clapperboard },
-  { label: 'Voice', icon: Mic },
+  { label: 'Visual Direction', short: 'Visual', icon: Palette },
+  { label: 'Storyboard', icon: LayoutGrid },
+  { label: 'Voice', icon: AudioLines },
   { label: 'Export', icon: Download },
 ]
 
@@ -47,87 +45,69 @@ export const WorkflowPipeline = memo(function WorkflowPipeline({
       id="workflow"
       aria-label="Production workflow"
       className={cn(
-        'flex min-h-0 min-w-0 flex-col items-center justify-center',
+        'flex min-h-0 min-w-0 flex-col items-center justify-center px-1',
         className
       )}
     >
       <div
         className={cn(
-          glassPanel,
-          'relative flex min-h-0 w-full max-w-[11rem] xl:max-w-[12rem] flex-col px-3 py-4',
-          !isVertical && 'max-w-none flex-row items-center gap-1 px-4 py-3'
+          'relative flex min-h-0 w-full',
+          isVertical
+            ? 'flex-col items-center justify-center gap-0 py-2'
+            : 'flex-row items-center justify-between gap-0.5 overflow-x-auto rounded-2xl border border-[#D4AF37]/12 bg-white/[0.02] px-3 py-2'
         )}
       >
-        <div className="mb-2 flex items-center justify-center gap-1 text-[8px] tracking-[0.24em] uppercase text-[#D4AF37]/80 lg:hidden">
-          <Sparkles className="h-3 w-3" aria-hidden />
-          Pipeline
-        </div>
-
-        <div
-          className={cn(
-            'flex min-h-0 flex-1',
-            isVertical
-              ? 'flex-col items-stretch justify-between gap-1'
-              : 'flex-row items-center justify-between gap-0.5 overflow-x-auto'
-          )}
-        >
-          {PIPELINE_STEPS.map((step, i) => {
-            const Icon = step.icon
-            const active = i === 3
-            return (
-              <div
-                key={step.label}
-                className={cn(
-                  'relative flex items-center',
-                  isVertical ? 'flex-row gap-2' : 'flex-col gap-0.5 min-w-[52px]'
-                )}
-              >
-                {i > 0 && isVertical ? (
-                  <span
-                    className="absolute -top-1 left-[18px] h-1 w-px bg-gradient-to-b from-[#D4AF37]/40 to-transparent"
-                    aria-hidden
-                  />
-                ) : null}
-                <motion.div
-                  initial={stepInitial}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.04, duration: 0.35 }}
-                  className={cn(
-                    'flex shrink-0 items-center justify-center rounded-lg border transition-colors',
-                    isVertical ? 'h-8 w-8' : 'h-7 w-7',
-                    active
-                      ? 'border-[#D4AF37]/60 bg-[#D4AF37]/15 shadow-[0_0_12px_rgba(212,175,55,0.25)]'
-                      : 'border-white/10 bg-black/40'
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'h-3.5 w-3.5',
-                      active ? 'text-[#E8C547]' : 'text-white/45'
-                    )}
-                  />
-                </motion.div>
+        {PIPELINE_STEPS.map((step, i) => {
+          const Icon = step.icon
+          return (
+            <div
+              key={step.label}
+              className={cn(
+                'relative flex items-center',
+                isVertical ? 'flex-col gap-1 py-1.5' : 'flex-col gap-0.5 min-w-[48px] py-1'
+              )}
+            >
+              {i > 0 ? (
                 <span
                   className={cn(
-                    'uppercase tracking-[0.12em] leading-tight',
+                    'absolute bg-[#D4AF37]/35',
                     isVertical
-                      ? 'text-[9px] text-white/50'
-                      : 'text-[7px] text-center text-white/45 max-w-[56px]',
-                    active && 'text-[#D4AF37]'
+                      ? '-top-2 left-1/2 h-2 w-px -translate-x-1/2 border-l border-dashed border-[#D4AF37]/40'
+                      : '-left-1 top-1/2 h-px w-2 -translate-y-1/2 hidden sm:block'
                   )}
-                >
-                  {!isVertical && step.short ? step.short : step.label}
-                </span>
-                {i < PIPELINE_STEPS.length - 1 && !isVertical ? (
-                  <span
-                    className="hidden sm:block absolute -right-1 top-1/2 h-px w-2 bg-[#D4AF37]/25"
-                    aria-hidden
-                  />
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
+                  style={
+                    isVertical
+                      ? {
+                          background:
+                            'repeating-linear-gradient(180deg, rgba(212,175,55,0.5) 0 3px, transparent 3px 6px)',
+                        }
+                      : undefined
+                  }
+                  aria-hidden
+                />
+              ) : null}
+              <motion.div
+                initial={stepInitial}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.04, duration: 0.35 }}
+                className={cn(
+                  'flex shrink-0 items-center justify-center rounded-lg border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-[0_0_14px_rgba(212,175,55,0.2)]',
+                  isVertical ? 'h-9 w-9' : 'h-7 w-7'
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 text-[#E8C547]" />
+              </motion.div>
+              <span
+                className={cn(
+                  'uppercase tracking-[0.1em] leading-tight text-[#D4AF37]/80',
+                  isVertical ? 'text-[8px] text-center max-w-[72px]' : 'text-[7px] text-center max-w-[52px]'
+                )}
+              >
+                {!isVertical && step.short ? step.short : step.label}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </section>
   )
