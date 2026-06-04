@@ -12,7 +12,7 @@ export type HeaderNavId =
 
 export const HEADER_NAV = [
   { id: 'home' as const, label: 'Home', href: '/home' },
-  { id: 'create' as const, label: 'Create', href: '/studio/create?mode=quick' },
+  { id: 'create' as const, label: 'Create', href: '/studio/quick' },
   { id: 'video' as const, label: 'Demo', href: '/studio/video' },
   { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
   { id: 'assets' as const, label: 'Assets', href: '/studio/assets' },
@@ -41,7 +41,10 @@ export function headerNavActive(
     return pathname.startsWith('/studio/exports') || tab === 'exports'
   }
   if (id === 'director') {
-    return pathname.startsWith('/studio/director') || pathname.startsWith('/workspace')
+    return (
+      pathname.startsWith('/studio/director') ||
+      pathname.startsWith('/studio/workspace')
+    )
   }
   if (id === 'knowledge') {
     return (
@@ -68,6 +71,7 @@ export function headerNavActive(
     )
   }
   if (id === 'create') {
+    if (pathname === '/studio/quick' || pathname.startsWith('/studio/quick/')) return true
     if (pathname === '/studio' || pathname.startsWith('/studio/create')) {
       if (tab === 'projects' || tab === 'exports' || tab === 'knowledge' || tab === 'analytics') return false
       return true

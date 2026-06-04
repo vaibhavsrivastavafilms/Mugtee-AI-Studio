@@ -97,7 +97,7 @@ export function isProtectedPath(pathname: string): boolean {
  * OAuth/login defaults — so unauthenticated `(app)` access never steals the
  * Quick Cut `/?resume=1` return path.
  */
-export const APP_ROUTE_LOGIN_FALLBACK = '/studio/create?mode=quick'
+export const APP_ROUTE_LOGIN_FALLBACK = '/studio/quick'
 
 export function loginRedirectUrl(requestPath: string): string {
   const next =

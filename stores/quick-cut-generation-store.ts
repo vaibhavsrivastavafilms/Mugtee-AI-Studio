@@ -379,6 +379,8 @@ export type QuickCutInput = {
   inputType?: 'text' | 'voice' | 'mixed'
   /** Skip pre-script deep research (faster) */
   skipResearch?: boolean
+  /** Target distribution platform for script brief */
+  platform?: string
   /** Explicit output language — defaults to English or saved preference */
   language?: ProjectLanguage
   /** AI Director Mode — creative direction for generation */
@@ -2329,7 +2331,8 @@ export const useQuickCutGenerationStore = create<
     const styleTemplateId = regenFresh
       ? preserved?.styleTemplateId ?? prior.styleTemplateId
       : prior.styleTemplateId
-    const blueprintPlatform = creatorBlueprintById(blueprintId)?.suggestedPlatform
+    const blueprintPlatform =
+      input.platform ?? creatorBlueprintById(blueprintId)?.suggestedPlatform
     const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
     const duration = coerceDuration(input.duration ?? prior.duration ?? 60)
     const preserveProjectId =

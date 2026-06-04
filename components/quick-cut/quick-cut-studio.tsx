@@ -20,6 +20,7 @@ import { WorkflowHeader } from '@/components/workflow/workflow-header'
 import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
+import { STUDIO } from '@/lib/create/routes'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -127,9 +128,9 @@ export function QuickCutStudio({ onRegenerate }: { onRegenerate?: () => void }) 
         onContinue={() => void resumeGeneration()}
         onReturnToWorkspace={() => {
           resetQuickCutForFreshCreate()
-          router.push('/studio/quick-cut')
+          router.push(STUDIO.quick)
         }}
-        workspaceHref="/studio/quick-cut"
+        workspaceHref={STUDIO.quick}
       />
     )
   }

@@ -12,6 +12,7 @@ export type CreateSegment = 'generate' | 'director' | 'export'
 const STUDIO = {
   root: '/studio',
   create: '/studio/create',
+  quick: '/studio/quick',
   projects: '/studio/projects',
   project: '/studio/project',
   knowledge: '/studio/knowledge',
@@ -20,6 +21,7 @@ const STUDIO = {
   exports: '/studio/exports',
   assets: '/studio/assets',
   director: '/studio/director',
+  workspace: '/studio/workspace',
   settings: '/studio/settings',
   memory: '/studio/memory',
   marketplace: '/studio/marketplace',
@@ -29,46 +31,40 @@ const STUDIO = {
 
 export { STUDIO }
 
-/** Canonical Quick Cut surface — fast one-click generation. */
+/** Canonical Quick Mode surface — fast one-click generation. */
 export function quickCutStudioHref(
   params?: Record<string, string | undefined>
 ): string {
-  const qs = new URLSearchParams({ mode: 'quick' })
+  const qs = new URLSearchParams()
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (value) qs.set(key, value)
     }
   }
   const q = qs.toString()
-  return `${STUDIO.create}?${q}`
+  return q ? `${STUDIO.quick}?${q}` : STUDIO.quick
 }
 
-/** Dedicated project workspace — storyboard, scenes, and director output. */
+/** Director Mode project workspace — full cinematic pipeline shell. */
 export function projectWorkspaceHref(
   projectId: string,
   options?: { tab?: QuickCutStageTab; regen?: boolean }
 ): string {
-  const qs = new URLSearchParams()
-  if (options?.tab) qs.set('tab', options.tab)
-  if (options?.regen) qs.set('regen', '1')
-  const q = qs.toString()
-  return q
-    ? `${STUDIO.project}/${projectId}?${q}`
-    : `${STUDIO.project}/${projectId}`
+  const params: Record<string, string | undefined> = {}
+  if (options?.tab) params.tab = options.tab
+  if (options?.regen) params.regen = '1'
+  return directorWorkspaceHref(projectId, params)
 }
 
-/** Flagship Creator Command Center workspace — unified pipeline shell. */
+/** Director Mode Command Center — alias for project workspace href. */
 export function commandCenterWorkspaceHref(
   projectId?: string | null,
   options?: { tab?: QuickCutStageTab; regen?: boolean }
 ): string {
-  const base = `${STUDIO.root}/workspace`
-  const qs = new URLSearchParams()
-  if (projectId) qs.set('project', projectId)
-  if (options?.tab) qs.set('tab', options.tab)
-  if (options?.regen) qs.set('regen', '1')
-  const q = qs.toString()
-  return q ? `${base}?${q}` : base
+  const params: Record<string, string | undefined> = {}
+  if (options?.tab) params.tab = options.tab
+  if (options?.regen) params.regen = '1'
+  return directorWorkspaceHref(projectId, params)
 }
 
 /** Project continuity route — resolves to the dedicated workspace. */
@@ -124,13 +120,57 @@ export function createEntryHref(
   return q ? `${STUDIO.create}?${q}` : STUDIO.create
 }
 
-/** Redirect legacy /create?mode=director to the workspace canvas. Quick Cut stays on /create. */
+/** Redirect legacy /create?mode=* to dedicated mode routes. */
 export function legacyCreateRedirectTarget(
   searchParams: URLSearchParams | { get: (key: string) => string | null }
 ): string | null {
   const mode = searchParams.get('mode')
   if (mode === 'director') return directorWorkspaceHref()
+  if (mode === 'quick') {
+    const qs = new URLSearchParams()
+    for (const key of ['project', 'topic', 'prompt', 'autorun', 'resume', 'experience', 'tab', 'regen']) {
+      const value = searchParams.get(key)
+      if (value) qs.set(key, value)
+    }
+    const q = qs.toString()
+    return q ? `${STUDIO.quick}?${q}` : STUDIO.quick
+  }
   return null
+}
+
+/** Infer active creator mode from pathname. */
+export function creatorModeFromPathname(pathname: string): CreatorMode | null {
+  if (
+    pathname === STUDIO.quick ||
+    pathname.startsWith(`${STUDIO.quick}/`) ||
+    pathname === '/quick-cut' ||
+    pathname.startsWith('/quick-cut/')
+  ) {
+    return 'quick'
+  }
+  if (
+    pathname === STUDIO.director ||
+    pathname.startsWith(`${STUDIO.director}/`) ||
+    pathname === STUDIO.workspace ||
+    pathname.startsWith(`${STUDIO.workspace}/`)
+  ) {
+    return 'director'
+  }
+  return null
+}
+
+/** Switch between Quick and Director while preserving project context. */
+export function switchCreatorModeHref(
+  targetMode: CreatorMode,
+  projectId?: string | null,
+  params?: Record<string, string | undefined>
+): string {
+  if (targetMode === 'quick') {
+    const merged = { ...params }
+    if (projectId) merged.project = projectId
+    return quickCutStudioHref(merged)
+  }
+  return directorWorkspaceHref(projectId, params)
 }
 
 export function createProjectHref(
@@ -185,14 +225,14 @@ export function inferOpenStageTabFromCard(input: {
   return undefined
 }
 
-/** Quick Cut — open saved project in the generation/storyboard studio (not export). */
+/** Quick Mode — open saved project in the minimal generation flow. */
 export function openQuickCutProjectHref(
   projectId: string,
   stageTab?: QuickCutStageTab
 ): string {
-  return stageTab
-    ? projectWorkspaceHref(projectId, { tab: stageTab })
-    : projectWorkspaceHref(projectId)
+  const params: Record<string, string | undefined> = { project: projectId }
+  if (stageTab) params.tab = stageTab
+  return quickCutStudioHref(params)
 }
 
 /** Parse `?tab=` from a generate URL into a stage tab id. */

@@ -30,7 +30,7 @@ export function destinationForMugteeMode(
   mode: string | null | undefined
 ): string {
   if (mode === 'director') return '/studio/director'
-  return '/studio/create?mode=quick'
+  return '/studio/quick'
 }
 
 export function resolvePostLoginRedirect(input: {

@@ -3,8 +3,8 @@
 import { cn } from '@/lib/utils'
 import { CreatorLevelBadge } from '@/components/mission/creator-level-badge'
 import { WorkflowProgress } from '@/components/workflow/workflow-progress'
-import { WorkflowTimeline } from '@/components/workflow/WorkflowTimeline'
 import { WorkflowNavigator } from '@/components/workflow/WorkflowNavigator'
+import { StudioCompactWorkflowStatus } from '@/components/studio/studio-compact-workflow-status'
 import { missionCompletionPercent } from '@/lib/mission/mission-steps'
 import { missionStatusLabel } from '@/lib/mission/mission-copy'
 import { resolveHookStatusLabel } from '@/lib/cinematic/hook-generation-progress'
@@ -29,7 +29,6 @@ export function WorkflowHeader({ className }: WorkflowHeaderProps) {
     sectionStatus,
     isComplete,
     isGenerating,
-    currentWorkflowStep,
     hookProgressLabel,
     directingSceneLabel,
     videoRenderEnabled,
@@ -52,7 +51,6 @@ export function WorkflowHeader({ className }: WorkflowHeaderProps) {
       sectionStatus: s.sectionStatus,
       isComplete: s.isComplete,
       isGenerating: s.isGenerating,
-      currentWorkflowStep: s.currentWorkflowStep,
       hookProgressLabel: s.hookProgressLabel,
       directingSceneLabel: s.directingSceneLabel,
       videoRenderEnabled: s.videoRenderEnabled,
@@ -96,14 +94,17 @@ export function WorkflowHeader({ className }: WorkflowHeaderProps) {
 
   return (
     <header
-      className={cn('space-y-1.5 sm:space-y-2', className)}
+      className={cn('space-y-1 sm:space-y-1.5', className)}
       aria-label="Workflow progress"
     >
-      <CreatorLevelBadge className="justify-start" />
+      <div className="flex flex-wrap items-center gap-2">
+        <CreatorLevelBadge className="justify-start shrink-0" />
+        <StudioCompactWorkflowStatus className="flex-1 min-w-0" />
+      </div>
 
       {title ? (
         <h1
-          className="font-display text-xl sm:text-2xl lg:text-[1.65rem] text-[#F4E7C1] tracking-tight leading-tight truncate"
+          className="font-display text-lg sm:text-xl lg:text-[1.35rem] text-[#F4E7C1] tracking-tight leading-tight truncate"
           title={title}
         >
           {title}
@@ -111,13 +112,6 @@ export function WorkflowHeader({ className }: WorkflowHeaderProps) {
       ) : null}
 
       <WorkflowProgress percent={completion} />
-
-      <WorkflowTimeline
-        sectionStatus={sectionStatus}
-        generationStep={generationStep}
-        isComplete={isComplete}
-        currentWorkflowStep={currentWorkflowStep}
-      />
 
       <WorkflowNavigator />
 

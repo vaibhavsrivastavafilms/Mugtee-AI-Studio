@@ -12,8 +12,9 @@ import {
   QuickCutGenerationFooter,
 } from '@/components/quick-cut/generation-footer'
 import { RecommendedNextSteps } from '@/components/quick-cut/recommended-next-steps'
-import { WorkflowHeader } from '@/components/workflow/workflow-header'
 import { WorkflowStackedPanel } from '@/components/workflow/WorkflowStackedPanel'
+import { StudioScenesWorkspace } from '@/components/studio/studio-scenes-workspace'
+import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { generationStepToTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { tabToWorkspaceStage, workspaceStageToTab } from '@/lib/studio/workspace-stages'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
@@ -28,6 +29,7 @@ type StudioMainWorkspaceProps = {
 }
 
 const EXPORT_STAGE_TABS = ['complete', 'publish', 'repurpose'] as const
+const SCENE_STAGES = new Set(['scenes', 'storyboard'])
 
 export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspaceProps) {
   const router = useRouter()
@@ -38,12 +40,8 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const activeStageTab = useQuickCutGenerationStore((s) => s.activeStageTab)
   const stageTabPinned = useQuickCutGenerationStore((s) => s.stageTabPinned)
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
   const script = useQuickCutGenerationStore((s) => s.script)
   const scenes = useQuickCutGenerationStore((s) => s.scenes)
-  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const generationState = useQuickCutGenerationStore((s) => s.generationState)
@@ -53,6 +51,9 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
   const prompt = useQuickCutGenerationStore((s) => s.prompt)
+  const researchReport = useQuickCutGenerationStore((s) => s.researchReport)
+  const researchDocument = useQuickCutGenerationStore((s) => s.researchDocument)
+  const researchMock = useQuickCutGenerationStore((s) => s.researchMock)
 
   useEffect(() => {
     if (
@@ -93,9 +94,39 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
     scenes.length > 0 ||
     prompt.trim().length >= 6
 
+  const useScenesLayout =
+    SCENE_STAGES.has(activeStage) && scenes.length > 0 && !showCinematicAssembly && !isComplete
+
+  if (activeStage === 'research') {
+    return (
+      <main className={cn('flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-luxe p-4', className)}>
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div>
+            <h2 className="font-display text-lg text-luxe">Research</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Deep research runs automatically during generation. Review findings here when available.
+            </p>
+          </div>
+          {researchReport || researchDocument ? (
+            <DeepResearchPanel
+              document={researchDocument}
+              report={researchReport}
+              mock={researchMock}
+            />
+          ) : (
+            <p className="text-sm text-luxe/50 italic rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-6 text-center">
+              Start or resume a project to populate research. Generate with research enabled in
+              Director settings, or open Quick Mode for a faster pass.
+            </p>
+          )}
+        </div>
+      </main>
+    )
+  }
+
   if (showRecovery) {
     return (
-      <main className={cn('flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-luxe', className)}>
+      <main className={cn('flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-luxe p-4', className)}>
         <GenerationRecoveryPanel
           lastCompletedStep={lastCompletedStep}
           failedAtStep={failedAtStep}
@@ -119,6 +150,15 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
     )
   }
 
+  if (useScenesLayout) {
+    return (
+      <main className={cn('flex-1 min-w-0 min-h-0 flex flex-col', className)}>
+        <StudioScenesWorkspace className="flex-1" />
+        <QuickCutGenerationFooter />
+      </main>
+    )
+  }
+
   return (
     <main
       className={cn(
@@ -127,9 +167,7 @@ export function StudioMainWorkspace({ className, projectId }: StudioMainWorkspac
         className
       )}
     >
-      <div className="space-y-4 max-w-3xl mx-auto w-full px-1 sm:px-2 py-2">
-        <WorkflowHeader className="sticky top-0 z-30 -mx-1 px-1 py-2 -mt-1 mb-1 bg-[#050505]/92 backdrop-blur-xl border-b border-white/[0.06]" />
-
+      <div className="space-y-3 max-w-4xl mx-auto w-full px-3 sm:px-4 py-3">
         <div className="flex flex-col items-center">
           {showCinematicAssembly ? (
             <CinematicAssemblyScreen

@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Clapperboard, Search, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createEntryHref, directorWorkspaceHref, STUDIO, type CreatorMode } from '@/lib/create/routes'
-import { QuickCutCreateEntry } from '@/components/create/quick-cut-create-entry'
 import { storeCreatorMode } from '@/lib/create/mode-selection'
 import { isDirectorCutLocked } from '@/lib/features/director-cut-lock'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
@@ -84,21 +83,21 @@ function CreateEntryInner() {
   useEffect(() => {
     if (mode === 'quick') {
       storeCreatorMode('quick')
+      const qs = new URLSearchParams(searchParams?.toString() ?? '')
+      qs.delete('mode')
+      const q = qs.toString()
+      router.replace(q ? `/studio/quick?${q}` : '/studio/quick')
       return
     }
     if (mode === 'director') {
       router.replace(directorWorkspaceHref())
     }
-  }, [mode, router])
+  }, [mode, router, searchParams])
 
-  if (mode === 'quick') {
-    return <QuickCutCreateEntry />
-  }
-
-  if (mode === 'director') {
+  if (mode === 'quick' || mode === 'director') {
     return (
       <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-        Opening Director Mode…
+        Opening {mode === 'quick' ? 'Quick Mode' : 'Director Mode'}…
       </div>
     )
   }

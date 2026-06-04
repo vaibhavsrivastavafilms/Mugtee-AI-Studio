@@ -27,7 +27,7 @@ export type CreatorProjectContinuity = {
 }
 
 export function buildResumeHref(projectId: string, step?: WorkflowStepId | null): string {
-  const base = `/studio/workspace?project=${encodeURIComponent(projectId)}`
+  const base = `/studio/director?project=${encodeURIComponent(projectId)}`
   return step ? `${base}#${step}` : base
 }
 

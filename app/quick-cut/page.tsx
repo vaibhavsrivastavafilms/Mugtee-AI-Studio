@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
+import { STUDIO } from '@/lib/create/routes'
 
 export const dynamic = 'force-dynamic'
 
-/** Legacy /quick-cut — canonical route is /create?mode=quick. */
+/** Legacy /quick-cut — canonical route is /studio/quick. */
 export default function QuickCutLegacyPage() {
-  redirect('/create?mode=quick')
+  redirect(STUDIO.quick)
 }
