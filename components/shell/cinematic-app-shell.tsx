@@ -53,7 +53,9 @@ export default function CinematicAppShell({
               className="pointer-events-none fixed inset-0 -z-10 opacity-40"
               style={{
                 background:
-                  'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212,175,55,0.12) 0%, transparent 55%)',
+                  creatorMode === 'quick'
+                    ? 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.14) 0%, transparent 55%)'
+                    : 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212,175,55,0.12) 0%, transparent 55%)',
               }}
               aria-hidden
             />

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Maximize2, Sparkles, Wand2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { studioBtnOutline } from '@/lib/studio/studio-design-tokens'
+import { directorBtnOutline } from '@/lib/studio/director-mode-tokens'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 import { RewriteToolbar } from '@/components/director/rewrite-toolbar'
 import { GenerationStagePanel } from '@/components/quick-cut/generation-stage-panel'
@@ -109,7 +109,7 @@ export function MainWorkspaceTabs({ projectId, className }: MainWorkspaceTabsPro
             </h2>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button type="button" onClick={focusSceneScript} className={studioBtnOutline}>
+            <button type="button" onClick={focusSceneScript} className={directorBtnOutline}>
               <Sparkles className="w-3.5 h-3.5" />
               AI Rewrite
             </button>
@@ -130,7 +130,7 @@ export function MainWorkspaceTabs({ projectId, className }: MainWorkspaceTabsPro
               <TabsTrigger
                 key={id}
                 value={id}
-                className="flex-1 rounded-lg text-[11px] tracking-[0.1em] uppercase data-[state=active]:bg-studio-primary data-[state=active]:text-white"
+                className="flex-1 rounded-lg text-[11px] tracking-[0.1em] uppercase data-[state=active]:bg-director-primary data-[state=active]:text-black"
               >
                 {id === 'storyboard' ? 'Storyboard' : id.charAt(0).toUpperCase() + id.slice(1)}
               </TabsTrigger>
@@ -152,7 +152,7 @@ export function MainWorkspaceTabs({ projectId, className }: MainWorkspaceTabsPro
                   }))
                 }}
                 placeholder="Scene narration and beats…"
-                className="flex-1 min-h-[140px] w-full resize-none rounded-2xl border border-white/[0.08] bg-[#0D0D0D] px-4 py-3 text-[13px] text-luxe/90 leading-relaxed focus:outline-none focus:border-studio-primary/40 scrollbar-luxe"
+                className="flex-1 min-h-[140px] w-full resize-none rounded-2xl border border-white/[0.08] bg-[#0D0D0D] px-4 py-3 text-[13px] text-luxe/90 leading-relaxed focus:outline-none focus:border-director-primary/40 scrollbar-luxe"
               />
               <RewriteToolbar
                 containerRef={containerRef}
@@ -191,7 +191,7 @@ export function MainWorkspaceTabs({ projectId, className }: MainWorkspaceTabsPro
                         className={cn(
                           'relative shrink-0 w-20 h-14 rounded-lg overflow-hidden border transition',
                           selected
-                            ? 'border-studio-primary ring-1 ring-studio-primary/50'
+                            ? 'border-director-primary ring-1 ring-director-primary/50'
                             : 'border-white/[0.08] opacity-70 hover:opacity-100'
                         )}
                       >
@@ -219,7 +219,7 @@ export function MainWorkspaceTabs({ projectId, className }: MainWorkspaceTabsPro
             value="motion"
             className="flex-1 min-h-0 mt-0 overflow-y-auto scrollbar-luxe px-4 py-3 data-[state=inactive]:hidden"
           >
-            <div className="flex items-center gap-2 text-studio-primary/80 mb-2">
+            <div className="flex items-center gap-2 text-director-primary/80 mb-2">
               <Wand2 className="w-3.5 h-3.5" />
               <p className="text-[10px] tracking-[0.16em] uppercase">Motion presets</p>
             </div>

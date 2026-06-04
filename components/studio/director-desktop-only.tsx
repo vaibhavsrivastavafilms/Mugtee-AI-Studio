@@ -3,7 +3,7 @@
 import { Clapperboard, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { quickCutStudioHref } from '@/lib/create/routes'
-import { studioGlassPanel } from '@/lib/studio/studio-design-tokens'
+import { directorGlassPanel } from '@/lib/studio/director-mode-tokens'
 import { cn } from '@/lib/utils'
 
 type DirectorDesktopOnlyProps = {
@@ -19,12 +19,12 @@ export function DirectorDesktopOnly({ className }: DirectorDesktopOnlyProps) {
         className
       )}
     >
-      <div className={cn(studioGlassPanel, 'max-w-md w-full px-6 py-8 space-y-4')}>
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/15 border border-violet-400/25">
-          <Monitor className="w-6 h-6 text-violet-300" aria-hidden />
+      <div className={cn(directorGlassPanel, 'max-w-md w-full px-6 py-8 space-y-4')}>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gold-500/15 border border-gold-500/25">
+          <Monitor className="w-6 h-6 text-gold-300" aria-hidden />
         </div>
         <div className="space-y-2">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-violet-300/70 flex items-center justify-center gap-1.5">
+          <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/70 flex items-center justify-center gap-1.5">
             <Clapperboard className="w-3.5 h-3.5" />
             Director Mode
           </p>
@@ -36,7 +36,7 @@ export function DirectorDesktopOnly({ className }: DirectorDesktopOnlyProps) {
         </div>
         <Link
           href={quickCutStudioHref()}
-          className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-medium bg-[#8b5cf6] text-white hover:bg-[#7c3aed] transition"
+          className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-medium bg-gold-gradient text-black shadow-gold-glow hover:opacity-90 transition"
         >
           Switch to Quick Mode
         </Link>

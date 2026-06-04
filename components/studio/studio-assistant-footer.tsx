@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import { Loader2, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { studioBtnPrimary } from '@/lib/studio/studio-design-tokens'
+import { directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 
 type StudioAssistantFooterProps = {
   className?: string
@@ -58,13 +58,13 @@ export function StudioAssistantFooter({ className }: StudioAssistantFooterProps)
           }}
           placeholder="Ask anything about your project…"
           disabled={busy}
-          className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[12px] text-luxe placeholder:text-luxe/35 focus:outline-none focus:border-studio-primary/40"
+          className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[12px] text-luxe placeholder:text-luxe/35 focus:outline-none focus:border-director-primary/40"
         />
         <button
           type="button"
           disabled={busy || !message.trim()}
           onClick={() => void send()}
-          className={cn(studioBtnPrimary, 'h-9 w-9 px-0 shrink-0')}
+          className={cn(directorBtnPrimary, 'h-9 w-9 px-0 shrink-0')}
           aria-label="Send to assistant"
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

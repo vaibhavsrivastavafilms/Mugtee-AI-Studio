@@ -143,7 +143,7 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
           href={STUDIO.quick}
           className="inline-flex items-center gap-2 font-display text-sm font-bold tracking-[0.18em] text-luxe hover:text-white transition"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-studio-primary/20 text-studio-primary text-xs">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-director-primary/20 text-director-primary text-xs">
             M
           </span>
           MUGTEE
@@ -186,7 +186,7 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
           </div>
           <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
             <div
-              className="h-full bg-studio-primary transition-all duration-300"
+              className="h-full bg-director-primary transition-all duration-300"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -213,7 +213,7 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
               className={cn(
                 'w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition',
                 isSelected
-                  ? 'bg-studio-primary-muted border border-studio-primary/30'
+                  ? 'bg-director-primary-muted border border-director-primary/30'
                   : 'hover:bg-white/[0.03] border border-transparent'
               )}
             >
@@ -221,7 +221,7 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
                 <span
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-lg',
-                    isSelected ? 'text-studio-primary' : 'text-luxe/45'
+                    isSelected ? 'text-director-primary' : 'text-luxe/45'
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -230,7 +230,7 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
                   {isDone ? (
                     <Check className="w-3 h-3 text-emerald-400" strokeWidth={3} />
                   ) : isActive ? (
-                    <Loader2 className="w-3 h-3 text-studio-primary animate-spin" />
+                    <Loader2 className="w-3 h-3 text-director-primary animate-spin" />
                   ) : needsAttention ? (
                     <AlertCircle className="w-3 h-3 text-amber-400" />
                   ) : (
@@ -241,13 +241,13 @@ export function ProjectNavRail({ className }: ProjectNavRailProps) {
               <span
                 className={cn(
                   'flex-1 text-[12px] font-medium',
-                  isSelected ? 'text-studio-primary' : 'text-luxe/70'
+                  isSelected ? 'text-director-primary' : 'text-luxe/70'
                 )}
               >
                 {label}
               </span>
               {sceneBadge != null ? (
-                <span className="px-1.5 py-0.5 rounded-md bg-studio-primary/20 text-[10px] font-semibold text-studio-primary tabular-nums">
+                <span className="px-1.5 py-0.5 rounded-md bg-director-primary/20 text-[10px] font-semibold text-director-primary tabular-nums">
                   {sceneBadge}
                 </span>
               ) : null}

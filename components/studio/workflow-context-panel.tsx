@@ -15,7 +15,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { studioBtnPrimary } from '@/lib/studio/studio-design-tokens'
+import { directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import { StudioSceneCard } from '@/components/studio/studio-scene-card'
 import { DeepResearchPanel } from '@/components/quick-cut/deep-research-panel'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -145,7 +145,7 @@ export function WorkflowContextPanel({ className }: WorkflowContextPanelProps) {
         )}
       >
         <div className="px-4 py-3 border-b border-white/[0.06]">
-          <p className="text-[10px] tracking-[0.22em] uppercase text-studio-primary font-semibold">
+          <p className="text-[10px] tracking-[0.22em] uppercase text-director-primary font-semibold">
             Research
           </p>
         </div>
@@ -213,7 +213,7 @@ export function WorkflowContextPanel({ className }: WorkflowContextPanelProps) {
       <div className="shrink-0 px-4 py-3 border-b border-white/[0.06]">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-[10px] tracking-[0.22em] uppercase text-studio-primary font-semibold">
+            <p className="text-[10px] tracking-[0.22em] uppercase text-director-primary font-semibold">
               Scenes
             </p>
             <p className="text-[11px] text-luxe/45 mt-0.5 tabular-nums">
@@ -224,7 +224,7 @@ export function WorkflowContextPanel({ className }: WorkflowContextPanelProps) {
             type="button"
             disabled={isGenerating}
             onClick={() => void handleAddScene()}
-            className={cn(studioBtnPrimary, 'h-8')}
+            className={cn(directorBtnPrimary, 'h-8')}
           >
             <Plus className="w-3.5 h-3.5" />
             Add Scene
@@ -281,7 +281,7 @@ export function WorkflowContextPanel({ className }: WorkflowContextPanelProps) {
           type="button"
           disabled={isGenerating}
           onClick={() => void handleAddScene()}
-          className="w-full text-[11px] tracking-[0.12em] uppercase text-luxe/50 hover:text-studio-primary transition disabled:opacity-40"
+          className="w-full text-[11px] tracking-[0.12em] uppercase text-luxe/50 hover:text-director-primary transition disabled:opacity-40"
         >
           + Add New Scene
         </button>

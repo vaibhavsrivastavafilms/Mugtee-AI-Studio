@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Command,
   Download,
@@ -19,6 +19,7 @@ import {
   createEntryHref,
   createProjectHref,
   commandCenterWorkspaceHref,
+  creatorModeFromPathname,
   directorWorkspaceHref,
   STUDIO,
 } from '@/lib/create/routes'
@@ -37,6 +38,8 @@ type StudioCommand = {
 
 export function StudioCommandPalette() {
   const router = useRouter()
+  const pathname = usePathname() ?? ''
+  const isQuickMode = creatorModeFromPathname(pathname) === 'quick'
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -288,7 +291,12 @@ export function StudioCommandPalette() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-          <Command className="h-3.5 w-3.5 text-violet-300/80" />
+          <Command
+            className={cn(
+              'h-3.5 w-3.5',
+              isQuickMode ? 'text-violet-300/80' : 'text-gold-300/80'
+            )}
+          />
           <span className="text-[10px] tracking-[0.2em] uppercase text-luxe/55">Studio ⌘K</span>
         </div>
         <input
@@ -326,11 +334,18 @@ export function StudioCommandPalette() {
                     className={cn(
                       'w-full flex items-center gap-3 px-4 py-2.5 text-left transition',
                       index === activeIndex
-                        ? 'bg-violet-500/[0.1] text-violet-100'
+                        ? isQuickMode
+                          ? 'bg-violet-500/[0.1] text-violet-100'
+                          : 'bg-gold-500/[0.1] text-gold-100'
                         : 'text-luxe/80 hover:bg-white/[0.03]'
                     )}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0 text-gold-300/70" />
+                    <Icon
+                      className={cn(
+                        'w-3.5 h-3.5 shrink-0',
+                        isQuickMode ? 'text-violet-300/70' : 'text-gold-300/70'
+                      )}
+                    />
                     <span className="text-[12px]">{cmd.label}</span>
                   </button>
                 </li>

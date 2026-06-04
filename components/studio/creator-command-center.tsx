@@ -91,7 +91,7 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
       )}
     >
       <StudioGlobalSearchPlaceholder />
-      <StudioWorkspaceTopbar user={shellUser} className="hidden lg:flex" />
+      <StudioWorkspaceTopbar user={shellUser} variant="director" className="hidden lg:flex" />
 
       {!projectId ? (
         <ProjectRecoveryBanner className="mx-3 sm:mx-4 mt-2" />

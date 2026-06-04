@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { resolveScenePreviewUrl } from '@/lib/cinematic/scene-preview-url'
 import { sceneDisplayTag } from '@/lib/studio/scene-display-tags'
-import { studioBtnGhost } from '@/lib/studio/studio-design-tokens'
+import { directorBtnGhost } from '@/lib/studio/director-mode-tokens'
 
 type StudioSceneCardProps = {
   scene: GeneratedScene
@@ -47,14 +47,14 @@ export function StudioSceneCard({
       className={cn(
         'flex gap-3 p-3 rounded-xl border bg-[#141418]/80 transition cursor-pointer',
         selected
-          ? 'border-studio-primary ring-1 ring-studio-primary/40 shadow-[0_0_24px_-8px_rgba(99,102,241,0.35)]'
+          ? 'border-director-primary ring-1 ring-director-primary/40 shadow-[0_0_24px_-8px_rgba(231,197,106,0.25)]'
           : 'border-white/[0.06] hover:border-white/[0.1]'
       )}
     >
       <div className="relative w-[88px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-black/50">
         {loading && !previewUrl ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-studio-primary animate-spin" />
+            <Loader2 className="w-5 h-5 text-director-primary animate-spin" />
           </div>
         ) : previewUrl ? (
           <Image
@@ -91,14 +91,14 @@ export function StudioSceneCard({
       </div>
 
       <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={onEdit} className={studioBtnGhost} aria-label="Edit scene">
+        <button type="button" onClick={onEdit} className={directorBtnGhost} aria-label="Edit scene">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button
           type="button"
           onClick={onRegenerate}
           disabled={loading}
-          className={studioBtnGhost}
+          className={directorBtnGhost}
           aria-label="Regenerate scene"
         >
           {loading ? (
@@ -107,7 +107,7 @@ export function StudioSceneCard({
             <RefreshCw className="w-3.5 h-3.5" />
           )}
         </button>
-        <button type="button" className={studioBtnGhost} aria-label="More options">
+        <button type="button" className={directorBtnGhost} aria-label="More options">
           <MoreVertical className="w-3.5 h-3.5" />
         </button>
       </div>
