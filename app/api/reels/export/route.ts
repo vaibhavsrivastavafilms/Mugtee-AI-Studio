@@ -21,6 +21,8 @@ import {
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { parseTimelineProject } from '@/types/timeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { validateExportRequestPayload } from '@/lib/export/export-schema'
+import { mergeClientExportSnapshot } from '@/lib/export/merge-client-export-snapshot.server'
 import { trackMp4FailedServer } from '@/lib/analytics/mp4-export-track.server'
 import {
   logPipelineStepComplete,
@@ -53,30 +55,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: disabledMsg, status: 'failed' }, { status: 503 })
     }
 
-    const parsed = parseJsonBody(await req.json().catch(() => null))
+    const rawBody = await req.json().catch(() => null)
+    const parsed = parseJsonBody(rawBody)
     if (parsed.response) return parsed.response
 
-    const projectId = String(parsed.body!.projectId || '').trim()
-    trackProjectId = projectId || null
-    const quality = String(parsed.body!.quality || '1080p').trim()
-    const includeVoiceover = parsed.body!.includeVoiceover !== false
-    const includeCaptions = parsed.body!.includeCaptions !== false
+    console.log('EXPORT REQUEST')
+    console.log(JSON.stringify(parsed.body, null, 2))
 
-    if (!projectId) {
-      return NextResponse.json({ error: 'projectId required' }, { status: 400 })
-    }
-
-    if (quality !== '1080p') {
+    const validatedBody = validateExportRequestPayload(parsed.body)
+    if (!validatedBody.ok) {
+      console.error(validatedBody.fieldErrors)
       return NextResponse.json(
-        { error: 'Only 1080p vertical export is supported.' },
+        {
+          error: validatedBody.message,
+          status: 'failed',
+          stage: 'request_validation',
+          validation: validatedBody.fieldErrors,
+        },
         { status: 400 }
       )
     }
 
-    const row = await loadOwnedCinematicProject(projectId, auth.user!.id)
+    const body = validatedBody.data
+    const projectId = body.projectId
+    trackProjectId = projectId
+    const quality = body.quality
+    const includeVoiceover = body.includeVoiceover
+    const includeCaptions = body.includeCaptions
+
+    let row = await loadOwnedCinematicProject(projectId, auth.user!.id)
     if (!row) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
+
+    row = mergeClientExportSnapshot(row, body)
 
     if (row.reel_url?.trim()) {
       return NextResponse.json({
@@ -108,7 +120,7 @@ export async function POST(req: NextRequest) {
     const renderBlocked = await guardUsageLimit(auth.user!.id, 'renders')
     if (renderBlocked) return renderBlocked
 
-    const timelineOverride = parseTimelineProject(parsed.body!.timelineJson)
+    const timelineOverride = parseTimelineProject(body.timelineJson)
     if (timelineOverride) {
       const supabase = createSupabaseServerClient()
       await supabase
@@ -129,22 +141,12 @@ export async function POST(req: NextRequest) {
         })
       } catch (readinessErr) {
         const validationError = friendlyReelRenderErrorFromUnknown(readinessErr)
-        void trackMp4FailedServer({
-          userId: auth.user!.id,
+        console.error('[EXPORT_VALIDATION]', {
           projectId,
-          stage: 'validation',
-          err: validationError,
-          route: 'POST /api/reels/export',
+          stage: 'readiness_exception',
+          error: validationError,
+          detail: readinessErr instanceof Error ? readinessErr.message : String(readinessErr),
         })
-        return NextResponse.json(
-          { error: validationError, status: 'failed', stage: 'storyboard_asset_loading' },
-          { status: 400 }
-        )
-      }
-      if (!readiness.canExport) {
-        const validationError =
-          readiness.message ??
-          'Add storyboard images and voice narration before exporting a reel.'
         void trackMp4FailedServer({
           userId: auth.user!.id,
           projectId,
@@ -155,6 +157,43 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error: validationError,
+            status: 'failed',
+            stage: 'storyboard_asset_loading',
+            validation: { code: 'readiness_exception', message: validationError },
+          },
+          { status: 400 }
+        )
+      }
+      if (!readiness.canExport) {
+        const validationError =
+          readiness.message ??
+          'Add storyboard images and voice narration before exporting a reel.'
+        console.error('[EXPORT_VALIDATION]', {
+          projectId,
+          stage: 'readiness',
+          error: validationError,
+          missingAssets: readiness.missingAssets,
+          imageCount: readiness.imageCount,
+          requiredImages: readiness.requiredImages,
+          voiceoverCount: readiness.voiceoverCount,
+        })
+        void trackMp4FailedServer({
+          userId: auth.user!.id,
+          projectId,
+          stage: 'validation',
+          err: validationError,
+          route: 'POST /api/reels/export',
+        })
+        return NextResponse.json(
+          {
+            error: validationError,
+            status: 'failed',
+            stage: 'export_readiness',
+            validation: {
+              code: 'export_readiness',
+              canExport: readiness.canExport,
+              missingAssets: readiness.missingAssets,
+            },
             canExport: readiness.canExport,
             imageCount: readiness.imageCount,
             requiredImages: readiness.requiredImages,
