@@ -1626,9 +1626,12 @@ async function pollRenderJob(
   onUpdate?: (patch: { videoUrl?: string; label?: string; progress?: number }) => void,
   projectId?: string | null
 ): Promise<string> {
-  const { pollReelExportJob, capReelExportProgress } = await import(
-    '@/lib/reels/export-poll.client'
-  )
+  const pollModule = await import('@/lib/reels/export-poll.client')
+  const pollReelExportJob = pollModule.pollReelExportJob
+  const capReelExportProgress = pollModule.capReelExportProgress
+  if (typeof pollReelExportJob !== 'function') {
+    throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
+  }
   const startedAt = Date.now()
   useQuickCutGenerationStore.setState({ renderStartedAt: startedAt })
 

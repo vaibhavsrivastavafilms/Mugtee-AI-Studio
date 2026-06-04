@@ -106,7 +106,11 @@ async function compileProjectMp4Inner(
 
   const jobId = typeof renderData.jobId === 'string' ? renderData.jobId : null
   if (jobId) {
-    const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+    const pollModule = await import('@/lib/reels/export-poll.client')
+    const pollReelExportJob = pollModule.pollReelExportJob
+    if (typeof pollReelExportJob !== 'function') {
+      throw new Error('Export poll unavailable — refresh the page and try Compile MP4 again.')
+    }
     const { reelExportPollPath } = await import('@/lib/reels/export-paths')
     return pollReelExportJob(reelExportPollPath(jobId, projectId), {
       onProgress: (patch) => {

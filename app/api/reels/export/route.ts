@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCinematicUser, parseJsonBody } from '@/lib/cinematic/regen-auth'
+import { resolveProjectScenes } from '@/lib/cinematic-projects'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
+import { logExportAssetCounts } from '@/lib/export/export-readiness.server'
 import {
   loadOwnedCinematicProject,
   getExportReadinessForProject,
@@ -151,6 +153,16 @@ export async function POST(req: NextRequest) {
 
     logPipelineStepStart('export', projectId, { quality, includeVoiceover, includeCaptions })
 
+    const preQueueScenes = resolveProjectScenes(row)
+    logExportAssetCounts({
+      projectId,
+      assetCount: 0,
+      imageCount: preQueueScenes.filter((s) => s.imageUrl?.trim() || s.imageAssetPath?.trim()).length,
+      voiceoverCount: row.voice?.audioUrl?.trim() ? 1 : 0,
+      sceneCount: preQueueScenes.length,
+      scenes: preQueueScenes,
+    })
+
     const { jobId, status } = await queueReelExportForProject({
       row,
       userId: auth.user!.id,
@@ -175,6 +187,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     logError('reels.export.post', err)
     const message = friendlyReelRenderErrorFromUnknown(err)
+    const stack =
+      err instanceof Error && err.stack ? err.stack.slice(0, 4000) : undefined
+    console.error('[EXPORT_FATAL]', {
+      route: 'POST /api/reels/export',
+      projectId: trackProjectId,
+      userId: trackUserId,
+      message,
+      stack,
+    })
     exportLog.error('export request', err, { route: 'POST /api/reels/export', reason: message })
     logPipelineStepError('export', trackProjectId, message)
     if (trackUserId) {
@@ -199,14 +220,16 @@ export async function POST(req: NextRequest) {
       : message.includes('voice') || message.includes('Voice')
         ? 'voice_asset_loading'
         : 'export_queue'
+    const httpStatus = clientError ? 400 : 500
     return NextResponse.json(
       {
         success: false,
         error: message,
         status: 'failed',
         stage,
+        ...(httpStatus === 500 ? { stack } : {}),
       },
-      { status: clientError ? 400 : 500 }
+      { status: httpStatus }
     )
   }
 }
