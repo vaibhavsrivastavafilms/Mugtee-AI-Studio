@@ -126,6 +126,7 @@ export async function PATCH(req: NextRequest) {
       const ps = body.projectState as Record<string, unknown>
       await upsertDirectorProjectState(projectId, userId, {
         directorApproved: typeof ps.directorApproved === 'boolean' ? ps.directorApproved : undefined,
+        producerApproved: typeof ps.producerApproved === 'boolean' ? ps.producerApproved : undefined,
         blueprintLocked: typeof ps.blueprintLocked === 'boolean' ? ps.blueprintLocked : undefined,
         stageProgress:
           ps.stageProgress && typeof ps.stageProgress === 'object'

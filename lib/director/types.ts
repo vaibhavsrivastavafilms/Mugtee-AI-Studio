@@ -10,6 +10,7 @@ export const DIRECTOR_STUDIO_STAGES = [
   'director-treatment',
   'story-package',
   'blueprint',
+  'producer-review',
   'character-bible',
   'cinematography',
   'storyboard-planning',
@@ -143,6 +144,8 @@ export type DirectorStudioContext = {
   musicDirection?: MusicDirection | null
   motionPlan?: MotionPlan | null
   blueprint?: DirectorBlueprint | null
+  producerSummary?: string | null
+  producerApproved?: boolean
 }
 
 export const EMPTY_DIRECTOR_TREATMENT: DirectorTreatment = {

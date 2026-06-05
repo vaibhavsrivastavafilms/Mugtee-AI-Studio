@@ -26,6 +26,8 @@ import {
   EMPTY_DIRECTOR_BLUEPRINT,
   EMPTY_DIRECTOR_TREATMENT,
 } from '@/lib/director/types'
+import type { ProducerRecommendations, ProducerReport } from '@/lib/director/producer/types'
+import { buildProducerSummary } from '@/lib/director/director-context-injection'
 
 type DirectorStudioState = {
   projectId: string | null
@@ -48,6 +50,10 @@ type DirectorStudioState = {
   musicDirection: MusicDirection | null
   motionPlan: MotionPlan | null
   directorApproved: boolean
+  producerReport: ProducerReport | null
+  storyReadinessScore: number | null
+  producerRecommendations: ProducerRecommendations | null
+  producerApproved: boolean
   blueprintLocked: boolean
   loading: boolean
   saving: boolean
@@ -80,6 +86,12 @@ type DirectorStudioState = {
   applyStoryPackageToBlueprint: () => Promise<void>
   approveProduction: () => Promise<DirectorStudioContext>
   buildDirectorContext: () => DirectorStudioContext
+  runProducerAnalysis: () => Promise<void>
+  loadProducerReport: () => Promise<void>
+  acceptSuggestion: (suggestionId: string) => Promise<void>
+  rejectSuggestion: (suggestionId: string) => Promise<void>
+  approveProducerReview: () => Promise<void>
+  requestProducerRefinement: () => Promise<void>
   reset: () => void
 }
 
@@ -104,6 +116,10 @@ const initialState = {
   musicDirection: null as MusicDirection | null,
   motionPlan: null as MotionPlan | null,
   directorApproved: false,
+  producerReport: null as ProducerReport | null,
+  storyReadinessScore: null as number | null,
+  producerRecommendations: null as ProducerRecommendations | null,
+  producerApproved: false,
   blueprintLocked: false,
   loading: false,
   saving: false,
@@ -149,6 +165,9 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
 
   buildDirectorContext: () => {
     const s = get()
+    const producerSummary = s.producerApproved
+      ? buildProducerSummary(s.producerReport, true)
+      : null
     return {
       activeStoryDirection: s.activeStoryDirection,
       activeFramework: s.activeFramework,
@@ -162,6 +181,8 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
       musicDirection: s.musicDirection,
       motionPlan: s.motionPlan,
       blueprint: s.blueprint,
+      producerSummary,
+      producerApproved: s.producerApproved,
     }
   },
 
@@ -192,10 +213,12 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
         musicDirection: data.musicDirection ?? null,
         motionPlan: data.motionPlan ?? null,
         directorApproved: data.projectState?.directorApproved ?? false,
+        producerApproved: data.projectState?.producerApproved ?? false,
         blueprintLocked: data.projectState?.blueprintLocked ?? false,
         stageProgress: data.projectState?.stageProgress ?? {},
         loading: false,
       })
+      await get().loadProducerReport()
     } catch (e) {
       set({
         loading: false,
@@ -441,6 +464,135 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
       prompt: get().topic,
       scenes,
       storyboard: scenes,
+    })
+  },
+
+  loadProducerReport: async () => {
+    const projectId = get().projectId
+    if (!projectId) return
+    try {
+      const res = await fetch(
+        `/api/director/producer/report?projectId=${encodeURIComponent(projectId)}`
+      )
+      if (!res.ok) return
+      const data = await res.json()
+      set({
+        producerReport: data.report ?? null,
+        storyReadinessScore: data.report?.storyReadinessScore ?? null,
+        producerRecommendations: data.report?.recommendations ?? null,
+        producerApproved: data.producerApproved ?? false,
+      })
+    } catch {
+      /* non-fatal */
+    }
+  },
+
+  runProducerAnalysis: async () => {
+    const { projectId } = get()
+    if (!projectId) {
+      set({ error: 'No project loaded' })
+      return
+    }
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/director/producer/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Producer analysis failed')
+      set({
+        producerReport: data.report,
+        storyReadinessScore: data.report?.storyReadinessScore ?? null,
+        producerRecommendations: data.report?.recommendations ?? null,
+        producerApproved: data.producerApproved ?? false,
+        loading: false,
+        activeStage: 'producer-review',
+        stageProgress: { ...get().stageProgress, 'producer-review': 'in_progress' },
+      })
+      await get().persistPatch({
+        projectState: {
+          stageProgress: { ...get().stageProgress, 'producer-review': 'in_progress' },
+        },
+      })
+    } catch (e) {
+      set({
+        loading: false,
+        error: e instanceof Error ? e.message : 'Producer analysis failed',
+      })
+    }
+  },
+
+  acceptSuggestion: async (suggestionId: string) => {
+    const report = get().producerReport
+    if (!report) return
+    try {
+      const res = await fetch('/api/director/producer/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: report.id, suggestionId, accepted: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Feedback failed')
+      set({
+        producerReport: data.report ?? report,
+        producerRecommendations: data.report?.recommendations ?? get().producerRecommendations,
+      })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Feedback failed' })
+    }
+  },
+
+  rejectSuggestion: async (suggestionId: string) => {
+    const report = get().producerReport
+    if (!report) return
+    try {
+      const res = await fetch('/api/director/producer/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: report.id, suggestionId, accepted: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Feedback failed')
+      set({
+        producerReport: data.report ?? report,
+        producerRecommendations: data.report?.recommendations ?? get().producerRecommendations,
+      })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Feedback failed' })
+    }
+  },
+
+  approveProducerReview: async () => {
+    set({
+      producerApproved: true,
+      activeStage: 'character-bible',
+      stageProgress: { ...get().stageProgress, 'producer-review': 'complete' },
+    })
+    await get().persistPatch({
+      projectState: {
+        producerApproved: true,
+        stageProgress: { ...get().stageProgress, 'producer-review': 'complete' },
+      },
+    })
+  },
+
+  requestProducerRefinement: async () => {
+    set({
+      producerApproved: false,
+      activeStage: 'blueprint',
+      stageProgress: { ...get().stageProgress, 'producer-review': 'pending', blueprint: 'in_progress' },
+    })
+    await get().persistPatch({
+      projectState: {
+        producerApproved: false,
+        stageProgress: {
+          ...get().stageProgress,
+          'producer-review': 'pending',
+          blueprint: 'in_progress',
+        },
+      },
     })
   },
 

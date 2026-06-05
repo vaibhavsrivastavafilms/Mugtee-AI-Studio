@@ -1,5 +1,7 @@
 import type { DirectorStudioContext } from '@/lib/director/types'
 import { loadDirectorStudioSnapshot } from '@/lib/director/director-db.server'
+import { buildProducerSummary } from '@/lib/director/director-context-injection'
+import { loadProducerReport } from '@/lib/director/producer/producer-db.server'
 
 /** Build director studio context from DB when project is director-approved. */
 export async function resolveDirectorStudioContextFromProject(
@@ -9,6 +11,11 @@ export async function resolveDirectorStudioContextFromProject(
   if (!projectId?.trim()) return null
   const snapshot = await loadDirectorStudioSnapshot(projectId.trim(), userId)
   if (!snapshot?.projectState.directorApproved) return null
+  const producerApproved = snapshot.projectState.producerApproved ?? false
+  const producerReport = producerApproved
+    ? await loadProducerReport(projectId.trim(), userId)
+    : null
+  const producerSummary = buildProducerSummary(producerReport, producerApproved)
   return {
     activeStoryDirection: snapshot.storyDirections.activeStoryDirection,
     activeFramework: snapshot.projectState.activeFramework,
@@ -22,6 +29,8 @@ export async function resolveDirectorStudioContextFromProject(
     musicDirection: snapshot.musicDirection,
     motionPlan: snapshot.motionPlan,
     blueprint: snapshot.projectState.blueprint,
+    producerSummary,
+    producerApproved,
   }
 }
 
