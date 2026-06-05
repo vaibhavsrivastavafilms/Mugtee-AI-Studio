@@ -17,6 +17,11 @@ import type {
 } from '@/lib/director/types'
 import type { StoryDirectorPackage } from '@/lib/ai/director/story-director-engine'
 import type { StoryFrameworkId } from '@/lib/ai/prompts/director/story-frameworks'
+import type {
+  ActiveStoryFramework,
+  FrameworkAnalysis,
+  StoryFrameworkRecommendation,
+} from '@/lib/director/framework-types'
 import {
   EMPTY_DIRECTOR_BLUEPRINT,
   EMPTY_DIRECTOR_TREATMENT,
@@ -29,6 +34,10 @@ type DirectorStudioState = {
   stageProgress: DirectorStageProgress
   storyDirectionOptions: StoryDirectionOption[]
   activeStoryDirection: StoryDirectionOption | null
+  frameworkRecommendations: StoryFrameworkRecommendation[]
+  activeFramework: ActiveStoryFramework | null
+  frameworkAnalysis: FrameworkAnalysis | null
+  frameworkConfidence: number | null
   directorTreatment: DirectorTreatment
   storyDirectorPackage: StoryDirectorPackage | null
   blueprint: DirectorBlueprint
@@ -48,6 +57,7 @@ type DirectorStudioState = {
   setTopic: (topic: string) => void
   setActiveStage: (stage: DirectorStudioStage) => void
   setActiveStoryDirection: (option: StoryDirectionOption | null) => void
+  setActiveFramework: (fw: ActiveStoryFramework | null) => void
   setDirectorTreatment: (t: Partial<DirectorTreatment>) => void
   setStoryDirectorPackage: (pkg: StoryDirectorPackage | null) => void
   setBlueprint: (b: Partial<DirectorBlueprint>) => void
@@ -62,6 +72,9 @@ type DirectorStudioState = {
   loadFromServer: (projectId: string) => Promise<void>
   persistPatch: (patch: Record<string, unknown>) => Promise<void>
   generateStoryDirections: () => Promise<void>
+  generateFrameworkRecommendations: () => Promise<void>
+  selectFramework: (rec: StoryFrameworkRecommendation) => Promise<void>
+  applyFrameworkToBlueprint: () => Promise<void>
   generateTreatment: () => Promise<void>
   generateStoryPackage: (opts?: { userIdea?: string; framework?: StoryFrameworkId | null }) => Promise<void>
   applyStoryPackageToBlueprint: () => Promise<void>
@@ -77,6 +90,10 @@ const initialState = {
   stageProgress: {} as DirectorStageProgress,
   storyDirectionOptions: [] as StoryDirectionOption[],
   activeStoryDirection: null as StoryDirectionOption | null,
+  frameworkRecommendations: [] as StoryFrameworkRecommendation[],
+  activeFramework: null as ActiveStoryFramework | null,
+  frameworkAnalysis: null as FrameworkAnalysis | null,
+  frameworkConfidence: null as number | null,
   directorTreatment: { ...EMPTY_DIRECTOR_TREATMENT },
   storyDirectorPackage: null as StoryDirectorPackage | null,
   blueprint: { ...EMPTY_DIRECTOR_BLUEPRINT },
@@ -101,6 +118,14 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
   setActiveStage: (stage) => set({ activeStage: stage }),
   setActiveStoryDirection: (option) =>
     set({ activeStoryDirection: option, stageProgress: { ...get().stageProgress, 'story-direction': 'complete' } }),
+  setActiveFramework: (fw) =>
+    set({
+      activeFramework: fw,
+      frameworkConfidence: fw?.confidenceScore ?? null,
+      stageProgress: fw
+        ? { ...get().stageProgress, 'story-framework': 'complete' }
+        : get().stageProgress,
+    }),
   setDirectorTreatment: (t) =>
     set({ directorTreatment: { ...get().directorTreatment, ...t } }),
   setStoryDirectorPackage: (pkg) =>
@@ -126,6 +151,8 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
     const s = get()
     return {
       activeStoryDirection: s.activeStoryDirection,
+      activeFramework: s.activeFramework,
+      frameworkAnalysis: s.frameworkAnalysis,
       directorTreatment: s.directorTreatment,
       storyDirectorPackage: s.storyDirectorPackage,
       characterBible: s.characterBible,
@@ -151,6 +178,10 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
         topic: data.storyDirections?.topic ?? '',
         storyDirectionOptions: data.storyDirections?.options ?? [],
         activeStoryDirection: data.storyDirections?.activeStoryDirection ?? null,
+        frameworkRecommendations: data.projectState?.frameworkRecommendations ?? [],
+        activeFramework: data.projectState?.activeFramework ?? null,
+        frameworkAnalysis: data.projectState?.frameworkAnalysis ?? null,
+        frameworkConfidence: data.projectState?.activeFramework?.confidenceScore ?? null,
         directorTreatment: data.directorTreatment ?? { ...EMPTY_DIRECTOR_TREATMENT },
         storyDirectorPackage: data.projectState?.storyDirectorPackage ?? null,
         blueprint: data.projectState?.blueprint ?? { ...EMPTY_DIRECTOR_BLUEPRINT },
@@ -222,6 +253,100 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
         error: e instanceof Error ? e.message : 'Story direction failed',
       })
     }
+  },
+
+  generateFrameworkRecommendations: async () => {
+    const { projectId, topic, activeStoryDirection } = get()
+    if (!projectId || topic.trim().length < 3) {
+      set({ error: 'Enter a topic (3+ characters) first' })
+      return
+    }
+    if (!activeStoryDirection) {
+      set({ error: 'Select a story direction first' })
+      return
+    }
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/director/frameworks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          idea: topic,
+          storyDirection: activeStoryDirection,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Framework recommendation failed')
+      set({
+        frameworkRecommendations: data.recommendations ?? [],
+        loading: false,
+        activeStage: 'story-framework',
+      })
+      await get().persistPatch({
+        projectState: {
+          frameworkRecommendations: data.recommendations,
+          stageProgress: { ...get().stageProgress, 'story-framework': 'in_progress' },
+        },
+      })
+    } catch (e) {
+      set({
+        loading: false,
+        error: e instanceof Error ? e.message : 'Framework recommendation failed',
+      })
+    }
+  },
+
+  selectFramework: async (rec) => {
+    const { projectId } = get()
+    if (!projectId) return
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/director/frameworks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, activeFramework: rec }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Framework selection failed')
+      set({
+        activeFramework: data.activeFramework,
+        frameworkAnalysis: data.frameworkAnalysis,
+        frameworkConfidence: data.frameworkConfidence,
+        loading: false,
+      })
+      await get().persistPatch({
+        projectState: {
+          frameworkAnalysis: data.frameworkAnalysis,
+          stageProgress: { ...get().stageProgress, 'story-framework': 'complete' },
+        },
+      })
+    } catch (e) {
+      set({
+        loading: false,
+        error: e instanceof Error ? e.message : 'Framework selection failed',
+      })
+    }
+  },
+
+  applyFrameworkToBlueprint: async () => {
+    const { activeFramework, frameworkAnalysis, activeStoryDirection, directorTreatment, topic, blueprint } =
+      get()
+    if (!activeFramework || !frameworkAnalysis) return
+    const { blueprintFromFramework } = await import('@/lib/director/blueprint-from-framework')
+    const next = blueprintFromFramework({
+      frameworkId: activeFramework.framework,
+      analysis: frameworkAnalysis,
+      storyDirection: activeStoryDirection,
+      treatment: directorTreatment,
+      prev: blueprint,
+    })
+    set({
+      blueprint: next,
+      activeStage: 'blueprint',
+      stageProgress: { ...get().stageProgress, blueprint: 'in_progress' },
+    })
+    await get().persistPatch({ projectState: { blueprint: next } })
   },
 
   generateTreatment: async () => {

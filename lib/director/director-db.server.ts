@@ -1,6 +1,11 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { StoryDirectorPackage } from '@/lib/ai/director/story-director-engine'
 import type {
+  ActiveStoryFramework,
+  FrameworkAnalysis,
+  StoryFrameworkRecommendation,
+} from '@/lib/director/framework-types'
+import type {
   CameraLanguagePlan,
   CharacterBible,
   DirectorBlueprint,
@@ -15,6 +20,7 @@ import type {
 import {
   normalizeDirectorTreatment,
 } from '@/lib/director/director-treatment'
+import { STORY_FRAMEWORKS } from '@/lib/ai/prompts/director/story-frameworks'
 import type { ContentAngleId } from '@/lib/cinematic/content-angle-engine'
 
 export async function verifyDirectorProject(projectId: string, userId: string) {
@@ -48,6 +54,9 @@ export type DirectorStudioSnapshot = {
     blueprint: DirectorBlueprint | null
     storyboardPlan: StoryboardPlan | null
     storyDirectorPackage: StoryDirectorPackage | null
+    frameworkRecommendations: StoryFrameworkRecommendation[]
+    activeFramework: ActiveStoryFramework | null
+    frameworkAnalysis: FrameworkAnalysis | null
   }
 }
 
@@ -73,6 +82,7 @@ export async function loadDirectorStudioSnapshot(
     musicRes,
     motionRes,
     stateRes,
+    frameworkRes,
   ] = await Promise.all([
     supabase.from('story_directions').select('*').eq('project_id', projectId).maybeSingle(),
     supabase.from('director_treatments').select('*').eq('project_id', projectId).maybeSingle(),
@@ -82,6 +92,12 @@ export async function loadDirectorStudioSnapshot(
     supabase.from('music_profiles').select('*').eq('project_id', projectId).maybeSingle(),
     supabase.from('motion_plans').select('*').eq('project_id', projectId).maybeSingle(),
     supabase.from('director_project_state').select('*').eq('project_id', projectId).maybeSingle(),
+    supabase
+      .from('story_frameworks')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('is_active', true)
+      .maybeSingle(),
   ])
 
   const storyRow = storyRes.data
@@ -119,7 +135,39 @@ export async function loadDirectorStudioSnapshot(
         stateRes.data?.story_director_package,
         null
       ),
+      frameworkRecommendations: parseJson<StoryFrameworkRecommendation[]>(
+        stateRes.data?.framework_recommendations,
+        []
+      ),
+      activeFramework: frameworkRowToActive(frameworkRes.data),
+      frameworkAnalysis: parseJson<FrameworkAnalysis | null>(
+        stateRes.data?.framework_analysis,
+        null
+      ),
     },
+  }
+}
+
+function frameworkRowToActive(row: Record<string, unknown> | null): ActiveStoryFramework | null {
+  if (!row || typeof row.framework_name !== 'string') return null
+  const frameworkName = row.framework_name as ActiveStoryFramework['frameworkName']
+  const fw = STORY_FRAMEWORKS[frameworkName]
+  return {
+    id: String(row.id),
+    framework: frameworkName,
+    frameworkName,
+    title: fw?.label ?? String(row.framework_name),
+    coreEmotion: String(row.core_emotion ?? ''),
+    audienceDesire: String(row.audience_desire ?? ''),
+    narrativeTension: String(row.narrative_tension ?? ''),
+    curiosityGap: String(row.curiosity_gap ?? ''),
+    transformation: String(row.transformation ?? ''),
+    confidenceScore: Number(row.confidence_score ?? 0),
+    selectedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
+    viralityScore: row.virality_score != null ? Number(row.virality_score) : null,
+    retentionScore: row.retention_score != null ? Number(row.retention_score) : null,
+    shareabilityScore: row.shareability_score != null ? Number(row.shareability_score) : null,
+    saveabilityScore: row.saveability_score != null ? Number(row.saveability_score) : null,
   }
 }
 
@@ -173,6 +221,9 @@ export async function upsertDirectorProjectState(
     blueprint: DirectorBlueprint | null
     storyboardPlan: StoryboardPlan | null
     storyDirectorPackage: StoryDirectorPackage | null
+    frameworkRecommendations: StoryFrameworkRecommendation[]
+    activeFrameworkId: string | null
+    frameworkAnalysis: FrameworkAnalysis | null
   }>
 ) {
   const supabase = createSupabaseServerClient()
@@ -196,9 +247,55 @@ export async function upsertDirectorProjectState(
       patch.storyDirectorPackage !== undefined
         ? patch.storyDirectorPackage
         : prev?.story_director_package ?? null,
+    framework_recommendations:
+      patch.frameworkRecommendations !== undefined
+        ? patch.frameworkRecommendations
+        : prev?.framework_recommendations ?? [],
+    active_framework_id:
+      patch.activeFrameworkId !== undefined
+        ? patch.activeFrameworkId
+        : prev?.active_framework_id ?? null,
+    framework_analysis:
+      patch.frameworkAnalysis !== undefined
+        ? patch.frameworkAnalysis
+        : prev?.framework_analysis ?? null,
     updated_at: new Date().toISOString(),
   }
   return supabase.from('director_project_state').upsert(row, { onConflict: 'project_id' })
+}
+
+export async function upsertActiveStoryFramework(
+  projectId: string,
+  userId: string,
+  rec: StoryFrameworkRecommendation
+) {
+  const supabase = createSupabaseServerClient()
+  await supabase
+    .from('story_frameworks')
+    .update({ is_active: false })
+    .eq('project_id', projectId)
+
+  const row = {
+    project_id: projectId,
+    user_id: userId,
+    framework_name: rec.framework,
+    core_emotion: rec.coreEmotion,
+    audience_desire: rec.audienceDesire,
+    narrative_tension: rec.narrativeTension,
+    curiosity_gap: rec.curiosityGap,
+    transformation: rec.transformation,
+    confidence_score: rec.confidenceScore,
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('story_frameworks')
+    .insert(row)
+    .select('*')
+    .single()
+
+  return { data, error }
 }
 
 export async function upsertCharacterBible(

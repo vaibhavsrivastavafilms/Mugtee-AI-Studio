@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, type ComponentType } from 'react'
+import { useEffect, useMemo, useRef, type ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 import { useDirectorStudioStore } from '@/stores/director-studio-store'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/lib/director/types'
 import { DIRECTOR_ACCENT } from '@/lib/studio/director-mode-tokens'
 import { StoryDirectionPanel } from '@/components/studio/director/StoryDirectionPanel'
+import { StoryFrameworkPanel } from '@/components/studio/director/StoryFrameworkPanel'
 import { DirectorTreatmentPanel } from '@/components/studio/director/DirectorTreatmentPanel'
 import { StoryPackagePanel } from '@/components/studio/director/StoryPackagePanel'
 import { BlueprintStudioPanel } from '@/components/studio/director/BlueprintStudioPanel'
@@ -19,13 +20,18 @@ import { VoiceDirectorPanel } from '@/components/studio/director/VoiceDirectorPa
 import { MusicDirectorPanel } from '@/components/studio/director/MusicDirectorPanel'
 import { MotionDirectorPanel } from '@/components/studio/director/MotionDirectorPanel'
 import { DirectorApprovalPanel } from '@/components/studio/director/DirectorApprovalPanel'
+import { DirectorMemoryPanel } from '@/components/studio/director/DirectorMemoryPanel'
 import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
 import { installDirectorGenerationFetchPatch } from '@/lib/director/director-generation-fetch-patch'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { useDirectorMemoryStore } from '@/stores/director-memory-store'
 
 const STAGE_LABELS: Record<DirectorStudioStage, string> = {
   idea: 'Idea',
+  'director-memory': 'Memory',
   'story-direction': 'Story',
+  'story-framework': 'Framework',
   'director-treatment': 'Treatment',
   'story-package': 'Story Package',
   blueprint: 'Blueprint',
@@ -41,7 +47,9 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
 }
 
 const PANEL_BY_STAGE: Partial<Record<DirectorStudioStage, ComponentType>> = {
+  'director-memory': DirectorMemoryPanel,
   'story-direction': StoryDirectionPanel,
+  'story-framework': StoryFrameworkPanel,
   'director-treatment': DirectorTreatmentPanel,
   'story-package': StoryPackagePanel,
   blueprint: BlueprintStudioPanel,
@@ -67,11 +75,24 @@ export function DirectorStudioWorkflow({ projectId }: DirectorStudioWorkflowProp
   const generateDirections = useDirectorStudioStore((s) => s.generateStoryDirections)
   const error = useDirectorStudioStore((s) => s.error)
   const approved = useDirectorStudioStore((s) => s.directorApproved)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const runLearning = useDirectorMemoryStore((s) => s.runLearning)
+  const learningTriggeredRef = useRef(false)
 
   useEffect(() => {
     installDirectorGenerationFetchPatch()
     if (projectId) void load(projectId)
   }, [projectId, load])
+
+  useEffect(() => {
+    learningTriggeredRef.current = false
+  }, [projectId])
+
+  useEffect(() => {
+    if (!projectId || !approved || !isComplete || learningTriggeredRef.current) return
+    learningTriggeredRef.current = true
+    void runLearning(projectId)
+  }, [projectId, approved, isComplete, runLearning])
 
   const Panel = PANEL_BY_STAGE[activeStage]
   const showLegacyWorkspace = activeStage === 'generate-assets' || activeStage === 'export'

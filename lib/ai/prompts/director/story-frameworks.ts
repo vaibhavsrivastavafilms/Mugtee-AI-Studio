@@ -7,10 +7,21 @@ export const STORY_FRAMEWORK_IDS = [
   'experiment-story',
   'contrarian-reveal',
   'creator-spotlight',
-  'evolution-story',
+  'routine-rewrite',
 ] as const
 
 export type StoryFrameworkId = (typeof STORY_FRAMEWORK_IDS)[number]
+
+/** Uppercase registry keys (API / docs). */
+export const STORY_FRAMEWORK_REGISTRY = {
+  BELIEF_SHIFT: 'belief-shift',
+  TRANSFORMATION: 'transformation-story',
+  FAILURE_TO_WISDOM: 'failure-to-wisdom',
+  EXPERIMENT_REVEAL: 'experiment-story',
+  CONTRARIAN_REFRAME: 'contrarian-reveal',
+  CREATOR_SPOTLIGHT: 'creator-spotlight',
+  ROUTINE_REWRITE: 'routine-rewrite',
+} as const satisfies Record<string, StoryFrameworkId>
 
 export type StoryFrameworkAct = {
   name: string
@@ -179,30 +190,30 @@ export const STORY_FRAMEWORKS: Record<StoryFrameworkId, StoryFrameworkDefinition
     emotionalArc: 'intrigue → admiration → belonging',
     hookPattern: 'Here’s how I made ___ — and the part nobody shows',
   },
-  'evolution-story': {
-    id: 'evolution-story',
-    label: 'Evolution Story',
-    tagline: 'Version 1 → iterations → who you are now',
-    bestFor: ['long-form creators', 'skill journeys', 'brand evolution'],
+  'routine-rewrite': {
+    id: 'routine-rewrite',
+    label: 'Routine Rewrite',
+    tagline: 'Old routine → friction → redesigned system that sticks',
+    bestFor: ['productivity', 'habits', 'morning routines', 'workflow optimization'],
     structure: [
       {
-        name: 'Act 1 — Version 1',
-        purpose: 'Humble or cringe early work',
-        beats: ['Show early attempt (specific)', 'What was missing', 'Why you didn’t quit'],
+        name: 'Act 1 — Broken Routine',
+        purpose: 'Show the routine everyone copies that fails',
+        beats: ['Name the default routine', 'Show where it breaks in real life', 'Cost of staying on autopilot'],
       },
       {
-        name: 'Act 2 — Iterations',
-        purpose: 'Compound improvements',
-        beats: ['Key upgrades over time', 'Feedback or data that guided you', 'Identity shift moment'],
+        name: 'Act 2 — Redesign',
+        purpose: 'Iterate toward a system that fits',
+        beats: ['One constraint you designed around', 'Micro-experiment that proved the shift', 'Pattern interrupt moment'],
       },
       {
-        name: 'Act 3 — Present Standard',
-        purpose: 'Current craft + horizon',
-        beats: ['Today’s bar', 'What you’re optimizing next', 'Viewer’s evolution prompt'],
+        name: 'Act 3 — New Default',
+        purpose: 'Install the rewritten routine',
+        beats: ['Before/after contrast', 'Rule of thumb for viewers', 'Invite them to audit one routine'],
       },
     ],
-    emotionalArc: 'embarrassment → pride → forward momentum',
-    hookPattern: 'My first ___ vs now — the gap is the lesson',
+    emotionalArc: 'frustration → experimentation → calm control',
+    hookPattern: 'I stopped doing ___ every morning — here’s the routine that actually works',
   },
 }
 
@@ -213,7 +224,7 @@ const FRAMEWORK_KEYWORDS: Record<StoryFrameworkId, RegExp> = {
   'experiment-story': /\b(try|test|experiment|challenge|days|week|hypothesis|results)\b/i,
   'contrarian-reveal': /\b(everyone|contrarian|unpopular|stop|instead|opposite|norm)\b/i,
   'creator-spotlight': /\b(how i made|behind|process|craft|create|build|studio|workflow)\b/i,
-  'evolution-story': /\b(first|evolution|version|improve|growth|then vs now|progress)\b/i,
+  'routine-rewrite': /\b(routine|habit|morning|workflow|system|redesign|optimize|default)\b/i,
 }
 
 function hashTopic(text: string): number {
@@ -253,7 +264,8 @@ export function selectStoryFramework(input: SelectStoryFrameworkInput): StoryFra
       if (niche.includes('psych') && id === 'belief-shift') score += 2
       if (niche.includes('fitness') && id === 'transformation-story') score += 2
       if (niche.includes('finance') && id === 'failure-to-wisdom') score += 2
-      if (niche.includes('documentary') && id === 'evolution-story') score += 1
+      if (niche.includes('productivity') && id === 'routine-rewrite') score += 2
+      if (niche.includes('habit') && id === 'routine-rewrite') score += 2
     }
     return { id, score }
   })

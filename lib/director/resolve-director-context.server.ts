@@ -11,6 +11,8 @@ export async function resolveDirectorStudioContextFromProject(
   if (!snapshot?.projectState.directorApproved) return null
   return {
     activeStoryDirection: snapshot.storyDirections.activeStoryDirection,
+    activeFramework: snapshot.projectState.activeFramework,
+    frameworkAnalysis: snapshot.projectState.frameworkAnalysis,
     directorTreatment: snapshot.directorTreatment,
     storyDirectorPackage: snapshot.projectState.storyDirectorPackage,
     characterBible: snapshot.characterBible,

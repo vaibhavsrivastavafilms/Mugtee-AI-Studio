@@ -143,6 +143,13 @@ export async function PATCH(req: NextRequest) {
           ps.storyDirectorPackage !== undefined
             ? (ps.storyDirectorPackage as import('@/lib/ai/director/story-director-engine').StoryDirectorPackage | null)
             : undefined,
+        frameworkRecommendations: Array.isArray(ps.frameworkRecommendations)
+          ? (ps.frameworkRecommendations as import('@/lib/director/framework-types').StoryFrameworkRecommendation[])
+          : undefined,
+        frameworkAnalysis:
+          ps.frameworkAnalysis !== undefined
+            ? (ps.frameworkAnalysis as import('@/lib/director/framework-types').FrameworkAnalysis | null)
+            : undefined,
       })
     }
 

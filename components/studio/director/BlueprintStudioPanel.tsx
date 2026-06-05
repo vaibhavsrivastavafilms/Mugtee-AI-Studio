@@ -7,8 +7,11 @@ import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mo
 export function BlueprintStudioPanel() {
   const blueprint = useDirectorStudioStore((s) => s.blueprint)
   const locked = useDirectorStudioStore((s) => s.blueprintLocked)
+  const activeFramework = useDirectorStudioStore((s) => s.activeFramework)
+  const frameworkAnalysis = useDirectorStudioStore((s) => s.frameworkAnalysis)
   const setBlueprint = useDirectorStudioStore((s) => s.setBlueprint)
   const persist = useDirectorStudioStore((s) => s.persistPatch)
+  const applyFramework = useDirectorStudioStore((s) => s.applyFrameworkToBlueprint)
 
   const lock = async () => {
     useDirectorStudioStore.setState({ blueprintLocked: true })
@@ -31,6 +34,14 @@ export function BlueprintStudioPanel() {
       subtitle="Title, hook, summary, script, and scene beats — lock when ready for cinematography."
       actions={
         <>
+          <button
+            type="button"
+            className={directorBtnOutline}
+            disabled={!activeFramework || !frameworkAnalysis || locked}
+            onClick={() => applyFramework()}
+          >
+            Generate from framework
+          </button>
           <button type="button" className={directorBtnOutline} disabled={locked} onClick={() => lock()}>
             Lock blueprint
           </button>
@@ -63,10 +74,26 @@ export function BlueprintStudioPanel() {
             onBlur={() => persist({ projectState: { blueprint } })}
           />
         </label>
-        <p className="text-xs text-white/40 italic">
-          Scene beats: scaffold — add beats in a future sprint or paste into script for now.
-          {locked ? ' Blueprint locked.' : ''}
-        </p>
+        {frameworkAnalysis?.sceneBeats.length ? (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Scene beats (from framework)</p>
+            <ul className="space-y-1 text-xs text-white/60">
+              {frameworkAnalysis.sceneBeats.map((b) => (
+                <li key={b.index} className="rounded-lg bg-white/[0.03] px-3 py-2">
+                  <span className="text-gold-200/70">Beat {b.index}</span> — {b.beat}
+                  {b.durationSec ? (
+                    <span className="text-white/35"> ({b.durationSec}s)</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-white/40 italic">
+            Select a story framework to scaffold Act 1/2/3 beats, conflict, escalation, and resolution.
+            {locked ? ' Blueprint locked.' : ''}
+          </p>
+        )}
       </div>
     </DirectorPanelShell>
   )
