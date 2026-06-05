@@ -139,6 +139,10 @@ export async function PATCH(req: NextRequest) {
           ps.storyboardPlan !== undefined
             ? (ps.storyboardPlan as import('@/lib/director/types').StoryboardPlan | null)
             : undefined,
+        storyDirectorPackage:
+          ps.storyDirectorPackage !== undefined
+            ? (ps.storyDirectorPackage as import('@/lib/ai/director/story-director-engine').StoryDirectorPackage | null)
+            : undefined,
       })
     }
 

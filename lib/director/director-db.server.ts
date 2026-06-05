@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import type { StoryDirectorPackage } from '@/lib/ai/director/story-director-engine'
 import type {
   CameraLanguagePlan,
   CharacterBible,
@@ -46,6 +47,7 @@ export type DirectorStudioSnapshot = {
     stageProgress: DirectorStageProgress
     blueprint: DirectorBlueprint | null
     storyboardPlan: StoryboardPlan | null
+    storyDirectorPackage: StoryDirectorPackage | null
   }
 }
 
@@ -113,6 +115,10 @@ export async function loadDirectorStudioSnapshot(
       stageProgress: parseJson<DirectorStageProgress>(stateRes.data?.stage_progress, {}),
       blueprint: parseJson<DirectorBlueprint | null>(stateRes.data?.blueprint, null),
       storyboardPlan: parseJson<StoryboardPlan | null>(stateRes.data?.storyboard_plan, null),
+      storyDirectorPackage: parseJson<StoryDirectorPackage | null>(
+        stateRes.data?.story_director_package,
+        null
+      ),
     },
   }
 }
@@ -166,6 +172,7 @@ export async function upsertDirectorProjectState(
     stageProgress: DirectorStageProgress
     blueprint: DirectorBlueprint | null
     storyboardPlan: StoryboardPlan | null
+    storyDirectorPackage: StoryDirectorPackage | null
   }>
 ) {
   const supabase = createSupabaseServerClient()
@@ -185,6 +192,10 @@ export async function upsertDirectorProjectState(
     blueprint: patch.blueprint !== undefined ? patch.blueprint : prev?.blueprint ?? null,
     storyboard_plan:
       patch.storyboardPlan !== undefined ? patch.storyboardPlan : prev?.storyboard_plan ?? null,
+    story_director_package:
+      patch.storyDirectorPackage !== undefined
+        ? patch.storyDirectorPackage
+        : prev?.story_director_package ?? null,
     updated_at: new Date().toISOString(),
   }
   return supabase.from('director_project_state').upsert(row, { onConflict: 'project_id' })

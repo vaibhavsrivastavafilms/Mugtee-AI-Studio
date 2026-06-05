@@ -169,3 +169,7 @@ Smoke: submit a prompt, confirm avatar moves to `thinking` → `speaking`/`happy
 - `stores/companion-store.ts` — creative discovery / director notes (workflow extension, not live home store)
 - `components/sidekick/mugtee-sidekick-panel.tsx` — dashboard rail
 - `components/mugtee/mugtee-assistant.tsx` — floating FAQ chat (separate from Story Companion)
+
+## AI Story Director (Director Mode V2)
+
+When `NEXT_PUBLIC_DIRECTOR_STUDIO_V2=true`, the **Story Package** stage runs the AI Story Director engine — full cinematic packages (framework, hooks, script, scenes, visual direction, virality). See [STORY_DIRECTOR.md](./STORY_DIRECTOR.md) for modules, API, and Creator DNA wiring. Quick Mode is unaffected.
