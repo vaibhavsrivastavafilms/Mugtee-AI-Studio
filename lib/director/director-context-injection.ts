@@ -1,4 +1,9 @@
+import { STORY_FRAMEWORKS, formatFrameworkForPrompt } from '@/lib/ai/prompts/director/story-frameworks'
 import type { DirectorStudioContext } from '@/lib/director/types'
+import { formatDirectorCreatorMemoryForPrompt } from '@/lib/director/memory/memory-prompt-injection'
+import type { CreatorMemoryProfile } from '@/lib/director/memory/types'
+
+export { formatDirectorCreatorMemoryForPrompt }
 
 /** Format director studio snapshot for LLM context injection. */
 export function formatDirectorStudioForPrompt(ctx: DirectorStudioContext | null | undefined): string {
@@ -15,6 +20,49 @@ export function formatDirectorStudioForPrompt(ctx: DirectorStudioContext | null 
         `Hook: ${d.hook}`,
         `Emotional promise: ${d.emotionalPromise}`,
       ].join('\n')
+    )
+  }
+
+  if (ctx.activeFramework) {
+    const f = ctx.activeFramework
+    const fw = STORY_FRAMEWORKS[f.framework]
+    sections.push(
+      [
+        'STORY FRAMEWORK (locked):',
+        `Framework: ${fw?.label ?? f.frameworkName}`,
+        `Core emotion: ${f.coreEmotion}`,
+        `Audience desire: ${f.audienceDesire}`,
+        `Narrative tension: ${f.narrativeTension}`,
+        `Curiosity gap: ${f.curiosityGap}`,
+        `Transformation: ${f.transformation}`,
+        `Confidence: ${f.confidenceScore}%`,
+        formatFrameworkForPrompt(f.framework),
+      ]
+        .filter(Boolean)
+        .join('\n')
+    )
+  }
+
+  if (ctx.frameworkAnalysis) {
+    const a = ctx.frameworkAnalysis
+    sections.push(
+      [
+        'FRAMEWORK NARRATIVE SCAFFOLD:',
+        `Act 1: ${a.act1}`,
+        `Act 2: ${a.act2}`,
+        `Conflict: ${a.conflict}`,
+        `Escalation: ${a.escalation}`,
+        `Pattern interrupt: ${a.patternInterrupt}`,
+        `Act 3: ${a.act3}`,
+        `Breakthrough: ${a.breakthrough}`,
+        `Resolution: ${a.resolution}`,
+        `Lesson: ${a.lesson}`,
+        a.sceneBeats.length
+          ? `Scene beats: ${a.sceneBeats.map((b) => `${b.index}. ${b.beat}`).join(' | ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
     )
   }
 

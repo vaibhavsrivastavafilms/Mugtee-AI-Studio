@@ -18,8 +18,11 @@ export function installDirectorGenerationFetchPatch(): void {
       typeof init.body === 'string'
     ) {
       const store = useDirectorStudioStore.getState()
-      const hasStoryPackage = Boolean(store.storyDirectorPackage)
-      if (store.projectId && (store.directorApproved || hasStoryPackage)) {
+      const hasDirectorContext =
+        Boolean(store.storyDirectorPackage) ||
+        Boolean(store.activeFramework) ||
+        store.directorApproved
+      if (store.projectId && hasDirectorContext) {
         try {
           const body = JSON.parse(init.body) as Record<string, unknown>
           body.projectId = store.projectId

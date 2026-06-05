@@ -18,6 +18,7 @@ import {
 import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
+import { resolveDirectorCreatorMemory } from '@/lib/director/memory/project-analysis-engine'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -72,10 +73,13 @@ export async function POST(req: NextRequest) {
       .eq('user_id', userId)
       .maybeSingle()
     const memoryProfile = memoryRow ? rowToMemoryProfile(memoryRow) : null
+    const directorCreatorMemory = await resolveDirectorCreatorMemory(userId)
 
     const directorContext = snapshot
       ? {
           activeStoryDirection: snapshot.storyDirections.activeStoryDirection,
+          activeFramework: snapshot.projectState.activeFramework,
+          frameworkAnalysis: snapshot.projectState.frameworkAnalysis,
           directorTreatment: snapshot.directorTreatment,
           characterBible: snapshot.characterBible,
           blueprint: snapshot.projectState.blueprint,
@@ -111,6 +115,7 @@ export async function POST(req: NextRequest) {
         tone: promptBundle.creatorDna.TONE,
         memoryProfile,
         directorStudioContext: directorContext,
+        directorCreatorMemory,
       },
     })
 
