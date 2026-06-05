@@ -125,6 +125,12 @@ export type ScriptGenerationInput = {
   directorStudioContext?: import('@/lib/director/types').DirectorStudioContext | null
   /** Director Memory aggregate — Director Mode only */
   directorCreatorMemory?: import('@/lib/director/memory/types').CreatorMemoryProfile | null
+  /** Creator Intelligence Graph — Director Mode only */
+  directorIntelligence?: {
+    graphData: import('@/lib/intelligence/types').CreatorIntelligenceGraphData
+    insights: import('@/lib/intelligence/types').Insight[]
+    virloMarket?: import('@/lib/virlo/types').VirloMarketIntelligence | null
+  } | null
 } & DeepResearchPipelineOptions
 
 type GenInput = {
@@ -165,6 +171,11 @@ type GenInput = {
   narrativeFramework?: SelectedNarrativeFramework
   directorStudioContext?: import('@/lib/director/types').DirectorStudioContext | null
   directorCreatorMemory?: import('@/lib/director/memory/types').CreatorMemoryProfile | null
+  directorIntelligence?: {
+    graphData: import('@/lib/intelligence/types').CreatorIntelligenceGraphData
+    insights: import('@/lib/intelligence/types').Insight[]
+    virloMarket?: import('@/lib/virlo/types').VirloMarketIntelligence | null
+  } | null
 }
 
 function buildSystemPrompt(scriptArchetype?: SelectedScriptArchetype): string {
@@ -342,6 +353,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
           contentBrief: input.contentBrief,
           directorStudioContext: input.directorStudioContext,
           directorCreatorMemory: input.directorCreatorMemory,
+          directorIntelligence: input.directorIntelligence,
         },
       })
       if (process.env.NODE_ENV === 'development') {
@@ -559,6 +571,7 @@ export async function runScriptGeneration(
     narrativeFramework,
     directorStudioContext: input.directorStudioContext,
     directorCreatorMemory: input.directorCreatorMemory,
+    directorIntelligence: input.directorIntelligence,
   }
 
   if (!hasScriptGenerationKey()) {

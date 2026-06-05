@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { learnFromDirectorProject } from '@/lib/director/memory/project-analysis-engine'
+import { triggerCreatorIntelligenceRebuild } from '@/lib/intelligence/trigger-rebuild.server'
 
 /** Returns true when project has completed director approval workflow. */
 export async function isDirectorApprovedProject(
@@ -31,6 +32,10 @@ export async function triggerDirectorMemoryLearning(
     const approved = await isDirectorApprovedProject(id, userId)
     if (!approved) return
     await learnFromDirectorProject(id, userId)
+    void triggerCreatorIntelligenceRebuild(userId, {
+      event: 'memory_learned',
+      projectId: id,
+    })
   } catch (err) {
     console.error('[director-memory] learning failed', err)
   }

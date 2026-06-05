@@ -3,8 +3,13 @@ import type { DirectorStudioContext } from '@/lib/director/types'
 import { formatDirectorCreatorMemoryForPrompt } from '@/lib/director/memory/memory-prompt-injection'
 import type { CreatorMemoryProfile } from '@/lib/director/memory/types'
 import type { ProducerReport } from '@/lib/director/producer/types'
+import { formatIntelligenceGraphForPrompt } from '@/lib/intelligence/graph-prompt-injection'
+import type { CreatorIntelligenceGraphData, Insight } from '@/lib/intelligence/types'
+import { formatVirloMarketForPrompt } from '@/lib/virlo/virlo-prompt-injection'
+import type { VirloMarketIntelligence } from '@/lib/virlo/types'
 
 export { formatDirectorCreatorMemoryForPrompt }
+export { formatIntelligenceGraphForPrompt }
 
 /** Format approved producer review summary for generation context. */
 export function formatProducerReportForPrompt(
@@ -37,10 +42,30 @@ export function buildProducerSummary(
   return formatted || null
 }
 
+export type DirectorPromptIntelligence = {
+  graphData: CreatorIntelligenceGraphData
+  insights: Insight[]
+  virloMarket?: VirloMarketIntelligence | null
+}
+
 /** Format director studio snapshot for LLM context injection. */
-export function formatDirectorStudioForPrompt(ctx: DirectorStudioContext | null | undefined): string {
+export function formatDirectorStudioForPrompt(
+  ctx: DirectorStudioContext | null | undefined,
+  intelligence?: DirectorPromptIntelligence | null
+): string {
   if (!ctx) return ''
   const sections: string[] = []
+
+  if (intelligence) {
+    const intelSection = formatIntelligenceGraphForPrompt(
+      intelligence.graphData,
+      intelligence.insights
+    )
+    if (intelSection) sections.push(intelSection)
+
+    const virloSection = formatVirloMarketForPrompt(intelligence.virloMarket)
+    if (virloSection) sections.push(virloSection)
+  }
 
   if (ctx.producerApproved && ctx.producerSummary) {
     sections.push(ctx.producerSummary)

@@ -7,6 +7,7 @@ import type { CreatorMemory } from '@/lib/companion/types'
 import type { CreatorStyleFingerprint } from '@/lib/ai/style-fingerprint'
 import type { DirectorStudioContext } from '@/lib/director/types'
 import type { CreatorMemoryProfile } from '@/lib/director/memory/types'
+import type { CreatorIntelligenceGraphData, Insight } from '@/lib/intelligence/types'
 
 /** Supported text-generation providers for Phase 1 routing. */
 export type ProviderId = 'openai' | 'gemini' | 'groq' | 'openrouter' | 'deepseek'
@@ -42,6 +43,12 @@ export type ProviderContextInput = {
   directorStudioContext?: DirectorStudioContext | null
   /** Director Memory aggregate — injected only with directorStudioContext */
   directorCreatorMemory?: CreatorMemoryProfile | null
+  /** Creator Intelligence Graph — injected before director studio sections */
+  directorIntelligence?: {
+    graphData: CreatorIntelligenceGraphData
+    insights: Insight[]
+    virloMarket?: import('@/lib/virlo/types').VirloMarketIntelligence | null
+  } | null
 }
 
 export type ProviderContext = {

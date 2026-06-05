@@ -54,6 +54,8 @@ import {
   resolveDirectorStudioContextFromProject,
 } from '@/lib/director/resolve-director-context.server'
 import { resolveDirectorCreatorMemory } from '@/lib/director/memory/project-analysis-engine'
+import { resolveDirectorIntelligenceGraph } from '@/lib/intelligence/creator-graph.server'
+import { loadVirloMarketIntelligence } from '@/lib/virlo/viral-patterns.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -327,12 +329,26 @@ export async function POST(req: NextRequest) {
       ? await resolveDirectorCreatorMemory(user.id)
       : undefined
 
+    const intelligenceGraph = directorStudioContext
+      ? await resolveDirectorIntelligenceGraph(user.id)
+      : null
+    const virloMarket = directorStudioContext
+      ? await loadVirloMarketIntelligence(platform ?? null)
+      : null
+
     const input = {
       topic,
       rawInput,
       parsedIntent,
       directorStudioContext: directorStudioContext ?? undefined,
       directorCreatorMemory,
+      directorIntelligence: intelligenceGraph
+        ? {
+            graphData: intelligenceGraph.graphData,
+            insights: intelligenceGraph.insights,
+            virloMarket,
+          }
+        : undefined,
       platform,
       tone,
       duration,

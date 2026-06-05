@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { aggregateProducerMemory, parseProducerMemory } from '@/lib/director/producer/producer-memory'
 import type { ProducerMemory, ProducerReport } from '@/lib/director/producer/types'
 import { EMPTY_PRODUCER_MEMORY } from '@/lib/director/producer/types'
+import { triggerCreatorIntelligenceRebuild } from '@/lib/intelligence/trigger-rebuild.server'
 
 type ProducerReportRow = {
   id: string
@@ -107,6 +108,10 @@ export async function upsertProducerReport(
     .single()
 
   if (error) return { data: null, error: new Error(error.message) }
+  void triggerCreatorIntelligenceRebuild(userId, {
+    event: 'producer_report',
+    projectId,
+  })
   return { data: rowToReport(data as ProducerReportRow), error: null }
 }
 

@@ -19,6 +19,8 @@ import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/workspace/validation'
 import { resolveDirectorCreatorMemory } from '@/lib/director/memory/project-analysis-engine'
+import { resolveDirectorIntelligenceGraph } from '@/lib/intelligence/creator-graph.server'
+import { loadVirloMarketIntelligence } from '@/lib/virlo/viral-patterns.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,6 +76,10 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     const memoryProfile = memoryRow ? rowToMemoryProfile(memoryRow) : null
     const directorCreatorMemory = await resolveDirectorCreatorMemory(userId)
+    const intelligenceGraph = await resolveDirectorIntelligenceGraph(userId)
+    const virloMarket = await loadVirloMarketIntelligence(
+      typeof parsed.body!.platform === 'string' ? parsed.body!.platform : null
+    )
 
     const directorContext = snapshot
       ? {
@@ -116,6 +122,13 @@ export async function POST(req: NextRequest) {
         memoryProfile,
         directorStudioContext: directorContext,
         directorCreatorMemory,
+        directorIntelligence: intelligenceGraph
+          ? {
+              graphData: intelligenceGraph.graphData,
+              insights: intelligenceGraph.insights,
+              virloMarket,
+            }
+          : undefined,
       },
     })
 
