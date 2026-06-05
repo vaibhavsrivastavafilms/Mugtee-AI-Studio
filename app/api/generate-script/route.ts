@@ -53,6 +53,7 @@ import {
   parseDirectorStudioContextFromBody,
   resolveDirectorStudioContextFromProject,
 } from '@/lib/director/resolve-director-context.server'
+import { resolveDirectorCreatorMemory } from '@/lib/director/memory/project-analysis-engine'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -322,11 +323,16 @@ export async function POST(req: NextRequest) {
       parseDirectorStudioContextFromBody(raw.directorStudioContext) ??
       (await resolveDirectorStudioContextFromProject(projectIdForDirector, user.id))
 
+    const directorCreatorMemory = directorStudioContext
+      ? await resolveDirectorCreatorMemory(user.id)
+      : undefined
+
     const input = {
       topic,
       rawInput,
       parsedIntent,
       directorStudioContext: directorStudioContext ?? undefined,
+      directorCreatorMemory,
       platform,
       tone,
       duration,

@@ -179,6 +179,10 @@ export async function updateExportJob(
         jobId: row.id,
       })
     )
+    void import('@/lib/director/memory/trigger-learning.server').then(
+      ({ triggerDirectorMemoryLearning }) =>
+        triggerDirectorMemoryLearning(row.user_id, row.project_id)
+    )
   }
 
   return data as ExportJobRow
