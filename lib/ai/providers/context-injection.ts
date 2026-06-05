@@ -59,7 +59,10 @@ export function buildProviderContext(input: ProviderContextInput): ProviderConte
   if (input.tone?.trim()) sections.push(`TONE LOCK: ${input.tone.trim()}`)
   if (input.platform?.trim()) sections.push(`PLATFORM LOCK: ${input.platform.trim()}`)
 
-  const directorSection = formatDirectorStudioForPrompt(input.directorStudioContext)
+  const directorSection = formatDirectorStudioForPrompt(
+    input.directorStudioContext,
+    input.directorIntelligence
+  )
   if (directorSection) sections.push(directorSection)
 
   if (input.directorStudioContext) {

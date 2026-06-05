@@ -3,6 +3,7 @@ import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import { learnFromDirectorProject } from '@/lib/director/memory/project-analysis-engine'
 import { computeMemoryScores } from '@/lib/director/memory/memory-score'
 import { verifyDirectorProject } from '@/lib/director/director-db.server'
+import { triggerCreatorIntelligenceRebuild } from '@/lib/intelligence/trigger-rebuild.server'
 import { logError } from '@/lib/workspace/validation'
 
 export const runtime = 'nodejs'
@@ -36,6 +37,11 @@ export async function POST(req: NextRequest) {
     }
 
     const scores = computeMemoryScores(result.profile)
+
+    void triggerCreatorIntelligenceRebuild(userId, {
+      event: 'memory_learned',
+      projectId,
+    })
 
     return NextResponse.json({
       ok: true,

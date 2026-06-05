@@ -22,6 +22,7 @@ import { MusicDirectorPanel } from '@/components/studio/director/MusicDirectorPa
 import { MotionDirectorPanel } from '@/components/studio/director/MotionDirectorPanel'
 import { DirectorApprovalPanel } from '@/components/studio/director/DirectorApprovalPanel'
 import { DirectorMemoryPanel } from '@/components/studio/director/DirectorMemoryPanel'
+import { CreativeAdvisorPanel } from '@/components/studio/director/CreativeAdvisorPanel'
 import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import { CreatorCommandCenter } from '@/components/studio/creator-command-center'
 import { installDirectorGenerationFetchPatch } from '@/lib/director/director-generation-fetch-patch'
@@ -31,6 +32,7 @@ import { useDirectorMemoryStore } from '@/stores/director-memory-store'
 const STAGE_LABELS: Record<DirectorStudioStage, string> = {
   idea: 'Idea',
   'director-memory': 'Memory',
+  'creative-advisor': 'Creative Advisor',
   'story-direction': 'Story',
   'story-framework': 'Framework',
   'director-treatment': 'Treatment',
@@ -50,6 +52,7 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
 
 const PANEL_BY_STAGE: Partial<Record<DirectorStudioStage, ComponentType>> = {
   'director-memory': DirectorMemoryPanel,
+  'creative-advisor': CreativeAdvisorPanel,
   'story-direction': StoryDirectionPanel,
   'story-framework': StoryFrameworkPanel,
   'director-treatment': DirectorTreatmentPanel,

@@ -5,6 +5,7 @@ import type { ActiveStoryFramework, FrameworkAnalysis } from '@/lib/director/fra
 export const DIRECTOR_STUDIO_STAGES = [
   'idea',
   'director-memory',
+  'creative-advisor',
   'story-direction',
   'story-framework',
   'director-treatment',
