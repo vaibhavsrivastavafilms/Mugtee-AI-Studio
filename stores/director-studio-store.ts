@@ -15,6 +15,8 @@ import type {
   StoryboardPlan,
   VoiceProfile,
 } from '@/lib/director/types'
+import type { StoryDirectorPackage } from '@/lib/ai/director/story-director-engine'
+import type { StoryFrameworkId } from '@/lib/ai/prompts/director/story-frameworks'
 import {
   EMPTY_DIRECTOR_BLUEPRINT,
   EMPTY_DIRECTOR_TREATMENT,
@@ -28,6 +30,7 @@ type DirectorStudioState = {
   storyDirectionOptions: StoryDirectionOption[]
   activeStoryDirection: StoryDirectionOption | null
   directorTreatment: DirectorTreatment
+  storyDirectorPackage: StoryDirectorPackage | null
   blueprint: DirectorBlueprint
   characterBible: CharacterBible | null
   cameraLanguage: CameraLanguagePlan | null
@@ -46,6 +49,7 @@ type DirectorStudioState = {
   setActiveStage: (stage: DirectorStudioStage) => void
   setActiveStoryDirection: (option: StoryDirectionOption | null) => void
   setDirectorTreatment: (t: Partial<DirectorTreatment>) => void
+  setStoryDirectorPackage: (pkg: StoryDirectorPackage | null) => void
   setBlueprint: (b: Partial<DirectorBlueprint>) => void
   setCharacterBible: (b: CharacterBible | null) => void
   setCameraLanguage: (c: CameraLanguagePlan | null) => void
@@ -59,6 +63,8 @@ type DirectorStudioState = {
   persistPatch: (patch: Record<string, unknown>) => Promise<void>
   generateStoryDirections: () => Promise<void>
   generateTreatment: () => Promise<void>
+  generateStoryPackage: (opts?: { userIdea?: string; framework?: StoryFrameworkId | null }) => Promise<void>
+  applyStoryPackageToBlueprint: () => Promise<void>
   approveProduction: () => Promise<DirectorStudioContext>
   buildDirectorContext: () => DirectorStudioContext
   reset: () => void
@@ -72,6 +78,7 @@ const initialState = {
   storyDirectionOptions: [] as StoryDirectionOption[],
   activeStoryDirection: null as StoryDirectionOption | null,
   directorTreatment: { ...EMPTY_DIRECTOR_TREATMENT },
+  storyDirectorPackage: null as StoryDirectorPackage | null,
   blueprint: { ...EMPTY_DIRECTOR_BLUEPRINT },
   characterBible: null as CharacterBible | null,
   cameraLanguage: null as CameraLanguagePlan | null,
@@ -96,6 +103,13 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
     set({ activeStoryDirection: option, stageProgress: { ...get().stageProgress, 'story-direction': 'complete' } }),
   setDirectorTreatment: (t) =>
     set({ directorTreatment: { ...get().directorTreatment, ...t } }),
+  setStoryDirectorPackage: (pkg) =>
+    set({
+      storyDirectorPackage: pkg,
+      stageProgress: pkg
+        ? { ...get().stageProgress, 'story-package': 'complete' }
+        : get().stageProgress,
+    }),
   setBlueprint: (b) => set({ blueprint: { ...get().blueprint, ...b } }),
   setCharacterBible: (b) => set({ characterBible: b }),
   setCameraLanguage: (c) => set({ cameraLanguage: c }),
@@ -113,6 +127,7 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
     return {
       activeStoryDirection: s.activeStoryDirection,
       directorTreatment: s.directorTreatment,
+      storyDirectorPackage: s.storyDirectorPackage,
       characterBible: s.characterBible,
       cameraLanguage: s.cameraLanguage,
       storyboardPlan: s.storyboardPlan,
@@ -137,6 +152,7 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
         storyDirectionOptions: data.storyDirections?.options ?? [],
         activeStoryDirection: data.storyDirections?.activeStoryDirection ?? null,
         directorTreatment: data.directorTreatment ?? { ...EMPTY_DIRECTOR_TREATMENT },
+        storyDirectorPackage: data.projectState?.storyDirectorPackage ?? null,
         blueprint: data.projectState?.blueprint ?? { ...EMPTY_DIRECTOR_BLUEPRINT },
         characterBible: data.characterBible ?? null,
         cameraLanguage: data.cameraLanguage ?? null,
@@ -228,6 +244,79 @@ export const useDirectorStudioStore = create<DirectorStudioState>((set, get) => 
         error: e instanceof Error ? e.message : 'Treatment failed',
       })
     }
+  },
+
+  generateStoryPackage: async (opts) => {
+    const { projectId, topic, storyDirectorPackage } = get()
+    const userIdea = (opts?.userIdea ?? topic).trim()
+    if (!projectId || userIdea.length < 3) {
+      set({ error: 'Enter a topic (3+ characters) first' })
+      return
+    }
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/director/story-package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          userIdea,
+          framework: opts?.framework ?? storyDirectorPackage?.frameworkId ?? undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Story package generation failed')
+      set({
+        storyDirectorPackage: data.package,
+        loading: false,
+        activeStage: 'story-package',
+      })
+      await get().persistPatch({
+        projectState: {
+          storyDirectorPackage: data.package,
+          stageProgress: { ...get().stageProgress, 'story-package': 'complete' },
+        },
+      })
+    } catch (e) {
+      set({
+        loading: false,
+        error: e instanceof Error ? e.message : 'Story package failed',
+      })
+    }
+  },
+
+  applyStoryPackageToBlueprint: async () => {
+    const pkg = get().storyDirectorPackage
+    if (!pkg) return
+    const { storyPackageToBlueprint, storyPackageToStoryboardPlan, storyPackageToVoiceProfile, storyPackageToGeneratedScenes } =
+      await import('@/lib/director/apply-story-package')
+    const blueprint = storyPackageToBlueprint(pkg, get().blueprint)
+    const storyboardPlan = storyPackageToStoryboardPlan(pkg)
+    const voiceProfile = storyPackageToVoiceProfile(pkg)
+    set({
+      blueprint,
+      storyboardPlan,
+      voiceProfile,
+      activeStage: 'blueprint',
+      stageProgress: {
+        ...get().stageProgress,
+        blueprint: 'in_progress',
+      },
+    })
+    await get().persistPatch({
+      projectState: { blueprint, storyboardPlan },
+      voiceProfile,
+    })
+    const { useQuickCutGenerationStore } = await import('@/stores/quick-cut-generation-store')
+    const scenes = storyPackageToGeneratedScenes(pkg)
+    useQuickCutGenerationStore.setState({
+      hook: blueprint.hook,
+      title: blueprint.title,
+      script: blueprint.script,
+      prompt: get().topic,
+      scenes,
+      storyboard: scenes,
+    })
   },
 
   approveProduction: async () => {

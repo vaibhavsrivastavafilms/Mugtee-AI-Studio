@@ -12,6 +12,7 @@ export async function resolveDirectorStudioContextFromProject(
   return {
     activeStoryDirection: snapshot.storyDirections.activeStoryDirection,
     directorTreatment: snapshot.directorTreatment,
+    storyDirectorPackage: snapshot.projectState.storyDirectorPackage,
     characterBible: snapshot.characterBible,
     cameraLanguage: snapshot.cameraLanguage,
     storyboardPlan: snapshot.projectState.storyboardPlan,

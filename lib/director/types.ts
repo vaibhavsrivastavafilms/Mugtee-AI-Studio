@@ -1,9 +1,11 @@
 import type { ContentAngleId } from '@/lib/cinematic/content-angle-engine'
+import type { StoryDirectorPackage } from '@/lib/ai/director/story-director-engine'
 
 export const DIRECTOR_STUDIO_STAGES = [
   'idea',
   'story-direction',
   'director-treatment',
+  'story-package',
   'blueprint',
   'character-bible',
   'cinematography',
@@ -128,6 +130,7 @@ export type DirectorStageProgress = Partial<Record<DirectorStudioStage, 'pending
 export type DirectorStudioContext = {
   activeStoryDirection?: StoryDirectionOption | null
   directorTreatment?: DirectorTreatment | null
+  storyDirectorPackage?: StoryDirectorPackage | null
   characterBible?: CharacterBible | null
   cameraLanguage?: CameraLanguagePlan | null
   storyboardPlan?: StoryboardPlan | null

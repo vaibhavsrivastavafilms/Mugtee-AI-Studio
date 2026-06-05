@@ -10,6 +10,7 @@ import {
 import { DIRECTOR_ACCENT } from '@/lib/studio/director-mode-tokens'
 import { StoryDirectionPanel } from '@/components/studio/director/StoryDirectionPanel'
 import { DirectorTreatmentPanel } from '@/components/studio/director/DirectorTreatmentPanel'
+import { StoryPackagePanel } from '@/components/studio/director/StoryPackagePanel'
 import { BlueprintStudioPanel } from '@/components/studio/director/BlueprintStudioPanel'
 import { CharacterBiblePanel } from '@/components/studio/director/CharacterBiblePanel'
 import { CinematographyPanel } from '@/components/studio/director/CinematographyPanel'
@@ -26,6 +27,7 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
   idea: 'Idea',
   'story-direction': 'Story',
   'director-treatment': 'Treatment',
+  'story-package': 'Story Package',
   blueprint: 'Blueprint',
   'character-bible': 'Characters',
   cinematography: 'Camera',
@@ -41,6 +43,7 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
 const PANEL_BY_STAGE: Partial<Record<DirectorStudioStage, ComponentType>> = {
   'story-direction': StoryDirectionPanel,
   'director-treatment': DirectorTreatmentPanel,
+  'story-package': StoryPackagePanel,
   blueprint: BlueprintStudioPanel,
   'character-bible': CharacterBiblePanel,
   cinematography: CinematographyPanel,

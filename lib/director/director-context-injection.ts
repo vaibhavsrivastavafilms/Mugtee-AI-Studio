@@ -38,6 +38,33 @@ export function formatDirectorStudioForPrompt(ctx: DirectorStudioContext | null 
     )
   }
 
+  if (ctx.storyDirectorPackage) {
+    const pkg = ctx.storyDirectorPackage
+    const topHook = [...pkg.cinematicHookOptions].sort((a, b) => a.rank - b.rank)[0]?.hook
+    sections.push(
+      [
+        'AI STORY DIRECTOR PACKAGE (locked):',
+        `Framework: ${pkg.frameworkLabel}`,
+        pkg.storyAnalysis ? `Analysis: ${pkg.storyAnalysis.slice(0, 1200)}` : '',
+        topHook ? `Primary hook: ${topHook}` : '',
+        pkg.fullCinematicScript
+          ? `Script excerpt: ${pkg.fullCinematicScript.slice(0, 1500)}`
+          : '',
+        pkg.scenes.length
+          ? `Scenes (${pkg.scenes.length}): ${pkg.scenes
+              .slice(0, 8)
+              .map((s) => `${s.index}. ${s.title}`)
+              .join(' | ')}`
+          : '',
+        pkg.viralityAnalysis.retentionBeats.length
+          ? `Retention beats: ${pkg.viralityAnalysis.retentionBeats.slice(0, 5).join('; ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    )
+  }
+
   if (ctx.blueprint?.hook || ctx.blueprint?.script) {
     const b = ctx.blueprint
     sections.push(
