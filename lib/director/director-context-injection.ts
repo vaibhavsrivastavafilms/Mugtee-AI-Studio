@@ -2,13 +2,49 @@ import { STORY_FRAMEWORKS, formatFrameworkForPrompt } from '@/lib/ai/prompts/dir
 import type { DirectorStudioContext } from '@/lib/director/types'
 import { formatDirectorCreatorMemoryForPrompt } from '@/lib/director/memory/memory-prompt-injection'
 import type { CreatorMemoryProfile } from '@/lib/director/memory/types'
+import type { ProducerReport } from '@/lib/director/producer/types'
 
 export { formatDirectorCreatorMemoryForPrompt }
+
+/** Format approved producer review summary for generation context. */
+export function formatProducerReportForPrompt(
+  report: ProducerReport | null | undefined,
+  producerApproved?: boolean
+): string {
+  if (!report || !producerApproved) return ''
+
+  const { scores, recommendations, storyReadinessScore, readinessLabel } = report
+  const acceptedStrengths = recommendations.strengths.slice(0, 3).map((s) => s.text)
+  const topSuggestions = recommendations.suggestions.slice(0, 2).map((s) => s.text)
+
+  return [
+    'AI PRODUCER REVIEW (approved — honor in generation):',
+    `Readiness: ${readinessLabel} (${storyReadinessScore}/100)`,
+    `Scores — Story: ${scores.storyStrength}, Audience: ${scores.audienceFit}, Emotion: ${scores.emotionalImpact}, Retention: ${scores.retention}, Cinematic: ${scores.cinematicQuality}`,
+    acceptedStrengths.length ? `Locked strengths: ${acceptedStrengths.join(' | ')}` : '',
+    topSuggestions.length ? `Producer guidance: ${topSuggestions.join(' | ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+/** Build producer summary string for DirectorStudioContext. */
+export function buildProducerSummary(
+  report: ProducerReport | null | undefined,
+  producerApproved?: boolean
+): string | null {
+  const formatted = formatProducerReportForPrompt(report, producerApproved)
+  return formatted || null
+}
 
 /** Format director studio snapshot for LLM context injection. */
 export function formatDirectorStudioForPrompt(ctx: DirectorStudioContext | null | undefined): string {
   if (!ctx) return ''
   const sections: string[] = []
+
+  if (ctx.producerApproved && ctx.producerSummary) {
+    sections.push(ctx.producerSummary)
+  }
 
   if (ctx.activeStoryDirection) {
     const d = ctx.activeStoryDirection

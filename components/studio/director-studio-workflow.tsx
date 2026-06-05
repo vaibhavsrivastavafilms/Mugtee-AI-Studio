@@ -13,6 +13,7 @@ import { StoryFrameworkPanel } from '@/components/studio/director/StoryFramework
 import { DirectorTreatmentPanel } from '@/components/studio/director/DirectorTreatmentPanel'
 import { StoryPackagePanel } from '@/components/studio/director/StoryPackagePanel'
 import { BlueprintStudioPanel } from '@/components/studio/director/BlueprintStudioPanel'
+import { ProducerPanel } from '@/components/studio/director/ProducerPanel'
 import { CharacterBiblePanel } from '@/components/studio/director/CharacterBiblePanel'
 import { CinematographyPanel } from '@/components/studio/director/CinematographyPanel'
 import { StoryboardDirectorPanel } from '@/components/studio/director/StoryboardDirectorPanel'
@@ -35,6 +36,7 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
   'director-treatment': 'Treatment',
   'story-package': 'Story Package',
   blueprint: 'Blueprint',
+  'producer-review': 'Producer',
   'character-bible': 'Characters',
   cinematography: 'Camera',
   'storyboard-planning': 'Storyboard',
@@ -53,6 +55,7 @@ const PANEL_BY_STAGE: Partial<Record<DirectorStudioStage, ComponentType>> = {
   'director-treatment': DirectorTreatmentPanel,
   'story-package': StoryPackagePanel,
   blueprint: BlueprintStudioPanel,
+  'producer-review': ProducerPanel,
   'character-bible': CharacterBiblePanel,
   cinematography: CinematographyPanel,
   'storyboard-planning': StoryboardDirectorPanel,

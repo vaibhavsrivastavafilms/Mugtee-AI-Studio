@@ -49,6 +49,7 @@ export type DirectorStudioSnapshot = {
   motionPlan: MotionPlan | null
   projectState: {
     directorApproved: boolean
+    producerApproved: boolean
     blueprintLocked: boolean
     stageProgress: DirectorStageProgress
     blueprint: DirectorBlueprint | null
@@ -127,6 +128,7 @@ export async function loadDirectorStudioSnapshot(
     motionPlan: parseJson<MotionPlan | null>(motionRes.data?.payload, null),
     projectState: {
       directorApproved: stateRes.data?.director_approved ?? false,
+      producerApproved: stateRes.data?.producer_approved ?? false,
       blueprintLocked: stateRes.data?.blueprint_locked ?? false,
       stageProgress: parseJson<DirectorStageProgress>(stateRes.data?.stage_progress, {}),
       blueprint: parseJson<DirectorBlueprint | null>(stateRes.data?.blueprint, null),
@@ -216,6 +218,7 @@ export async function upsertDirectorProjectState(
   userId: string,
   patch: Partial<{
     directorApproved: boolean
+    producerApproved: boolean
     blueprintLocked: boolean
     stageProgress: DirectorStageProgress
     blueprint: DirectorBlueprint | null
@@ -238,6 +241,7 @@ export async function upsertDirectorProjectState(
     project_id: projectId,
     user_id: userId,
     director_approved: patch.directorApproved ?? prev?.director_approved ?? false,
+    producer_approved: patch.producerApproved ?? prev?.producer_approved ?? false,
     blueprint_locked: patch.blueprintLocked ?? prev?.blueprint_locked ?? false,
     stage_progress: patch.stageProgress ?? prev?.stage_progress ?? {},
     blueprint: patch.blueprint !== undefined ? patch.blueprint : prev?.blueprint ?? null,
