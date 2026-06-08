@@ -9,6 +9,7 @@ export const DIRECTOR_STUDIO_STAGES = [
   'story-direction',
   'story-framework',
   'director-treatment',
+  'creative-team-review',
   'story-package',
   'blueprint',
   'producer-review',

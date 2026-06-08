@@ -6,6 +6,8 @@ import { useDirectorStudioStore } from '@/stores/director-studio-store'
 import { DirectorPanelShell } from '@/components/studio/director/director-panel-shell'
 import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import type { ProducerRecommendationItem, ProducerScoreFactors } from '@/lib/director/producer/types'
+import { useVirloIntelligenceStore } from '@/stores/virlo-intelligence-store'
+import { STORY_FRAMEWORKS } from '@/lib/ai/prompts/director/story-frameworks'
 
 const SCORE_LABELS: Array<{ key: keyof ProducerScoreFactors; label: string }> = [
   { key: 'storyStrength', label: 'Story Strength' },
@@ -107,9 +109,16 @@ export function ProducerPanel() {
   const requestRefinement = useDirectorStudioStore((s) => s.requestProducerRefinement)
   const loadReport = useDirectorStudioStore((s) => s.loadProducerReport)
 
+  const virloMarket = useVirloIntelligenceStore((s) => s.market)
+  const loadVirloMarket = useVirloIntelligenceStore((s) => s.loadMarket)
+
   useEffect(() => {
     if (projectId && !producerReport) void loadReport()
   }, [projectId, producerReport, loadReport])
+
+  useEffect(() => {
+    void loadVirloMarket()
+  }, [loadVirloMarket])
 
   const handleFeedback = useCallback(
     (id: string, accepted: boolean) => {
@@ -201,6 +210,59 @@ export function ProducerPanel() {
               ))}
             </div>
           </div>
+
+          {virloMarket && (virloMarket.workingNow.length || virloMarket.emerging.length) ? (
+            <section className="space-y-3">
+              <h3 className="text-[10px] uppercase tracking-[0.16em] text-purple-400/80">
+                Market Opportunity
+              </h3>
+              <p className="text-xs text-white/40 italic">
+                Virlo trend signals blended with your creative package.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {virloMarket.workingNow.slice(0, 2).map((item) => {
+                  const fw = STORY_FRAMEWORKS[item.framework as keyof typeof STORY_FRAMEWORKS]
+                  return (
+                    <div
+                      key={`working-${item.framework}-${item.topic}`}
+                      className="rounded-lg border border-purple-500/20 bg-purple-500/[0.04] px-3 py-2.5 text-xs"
+                    >
+                      <p className="text-[9px] uppercase tracking-wider text-purple-300/60">Working now</p>
+                      <p className="text-white/75 mt-1">{fw?.label ?? item.framework}</p>
+                      <p className="text-white/40 mt-0.5">{item.sampleTriggers[0] ?? item.topic}</p>
+                    </div>
+                  )
+                })}
+                {virloMarket.emerging.slice(0, 2).map((item) => {
+                  const fw = STORY_FRAMEWORKS[item.framework as keyof typeof STORY_FRAMEWORKS]
+                  return (
+                    <div
+                      key={`emerging-${item.framework}-${item.topic}`}
+                      className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] px-3 py-2.5 text-xs"
+                    >
+                      <p className="text-[9px] uppercase tracking-wider text-emerald-300/60">Emerging</p>
+                      <p className="text-white/75 mt-1">{fw?.label ?? item.framework}</p>
+                      <p className="text-white/40 mt-0.5">{item.sampleTriggers[0] ?? item.topic}</p>
+                    </div>
+                  )
+                })}
+              </div>
+              {virloMarket.oversaturated.length ? (
+                <p className="text-[11px] text-white/35">
+                  Oversaturated:{' '}
+                  {virloMarket.oversaturated
+                    .slice(0, 2)
+                    .map((i) => STORY_FRAMEWORKS[i.framework as keyof typeof STORY_FRAMEWORKS]?.label ?? i.framework)
+                    .join(', ')}
+                </p>
+              ) : null}
+              {virloMarket.recommendedPatterns.length ? (
+                <p className="text-[11px] text-gold-200/60">
+                  Recommended: {virloMarket.recommendedPatterns[0]!.sampleTriggers[0] ?? virloMarket.recommendedPatterns[0]!.topic}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
 
           {producerRecommendations?.strengths.length ? (
             <section className="space-y-2">

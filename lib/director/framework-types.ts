@@ -17,6 +17,15 @@ export type StoryFrameworkRecommendation = {
   curiosityGap: string
   transformation: string
   confidenceScore: number
+  /** Virlo market confidence 0-100 */
+  virloConfidence?: number
+  /** Creator graph affinity match 0-100 */
+  creatorMatch?: number
+  /** Virlo trend alignment 0-100 */
+  virloTrend?: number
+  /** Hybrid creator + market score 0-100 */
+  combinedScore?: number
+  marketStatus?: 'working_now' | 'emerging' | 'fading' | 'oversaturated' | null
 }
 
 export type ActiveStoryFramework = StoryFrameworkRecommendation & {

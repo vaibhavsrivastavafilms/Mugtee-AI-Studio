@@ -8,6 +8,10 @@ import { generateScriptViaRouter, hasAnyTextProviderKey } from '@/lib/ai/provide
 import type { StoryFrameworkRecommendation } from '@/lib/director/framework-types'
 import type { StoryDirectionOption } from '@/lib/director/types'
 import { parseLlmJsonText } from '@/lib/ai/providers/shared'
+import { enrichFrameworkRecommendations } from '@/lib/virlo/hybrid-recommendation'
+import type { CreatorIntelligenceGraphData } from '@/lib/intelligence/types'
+import type { VirloMarketIntelligence } from '@/lib/virlo/types'
+import { formatVirloMarketForPrompt } from '@/lib/virlo/virlo-prompt-injection'
 
 export type FrameworkRecommendationInput = {
   idea: string
@@ -18,6 +22,8 @@ export type FrameworkRecommendationInput = {
     platform?: string
     emotionalGoal?: string
   }
+  creatorGraph?: CreatorIntelligenceGraphData | null
+  virloMarket?: VirloMarketIntelligence | null
 }
 
 const FRAMEWORK_KEYWORDS: Record<StoryFrameworkId, RegExp> = {
@@ -155,8 +161,9 @@ async function polishWithLlm(
       : '',
     input.creatorDna?.niche ? `NICHE: ${input.creatorDna.niche}` : '',
     input.creatorDna?.tone ? `TONE: ${input.creatorDna.tone}` : '',
+    formatVirloMarketForPrompt(input.virloMarket),
     `CANDIDATE FRAMEWORKS:\n${fwSummaries}`,
-    'Polish the three recommendations with topic-specific emotional language.',
+    'Polish the three recommendations with topic-specific emotional language. Honor Virlo market signals when present.',
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -205,5 +212,9 @@ export async function generateFrameworkRecommendations(
   const ranked = rankFrameworks(input)
   const heuristic = ranked.map((id, i) => heuristicRecommendation(id, i, input))
   const polished = await polishWithLlm(input, heuristic)
-  return polished ?? heuristic
+  const base = polished ?? heuristic
+  return enrichFrameworkRecommendations(base, {
+    creatorGraph: input.creatorGraph,
+    market: input.virloMarket,
+  })
 }

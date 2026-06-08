@@ -11,6 +11,7 @@ import { DIRECTOR_ACCENT } from '@/lib/studio/director-mode-tokens'
 import { StoryDirectionPanel } from '@/components/studio/director/StoryDirectionPanel'
 import { StoryFrameworkPanel } from '@/components/studio/director/StoryFrameworkPanel'
 import { DirectorTreatmentPanel } from '@/components/studio/director/DirectorTreatmentPanel'
+import { CreativeTeamPanel } from '@/components/studio/director/CreativeTeamPanel'
 import { StoryPackagePanel } from '@/components/studio/director/StoryPackagePanel'
 import { BlueprintStudioPanel } from '@/components/studio/director/BlueprintStudioPanel'
 import { ProducerPanel } from '@/components/studio/director/ProducerPanel'
@@ -36,6 +37,7 @@ const STAGE_LABELS: Record<DirectorStudioStage, string> = {
   'story-direction': 'Story',
   'story-framework': 'Framework',
   'director-treatment': 'Treatment',
+  'creative-team-review': 'Creative Team',
   'story-package': 'Story Package',
   blueprint: 'Blueprint',
   'producer-review': 'Producer',
@@ -56,6 +58,7 @@ const PANEL_BY_STAGE: Partial<Record<DirectorStudioStage, ComponentType>> = {
   'story-direction': StoryDirectionPanel,
   'story-framework': StoryFrameworkPanel,
   'director-treatment': DirectorTreatmentPanel,
+  'creative-team-review': CreativeTeamPanel,
   'story-package': StoryPackagePanel,
   blueprint: BlueprintStudioPanel,
   'producer-review': ProducerPanel,
