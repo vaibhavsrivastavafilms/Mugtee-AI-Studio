@@ -6,6 +6,7 @@ import {
   type PlanLimits,
   type UsageMetric,
 } from '@/lib/billing/plan-limits'
+import { isExportUsageLimitBypassed } from '@/lib/export/export-entitlement'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 export type { UsageMetric }
@@ -126,7 +127,10 @@ export async function checkLimit(
   const used = readCount(row, metric)
   const limit = limitForMetric(metric, planType, row?.trial_ends_at, referralContext(row))
 
-  if (!limitsEnabled || unlimited) {
+  const exportMetricBypass =
+    isExportUsageLimitBypassed() && (metric === 'exports' || metric === 'renders')
+
+  if (!limitsEnabled || unlimited || exportMetricBypass) {
     return { allowed: true, used, limit, unlimited, limits_enabled: limitsEnabled, metric }
   }
 

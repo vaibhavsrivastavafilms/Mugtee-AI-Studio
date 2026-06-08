@@ -38,6 +38,14 @@ import {
   logPipelineStepStart,
 } from '@/lib/cinematic/generation-logger'
 import { remotionCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import {
+  estimateRemotionRenderMemory,
+  logRemotionRenderDiagnostics,
+  resolveDisallowParallelEncoding,
+  resolveOffthreadVideoCacheBytes,
+  resolveRemotionConcurrency,
+} from '@/lib/remotion/render-settings.server'
+import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
@@ -112,6 +120,8 @@ export async function renderRemotionReel(
 
     const reelScenes: ReelSceneInput[] = []
     let thumbnailLocalPath: string | null = null
+    let dataUrlAssetCount = 0
+    let httpAssetCount = 0
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
       let imageUrl =
@@ -146,6 +156,8 @@ export async function renderRemotionReel(
       const imageSrc = isHttpUrl(imageUrl)
         ? imageUrl
         : await localPathToDataUrl(localImage)
+      if (isHttpUrl(imageSrc)) httpAssetCount += 1
+      else dataUrlAssetCount += 1
 
       reelScenes.push(
         buildReelSceneInput(scene, i, {
@@ -157,6 +169,12 @@ export async function renderRemotionReel(
       )
     }
 
+    mp4RenderLog(3, 'scene media prepared', {
+      sceneCount: reelScenes.length,
+      assetsViaUrl: httpAssetCount,
+      assetsViaBase64: dataUrlAssetCount,
+    })
+
     let voiceAudioSrc: string | null = null
     if (input.voiceUrl?.trim()) {
       const ext = extFromUrl(input.voiceUrl, '.mp3')
@@ -165,6 +183,8 @@ export async function renderRemotionReel(
       voiceAudioSrc = isHttpUrl(input.voiceUrl)
         ? input.voiceUrl.trim()
         : await localPathToDataUrl(voicePath)
+      if (voiceAudioSrc.startsWith('data:')) dataUrlAssetCount += 1
+      else httpAssetCount += 1
     }
 
     let musicAudioSrc: string | null = null
@@ -175,7 +195,14 @@ export async function renderRemotionReel(
       musicAudioSrc = isHttpUrl(input.musicUrl)
         ? input.musicUrl.trim()
         : await localPathToDataUrl(musicPath)
+      if (musicAudioSrc.startsWith('data:')) dataUrlAssetCount += 1
+      else httpAssetCount += 1
     }
+
+    mp4RenderLog(4, 'audio merged into composition', {
+      hasVoice: Boolean(voiceAudioSrc),
+      hasMusic: Boolean(musicAudioSrc),
+    })
 
     const compositionProps: ReelCompositionProps = {
       title: '',
@@ -210,7 +237,31 @@ export async function renderRemotionReel(
       throw compErr
     }
 
-    remotionCheckpoint('render_media_start', { outputPath: input.outputPath })
+    const concurrency = resolveRemotionConcurrency()
+    const disallowParallelEncoding = resolveDisallowParallelEncoding()
+    const offthreadVideoCacheSizeInBytes = resolveOffthreadVideoCacheBytes()
+    const memoryEstimate = estimateRemotionRenderMemory({
+      durationInFrames: composition.durationInFrames,
+      concurrency,
+      sceneCount: reelScenes.length,
+      parallelEncodingDisabled: disallowParallelEncoding,
+      dataUrlAssetCount,
+      httpAssetCount,
+    })
+    logRemotionRenderDiagnostics(memoryEstimate)
+    mp4RenderLog(5, 'starting Remotion renderMedia', {
+      outputPath: input.outputPath,
+      concurrency,
+      disallowParallelEncoding,
+    })
+    remotionCheckpoint('render_media_start', {
+      outputPath: input.outputPath,
+      concurrency,
+      disallowParallelEncoding,
+      offthreadVideoCacheSizeInBytes,
+      ...memoryEstimate,
+    })
+
     await renderMedia({
       serveUrl,
       composition,
@@ -219,6 +270,19 @@ export async function renderRemotionReel(
       inputProps: compositionProps,
       imageFormat: 'jpeg',
       jpegQuality: 90,
+      concurrency,
+      disallowParallelEncoding,
+      offthreadVideoCacheSizeInBytes,
+      chromiumOptions: {
+        enableMultiProcessOnLinux: false,
+      },
+      onStart: ({ frameCount, parallelEncoding, resolvedConcurrency }) => {
+        console.info('[REMOTION_RENDER] onStart', {
+          frameCount,
+          parallelEncoding,
+          resolvedConcurrency,
+        })
+      },
       onProgress: ({ progress }) => {
         const pct = 40 + Math.round(progress * 50)
         input.onProgress?.('Rendering reel…', pct)
@@ -227,6 +291,10 @@ export async function renderRemotionReel(
 
     const durationSec = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
     input.onProgress?.('Reel encode complete', 95)
+    mp4RenderLog(5, 'Remotion render complete', {
+      outputPath: input.outputPath,
+      durationSec,
+    })
     remotionCheckpoint('render_media_done', { durationSec, outputPath: input.outputPath })
     logPipelineStepComplete('export', null, { phase: 'remotion_render_done', durationSec })
 
