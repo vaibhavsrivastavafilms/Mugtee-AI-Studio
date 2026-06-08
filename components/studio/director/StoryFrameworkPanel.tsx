@@ -38,10 +38,36 @@ function FrameworkCard({
           <p className="text-[10px] uppercase tracking-[0.14em] text-purple-300/70">{fw.label}</p>
           <h3 className="mt-1 text-sm font-medium text-white/90 leading-snug">{rec.title}</h3>
         </div>
-        <span className="shrink-0 rounded-full border border-gold-500/30 bg-gold-500/[0.1] px-2 py-0.5 text-[10px] text-gold-200/90">
-          {rec.confidenceScore}%
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className="rounded-full border border-gold-500/30 bg-gold-500/[0.1] px-2 py-0.5 text-[10px] text-gold-200/90">
+            {rec.combinedScore ?? rec.confidenceScore}%
+          </span>
+          {rec.virloConfidence != null ? (
+            <span className="rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-1.5 py-0.5 text-[9px] text-purple-200/80">
+              Virlo {rec.virloConfidence}%
+            </span>
+          ) : null}
+        </div>
       </div>
+      {rec.creatorMatch != null || rec.virloTrend != null ? (
+        <div className="flex flex-wrap gap-1.5">
+          {rec.creatorMatch != null ? (
+            <span className="rounded border border-white/[0.08] px-1.5 py-0.5 text-[9px] text-white/45">
+              Creator {rec.creatorMatch}%
+            </span>
+          ) : null}
+          {rec.virloTrend != null ? (
+            <span className="rounded border border-white/[0.08] px-1.5 py-0.5 text-[9px] text-white/45">
+              Trend {rec.virloTrend}%
+            </span>
+          ) : null}
+          {rec.marketStatus ? (
+            <span className="rounded border border-emerald-500/20 bg-emerald-500/[0.06] px-1.5 py-0.5 text-[9px] text-emerald-300/70 capitalize">
+              {rec.marketStatus.replace(/_/g, ' ')}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <p className="text-[11px] text-white/45 italic">{fw.tagline}</p>
       <dl className="space-y-2 text-xs">
         {(

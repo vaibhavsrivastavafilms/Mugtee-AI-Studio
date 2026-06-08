@@ -101,6 +101,14 @@ export type ProducerAnalysisInput = {
   }
   directorMemoryPrompt?: string
   producerMemoryPrompt?: string
+  virloMarketPrompt?: string
   isGenericIdea?: boolean
   genericSignals?: string[]
+}
+
+export type ProducerMarketOpportunity = {
+  workingNow: string[]
+  emerging: string[]
+  oversaturated: string[]
+  recommended: string[]
 }

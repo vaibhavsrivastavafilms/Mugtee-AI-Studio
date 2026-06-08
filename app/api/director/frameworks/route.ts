@@ -17,6 +17,8 @@ import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { StoryDirectionOption } from '@/lib/director/types'
 import { logError } from '@/lib/workspace/validation'
+import { getOrCreateCreatorIntelligenceGraph } from '@/lib/intelligence/creator-graph.server'
+import { loadVirloMarketIntelligence } from '@/lib/virlo/viral-patterns.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -115,6 +117,11 @@ export async function POST(req: NextRequest) {
       (parsed.body!.creatorDNA as Record<string, string> | undefined) ??
       (await loadCreatorDna(userId))
 
+    const [intelligenceGraph, virloMarket] = await Promise.all([
+      getOrCreateCreatorIntelligenceGraph(userId),
+      loadVirloMarketIntelligence(creatorDna.platform ?? null),
+    ])
+
     const recommendations = await generateFrameworkRecommendations({
       idea,
       storyDirection,
@@ -124,6 +131,8 @@ export async function POST(req: NextRequest) {
         platform: creatorDna.platform,
         emotionalGoal: creatorDna.emotionalGoal,
       },
+      creatorGraph: intelligenceGraph.graphData,
+      virloMarket,
     })
 
     const { error } = await upsertDirectorProjectState(projectId, userId, {

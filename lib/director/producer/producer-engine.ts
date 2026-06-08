@@ -167,6 +167,10 @@ export function buildProducerAnalysisPrompt(input: ProducerAnalysisInput): {
     sections.push(input.producerMemoryPrompt)
   }
 
+  if (input.virloMarketPrompt) {
+    sections.push(input.virloMarketPrompt)
+  }
+
   if (generic.isGeneric) {
     sections.push(
       `CHALLENGE MODE ACTIVE — generic signals detected: ${generic.signals.join(', ')}. Score conservatively and provide challenge reframes.`

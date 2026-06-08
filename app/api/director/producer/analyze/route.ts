@@ -18,6 +18,8 @@ import {
 } from '@/lib/director/producer/producer-db.server'
 import type { ProducerAnalysisInput } from '@/lib/director/producer/types'
 import { logError } from '@/lib/workspace/validation'
+import { formatVirloMarketForPrompt } from '@/lib/virlo/virlo-prompt-injection'
+import { loadVirloMarketIntelligence } from '@/lib/virlo/viral-patterns.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -131,19 +133,24 @@ export async function POST(req: NextRequest) {
       getOrCreateCreatorMemory(userId),
       loadCreatorProducerMemory(userId),
     ])
+    const virloMarket = await loadVirloMarketIntelligence(creatorDna.platform ?? null)
 
     const directorMemoryPrompt = formatDirectorCreatorMemoryForPrompt(creatorMemory)
     const producerMemoryPrompt = mergeProducerMemoryForPrompt(
       null,
       creatorProducerMemory
     )
+    const virloMarketPrompt = formatVirloMarketForPrompt(virloMarket)
 
-    const input = buildAnalysisInput(
-      snapshot,
-      creatorDna,
-      directorMemoryPrompt,
-      producerMemoryPrompt
-    )
+    const input = {
+      ...buildAnalysisInput(
+        snapshot,
+        creatorDna,
+        directorMemoryPrompt,
+        producerMemoryPrompt
+      ),
+      virloMarketPrompt,
+    }
 
     const analysis = await runProducerAnalysis(input)
     const reportId = crypto.randomUUID()

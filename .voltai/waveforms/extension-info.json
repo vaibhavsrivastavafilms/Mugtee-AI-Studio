@@ -1,0 +1,26 @@
+{
+  "extensionId": "voltai.voltai-agent",
+  "extensionVersion": "1.6.3",
+  "schemaVersion": 1,
+  "writtenAt": 1780701901704,
+  "uri": {
+    "routes": [
+      "waveform",
+      "pdf",
+      "doc",
+      "testplan",
+      "openFile",
+      "getDisplayedSignals"
+    ],
+    "waveformAcceptsSignals": true
+  },
+  "fileWatcher": {
+    "dir": ".voltai\\waveforms/queries",
+    "ops": [
+      "getDisplayedSignals",
+      "setSignals",
+      "addSignals",
+      "clearSignals"
+    ]
+  }
+}
