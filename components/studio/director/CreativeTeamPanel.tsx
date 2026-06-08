@@ -6,7 +6,7 @@ import { DirectorPanelShell } from '@/components/studio/director/director-panel-
 import { directorBtnOutline, directorBtnPrimary } from '@/lib/studio/director-mode-tokens'
 import { useDirectorStudioStore } from '@/stores/director-studio-store'
 import { useCreativeTeamStore } from '@/stores/creative-team-store'
-import { CREATIVE_TEAM_AGENTS } from '@/lib/creative-team/agents'
+import { CREATIVE_TEAM_AGENT_REGISTRY } from '@/lib/creative-team/agents/registry'
 import type { AgentState, CreativeTeamAgentId } from '@/lib/creative-team/types'
 
 const AGENT_AVATARS: Record<CreativeTeamAgentId, string> = {
@@ -189,7 +189,7 @@ export function CreativeTeamPanel() {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {CREATIVE_TEAM_AGENTS.map((agent) => (
+        {CREATIVE_TEAM_AGENT_REGISTRY.map((agent) => (
           <TeamMemberCard
             key={agent.id}
             agentId={agent.id}
