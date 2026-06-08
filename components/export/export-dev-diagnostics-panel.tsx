@@ -64,6 +64,13 @@ export function ExportDevDiagnosticsPanel(props: ExportDevDiagnosticsPanelProps)
             videoRenderEnabled: snapshot.videoRenderEnabled,
             creatorPackCanExport: snapshot.creatorPack.canExport,
             missingRequired: snapshot.creatorPack.missingRequired,
+            storyboardReport: {
+              exportReady: snapshot.storyboardReport.exportReady,
+              failedValidationRule: snapshot.storyboardReport.failedValidationRule,
+              missingAssetIds: snapshot.storyboardReport.missingAssetIds,
+              perSceneSummary: snapshot.storyboardReport.perSceneSummary,
+            },
+            sceneDiagnostics: snapshot.sceneDiagnostics,
             browser: caps
               ? {
                   crossOriginIsolated: caps.crossOriginIsolated,

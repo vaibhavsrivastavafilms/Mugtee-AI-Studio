@@ -1,4 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 
 /** Scene still used for reel MP4 export (primary imageUrl or storyboard fallback). */
 export type SceneExportImageSource = {
@@ -18,12 +19,17 @@ export type MissingExportScene = {
 
 export function resolveSceneExportAssetPath(scene: SceneExportImageSource): string | null {
   if (scene.imageAssetPath?.trim()) return scene.imageAssetPath.trim()
-  const active = scene.storyboardImages?.find(
-    (img) => img.id === scene.activeStoryboardId
-  )
+  const storyboard = scene.storyboardImages ?? []
+  const active = storyboard.find((img) => img.id === scene.activeStoryboardId)
   if (active?.assetPath?.trim()) return active.assetPath.trim()
-  const first = scene.storyboardImages?.[0]?.assetPath
-  return first?.trim() ? first.trim() : null
+  const firstPath = storyboard[0]?.assetPath
+  if (firstPath?.trim()) return firstPath.trim()
+  const fromImageUrl = extractStoragePathFromUrl(scene.imageUrl)
+  if (fromImageUrl) return fromImageUrl
+  const fromActiveUrl = extractStoragePathFromUrl(active?.url)
+  if (fromActiveUrl) return fromActiveUrl
+  const fromFirstUrl = extractStoragePathFromUrl(storyboard[0]?.url)
+  return fromFirstUrl ?? null
 }
 
 export function resolveSceneExportImageUrl(scene: SceneExportImageSource): string | null {

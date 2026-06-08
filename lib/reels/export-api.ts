@@ -356,7 +356,7 @@ export async function queueReelExportForProject(params: {
     storyboard: hydratedStoreScenes,
   }
 
-  const scenes = scenesForReelExport(hydratedStoreScenes)
+  let scenes = scenesForReelExport(hydratedStoreScenes)
   if (scenes.length < 1) {
     throw new Error('At least one storyboard scene is required.')
   }
@@ -411,6 +411,13 @@ export async function queueReelExportForProject(params: {
   })
   if (!validation.valid) {
     throw new Error(validation.message ?? 'Export assets are missing or unreachable.')
+  }
+
+  if (validation.refreshedScenes?.length) {
+    hydratedStoreScenes = validation.refreshedScenes
+    exportRow.scenes = validation.refreshedScenes
+    exportRow.storyboard = validation.refreshedScenes
+    scenes = scenesForReelExport(hydratedStoreScenes)
   }
 
   exportLog.requested({

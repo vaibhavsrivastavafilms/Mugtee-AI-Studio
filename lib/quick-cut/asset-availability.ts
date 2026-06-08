@@ -1,6 +1,7 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
+import { sceneHasClientExportableImage } from '@/lib/export/scene-export-diagnostics'
 
 import { isSameOriginReelDownloadUrl } from '@/lib/export/reel-same-origin'
 import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
@@ -29,15 +30,7 @@ export function isQuickCutMp4DownloadReady(input: {
   return true
 }
 
-const PLACEHOLDER_HOST = 'images.unsplash.com'
-
-/** True when the URL points at a generated/uploaded still (not a preview placeholder). */
-export function isRealSceneImageUrl(url: string | null | undefined): boolean {
-  const trimmed = url?.trim()
-  if (!trimmed) return false
-  if (trimmed.includes(PLACEHOLDER_HOST)) return false
-  return true
-}
+export { isRealSceneImageUrl } from '@/lib/export/scene-export-diagnostics'
 
 export function hasExportableScript(input: {
   title?: string
@@ -58,14 +51,8 @@ export function hasExportableSceneImages(
   isGenerating = false
 ): boolean {
   if (scenes.length < 1) return false
-  const hasRealImage = scenes.some(
-    (scene) =>
-      isRealSceneImageUrl(scene.imageUrl) ||
-      scene.storyboardImages?.some((img) => isRealSceneImageUrl(img.url))
-  )
-  if (hasRealImage) return true
   if (isGenerating) return false
-  return false
+  return scenes.every(sceneHasClientExportableImage)
 }
 
 export function hasExportableNarration(voiceUrl: string | null | undefined): boolean {

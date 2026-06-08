@@ -6,6 +6,12 @@ import {
   type CreatorPackReadiness,
 } from '@/lib/export/creator-pack-readiness.client'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import {
+  buildStoryboardExportReport,
+  logStoryboardExportReport,
+  type SceneImageDiagnostic,
+  type StoryboardExportReport,
+} from '@/lib/export/scene-export-diagnostics'
 
 export type ExportDiagnosticsInput = {
   projectId?: string | null
@@ -29,14 +35,20 @@ export type ExportDiagnosticsSnapshot = {
   creatorPack: CreatorPackReadiness
   browserCapabilities: ExportCapabilities | null
   videoRenderEnabled: boolean
+  storyboardReport: StoryboardExportReport
+  sceneDiagnostics: SceneImageDiagnostic[]
 }
 
 /** Readable console.group diagnostics before export. */
 export function exportDiagnostics(input: ExportDiagnosticsInput): ExportDiagnosticsSnapshot {
+  const storyboardReport = buildStoryboardExportReport({
+    projectId: input.projectId,
+    scenes: input.scenes,
+    isGenerating: input.isGenerating,
+  })
+
   const sceneCount = input.scenes.length
-  const storyboardCount = input.scenes.filter(
-    (s) => s.imageUrl?.trim() || s.imageAssetPath?.trim()
-  ).length
+  const storyboardCount = storyboardReport.scenes.filter((s) => s.status === 'FOUND').length
 
   const creatorPack = evaluateCreatorPackReadiness({
     title: input.title,
@@ -65,16 +77,14 @@ export function exportDiagnostics(input: ExportDiagnosticsInput): ExportDiagnost
     creatorPack,
     browserCapabilities,
     videoRenderEnabled: Boolean(input.videoRenderEnabled),
+    storyboardReport,
+    sceneDiagnostics: storyboardReport.scenes,
   }
 
+  logStoryboardExportReport('client diagnostics', storyboardReport)
+
   if (typeof console !== 'undefined' && console.group) {
-    console.group('[MUGTEE EXPORT] diagnostics')
-    console.log('projectId', snapshot.projectId)
-    console.log('sceneCount', snapshot.sceneCount)
-    console.log('storyboardCount', snapshot.storyboardCount)
-    console.log('voiceReady', snapshot.voiceReady)
-    console.log('captionsReady', snapshot.captionsReady)
-    console.log('scriptReady', snapshot.scriptReady)
+    console.group('[MUGTEE EXPORT] creator pack readiness')
     console.log('creatorPackCanExport', snapshot.creatorPack.canExport)
     if (snapshot.creatorPack.missingRequired.length) {
       console.warn('missingRequired', snapshot.creatorPack.missingRequired)

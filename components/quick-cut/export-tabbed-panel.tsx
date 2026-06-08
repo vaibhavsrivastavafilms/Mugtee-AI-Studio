@@ -33,6 +33,7 @@ import { ExportErrorBoundary } from '@/components/quick-cut/export-error-boundar
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 
 export type ExportSubTab = 'download' | 'publish' | 'repurpose' | 'workspace'
 
@@ -56,7 +57,8 @@ function ExportRenderStatus() {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
-  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const configVideoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const videoRenderEnabled = isClientVideoRenderEnabled(configVideoRenderEnabled)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
 
   if (videoUrl?.trim()) return null
@@ -128,7 +130,13 @@ export function ExportTabbedPanel({
   const title = useQuickCutGenerationStore((s) => s.title)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
-  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const configVideoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
+  const videoRenderEnabled = isClientVideoRenderEnabled(configVideoRenderEnabled)
+
+  useEffect(() => {
+    void syncVideoRenderConfig()
+  }, [syncVideoRenderConfig])
 
   const showRenderStatus =
     generationStep === 'render' ||

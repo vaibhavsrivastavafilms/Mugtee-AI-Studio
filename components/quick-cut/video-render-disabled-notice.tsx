@@ -4,6 +4,7 @@ import { AlertCircle, Package } from 'lucide-react'
 import { REEL_EXPORT_DISABLED_USER_MSG } from '@/lib/video/reel-render-errors'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 
 type VideoRenderDisabledNoticeProps = {
   className?: string
@@ -16,7 +17,8 @@ export function VideoRenderDisabledNotice({
   className,
   showPackageAction = true,
 }: VideoRenderDisabledNoticeProps) {
-  const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const configVideoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
+  const videoRenderEnabled = isClientVideoRenderEnabled(configVideoRenderEnabled)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)

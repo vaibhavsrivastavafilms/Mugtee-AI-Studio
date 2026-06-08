@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
       hasVoice: readiness.hasVoice,
       missingAssets: readiness.missingAssets,
       message: readiness.message,
+      failedValidationRule: readiness.failedValidationRule,
+      sceneDiagnostics: readiness.sceneDiagnostics,
+      perSceneSummary: readiness.perSceneSummary,
     })
   } catch (err) {
     logError('export.readiness.get', err)

@@ -1,4 +1,5 @@
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 
 import { loadProject, resolveProjectScenes, type CinematicProjectRow } from '@/lib/cinematic-projects'
 import { invalidateProjectHydrationCache } from '@/lib/cinematic/project-hydration-cache.client'
@@ -75,7 +76,8 @@ export function quickCutCanCompileMp4(
 
 ): boolean {
 
-  if (!videoRenderEnabled || !voiceUrl?.trim() || scenes.length < 1) return false
+  const renderEnabled = isClientVideoRenderEnabled(videoRenderEnabled)
+  if (!renderEnabled || !voiceUrl?.trim() || scenes.length < 1) return false
 
   return allScenesHaveExportImages(scenes)
 

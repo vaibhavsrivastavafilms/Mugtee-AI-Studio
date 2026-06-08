@@ -1,6 +1,7 @@
 'use client'
 
 import { toast } from 'sonner'
+import { isMp4ExportEntitled } from '@/lib/export/export-entitlement'
 
 export const MP4_PRO_ONLY_MSG = 'MP4 export is a Pro feature — upgrade to export'
 
@@ -13,9 +14,7 @@ export function isMp4CompileAllowedForPlan(
   planType: string,
   options?: { trialActive?: boolean; isUnlimited?: boolean }
 ): boolean {
-  if (options?.isUnlimited || options?.trialActive) return true
-  const normalized = String(planType || 'FREE').toUpperCase()
-  return normalized === 'PRO' || normalized === 'CREATOR' || normalized === 'PRO_TRIAL'
+  return isMp4ExportEntitled(planType, options)
 }
 
 /** Best-effort profile read for export gates (same source as useUsage trial bootstrap). */

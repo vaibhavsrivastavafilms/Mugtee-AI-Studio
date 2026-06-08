@@ -47,6 +47,7 @@ import {
   ffmpegCheckpoint,
 } from '@/lib/export/export-api-checkpoints.server'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
+import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -108,6 +109,11 @@ export async function orchestrateRemotionReel(
     }
 
     report('prepare', EXPORT_STAGE_LABELS.preparing)
+    mp4RenderLog(1, 'starting asset validation', {
+      projectId: input.projectId,
+      jobId,
+      sceneCount: input.scenes.length,
+    })
 
     const scenes = input.scenes.filter((s) => s.description || s.visualPrompt || s.title)
     if (scenes.length < 1) {
@@ -116,9 +122,16 @@ export async function orchestrateRemotionReel(
 
     const missingImages = findScenesMissingExportImages(scenes)
     if (missingImages.length > 0) {
+      mp4RenderLog(1, 'validation failed — missing storyboard images', {
+        missing: missingImages.map((m) => m.id),
+      })
       throw new Error(missingScenesExportMessage(missingImages))
     }
     assertAllScenesHaveExportImages(scenes)
+    mp4RenderLog(1, 'assets validated', {
+      sceneCount: scenes.length,
+      hasVoice: Boolean(input.voiceUrl?.trim()),
+    })
 
     exportLog.timelineBuilt({
       jobId,
@@ -143,7 +156,13 @@ export async function orchestrateRemotionReel(
 
     const totalDuration = computeRenderTotalSec(scenes)
     const timedScenes = clampSceneDurationsToTarget(scenes, totalDuration)
-    const outputPath = path.join(os.tmpdir(), `mugtee-reel-${jobId}.mp4`)
+    const outputDir = path.join(os.tmpdir(), `mugtee-reel-${jobId}`)
+    await fs.mkdir(outputDir, { recursive: true })
+    const outputPath = path.join(outputDir, 'output.mp4')
+    mp4RenderLog(2, 'timeline built', {
+      sceneCount: timedScenes.length,
+      totalDurationSec: totalDuration,
+    })
 
     report('download_assets', EXPORT_STAGE_LABELS.preparing)
     exportLog.voiceLoaded({
@@ -177,6 +196,7 @@ export async function orchestrateRemotionReel(
     let thumbnailPath: string | null = null
 
     if (mock) {
+      mp4RenderLog(5, 'rendering MP4 (mock)', { outputPath, mock: true })
       const mockResult = await renderRemotionReelMock({ outputPath, durationSec: totalDuration })
       durationSec = mockResult.durationSec
       thumbnailPath = mockResult.thumbnailPath
@@ -201,6 +221,7 @@ export async function orchestrateRemotionReel(
       thumbnailPath = renderResult.thumbnailPath
     }
 
+    mp4RenderLog(5, 'MP4 encode complete', { durationSec, outputPath })
     report('assemble', EXPORT_STAGE_LABELS.encoding)
     ffmpegCheckpoint('done', { jobId, durationSec })
     exportLog.ffmpegCompleted({ jobId, projectId: input.projectId, durationSec })
@@ -280,6 +301,12 @@ export async function orchestrateRemotionReel(
     report('complete', EXPORT_STAGE_LABELS.ready)
     exportApiCheckpoint('completed', { jobId, projectId: input.projectId, videoUrl })
     exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
+    mp4RenderLog(6, 'output.mp4 saved', {
+      outputPath,
+      videoUrl,
+      storagePath,
+      durationSec,
+    })
 
     if (input.userId && input.projectId) {
       const processingMs = options?.exportStartedAt

@@ -247,6 +247,10 @@ import {
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
 import { fetchQuickCutConfig } from '@/lib/quick-cut/quick-cut-config-cache.client'
+import {
+  defaultClientVideoRenderEnabled,
+  isClientVideoRenderEnabled,
+} from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import {
   blockMp4CompileIfNeeded,
@@ -656,7 +660,7 @@ const INITIAL: QuickCutGenerationState = {
   renderStartedAt: null,
   exportPackageReady: false,
   exportExpired: false,
-  videoRenderEnabled: false,
+  videoRenderEnabled: defaultClientVideoRenderEnabled(),
   sceneVideoEnabled: false,
   isGeneratingSceneVideos: false,
   virlo: null,
@@ -2550,7 +2554,7 @@ export const useQuickCutGenerationStore = create<
     const configPromise = fetchQuickCutConfig()
       .then((cfg) => {
         config = cfg as Record<string, boolean>
-        videoRenderEnabled = cfg.videoRenderEnabled === true
+        videoRenderEnabled = isClientVideoRenderEnabled(cfg.videoRenderEnabled === true)
         sceneVideoEnabled = cfg.sceneVideoEnabled === true
         freeTier = cfg.freeTierOnly === true
         const v3Enabled = isV3PipelineEnabledFromConfig(cfg as Record<string, unknown>)
@@ -4368,7 +4372,7 @@ export const useQuickCutGenerationStore = create<
   syncVideoRenderConfig: async () => {
     try {
       const config = (await fetchQuickCutConfig()) as Record<string, boolean>
-      const videoRenderEnabled = config.videoRenderEnabled === true
+      const videoRenderEnabled = isClientVideoRenderEnabled(config.videoRenderEnabled === true)
       const sceneVideoEnabled = config.sceneVideoEnabled === true
       set({ videoRenderEnabled, sceneVideoEnabled })
       const state = get()
