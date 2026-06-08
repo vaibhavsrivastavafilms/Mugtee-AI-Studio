@@ -3,10 +3,8 @@
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
-import { authLoginHref, persistModeEntry } from '@/lib/create/mode-selection'
 import { useRouter } from 'next/navigation'
-import { HOME_NAV, outlineGoldButton, STUDIO_QUICK } from '@/components/home/cinematic-home-styles'
+import { HOME_NAV, outlineGoldButton, STUDIO_ENTRY } from '@/components/home/cinematic-home-styles'
 
 type CinematicHomeHeaderProps = {
   className?: string
@@ -14,17 +12,10 @@ type CinematicHomeHeaderProps = {
 
 export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
   const router = useRouter()
-  const { ready, user } = useAuthHydration()
 
   const handleStartCreating = (e: React.MouseEvent) => {
     e.preventDefault()
-    persistModeEntry('quick')
-    if (!ready) return
-    if (user) {
-      router.push(STUDIO_QUICK)
-      return
-    }
-    router.push(authLoginHref('quick'))
+    router.push(STUDIO_ENTRY)
   }
 
   return (
@@ -34,7 +25,7 @@ export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
         className
       )}
     >
-      <div className="mx-auto flex h-14 lg:h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 lg:h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="shrink-0 group hover:opacity-90 transition-opacity">
           <span className="block font-display text-xl sm:text-2xl tracking-[0.12em] uppercase text-[#D4AF37] leading-none">
             Mugtee
@@ -44,7 +35,7 @@ export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+        <nav className="hidden sm:flex items-center gap-6">
           {HOME_NAV.map((item) => (
             <Link
               key={item.href}

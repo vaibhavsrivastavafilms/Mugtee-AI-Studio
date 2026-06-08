@@ -17,6 +17,7 @@ import { StoryboardGenerator } from '@/components/quick-cut/storyboard-generator
 import { formatMissingKeysHint } from '@/lib/cinematic/quick-cut/pipeline-status'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { QuickCutDownloadPanel } from '@/components/quick-cut/download-panel'
+import { PostExportActions } from '@/components/quick-cut/post-export-actions'
 
 export function ExportPreview({
   onRegenerate,
@@ -153,6 +154,7 @@ export function ExportPreview({
         </>
       ) : null}
 
+      <PostExportActions />
       <QuickCutDownloadPanel />
 
       <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">

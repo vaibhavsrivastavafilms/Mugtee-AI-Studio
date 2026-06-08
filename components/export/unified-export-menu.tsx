@@ -10,6 +10,7 @@ import {
   Mic,
   Package,
   Share2,
+  Subtitles,
   Video,
 } from 'lucide-react'
 import {
@@ -118,6 +119,12 @@ export function UnifiedExportMenu({
     handleDownloadTxt,
     handleDownloadDoc,
     handleDownloadMp3,
+    hasThumbnail,
+    hasCaptions,
+    downloadingThumbnail,
+    downloadingCaptions,
+    handleDownloadThumbnail,
+    handleDownloadCaptions,
     includeTextExports,
     hasTextContent,
     textExportSubtitle,
@@ -206,6 +213,22 @@ export function UnifiedExportMenu({
                 disabled={!hasNarration}
                 loading={downloadingMp3}
                 onSelect={() => void handleDownloadMp3()}
+              />
+              <ExportMenuItem
+                icon={<Subtitles className="w-3.5 h-3.5 shrink-0 text-gold-300/80" aria-hidden />}
+                title={downloadingCaptions ? 'Downloading…' : 'Download captions (.srt)'}
+                subtitle={hasCaptions ? 'Synced scene captions' : 'Captions not ready'}
+                disabled={!hasCaptions}
+                loading={downloadingCaptions}
+                onSelect={() => void handleDownloadCaptions()}
+              />
+              <ExportMenuItem
+                icon={<ImageIcon className="w-3.5 h-3.5 shrink-0 text-gold-300/80" aria-hidden />}
+                title={downloadingThumbnail ? 'Downloading…' : 'Download thumbnail (.jpg)'}
+                subtitle={hasThumbnail ? '1080×1920 cover image' : 'Thumbnail not ready'}
+                disabled={!hasThumbnail}
+                loading={downloadingThumbnail}
+                onSelect={() => void handleDownloadThumbnail()}
               />
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="bg-white/[0.06] my-1" />

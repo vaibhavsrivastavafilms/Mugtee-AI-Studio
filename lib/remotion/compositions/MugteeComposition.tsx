@@ -14,7 +14,7 @@ function activeWordAtTime(words: WordTiming[], timeSec: number): string | null {
   return hit?.text ?? words[words.length - 1]?.text ?? null
 }
 
-export type MugteeCompositionProps = ReelCompositionProps & {
+export type MugteeCompositionProps = Omit<ReelCompositionProps, 'captionTracks' | 'speechRanges'> & {
   captionTracks?: TimelineCaptionClip[]
   resolution?: { width: number; height: number }
 }

@@ -339,7 +339,7 @@ export function resolveCinematicGenerationProgress(
     .filter((s) => s.status === 'pending' || s.status === 'failed')
     .map((s) => s.label)
 
-  const headline = isReady ? '✓ Your Reel Is Ready' : 'Building your reel…'
+  const headline = isReady ? '✓ Your Reel Is Ready' : 'Building Your Reel…'
   const currentStepLabel = isReady ? null : resolveCurrentStepLabel(stages, allDefinitions, input)
 
   return {
@@ -350,5 +350,31 @@ export function resolveCinematicGenerationProgress(
     completedLabels,
     remainingLabels,
     isReady,
+  }
+}
+
+/** Maps pipeline step to progress stage for ETA timing samples. */
+export function generationStepToProgressStageId(
+  step: QuickCutGenerationStep
+): CinematicProgressStageId | null {
+  switch (step) {
+    case 'analyzing':
+    case 'title':
+    case 'hook':
+      return 'hook'
+    case 'script':
+      return 'script'
+    case 'scenes':
+      return 'scenes'
+    case 'images':
+      return 'storyboard'
+    case 'motion':
+      return 'motion'
+    case 'voice':
+      return 'voiceover'
+    case 'render':
+      return 'rendering_mp4'
+    default:
+      return null
   }
 }

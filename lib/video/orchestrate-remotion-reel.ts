@@ -160,8 +160,14 @@ export async function orchestrateRemotionReel(
     await fs.mkdir(outputDir, { recursive: true })
     const outputPath = path.join(outputDir, 'output.mp4')
     mp4RenderLog(2, 'timeline built', {
+      projectId: input.projectId,
+      jobId,
       sceneCount: timedScenes.length,
-      totalDurationSec: totalDuration,
+      durationSec: totalDuration,
+      fps: 30,
+      resolution: '1080x1920',
+      voiceUrl: input.voiceUrl,
+      musicUrl: options?.musicUrl ?? null,
     })
 
     report('download_assets', EXPORT_STAGE_LABELS.preparing)
@@ -206,6 +212,8 @@ export async function orchestrateRemotionReel(
         voiceUrl: input.voiceUrl,
         musicUrl: options?.musicUrl ?? null,
         title: input.title,
+        hook: input.idea,
+        projectId: input.projectId,
         outputPath,
         sceneMotion: options?.sceneMotion ?? null,
         onProgress: (label, percent) => {

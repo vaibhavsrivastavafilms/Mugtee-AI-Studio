@@ -58,6 +58,9 @@ import { blockMp4CompileIfNeeded } from '@/lib/export/mp4-compile-guard.client'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
 import { useReelExportAutoResume } from '@/lib/export/use-reel-export-auto-resume.client'
+import { resolveActiveThumbnailUrl } from '@/lib/cinematic/thumbnail-cover'
+import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
+import { buildSubtitleSegmentsFromScenes, segmentsToSrt } from '@/lib/video/subtitles'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export type UnifiedExportMenuOptions = {
@@ -159,6 +162,8 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
 
   const [downloadingMp4, setDownloadingMp4] = useState(false)
   const [downloadingMp3, setDownloadingMp3] = useState(false)
+  const [downloadingThumbnail, setDownloadingThumbnail] = useState(false)
+  const [downloadingCaptions, setDownloadingCaptions] = useState(false)
   const [downloadingImagesFormat, setDownloadingImagesFormat] =
     useState<SceneImageExportSize | null>(null)
   const [textBusy, setTextBusy] = useState<'copy' | 'txt' | 'doc' | null>(null)
@@ -567,6 +572,80 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     notifyExportComplete()
   }, [scriptInput, notifyExportComplete])
 
+  const thumbnailUrl = useMemo(
+    () => resolveActiveThumbnailUrl(thumbnailImageUrl, scenes),
+    [thumbnailImageUrl, scenes]
+  )
+  const hasThumbnail = Boolean(thumbnailUrl?.trim())
+  const hasCaptions = scenes.some((s) => s.description?.trim())
+
+  const handleDownloadThumbnail = useCallback(async () => {
+    if (!hasThumbnail || downloadingThumbnail) return
+    if (!(await guardExport())) return
+    trackExportStarted('thumbnail_jpg')
+    setAssetError(null)
+    setDownloadingThumbnail(true)
+    try {
+      const res = await fetch(thumbnailUrl!)
+      if (!res.ok) throw new Error(ASSET_UNAVAILABLE_MSG)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${textBaseName}-thumbnail.jpg`
+      anchor.rel = 'noopener'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      notifyExportComplete()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+      setAssetError(message)
+      toast.error(message)
+    } finally {
+      setDownloadingThumbnail(false)
+    }
+  }, [
+    hasThumbnail,
+    downloadingThumbnail,
+    thumbnailUrl,
+    textBaseName,
+    trackExportStarted,
+    guardExport,
+    notifyExportComplete,
+  ])
+
+  const handleDownloadCaptions = useCallback(async () => {
+    if (!hasCaptions || downloadingCaptions) return
+    if (!(await guardExport())) return
+    trackExportStarted('captions_srt')
+    setAssetError(null)
+    setDownloadingCaptions(true)
+    try {
+      const total = computeRenderTotalSec(scenes)
+      const segments = buildSubtitleSegmentsFromScenes(scenes, total)
+      const srt = segmentsToSrt(segments)
+      const ok = downloadClientBlob(srt, `${textBaseName}-captions.srt`, 'text/plain')
+      if (!ok) throw new Error('Caption download failed')
+      notifyExportComplete()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ASSET_UNAVAILABLE_MSG
+      setAssetError(message)
+      toast.error(message)
+    } finally {
+      setDownloadingCaptions(false)
+    }
+  }, [
+    hasCaptions,
+    downloadingCaptions,
+    scenes,
+    textBaseName,
+    trackExportStarted,
+    guardExport,
+    notifyExportComplete,
+  ])
+
   const handleCopyAll = useCallback(async () => {
     if (!hasTextContent || textBusy !== null) return
     setTextBusy('copy')
@@ -860,6 +939,12 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     handleDownloadTxt,
     handleDownloadDoc,
     handleDownloadMp3,
+    hasThumbnail,
+    hasCaptions,
+    downloadingThumbnail,
+    downloadingCaptions,
+    handleDownloadThumbnail,
+    handleDownloadCaptions,
     // Text exports (export hub)
     hasTextContent,
     textExportSubtitle,

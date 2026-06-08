@@ -31,8 +31,14 @@ export type MotionPresetId =
   | 'pull_out'
   | 'slow_pan_left'
   | 'slow_pan_right'
+  | 'tilt_up'
+  | 'tilt_down'
   | 'orbit'
+  | 'orbit_light'
   | 'depth_parallax'
+  | 'slow_parallax'
+  | 'depth_push'
+  | 'documentary_zoom'
   | 'subtle_zoom'
 
 export type MotionPresetCategory = 'ken_burns' | 'pan' | 'drift' | 'orbit' | 'parallax'
@@ -332,6 +338,127 @@ const PRESETS: MotionPreset[] = [
         "zoompan=z='min(zoom+0.0006,1.06)':d=125:x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2)",
     },
   },
+  {
+    id: 'tilt_up',
+    slug: 'tilt_up',
+    name: 'Tilt Up',
+    description: 'Vertical rise — reveal and aspiration beats.',
+    category: 'pan',
+    remotionConfig: {
+      scaleFrom: 1.1,
+      scaleTo: 1.12,
+      translateXFrom: 0,
+      translateXTo: 0,
+      translateYFrom: 22,
+      translateYTo: -22,
+      easing: 'ease-out',
+    },
+    ffmpegFilter: {
+      filter: "zoompan=z=1.1:d=125:x=iw/2-(iw/zoom/2):y='if(lte(on,1),0,y-1)'",
+    },
+  },
+  {
+    id: 'tilt_down',
+    slug: 'tilt_down',
+    name: 'Tilt Down',
+    description: 'Vertical descent — gravity and reflection beats.',
+    category: 'pan',
+    remotionConfig: {
+      scaleFrom: 1.1,
+      scaleTo: 1.12,
+      translateXFrom: 0,
+      translateXTo: 0,
+      translateYFrom: -22,
+      translateYTo: 22,
+      easing: 'ease-out',
+    },
+    ffmpegFilter: {
+      filter: "zoompan=z=1.1:d=125:x=iw/2-(iw/zoom/2):y='if(lte(on,1),0,y+1)'",
+    },
+  },
+  {
+    id: 'orbit_light',
+    slug: 'orbit_light',
+    name: 'Orbit Light',
+    description: 'Gentle orbit with luminous atmosphere.',
+    category: 'orbit',
+    remotionConfig: {
+      scaleFrom: 1.08,
+      scaleTo: 1.13,
+      translateXFrom: 0,
+      translateXTo: 0,
+      translateYFrom: 0,
+      translateYTo: 0,
+      rotateFrom: -0.5,
+      rotateTo: 0.5,
+      easing: 'ease-out',
+    },
+    ffmpegFilter: {
+      filter: 'rotate=0.005*sin(2*PI*t/8):c=none:ow=iw:oh=ih',
+    },
+  },
+  {
+    id: 'slow_parallax',
+    slug: 'slow_parallax',
+    name: 'Slow Parallax',
+    description: 'Layered depth drift — calm cinematic separation.',
+    category: 'parallax',
+    remotionConfig: {
+      scaleFrom: 1.04,
+      scaleTo: 1.1,
+      translateXFrom: -10,
+      translateXTo: 10,
+      translateYFrom: 0,
+      translateYTo: 0,
+      parallaxOffset: 14,
+      easing: 'ease-out',
+    },
+    ffmpegFilter: {
+      filter:
+        'split[a][b];[a]scale=1.06,crop=iw:ih[c];[b]scale=1.1,crop=iw:ih[d];[c][d]overlay',
+    },
+  },
+  {
+    id: 'depth_push',
+    slug: 'depth_push',
+    name: 'Depth Push',
+    description: 'Motivational push with layered depth emphasis.',
+    category: 'parallax',
+    remotionConfig: {
+      scaleFrom: 1,
+      scaleTo: 1.2,
+      translateXFrom: 0,
+      translateXTo: 0,
+      translateYFrom: 0,
+      translateYTo: -6,
+      parallaxOffset: 16,
+      easing: 'ease-out',
+    },
+    ffmpegFilter: {
+      filter:
+        "zoompan=z='min(zoom+0.0014,1.2)':d=125:x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2)",
+    },
+  },
+  {
+    id: 'documentary_zoom',
+    slug: 'documentary_zoom',
+    name: 'Documentary Zoom',
+    description: 'Observational slow zoom — documentary gravitas.',
+    category: 'ken_burns',
+    remotionConfig: {
+      scaleFrom: 1.02,
+      scaleTo: 1.12,
+      translateXFrom: -6,
+      translateXTo: 6,
+      translateYFrom: 2,
+      translateYTo: -2,
+      easing: 'linear',
+    },
+    ffmpegFilter: {
+      filter:
+        "zoompan=z='min(zoom+0.0009,1.12)':d=125:x='iw/2-(iw/zoom/2)+4*sin(on/25)':y=ih/2-(ih/zoom/2)",
+    },
+  },
 ]
 
 const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]))
@@ -363,12 +490,14 @@ const ROLE_DEFAULTS: Record<string, MotionPresetId> = {
 const INDEX_CYCLE: MotionPresetId[] = [
   'push_in',
   'slow_pan_right',
-  'documentary_drift',
+  'documentary_zoom',
   'pull_out',
-  'slow_pan_left',
+  'tilt_up',
+  'tilt_down',
+  'orbit_light',
+  'slow_parallax',
+  'depth_push',
   'subtle_zoom',
-  'orbit',
-  'depth_parallax',
 ]
 
 function normalizeHint(text: string): string {

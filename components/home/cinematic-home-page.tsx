@@ -1,25 +1,42 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { Armchair, Zap } from 'lucide-react'
 import { CinematicHomeHeader } from '@/components/home/CinematicHomeHeader'
 import { CinematicHero } from '@/components/home/CinematicHero'
-import { QuickCutCard } from '@/components/home/QuickCutCard'
-import { DirectorModeCard } from '@/components/home/DirectorModeCard'
-import { WorkflowPipeline } from '@/components/home/WorkflowPipeline'
-import { TrustBar } from '@/components/home/TrustBar'
-import { DemoReelSection } from '@/components/home/DemoReelSection'
-import { CreatorShowcase } from '@/components/home/CreatorShowcase'
-import { SocialProofSection } from '@/components/home/SocialProofSection'
-import Link from 'next/link'
-import { goldButton } from '@/components/home/cinematic-home-styles'
+import { LandingProductCard } from '@/components/home/LandingProductCard'
+import { LandingHowItWorks } from '@/components/home/LandingHowItWorks'
+import { LandingFeaturesStrip } from '@/components/home/LandingFeaturesStrip'
+import { LandingSocialProof } from '@/components/home/LandingSocialProof'
+import {
+  STUDIO_DIRECTOR,
+  STUDIO_ENTRY,
+  STUDIO_QUICK,
+} from '@/components/home/cinematic-home-styles'
+import { authLoginHref, persistModeEntry } from '@/lib/create/mode-selection'
+import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 
-/** Cinematic homepage — hero viewport + scrollable proof, showcase, and pricing CTA. */
+/** Minimal conversion-focused landing — Quick Cut + Director Mode first. */
 export default function CinematicHomePage() {
+  const router = useRouter()
+  const { ready, user } = useAuthHydration()
+
+  const goStudio = () => router.push(STUDIO_ENTRY)
+
+  const goQuick = () => {
+    persistModeEntry('quick')
+    if (!ready) return
+    router.push(user ? STUDIO_QUICK : authLoginHref('quick'))
+  }
+
+  const goDirector = () => {
+    persistModeEntry('director')
+    if (!ready) return
+    router.push(user ? STUDIO_DIRECTOR : authLoginHref('director'))
+  }
+
   return (
-    <div
-      data-cinematic-home
-      className="min-h-[100dvh] bg-[#050505] text-white"
-    >
-      <div className="flex min-h-[100dvh] flex-col">
+    <div data-cinematic-home className="min-h-[100dvh] bg-[#050505] text-white">
       <div
         className="pointer-events-none fixed inset-0 -z-10 opacity-30"
         aria-hidden
@@ -30,55 +47,54 @@ export default function CinematicHomePage() {
       />
 
       <CinematicHomeHeader />
+      <CinematicHero />
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        <CinematicHero />
-
-        <main
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 pb-16">
+        <section
           id="showcase"
-          className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto_1fr] gap-2 overflow-hidden px-3 pb-1 sm:gap-2.5 sm:px-4 md:grid-cols-2 md:grid-rows-[1fr_auto] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-rows-1 lg:gap-3 lg:px-6"
+          className="grid gap-4 sm:grid-cols-2 sm:gap-5"
+          aria-label="Choose your workflow"
         >
-          <QuickCutCard className="min-h-0 overflow-hidden md:col-start-1 md:row-start-1" />
-          <WorkflowPipeline
-            className="hidden min-h-0 lg:flex lg:col-start-2 lg:row-start-1 lg:w-[88px] xl:w-[96px]"
-            orientation="vertical"
+          <LandingProductCard
+            icon={Zap}
+            title="Quick Cut"
+            description="Generate a complete reel in minutes."
+            detail="Input an idea. Mugtee creates everything automatically."
+            ctaLabel="Start Quick Cut"
+            href={STUDIO_QUICK}
+            onClick={(e) => {
+              e.preventDefault()
+              goQuick()
+            }}
           />
-          <WorkflowPipeline
-            className="min-h-0 md:col-span-2 lg:hidden"
-            orientation="horizontal"
+          <LandingProductCard
+            icon={Armchair}
+            title="Director Mode"
+            description="Control every scene."
+            detail="Edit script, visuals, motion, voice and timing."
+            ctaLabel="Open Director Mode"
+            href={STUDIO_DIRECTOR}
+            onClick={(e) => {
+              e.preventDefault()
+              goDirector()
+            }}
           />
-          <DirectorModeCard className="min-h-0 overflow-hidden md:col-start-2 md:row-start-1 lg:col-start-3" />
-        </main>
+        </section>
 
-        <TrustBar />
-      </div>
+        <LandingHowItWorks />
+        <LandingFeaturesStrip />
+        <LandingSocialProof />
 
-      <DemoReelSection />
-      <CreatorShowcase />
-      <SocialProofSection />
-
-      <section
-        id="pricing-cta"
-        className="border-t border-white/[0.06] px-4 py-14 text-center sm:px-6"
-      >
-        <p className="text-[10px] uppercase tracking-[0.32em] text-[#D4AF37]/70">Cinematic Story Pipeline</p>
-        <h2 className="mt-2 font-display text-2xl text-white">Your Cinematic AI Studio</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-white/50">
-          Begin free. Creator at ₹599/mo and Pro at ₹999/mo — join the waitlist; billing opens soon.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/pricing" className={goldButton}>
-            View pricing
-          </Link>
-          <Link
-            href="/pricing#faq"
-            className="inline-flex min-h-[44px] items-center rounded-xl border border-white/20 px-5 text-[11px] uppercase tracking-[0.14em] text-white/80"
+        <div className="mt-10 text-center">
+          <button
+            type="button"
+            onClick={goStudio}
+            className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37]/70 hover:text-[#D4AF37] transition-colors"
           >
-            FAQ
-          </Link>
+            Not sure? Compare workflows →
+          </button>
         </div>
-      </section>
-      </div>
+      </main>
     </div>
   )
 }
