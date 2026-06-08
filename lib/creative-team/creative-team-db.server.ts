@@ -2,7 +2,6 @@ import 'server-only'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type {
-  AgentReport,
   AgentStatesMap,
   CreativeAlignmentScore,
   CreativeTeamPackage,
@@ -37,12 +36,13 @@ function rowToPackage(row: CreativeTeamReportRow): CreativeTeamPackage {
     reportId: row.id,
     projectId: row.project_id,
     userId: row.user_id,
-    storyStrategy: (row.story_strategy as AgentReport | null) ?? null,
-    producerReport: (row.producer_report as AgentReport | null) ?? null,
-    screenwriterReport: (row.screenwriter_report as AgentReport | null) ?? null,
-    cinematographyReport: (row.cinematography_report as AgentReport | null) ?? null,
-    voiceReport: (row.voice_report as AgentReport | null) ?? null,
-    musicReport: (row.music_report as AgentReport | null) ?? null,
+    storyStrategy: (row.story_strategy as CreativeTeamPackage['storyStrategy']) ?? null,
+    producerReport: (row.producer_report as CreativeTeamPackage['producerReport']) ?? null,
+    screenwriterReport: (row.screenwriter_report as CreativeTeamPackage['screenwriterReport']) ?? null,
+    cinematographyReport:
+      (row.cinematography_report as CreativeTeamPackage['cinematographyReport']) ?? null,
+    voiceReport: (row.voice_report as CreativeTeamPackage['voiceReport']) ?? null,
+    musicReport: (row.music_report as CreativeTeamPackage['musicReport']) ?? null,
     alignmentScore: (row.alignment_score as CreativeAlignmentScore | null) ?? null,
     agentStates: parseAgentStates(row.agent_states),
     createdAt: row.created_at,
