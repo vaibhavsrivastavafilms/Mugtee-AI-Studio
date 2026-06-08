@@ -3,6 +3,7 @@
 import { useEffect, useState, type RefObject } from 'react'
 import { Play } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { CinematicGenerationProgress } from '@/components/quick-cut/cinematic-generation-progress'
 import { OutputWindow } from '@/components/quick-cut/output-window'
 import { ReflectionLoop } from '@/components/companion/reflection-loop'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
@@ -141,6 +142,7 @@ export function PreviewExportTabbedPanel({
         </TabsList>
 
         <TabsContent value="preview" className="mt-0 space-y-3 focus-visible:outline-none">
+          <CinematicGenerationProgress />
           <OutputWindow
             audioRef={audioRef}
             title={title}
