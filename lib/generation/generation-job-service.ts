@@ -144,6 +144,21 @@ export async function getGenerationJob(
   return data as GenerationJobRow
 }
 
+export async function listGenerationJobsForUser(
+  userId: string,
+  limit = 20
+): Promise<GenerationJobRow[]> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('generation_jobs')
+    .select()
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+  if (error || !data) return []
+  return data as GenerationJobRow[]
+}
+
 export async function findActiveGenerationJobForProject(
   projectId: string,
   userId: string

@@ -6,7 +6,7 @@ import { SceneWorkspaceV2 } from '@/components/quick-cut/scene-workspace-v2'
 import { DirectorTimelineV3 } from '@/components/quick-cut/director-timeline-v3'
 import { AiDirectorPanel } from '@/components/quick-cut/ai-director-panel'
 import { ConsistencyMemoryPanel } from '@/components/quick-cut/consistency-memory-panel'
-import { ReelControlCenter } from '@/components/quick-cut/reel-control-center'
+import { ReelCompletionCenter } from '@/components/quick-cut/reel-completion-center'
 import { OutputWindow } from '@/components/quick-cut/output-window'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
@@ -108,7 +108,7 @@ export function GenerationEnginePanel({
 
   if (showReelControlCenter) {
     return (
-      <ReelControlCenter
+      <ReelCompletionCenter
         projectId={projectId}
         audioRef={audioRef}
         className={className}

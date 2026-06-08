@@ -5,6 +5,7 @@ import { Clapperboard, Sparkles, Wand2 } from 'lucide-react'
 import {
   analyzeSceneQuality,
   buildContinuityAutoFixes,
+  buildDirectorRecommendationsV2,
   buildRetentionHints,
   computeReelDirectorScore,
   resolveAiDirectorCommentary,
@@ -39,6 +40,7 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
       style: s.style,
       characterDescription: s.characterDescription,
       sectionStatus: s.sectionStatus,
+      sceneMotion: s.sceneMotion,
       duration: s.duration,
       generationStep: s.generationStep,
       isGenerating: s.isGenerating,
@@ -126,6 +128,18 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
   const hasContent = state.scenes.length > 0 || state.isGenerating
   if (!hasContent) return null
 
+  const directorRecs = useMemo(
+    () =>
+      buildDirectorRecommendationsV2({
+        scenes: state.scenes,
+        scriptBeats: state.scriptBeats,
+        sceneBlueprints: state.sceneBlueprints,
+        sceneMotion: state.sceneMotion,
+        sectionStatus: state.sectionStatus,
+      }),
+    [state]
+  )
+
   const weakScenes = sceneAnalysis.filter((s) => s.metrics.overall < 68).slice(0, 3)
 
   return (
@@ -150,11 +164,23 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
         </p>
       ) : null}
 
-      <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4')}>
+      <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-5')}>
+        <ScorePill label="Reel Score" value={reelScore.overall} />
         <ScorePill label="Continuity" value={reelScore.continuity} />
-        <ScorePill label="Scene Quality" value={reelScore.sceneQuality} />
         <ScorePill label="Retention" value={reelScore.retention} />
         <ScorePill label="Story" value={reelScore.storyReadiness} />
+        <ScorePill label="Visual" value={reelScore.visualScore} />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-[9px] tracking-[0.16em] uppercase text-luxe/45">Recommendations</p>
+        <ul className="space-y-1">
+          {directorRecs.map((rec) => (
+            <li key={rec.id} className="text-[10px] text-luxe/55">
+              <span className="text-gold-200/85">{rec.label}</span> — {rec.detail}
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="space-y-1.5">

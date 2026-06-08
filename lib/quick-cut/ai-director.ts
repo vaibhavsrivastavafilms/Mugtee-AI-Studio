@@ -19,6 +19,13 @@ export type ReelDirectorScore = {
   sceneQuality: number
   retention: number
   storyReadiness: number
+  visualScore: number
+}
+
+export type DirectorRecommendationV2 = {
+  id: string
+  label: string
+  detail: string
 }
 
 export type ContinuityAutoFix = {
@@ -76,10 +83,14 @@ export function computeReelDirectorScore(input: {
   const storyScore = deriveStoryScore(input.sectionStatus)
   const retention = clamp(storyScore.dimensions.find((d) => d.id === 'retention')?.score ?? 50)
   const storyReadiness = clamp(storyScore.overall)
+  const visualScore = clamp(
+    storyScore.dimensions.find((d) => d.id === 'visualStrength')?.score ?? sceneQuality
+  )
 
   const overall = clamp(
-    continuity.continuityScore * 0.3 +
-      sceneQuality * 0.35 +
+    continuity.continuityScore * 0.25 +
+      sceneQuality * 0.25 +
+      visualScore * 0.15 +
       retention * 0.2 +
       storyReadiness * 0.15
   )
@@ -90,7 +101,69 @@ export function computeReelDirectorScore(input: {
     sceneQuality,
     retention,
     storyReadiness,
+    visualScore,
   }
+}
+
+/** V2 director recommendations with scene-level callouts. */
+export function buildDirectorRecommendationsV2(input: {
+  scenes: GeneratedScene[]
+  scriptBeats?: MugteeScriptBeat[]
+  sceneBlueprints?: SceneBlueprint[]
+  sceneMotion?: Record<string, { transitionType?: string }>
+  sectionStatus: SectionStatusMap
+}): DirectorRecommendationV2[] {
+  const recs: DirectorRecommendationV2[] = []
+  const analysis = analyzeSceneQuality({
+    scenes: input.scenes,
+    scriptBeats: input.scriptBeats,
+    sceneBlueprints: input.sceneBlueprints,
+  })
+  const avg =
+    analysis.length > 0
+      ? analysis.reduce((s, a) => s + a.metrics.overall, 0) / analysis.length
+      : 70
+
+  const weak = analysis.filter((a) => a.metrics.overall < avg - 8).sort((a, b) => a.metrics.overall - b.metrics.overall)[0]
+  if (weak) {
+    recs.push({
+      id: `weak-${weak.sceneId}`,
+      label: `Scene ${weak.index + 1} weaker than average`,
+      detail: `Score ${weak.metrics.overall} vs reel avg ${Math.round(avg)} — consider Improve Scene.`,
+    })
+  }
+
+  for (let i = 1; i < input.scenes.length; i++) {
+    const prev = input.sceneMotion?.[input.scenes[i - 1]!.id]?.transitionType
+    const curr = input.sceneMotion?.[input.scenes[i]!.id]?.transitionType
+    if (prev === 'cut' && curr === 'cut') {
+      recs.push({
+        id: `transition-${i}`,
+        label: `Scene ${i + 1} transition abrupt`,
+        detail: 'Try cross_dissolve or fade between hard cuts for smoother flow.',
+      })
+      break
+    }
+  }
+
+  const storyScore = deriveStoryScore(input.sectionStatus)
+  if ((storyScore.dimensions.find((d) => d.id === 'curiosity')?.score ?? 0) < 68) {
+    recs.push({
+      id: 'hook',
+      label: 'Add stronger emotional hook',
+      detail: 'Opening beat could carry more curiosity gap before the payoff.',
+    })
+  }
+
+  if (recs.length === 0) {
+    recs.push({
+      id: 'solid',
+      label: 'Director pass',
+      detail: 'Reel reads cohesive — optional polish on mid-reel pacing.',
+    })
+  }
+
+  return recs.slice(0, 4)
 }
 
 /** Suggested continuity fixes before export — no automatic image regen. */
