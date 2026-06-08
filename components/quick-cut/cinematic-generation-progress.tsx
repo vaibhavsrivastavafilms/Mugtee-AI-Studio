@@ -13,12 +13,14 @@ import { allStageAverages } from '@/lib/generation/generation-stage-timing.clien
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { sumSceneDurationSec } from '@/lib/cinematic/scene-duration'
 import { PostExportActions } from '@/components/quick-cut/post-export-actions'
+import { DirectorCommentaryPanel } from '@/components/quick-cut/director-commentary-panel'
 import { GenerationStageTimeline } from '@/components/quick-cut/generation-stage-timeline'
 import { outlineGoldButton } from '@/components/home/cinematic-home-styles'
 import { v4DangerOutline } from '@/lib/studio/v4-design-tokens'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
+import { useClientMounted } from '@/lib/hooks/use-client-mounted'
 
 type CinematicGenerationProgressProps = {
   className?: string
@@ -26,6 +28,7 @@ type CinematicGenerationProgressProps = {
 
 /** Cinematic Generation HUD — live state above the Output window. */
 export function CinematicGenerationProgress({ className }: CinematicGenerationProgressProps) {
+  const mounted = useClientMounted()
   const [tick, setTick] = useState(0)
 
   const input = useQuickCutGenerationStore(
@@ -141,34 +144,42 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
   )
 
   const stageAveragesMs = useMemo(
-    () => allStageAverages(input.scenesCount),
-    [input.scenesCount, tick]
+    () => (mounted ? allStageAverages(input.scenesCount) : {}),
+    [mounted, input.scenesCount, tick]
   )
 
-  const eta = useMemo(
-    () =>
-      computeGenerationEta({
-        snapshot,
-        stageAveragesMs,
-        currentStageStartedAtMs: input.currentStageStartedAt,
-        exportRenderStartedAtMs: input.renderStartedAt,
-        exportProgressPercent: exportProgress?.progressPercent ?? input.progress,
-        sceneCount: input.scenesCount,
-      }),
-    [
+  const eta = useMemo(() => {
+    if (!mounted) {
+      return {
+        etaSeconds: null,
+        etaLabel: null,
+        exportEtaSeconds: null,
+        exportEtaLabel: null,
+        isExportPhase: false,
+      }
+    }
+    return computeGenerationEta({
       snapshot,
       stageAveragesMs,
-      input.currentStageStartedAt,
-      input.renderStartedAt,
-      input.progress,
-      input.scenesCount,
-      exportProgress?.progressPercent,
-      tick,
-    ]
-  )
+      currentStageStartedAtMs: input.currentStageStartedAt,
+      exportRenderStartedAtMs: input.renderStartedAt,
+      exportProgressPercent: exportProgress?.progressPercent ?? input.progress,
+      sceneCount: input.scenesCount,
+    })
+  }, [
+    mounted,
+    snapshot,
+    stageAveragesMs,
+    input.currentStageStartedAt,
+    input.renderStartedAt,
+    input.progress,
+    input.scenesCount,
+    exportProgress?.progressPercent,
+    tick,
+  ])
 
   const completionTiming = useMemo(() => {
-    if (!snapshot.isReady || !input.generationStartedAt) return null
+    if (!mounted || !snapshot.isReady || !input.generationStartedAt) return null
     const coreEnd =
       input.generationCoreCompletedAt ??
       input.exportCompletedAt ??
@@ -183,6 +194,7 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
           : null
     return formatTimingBlock({ generationMs, exportMs })
   }, [
+    mounted,
     snapshot.isReady,
     input.generationStartedAt,
     input.generationCoreCompletedAt,
@@ -282,7 +294,9 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
         <GenerationStageTimeline stages={timelineStages} className="-mx-1" />
       ) : null}
 
-      {!snapshot.isReady && eta.etaLabel ? (
+      {!snapshot.isReady ? <DirectorCommentaryPanel /> : null}
+
+      {mounted && !snapshot.isReady && eta.etaLabel ? (
         <div className="space-y-0.5">
           <p className="text-[9px] tracking-[0.18em] uppercase text-gold-300/55">
             Estimated Time Remaining
@@ -317,7 +331,7 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
         </div>
       ) : null}
 
-      {exportProgress?.isActive ? (
+      {mounted && exportProgress?.isActive ? (
         <div className="rounded-lg border border-gold-500/15 bg-black/40 px-3 py-2 space-y-1">
           <p className="text-[9px] tracking-[0.18em] uppercase text-gold-300/60">Rendering MP4</p>
           <p className="text-[12px] text-luxe/85 tabular-nums">
@@ -332,40 +346,13 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
         </div>
       ) : null}
 
-      {storyboardProgress?.isActive && storyboardProgress.totalCount > 1 ? (
-        <div className="space-y-1">
-          <p className="text-[9px] tracking-[0.18em] uppercase text-luxe/45">Generating Storyboards</p>
-          <ul className="flex flex-wrap gap-1.5">
-            {Array.from({ length: storyboardProgress.totalCount }, (_, i) => {
-              const n = i + 1
-              const done = i < storyboardProgress.completedCount
-              const current = n === storyboardProgress.currentSceneIndex && storyboardProgress.isActive
-              return (
-                <li
-                  key={n}
-                  className={cn(
-                    'rounded-md px-2 py-0.5 text-[10px] tabular-nums border',
-                    done && 'border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-100/85',
-                    current && 'border-gold-500/40 bg-gold-500/[0.1] text-gold-100/90',
-                    !done && !current && 'border-white/[0.08] text-luxe/40'
-                  )}
-                >
-                  Scene {n}
-                  {done ? ' ✓' : current ? ' …' : ''}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ) : null}
-
       {isActiveGeneration && !snapshot.isReady ? (
         <p className="text-[10px] text-luxe/50">
           Saving automatically…
         </p>
       ) : null}
 
-      {snapshot.isReady && completionTiming ? (
+      {mounted && snapshot.isReady && completionTiming ? (
         <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.06] px-2.5 py-2 space-y-0.5">
           {completionTiming.generation ? (
             <p className="text-[11px] text-emerald-100/85">

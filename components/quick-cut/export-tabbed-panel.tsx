@@ -34,6 +34,8 @@ import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
+import { PublishWorkspace } from '@/components/publish/publish-workspace'
+import { isPublishLayerEnabled } from '@/lib/publishing/publish-types'
 
 export type ExportSubTab = 'download' | 'publish' | 'repurpose' | 'workspace'
 
@@ -207,6 +209,7 @@ export function ExportTabbedPanel({
       </TabsContent>
 
       <TabsContent value="publish" className="mt-0 space-y-3 focus-visible:outline-none">
+        {isPublishLayerEnabled() ? <PublishWorkspace /> : null}
         <PublishCenterIntro embedded />
         <PublishReadinessSection embedded />
         <BufferPublishingSection embedded />

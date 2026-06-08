@@ -39,6 +39,11 @@ import {
 import { markHasCreatedProject } from '@/lib/onboarding/onboarding-state'
 import { STUDIO } from '@/lib/create/routes'
 import { v4GoldButton, v4PanelClass } from '@/lib/studio/v4-design-tokens'
+import { creatorOsPrefillDefaults } from '@/lib/creator/creator-os-profile'
+import { CreatorMemoryPanel } from '@/components/studio/creator-memory-panel'
+import { GenerationActivityFeed } from '@/components/quick-cut/generation-activity-feed'
+import { clearGenerationActivityLog } from '@/lib/quick-cut/generation-activity.client'
+import { QUICK_PLATFORM_OPTIONS } from '@/lib/studio/quick-create-options'
 
 const LOGIN_AFTER_QUICK = `${STUDIO.quick}?resume=1`
 
@@ -73,6 +78,18 @@ function QuickModeWorkspaceInner() {
   }, [syncVideoRenderConfig])
 
   useEffect(() => {
+    const defaults = creatorOsPrefillDefaults()
+    if (defaults.duration) setDuration(defaults.duration)
+    if (defaults.platform) {
+      const match = QUICK_PLATFORM_OPTIONS.find((o) => o.value === defaults.platform)
+      if (match) setPlatform(match.value)
+    }
+    if (defaults.tone) {
+      useQuickCutGenerationStore.setState({ style: defaults.tone })
+    }
+  }, [])
+
+  useEffect(() => {
     if (topicParam) setPrompt(topicParam)
   }, [topicParam])
 
@@ -89,6 +106,7 @@ function QuickModeWorkspaceInner() {
       }
 
       markHasCreatedProject()
+      clearGenerationActivityLog()
 
       const savedProjectId = useQuickCutGenerationStore.getState().savedProjectId
       useQuickCutGenerationStore.setState({ duration: pending.duration })
@@ -217,6 +235,10 @@ function QuickModeWorkspaceInner() {
             onPlatformChange={setPlatform}
             disabled={isGenerating}
           />
+
+          <GenerationActivityFeed maxItems={6} />
+
+          <CreatorMemoryPanel />
 
           <div className="flex gap-2">
             <button

@@ -25,6 +25,7 @@ import { StyleLibraryDrawer } from '@/components/templates/style-library-drawer'
 import { StyleDirectorCard } from '@/components/templates/style-director-card'
 import { StudioDirectorSuggestions } from '@/components/studio/studio-director-suggestions'
 import { StudioExportAssetsModule } from '@/components/studio/studio-export-assets-module'
+import { SceneInspectorV2 } from '@/components/studio/director/scene-inspector-v2'
 import { relSavedLabel } from '@/stores/cinematic-project'
 
 function InspectorSection({
@@ -259,6 +260,7 @@ export function StudioInspectorPanel({ projectId: _projectId, className }: Studi
           expanded={sections.director}
           onToggle={() => toggle('director')}
         >
+          {scenes.length > 0 ? <SceneInspectorV2 className="mb-2" /> : null}
           <StudioDirectorSuggestions />
           <button
             type="button"

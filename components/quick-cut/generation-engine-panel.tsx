@@ -1,7 +1,12 @@
 'use client'
 
-import type { RefObject } from 'react'
+import { useMemo, type RefObject } from 'react'
 import { CinematicGenerationProgress } from '@/components/quick-cut/cinematic-generation-progress'
+import { SceneWorkspaceV2 } from '@/components/quick-cut/scene-workspace-v2'
+import { DirectorTimelineV3 } from '@/components/quick-cut/director-timeline-v3'
+import { AiDirectorPanel } from '@/components/quick-cut/ai-director-panel'
+import { ConsistencyMemoryPanel } from '@/components/quick-cut/consistency-memory-panel'
+import { ReelControlCenter } from '@/components/quick-cut/reel-control-center'
 import { OutputWindow } from '@/components/quick-cut/output-window'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
@@ -45,6 +50,28 @@ export function GenerationEnginePanel({
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
 
+  const showReelControlCenter = useMemo(() => {
+    const exportInFlight =
+      isRenderingVideo ||
+      Boolean(renderPollUrl && !videoUrl && videoRenderEnabled)
+    return (
+      isComplete &&
+      !isGenerating &&
+      !exportInFlight &&
+      generationStep !== 'error' &&
+      generationStatus !== 'failed'
+    )
+  }, [
+    isComplete,
+    isGenerating,
+    isRenderingVideo,
+    renderPollUrl,
+    videoUrl,
+    videoRenderEnabled,
+    generationStep,
+    generationStatus,
+  ])
+
   const showRecovery = generationStep === 'error' || generationStatus === 'failed'
   const hasOutput =
     isComplete ||
@@ -79,6 +106,16 @@ export function GenerationEnginePanel({
     )
   }
 
+  if (showReelControlCenter) {
+    return (
+      <ReelControlCenter
+        projectId={projectId}
+        audioRef={audioRef}
+        className={className}
+      />
+    )
+  }
+
   if (!hasOutput) {
     return (
       <div
@@ -101,6 +138,10 @@ export function GenerationEnginePanel({
     <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden', className)}>
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe px-3 sm:px-4 py-3 space-y-3">
         <CinematicGenerationProgress />
+        <SceneWorkspaceV2 />
+        <DirectorTimelineV3 />
+        <AiDirectorPanel compact />
+        <ConsistencyMemoryPanel />
         <OutputWindow
           audioRef={audioRef}
           title={title}

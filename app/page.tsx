@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const SITE_URL = getCanonicalSiteUrl()
 const HOME_TITLE = 'Mugtee · Your Cinematic AI Studio'
 const HOME_DESCRIPTION =
-  'Turn stories into cinematic moments — hook, script, storyboard, voice, and Creator Pack export.'
+  'Turn one idea into a complete reel — script, storyboard, voice, motion, and MP4 export.'
 
 export const metadata: Metadata = {
   title: HOME_TITLE,
@@ -49,7 +49,7 @@ const CinematicHomePage = nextDynamic(
   }
 )
 
-/** Public cinematic landing — single-screen 100vh Quick Cut + Director previews. */
+/** Public cinematic landing — minimal conversion-focused homepage. */
 export default function Index() {
   return <CinematicHomePage />
 }
