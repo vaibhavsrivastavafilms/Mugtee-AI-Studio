@@ -96,7 +96,7 @@ export function ReelCompletionCenter({
   }
 
   return (
-    <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden', className)}>
+    <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden touch-pan-y', className)}>
       <div className="shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06] text-center space-y-2">
         <p className="text-[10px] tracking-[0.24em] uppercase text-emerald-200/90">✓ Your Reel Is Ready</p>
         <p className="text-[11px] text-luxe/50">Hero preview · downloads · next steps</p>
@@ -121,7 +121,7 @@ export function ReelCompletionCenter({
         ) : null}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe px-3 sm:px-4 py-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-luxe px-3 sm:px-4 py-3 pb-6 space-y-4">
         <OutputWindow
           audioRef={audioRef}
           title={state.title}

@@ -164,7 +164,7 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
         </p>
       ) : null}
 
-      <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-5')}>
+      <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5')}>
         <ScorePill label="Reel Score" value={reelScore.overall} />
         <ScorePill label="Continuity" value={reelScore.continuity} />
         <ScorePill label="Retention" value={reelScore.retention} />

@@ -56,9 +56,11 @@ export function CinematicExportHud({
       )}
       aria-label="Export progress"
     >
-      <p className="text-[10px] tracking-[0.18em] uppercase text-gold-300/75">{headline}</p>
+      <p className="text-[10px] tracking-[0.14em] sm:tracking-[0.18em] uppercase text-gold-300/75 leading-snug">
+        {headline}
+      </p>
 
-      <ul className="space-y-1">
+      <ul className="space-y-1 max-h-[min(28vh,200px)] sm:max-h-none overflow-y-auto scrollbar-luxe">
         {stages.map((stage) => (
           <li key={stage.id} className="flex items-center gap-2 text-[10px]">
             {stage.status === 'done' ? (

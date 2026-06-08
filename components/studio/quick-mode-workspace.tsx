@@ -171,11 +171,11 @@ function QuickModeWorkspaceInner() {
   }
 
   return (
-    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[420px_minmax(0,1fr)_minmax(240px,280px)] min-h-0 gap-3 sm:gap-4 p-3 sm:p-4 overflow-hidden">
+    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[420px_minmax(0,1fr)_minmax(240px,280px)] min-h-0 auto-rows-max xl:auto-rows-auto gap-3 sm:gap-4 p-3 sm:p-4 pb-6">
       <section
         className={cn(
           v4PanelClass,
-          'w-full xl:w-[420px] shrink-0 flex flex-col min-h-0 overflow-hidden md:col-span-2 xl:col-span-1'
+          'w-full xl:w-[420px] shrink-0 flex flex-col min-h-0 max-h-none xl:max-h-full overflow-hidden md:col-span-2 xl:col-span-1 order-1'
         )}
       >
         <div className="shrink-0 px-4 sm:px-5 pt-4 pb-2">
@@ -311,12 +311,12 @@ function QuickModeWorkspaceInner() {
         </form>
       </section>
 
-      <section className="min-w-0 min-h-[320px] md:min-h-[400px] xl:min-h-0 flex flex-col md:col-span-1">
-        <GenerationEnginePanel projectId={projectId} audioRef={voiceAudioRef} className="h-full" />
+      <section className="min-w-0 min-h-[min(72vh,640px)] md:min-h-[400px] xl:min-h-0 flex flex-col md:col-span-1 order-2 xl:order-2">
+        <GenerationEnginePanel projectId={projectId} audioRef={voiceAudioRef} className="h-full min-h-[min(72vh,640px)] xl:min-h-0" />
       </section>
 
-      <section className="min-w-0 min-h-[280px] xl:min-h-0 flex flex-col md:col-span-2 xl:col-span-1">
-        <GenerationSidebar projectId={projectId} className="h-full" />
+      <section className="min-w-0 min-h-[280px] xl:min-h-0 flex flex-col md:col-span-2 xl:col-span-1 order-3">
+        <GenerationSidebar projectId={projectId} className="h-full min-h-[280px] xl:min-h-0" />
       </section>
     </div>
   )

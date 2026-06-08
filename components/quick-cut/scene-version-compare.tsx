@@ -45,18 +45,18 @@ export function SceneVersionCompare({
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 justify-end">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
         <button
           type="button"
           onClick={onKeepCurrent}
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-[10px] uppercase tracking-wider text-luxe/70 hover:text-luxe"
+          className="min-h-[44px] px-3 py-2.5 rounded-lg border border-white/15 text-[10px] uppercase tracking-wider text-luxe/70 hover:text-luxe touch-manipulation"
         >
           Keep Current
         </button>
         <button
           type="button"
           onClick={onAcceptNew}
-          className="px-3 py-1.5 rounded-lg border border-gold-500/35 bg-gold-500/15 text-[10px] uppercase tracking-wider text-gold-100 hover:bg-gold-500/25"
+          className="min-h-[44px] px-3 py-2.5 rounded-lg border border-gold-500/35 bg-gold-500/15 text-[10px] uppercase tracking-wider text-gold-100 hover:bg-gold-500/25 touch-manipulation"
         >
           Accept New
         </button>

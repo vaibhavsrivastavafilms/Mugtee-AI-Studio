@@ -135,8 +135,8 @@ export function GenerationEnginePanel({
   }
 
   return (
-    <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden', className)}>
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe px-3 sm:px-4 py-3 space-y-3">
+    <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden touch-pan-y', className)}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-luxe px-3 sm:px-4 py-3 space-y-3 pb-4">
         <CinematicGenerationProgress />
         <SceneWorkspaceV2 />
         <DirectorTimelineV3 />

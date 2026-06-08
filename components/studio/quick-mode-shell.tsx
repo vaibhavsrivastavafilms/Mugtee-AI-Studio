@@ -42,9 +42,11 @@ function QuickModeShellInner({ children, projectId, className }: QuickModeShellP
       <SessionContinuityGuard projectId={projectId} />
       <StudioWorkspaceTopbar user={shellUser} variant="quick" />
       <MobileSaveTrustBar />
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">{children}</div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-y-contain xl:overflow-hidden">
+        {children}
+      </div>
 
-      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-t border-white/[0.06] bg-[#0D0D0D]/90">
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0D0D0D]/90">
         <p className="text-[11px] sm:text-xs text-luxe/55 max-w-2xl leading-relaxed">
           Switch to Director Mode for advanced editing, timeline, and full creative control.
         </p>

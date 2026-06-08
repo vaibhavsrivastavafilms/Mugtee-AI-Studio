@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 export default function GenerationJobsPage() {
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe p-4 sm:p-6">
+    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-luxe p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto max-w-3xl space-y-6">
         <header>
           <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/70">Creator OS</p>
