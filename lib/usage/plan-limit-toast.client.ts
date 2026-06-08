@@ -8,6 +8,7 @@ import {
   RevenueEventTypes,
   trackRevenueValidation,
 } from '@/lib/analytics/revenue-validation.client'
+import { isExportUsageLimitBypassed } from '@/lib/export/export-entitlement'
 import { PLAN_LIMIT_MESSAGE } from '@/lib/usage/usage-tracker'
 
 export type PlanLimitPayload = {
@@ -65,6 +66,7 @@ export function handlePlanLimitResponse(res: Response, data: unknown): boolean {
 
 /** Check + increment via POST /api/usage (exports, client-side project create). */
 export async function trackClientUsage(metric: 'projects' | 'exports'): Promise<boolean> {
+  if (metric === 'exports' && isExportUsageLimitBypassed()) return true
   try {
     const res = await fetch('/api/usage', {
       method: 'POST',
@@ -84,6 +86,7 @@ export async function trackClientUsage(metric: 'projects' | 'exports'): Promise<
 
 /** Pre-flight check without incrementing. */
 export async function checkClientUsage(metric: 'projects' | 'exports'): Promise<boolean> {
+  if (metric === 'exports' && isExportUsageLimitBypassed()) return true
   try {
     const res = await fetch('/api/usage', {
       method: 'POST',

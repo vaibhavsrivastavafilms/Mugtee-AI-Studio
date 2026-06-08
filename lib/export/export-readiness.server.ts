@@ -19,6 +19,11 @@ import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 import { backfillProjectAssetsFromScenes } from '@/lib/project-assets/persist-scene-image.server'
 import { backfillStoryboardAssetsForProject } from '@/lib/storyboard/backfill-storyboard-assets.server'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import {
+  buildServerSceneImageDiagnostics,
+  logStoryboardExportReport,
+  type SceneImageDiagnostic,
+} from '@/lib/export/scene-export-diagnostics'
 
 export type ExportMissingAsset = {
   kind: 'image' | 'voice' | 'scene'
@@ -37,6 +42,9 @@ export type ExportReadinessResult = {
   hasVoice: boolean
   missingAssets: ExportMissingAsset[]
   message: string | null
+  failedValidationRule: string | null
+  sceneDiagnostics: SceneImageDiagnostic[]
+  perSceneSummary: string[]
 }
 
 export type ProjectAssetCounts = {
@@ -261,15 +269,24 @@ export function buildExportReadiness(params: {
     sceneCount > 0 && missingScenes.length === 0 && (!includeVoice || hasVoice)
 
   let message: string | null = null
+  let failedValidationRule: string | null = null
   if (!canExport) {
     if (missingScenes.length > 0) {
       message = missingScenesExportMessage(missingScenes)
+      failedValidationRule = 'storyboard_images_missing'
     } else if (includeVoice && !hasVoice) {
       message = VOICE_REQUIRED_EXPORT_MSG
+      failedValidationRule = 'voice_missing'
     } else if (sceneCount < 1) {
       message = 'At least one storyboard scene is required.'
+      failedValidationRule = 'no_scenes'
     }
   }
+
+  const sceneDiagnostics = buildServerSceneImageDiagnostics(params.scenes)
+  const perSceneSummary = sceneDiagnostics.map(
+    (s) => `Scene ${s.sceneIndex} image: ${s.status}`
+  )
 
   return {
     canExport,
@@ -281,6 +298,9 @@ export function buildExportReadiness(params: {
     hasVoice,
     missingAssets,
     message,
+    failedValidationRule,
+    sceneDiagnostics,
+    perSceneSummary,
   }
 }
 
@@ -305,5 +325,19 @@ export async function getExportReadinessForProject(
     assetCounts,
     includeVoiceover: opts?.includeVoiceover,
   })
+
+  logStoryboardExportReport('server readiness', {
+    projectId: row.id,
+    exportReady: readiness.canExport,
+    failedValidationRule: readiness.failedValidationRule,
+    missingAssetIds: readiness.missingAssets
+      .filter((a) => a.sceneId)
+      .map((a) => a.sceneId!),
+    sceneCount: readiness.sceneCount,
+    storyboardAssetCount: assetCounts.imageCount,
+    scenes: readiness.sceneDiagnostics,
+    perSceneSummary: readiness.perSceneSummary,
+  })
+
   return { ...readiness, scenes }
 }

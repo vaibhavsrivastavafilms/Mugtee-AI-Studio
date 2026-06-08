@@ -1,6 +1,8 @@
 import { isQuickCutMp4DownloadReady } from '@/lib/quick-cut/asset-availability'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { isDevExportUnlocked } from '@/lib/export/export-entitlement'
+import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 
 export type Mp4ExportUiState = {
   canCompileMp4: boolean
@@ -27,14 +29,15 @@ export function resolveMp4ExportUiState(input: {
   reelValidating?: boolean
   downloadingMp4?: boolean
 }): Mp4ExportUiState {
+  const videoRenderEnabled = isClientVideoRenderEnabled(input.videoRenderEnabled)
   const canCompileMp4 = quickCutCanCompileMp4(
     input.scenes,
     input.voiceUrl,
-    input.videoRenderEnabled
+    videoRenderEnabled
   )
   const mp4DownloadReady = isQuickCutMp4DownloadReady({
     videoUrl: input.videoUrl,
-    videoRenderEnabled: input.videoRenderEnabled,
+    videoRenderEnabled,
     exportExpired: input.exportExpired,
     isRenderingVideo: input.isRenderingVideo,
     renderPollUrl: input.renderPollUrl,
@@ -43,12 +46,12 @@ export function resolveMp4ExportUiState(input: {
   })
   const mp4Compiling = Boolean(
     input.isRenderingVideo ||
-      (input.videoRenderEnabled &&
+      (videoRenderEnabled &&
         input.renderPollUrl &&
         !input.videoUrl?.trim() &&
         !input.renderError?.trim())
   )
-  const packageExportReady = !input.videoRenderEnabled && Boolean(input.exportPackageReady)
+  const packageExportReady = !videoRenderEnabled && Boolean(input.exportPackageReady)
   const exportReadyBadge = mp4DownloadReady || packageExportReady
   const hasMp4Action =
     mp4DownloadReady ||
@@ -60,6 +63,22 @@ export function resolveMp4ExportUiState(input: {
     !mp4Compiling &&
     !input.exportExpired &&
     !input.reelValidating
+
+  if (isDevExportUnlocked()) {
+    const canExport = true
+    return {
+      canCompileMp4: videoRenderEnabled ? true : canCompileMp4,
+      mp4DownloadReady,
+      mp4Compiling,
+      exportReadyBadge: canExport,
+      hasMp4Action: canExport,
+      mp4ButtonEnabled:
+        canExport &&
+        !input.downloadingMp4 &&
+        !mp4Compiling &&
+        !input.exportExpired,
+    }
+  }
 
   return {
     canCompileMp4,

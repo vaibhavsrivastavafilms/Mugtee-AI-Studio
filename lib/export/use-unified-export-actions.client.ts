@@ -30,6 +30,7 @@ import {
 } from '@/lib/quick-cut/asset-availability'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
+import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 import { evaluateCreatorPackReadiness } from '@/lib/export/creator-pack-readiness.client'
 import { exportDiagnostics } from '@/lib/export/export-diagnostics.client'
 import {
@@ -52,6 +53,7 @@ import { AnalyticsEvents } from '@/lib/analytics/events'
 import { Mp4ExportEvents, trackMp4ExportClient } from '@/lib/analytics/mp4-export-events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { requestExitFeedback } from '@/lib/creator/exit-feedback'
+import { isDevExportUnlocked } from '@/lib/export/export-entitlement'
 import { blockMp4CompileIfNeeded } from '@/lib/export/mp4-compile-guard.client'
 import { trackClientUsage } from '@/lib/usage/plan-limit-toast.client'
 import { useReelDownloadReadiness } from '@/lib/export/reel-download-readiness.client'
@@ -176,6 +178,11 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   const mp4Name = `${exportBase}.mp4`
   const mp3Name = `${exportBase}-narration.mp3`
 
+  const mp4RenderEnabled = useMemo(
+    () => isClientVideoRenderEnabled(videoRenderEnabled),
+    [videoRenderEnabled]
+  )
+
   const exportAssets = resolveQuickCutExportAssets({
     title,
     hook,
@@ -200,15 +207,15 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   })
 
   const canCompileMp4 = useMemo(
-    () => quickCutCanCompileMp4(scenes, voiceUrl, videoRenderEnabled),
-    [scenes, voiceUrl, videoRenderEnabled]
+    () => quickCutCanCompileMp4(scenes, voiceUrl, mp4RenderEnabled),
+    [scenes, voiceUrl, mp4RenderEnabled]
   )
 
   const mp4Export = resolveMp4ExportUiState({
     scenes,
     voiceUrl,
     videoUrl,
-    videoRenderEnabled,
+    videoRenderEnabled: mp4RenderEnabled,
     exportExpired,
     exportPackageReady,
     isRenderingVideo,
@@ -362,7 +369,8 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
 
   const hasAnyCreatorPackAsset = creatorPackReadiness.canExport
 
-  const showAdvancedMp4Export = videoRenderEnabled && (canCompileMp4 || Boolean(videoUrl?.trim()))
+  const showAdvancedMp4Export =
+    mp4RenderEnabled && (canCompileMp4 || Boolean(videoUrl?.trim()))
 
   useReelExportAutoResume({ canCompileMp4: showAdvancedMp4Export && canCompileMp4 })
 
@@ -388,7 +396,10 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     [savedProjectId]
   )
 
-  const guardExport = useCallback(async () => trackClientUsage('exports'), [])
+  const guardExport = useCallback(async () => {
+    if (isDevExportUnlocked()) return true
+    return trackClientUsage('exports')
+  }, [])
 
   const notifyExportComplete = useCallback(() => {
     onExportComplete?.()
@@ -603,16 +614,6 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       return
     }
 
-    if (!creatorPackReadiness.canExport) {
-      const message =
-        creatorPackReadiness.missingRequired.length > 0
-          ? `Missing: ${creatorPackReadiness.missingRequired.join(', ')}`
-          : 'Complete storyboard, script, and voice before exporting.'
-      setAssetError(message)
-      toast.error(message)
-      return
-    }
-
     exportDiagnostics({
       projectId: savedProjectId,
       scenes,
@@ -624,6 +625,16 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       isGenerating,
       videoRenderEnabled,
     })
+
+    if (!creatorPackReadiness.canExport) {
+      const message =
+        creatorPackReadiness.missingRequired.length > 0
+          ? `Missing: ${creatorPackReadiness.missingRequired.join(', ')}`
+          : 'Complete storyboard, script, and voice before exporting.'
+      setAssetError(message)
+      toast.error(message)
+      return
+    }
 
     setCreatorPackState('preparing')
     setCreatorPackProgress(0)

@@ -7,12 +7,14 @@ import { scenesForReelExport } from '@/lib/reels/export-scenes.server'
 import {
   findScenesMissingExportImages,
   missingScenesExportMessage,
-  resolveSceneExportAssetPath,
-  resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
-import { resolveExportScenes } from '@/lib/export/export-readiness.server'
-import { refreshStoryboardUrl, storyboardStorageExists } from '@/lib/storyboard/storyboard-url-service.server'
+import { loadProjectAssetCounts, resolveExportScenes } from '@/lib/export/export-readiness.server'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import {
+  logSceneImageValidationReport,
+  refreshAndValidateExportSceneImages,
+  type SceneImageValidationEntry,
+} from '@/lib/export/scene-image-export-validation.server'
 import type { CinematicScene } from '@/stores/cinematic-project'
 
 export type ExportAssetValidation = {
@@ -23,6 +25,8 @@ export type ExportAssetValidation = {
   timelineExists: boolean
   missing: string[]
   message: string | null
+  sceneImageDiagnostics?: SceneImageValidationEntry[]
+  refreshedScenes?: CinematicScene[]
 }
 
 function validationLog(event: string, payload: Record<string, unknown>): void {
@@ -36,14 +40,17 @@ async function assetReachable(url: string): Promise<boolean> {
   try {
     await retryWithBackoff(
       async () => {
-        const res = await fetch(url, {
+        const getRes = await fetch(url, {
+          headers: { Range: 'bytes=0-0' },
+          signal: AbortSignal.timeout(30_000),
+        })
+        if (getRes.ok || getRes.status === 206) return
+        const headRes = await fetch(url, {
           method: 'HEAD',
           signal: AbortSignal.timeout(20_000),
         })
-        if (!res.ok && res.status !== 405) {
-          const getRes = await fetch(url, { signal: AbortSignal.timeout(30_000) })
-          if (!getRes.ok) throw new Error(`Asset unreachable (${getRes.status})`)
-        }
+        if (headRes.ok || headRes.status === 405) return
+        throw new Error(`Asset unreachable (${getRes.status})`)
       },
       { maxAttempts: 3, label: 'asset HEAD' }
     )
@@ -107,6 +114,8 @@ export async function validateExportAssets(params: {
 
   const scenesMissingImages = findScenesMissingExportImages(scenes)
   let imagesExist = scenesMissingImages.length === 0 && exportScenes.length > 0
+  let sceneImageDiagnostics: SceneImageValidationEntry[] | undefined
+  let refreshedScenes: CinematicScene[] | undefined
 
   if (scenesMissingImages.length > 0) {
     missing.push('images')
@@ -116,61 +125,35 @@ export async function validateExportAssets(params: {
   } else if (!imagesExist) {
     missing.push('images')
   } else {
-    const unreachableIndices: number[] = []
+    const assetCounts = await loadProjectAssetCounts(params.row.id, params.userId)
+    const imageValidation = await refreshAndValidateExportSceneImages({
+      scenes,
+      projectId: params.row.id,
+      userId: params.userId,
+      lookup: {
+        projectId: params.row.id,
+        userId: params.userId,
+        imageAssets: assetCounts.imageAssets,
+      },
+    })
+    refreshedScenes = imageValidation.scenes
+    sceneImageDiagnostics = imageValidation.entries
+    logSceneImageValidationReport(params.row.id, imageValidation)
 
-    for (let i = 0; i < scenes.length; i++) {
-      const scene = scenes[i]
-      const assetPath = resolveSceneExportAssetPath(scene)
-
-      if (assetPath) {
-        const exists = await storyboardStorageExists(assetPath)
-        validationLog('scene.storage', {
-          sceneIndex: i + 1,
-          assetPath,
-          exists,
-        })
-        if (!exists) {
-          unreachableIndices.push(i + 1)
-          continue
-        }
-        const refreshed = await refreshStoryboardUrl(assetPath)
-        if (refreshed) {
-          validationLog('scene.refreshed', { sceneIndex: i + 1 })
-          continue
-        }
-      }
-
-      const imageUrl = resolveSceneExportImageUrl(scene)
-      if (!imageUrl?.trim()) {
-        unreachableIndices.push(i + 1)
-        continue
-      }
-
-      const reachable = await assetReachable(imageUrl)
-      validationLog('scene.head', {
-        sceneIndex: i + 1,
-        reachable,
-        hasAssetPath: Boolean(assetPath),
-      })
-      if (!reachable) {
-        unreachableIndices.push(i + 1)
-      }
-    }
-
-    imagesExist = unreachableIndices.length === 0
+    imagesExist = imageValidation.unreachableIndices.length === 0
     if (!imagesExist) {
       missing.push('images')
-      if (unreachableIndices.length > 0) {
-        validationLog('failed', { unreachable: unreachableIndices })
-        return {
-          valid: false,
-          voiceExists,
-          imagesExist: false,
-          captionsExist: false,
-          timelineExists: Boolean(timeline?.clips?.length),
-          missing,
-          message: formatUnreachableSceneMessage(unreachableIndices),
-        }
+      validationLog('failed', { unreachable: imageValidation.unreachableIndices })
+      return {
+        valid: false,
+        voiceExists,
+        imagesExist: false,
+        captionsExist: false,
+        timelineExists: Boolean(timeline?.clips?.length),
+        missing,
+        message: formatUnreachableSceneMessage(imageValidation.unreachableIndices),
+        sceneImageDiagnostics,
+        refreshedScenes,
       }
     }
   }
@@ -213,5 +196,7 @@ export async function validateExportAssets(params: {
     timelineExists,
     missing,
     message,
+    sceneImageDiagnostics,
+    refreshedScenes,
   }
 }
