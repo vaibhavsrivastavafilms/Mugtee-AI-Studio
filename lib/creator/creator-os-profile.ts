@@ -23,6 +23,7 @@ export type CreatorOsProfile = {
   language: ProjectLanguage | string | null
   lastReelTitle: string | null
   lastReelProjectId: string | null
+  commonNiches: string[]
   updatedAt: string | null
 }
 
@@ -40,6 +41,7 @@ const EMPTY: CreatorOsProfile = {
   language: null,
   lastReelTitle: null,
   lastReelProjectId: null,
+  commonNiches: [],
   updatedAt: null,
 }
 
@@ -95,10 +97,20 @@ export type CreatorOsProfilePatch = Partial<
   >
 >
 
+function trackCommonNiche(profile: CreatorOsProfile, niche: string | null | undefined): string[] {
+  const n = niche?.trim()
+  if (!n) return profile.commonNiches ?? []
+  const prior = profile.commonNiches ?? []
+  const next = [n, ...prior.filter((x) => x !== n)].slice(0, 8)
+  return next
+}
+
 export function updateCreatorOsProfile(patch: CreatorOsProfilePatch): CreatorOsProfile {
+  const current = getCreatorOsProfile()
   const next: CreatorOsProfile = {
-    ...getCreatorOsProfile(),
+    ...current,
     ...patch,
+    commonNiches: trackCommonNiche(current, patch.niche ?? current.niche),
     updatedAt: new Date().toISOString(),
   }
   writeOsProfile(next)
@@ -120,13 +132,19 @@ export function creatorOsPrefillDefaults(): {
   niche?: string
   tone?: string
   language?: string
+  voiceName?: string
+  voiceId?: string
+  visualStyle?: string
 } {
   const p = getCreatorOsProfile()
   return {
     duration: p.duration ?? undefined,
     platform: p.platform ?? undefined,
-    niche: p.niche ?? undefined,
+    niche: p.niche ?? p.commonNiches?.[0] ?? undefined,
     tone: p.tone ?? undefined,
     language: p.language ?? undefined,
+    voiceName: p.voiceName ?? undefined,
+    voiceId: p.voiceId ?? undefined,
+    visualStyle: p.visualStyle ?? undefined,
   }
 }

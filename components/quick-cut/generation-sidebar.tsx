@@ -10,6 +10,8 @@ import { allStageAverages } from '@/lib/generation/generation-stage-timing.clien
 import { GenerationStageTimeline } from '@/components/quick-cut/generation-stage-timeline'
 import { DirectorCommentaryPanel } from '@/components/quick-cut/director-commentary-panel'
 import { GenerationJobResumeBanner } from '@/components/quick-cut/generation-job-resume-banner'
+import Link from 'next/link'
+import { STUDIO } from '@/lib/create/routes'
 import { RenderHealthPanel } from '@/components/quick-cut/render-health-panel'
 import { QuickModeAssetCards } from '@/components/studio/quick-mode-asset-cards'
 import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
@@ -186,6 +188,15 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-luxe px-4 py-3">
         <p className="text-[9px] tracking-[0.18em] uppercase text-luxe/45 mb-2">Asset Checklist</p>
         <QuickModeAssetCards projectId={projectId} />
+      </div>
+
+      <div className="shrink-0 px-4 pb-2">
+        <Link
+          href={STUDIO.jobs}
+          className="text-[10px] uppercase tracking-wider text-gold-200/60 hover:text-gold-200"
+        >
+          Jobs Dashboard →
+        </Link>
       </div>
 
       {active && !snapshot.isReady ? (

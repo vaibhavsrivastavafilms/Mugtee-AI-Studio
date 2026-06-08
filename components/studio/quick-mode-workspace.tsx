@@ -87,6 +87,12 @@ function QuickModeWorkspaceInner() {
     if (defaults.tone) {
       useQuickCutGenerationStore.setState({ style: defaults.tone })
     }
+    if (defaults.voiceId && defaults.voiceName) {
+      useQuickCutGenerationStore.getState().setSelectedElevenLabsVoice(
+        defaults.voiceId,
+        defaults.voiceName
+      )
+    }
   }, [])
 
   useEffect(() => {

@@ -27,7 +27,6 @@ export function ReelAnalyticsPanel({ className }: ReelAnalyticsPanelProps) {
       reelTimeline: s.reelTimeline,
       voiceName: s.voiceName,
       niche: s.niche,
-      platform: s.platform,
       generationStartedAt: s.generationStartedAt,
       exportCompletedAt: s.exportCompletedAt,
       videoUrl: s.videoUrl,
@@ -55,7 +54,7 @@ export function ReelAnalyticsPanel({ className }: ReelAnalyticsPanelProps) {
         <Stat label="Scenes" value={String(state.scenes.length)} />
         <Stat label="Duration" value={`${Math.round(durationSec)}s`} />
         <Stat label="Voice" value={state.voiceName?.trim() || 'Auto'} />
-        <Stat label="Platform" value={state.platform?.trim() || state.niche || 'Reel'} />
+        <Stat label="Platform" value={state.niche?.trim() || 'Reel'} />
         <Stat label="Resolution" value="1080×1920" />
         <Stat label="FPS" value="30" />
         <Stat label="File Size" value={state.videoUrl ? 'MP4 ready' : '—'} />

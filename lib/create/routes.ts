@@ -24,6 +24,7 @@ const STUDIO = {
   workspace: '/studio/workspace',
   settings: '/studio/settings',
   memory: '/studio/memory',
+  jobs: '/studio/jobs',
   marketplace: '/studio/marketplace',
   integrations: '/studio/integrations',
   workspaces: '/studio/workspaces',

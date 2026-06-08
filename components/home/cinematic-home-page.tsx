@@ -6,7 +6,6 @@ import { CinematicHomeHeader } from '@/components/home/CinematicHomeHeader'
 import { CinematicHero } from '@/components/home/CinematicHero'
 import { LandingProductCard } from '@/components/home/LandingProductCard'
 import { LandingHowItWorks } from '@/components/home/LandingHowItWorks'
-import { LandingFeaturesStrip } from '@/components/home/LandingFeaturesStrip'
 import { LandingSocialProof } from '@/components/home/LandingSocialProof'
 import {
   STUDIO_DIRECTOR,
@@ -82,7 +81,6 @@ export default function CinematicHomePage() {
         </section>
 
         <LandingHowItWorks />
-        <LandingFeaturesStrip />
         <LandingSocialProof />
 
         <div className="mt-10 text-center">
