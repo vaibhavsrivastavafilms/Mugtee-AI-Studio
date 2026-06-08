@@ -28,6 +28,8 @@ export function resolveRenderHealth(input: {
   currentStage: string
   etaLabel: string | null
   renderStartedAt: number | null
+  /** Pass client clock after mount — omit during SSR to avoid stalled-status mismatch. */
+  nowMs?: number
 }): RenderHealthSnapshot | null {
   const exporting = Boolean(
     input.isRenderingVideo || (input.renderPollUrl && !input.videoUrl)
@@ -41,7 +43,8 @@ export function resolveRenderHealth(input: {
     else status = 'Rendering'
     if (
       input.renderStartedAt &&
-      Date.now() - input.renderStartedAt > 180_000 &&
+      input.nowMs != null &&
+      input.nowMs - input.renderStartedAt > 180_000 &&
       input.progressPercent < 90
     ) {
       status = 'Stalled'

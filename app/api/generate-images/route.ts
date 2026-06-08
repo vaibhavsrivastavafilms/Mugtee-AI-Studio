@@ -58,13 +58,16 @@ export async function POST(req: NextRequest) {
 
     const projectId = parseFeatureUsageProjectId(raw)
 
+    const consistencyInjection =
+      typeof raw?.consistencyInjection === 'string' ? raw.consistencyInjection.trim() : ''
+    const baseCharacter =
+      typeof raw?.characterDescription === 'string' ? raw.characterDescription.trim() : ''
+    const characterDescription = [baseCharacter, consistencyInjection].filter(Boolean).join('. ') || undefined
+
     const result = await generateSceneImages({
       scenes,
       projectId,
-      characterDescription:
-        typeof raw?.characterDescription === 'string'
-          ? raw.characterDescription
-          : undefined,
+      characterDescription,
       niche: typeof raw?.niche === 'string' ? raw.niche : undefined,
       virlo:
         raw?.virlo && typeof raw.virlo === 'object'

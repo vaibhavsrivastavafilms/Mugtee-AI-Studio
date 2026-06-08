@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { Clapperboard } from 'lucide-react'
 import { SceneCardV2 } from '@/components/quick-cut/scene-card-v2'
 import { resolveSceneCardStatus } from '@/lib/quick-cut/scene-card-v2-helpers'
+import { sceneHasReviewableImage } from '@/lib/quick-cut/scene-regen-guard'
 import { resolveStoryboardSceneProgress } from '@/lib/quick-cut/generation-hud'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
@@ -53,7 +54,7 @@ export function QuickModeSceneStrip({
   )
 
   const batchLoading = state.isGenerating && state.generationStep === 'images'
-  const canInteract = interactive ?? !state.isGenerating
+  const canInteract = interactive ?? true
   const visibleScenes = state.scenes.slice(0, maxScenes)
 
   if (visibleScenes.length === 0) return null
@@ -95,6 +96,9 @@ export function QuickModeSceneStrip({
             isRegenerating,
           })
 
+          const sceneReady = sceneHasReviewableImage(scene)
+          const canInteractScene = canInteract && sceneReady && !isRegenerating
+
           const loadingLabel =
             isRegenerating && state.directingSceneLabel
               ? state.directingSceneLabel
@@ -111,19 +115,19 @@ export function QuickModeSceneStrip({
                 status={status}
                 loadingLabel={loadingLabel}
                 compact={compact}
-                interactive={canInteract && status === 'ready'}
+                interactive={canInteractScene}
                 sceneBlueprints={state.sceneBlueprints}
                 sceneMotion={state.sceneMotion}
                 scriptBeats={state.scriptBeats}
                 storyboardVersions={state.variationHistory.storyboards}
                 selectedVersionId={state.variationHistory.selectedStoryboardByScene[scene.id]}
                 onEditPrompt={
-                  canInteract && status === 'ready'
+                  canInteractScene
                     ? (prompt) => void state.updateSceneImagePrompt(scene.id, prompt)
                     : undefined
                 }
                 onRegenerate={
-                  canInteract && status === 'ready'
+                  canInteractScene
                     ? () => void state.regenerateSceneImage(scene.id)
                     : undefined
                 }

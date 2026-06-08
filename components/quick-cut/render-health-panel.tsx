@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useClientMounted } from '@/lib/hooks/use-client-mounted'
 import { resolveRenderHealth } from '@/lib/quick-cut/render-health'
 import { resolveExportFrameProgress } from '@/lib/quick-cut/generation-hud'
 import { resolveCinematicGenerationProgress } from '@/lib/quick-cut/cinematic-generation-progress'
@@ -16,6 +17,16 @@ type RenderHealthPanelProps = {
 }
 
 export function RenderHealthPanel({ className }: RenderHealthPanelProps) {
+  const mounted = useClientMounted()
+  const [nowMs, setNowMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!mounted) return
+    setNowMs(Date.now())
+    const id = window.setInterval(() => setNowMs(Date.now()), 2_000)
+    return () => window.clearInterval(id)
+  }, [mounted])
+
   const input = useQuickCutGenerationStore(
     useShallow((s) => ({
       generationStep: s.generationStep,
@@ -87,39 +98,46 @@ export function RenderHealthPanel({ className }: RenderHealthPanelProps) {
     [input, totalDurationSec]
   )
 
-  const eta = useMemo(
-    () =>
-      computeGenerationEta({
-        snapshot,
-        stageAveragesMs: allStageAverages(input.scenesCount),
-        currentStageStartedAtMs: input.currentStageStartedAt,
-        exportRenderStartedAtMs: input.renderStartedAt,
-        exportProgressPercent: exportProgress?.progressPercent ?? input.progress,
-        sceneCount: input.scenesCount,
-      }),
-    [snapshot, input, exportProgress]
-  )
+  const eta = useMemo(() => {
+    if (!mounted) {
+      return {
+        etaSeconds: null,
+        etaLabel: null,
+        exportEtaSeconds: null,
+        exportEtaLabel: null,
+        isExportPhase: false,
+      }
+    }
+    return computeGenerationEta({
+      snapshot,
+      stageAveragesMs: allStageAverages(input.scenesCount),
+      currentStageStartedAtMs: input.currentStageStartedAt,
+      exportRenderStartedAtMs: input.renderStartedAt,
+      exportProgressPercent: exportProgress?.progressPercent ?? input.progress,
+      sceneCount: input.scenesCount,
+    })
+  }, [mounted, snapshot, input, exportProgress])
 
-  const health = useMemo(
-    () =>
-      resolveRenderHealth({
-        isRenderingVideo: input.isRenderingVideo,
-        renderPollUrl: input.renderPollUrl,
-        videoUrl: input.videoUrl,
-        renderError: input.renderError,
-        renderStatusLabel: input.renderStatusLabel,
-        progressPercent: exportProgress?.progressPercent ?? snapshot.percent,
-        currentFrame: exportProgress?.currentFrame ?? 0,
-        totalFrames: exportProgress?.totalFrames ?? 0,
-        sceneCount: input.scenesCount,
-        currentStage: snapshot.currentStepLabel ?? input.generationStep,
-        etaLabel: eta.etaLabel,
-        renderStartedAt: input.renderStartedAt,
-      }),
-    [input, exportProgress, snapshot, eta]
-  )
+  const health = useMemo(() => {
+    if (!mounted) return null
+    return resolveRenderHealth({
+      isRenderingVideo: input.isRenderingVideo,
+      renderPollUrl: input.renderPollUrl,
+      videoUrl: input.videoUrl,
+      renderError: input.renderError,
+      renderStatusLabel: input.renderStatusLabel,
+      progressPercent: exportProgress?.progressPercent ?? snapshot.percent,
+      currentFrame: exportProgress?.currentFrame ?? 0,
+      totalFrames: exportProgress?.totalFrames ?? 0,
+      sceneCount: input.scenesCount,
+      currentStage: snapshot.currentStepLabel ?? input.generationStep,
+      etaLabel: eta.etaLabel,
+      renderStartedAt: input.renderStartedAt,
+      nowMs: nowMs ?? undefined,
+    })
+  }, [mounted, nowMs, input, exportProgress, snapshot, eta])
 
-  if (!health) return null
+  if (!mounted || !health) return null
 
   return (
     <div className={cn('rounded-lg border border-white/[0.08] bg-black/35 px-3 py-2', className)}>

@@ -5,13 +5,14 @@ import { Clapperboard, Download, Film, Loader2 } from 'lucide-react'
 import {
   downloadAllStoryboardImages,
   SCENE_IMAGE_EXPORT_DIMENSIONS,
-  slugifyExportBase,
   type SceneImageExportSize,
 } from '@/lib/quick-cut/download-scene-image'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { SceneVisualCard } from '@/components/quick-cut/scene-visual-card'
-import { useSceneAudioPlayback } from '@/hooks/use-scene-audio-playback'
+import { SceneCardV2 } from '@/components/quick-cut/scene-card-v2'
+import { resolveSceneCardStatus } from '@/lib/quick-cut/scene-card-v2-helpers'
+import { sceneHasReviewableImage } from '@/lib/quick-cut/scene-regen-guard'
+import { resolveStoryboardSceneProgress } from '@/lib/quick-cut/generation-hud'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { quickCutCanCompileMp4 } from '@/lib/quick-cut/compile-project-mp4.client'
 
@@ -35,28 +36,31 @@ export function StoryboardGenerator({
 }) {
   const directingSceneLabel = useQuickCutGenerationStore((s) => s.directingSceneLabel)
   const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
   const regeneratingSceneIds = useQuickCutGenerationStore((s) => s.regeneratingSceneIds)
   const updateSceneImagePrompt = useQuickCutGenerationStore((s) => s.updateSceneImagePrompt)
   const regenerateSceneImage = useQuickCutGenerationStore((s) => s.regenerateSceneImage)
-  const generateSceneVariations = useQuickCutGenerationStore((s) => s.generateSceneVariations)
+  const selectStoryboardVersion = useQuickCutGenerationStore((s) => s.selectStoryboardVersion)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
+  const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const sceneBlueprints = useQuickCutGenerationStore((s) => s.sceneBlueprints)
+  const sceneMotion = useQuickCutGenerationStore((s) => s.sceneMotion)
+  const scriptBeats = useQuickCutGenerationStore((s) => s.scriptBeats)
+  const variationHistory = useQuickCutGenerationStore((s) => s.variationHistory)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
-  const {
-    audioRef,
-    playingSceneIndex,
-    toggleSceneAudio,
-    canPlayScene,
-    getDisabledReason,
-  } = useSceneAudioPlayback({ scenes, voiceUrl, fallbackText: hook })
 
   const batchLoading = loading && generationStep === 'images'
-  const exportBase = slugifyExportBase(exportTitle || 'mugtee-storyboard', 'mugtee-storyboard')
+  const storyboardProgress = resolveStoryboardSceneProgress({
+    generationStep,
+    sectionStatus,
+    scenes,
+    directingSceneLabel,
+  })
   const [downloadingAllFormat, setDownloadingAllFormat] = useState<SceneImageExportSize | null>(
     null
   )
@@ -100,43 +104,50 @@ export function StoryboardGenerator({
       {directingSceneLabel && batchLoading ? (
         <p className="text-[11px] text-luxe/50 italic mb-3">{directingSceneLabel}</p>
       ) : null}
-      <audio ref={audioRef} preload="metadata" className="sr-only" aria-hidden />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {scenes.slice(0, 8).map((scene, i) => {
-          const sceneLoading =
-            regeneratingSceneIds.includes(scene.id) ||
-            (batchLoading && !scene.imageUrl?.trim())
+          const isRegenerating = regeneratingSceneIds.includes(scene.id)
+          const status = resolveSceneCardStatus({
+            scene,
+            index: i,
+            completedImageCount: storyboardProgress?.completedCount ?? 0,
+            currentSceneIndex: storyboardProgress?.currentSceneIndex ?? 1,
+            isStoryboardActive: Boolean(storyboardProgress?.isActive || batchLoading),
+            isRegenerating,
+          })
           const loadingLabel =
-            regeneratingSceneIds.includes(scene.id) && directingSceneLabel
+            isRegenerating && directingSceneLabel
               ? directingSceneLabel
-              : batchLoading
+              : status === 'generating'
                 ? directingSceneLabel || `Directing Scene ${i + 1}…`
                 : 'Composing visuals…'
+          const canInteractScene = interactive && sceneHasReviewableImage(scene) && !isRegenerating
 
           return (
-            <SceneVisualCard
+            <SceneCardV2
               key={scene.id || i}
               scene={scene}
               index={i}
-              exportBaseName={exportBase}
-              allowDownload={allowDownload && !sceneLoading}
-              loading={sceneLoading}
+              totalScenes={scenes.length}
+              status={status}
               loadingLabel={loadingLabel}
-              onSavePrompt={
-                interactive
+              interactive={canInteractScene}
+              sceneBlueprints={sceneBlueprints}
+              sceneMotion={sceneMotion}
+              scriptBeats={scriptBeats}
+              storyboardVersions={variationHistory.storyboards}
+              selectedVersionId={variationHistory.selectedStoryboardByScene[scene.id]}
+              onEditPrompt={
+                canInteractScene
                   ? (prompt) => void updateSceneImagePrompt(scene.id, prompt)
                   : undefined
               }
               onRegenerate={
-                interactive ? () => void regenerateSceneImage(scene.id) : undefined
+                canInteractScene ? () => void regenerateSceneImage(scene.id) : undefined
               }
-              onVariations={
-                interactive ? () => void generateSceneVariations(scene.id) : undefined
+              onSelectVersion={
+                canInteractScene ? (id) => selectStoryboardVersion(id) : undefined
               }
-              onToggleAudio={() => toggleSceneAudio(i)}
-              canPlayAudio={canPlayScene(i)}
-              audioPlaying={playingSceneIndex === i}
-              audioDisabledReason={getDisabledReason(i)}
             />
           )
         })}

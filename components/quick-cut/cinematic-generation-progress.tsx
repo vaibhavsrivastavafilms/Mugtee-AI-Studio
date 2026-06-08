@@ -14,6 +14,8 @@ import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-cre
 import { sumSceneDurationSec } from '@/lib/cinematic/scene-duration'
 import { PostExportActions } from '@/components/quick-cut/post-export-actions'
 import { DirectorCommentaryPanel } from '@/components/quick-cut/director-commentary-panel'
+import { CinematicExportHud } from '@/components/quick-cut/cinematic-export-hud'
+import { SceneApprovalSummary } from '@/components/quick-cut/scene-approval-summary'
 import { GenerationStageTimeline } from '@/components/quick-cut/generation-stage-timeline'
 import { outlineGoldButton } from '@/components/home/cinematic-home-styles'
 import { v4DangerOutline } from '@/lib/studio/v4-design-tokens'
@@ -59,6 +61,7 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
       duration: s.duration,
       reelTimeline: s.reelTimeline,
       generationInFlight: s.generationInFlight,
+      savedProjectId: s.savedProjectId,
     }))
   )
 
@@ -331,19 +334,21 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
         </div>
       ) : null}
 
-      {mounted && exportProgress?.isActive ? (
-        <div className="rounded-lg border border-gold-500/15 bg-black/40 px-3 py-2 space-y-1">
-          <p className="text-[9px] tracking-[0.18em] uppercase text-gold-300/60">Rendering MP4</p>
-          <p className="text-[12px] text-luxe/85 tabular-nums">
-            Frame {exportProgress.currentFrame} / {exportProgress.totalFrames}
-          </p>
-          <p className="text-[11px] text-gold-200/75 tabular-nums">{exportProgress.progressPercent}%</p>
-          {eta.exportEtaLabel ? (
-            <p className="text-[11px] text-luxe/55">
-              ETA <span className="tabular-nums text-gold-100/80">{eta.etaLabel}</span>
-            </p>
-          ) : null}
-        </div>
+      {mounted && (exportProgress?.isActive || input.videoUrl) ? (
+        <CinematicExportHud
+          exportProgress={exportProgress}
+          renderStatusLabel={input.renderStatusLabel}
+          videoUrl={input.videoUrl}
+          sceneCount={input.scenesCount}
+          etaLabel={eta.exportEtaLabel ?? eta.etaLabel}
+        />
+      ) : null}
+
+      {input.scenes.length > 0 ? (
+        <SceneApprovalSummary
+          projectKey={input.savedProjectId || 'quick-draft'}
+          scenes={input.scenes}
+        />
       ) : null}
 
       {isActiveGeneration && !snapshot.isReady ? (

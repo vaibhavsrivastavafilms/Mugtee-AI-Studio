@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Clapperboard, Layers, Share2 } from 'lucide-react'
 import { OutputWindow } from '@/components/quick-cut/output-window'
+import { DirectorTimelineV3 } from '@/components/quick-cut/director-timeline-v3'
+import { AiDirectorPanel } from '@/components/quick-cut/ai-director-panel'
+import { ConsistencyMemoryPanel } from '@/components/quick-cut/consistency-memory-panel'
 import { PostExportActions } from '@/components/quick-cut/post-export-actions'
 import { formatTimingBlock } from '@/lib/generation/generation-eta'
 import { directorWorkspaceHref } from '@/lib/create/routes'
@@ -129,6 +132,10 @@ export function ReelControlCenter({ projectId, audioRef, className }: ReelContro
           showInsightTabs
           playerGenerationStep="complete"
         />
+
+        <DirectorTimelineV3 />
+        <AiDirectorPanel />
+        <ConsistencyMemoryPanel />
 
         <PostExportActions hideHeader />
 

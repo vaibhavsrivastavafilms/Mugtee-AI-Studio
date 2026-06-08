@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useClientMounted } from '@/lib/hooks/use-client-mounted'
 import { Check, Loader2 } from 'lucide-react'
 import {
   formatActivityElapsed,
@@ -17,6 +18,9 @@ type GenerationActivityFeedProps = {
 }
 
 export function GenerationActivityFeed({ className, maxItems = 8 }: GenerationActivityFeedProps) {
+  const mounted = useClientMounted()
+  const [activityTick, setActivityTick] = useState(0)
+
   const input = useQuickCutGenerationStore(
     useShallow((s) => ({
       sectionStatus: s.sectionStatus,
@@ -32,16 +36,19 @@ export function GenerationActivityFeed({ className, maxItems = 8 }: GenerationAc
   )
 
   useEffect(() => {
-    if (!input.isGenerating && !input.generationInFlight) return
+    if (!mounted || (!input.isGenerating && !input.generationInFlight)) return
     syncGenerationActivityFromState(input)
-  }, [input])
+    setActivityTick((t) => t + 1)
+  }, [mounted, input])
 
   const entries = useMemo(() => {
+    if (!mounted) return []
     void input.generationStep
+    void activityTick
     return getGenerationActivityLog().slice(-maxItems).reverse()
-  }, [input.generationStep, input.sectionStatus, input.scenes.length, maxItems])
+  }, [mounted, input.generationStep, input.sectionStatus, input.scenes.length, maxItems, activityTick])
 
-  if (entries.length === 0) return null
+  if (!mounted || entries.length === 0) return null
 
   return (
     <div className={cn('space-y-1.5', className)} aria-label="Recent activity">
