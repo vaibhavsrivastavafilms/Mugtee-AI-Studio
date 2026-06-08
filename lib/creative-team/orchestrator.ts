@@ -9,6 +9,7 @@ import type {
   AgentStatesMap,
   CreativeTeamAgentId,
   CreativeTeamContext,
+  CreativeTeamPackage,
 } from '@/lib/creative-team/types'
 
 export type RunCreativeTeamOptions = {
@@ -42,12 +43,16 @@ export async function runCreativeTeamOrchestrator(
     package: {
       projectId: ctx.projectId,
       userId: ctx.userId,
-      storyStrategy: reports['story-strategist'] ?? null,
-      producerReport: reports['executive-producer'] ?? null,
-      screenwriterReport: reports.screenwriter ?? null,
-      cinematographyReport: reports.cinematographer ?? null,
-      voiceReport: reports['voice-director'] ?? null,
-      musicReport: reports['music-director'] ?? null,
+      storyStrategy:
+        (reports['story-strategist'] as CreativeTeamPackage['storyStrategy']) ?? null,
+      producerReport:
+        (reports['executive-producer'] as CreativeTeamPackage['producerReport']) ?? null,
+      screenwriterReport:
+        (reports.screenwriter as CreativeTeamPackage['screenwriterReport']) ?? null,
+      cinematographyReport:
+        (reports.cinematographer as CreativeTeamPackage['cinematographyReport']) ?? null,
+      voiceReport: (reports['voice-director'] as CreativeTeamPackage['voiceReport']) ?? null,
+      musicReport: (reports['music-director'] as CreativeTeamPackage['musicReport']) ?? null,
       alignmentScore,
       agentStates,
     },
