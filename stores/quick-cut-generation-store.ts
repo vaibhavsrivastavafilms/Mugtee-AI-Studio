@@ -322,6 +322,13 @@ import {
 } from '@/lib/cinematic/section-generation-status'
 import { recordStageDuration } from '@/lib/generation/generation-stage-timing.client'
 import { generationStepToProgressStageId } from '@/lib/quick-cut/cinematic-generation-progress'
+import { canRegenerateSingleScene } from '@/lib/quick-cut/scene-regen-guard'
+import { canEditTimeline } from '@/lib/quick-cut/timeline-edit-guard'
+import {
+  buildConsistencyInjectionBlock,
+  buildConsistencyMemory,
+} from '@/lib/creator/consistency-memory'
+import type { SceneMotion } from '@/lib/motion/scene-motion-types'
 
 export type { CinematicGenerationState }
 
@@ -591,6 +598,7 @@ interface QuickCutGenerationActions {
   regenerateTitle: () => Promise<void>
   regenerateScript: () => Promise<void>
   regenerateSceneImage: (sceneId: string) => Promise<void>
+  restoreSceneImageUrl: (sceneId: string, imageUrl: string) => void
   regenerateMissingSceneImages: () => Promise<void>
   regenerateThumbnailImage: () => Promise<void>
   updateSceneImagePrompt: (sceneId: string, imagePrompt: string) => Promise<void>
@@ -621,6 +629,7 @@ interface QuickCutGenerationActions {
   setStoryBible: (bible: StoryBible | null) => void
   updateStoryBible: (patch: Partial<StoryBible>) => void
   setSceneMotionPreset: (sceneId: string, presetId: MotionPresetId) => void
+  updateSceneMotion: (sceneId: string, patch: Partial<SceneMotion>) => void
   setOutputAlignmentControls: (patch: Partial<OutputAlignmentControls>) => void
   refreshSceneBlueprints: () => void
   composeReelTimeline: () => void
@@ -1476,6 +1485,17 @@ async function fetchSceneImages(
       sceneBlueprints: state.sceneBlueprints,
       visualBible: state.visualBible ?? undefined,
       outputAlignmentControls: state.outputAlignmentControls,
+      consistencyInjection: buildConsistencyInjectionBlock(
+        buildConsistencyMemory({
+          characterDescription: state.characterDescription,
+          storyBible: state.storyBible,
+          visualStyle: state.visualStyle,
+          style: state.style,
+          sceneBlueprints: state.sceneBlueprints,
+          scenes: state.scenes,
+          outputAlignmentControls: state.outputAlignmentControls,
+        })
+      ),
     }),
   }),
     60_000
@@ -3880,7 +3900,7 @@ export const useQuickCutGenerationStore = create<
 
   regenerateSceneImage: async (sceneId) => {
     const state = get()
-    if (!sceneId || state.isGenerating) return
+    if (!sceneId || !canRegenerateSingleScene(state, sceneId)) return
     if (!state.scenes.some((s) => s.id === sceneId)) return
 
     set({
@@ -3939,6 +3959,14 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  restoreSceneImageUrl: (sceneId, imageUrl) => {
+    const url = imageUrl.trim()
+    if (!sceneId || !url) return
+    const scenes = get().scenes.map((s) => (s.id === sceneId ? { ...s, imageUrl: url } : s))
+    set({ scenes, storyboard: scenes })
+    persistSession(get())
+  },
+
   regenerateMissingSceneImages: async () => {
     const state = get()
     const missing = sceneExportReadiness(state.scenes).missing
@@ -3971,7 +3999,7 @@ export const useQuickCutGenerationStore = create<
 
   generateSceneVariations: async (sceneId) => {
     const state = get()
-    if (!sceneId || state.isGenerating) return
+    if (!sceneId || !canRegenerateSingleScene(state, sceneId)) return
     if (!state.scenes.some((s) => s.id === sceneId)) return
 
     set({
@@ -4018,7 +4046,7 @@ export const useQuickCutGenerationStore = create<
 
   reorderScenes: (activeId, overId) => {
     const state = get()
-    if (state.isGenerating || !activeId || !overId || activeId === overId) return
+    if (!canEditTimeline(state) || !activeId || !overId || activeId === overId) return
 
     const orderedIds = reorderSceneIds(
       state.scenes.map((s) => s.id),
@@ -4732,12 +4760,30 @@ export const useQuickCutGenerationStore = create<
 
   setSceneMotionPreset: (sceneId, presetId) => {
     if (!isMotionPresetId(presetId)) return
+    get().updateSceneMotion(sceneId, { presetId, source: 'manual' })
+  },
+
+  updateSceneMotion: (sceneId, patch) => {
+    if (!sceneId) return
     const state = get()
+    const prior = state.sceneMotion[sceneId]
+    const presetId = patch.presetId ?? prior?.presetId ?? 'historical_push_in'
+    if (patch.presetId && !isMotionPresetId(patch.presetId)) return
     const nextMap: SceneMotionMap = {
       ...state.sceneMotion,
-      [sceneId]: { presetId, source: 'manual' },
+      [sceneId]: {
+        ...prior,
+        presetId,
+        ...patch,
+        source: patch.source ?? prior?.source ?? 'manual',
+      },
     }
-    const scenes = applySceneMotionToScenes(state.scenes, nextMap)
+    let scenes = applySceneMotionToScenes(state.scenes, nextMap)
+    if (patch.duration != null) {
+      scenes = scenes.map((s) =>
+        s.id === sceneId ? { ...s, duration: patch.duration } : s
+      )
+    }
     set({ sceneMotion: nextMap, scenes, storyboard: scenes })
     if (state.savedProjectId) {
       void updateProject(state.savedProjectId, {
