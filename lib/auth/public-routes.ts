@@ -5,6 +5,7 @@
 
 const PUBLIC_EXACT = new Set([
   '/',
+  '/studio',
   '/auth',
   '/login',
   '/auth/login',
@@ -84,6 +85,7 @@ export function isPublicPath(pathname: string): boolean {
 
 export function isProtectedPath(pathname: string): boolean {
   const path = pathname.split('?')[0] || '/'
+  if (path === '/studio' || path === '/studio/') return false
   if (isPublicPath(path)) return false
   if (path.startsWith('/cinematic/examples')) return false
   for (const prefix of PROTECTED_PREFIXES) {

@@ -2,7 +2,6 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { StoryBible } from '@/lib/cinematic/story-bible'
 import {
   getMotionPreset,
-  selectMotionPresetForScene,
   type MotionPresetId,
 } from '@/lib/motion/motion-presets'
 import type {
@@ -12,6 +11,7 @@ import type {
   TransitionType,
 } from '@/lib/motion/scene-motion-types'
 import { DEFAULT_ANIMATION_INTENSITY } from '@/lib/motion/scene-motion-types'
+import { analyzeSceneDirector } from '@/lib/motion/cinematic-director-engine'
 
 export type MotionDirectorInput = {
   niche?: string
@@ -45,29 +45,7 @@ export type MotionDirectorOutput = {
   depthEnabled: boolean
   zoomLevel: number
   source: 'rules' | 'openai'
-}
-
-const PRESET_MOTION_TYPE: Record<MotionPresetId, MotionType> = {
-  push_in: 'push_in',
-  pull_out: 'pull_out',
-  slow_pan_left: 'pan_left',
-  slow_pan_right: 'pan_right',
-  documentary_drift: 'static_drift',
-  orbit: 'slow_orbit',
-  depth_parallax: 'parallax',
-  subtle_zoom: 'push_in',
-  historical_push_in: 'push_in',
-  battle_tracking: 'tracking',
-  luxury_reveal: 'pull_out',
-  emotional_close_up: 'push_in',
-  ancient_civilization: 'parallax',
-}
-
-const PRESET_PARTICLES: Partial<Record<MotionPresetId, ParticleType>> = {
-  ancient_civilization: 'dust',
-  luxury_reveal: 'light_rays',
-  battle_tracking: 'fog',
-  documentary_drift: 'none',
+  captionStyle?: 'creator' | 'documentary' | 'motivational' | 'storytelling'
 }
 
 function sceneMoodText(input: MotionDirectorInput): string {
@@ -87,45 +65,33 @@ function sceneMoodText(input: MotionDirectorInput): string {
     .toLowerCase()
 }
 
-function transitionForIndex(index: number, total: number): TransitionType {
-  if (index <= 0) return 'fade'
-  if (index >= total - 1) return 'fade'
-  return index % 3 === 0 ? 'cross_dissolve' : 'fade'
-}
-
-function intensityForScene(mood: string, presetId: MotionPresetId): number {
-  if (/\b(fire|torch|flame|battle|chaos)\b/.test(mood)) return 38
-  if (/\b(intimate|tear|grief|whisper)\b/.test(mood)) return 28
-  if (presetId === 'battle_tracking') return 42
-  if (presetId === 'ancient_civilization') return 24
-  return DEFAULT_ANIMATION_INTENSITY
-}
-
 function flickerScene(mood: string): boolean {
   return /\b(fire|torch|flame|candle|ember)\b/.test(mood)
 }
 
 export function rulesMotionDirector(input: MotionDirectorInput): MotionDirectorOutput {
-  const presetId =
-    input.blueprintPresetId ??
-    selectMotionPresetForScene(
-      input.scene,
-      input.sceneIndex,
-      input.totalScenes,
-      input.storyBible
-    )
+  const profile = analyzeSceneDirector({
+    scene: input.scene,
+    sceneIndex: input.sceneIndex,
+    totalScenes: input.totalScenes,
+    mood: input.mood,
+    storyBible: input.storyBible,
+    niche: input.niche,
+    blueprintPresetId: input.blueprintPresetId,
+  })
+  const preset = getMotionPreset(profile.motionPreset)
   const mood = sceneMoodText(input)
-  const preset = getMotionPreset(presetId)
 
   return {
-    motionPreset: presetId,
-    cameraMovement: PRESET_MOTION_TYPE[presetId] ?? 'static_drift',
-    particleEffects: PRESET_PARTICLES[presetId] ?? 'none',
-    intensity: intensityForScene(mood, presetId),
-    transition: transitionForIndex(input.sceneIndex, input.totalScenes),
-    depthEnabled: preset.category === 'parallax' || presetId === 'ancient_civilization',
+    motionPreset: profile.motionPreset,
+    cameraMovement: profile.motionType,
+    particleEffects: profile.particleType,
+    intensity: profile.animationIntensity,
+    transition: profile.transition,
+    depthEnabled: profile.depthEnabled || preset.category === 'parallax',
     zoomLevel: preset.remotionConfig.scaleTo > 1.12 ? 1.08 : 1,
     source: 'rules',
+    captionStyle: profile.captionStyle,
   }
 }
 
@@ -139,7 +105,7 @@ export function motionDirectorToSceneMotion(
     particleType: output.particleEffects,
     transitionType: output.transition,
     depthEnabled: output.depthEnabled,
-    animationIntensity: output.intensity,
+    animationIntensity: output.intensity ?? DEFAULT_ANIMATION_INTENSITY,
     zoomLevel: output.zoomLevel,
     source: 'auto',
     params: flicker ? { easing: 'ease-out' } : undefined,

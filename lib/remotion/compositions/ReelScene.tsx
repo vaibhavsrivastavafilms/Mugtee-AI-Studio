@@ -9,11 +9,10 @@ import {
 } from 'remotion'
 import { buildParallaxLayers, parallaxLayerStyle } from '@/lib/motion/parallax-layers'
 import { microAnimationAtFrame } from '@/lib/motion/micro-animation'
+import { reelSceneOpacity, reelSceneTransformExtras } from '@/lib/remotion/reel-transitions'
+import { ReelVisualEnhancements } from '@/lib/remotion/reel-visual-enhancements'
 import type { ReelSceneInput, ReelSceneMotionConfig } from './types'
 import { ReelParticleOverlay } from './ReelParticleOverlay'
-
-const FADE_FRAMES = 12
-const CROSS_DISSOLVE_FRAMES = 20
 
 function easedProgress(progress: number, easing?: ReelSceneMotionConfig['easing']): number {
   if (easing === 'ease-out') {
@@ -40,7 +39,7 @@ function motionValues(
     translateY += Math.cos((frame / fps) * 6.2) * 2
   }
 
-  if (config.motionType === 'slow_orbit' || config.presetId === 'orbit') {
+  if (config.motionType === 'slow_orbit' || config.presetId === 'orbit' || config.presetId === 'orbit_light') {
     rotate += Math.sin((frame / fps) * 0.35) * 0.35
   }
 
@@ -55,27 +54,6 @@ function motionValues(
   return { scale, translateX, translateY, rotate }
 }
 
-function transitionOpacity(
-  frame: number,
-  durationInFrames: number,
-  transitionType?: ReelSceneMotionConfig['transitionType']
-): number {
-  const fadeLen =
-    transitionType === 'cross_dissolve' ? CROSS_DISSOLVE_FRAMES : FADE_FRAMES
-
-  const fadeIn = interpolate(frame, [0, fadeLen], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  })
-  const fadeOut = interpolate(
-    frame,
-    [durationInFrames - fadeLen, durationInFrames],
-    [1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  )
-  return Math.min(fadeIn, fadeOut)
-}
-
 export function ReelScene({
   scene,
   sceneIndex,
@@ -85,10 +63,21 @@ export function ReelScene({
 }) {
   const frame = useCurrentFrame()
   const { durationInFrames, fps } = useVideoConfig()
+  const isOpeningScene = sceneIndex === 0
 
   const config = scene.motionConfig ?? fallbackLegacyConfig(scene, sceneIndex)
+  const transitionType = isOpeningScene ? 'cut' : config.transitionType
+  const { pushX, blurPx, leakOpacity } = reelSceneTransformExtras(
+    frame,
+    durationInFrames,
+    transitionType,
+    sceneIndex
+  )
+
   const opacity =
-    transitionOpacity(frame, durationInFrames, config.transitionType) *
+    reelSceneOpacity(frame, durationInFrames, transitionType, sceneIndex, {
+      skipEntryFade: isOpeningScene,
+    }) *
     microAnimationAtFrame(frame, fps, config.animationIntensity ?? 20, {
       flicker: config.flicker,
     }).opacityMultiplier
@@ -133,11 +122,24 @@ export function ReelScene({
 
       <AbsoluteFill
         style={{
-          transform: `scale(${scale}) translate(${translateX}px, ${translateY}px) rotate(${rotate}deg)`,
+          transform: `scale(${scale}) translate(${translateX + pushX}px, ${translateY}px) rotate(${rotate}deg)`,
+          filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
         }}
       >
         <Img src={scene.imageSrc} style={imgStyle} />
       </AbsoluteFill>
+
+      {leakOpacity > 0 ? (
+        <AbsoluteFill
+          style={{
+            pointerEvents: 'none',
+            background:
+              'linear-gradient(135deg, rgba(255,200,120,0.45) 0%, transparent 55%, rgba(255,160,80,0.25) 100%)',
+            opacity: leakOpacity,
+            mixBlendMode: 'screen',
+          }}
+        />
+      ) : null}
 
       {config.flicker ? (
         <AbsoluteFill
@@ -154,6 +156,10 @@ export function ReelScene({
       ) : null}
 
       <ReelParticleOverlay particleType={particleType} density={particleDensity} />
+      <ReelVisualEnhancements
+        animationIntensity={config.animationIntensity ?? 20}
+        flicker={config.flicker}
+      />
 
       <AbsoluteFill
         style={{
@@ -183,6 +189,7 @@ function fallbackLegacyConfig(
       translateYTo: 0,
       easing: 'ease-out',
       animationIntensity: 20,
+      transitionType: sceneIndex === 0 ? 'cut' : 'cross_fade',
     }
   }
   if (motion === 'zoom-out') {
@@ -197,6 +204,7 @@ function fallbackLegacyConfig(
       translateYTo: 0,
       easing: 'ease-out',
       animationIntensity: 20,
+      transitionType: 'film_fade',
     }
   }
   if (motion === 'pan-left') {
@@ -211,6 +219,7 @@ function fallbackLegacyConfig(
       translateYTo: 0,
       easing: 'linear',
       animationIntensity: 20,
+      transitionType: 'cinematic_dissolve',
     }
   }
   return {
@@ -224,5 +233,6 @@ function fallbackLegacyConfig(
     translateYTo: 0,
     easing: 'linear',
     animationIntensity: 20,
+    transitionType: 'blur_fade',
   }
 }

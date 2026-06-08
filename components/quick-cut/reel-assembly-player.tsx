@@ -548,7 +548,10 @@ export function ReelAssemblyPlayer({
 
   return (
 
-    <div className={cn('relative mx-auto w-full max-w-[280px] space-y-3', className)}>
+    <div
+      id="reel-preview-player"
+      className={cn('relative mx-auto w-full max-w-[280px] space-y-3', className)}
+    >
 
       {!hasVideo && voiceUrl ? (
         <audio

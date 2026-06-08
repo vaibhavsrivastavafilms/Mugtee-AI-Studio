@@ -15,12 +15,11 @@ export const ghostButton =
   'inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/[0.04] text-white/90 text-[11px] tracking-[0.14em] uppercase hover:border-[#D4AF37]/40 hover:bg-white/[0.06] transition-colors'
 
 export const HOME_NAV = [
-  { label: 'Showcase', href: '#showcase' },
-  { label: 'Workflow', href: '#workflow' },
-  { label: 'Features', href: '#features' },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'About', href: '/about' },
 ] as const
 
+export const STUDIO_ENTRY = '/studio'
 export const STUDIO_QUICK = '/studio/quick'
 export const STUDIO_DIRECTOR = '/studio/director'
-export const WATCH_DEMO_HREF = '#watch-demo'
+export const WATCH_DEMO_HREF = '#how-it-works'

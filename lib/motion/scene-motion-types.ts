@@ -12,7 +12,16 @@ export type MotionType =
 
 export type ParticleType = 'none' | 'dust' | 'fog' | 'light_rays'
 
-export type TransitionType = 'fade' | 'cross_dissolve' | 'cut'
+export type TransitionType =
+  | 'fade'
+  | 'cross_dissolve'
+  | 'cross_fade'
+  | 'film_fade'
+  | 'blur_fade'
+  | 'light_leak'
+  | 'push_transition'
+  | 'cinematic_dissolve'
+  | 'cut'
 
 /** Per-scene cinematic motion assignment (stored in cinematic_projects.scene_motion). */
 export type SceneMotion = {

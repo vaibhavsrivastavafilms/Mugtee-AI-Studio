@@ -6,6 +6,8 @@ import type {
   ParticleType,
   TransitionType,
 } from '@/lib/motion/scene-motion-types'
+import type { ReelCaptionClip } from '@/lib/remotion/reel-caption-layer'
+import type { SpeechRange } from '@/lib/remotion/audio-mix'
 
 export type ReelSceneMotionConfig = {
   presetId?: string
@@ -45,6 +47,8 @@ export type ReelCompositionProps = {
   musicAudioSrc: string | null
   voiceVolume?: number
   musicVolume?: number
+  captionTracks?: ReelCaptionClip[]
+  speechRanges?: SpeechRange[]
 }
 
 export const defaultReelProps: ReelCompositionProps = {

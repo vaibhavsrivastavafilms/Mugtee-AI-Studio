@@ -320,12 +320,27 @@ import {
   type SectionId,
   type SectionStatusMap,
 } from '@/lib/cinematic/section-generation-status'
+import { recordStageDuration } from '@/lib/generation/generation-stage-timing.client'
+import { generationStepToProgressStageId } from '@/lib/quick-cut/cinematic-generation-progress'
 
 export type { CinematicGenerationState }
 
 let pipelineStartedAt = 0
+let currentStageStartedAt = 0
+let pipelineAbortRequested = false
 let lastPipelineInvokeAt = 0
 const PIPELINE_DEBOUNCE_MS = 800
+
+class PipelineAbortedError extends Error {
+  constructor() {
+    super('Generation stopped')
+    this.name = 'PipelineAbortedError'
+  }
+}
+
+function throwIfPipelineAborted(): void {
+  if (pipelineAbortRequested) throw new PipelineAbortedError()
+}
 
 function patchSectionStatus(
   set: (patch: Partial<QuickCutGenerationState>) => void,
@@ -468,6 +483,14 @@ interface QuickCutGenerationStateBase {
   isRenderingVideo: boolean
   /** When server-side MP4 export poll started (for stuck >3min UI). */
   renderStartedAt: number | null
+  /** Pipeline click timestamp — for completion timing UI (Phase 1). */
+  generationStartedAt: number | null
+  /** Timestamp when the active pipeline step began (for ETA). */
+  currentStageStartedAt: number | null
+  /** When core generation finished and export phase began. */
+  generationCoreCompletedAt: number | null
+  /** When MP4 URL became available. */
+  exportCompletedAt: number | null
   exportPackageReady: boolean
   /** MP4 URL missing or download failed — user must re-export. */
   exportExpired: boolean
@@ -562,6 +585,7 @@ interface QuickCutGenerationActions {
   setActiveStageTab: (tab: QuickCutStageTab, pinned?: boolean) => void
   followPipelineStage: () => void
   runPipeline: (input: QuickCutInput) => Promise<void>
+  stopGeneration: () => Promise<void>
   resumeGeneration: () => Promise<void>
   regenerateHook: () => Promise<void>
   regenerateTitle: () => Promise<void>
@@ -658,6 +682,10 @@ const INITIAL: QuickCutGenerationState = {
   renderStatusLabel: null,
   isRenderingVideo: false,
   renderStartedAt: null,
+  generationStartedAt: null,
+  currentStageStartedAt: null,
+  generationCoreCompletedAt: null,
+  exportCompletedAt: null,
   exportPackageReady: false,
   exportExpired: false,
   videoRenderEnabled: defaultClientVideoRenderEnabled(),
@@ -1607,11 +1635,6 @@ function appendNotes(
   return parts.filter(Boolean).join('\n\n')
 }
 
-function computeStepEta(progress: number): number {
-  if (progress <= 0) return 0
-  return Math.max(0, Math.round((100 - progress) * 0.14))
-}
-
 function setStep(
   set: (patch: Partial<QuickCutGenerationState>) => void,
   get: () => QuickCutGenerationState,
@@ -1622,22 +1645,25 @@ function setStep(
   const patch: Partial<QuickCutGenerationState> = {
     generationStep: step,
     progress,
-    eta:
-      step === 'complete' || step === 'render'
-        ? 0
-        : computeStepEta(progress),
+    eta: step === 'complete' ? 0 : get().eta,
   }
   if (!get().stageTabPinned) {
     const tab = generationStepToTab(step)
     if (tab) patch.activeStageTab = tab
     patch.currentWorkflowStep = workflowStepFromGenerationStep(step)
   }
-  set(patch)
   if (previousState !== step) {
+    const prevStage = generationStepToProgressStageId(previousState)
+    if (prevStage && currentStageStartedAt > 0) {
+      recordStageDuration(prevStage, Date.now() - currentStageStartedAt)
+    }
+    currentStageStartedAt = Date.now()
+    patch.currentStageStartedAt = currentStageStartedAt
     logStateTransition(previousState, step, {
       projectId: get().savedProjectId ?? undefined,
     })
   }
+  set(patch)
 }
 
 async function pollRenderJob(
@@ -2320,6 +2346,27 @@ export const useQuickCutGenerationStore = create<
     if (tab) set({ activeStageTab: tab, stageTabPinned: false })
   },
 
+  stopGeneration: async () => {
+    const state = get()
+    if (!state.isGenerating && !state.generationInFlight) return
+    pipelineAbortRequested = true
+    const lastCompleted = inferLastCompletedStep(state)
+    try {
+      await saveCompletedStages(state, 'Generation stopped')
+    } catch {
+      /* assets still in store */
+    }
+    set({
+      isGenerating: false,
+      generationInFlight: false,
+      directingSceneLabel: null,
+      lastCompletedStep: lastCompleted,
+      generationStep: 'idle',
+      generationState: 'idle',
+      error: null,
+    })
+  },
+
   resumeGeneration: async () => {
     const state = get()
     if (state.isGenerating || state.generationInFlight || !state.prompt.trim()) return
@@ -2360,6 +2407,7 @@ export const useQuickCutGenerationStore = create<
     if (get().generationInFlight || get().isGenerating) return
     if (now - lastPipelineInvokeAt < PIPELINE_DEBOUNCE_MS) return
     lastPipelineInvokeAt = now
+    pipelineAbortRequested = false
     set({ generationInFlight: true })
 
     const prior = get()
@@ -2517,6 +2565,13 @@ export const useQuickCutGenerationStore = create<
 
     logGenerationStart(preserveProjectId, prompt)
     pipelineStartedAt = Date.now()
+    currentStageStartedAt = pipelineStartedAt
+    set({
+      generationStartedAt: pipelineStartedAt,
+      currentStageStartedAt: pipelineStartedAt,
+      generationCoreCompletedAt: null,
+      exportCompletedAt: null,
+    })
     genPerf.start('pipeline')
 
     const creatorProfileOverride =
@@ -2613,7 +2668,6 @@ export const useQuickCutGenerationStore = create<
         set({
           contentBrief: briefResult.brief,
           progress: 8,
-          eta: computeStepEta(8),
         })
         genPerf.log('content_brief', briefResult.source, {
           durationMs: briefResult.durationMs,
@@ -2671,7 +2725,7 @@ export const useQuickCutGenerationStore = create<
         }
       } else {
         patchSectionStatus(set, get, 'contentDirectorBrief', 'completed')
-        set({ progress: 8, eta: computeStepEta(8) })
+        set({ progress: 8 })
       }
 
       const sessionContentBrief = get().contentBrief
@@ -2745,7 +2799,6 @@ export const useQuickCutGenerationStore = create<
                 const next: Partial<QuickCutGenerationState> = { ...patch }
                 if (patch.generationStep) {
                   next.progress = STEP_PROGRESS[patch.generationStep]
-                  next.eta = computeStepEta(next.progress)
                 }
                 if (patch.activeStageTab && !get().stageTabPinned) {
                   next.activeStageTab = patch.activeStageTab
@@ -2971,6 +3024,8 @@ export const useQuickCutGenerationStore = create<
           : Promise.resolve(),
         needsResearch && !needsScript ? researchTask ?? Promise.resolve() : Promise.resolve(),
       ])
+
+      throwIfPipelineAborted()
 
       title = get().title || title
       hook = get().hook || hook
@@ -3256,6 +3311,8 @@ export const useQuickCutGenerationStore = create<
         set({ storyBible: fallbackBible })
       }
 
+      throwIfPipelineAborted()
+
       const storyboardShouldRun = stepShouldRun(resumeFrom, 'storyboard')
       logStepShouldRunDecision(resumeFrom, 'storyboard', storyboardShouldRun)
 
@@ -3287,7 +3344,8 @@ export const useQuickCutGenerationStore = create<
         })
 
         for (const { scene, index } of scenesToRender) {
-          set({ directingSceneLabel: `Directing Scene ${index + 1}…` })
+          throwIfPipelineAborted()
+          set({ directingSceneLabel: `Generating Storyboard Images… Scene ${index + 1} of ${scenesToRender.length}` })
           try {
             const imgResult = await fetchSceneImages(
               {
@@ -3434,7 +3492,12 @@ export const useQuickCutGenerationStore = create<
       let renderError: string | null = get().renderError
       let exportPackageReady = get().exportPackageReady
 
+      throwIfPipelineAborted()
+
       if (stepShouldRun(resumeFrom, 'export')) {
+        set({
+          generationCoreCompletedAt: get().generationCoreCompletedAt ?? Date.now(),
+        })
         setStep(set, get, 'render')
         patchSectionStatus(set, get, 'export', 'generating')
         genPerf.start('export')
@@ -3456,7 +3519,13 @@ export const useQuickCutGenerationStore = create<
             if (renderRes.ok) {
               if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
                 videoUrl = renderData.videoUrl
-                set({ videoUrl, renderPollUrl: null, renderError: null, exportExpired: false })
+                set({
+                  videoUrl,
+                  renderPollUrl: null,
+                  renderError: null,
+                  exportExpired: false,
+                  exportCompletedAt: Date.now(),
+                })
               } else if (typeof renderData.pollUrl === 'string') {
                 renderPollUrl = renderData.pollUrl
                 set({ renderPollUrl, renderError: null })
@@ -3466,7 +3535,12 @@ export const useQuickCutGenerationStore = create<
                     (patch) => {
                       if (patch.label) set({ renderStatusLabel: patch.label })
                       if (patch.videoUrl) {
-                        set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
+                        set({
+                          videoUrl: patch.videoUrl,
+                          renderPollUrl: null,
+                          renderError: null,
+                          exportCompletedAt: Date.now(),
+                        })
                       }
                     },
                     get().savedProjectId
@@ -3695,6 +3769,13 @@ export const useQuickCutGenerationStore = create<
 
       persistSession(get())
     } catch (err) {
+      if (err instanceof PipelineAbortedError) {
+        pipelineAbortRequested = false
+        set({ generationInFlight: false })
+        genPerf.end('pipeline')
+        persistSession(get())
+        return
+      }
       const serverDetail =
         err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error'
       logGenerationError(get().savedProjectId, get().generationStep, serverDetail, {
@@ -4415,7 +4496,12 @@ export const useQuickCutGenerationStore = create<
         (patch) => {
           if (patch.label) set({ renderStatusLabel: patch.label })
           if (patch.videoUrl) {
-            set({ videoUrl: patch.videoUrl, renderPollUrl: null, renderError: null })
+            set({
+              videoUrl: patch.videoUrl,
+              renderPollUrl: null,
+              renderError: null,
+              exportCompletedAt: Date.now(),
+            })
           }
         },
         savedProjectId
@@ -4426,6 +4512,7 @@ export const useQuickCutGenerationStore = create<
         renderPollUrl: null,
         renderError: null,
         exportExpired: false,
+        exportCompletedAt: Date.now(),
         generationStep: 'complete',
         progress: 100,
         eta: 0,

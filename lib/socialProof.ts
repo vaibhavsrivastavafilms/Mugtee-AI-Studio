@@ -59,3 +59,18 @@ export function getFeaturedCreators(): FeaturedCreator[] {
 export function getSocialProofHeadline(): string {
   return isSocialProofLive() ? 'Creators shipping cinematic stories' : 'Creators directing with Mugtee'
 }
+
+/** Landing page metrics — hidden until NEXT_PUBLIC_LANDING_METRICS=true. */
+export function isLandingMetricsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_LANDING_METRICS === 'true'
+}
+
+const LANDING_METRICS: SocialProofMetric[] = [
+  { id: 'projects', label: 'Projects Generated', value: '—' },
+  { id: 'exports', label: 'Reels Exported', value: '—' },
+  { id: 'hours', label: 'Hours Saved', value: '—' },
+]
+
+export function getLandingSocialProofMetrics(): SocialProofMetric[] {
+  return LANDING_METRICS
+}

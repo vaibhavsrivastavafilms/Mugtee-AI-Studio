@@ -7,6 +7,11 @@ import {
   type MugteeCompositionProps,
 } from './MugteeComposition'
 import {
+  THUMBNAIL_COMPOSITION_ID,
+  ThumbnailComposition,
+  thumbnailCompositionDefaults,
+} from './ThumbnailComposition'
+import {
   REEL_COMPOSITION_ID,
   MUGTEE_TIMELINE_COMPOSITION_ID,
   REEL_FPS,
@@ -40,6 +45,15 @@ export function RemotionRoot() {
         calculateMetadata={({ props }) => ({
           durationInFrames: computeDurationFrames(props.scenes),
         })}
+      />
+      <Composition
+        id={THUMBNAIL_COMPOSITION_ID}
+        component={ThumbnailComposition}
+        durationInFrames={1}
+        fps={REEL_FPS}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        defaultProps={thumbnailCompositionDefaults}
       />
       <Composition
         id={MUGTEE_TIMELINE_COMPOSITION_ID}
