@@ -36,22 +36,38 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         transition={{ duration: 0.65 }}
         className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-tight text-white"
       >
-        Your Cinematic{' '}
-        <span className="text-[#D4AF37] italic">AI Studio</span>
+        <span className="block text-[10px] sm:text-xs tracking-[0.35em] uppercase text-[#D4AF37]/80 mb-2 font-sans font-medium not-italic">
+          MUGTEE
+        </span>
+        The Creator{' '}
+        <span className="text-[#D4AF37] italic">Operating System</span>
       </motion.h1>
 
       <motion.p
         initial={fadeIn}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.08 }}
-        className="mt-4 max-w-xl mx-auto text-sm sm:text-base text-white/60 leading-relaxed"
+        className="mt-4 max-w-xl mx-auto text-sm sm:text-base text-white/60 leading-relaxed px-1"
       >
         Turn one idea into a complete reel.
-        <br className="hidden sm:block" />
-        <span className="text-white/45">
-          Script. Storyboard. Voice. Motion. Export.
-        </span>
       </motion.p>
+      <motion.div
+        initial={fadeIn}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs sm:text-sm text-white/45"
+        role="list"
+        aria-label="Pipeline outputs"
+      >
+        {['Script', 'Storyboard', 'Voice', 'Motion', 'MP4'].map((item) => (
+          <span key={item} role="listitem" className="inline-flex items-center gap-1">
+            <span className="text-emerald-400/80" aria-hidden>
+              ✓
+            </span>{' '}
+            {item}
+          </span>
+        ))}
+      </motion.div>
 
       <motion.div
         initial={fadeUp}

@@ -312,7 +312,7 @@ export function DirectorTimelineV3({ className }: { className?: string }) {
               disabled={!editable}
               value={currentTransition}
               onChange={(e) => handleTransition(e.target.value as TimelineTransition)}
-              className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-[10px] text-luxe/75 disabled:opacity-40"
+              className="w-full min-h-[44px] rounded border border-white/10 bg-black/50 px-2 py-2 text-[10px] text-luxe/75 disabled:opacity-40 touch-manipulation"
             >
               {TRANSITIONS.map((t) => (
                 <option key={t} value={t}>
@@ -336,11 +336,11 @@ export function DirectorTimelineV3({ className }: { className?: string }) {
 
       {timeline ? (
         <div className="space-y-2 rounded-lg border border-white/[0.06] bg-black/35 p-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setPlayheadSec((t) => Math.max(0, t - 5))}
-              className="p-1 rounded text-luxe/50 hover:text-gold-200"
+              className="p-2.5 min-h-[44px] min-w-[44px] rounded text-luxe/50 hover:text-gold-200 touch-manipulation"
               aria-label="Skip back"
             >
               <SkipBack className="w-3.5 h-3.5" />
@@ -348,7 +348,7 @@ export function DirectorTimelineV3({ className }: { className?: string }) {
             <button
               type="button"
               onClick={() => setPlaying((p) => !p)}
-              className="p-1 rounded text-gold-200 hover:bg-gold-500/10"
+              className="p-2.5 min-h-[44px] min-w-[44px] rounded text-gold-200 hover:bg-gold-500/10 touch-manipulation"
               aria-label={playing ? 'Pause' : 'Play'}
             >
               {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -356,7 +356,7 @@ export function DirectorTimelineV3({ className }: { className?: string }) {
             <button
               type="button"
               onClick={() => setPlayheadSec((t) => Math.min(totalSec, t + 5))}
-              className="p-1 rounded text-luxe/50 hover:text-gold-200"
+              className="p-2.5 min-h-[44px] min-w-[44px] rounded text-luxe/50 hover:text-gold-200 touch-manipulation"
               aria-label="Skip forward"
             >
               <SkipForward className="w-3.5 h-3.5" />

@@ -59,10 +59,10 @@ import { useClientMounted } from '@/lib/hooks/use-client-mounted'
 type WorkspaceTab = 'editor' | 'review' | 'history'
 
 const goldBtn =
-  'inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/35 bg-gold-500/15 px-4 py-2 text-[10px] font-semibold tracking-[0.12em] uppercase text-gold-100 hover:bg-gold-500/25 transition-colors disabled:opacity-45'
+  'inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/35 bg-gold-500/15 px-4 py-2.5 min-h-[44px] text-[10px] font-semibold tracking-[0.12em] uppercase text-gold-100 hover:bg-gold-500/25 transition-colors disabled:opacity-45 touch-manipulation'
 
 const outlineBtn =
-  'w-full text-left rounded-lg border border-white/[0.08] bg-black/35 px-3 py-2 text-[10px] text-luxe/70 hover:border-gold-500/25 hover:text-gold-100 transition-colors disabled:opacity-40'
+  'w-full text-left rounded-lg border border-white/[0.08] bg-black/35 px-3 py-2.5 min-h-[44px] text-[10px] text-luxe/70 hover:border-gold-500/25 hover:text-gold-100 transition-colors disabled:opacity-40 touch-manipulation'
 
 /** Scene Review Workspace — hero preview, approval, versions, editor. */
 export function SceneWorkspaceV2({ className }: { className?: string }) {
@@ -295,10 +295,10 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
       )}
       aria-label="Scene workspace"
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/85 flex items-center gap-1.5">
-          <Clapperboard className="w-3 h-3" aria-hidden />
-          Scene Review Workspace
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/85 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <Clapperboard className="w-3 h-3 shrink-0" aria-hidden />
+          <span>Scene Review Workspace</span>
           {storyboardProgress?.isActive ? (
             <span className="text-luxe/45 normal-case tracking-normal">
               · Scene {storyboardProgress.currentSceneIndex} of {storyboardProgress.totalCount}
@@ -313,12 +313,13 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
           projectKey={projectKey}
           scenes={scenes}
           refreshKey={approvalTick}
+          className="sm:justify-end"
         />
       </div>
 
       {scene ? (
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-3 rounded-xl border border-white/[0.08] bg-black/40 p-3">
-          <div className="relative aspect-video md:aspect-[16/10] rounded-lg overflow-hidden bg-black/60 border border-white/[0.06]">
+          <div className="relative aspect-[9/16] max-h-[min(52vh,420px)] mx-auto w-full max-w-[280px] sm:max-w-none sm:aspect-video md:aspect-[16/10] md:max-h-none rounded-lg overflow-hidden bg-black/60 border border-white/[0.06]">
             {sceneStatus === 'generating' && !previewUrl ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 shimmer-cinematic">
                 <Loader2 className="w-6 h-6 text-gold-400/60 animate-spin" />
@@ -475,14 +476,14 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
         />
       ) : null}
 
-      <div className="flex gap-1 border-b border-white/[0.06]">
+      <div className="flex gap-1 border-b border-white/[0.06] overflow-x-auto scrollbar-luxe -mx-1 px-1">
         {(['review', 'editor', 'history'] as const).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             className={cn(
-              'px-3 py-1.5 text-[9px] uppercase tracking-[0.16em] border-b-2 -mb-px transition',
+              'shrink-0 px-3 py-2 min-h-[40px] text-[9px] uppercase tracking-[0.16em] border-b-2 -mb-px transition touch-manipulation',
               tab === t
                 ? 'border-gold-400 text-gold-200'
                 : 'border-transparent text-luxe/45 hover:text-luxe/70'
@@ -507,7 +508,7 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
 
       {tab === 'review' && scene && sceneReady ? (
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               disabled={safeIndex < 1}
@@ -516,7 +517,7 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
               aria-label="Previous scene"
             >
               <ChevronLeft className="w-3 h-3 inline mr-1" />
-              Previous Scene
+              Previous
             </button>
             <button
               type="button"
@@ -525,15 +526,15 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
               onClick={goNext}
               aria-label="Next scene"
             >
-              Next Scene
+              Next
               <ChevronRight className="w-3 h-3 inline ml-1" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             <button
               type="button"
               disabled={!canControlScene || sceneApproved || sceneLocked}
-              className={cn(goldBtn, sceneApproved && 'opacity-60')}
+              className={cn(goldBtn, 'col-span-2 sm:col-span-1', sceneApproved && 'opacity-60')}
               onClick={handleApprove}
             >
               <Check className="w-3.5 h-3.5" />

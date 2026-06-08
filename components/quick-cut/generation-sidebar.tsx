@@ -131,7 +131,7 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
 
   return (
     <aside
-      className={cn(v4PanelClass, 'flex flex-col min-h-0 overflow-hidden', className)}
+      className={cn(v4PanelClass, 'flex flex-col min-h-0 overflow-y-auto overscroll-y-contain xl:overflow-hidden', className)}
       aria-label="Generation status"
     >
       <div className="shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06] space-y-3">
