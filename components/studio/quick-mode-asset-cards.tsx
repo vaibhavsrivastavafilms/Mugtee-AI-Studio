@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
   Clapperboard,
   FileText,
@@ -212,6 +214,32 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
     return st !== 'pending' || isGenerating || isComplete
   })
 
+  const [unlockedIds, setUnlockedIds] = useState<Set<string>>(() => new Set())
+  const prevStatusRef = useRef<Record<string, AssetStatus>>({})
+
+  useEffect(() => {
+    for (const asset of ASSETS) {
+      const status = asset.resolveStatus(ctx)
+      const prev = prevStatusRef.current[asset.id]
+      if (status === 'ready' && prev !== 'ready') {
+        setUnlockedIds((s) => new Set(s).add(asset.id))
+      }
+      prevStatusRef.current[asset.id] = status
+    }
+  }, [
+    isGenerating,
+    isComplete,
+    generationStep,
+    scenes.length,
+    voiceUrl,
+    script,
+    exportPackageReady,
+    videoUrl,
+    sectionStatus,
+    thumbUrl,
+    hashtagCount,
+  ])
+
   const handleOpen = (tab?: QuickCutStageTab) => {
     if (tab) setActiveStageTab(tab, true)
     if (pid && tab) {
@@ -226,14 +254,22 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
         const status = asset.resolveStatus(ctx)
         const showThumb = asset.id === 'thumbnail' && thumbUrl
 
+        const justUnlocked = unlockedIds.has(asset.id) && status === 'ready'
+
         return (
-          <button
+          <motion.button
             key={asset.id}
             type="button"
+            layout
+            initial={justUnlocked ? { opacity: 0, y: 8, scale: 0.96 } : false}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => handleOpen(asset.stageTab)}
             className={cn(
               'w-full flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition',
               'border-white/[0.06] bg-black/30 hover:border-violet-400/25 hover:bg-violet-500/[0.04]',
+              justUnlocked &&
+                'border-gold-500/35 shadow-[0_0_18px_rgba(212,175,55,0.28)] bg-gold-500/[0.06]',
               compact && 'py-1.5'
             )}
           >
@@ -251,7 +287,7 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
               <span className="block text-[10px] text-luxe/40 truncate">{asset.meta(ctx)}</span>
             </span>
             <StatusPill status={status} />
-          </button>
+          </motion.button>
         )
       })}
       {pid ? (

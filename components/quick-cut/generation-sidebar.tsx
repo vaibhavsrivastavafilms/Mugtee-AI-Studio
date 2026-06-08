@@ -8,11 +8,15 @@ import {
 import { computeGenerationEta } from '@/lib/generation/generation-eta'
 import { allStageAverages } from '@/lib/generation/generation-stage-timing.client'
 import { GenerationStageTimeline } from '@/components/quick-cut/generation-stage-timeline'
+import { DirectorCommentaryPanel } from '@/components/quick-cut/director-commentary-panel'
+import { GenerationJobResumeBanner } from '@/components/quick-cut/generation-job-resume-banner'
+import { RenderHealthPanel } from '@/components/quick-cut/render-health-panel'
 import { QuickModeAssetCards } from '@/components/studio/quick-mode-asset-cards'
 import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
+import { useClientMounted } from '@/lib/hooks/use-client-mounted'
 
 function formatClock(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -32,6 +36,7 @@ type GenerationSidebarProps = {
 
 /** V4 right panel — overview, stage timeline, asset checklist, background notice. */
 export function GenerationSidebar({ projectId, className }: GenerationSidebarProps) {
+  const mounted = useClientMounted()
   const [tick, setTick] = useState(0)
 
   const input = useQuickCutGenerationStore(
@@ -89,20 +94,28 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
     [snapshot.stages]
   )
 
-  const eta = useMemo(
-    () =>
-      computeGenerationEta({
-        snapshot,
-        stageAveragesMs: allStageAverages(input.scenesCount),
-        currentStageStartedAtMs: input.currentStageStartedAt,
-        exportRenderStartedAtMs: input.renderStartedAt,
-        exportProgressPercent: input.progress,
-        sceneCount: input.scenesCount,
-      }),
-    [snapshot, input, tick]
-  )
+  const eta = useMemo(() => {
+    if (!mounted) {
+      return {
+        etaSeconds: null,
+        etaLabel: null,
+        exportEtaSeconds: null,
+        exportEtaLabel: null,
+        isExportPhase: false,
+      }
+    }
+    return computeGenerationEta({
+      snapshot,
+      stageAveragesMs: allStageAverages(input.scenesCount),
+      currentStageStartedAtMs: input.currentStageStartedAt,
+      exportRenderStartedAtMs: input.renderStartedAt,
+      exportProgressPercent: input.progress,
+      sceneCount: input.scenesCount,
+    })
+  }, [mounted, snapshot, input, tick])
 
-  const elapsedMs = input.generationStartedAt ? Date.now() - input.generationStartedAt : null
+  const elapsedMs =
+    mounted && input.generationStartedAt ? Date.now() - input.generationStartedAt : null
 
   if (!active && !input.isComplete) {
     return (
@@ -119,14 +132,15 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
       className={cn(v4PanelClass, 'flex flex-col min-h-0 overflow-hidden', className)}
       aria-label="Generation status"
     >
-      <div className="shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06]">
+      <div className="shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06] space-y-3">
+        <GenerationJobResumeBanner projectId={projectId} />
         <p className="text-[10px] tracking-[0.22em] uppercase text-gold-300/70">Generation Overview</p>
         <div className="mt-2 space-y-1.5 text-[11px] text-luxe/70">
           <p>
             Total Progress{' '}
             <span className="tabular-nums text-gold-200/90 font-medium">{snapshot.percent}%</span>
           </p>
-          {input.generationStartedAt ? (
+          {mounted && input.generationStartedAt ? (
             <p>
               Started at{' '}
               <span className="tabular-nums text-luxe/55">{formatClock(input.generationStartedAt)}</span>
@@ -138,14 +152,31 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
               <span className="tabular-nums text-luxe/55">{formatElapsed(elapsedMs)}</span>
             </p>
           ) : null}
-          {eta.etaLabel && !snapshot.isReady ? (
+          {mounted && eta.etaLabel && !snapshot.isReady ? (
             <p className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-gold-300/60" aria-hidden />
               ETA <span className="tabular-nums text-gold-100/85">{eta.etaLabel}</span>
             </p>
           ) : null}
+          {snapshot.currentStepLabel && !snapshot.isReady ? (
+            <p className="text-luxe/55 truncate">
+              Step <span className="text-luxe/75">{snapshot.currentStepLabel}</span>
+            </p>
+          ) : null}
+          {!snapshot.isReady && snapshot.completedLabels.length > 0 ? (
+            <p className="text-[10px] text-luxe/40">
+              {snapshot.completedLabels.length} done · {snapshot.remainingLabels.length} remaining
+            </p>
+          ) : null}
         </div>
       </div>
+
+      {active && !snapshot.isReady ? (
+        <div className="shrink-0 px-4 py-2 border-b border-white/[0.06] space-y-2">
+          <DirectorCommentaryPanel />
+          <RenderHealthPanel />
+        </div>
+      ) : null}
 
       <div className="shrink-0 px-4 py-3 border-b border-white/[0.06]">
         <p className="text-[9px] tracking-[0.18em] uppercase text-luxe/45 mb-2">Stage Timeline</p>
@@ -165,7 +196,9 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
               <p className="text-[11px] text-luxe/75 leading-snug">
                 Generation continues even if you leave this page.
               </p>
-              <p className="text-[10px] text-luxe/45">You can safely close this tab.</p>
+              <p className="text-[10px] text-luxe/45">
+                Project is being saved automatically. Resume anytime.
+              </p>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import '@/lib/remotion/compositions/ReelComposition'
 import '@/lib/remotion/compositions/MugteeComposition'
 import '@/lib/remotion/compositions/ReelScene'
 import '@/lib/remotion/compositions/ReelParticleOverlay'
+import '@/lib/remotion/compositions/ThumbnailComposition'
 
 import fs from 'fs/promises'
 import os from 'os'
@@ -20,7 +21,12 @@ import {
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
 import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
-import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/constants'
+import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
+import {
+  buildExportCaptionTracks,
+  resolveExportCaptionStyle,
+} from '@/lib/remotion/build-export-captions'
+import { generateReelThumbnail } from '@/lib/remotion/generate-reel-thumbnail.server'
 import { buildReelSceneInput } from '@/lib/motion/apply-scene-motion'
 import type { SceneMotionMap } from '@/lib/motion/motion-presets'
 import type { ReelCompositionProps, ReelSceneInput } from '@/lib/remotion/compositions/types'
@@ -96,6 +102,9 @@ export type RenderRemotionReelInput = {
   voiceUrl: string | null
   musicUrl?: string | null
   title: string
+  hook?: string
+  niche?: string
+  projectId?: string | null
   outputPath: string
   sceneMotion?: SceneMotionMap | null
   onProgress?: (label: string, percent: number) => void
@@ -169,7 +178,31 @@ export async function renderRemotionReel(
       )
     }
 
+    const durationSecEstimate = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
+    const captionStyle = resolveExportCaptionStyle({
+      niche: input.niche,
+      hook: input.hook,
+      tone: input.title,
+    })
+    const { tracks: captionTracks, speechRanges } = buildExportCaptionTracks({
+      scenes: timedScenes,
+      totalDurationSec: durationSecEstimate,
+      fallbackText: input.hook ?? input.title,
+      captionStyle,
+      title: input.title,
+    })
+
+    mp4RenderLog(2, 'timeline built', {
+      projectId: input.projectId,
+      sceneCount: reelScenes.length,
+      durationSec: durationSecEstimate,
+      fps: REEL_FPS,
+      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      captionTrackCount: captionTracks.length,
+    })
+
     mp4RenderLog(3, 'scene media prepared', {
+      projectId: input.projectId,
       sceneCount: reelScenes.length,
       assetsViaUrl: httpAssetCount,
       assetsViaBase64: dataUrlAssetCount,
@@ -200,17 +233,21 @@ export async function renderRemotionReel(
     }
 
     mp4RenderLog(4, 'audio merged into composition', {
+      projectId: input.projectId,
       hasVoice: Boolean(voiceAudioSrc),
       hasMusic: Boolean(musicAudioSrc),
+      voiceUrl: input.voiceUrl,
+      musicUrl: input.musicUrl ?? null,
+      speechRangeCount: speechRanges.length,
     })
 
     const compositionProps: ReelCompositionProps = {
-      title: '',
+      title: input.title,
       scenes: reelScenes,
       voiceAudioSrc,
       musicAudioSrc,
-      voiceVolume: 1,
-      musicVolume: musicAudioSrc ? 0.16 : 0,
+      captionTracks,
+      speechRanges,
     }
 
     input.onProgress?.('Rendering reel with Remotion…', 40)
@@ -250,16 +287,21 @@ export async function renderRemotionReel(
     })
     logRemotionRenderDiagnostics(memoryEstimate)
     mp4RenderLog(5, 'starting Remotion renderMedia', {
+      projectId: input.projectId,
       outputPath: input.outputPath,
       concurrency,
       disallowParallelEncoding,
+      fps: REEL_FPS,
+      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      sceneCount: reelScenes.length,
+      durationSec: durationSecEstimate,
     })
     remotionCheckpoint('render_media_start', {
+      ...memoryEstimate,
       outputPath: input.outputPath,
       concurrency,
       disallowParallelEncoding,
       offthreadVideoCacheSizeInBytes,
-      ...memoryEstimate,
     })
 
     await renderMedia({
@@ -292,16 +334,53 @@ export async function renderRemotionReel(
     const durationSec = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
     input.onProgress?.('Reel encode complete', 95)
     mp4RenderLog(5, 'Remotion render complete', {
+      projectId: input.projectId,
       outputPath: input.outputPath,
       durationSec,
+      fps: REEL_FPS,
+      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
     })
     remotionCheckpoint('render_media_done', { durationSec, outputPath: input.outputPath })
     logPipelineStepComplete('export', null, { phase: 'remotion_render_done', durationSec })
 
+    let finalThumbnailPath = thumbnailLocalPath
+    if (thumbnailLocalPath && reelScenes[0]?.imageSrc) {
+      try {
+        const thumbOut = path.join(workDir, 'thumbnail.jpg')
+        await generateReelThumbnail({
+          serveUrl,
+          imageSrc: reelScenes[0].imageSrc,
+          title: input.title,
+          hook: input.hook,
+          outputPath: thumbOut,
+        })
+        finalThumbnailPath = thumbOut
+        mp4RenderLog(6, 'thumbnail.jpg generated', {
+          projectId: input.projectId,
+          outputPath: thumbOut,
+          resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+        })
+      } catch (thumbErr) {
+        mp4RenderLog(6, 'thumbnail generation fallback to scene still', {
+          projectId: input.projectId,
+          error: thumbErr instanceof Error ? thumbErr.message : String(thumbErr),
+        })
+      }
+    }
+
+    mp4RenderLog(6, 'output saved', {
+      projectId: input.projectId,
+      outputPath: input.outputPath,
+      durationSec,
+      voiceUrl: input.voiceUrl,
+      musicUrl: input.musicUrl ?? null,
+      thumbnailPath: finalThumbnailPath,
+    })
+
     return {
       outputPath: input.outputPath,
       durationSec,
-      thumbnailPath: thumbnailLocalPath,
+      thumbnailPath: finalThumbnailPath,
     }
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined)
