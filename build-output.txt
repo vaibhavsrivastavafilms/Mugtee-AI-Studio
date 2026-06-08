@@ -1,0 +1,47 @@
+﻿
+> nextjs-mongo-template@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+node.exe : Failed to compile.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./lib/supabase/server.ts
+Error: 
+  [31mx[0m You're importing a component that needs next/headers. That only works in a Server Component which is not 
+supported in the pages/ directory. Read more: https://nextjs.org/docs/getting-started/
+  [31m|[0m react-essentials#server-components
+  [31m|[0m 
+  [31m|[0m 
+   ,-[[36;1;4mC:\Users\pc\Documents\GitHub\Mugtee-AI-Studio\lib\supabase\server.ts[0m:1:1]
+ [2m1[0m | import { cookies } from 'next/headers'
+   : [31;1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+ [2m2[0m | import { createServerClient, type CookieOptions } from '@supabase/ssr'
+ [2m3[0m | 
+ [2m3[0m | import { getSupabasePublicEnv } from '@/lib/supabase/env'
+   `----
+
+Import trace for requested module:
+./lib/supabase/server.ts
+./lib/analytics/track-server-event.ts
+./lib/ai/style-fingerprint-analytics.ts
+./lib/ai/providers/style-consistency.ts
+./lib/ai/providers/generation-bridge.ts
+./lib/director/framework-recommendation-engine.ts
+./lib/creative-team/agents/story-strategist/run.ts
+./lib/creative-team/agents/story-strategist.ts
+./lib/creative-team/agents/index.ts
+./components/studio/director/CreativeTeamPanel.tsx
+./components/studio/director-studio-workflow.tsx
+./app/studio/(shell)/director/page.tsx
+
+
+> Build failed because of webpack errors
