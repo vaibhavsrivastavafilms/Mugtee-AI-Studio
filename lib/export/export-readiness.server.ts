@@ -19,6 +19,7 @@ import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 import { backfillProjectAssetsFromScenes } from '@/lib/project-assets/persist-scene-image.server'
 import { backfillStoryboardAssetsForProject } from '@/lib/storyboard/backfill-storyboard-assets.server'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import { cinematicScenesToGeneratedScenes } from '@/lib/export/cinematic-scene-export-adapter'
 import {
   buildServerSceneImageDiagnostics,
   logStoryboardExportReport,
@@ -283,7 +284,9 @@ export function buildExportReadiness(params: {
     }
   }
 
-  const sceneDiagnostics = buildServerSceneImageDiagnostics(params.scenes)
+  const sceneDiagnostics = buildServerSceneImageDiagnostics(
+    cinematicScenesToGeneratedScenes(params.scenes)
+  )
   const perSceneSummary = sceneDiagnostics.map(
     (s) => `Scene ${s.sceneIndex} image: ${s.status}`
   )

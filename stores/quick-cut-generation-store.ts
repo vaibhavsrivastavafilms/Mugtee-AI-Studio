@@ -4781,7 +4781,7 @@ export const useQuickCutGenerationStore = create<
     let scenes = applySceneMotionToScenes(state.scenes, nextMap)
     if (patch.duration != null) {
       scenes = scenes.map((s) =>
-        s.id === sceneId ? { ...s, duration: patch.duration } : s
+        s.id === sceneId ? { ...s, duration: patch.duration ?? s.duration } : s
       )
     }
     set({ sceneMotion: nextMap, scenes, storyboard: scenes })
