@@ -125,9 +125,6 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
     [state, reelScore]
   )
 
-  const hasContent = state.scenes.length > 0 || state.isGenerating
-  if (!hasContent) return null
-
   const directorRecs = useMemo(
     () =>
       buildDirectorRecommendationsV2({
@@ -139,6 +136,9 @@ export function AiDirectorPanel({ className, compact = false }: AiDirectorPanelP
       }),
     [state]
   )
+
+  const hasContent = state.scenes.length > 0 || state.isGenerating
+  if (!hasContent) return null
 
   const weakScenes = sceneAnalysis.filter((s) => s.metrics.overall < 68).slice(0, 3)
 
