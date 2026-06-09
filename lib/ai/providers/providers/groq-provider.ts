@@ -5,7 +5,11 @@ import {
   extractHookFromParsed,
   extractTitleFromParsed,
 } from '@/lib/ai/providers/prompt-helpers'
-import { callOpenAICompatibleChat, parseLlmJsonText } from '@/lib/ai/providers/shared'
+import {
+  callOpenAICompatibleChat,
+  parseLlmJsonText,
+  SCRIPT_GENERATION_MAX_TOKENS,
+} from '@/lib/ai/providers/shared'
 import type {
   AIProvider,
   CaptionResult,
@@ -63,6 +67,7 @@ export class GroqProvider implements AIProvider {
       baseUrl: GROQ_BASE,
       model: DEFAULT_MODEL,
       jsonMode: true,
+      maxTokens: SCRIPT_GENERATION_MAX_TOKENS,
       temperature: input.temperature ?? 0.85,
       timeoutMs: getTaskTimeoutMs('script'),
       messages: [

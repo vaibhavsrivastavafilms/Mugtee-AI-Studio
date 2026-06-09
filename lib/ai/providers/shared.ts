@@ -40,6 +40,9 @@ export type OpenAICompatibleMessage = {
   content: string
 }
 
+/** Cap output tokens for script generation via OpenAI-compatible providers. */
+export const SCRIPT_GENERATION_MAX_TOKENS = 4096
+
 export async function callOpenAICompatibleChat(params: {
   apiKey: string
   baseUrl: string
@@ -47,6 +50,7 @@ export async function callOpenAICompatibleChat(params: {
   messages: OpenAICompatibleMessage[]
   temperature?: number
   jsonMode?: boolean
+  maxTokens?: number
   timeoutMs: number
   extraHeaders?: Record<string, string>
 }): Promise<string> {
@@ -55,6 +59,7 @@ export async function callOpenAICompatibleChat(params: {
     messages: params.messages,
     temperature: params.temperature ?? 0.85,
   }
+  if (params.maxTokens != null) body.max_tokens = params.maxTokens
   if (params.jsonMode) body.response_format = { type: 'json_object' }
 
   const res = await fetchWithTimeout(

@@ -16,7 +16,7 @@ const TASK_ENV_PREFIX: Record<AITask, string> = {
 /** Task-specific default priority when env vars are unset. */
 const TASK_DEFAULT_ORDER: Record<AITask, ProviderId[]> = {
   hook: ['gemini', 'groq', 'openai', 'openrouter', 'deepseek'],
-  script: ['openai', 'gemini', 'groq', 'openrouter', 'deepseek'],
+  script: ['gemini', 'groq', 'openrouter', 'openai', 'deepseek'],
   title: ['gemini', 'openai', 'groq', 'openrouter', 'deepseek'],
   caption: ['groq', 'gemini', 'openai', 'openrouter', 'deepseek'],
   visual: ['openai', 'gemini', 'openrouter', 'deepseek', 'groq'],

@@ -24,6 +24,21 @@ const PROVIDER_INSTANCES: Record<ProviderId, AIProvider> = {
 
 const MAX_RETRIES_PER_PROVIDER = 2
 const RETRY_BACKOFF_MS = [400, 1200]
+const NON_RETRYABLE_HTTP_STATUSES = new Set([429, 402, 404])
+
+/** Quota, billing, and missing-model errors should fail over immediately. */
+function isNonRetryableProviderError(err: Error): boolean {
+  const msg = err.message
+  const httpMatch = msg.match(/\bHTTP\s+(\d{3})\b/i)
+  if (httpMatch) {
+    const status = Number(httpMatch[1])
+    if (NON_RETRYABLE_HTTP_STATUSES.has(status)) return true
+  }
+  if (/\b429\b/.test(msg) && /quota|rate.?limit/i.test(msg)) return true
+  if (/\b402\b/.test(msg) && /insufficient|balance|payment/i.test(msg)) return true
+  if (/\b404\b/.test(msg) && /not found|no endpoints/i.test(msg)) return true
+  return false
+}
 
 const FRIENDLY_ERRORS: Record<AITask, string> = {
   hook: 'Hook generation is taking a break — try again in a moment.',
@@ -64,6 +79,7 @@ async function runWithRetries<T>(
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
       recordProviderFailure(provider.id, lastError.message, task)
+      if (isNonRetryableProviderError(lastError)) break
       if (attempt < MAX_RETRIES_PER_PROVIDER) {
         await sleep(RETRY_BACKOFF_MS[attempt] ?? 1200)
       }
