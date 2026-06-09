@@ -5,7 +5,11 @@ import {
   extractHookFromParsed,
   extractTitleFromParsed,
 } from '@/lib/ai/providers/prompt-helpers'
-import { callOpenAICompatibleChat, parseLlmJsonText } from '@/lib/ai/providers/shared'
+import {
+  callOpenAICompatibleChat,
+  parseLlmJsonText,
+  SCRIPT_GENERATION_MAX_TOKENS,
+} from '@/lib/ai/providers/shared'
 import type {
   AIProvider,
   CaptionResult,
@@ -19,7 +23,7 @@ import { getTaskTimeoutMs, hasProviderKey } from '@/lib/ai/providers/task-routin
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 const DEFAULT_MODEL =
-  process.env.OPENROUTER_MODEL?.trim() || 'google/gemini-2.0-flash-001'
+  process.env.OPENROUTER_MODEL?.trim() || 'meta-llama/llama-3.3-70b-instruct'
 
 function openRouterKey(): string {
   const key = process.env.OPENROUTER_API_KEY?.trim()
@@ -73,6 +77,7 @@ export class OpenRouterProvider implements AIProvider {
       baseUrl: OPENROUTER_BASE,
       model: process.env.OPENROUTER_SCRIPT_MODEL?.trim() || DEFAULT_MODEL,
       jsonMode: true,
+      maxTokens: SCRIPT_GENERATION_MAX_TOKENS,
       temperature: input.temperature ?? 0.85,
       timeoutMs: getTaskTimeoutMs('script'),
       extraHeaders: this.extraHeaders(),
