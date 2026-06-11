@@ -17,6 +17,7 @@ import { updateCreatorOsProfile } from '@/lib/creator/creator-os-profile'
 import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { useShallow } from 'zustand/react/shallow'
 
 const extraActionClass =
   'inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg border border-gold-500/25 bg-black/40 px-3 py-2 text-[10px] font-semibold tracking-[0.1em] uppercase text-gold-100/90 hover:bg-gold-500/[0.08] transition-colors touch-manipulation'
@@ -34,26 +35,28 @@ export function ReelCompletionCenter({
   className,
 }: ReelCompletionCenterProps) {
   const router = useRouter()
-  const state = useQuickCutGenerationStore((s) => ({
-    title: s.title,
-    hook: s.hook,
-    script: s.script,
-    scenes: s.scenes,
-    voiceUrl: s.voiceUrl,
-    videoUrl: s.videoUrl,
-    reelTimeline: s.reelTimeline,
-    savedProjectId: s.savedProjectId,
-    voiceName: s.voiceName,
-    style: s.style,
-    niche: s.niche,
-    language: s.language,
-    duration: s.duration,
-    generationStartedAt: s.generationStartedAt,
-    generationCoreCompletedAt: s.generationCoreCompletedAt,
-    exportCompletedAt: s.exportCompletedAt,
-    renderStartedAt: s.renderStartedAt,
-    setActiveStageTab: s.setActiveStageTab,
-  }))
+  const state = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      title: s.title,
+      hook: s.hook,
+      script: s.script,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      reelTimeline: s.reelTimeline,
+      savedProjectId: s.savedProjectId,
+      voiceName: s.voiceName,
+      style: s.style,
+      niche: s.niche,
+      language: s.language,
+      duration: s.duration,
+      generationStartedAt: s.generationStartedAt,
+      generationCoreCompletedAt: s.generationCoreCompletedAt,
+      exportCompletedAt: s.exportCompletedAt,
+      renderStartedAt: s.renderStartedAt,
+      setActiveStageTab: s.setActiveStageTab,
+    }))
+  )
 
   const pid = projectId ?? state.savedProjectId
 
@@ -68,7 +71,16 @@ export function ReelCompletionCenter({
       lastReelTitle: state.title || state.hook?.slice(0, 80) || null,
       lastReelProjectId: pid,
     })
-  }, [pid, state])
+  }, [
+    pid,
+    state.title,
+    state.hook,
+    state.voiceName,
+    state.style,
+    state.niche,
+    state.language,
+    state.duration,
+  ])
 
   const timing = useMemo(() => {
     if (!state.generationStartedAt) return null
@@ -83,7 +95,12 @@ export function ReelCompletionCenter({
         ? Math.max(0, state.exportCompletedAt - state.renderStartedAt)
         : null
     return formatTimingBlock({ generationMs, exportMs })
-  }, [state])
+  }, [
+    state.generationStartedAt,
+    state.generationCoreCompletedAt,
+    state.exportCompletedAt,
+    state.renderStartedAt,
+  ])
 
   const openPublish = () => {
     state.setActiveStageTab('publish', true)

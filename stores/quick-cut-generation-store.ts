@@ -1,6 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { QUICK_CUT_V2_TEXT_TO_VIDEO } from '@/lib/quick-cut/quick-cut-v2-config'
 import { coerceDuration } from '@/lib/workspace/validation'
 import {
   ensureScenesHaveImagePrompts,
@@ -322,6 +323,22 @@ import {
 } from '@/lib/cinematic/section-generation-status'
 import { recordStageDuration } from '@/lib/generation/generation-stage-timing.client'
 import { generationStepToProgressStageId } from '@/lib/quick-cut/cinematic-generation-progress'
+import {
+  deriveReelPipelineState,
+  type ReelPipelineFailedStage,
+  type ReelPipelineStatus,
+} from '@/lib/pipeline/reel-generation-orchestrator'
+import {
+  commitPipelineStage,
+  completeMp4Pipeline,
+  ensureGenerationJobsMigration,
+  failPipeline,
+  pipelineStageToStatus,
+  renderMp4AndWait,
+  resumeMp4FromGenerationJob,
+  validateStageOrFail,
+} from '@/lib/pipeline/reel-pipeline-runner.client'
+import { pollGenerationJobOrchestrator } from '@/lib/pipeline/reel-generation-orchestrator.client'
 import { canRegenerateSingleScene } from '@/lib/quick-cut/scene-regen-guard'
 import { canEditTimeline } from '@/lib/quick-cut/timeline-edit-guard'
 import {
@@ -499,6 +516,10 @@ interface QuickCutGenerationStateBase {
   /** When MP4 URL became available. */
   exportCompletedAt: number | null
   exportPackageReady: boolean
+  /** Phase 4 orchestrator — canonical pipeline status (see reel-generation-orchestrator.ts). */
+  pipelineStatus: ReelPipelineStatus
+  pipelineJobId: string | null
+  failedPipelineStage: ReelPipelineFailedStage | null
   /** MP4 URL missing or download failed — user must re-export. */
   exportExpired: boolean
   videoRenderEnabled: boolean
@@ -585,9 +606,9 @@ interface QuickCutGenerationStateBase {
   lastVisitedStep: WorkflowStepId | null
 }
 
-interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
+export interface QuickCutGenerationState extends QuickCutGenerationStateBase, DeepResearchStoreFields, StoryboardStoreFields {}
 
-interface QuickCutGenerationActions {
+export interface QuickCutGenerationActions {
   reset: (options?: { clearProject?: boolean }) => void
   setActiveStageTab: (tab: QuickCutStageTab, pinned?: boolean) => void
   followPipelineStage: () => void
@@ -639,6 +660,8 @@ interface QuickCutGenerationActions {
   syncWorkflowFromPipeline: () => void
   /** Sync V3 pipeline artifacts from current store snapshot */
   syncV3PipelineState: () => void
+  /** Derive + persist Phase 4 pipeline status from current store snapshot. */
+  syncPipelineOrchestrator: () => void
   /** Run a single V3 stage (when MUGTEE_V3_PIPELINE=true) */
   runV3Stage: (stage: V3PipelineStageId) => Promise<void>
 }
@@ -696,6 +719,9 @@ const INITIAL: QuickCutGenerationState = {
   generationCoreCompletedAt: null,
   exportCompletedAt: null,
   exportPackageReady: false,
+  pipelineStatus: 'queued',
+  pipelineJobId: null,
+  failedPipelineStage: null,
   exportExpired: false,
   videoRenderEnabled: defaultClientVideoRenderEnabled(),
   sceneVideoEnabled: false,
@@ -1199,50 +1225,72 @@ async function runSceneVideoGeneration(
   get: () => QuickCutGenerationState & QuickCutGenerationActions,
   set: typeof useQuickCutGenerationStore.setState
 ) {
-  if (!get().sceneVideoEnabled) return
+  const requireVideos = get().videoRenderEnabled
+  if (!get().sceneVideoEnabled && !requireVideos) return
+
+  commitPipelineStage(get, set, 'video_generating', 'video')
   const state = get()
-  const eligible = state.scenes.filter(
-    (s) => s.imageUrl?.trim() && !s.videoUrl?.trim() && s.videoGenerationStatus !== 'failed'
-  )
-  if (eligible.length < 1) return
+  const eligible = state.scenes.filter((s) => {
+    const hasSource =
+      Boolean(s.imageUrl?.trim()) ||
+      (QUICK_CUT_V2_TEXT_TO_VIDEO &&
+        Boolean(s.visualPrompt?.trim() || s.imagePrompt?.trim() || s.description?.trim()))
+    return hasSource && !s.videoUrl?.trim() && s.videoGenerationStatus !== 'failed'
+  })
 
   set({ isGeneratingSceneVideos: true, directingSceneLabel: 'Generating video clips…' })
 
   try {
-    const jobs = await queueSceneVideos({
-      scenes: state.scenes,
-      sceneBlueprints: state.sceneBlueprints,
-      sceneMotion: state.sceneMotion,
-      visualStyle: state.visualStyle,
-      projectId: state.savedProjectId,
-    })
+    if (eligible.length >= 1) {
+      const jobs = await queueSceneVideos({
+        scenes: state.scenes,
+        sceneBlueprints: state.sceneBlueprints,
+        sceneMotion: state.sceneMotion,
+        visualStyle: state.visualStyle,
+        projectId: state.savedProjectId,
+      })
 
-    if (jobs.length < 1) return
-
-    useQuickCutGenerationStore.setState((prev) => {
-      const scenes = prev.scenes.map((scene) =>
-        jobs.some((j) => j.sceneId === scene.id)
-          ? { ...scene, videoGenerationStatus: 'generating' as const }
-          : scene
-      )
-      return { scenes, storyboard: scenes }
-    })
-
-    await pollSceneVideoJobs(
-      jobs,
-      (sceneId, patch) => {
+      if (jobs.length >= 1) {
         useQuickCutGenerationStore.setState((prev) => {
           const scenes = prev.scenes.map((scene) =>
-            scene.id === sceneId ? { ...scene, ...patch } : scene
+            jobs.some((j) => j.sceneId === scene.id)
+              ? { ...scene, videoGenerationStatus: 'generating' as const }
+              : scene
           )
           return { scenes, storyboard: scenes }
         })
-        get().composeReelTimeline()
-      },
-      { projectId: state.savedProjectId }
-    )
-  } catch {
-    /* non-blocking — image fallback preserved */
+
+        await pollSceneVideoJobs(
+          jobs,
+          (sceneId, patch) => {
+            useQuickCutGenerationStore.setState((prev) => {
+              const scenes = prev.scenes.map((scene) =>
+                scene.id === sceneId ? { ...scene, ...patch } : scene
+              )
+              return { scenes, storyboard: scenes }
+            })
+            get().composeReelTimeline()
+          },
+          { projectId: state.savedProjectId }
+        )
+      }
+    }
+
+    get().composeReelTimeline()
+    if (requireVideos && !validateStageOrFail(get, set, 'video')) {
+      throw new Error(get().renderError ?? 'Scene video generation failed')
+    }
+    commitPipelineStage(get, set, 'video_complete', 'video')
+  } catch (err) {
+    if (requireVideos) {
+      failPipeline(
+        get,
+        set,
+        'video',
+        err instanceof Error ? err.message : 'Scene video generation failed'
+      )
+      throw err
+    }
   } finally {
     set({ isGeneratingSceneVideos: false, directingSceneLabel: null })
     get().composeReelTimeline()
@@ -1684,6 +1732,47 @@ function setStep(
     })
   }
   set(patch)
+}
+
+function hasCreatorPackAssets(state: QuickCutGenerationState): boolean {
+  return (
+    state.scenes.length > 0 &&
+    Boolean(state.voiceUrl?.trim()) &&
+    Boolean(state.script?.trim() || state.hook?.trim())
+  )
+}
+
+function isExportPollNetworkFailure(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === 'AbortError') return true
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network error') ||
+    msg.includes('connection refused') ||
+    msg.includes('load failed') ||
+    msg.includes('err_connection_refused')
+  )
+}
+
+function finalizeExportPollStopped(
+  set: (patch: Partial<QuickCutGenerationState>) => void,
+  get: () => QuickCutGenerationState,
+  options?: { packReady?: boolean; renderError?: string | null }
+) {
+  const packReady = options?.packReady ?? hasCreatorPackAssets(get())
+  patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
+  set({
+    renderPollUrl: null,
+    isRenderingVideo: false,
+    renderStartedAt: null,
+    generationStep: 'complete',
+    progress: packReady ? 100 : get().progress,
+    ...(packReady ? { exportPackageReady: true, renderError: null } : {}),
+    ...(options?.renderError ? { renderError: options.renderError } : {}),
+  })
+  persistSession(get())
 }
 
 async function pollRenderJob(
@@ -2258,6 +2347,43 @@ export const useQuickCutGenerationStore = create<
     })
   },
 
+  syncPipelineOrchestrator: () => {
+    const state = get()
+    const derived = deriveReelPipelineState({
+      jobId: state.pipelineJobId,
+      isGenerating: state.isGenerating,
+      isComplete: state.isComplete,
+      generationStatus: state.generationStatus,
+      generationStep: state.generationStep,
+      sectionStatus: state.sectionStatus,
+      script: state.script,
+      scriptBeats: state.scriptBeats,
+      scenes: state.scenes,
+      voiceUrl: state.voiceUrl,
+      videoUrl: state.videoUrl,
+      reelTimeline: state.reelTimeline,
+      renderPollUrl: state.renderPollUrl,
+      isRenderingVideo: state.isRenderingVideo,
+      renderError: state.renderError,
+      videoRenderEnabled: state.videoRenderEnabled,
+      requireSceneVideos: false,
+    })
+    set({
+      pipelineStatus: derived.status,
+      failedPipelineStage: derived.failedStage,
+      progress: derived.progress,
+      ...(derived.exportReady
+        ? {
+            videoUrl: derived.finalMp4Url,
+            renderError: null,
+            renderPollUrl: null,
+            exportPackageReady: false,
+            generationStep: 'complete' as const,
+          }
+        : {}),
+    })
+  },
+
   runV3Stage: async (stage) => {
     const state = get()
     if (!state.v3PipelineEnabled) return
@@ -2666,6 +2792,8 @@ export const useQuickCutGenerationStore = create<
 
     try {
       setStep(set, get, 'analyzing')
+      await configPromise
+      await ensureGenerationJobsMigration()
 
       if (!isResume || !get().contentBrief) {
         patchSectionStatus(set, get, 'contentDirectorBrief', 'generating')
@@ -3333,7 +3461,8 @@ export const useQuickCutGenerationStore = create<
 
       throwIfPipelineAborted()
 
-      const storyboardShouldRun = stepShouldRun(resumeFrom, 'storyboard')
+      const storyboardShouldRun =
+        !QUICK_CUT_V2_TEXT_TO_VIDEO && stepShouldRun(resumeFrom, 'storyboard')
       logStepShouldRunDecision(resumeFrom, 'storyboard', storyboardShouldRun)
 
       if (storyboardShouldRun) {
@@ -3496,7 +3625,25 @@ export const useQuickCutGenerationStore = create<
         await delay(350)
         set({ directingSceneLabel: null })
 
-        void runSceneVideoGeneration(get, set)
+        await runSceneVideoGeneration(get, set)
+      } else if (
+        QUICK_CUT_V2_TEXT_TO_VIDEO &&
+        stepShouldRun(resumeFrom, 'storyboard')
+      ) {
+        clearPipelineWatchdog()
+        setStep(set, get, 'motion')
+        patchSectionStatus(set, get, 'storyboard', 'completed')
+        patchSectionStatus(set, get, 'visualDirection', 'completed')
+        set({
+          directingSceneLabel: 'Creating video scenes…',
+          lastCompletedStep: 'visual_direction',
+        })
+        await runSceneVideoGeneration(get, set)
+        set({ directingSceneLabel: null })
+      }
+
+      if (videoRenderEnabled && stepShouldRun(resumeFrom, 'export')) {
+        await runSceneVideoGeneration(get, set)
       }
 
       const assemblyPresentation = storyboardShouldRun
@@ -3508,9 +3655,7 @@ export const useQuickCutGenerationStore = create<
       voiceFallbackMessage = get().voiceFallbackMessage
 
       let videoUrl: string | null = get().videoUrl
-      let renderPollUrl: string | null = get().renderPollUrl
       let renderError: string | null = get().renderError
-      let exportPackageReady = get().exportPackageReady
 
       throwIfPipelineAborted()
 
@@ -3518,8 +3663,14 @@ export const useQuickCutGenerationStore = create<
         set({
           generationCoreCompletedAt: get().generationCoreCompletedAt ?? Date.now(),
         })
+        get().composeReelTimeline()
+        commitPipelineStage(get, set, 'timeline_assembling', 'timeline')
+        if (!validateStageOrFail(get, set, 'captions')) {
+          genPerf.end('export')
+          throw new Error(get().renderError ?? 'Caption generation failed')
+        }
+        commitPipelineStage(get, set, 'timeline_complete', 'timeline')
         setStep(set, get, 'render')
-        patchSectionStatus(set, get, 'export', 'generating')
         genPerf.start('export')
 
         try {
@@ -3532,125 +3683,61 @@ export const useQuickCutGenerationStore = create<
         }
 
         if (videoRenderEnabled) {
-          set({ isRenderingVideo: true, renderError: null, exportExpired: false, renderStartedAt: Date.now() })
-          try {
+          const mp4Ok = await renderMp4AndWait(get, set, async () => {
             const { renderRes, renderData } = await requestVideoRender(get(), true)
-
-            if (renderRes.ok) {
-              if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
-                videoUrl = renderData.videoUrl
-                set({
-                  videoUrl,
-                  renderPollUrl: null,
-                  renderError: null,
-                  exportExpired: false,
-                  exportCompletedAt: Date.now(),
-                })
-              } else if (typeof renderData.pollUrl === 'string') {
-                renderPollUrl = renderData.pollUrl
-                set({ renderPollUrl, renderError: null })
-                try {
-                  videoUrl = await pollRenderJob(
-                    renderPollUrl,
-                    (patch) => {
-                      if (patch.label) set({ renderStatusLabel: patch.label })
-                      if (patch.videoUrl) {
-                        set({
-                          videoUrl: patch.videoUrl,
-                          renderPollUrl: null,
-                          renderError: null,
-                          exportCompletedAt: Date.now(),
-                        })
-                      }
-                    },
-                    get().savedProjectId
-                  )
-                } catch (pollErr) {
-                  const pollMessage =
-                    pollErr instanceof Error ? pollErr.message : 'Video render timed out'
-                  renderError = friendlyReelRenderError(pollMessage)
-                  if (pollMessage.includes('Export job expired')) {
-                    set({ exportExpired: true, videoUrl: null })
-                    videoUrl = null
-                  }
-                }
-              }
-              if (renderData.mock === true) anyMock = true
-            } else {
-              renderError = friendlyReelRenderError(String(renderData?.error || 'Video render unavailable'))
-              anyMock = true
-              noteMissing('video')
+            if (
+              renderRes.ok &&
+              typeof renderData.videoUrl === 'string' &&
+              renderData.videoUrl
+            ) {
+              return { videoUrl: renderData.videoUrl }
             }
-          } catch (renderErr) {
-            renderError = friendlyReelRenderError(
-              renderErr instanceof Error ? renderErr.message : 'Video render unavailable'
+            if (!renderRes.ok) {
+              return {
+                error: String(renderData?.error || 'Video render unavailable'),
+              }
+            }
+            const exportJobId =
+              typeof renderData.jobId === 'string' ? renderData.jobId : undefined
+            const pollUrl =
+              typeof renderData.pollUrl === 'string' ? renderData.pollUrl : undefined
+            if (renderData.mock === true) anyMock = true
+            return { exportJobId, pollUrl }
+          })
+          videoUrl = get().videoUrl
+          renderError = get().renderError
+          if (mp4Ok && videoUrl) {
+            set({ lastCompletedStep: 'export' })
+            logExportSuccess({
+              projectId: get().savedProjectId ?? undefined,
+              title: get().title,
+              hook: get().hook,
+              theme: useCompanionStore.getState().creativeBrief?.theme,
+              tone: get().style,
+            })
+            logWorkflowCompleteClient({
+              projectId: get().savedProjectId ?? undefined,
+              title: get().title,
+              hook: get().hook,
+              theme: useCompanionStore.getState().creativeBrief?.theme,
+              tone: get().style,
+              platform: 'instagram_reel',
+              format: `${get().duration}s reel`,
+              contentType: 'reel',
+              scriptExcerpt: get().script?.slice(0, 400),
+              eventType: 'export_success',
+            })
+            const exportId = await persistStepComplete(
+              get(),
+              'export',
+              buildArchiveInput(get(), buildGenerationOutput(get()))
             )
-            anyMock = true
-            noteMissing('video')
-          } finally {
-            set({ isRenderingVideo: false })
+            if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
+          } else if (get().pipelineStatus === 'failed') {
+            logStepFailed('export', get().savedProjectId, renderError ?? 'Export failed')
           }
         } else {
-          try {
-            await simulateMockExport((label) => set({ renderStatusLabel: label }))
-            exportPackageReady = true
-          } catch (mockErr) {
-            exportPackageReady = false
-            renderError =
-              mockErr instanceof Error
-                ? mockErr.message
-                : 'Storyboard export packaging failed'
-          }
-        }
-
-        const exportDone = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
-        const exportFailed = videoRenderEnabled && Boolean(renderError) && !videoUrl
-
-        const exportStillRunning =
-          videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError
-
-        if (exportDone) {
-          set({ lastCompletedStep: 'export' })
-          patchSectionStatus(set, get, 'export', 'completed')
-          logExportSuccess({
-            projectId: get().savedProjectId ?? undefined,
-            title: get().title,
-            hook: get().hook,
-            theme: useCompanionStore.getState().creativeBrief?.theme,
-            tone: get().style,
-          })
-          logWorkflowCompleteClient({
-            projectId: get().savedProjectId ?? undefined,
-            title: get().title,
-            hook: get().hook,
-            theme: useCompanionStore.getState().creativeBrief?.theme,
-            tone: get().style,
-            platform: 'instagram_reel',
-            format: `${get().duration}s reel`,
-            contentType: 'reel',
-            scriptExcerpt: get().script?.slice(0, 400),
-            eventType: 'export_success',
-          })
-          const exportId = await persistStepComplete(
-            get(),
-            'export',
-            buildArchiveInput(get(), buildGenerationOutput(get()))
-          )
-          if (exportId) set({ savedProjectId: exportId, saveState: 'saved' })
-        } else if (exportFailed && renderError) {
-          const hasCreatorPackAssets =
-            get().scenes.length > 0 &&
-            Boolean(get().voiceUrl?.trim()) &&
-            Boolean(get().script?.trim() || get().hook?.trim())
-          if (hasCreatorPackAssets) {
-            exportPackageReady = true
-            patchSectionStatus(set, get, 'export', 'completed')
-          } else {
-            patchSectionStatus(set, get, 'export', 'failed')
-            logStepFailed('export', get().savedProjectId, renderError)
-          }
-        } else if (!exportStillRunning) {
-          patchSectionStatus(set, get, 'export', 'idle')
+          failPipeline(get, set, 'export', 'MP4 export requires VIDEO_RENDER_ENABLED')
         }
         genPerf.end('export')
       }
@@ -3659,11 +3746,9 @@ export const useQuickCutGenerationStore = create<
         await assemblyPresentation
       }
 
-      const mp4Ready = videoRenderEnabled ? Boolean(videoUrl) : exportPackageReady
-      const exportInProgressFinal =
-        videoRenderEnabled && Boolean(renderPollUrl) && !videoUrl && !renderError
-      const exportFailedFinal = videoRenderEnabled && Boolean(renderError) && !videoUrl
-      const contentReadyForResults = true
+      const mp4Ready = get().pipelineStatus === 'mp4_complete' && Boolean(get().videoUrl?.trim())
+      const exportFailedFinal = get().pipelineStatus === 'failed'
+      const contentReadyForResults = mp4Ready
 
       const pipeline: QuickCutPipelineStatus = {
         steps: {
@@ -3671,37 +3756,32 @@ export const useQuickCutGenerationStore = create<
             scriptData.mock === true ? 'fallback' : get().script.trim() ? 'live' : 'fallback',
           images: imgMock ? 'fallback' : 'live',
           voice: voiceUrl ? 'live' : 'fallback',
-          video: videoRenderEnabled ? (videoUrl ? 'live' : exportFailedFinal ? 'fallback' : 'skipped') : 'skipped',
+          video: videoRenderEnabled ? (mp4Ready ? 'live' : exportFailedFinal ? 'fallback' : 'skipped') : 'skipped',
         },
         missingKeys: [...missingKeys],
         live: !anyMock,
       }
 
-      setStep(
-        set,
-        get,
-        mp4Ready ? 'complete' : exportInProgressFinal ? 'render' : 'complete'
-      )
+      setStep(set, get, mp4Ready ? 'complete' : exportFailedFinal ? 'render' : 'complete')
       set({
-        videoUrl,
-        renderPollUrl: videoUrl || renderError ? null : renderPollUrl,
-        renderError: videoUrl ? null : renderError,
-        exportPackageReady,
+        videoUrl: get().videoUrl,
+        renderPollUrl: null,
+        renderError: exportFailedFinal ? get().renderError : null,
+        exportPackageReady: false,
         mock: anyMock,
         missingKeys: [...missingKeys],
         pipeline,
         isGenerating: false,
-        isComplete: contentReadyForResults,
-        generationStatus: 'completed',
-        generationStep: mp4Ready ? 'complete' : exportInProgressFinal ? 'render' : 'complete',
+        isComplete: mp4Ready,
+        generationStatus: exportFailedFinal ? 'failed' : mp4Ready ? 'completed' : 'completed',
+        generationStep: mp4Ready ? 'complete' : exportFailedFinal ? 'render' : 'complete',
         generationState: 'idle',
         assemblyPreviewAutoplay: false,
         assemblyLineIndex: 0,
-        lastCompletedStep:
-          mp4Ready || exportFailedFinal || exportPackageReady ? 'export' : get().lastCompletedStep,
+        lastCompletedStep: mp4Ready ? 'export' : get().lastCompletedStep,
         failedAtStep: exportFailedFinal ? 'export' : null,
         error: null,
-        progress: mp4Ready ? 100 : exportInProgressFinal ? REEL_EXPORT_PROGRESS_CAP : exportFailedFinal ? 100 : 100,
+        progress: mp4Ready ? 100 : exportFailedFinal ? 0 : get().progress,
         eta: 0,
         lastGeneratedPrompt: prompt,
         studioReviewMode: false,
@@ -3722,19 +3802,16 @@ export const useQuickCutGenerationStore = create<
       try {
         await archiveGeneratedProject({
           ...completedArchive,
-          generation_status: 'completed',
+          generation_status: exportFailedFinal ? 'failed' : 'completed',
           generation_step: 'export',
-          last_completed_step:
-            mp4Ready || exportFailedFinal || exportPackageReady
-              ? 'export'
-              : get().lastCompletedStep ?? 'voice',
-          generation_error: exportFailedFinal ? renderError : null,
+          last_completed_step: mp4Ready ? 'export' : get().lastCompletedStep ?? 'voice',
+          generation_error: exportFailedFinal ? get().renderError : null,
         })
       } catch {
         /* preview session still holds state */
       }
 
-      if (contentReadyForResults) {
+      if (mp4Ready) {
         logGenerationSuccess(get().savedProjectId, {
           durationMs: pipelineStartedAt ? Date.now() - pipelineStartedAt : undefined,
           mock: anyMock,
@@ -3755,36 +3832,32 @@ export const useQuickCutGenerationStore = create<
         if (mp4Ready) {
           trackEvent(AnalyticsEvents.EXPORT_COMPLETED, {
             projectId: get().savedProjectId,
-            metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
+            metadata: { video: Boolean(get().videoUrl) },
           })
           trackExportCompletedAfterCompanion(get().savedProjectId)
           trackEvent(AnalyticsEvents.PROJECT_EXPORTED, {
             projectId: get().savedProjectId,
-            metadata: { video: Boolean(get().videoUrl), package: get().exportPackageReady },
-          })
-        } else if (exportFailedFinal) {
-          logGenerationError(
-            get().savedProjectId,
-            'export',
-            renderError ?? 'Export failed',
-            { recoverable: true }
-          )
-          trackEvent(AnalyticsEvents.GENERATION_FAILED, {
-            projectId: get().savedProjectId,
-            metadata: {
-              message: renderError?.slice(0, 120) ?? 'Export failed',
-              step: 'export',
-            },
-          })
-          trackError('export', renderError ?? 'Export failed', {
-            step: 'export',
-            projectId: get().savedProjectId,
+            metadata: { video: Boolean(get().videoUrl) },
           })
         }
-      }
-
-      if (exportInProgressFinal && !get().isRenderingVideo) {
-        void get().resumeRenderPoll()
+      } else if (exportFailedFinal) {
+        logGenerationError(
+          get().savedProjectId,
+          'export',
+          get().renderError ?? 'Export failed',
+          { recoverable: true }
+        )
+        trackEvent(AnalyticsEvents.GENERATION_FAILED, {
+          projectId: get().savedProjectId,
+          metadata: {
+            message: get().renderError?.slice(0, 120) ?? 'Export failed',
+            step: 'export',
+          },
+        })
+        trackError('export', get().renderError ?? 'Export failed', {
+          step: 'export',
+          projectId: get().savedProjectId,
+        })
       }
 
       persistSession(get())
@@ -4451,7 +4524,7 @@ export const useQuickCutGenerationStore = create<
         Boolean(get().script?.trim() || get().hook?.trim())
       patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
       set({
-        renderError: syncErr,
+        renderError: packReady ? null : syncErr,
         renderPollUrl: null,
         generationStep: 'complete',
         ...(packReady ? { exportPackageReady: true } : {}),
@@ -4467,7 +4540,7 @@ export const useQuickCutGenerationStore = create<
         Boolean(get().script?.trim() || get().hook?.trim())
       patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
       set({
-        renderError: message,
+        renderError: packReady ? null : message,
         renderPollUrl: null,
         generationStep: 'complete',
         ...(packReady ? { exportPackageReady: true } : {}),
@@ -4487,9 +4560,10 @@ export const useQuickCutGenerationStore = create<
       const state = get()
       if (
         videoRenderEnabled &&
-        state.renderPollUrl &&
+        state.pipelineJobId &&
         !state.videoUrl &&
-        !state.isRenderingVideo
+        !state.isRenderingVideo &&
+        state.pipelineStatus === 'mp4_rendering'
       ) {
         void get().resumeRenderPoll()
       }
@@ -4499,8 +4573,8 @@ export const useQuickCutGenerationStore = create<
   },
 
   resumeRenderPoll: async () => {
-    const { renderPollUrl, videoUrl, videoRenderEnabled, isRenderingVideo, savedProjectId } = get()
-    if (!videoRenderEnabled || !renderPollUrl || videoUrl || isRenderingVideo) return
+    const { pipelineJobId, videoUrl, isRenderingVideo, savedProjectId } = get()
+    if (!pipelineJobId || videoUrl || isRenderingVideo) return
 
     const profile = await fetchProfilePlanSnapshot()
     if (
@@ -4512,87 +4586,27 @@ export const useQuickCutGenerationStore = create<
       return
     }
 
-    patchSectionStatus(set, get, 'export', 'generating')
-    set({
-      isRenderingVideo: true,
-      renderError: null,
-      renderStartedAt: Date.now(),
-    })
-    try {
-      const url = await pollRenderJob(
-        renderPollUrl,
-        (patch) => {
-          if (patch.label) set({ renderStatusLabel: patch.label })
-          if (patch.videoUrl) {
-            set({
-              videoUrl: patch.videoUrl,
-              renderPollUrl: null,
-              renderError: null,
-              exportCompletedAt: Date.now(),
-            })
-          }
-        },
-        savedProjectId
-      )
-      patchSectionStatus(set, get, 'export', 'completed')
-      set({
-        videoUrl: url,
-        renderPollUrl: null,
-        renderError: null,
-        exportExpired: false,
-        exportCompletedAt: Date.now(),
-        generationStep: 'complete',
-        progress: 100,
-        eta: 0,
-      })
+    const poll = await pollGenerationJobOrchestrator(pipelineJobId)
+    if (!poll) return
+
+    if (poll.status === 'mp4_complete' && poll.finalMp4Url) {
+      completeMp4Pipeline(get, set, poll.finalMp4Url)
       persistSession(get())
-    } catch (err) {
-      const message = friendlyReelRenderError(
-        err instanceof Error ? err.message : 'Video render timed out'
-      )
-      if (
-        (message.includes('Export job expired') || message.includes('Retry export')) &&
-        savedProjectId
-      ) {
-        const { fetchProjectReelDownload, EXPORT_EXPIRED_MSG } = await import(
-          '@/lib/quick-cut/asset-availability'
-        )
-        const recovered = await fetchProjectReelDownload(savedProjectId)
-        if (recovered.reelUrl) {
-          patchSectionStatus(set, get, 'export', 'completed')
-          set({
-            videoUrl: recovered.reelUrl,
-            renderPollUrl: null,
-            renderError: null,
-            exportExpired: false,
-            generationStep: 'complete',
-            progress: 100,
-            eta: 0,
-          })
-          persistSession(get())
-          return
-        }
-        patchSectionStatus(set, get, 'export', 'failed')
-        set({
-          videoUrl: null,
-          renderError: EXPORT_EXPIRED_MSG,
-          renderPollUrl: null,
-          exportExpired: true,
-          generationStep: 'complete',
-        })
-        persistSession(get())
-        return
-      }
-      patchSectionStatus(set, get, 'export', 'failed')
-      set({
-        renderError: message,
-        renderPollUrl: null,
-        generationStep: 'complete',
-        exportPackageReady: true,
-      })
+      return
+    }
+
+    if (poll.status === 'failed') {
+      failPipeline(get, set, poll.failedStage ?? 'export', poll.errorMessage ?? 'Export failed')
       persistSession(get())
-    } finally {
+      return
+    }
+
+    const exportJobId = (poll as { exportJobId?: string | null }).exportJobId
+    if (poll.status === 'mp4_rendering' && exportJobId) {
+      set({ isRenderingVideo: true, renderError: null })
+      const ok = await resumeMp4FromGenerationJob(get, set, exportJobId)
       set({ isRenderingVideo: false })
+      if (ok) persistSession(get())
     }
   },
 
@@ -4631,7 +4645,7 @@ export const useQuickCutGenerationStore = create<
       if (!patch.reelTimeline && patch.scenes.length > 0) {
         get().composeReelTimeline()
       }
-      if (patch.renderPollUrl && !patch.videoUrl) {
+      if (get().pipelineJobId && !get().videoUrl && get().pipelineStatus === 'mp4_rendering') {
         void get().resumeRenderPoll()
       }
       return true
@@ -4831,3 +4845,4 @@ export const useQuickCutGenerationStore = create<
     }
   },
 }))
+export type QuickCutGenerationStoreState = QuickCutGenerationState & QuickCutGenerationActions

@@ -20,6 +20,42 @@ const FETCH_TIMEOUT_MS = 15_000
 const FETCH_RETRY_DELAYS_MS = [800, 1600, 3200]
 const DB_RECOVERY_EVERY_N_POLLS = 5
 
+let activePollAbort: AbortController | null = null
+
+/** Cancel the in-flight export poll (unmount / state reset). */
+export function abortActiveReelExportPoll(): void {
+  activePollAbort?.abort()
+  activePollAbort = null
+}
+
+function isNetworkFetchError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network error') ||
+    msg.includes('connection refused') ||
+    msg.includes('load failed') ||
+    msg.includes('err_connection_refused')
+  )
+}
+
+/** Always poll same-origin relative paths — never a stale absolute host/port. */
+export function normalizePollUrlToRelative(pollUrl: string): string {
+  const trimmed = pollUrl.trim()
+  if (!trimmed) return trimmed
+  if (trimmed.startsWith('/')) return trimmed
+  try {
+    const base =
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    const parsed = new URL(trimmed, base)
+    return `${parsed.pathname}${parsed.search}`
+  } catch {
+    return trimmed
+  }
+}
+
 export function capReelExportProgress(progress?: number): number | undefined {
   if (typeof progress !== 'number' || !Number.isFinite(progress)) return undefined
   return Math.min(REEL_EXPORT_PROGRESS_CAP, Math.max(0, Math.round(progress)))
@@ -29,16 +65,17 @@ export function normalizeReelExportPollUrl(
   pollUrl: string,
   projectId?: string | null
 ): string {
-  if (!projectId?.trim()) return pollUrl
+  const relative = normalizePollUrlToRelative(pollUrl)
+  if (!projectId?.trim()) return relative
   try {
-    const url = new URL(pollUrl, 'http://local')
+    const url = new URL(relative, 'http://local')
     if (!url.searchParams.has('projectId')) {
       url.searchParams.set('projectId', projectId.trim())
     }
     return `${url.pathname}${url.search}`
   } catch {
-    const jobId = pollUrl.split('/').pop()?.split('?')[0]
-    return jobId ? reelExportPollPath(jobId, projectId) : pollUrl
+    const jobId = relative.split('/').pop()?.split('?')[0]
+    return jobId ? reelExportPollPath(jobId, projectId) : relative
   }
 }
 
@@ -124,10 +161,14 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const externalSignal = init?.signal
+  const onExternalAbort = () => controller.abort()
+  externalSignal?.addEventListener('abort', onExternalAbort)
   try {
     return await fetch(url, { ...init, signal: controller.signal })
   } finally {
     clearTimeout(timer)
+    externalSignal?.removeEventListener('abort', onExternalAbort)
   }
 }
 
@@ -147,29 +188,48 @@ function resolveDurablePollUrl(pollUrl: string, projectId?: string | null): stri
 
 async function fetchPollJson(
   pollUrl: string,
-  projectId?: string | null
+  projectId?: string | null,
+  signal?: AbortSignal
 ): Promise<{ res: Response; raw: Record<string, unknown> }> {
   const durableUrl = resolveDurablePollUrl(pollUrl, projectId)
   const urlsToTry = durableUrl === pollUrl ? [pollUrl] : [durableUrl, pollUrl]
   let lastError: unknown = null
   for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    if (signal?.aborted) {
+      throw new DOMException('Export poll aborted', 'AbortError')
+    }
     if (attempt > 0) {
       await sleep(FETCH_RETRY_DELAYS_MS[attempt - 1] ?? 3200)
     }
     for (const url of urlsToTry) {
       try {
-        const res = await fetchWithTimeout(url, { credentials: 'include' })
+        const res = await fetchWithTimeout(url, { credentials: 'include', signal })
         let raw: Record<string, unknown> = {}
         try {
           raw = (await res.json()) as Record<string, unknown>
         } catch {
           raw = {}
         }
+        console.log('[export-poll]', {
+          reelId: url.split('/').pop()?.split('?')[0] ?? null,
+          endpoint: url,
+          responseStatus: res.status,
+          responseBody: raw,
+        })
         if (res.ok || res.status !== 404) {
           return { res, raw }
         }
       } catch (err) {
         lastError = err
+        console.error('EXPORT FETCH FAILED', {
+          endpoint: url,
+          error: err instanceof Error ? err.message : err,
+        })
+        if (isNetworkFetchError(err)) {
+          throw err instanceof Error
+            ? err
+            : new Error(creatorFriendlyMessage(err, 'export'))
+        }
       }
     }
   }
@@ -211,13 +271,25 @@ export async function pollReelExportJob(
     projectId?: string | null
     onProgress?: (patch: { label?: string; progress?: number; stuck?: boolean }) => void
     startedAt?: number
+    signal?: AbortSignal
   }
 ): Promise<string> {
+  abortActiveReelExportPoll()
+  const controller = new AbortController()
+  activePollAbort = controller
+  const signal = options?.signal
+  const onExternalAbort = () => controller.abort()
+  signal?.addEventListener('abort', onExternalAbort)
+
   const startedAt = options?.startedAt ?? Date.now()
   const maxAttempts = options?.maxAttempts ?? maxPollAttempts(REEL_EXPORT_MAX_MS)
   const resolvedPollUrl = normalizeReelExportPollUrl(pollUrl, options?.projectId)
 
+  try {
   for (let i = 0; i < maxAttempts; i++) {
+    if (controller.signal.aborted) {
+      throw new DOMException('Export poll aborted', 'AbortError')
+    }
     if (i > 0) await sleep(POLL_INTERVAL_MS)
 
     const elapsed = Date.now() - startedAt
@@ -242,7 +314,11 @@ export async function pollReelExportJob(
       }
     }
 
-    const { res, raw } = await fetchPollJson(resolvedPollUrl, options?.projectId)
+    const { res, raw } = await fetchPollJson(
+      resolvedPollUrl,
+      options?.projectId,
+      controller.signal
+    )
 
     if (res.status === 404) {
       const url = await recoverFromDb(options?.projectId)
@@ -310,6 +386,12 @@ export async function pollReelExportJob(
   }
 
   throw new Error(creatorFriendlyMessage('Reel export timed out — try again', 'export'))
+  } finally {
+    signal?.removeEventListener('abort', onExternalAbort)
+    if (activePollAbort === controller) {
+      activePollAbort = null
+    }
+  }
 }
 
 export function isReelExportStuck(startedAt: number | null | undefined): boolean {
