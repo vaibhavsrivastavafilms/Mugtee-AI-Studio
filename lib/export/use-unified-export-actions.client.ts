@@ -377,7 +377,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
   const showAdvancedMp4Export =
     mp4RenderEnabled && (canCompileMp4 || Boolean(videoUrl?.trim()))
 
-  useReelExportAutoResume({ canCompileMp4: showAdvancedMp4Export && canCompileMp4 })
+  useReelExportAutoResume({ enabled: showAdvancedMp4Export && canCompileMp4 })
 
   useEffect(() => {
     void syncVideoRenderConfig()

@@ -30,12 +30,18 @@ import { VideoRenderDisabledNotice } from '@/components/quick-cut/video-render-d
 import { RegenerateMissingScenesBanner } from '@/components/quick-cut/regenerate-missing-scenes-banner'
 import { BrowserExportPreflight } from '@/components/quick-cut/browser-export-preflight'
 import { ExportErrorBoundary } from '@/components/quick-cut/export-error-boundary'
-import { cn } from '@/lib/utils'
+import { derivePipelineStatusFromStore } from '@/lib/pipeline/reel-generation-orchestrator.client'
+import {
+  formatReelPipelineFailureMessage,
+  isReelExportReady,
+} from '@/lib/pipeline/reel-generation-orchestrator'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
-import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
+import { useShallow } from 'zustand/react/shallow'
 import { isClientVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
 import { PublishWorkspace } from '@/components/publish/publish-workspace'
 import { isPublishLayerEnabled } from '@/lib/publishing/publish-types'
+import { cn } from '@/lib/utils'
+import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 
 export type ExportSubTab = 'download' | 'publish' | 'repurpose' | 'workspace'
 
@@ -59,23 +65,49 @@ function ExportRenderStatus() {
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderStatusLabel = useQuickCutGenerationStore((s) => s.renderStatusLabel)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const storeSlice = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      script: s.script,
+      scriptBeats: s.scriptBeats,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      reelTimeline: s.reelTimeline,
+      renderPollUrl: s.renderPollUrl,
+      isRenderingVideo: s.isRenderingVideo,
+      renderError: s.renderError,
+      isGenerating: s.isGenerating,
+      isComplete: s.isComplete,
+      generationStatus: s.generationStatus,
+      generationStep: s.generationStep,
+      sectionStatus: s.sectionStatus,
+      videoRenderEnabled: s.videoRenderEnabled,
+      pipelineJobId: s.pipelineJobId,
+    }))
+  )
+  const pipeline = derivePipelineStatusFromStore(storeSlice)
   const configVideoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const videoRenderEnabled = isClientVideoRenderEnabled(configVideoRenderEnabled)
   const retryVideoRender = useQuickCutGenerationStore((s) => s.retryVideoRender)
 
-  if (videoUrl?.trim()) return null
+  if (isReelExportReady(pipeline)) return null
   if (!videoRenderEnabled) return null
 
   const failed =
-    videoRenderEnabled &&
-    (Boolean(renderError) || sectionStatus.export === 'failed')
+    pipeline.status === 'failed' ||
+    (videoRenderEnabled &&
+      !isGenerating &&
+      isComplete &&
+      (Boolean(renderError) || sectionStatus.export === 'failed'))
 
   return (
     <div className="space-y-2">
       {failed ? (
         <>
           <p className="text-[12px] text-red-300/90" role="alert">
-            {renderError || 'Export failed — try again.'}
+            {formatReelPipelineFailureMessage(pipeline) || renderError || 'Export failed — try again.'}
           </p>
           <button
             type="button"
@@ -131,6 +163,8 @@ export function ExportTabbedPanel({
   const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
   const title = useQuickCutGenerationStore((s) => s.title)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const configVideoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
   const syncVideoRenderConfig = useQuickCutGenerationStore((s) => s.syncVideoRenderConfig)
@@ -139,6 +173,17 @@ export function ExportTabbedPanel({
   useEffect(() => {
     void syncVideoRenderConfig()
   }, [syncVideoRenderConfig])
+
+  useEffect(() => {
+    useQuickCutGenerationStore.getState().syncPipelineOrchestrator()
+  }, [
+    isComplete,
+    generationStep,
+    videoUrl,
+    sectionStatus.export,
+    renderError,
+    isRenderingVideo,
+  ])
 
   const showRenderStatus =
     generationStep === 'render' ||

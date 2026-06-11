@@ -1,7 +1,12 @@
 'use client'
 
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
-
+import type { SectionStatusMap } from '@/lib/cinematic/section-generation-status'
+import {
+  deriveReelPipelineState,
+  reelPipelineStateToJobMetadata,
+  type ReelPipelineStatus,
+} from '@/lib/pipeline/reel-generation-orchestrator'
 const STEP_PROGRESS: Partial<Record<QuickCutGenerationStep, number>> = {
   hook: 8,
   script: 18,
@@ -44,7 +49,19 @@ export type GenerationJobSyncInput = {
   isGenerating: boolean
   isComplete: boolean
   generationStatus: string
+  pipelineStatus?: ReelPipelineStatus
   prompt?: string
+  script?: string
+  scriptBeats?: unknown[]
+  scenes?: { imageUrl?: string | null; videoUrl?: string | null }[]
+  voiceUrl?: string | null
+  videoUrl?: string | null
+  reelTimeline?: { totalDurationSec: number } | null
+  isRenderingVideo?: boolean
+  renderError?: string | null
+  sectionStatus?: Record<string, string>
+  videoRenderEnabled?: boolean
+  exportJobId?: string | null
 }
 
 let syncInflight: Promise<void> | null = null
@@ -53,24 +70,51 @@ let syncInflight: Promise<void> | null = null
 export async function syncGenerationJobProgress(input: GenerationJobSyncInput): Promise<string | null> {
   if (!input.projectId) return input.jobId
 
-  const progress = STEP_PROGRESS[input.generationStep] ?? 0
-  const status = input.isComplete
-    ? 'completed'
-    : input.generationStatus === 'failed'
-      ? 'failed'
-      : input.isGenerating
-        ? 'running'
-        : 'paused'
+  const derived = deriveReelPipelineState({
+    jobId: input.jobId,
+    isGenerating: input.isGenerating,
+    isComplete: input.isComplete,
+    generationStatus: input.generationStatus,
+    generationStep: input.generationStep,
+    sectionStatus: input.sectionStatus as SectionStatusMap | undefined,
+    script: input.script,
+    scriptBeats: input.scriptBeats,
+    scenes: input.scenes as import('@/lib/cinematic/generation').GeneratedScene[] | undefined,
+    voiceUrl: input.voiceUrl,
+    videoUrl: input.videoUrl,
+    reelTimeline: input.reelTimeline as import('@/lib/reel/types').ReelTimeline | null,
+    isRenderingVideo: input.isRenderingVideo,
+    renderError: input.renderError,
+    videoRenderEnabled: input.videoRenderEnabled,
+    requireSceneVideos: true,
+  })
+
+  const status = (input.pipelineStatus ?? derived.status) as ReelPipelineStatus
+  const orchestratorMeta = reelPipelineStateToJobMetadata({
+    ...derived,
+    status,
+  })
+  if (input.exportJobId) {
+    orchestratorMeta.exportJobId = input.exportJobId
+  }
+  const legacyStatus =
+    status === 'mp4_complete'
+      ? 'completed'
+      : status === 'failed'
+        ? 'failed'
+        : input.isGenerating
+          ? 'running'
+          : 'paused'
 
   const body = {
     projectId: input.projectId,
     jobId: input.jobId,
-    status,
-    progress,
+    status: legacyStatus,
+    progress: derived.progress,
     currentStep: input.generationStep,
     lastCompletedStep: input.lastCompletedStep,
     metadata: {
-      label: stepLabel(input.generationStep),
+      ...orchestratorMeta,
       heartbeatAt: new Date().toISOString(),
       prompt: input.prompt?.slice(0, 200),
       deviceHint: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 80) : undefined,

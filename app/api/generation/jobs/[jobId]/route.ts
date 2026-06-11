@@ -28,7 +28,15 @@ export async function GET(
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ job: generationJobToPollResponse(row) })
+  const job = generationJobToPollResponse(row)
+  return NextResponse.json({
+    ...job,
+    status: job.status,
+    progress: job.progress,
+    currentStage: job.currentStage,
+    finalMp4Url: job.finalMp4Url,
+    job,
+  })
 }
 
 type PatchBody = {

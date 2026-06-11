@@ -54,6 +54,17 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       isComplete: s.isComplete,
       generationStatus: s.generationStatus,
       prompt: s.prompt,
+      script: s.script,
+      scriptBeats: s.scriptBeats,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      reelTimeline: s.reelTimeline,
+      isRenderingVideo: s.isRenderingVideo,
+      renderError: s.renderError,
+      sectionStatus: s.sectionStatus,
+      videoRenderEnabled: s.videoRenderEnabled,
+      pipelineStatus: s.pipelineStatus,
       resumeGeneration: s.resumeGeneration,
     }))
   )
@@ -89,10 +100,22 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       isComplete: state.isComplete,
       generationStatus: state.generationStatus,
       prompt: state.prompt,
+      script: state.script,
+      scriptBeats: state.scriptBeats,
+      scenes: state.scenes,
+      voiceUrl: state.voiceUrl,
+      videoUrl: state.videoUrl,
+      reelTimeline: state.reelTimeline,
+      isRenderingVideo: state.isRenderingVideo,
+      renderError: state.renderError,
+      sectionStatus: state.sectionStatus,
+      videoRenderEnabled: state.videoRenderEnabled,
+      pipelineStatus: state.pipelineStatus,
     }).then((nextId) => {
       if (nextId && nextId !== jobId) {
         setJobId(nextId)
         writeJobId(pid, nextId)
+        useQuickCutGenerationStore.setState({ pipelineJobId: nextId })
       }
     })
   }, [

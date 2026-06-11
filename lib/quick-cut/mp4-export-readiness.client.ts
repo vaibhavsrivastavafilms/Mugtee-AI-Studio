@@ -51,8 +51,8 @@ export function resolveMp4ExportUiState(input: {
         !input.videoUrl?.trim() &&
         !input.renderError?.trim())
   )
-  const packageExportReady = !videoRenderEnabled && Boolean(input.exportPackageReady)
-  const exportReadyBadge = mp4DownloadReady || packageExportReady
+  const packageExportReady = false
+  const exportReadyBadge = mp4DownloadReady
   const hasMp4Action =
     mp4DownloadReady ||
     packageExportReady ||

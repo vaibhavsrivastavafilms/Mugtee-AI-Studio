@@ -32,6 +32,21 @@ const STUDIO = {
 
 export { STUDIO }
 
+/** Quick Cut V2 — dedicated generation page for a saved project. */
+export function quickCutProjectHref(
+  projectId: string,
+  params?: Record<string, string | undefined>
+): string {
+  const qs = new URLSearchParams()
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value) qs.set(key, value)
+    }
+  }
+  const q = qs.toString()
+  return q ? `/projects/${encodeURIComponent(projectId)}?${q}` : `/projects/${encodeURIComponent(projectId)}`
+}
+
 /** Canonical Quick Mode surface — fast one-click generation. */
 export function quickCutStudioHref(
   params?: Record<string, string | undefined>
@@ -145,7 +160,8 @@ export function creatorModeFromPathname(pathname: string): CreatorMode | null {
     pathname === STUDIO.quick ||
     pathname.startsWith(`${STUDIO.quick}/`) ||
     pathname === '/quick-cut' ||
-    pathname.startsWith('/quick-cut/')
+    pathname.startsWith('/quick-cut/') ||
+    pathname.startsWith('/projects/')
   ) {
     return 'quick'
   }
@@ -231,9 +247,9 @@ export function openQuickCutProjectHref(
   projectId: string,
   stageTab?: QuickCutStageTab
 ): string {
-  const params: Record<string, string | undefined> = { project: projectId }
+  const params: Record<string, string | undefined> = {}
   if (stageTab) params.tab = stageTab
-  return quickCutStudioHref(params)
+  return quickCutProjectHref(projectId, params)
 }
 
 /** Parse `?tab=` from a generate URL into a stage tab id. */

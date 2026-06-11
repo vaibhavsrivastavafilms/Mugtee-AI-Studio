@@ -23,6 +23,12 @@ import { ReelComposer } from '@/components/reel-composer/ReelComposer'
 import { RewriteProvider } from '@/components/director/rewrite-provider'
 import { SectionStatusBadge } from '@/components/quick-cut/section-status-badge'
 import type { SectionId } from '@/lib/cinematic/section-generation-status'
+import { derivePipelineStatusFromStore } from '@/lib/pipeline/reel-generation-orchestrator.client'
+import {
+  formatReelPipelineFailureMessage,
+  isReelExportReady,
+} from '@/lib/pipeline/reel-generation-orchestrator'
+import { useShallow } from 'zustand/react/shallow'
 
 export function GenerationStagePanel({
   tab,
@@ -75,6 +81,29 @@ export function GenerationStagePanel({
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const sectionStatus = useQuickCutGenerationStore((s) => s.sectionStatus)
+  const pipelineSlice = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      script: s.script,
+      scriptBeats: s.scriptBeats,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      reelTimeline: s.reelTimeline,
+      renderPollUrl: s.renderPollUrl,
+      isRenderingVideo: s.isRenderingVideo,
+      renderError: s.renderError,
+      isGenerating: s.isGenerating,
+      isComplete: s.isComplete,
+      generationStatus: s.generationStatus,
+      generationStep: s.generationStep,
+      sectionStatus: s.sectionStatus,
+      videoRenderEnabled: s.videoRenderEnabled,
+      pipelineJobId: s.pipelineJobId,
+    }))
+  )
+  const pipeline = derivePipelineStatusFromStore(pipelineSlice)
+  const mp4ExportReady = isReelExportReady(pipeline)
+  const pipelineFailureMessage = formatReelPipelineFailureMessage(pipeline)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
   const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
   const updateReelTimelineClip = useQuickCutGenerationStore((s) => s.updateReelTimelineClip)
@@ -383,12 +412,12 @@ export function GenerationStagePanel({
         'Rendering reel',
         <Video className="w-3 h-3" />,
         <div className="space-y-3">
-          {videoUrl ? (
+          {mp4ExportReady ? (
             <p className="text-[12px] text-gold-200/90">Download ready — MP4 reel is live.</p>
-          ) : videoRenderEnabled && (renderError || sectionStatus.export === 'failed') ? (
+          ) : pipeline.status === 'failed' || (videoRenderEnabled && !isGenerating && isComplete && (Boolean(renderError) || sectionStatus.export === 'failed')) ? (
             <>
               <p className="text-[12px] text-red-300/90" role="alert">
-                {renderError || 'Export failed — try again.'}
+                {pipelineFailureMessage || renderError || 'Export failed — try again.'}
               </p>
               <button
                 type="button"
@@ -404,7 +433,7 @@ export function GenerationStagePanel({
                 Retry compile
               </button>
             </>
-          ) : isRenderingVideo ? (
+          ) : isRenderingVideo || pipeline.status === 'mp4_rendering' ? (
             <>
               <p className="text-[12px] text-luxe/70 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-gold-400/80 shrink-0" />
@@ -420,7 +449,7 @@ export function GenerationStagePanel({
             </p>
           )}
         </div>,
-        isRenderingVideo && !videoUrl && !renderError && sectionStatus.export !== 'failed',
+        isRenderingVideo && !mp4ExportReady && pipeline.status !== 'failed',
         'export'
       )
 

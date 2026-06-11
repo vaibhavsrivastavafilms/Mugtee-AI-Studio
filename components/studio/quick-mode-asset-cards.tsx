@@ -22,6 +22,9 @@ import { directorWorkspaceHref } from '@/lib/create/routes'
 import type { SectionGenerationStatus } from '@/lib/cinematic/section-generation-status'
 import type { QuickCutStageTab } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { derivePipelineStatusFromStore } from '@/lib/pipeline/reel-generation-orchestrator.client'
+import { isReelExportReady } from '@/lib/pipeline/reel-generation-orchestrator'
+import { useShallow } from 'zustand/react/shallow'
 
 type AssetStatus = 'pending' | 'generating' | 'ready' | 'failed'
 
@@ -190,6 +193,27 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
   const script = useQuickCutGenerationStore((s) => s.script)
   const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
   const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
+  const pipelineSlice = useQuickCutGenerationStore(
+    useShallow((s) => ({
+      script: s.script,
+      scriptBeats: s.scriptBeats,
+      scenes: s.scenes,
+      voiceUrl: s.voiceUrl,
+      videoUrl: s.videoUrl,
+      reelTimeline: s.reelTimeline,
+      renderPollUrl: s.renderPollUrl,
+      isRenderingVideo: s.isRenderingVideo,
+      renderError: s.renderError,
+      isGenerating: s.isGenerating,
+      isComplete: s.isComplete,
+      generationStatus: s.generationStatus,
+      generationStep: s.generationStep,
+      sectionStatus: s.sectionStatus,
+      videoRenderEnabled: s.videoRenderEnabled,
+      pipelineJobId: s.pipelineJobId,
+    }))
+  )
+  const mp4ExportReady = isReelExportReady(derivePipelineStatusFromStore(pipelineSlice))
   const setActiveStageTab = useQuickCutGenerationStore((s) => s.setActiveStageTab)
 
   const pid = projectId ?? savedProjectId
@@ -206,7 +230,7 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
     hasVoice: Boolean(voiceUrl?.trim()),
     hasScript: Boolean(script?.trim()),
     hashtagCount,
-    exportReady: Boolean(exportPackageReady || videoUrl?.trim()),
+    exportReady: mp4ExportReady,
   }
 
   const visible = ASSETS.filter((a) => {

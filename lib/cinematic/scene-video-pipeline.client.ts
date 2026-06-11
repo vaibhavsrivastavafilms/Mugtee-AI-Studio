@@ -39,6 +39,8 @@ async function pollVideoJob(pollUrl: string): Promise<PollResult> {
   }
 }
 
+import { QUICK_CUT_V2_TEXT_TO_VIDEO } from '@/lib/quick-cut/quick-cut-v2-config'
+
 export async function queueSceneVideos(input: {
   scenes: GeneratedScene[]
   sceneBlueprints?: SceneBlueprint[]
@@ -47,9 +49,14 @@ export async function queueSceneVideos(input: {
   projectId?: string | null
   sceneIds?: string[]
 }): Promise<SceneVideoJobPoll[]> {
+  const sceneHasVideoSource = (scene: GeneratedScene) =>
+    Boolean(scene.imageUrl?.trim()) ||
+    (QUICK_CUT_V2_TEXT_TO_VIDEO &&
+      Boolean(scene.visualPrompt?.trim() || scene.imagePrompt?.trim() || scene.description?.trim()))
+
   const targets = input.sceneIds?.length
-    ? input.scenes.filter((s) => input.sceneIds!.includes(s.id) && s.imageUrl?.trim())
-    : input.scenes.filter((s) => s.imageUrl?.trim() && !s.videoUrl?.trim())
+    ? input.scenes.filter((s) => input.sceneIds!.includes(s.id) && sceneHasVideoSource(s))
+    : input.scenes.filter((s) => sceneHasVideoSource(s) && !s.videoUrl?.trim())
 
   if (targets.length === 0) return []
 

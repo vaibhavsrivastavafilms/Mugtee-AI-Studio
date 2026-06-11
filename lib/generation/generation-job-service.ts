@@ -2,6 +2,11 @@ import 'server-only'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { normalizePersistedStep } from '@/lib/cinematic/generation-state'
+import type {
+  ReelPipelineFailedStage,
+  ReelPipelineStageId,
+  ReelPipelineStatus,
+} from '@/lib/pipeline/reel-generation-orchestrator'
 
 export type GenerationJobStatus =
   | 'queued'
@@ -16,6 +21,14 @@ export type GenerationJobMetadata = {
   deviceHint?: string
   heartbeatAt?: string
   label?: string
+  pipelineStatus?: ReelPipelineStatus
+  pipelineProgress?: number
+  pipelineStage?: ReelPipelineStageId | null
+  failedStage?: ReelPipelineFailedStage | null
+  finalMp4Url?: string | null
+  exportReady?: boolean
+  /** Active reel export job — used to resume MP4 encode after refresh */
+  exportJobId?: string | null
 }
 
 export type GenerationJobRow = {
@@ -28,6 +41,11 @@ export type GenerationJobRow = {
   last_completed_step: string | null
   error: string | null
   metadata: GenerationJobMetadata
+  pipeline_status?: ReelPipelineStatus | null
+  current_stage?: ReelPipelineStageId | null
+  final_mp4_url?: string | null
+  failed_stage?: ReelPipelineFailedStage | null
+  error_message?: string | null
   created_at: string
   updated_at: string
 }
@@ -35,17 +53,46 @@ export type GenerationJobRow = {
 const ACTIVE: GenerationJobStatus[] = ['queued', 'running', 'paused']
 
 export function generationJobToPollResponse(row: GenerationJobRow) {
+  const meta = row.metadata ?? {}
+  const pipelineStatus =
+    row.pipeline_status ??
+    meta.pipelineStatus ??
+    mapLegacyJobToPipelineStatus(row)
+  const failedStage = row.failed_stage ?? meta.failedStage ?? null
+  const finalMp4Url = row.final_mp4_url ?? meta.finalMp4Url ?? null
+  const errorMessage = row.error_message ?? row.error ?? null
   return {
     jobId: row.id,
-    status: row.status,
-    progress: Math.round(row.progress),
+    status: pipelineStatus,
+    progress: meta.pipelineProgress ?? Math.round(row.progress),
     currentStep: row.current_step,
+    currentStage: row.current_stage ?? meta.pipelineStage ?? null,
     lastCompletedStep: row.last_completed_step,
     projectId: row.project_id,
-    error: row.error,
-    label: row.metadata?.label?.trim() || defaultLabel(row.status, row.current_step),
-    canResume: row.status === 'running' || row.status === 'paused' || row.status === 'queued',
+    error: errorMessage,
+    errorMessage,
+    failedStage,
+    finalMp4Url,
+    exportReady: pipelineStatus === 'mp4_complete' && Boolean(finalMp4Url),
+    exportJobId: meta.exportJobId ?? null,
+    label: meta.label?.trim() || defaultLabel(row.status, row.current_step),
+    canResume:
+      pipelineStatus !== 'mp4_complete' &&
+      pipelineStatus !== 'failed' &&
+      (row.status === 'running' || row.status === 'paused' || row.status === 'queued'),
+    /** Legacy generation_jobs row status */
+    legacyStatus: row.status,
   }
+}
+
+function mapLegacyJobToPipelineStatus(row: GenerationJobRow): ReelPipelineStatus {
+  if (row.status === 'failed') return 'failed'
+  if (row.status === 'completed') return 'mp4_complete'
+  if (row.current_step === 'render') return 'mp4_rendering'
+  if (row.current_step === 'voice') return 'voice_generating'
+  if (row.current_step === 'images') return 'images_generating'
+  if (row.current_step === 'script') return 'script_generating'
+  return row.status === 'queued' ? 'queued' : 'script_generating'
 }
 
 function defaultLabel(status: GenerationJobStatus, step: string | null): string {
@@ -114,8 +161,34 @@ export async function updateGenerationJob(
       : null
     body.last_completed_step = step
   }
-  if (patch.error !== undefined) body.error = patch.error?.slice(0, 500) ?? null
-  if (patch.metadata) body.metadata = patch.metadata
+  if (patch.error !== undefined) {
+    body.error = patch.error?.slice(0, 500) ?? null
+    body.error_message = patch.error?.slice(0, 500) ?? null
+  }
+  if (patch.metadata) {
+    body.metadata = patch.metadata
+    if (patch.metadata.pipelineStatus) {
+      body.pipeline_status = patch.metadata.pipelineStatus
+    }
+    if (patch.metadata.pipelineStage !== undefined) {
+      body.current_stage = patch.metadata.pipelineStage
+    }
+    if (patch.metadata.finalMp4Url !== undefined) {
+      body.final_mp4_url = patch.metadata.finalMp4Url
+    }
+    if (patch.metadata.failedStage !== undefined) {
+      body.failed_stage = patch.metadata.failedStage
+    }
+    if (patch.metadata.pipelineProgress != null) {
+      body.progress = Math.max(0, Math.min(100, Math.round(patch.metadata.pipelineProgress)))
+    }
+    if (patch.metadata.pipelineStatus === 'mp4_complete' && patch.metadata.finalMp4Url) {
+      body.status = 'completed'
+    }
+    if (patch.metadata.pipelineStatus === 'failed') {
+      body.status = 'failed'
+    }
+  }
 
   const { data, error } = await supabase
     .from('generation_jobs')

@@ -1,20 +1,16 @@
 'use client'
 
-import { useMemo, type RefObject } from 'react'
-import { CinematicGenerationProgress } from '@/components/quick-cut/cinematic-generation-progress'
-import { SceneWorkspaceV2 } from '@/components/quick-cut/scene-workspace-v2'
-import { DirectorTimelineV3 } from '@/components/quick-cut/director-timeline-v3'
-import { AiDirectorPanel } from '@/components/quick-cut/ai-director-panel'
-import { ConsistencyMemoryPanel } from '@/components/quick-cut/consistency-memory-panel'
+import { type RefObject } from 'react'
+import { QUICK_CUT_V2_UI } from '@/lib/quick-cut/quick-cut-v2-config'
+import { QuickCutV2GenerationPage } from '@/components/quick-cut/v2'
 import { ReelCompletionCenter } from '@/components/quick-cut/reel-completion-center'
-import { OutputWindow } from '@/components/quick-cut/output-window'
 import { GenerationRecoveryPanel } from '@/components/quick-cut/generation-recovery-panel'
-import { resolveMp4ExportUiState } from '@/lib/quick-cut/mp4-export-readiness.client'
-import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
 import { resetQuickCutForFreshCreate } from '@/lib/cinematic/quick-cut/fresh-create'
 import { STUDIO } from '@/lib/create/routes'
+import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
 import { cn } from '@/lib/utils'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { useMemo } from 'react'
 
 type GenerationEnginePanelProps = {
   projectId?: string
@@ -22,38 +18,29 @@ type GenerationEnginePanelProps = {
   className?: string
 }
 
-/** V4 center panel — HUD + live preview (generation engine). */
+/** Quick Cut center panel — V2 premium generation UI or legacy fallback. */
 export function GenerationEnginePanel({
   projectId,
   audioRef,
   className,
 }: GenerationEnginePanelProps) {
-  const title = useQuickCutGenerationStore((s) => s.title)
-  const hook = useQuickCutGenerationStore((s) => s.hook)
-  const script = useQuickCutGenerationStore((s) => s.script)
-  const scenes = useQuickCutGenerationStore((s) => s.scenes)
-  const voiceUrl = useQuickCutGenerationStore((s) => s.voiceUrl)
-  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
-  const reelTimeline = useQuickCutGenerationStore((s) => s.reelTimeline)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
   const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
   const isRenderingVideo = useQuickCutGenerationStore((s) => s.isRenderingVideo)
   const renderPollUrl = useQuickCutGenerationStore((s) => s.renderPollUrl)
-  const renderError = useQuickCutGenerationStore((s) => s.renderError)
-  const exportExpired = useQuickCutGenerationStore((s) => s.exportExpired)
-  const exportPackageReady = useQuickCutGenerationStore((s) => s.exportPackageReady)
+  const videoUrl = useQuickCutGenerationStore((s) => s.videoUrl)
   const videoRenderEnabled = useQuickCutGenerationStore((s) => s.videoRenderEnabled)
-  const assemblyPreviewAutoplay = useQuickCutGenerationStore((s) => s.assemblyPreviewAutoplay)
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
+  const script = useQuickCutGenerationStore((s) => s.script)
+  const scenes = useQuickCutGenerationStore((s) => s.scenes)
 
   const showReelControlCenter = useMemo(() => {
     const exportInFlight =
-      isRenderingVideo ||
-      Boolean(renderPollUrl && !videoUrl && videoRenderEnabled)
+      isRenderingVideo || Boolean(renderPollUrl && !videoUrl && videoRenderEnabled)
     return (
       isComplete &&
       !isGenerating &&
@@ -79,17 +66,15 @@ export function GenerationEnginePanel({
     generationStep !== 'idle' ||
     Boolean(videoUrl || scenes.length || script.trim())
 
-  const mp4Export = resolveMp4ExportUiState({
-    scenes,
-    voiceUrl,
-    videoUrl,
-    videoRenderEnabled,
-    exportExpired,
-    exportPackageReady,
-    isRenderingVideo,
-    renderPollUrl,
-    renderError,
-  })
+  if (QUICK_CUT_V2_UI) {
+    return (
+      <QuickCutV2GenerationPage
+        projectId={projectId}
+        audioRef={audioRef}
+        className={className}
+      />
+    )
+  }
 
   if (showRecovery) {
     return (
@@ -108,11 +93,7 @@ export function GenerationEnginePanel({
 
   if (showReelControlCenter) {
     return (
-      <ReelCompletionCenter
-        projectId={projectId}
-        audioRef={audioRef}
-        className={className}
-      />
+      <ReelCompletionCenter projectId={projectId} audioRef={audioRef} className={className} />
     )
   }
 
@@ -134,31 +115,5 @@ export function GenerationEnginePanel({
     )
   }
 
-  return (
-    <div className={cn(v4PanelClass, 'flex flex-col min-h-0 h-full overflow-hidden touch-pan-y', className)}>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-luxe px-3 sm:px-4 py-3 space-y-3 pb-4">
-        <CinematicGenerationProgress />
-        <SceneWorkspaceV2 />
-        <DirectorTimelineV3 />
-        <AiDirectorPanel compact />
-        <ConsistencyMemoryPanel />
-        <OutputWindow
-          audioRef={audioRef}
-          title={title}
-          hook={hook}
-          script={script}
-          scenes={scenes}
-          videoUrl={videoUrl}
-          voiceUrl={voiceUrl}
-          reelTimeline={reelTimeline}
-          isLive={!isComplete}
-          generationStep={generationStep}
-          mp4Compiling={mp4Export.mp4Compiling}
-          autoPlayPreview={assemblyPreviewAutoplay}
-          showInsightTabs={isComplete}
-          playerGenerationStep={isComplete ? 'complete' : generationStep}
-        />
-      </div>
-    </div>
-  )
+  return null
 }

@@ -1,3 +1,6 @@
 export * from '@/lib/pipeline/v3-types'
 export * from '@/lib/pipeline/v3-feature-flag'
 export * from '@/lib/pipeline/v3-cinematic-pipeline'
+export * from '@/lib/pipeline/reel-generation-orchestrator'
+export * from '@/lib/pipeline/reel-generation-orchestrator.client'
+export * from '@/lib/pipeline/reel-pipeline-runner.client'

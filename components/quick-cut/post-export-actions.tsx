@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils'
 import { useUnifiedExportActions } from '@/lib/export/use-unified-export-actions.client'
 import { executeRecommendedNextStep } from '@/lib/quick-cut/recommend-step-navigation'
 import { recommendedNextStepsFromStore } from '@/lib/quick-cut/recommended-next-steps'
+import { derivePipelineStatusFromStore } from '@/lib/pipeline/reel-generation-orchestrator.client'
+import { isReelExportReady } from '@/lib/pipeline/reel-generation-orchestrator'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -51,17 +53,23 @@ export function PostExportActions({
       savedProjectId: s.savedProjectId,
       thumbnailImageUrl: s.thumbnailImageUrl,
       exportPackageReady: s.exportPackageReady,
+      generationStep: s.generationStep,
+      pipelineJobId: s.pipelineJobId,
+      reelTimeline: s.reelTimeline,
+      generationStatus: s.generationStatus,
+      sectionStatus: s.sectionStatus,
     }))
   )
 
   const actions = useUnifiedExportActions({ supplementaryOnly: true })
 
-  const ready =
+  const pipeline = derivePipelineStatusFromStore(state)
+  const exportReady =
     state.isComplete &&
     !state.isGenerating &&
-    (Boolean(state.videoUrl) || state.exportPackageReady)
+    isReelExportReady(pipeline)
 
-  if (!ready) return null
+  if (!exportReady) return null
 
   const similarStep = recommendedNextStepsFromStore(state).find(
     (s) => s.id === 'similar_reel' || s.id === 'repurpose' || s.title.toLowerCase().includes('similar')

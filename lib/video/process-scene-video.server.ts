@@ -63,12 +63,19 @@ export async function processSceneVideoJob(input: ProcessSceneVideoJobInput): Pr
   }
 
   if (!input.scene.imageUrl?.trim()) {
-    updateVideoJob(input.jobId, {
-      status: 'failed',
-      error: 'Scene image required before video generation',
-      label: 'Missing scene image',
-    })
-    return
+    const hasTextPrompt = Boolean(
+      input.scene.visualPrompt?.trim() ||
+        input.scene.imagePrompt?.trim() ||
+        input.scene.description?.trim()
+    )
+    if (!hasTextPrompt) {
+      updateVideoJob(input.jobId, {
+        status: 'failed',
+        error: 'Scene prompt required before video generation',
+        label: 'Missing scene prompt',
+      })
+      return
+    }
   }
 
   updateVideoJob(input.jobId, {
