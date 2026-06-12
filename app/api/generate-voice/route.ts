@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isFreeTierOnly } from '@/lib/ai/free-tier'
+import { isFreeTierOnly, buildQuickCutProviderConfig } from '@/lib/ai/free-tier'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
 import {
@@ -14,6 +14,10 @@ import { generateVoice } from '@/lib/voice/generateVoice'
 import { selectVoiceProfile } from '@/lib/voice/voiceProfiles'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { parseSceneBlueprints } from '@/lib/cinematic/scene-blueprint'
+import {
+  VOICE_PROVIDER_MISSING_MESSAGE,
+  VOICE_UNAVAILABLE_MESSAGE,
+} from '@/lib/generation/generation-pipeline-messages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,6 +25,10 @@ export const dynamic = 'force-dynamic'
 function parseScenes(raw: unknown): GeneratedScene[] {
   if (!Array.isArray(raw)) return []
   return raw.filter((s) => s && typeof s === 'object') as GeneratedScene[]
+}
+
+function isVoiceProviderConfigured(providers: ReturnType<typeof buildQuickCutProviderConfig>): boolean {
+  return Boolean(providers.elevenlabs || providers.openai || providers.emergent)
 }
 
 export async function POST(req: NextRequest) {
@@ -44,6 +52,30 @@ export async function POST(req: NextRequest) {
     const profile = voiceProfileId
       ? undefined
       : selectVoiceProfile({ niche, tone })
+
+    const providers = buildQuickCutProviderConfig()
+    const voiceConfigured = isVoiceProviderConfigured(providers)
+
+    if (!voiceConfigured) {
+      const message = isFreeTierOnly()
+        ? 'Voice generation requires OPENAI_API_KEY (tts-1) in free tier.'
+        : VOICE_PROVIDER_MISSING_MESSAGE
+      console.warn('[voice] provider unavailable', {
+        reason: 'VOICE_PROVIDER_UNAVAILABLE',
+        freeTierOnly: providers.freeTierOnly,
+      })
+      return NextResponse.json(
+        {
+          skipped: true,
+          reason: 'VOICE_PROVIDER_UNAVAILABLE',
+          error: message,
+          audioUrl: null,
+          mock: true,
+          fallbackMessage: VOICE_UNAVAILABLE_MESSAGE,
+        },
+        { status: 503 }
+      )
+    }
 
     const supabase = createSupabaseServerClient()
     const {
@@ -75,16 +107,26 @@ export async function POST(req: NextRequest) {
     )
 
     if (!result.buffer && !result.audioUrl) {
+      const message =
+        result.fallbackMessage ??
+        (isFreeTierOnly()
+          ? 'Voice generation requires OPENAI_API_KEY (tts-1) in free tier, or runs without audio.'
+          : VOICE_PROVIDER_MISSING_MESSAGE)
+      console.warn('[voice] synthesis unavailable', {
+        reason: 'VOICE_SYNTHESIS_FAILED',
+        provider: result.provider,
+        mock: result.mock,
+      })
       return NextResponse.json(
         {
-          error: isFreeTierOnly()
-            ? 'Voice generation requires OPENAI_API_KEY (tts-1) in free tier, or runs without audio.'
-            : 'Voice generation requires ELEVENLABS_API_KEY, OPENAI_API_KEY, or EMERGENT_LLM_KEY.',
+          skipped: true,
+          reason: 'VOICE_SYNTHESIS_FAILED',
+          error: message,
           audioUrl: null,
           mock: true,
           waveform: result.waveform,
           provider: result.provider,
-          fallbackMessage: result.fallbackMessage,
+          fallbackMessage: result.fallbackMessage ?? VOICE_UNAVAILABLE_MESSAGE,
           voiceMetadata: result.voiceMetadata,
         },
         { status: 503 }
@@ -136,6 +178,19 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError('generate-voice', err)
-    return NextResponse.json({ error: 'Voice generation paused' }, { status: 500 })
+    console.warn('[voice] generation error', {
+      reason: 'VOICE_ROUTE_ERROR',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return NextResponse.json(
+      {
+        skipped: true,
+        reason: 'VOICE_ROUTE_ERROR',
+        error: 'Voice generation paused',
+        audioUrl: null,
+        fallbackMessage: VOICE_UNAVAILABLE_MESSAGE,
+      },
+      { status: 500 }
+    )
   }
 }

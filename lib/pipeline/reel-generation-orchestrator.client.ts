@@ -1,6 +1,10 @@
 'use client'
 
 import {
+  clearStaleGenerationJobReference,
+  isValidGenerationJobId,
+} from '@/lib/generation/stale-generation-job.client'
+import {
   deriveReelPipelineState,
   isReelPipelineTerminal,
   type ReelPipelinePollResponse,
@@ -61,15 +65,40 @@ export type GenerationJobOrchestratorPoll = ReelPipelinePollResponse & {
   exportJobId?: string | null
 }
 
-/** Poll durable job — single endpoint for pipeline progress. */
+type PollOptions = {
+  projectId?: string | null
+}
+
+/** Poll durable job — single endpoint for pipeline progress. Returns null when job is stale or unavailable. */
 export async function pollGenerationJobOrchestrator(
-  jobId: string
+  jobId: string,
+  options?: PollOptions
 ): Promise<GenerationJobOrchestratorPoll | null> {
+  if (!isValidGenerationJobId(jobId)) {
+    clearStaleGenerationJobReference({
+      jobId,
+      projectId: options?.projectId ?? null,
+      reason: 'invalid-id',
+    })
+    return null
+  }
+
   const res = await fetch(`/api/generation/jobs/${encodeURIComponent(jobId)}`, {
     credentials: 'include',
     cache: 'no-store',
   })
+
+  if (res.status === 404) {
+    clearStaleGenerationJobReference({
+      jobId,
+      projectId: options?.projectId ?? null,
+      reason: '404',
+    })
+    return null
+  }
+
   if (!res.ok) return null
+
   const data = (await res.json().catch(() => null)) as {
     status?: string
     progress?: number
@@ -86,7 +115,15 @@ export async function pollGenerationJobOrchestrator(
   }
 
   const job = data?.job
-  if (!job?.jobId) return null
+  if (!job?.jobId) {
+    clearStaleGenerationJobReference({
+      jobId,
+      projectId: options?.projectId ?? null,
+      reason: 'missing-payload',
+    })
+    return null
+  }
+
   return job
 }
 
@@ -96,11 +133,14 @@ export async function pollGenerationJobUntilTerminal(
     intervalMs?: number
     onTick?: (poll: GenerationJobOrchestratorPoll) => void
     signal?: AbortSignal
+    projectId?: string | null
   }
 ): Promise<GenerationJobOrchestratorPoll | null> {
   const intervalMs = options?.intervalMs ?? 2000
   while (!options?.signal?.aborted) {
-    const poll = await pollGenerationJobOrchestrator(jobId)
+    const poll = await pollGenerationJobOrchestrator(jobId, {
+      projectId: options?.projectId,
+    })
     if (!poll) return null
     options?.onTick?.(poll)
     if (isReelPipelineTerminal(poll.status)) return poll

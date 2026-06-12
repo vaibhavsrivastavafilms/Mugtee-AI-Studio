@@ -34,9 +34,31 @@ export function QuickCutV2GenerationPage({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const renderError = useQuickCutGenerationStore((s) => s.renderError)
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
+
+  const generationUnavailable =
+    Boolean(renderError?.includes('Generation unavailable')) &&
+    !isGenerating &&
+    generationStatus !== 'failed'
+
+  if (generationUnavailable) {
+    return (
+      <div className={cn(qcV2Panel, 'p-5 space-y-4 text-center', className)}>
+        <h2 className="text-lg font-semibold text-white">Generation unavailable</h2>
+        <p className="text-sm text-white/65">{renderError}</p>
+        <button
+          type="button"
+          onClick={() => resetQuickCutForFreshCreate()}
+          className="inline-flex items-center justify-center rounded-full border border-[rgba(212,175,55,0.35)] px-4 py-2 text-xs uppercase tracking-wider text-[#E6C76A] hover:bg-[rgba(212,175,55,0.08)] transition"
+        >
+          Start a new reel
+        </button>
+      </div>
+    )
+  }
 
   const showRecovery = generationStep === 'error' || generationStatus === 'failed' || status === 'FAILED'
 

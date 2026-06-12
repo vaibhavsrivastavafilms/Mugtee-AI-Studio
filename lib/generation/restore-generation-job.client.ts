@@ -1,10 +1,12 @@
 'use client'
 
 import type { ReelPipelineStatus } from '@/lib/pipeline/reel-generation-orchestrator'
-import type { QuickCutGenerationStoreState } from '@/stores/quick-cut-generation-store'
 import type { ActiveGenerationJob } from '@/lib/generation/generation-job-sync.client'
-
-type ActiveJob = ActiveGenerationJob
+import {
+  clearStaleGenerationJobReference,
+  isValidGenerationJobId,
+} from '@/lib/generation/stale-generation-job.client'
+import type { QuickCutGenerationStoreState } from '@/stores/quick-cut-generation-store'
 
 type StoreGet = () => QuickCutGenerationStoreState
 type StoreSet = (
@@ -15,10 +17,34 @@ type StoreSet = (
 
 /** Rehydrate store + polling from a durable generation_jobs row after refresh. */
 export function applyActiveGenerationJobToStore(
-  job: ActiveJob,
+  job: ActiveGenerationJob | null | undefined,
   get: StoreGet,
-  set: StoreSet
+  set: StoreSet,
+  projectId?: string | null
 ): void {
+  if (!job?.jobId) {
+    if (projectId) {
+      const staleId = get().pipelineJobId
+      if (staleId) {
+        clearStaleGenerationJobReference({
+          jobId: staleId,
+          projectId,
+          reason: 'missing-payload',
+        })
+      }
+    }
+    return
+  }
+
+  if (!isValidGenerationJobId(job.jobId)) {
+    clearStaleGenerationJobReference({
+      jobId: job.jobId,
+      projectId: projectId ?? get().savedProjectId,
+      reason: 'invalid-id',
+    })
+    return
+  }
+
   const patch: Partial<QuickCutGenerationStoreState> = {
     pipelineJobId: job.jobId,
     pipelineStatus: job.status as ReelPipelineStatus,

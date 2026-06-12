@@ -1,6 +1,52 @@
 import type { CinematicScene, CinematicVoice } from '@/stores/cinematic-project'
 
-/** User-facing creation milestone derived from existing project fields (no DB columns). */
+export type ProjectDisplayStatus =
+  | 'ready'
+  | 'generating'
+  | 'voice_unavailable'
+  | 'export_unavailable'
+  | 'generation_failed'
+  | 'in_progress'
+
+export const PROJECT_DISPLAY_STATUS_LABEL: Record<ProjectDisplayStatus, string> = {
+  ready: 'Ready',
+  generating: 'Generating',
+  voice_unavailable: 'Voice unavailable',
+  export_unavailable: 'Export unavailable',
+  generation_failed: 'Generation failed',
+  in_progress: 'In progress',
+}
+
+/** Card-safe pipeline status from persisted project fields (no job polling). */
+export function deriveProjectDisplayStatus(input: {
+  videoUrl?: string | null
+  status?: string | null
+  voice?: { audioUrl?: string | null } | null
+  scenes?: unknown[]
+  script?: string | null
+}): { key: ProjectDisplayStatus; label: string } {
+  const status = (input.status ?? '').toLowerCase()
+  if (input.videoUrl?.trim()) {
+    return { key: 'ready', label: PROJECT_DISPLAY_STATUS_LABEL.ready }
+  }
+  if (status === 'failed' || status === 'error') {
+    return { key: 'generation_failed', label: PROJECT_DISPLAY_STATUS_LABEL.generation_failed }
+  }
+  if (status === 'generating' || status === 'compile' || status === 'rendering') {
+    return { key: 'generating', label: PROJECT_DISPLAY_STATUS_LABEL.generating }
+  }
+  const hasScenes = Array.isArray(input.scenes) && input.scenes.length > 0
+  const hasScript = Boolean(input.script?.trim())
+  const hasVoice = Boolean(input.voice?.audioUrl?.trim())
+  if (hasScenes && hasScript && !hasVoice) {
+    return { key: 'voice_unavailable', label: PROJECT_DISPLAY_STATUS_LABEL.voice_unavailable }
+  }
+  if (hasScenes && hasScript && !input.videoUrl?.trim()) {
+    return { key: 'export_unavailable', label: PROJECT_DISPLAY_STATUS_LABEL.export_unavailable }
+  }
+  return { key: 'in_progress', label: PROJECT_DISPLAY_STATUS_LABEL.in_progress }
+}
+
 export type ProjectCreationStatus =
   | 'idea_created'
   | 'hook_generated'

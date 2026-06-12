@@ -1,38 +1,22 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   fetchActiveGenerationJob,
   syncGenerationJobProgress,
 } from '@/lib/generation/generation-job-sync.client'
+import { applyActiveGenerationJobToStore } from '@/lib/generation/restore-generation-job.client'
+import {
+  clearStoredGenerationJobId,
+  readStoredGenerationJobId,
+  writeStoredGenerationJobId,
+} from '@/lib/generation/generation-job-session.client'
+import {
+  clearStaleGenerationJobReference,
+  isValidGenerationJobId,
+} from '@/lib/generation/stale-generation-job.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
-
-const JOB_ID_KEY = 'mugtee:generation-job-id:v1'
-
-function readJobId(projectId: string | null): string | null {
-  if (typeof window === 'undefined' || !projectId) return null
-  try {
-    const raw = sessionStorage.getItem(JOB_ID_KEY)
-    if (!raw) return null
-    const map = JSON.parse(raw) as Record<string, string>
-    return map[projectId] ?? null
-  } catch {
-    return null
-  }
-}
-
-function writeJobId(projectId: string, jobId: string) {
-  if (typeof window === 'undefined') return
-  try {
-    const raw = sessionStorage.getItem(JOB_ID_KEY)
-    const map = raw ? (JSON.parse(raw) as Record<string, string>) : {}
-    map[projectId] = jobId
-    sessionStorage.setItem(JOB_ID_KEY, JSON.stringify(map))
-  } catch {
-    /* quota */
-  }
-}
 
 export type GenerationJobResumeState = {
   jobId: string | null
@@ -74,25 +58,66 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
   const [label, setLabel] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [canResume, setCanResume] = useState(false)
+  const restoredRef = useRef<string | null>(null)
+
   useEffect(() => {
     if (!pid) return
-    const stored = readJobId(pid)
-    if (stored) setJobId(stored)
+
+    const stored = readStoredGenerationJobId(pid)
+    if (stored) {
+      if (isValidGenerationJobId(stored)) {
+        setJobId(stored)
+      } else {
+        clearStaleGenerationJobReference({
+          jobId: stored,
+          projectId: pid,
+          reason: 'invalid-id',
+        })
+      }
+    }
 
     void fetchActiveGenerationJob(pid).then((job) => {
-      if (!job) return
+      if (!job) {
+        if (stored && isValidGenerationJobId(stored)) {
+          clearStaleGenerationJobReference({
+            jobId: stored,
+            projectId: pid,
+            reason: '404',
+          })
+        } else if (stored) {
+          clearStoredGenerationJobId(pid, stored)
+        }
+        setJobId(null)
+        setCanResume(false)
+        return
+      }
+
       setJobId(job.jobId)
       setLabel(job.label)
       setProgress(job.progress)
       setCanResume(job.canResume)
-      writeJobId(pid, job.jobId)
+      writeStoredGenerationJobId(pid, job.jobId)
+
+      if (restoredRef.current !== `${pid}:${job.jobId}`) {
+        restoredRef.current = `${pid}:${job.jobId}`
+        applyActiveGenerationJobToStore(
+          job,
+          useQuickCutGenerationStore.getState,
+          useQuickCutGenerationStore.setState,
+          pid
+        )
+        const live = useQuickCutGenerationStore.getState()
+        if (job.canResume && !live.isGenerating && !live.isComplete) {
+          void live.resumeGeneration()
+        }
+      }
     })
   }, [pid])
 
   useEffect(() => {
     if (!pid || state.isComplete) return
     void syncGenerationJobProgress({
-      jobId,
+      jobId: isValidGenerationJobId(jobId) ? jobId : null,
       projectId: pid,
       generationStep: state.generationStep,
       lastCompletedStep: state.lastCompletedStep,
@@ -112,9 +137,9 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       videoRenderEnabled: state.videoRenderEnabled,
       pipelineStatus: state.pipelineStatus,
     }).then((nextId) => {
-      if (nextId && nextId !== jobId) {
+      if (nextId && nextId !== jobId && isValidGenerationJobId(nextId)) {
         setJobId(nextId)
-        writeJobId(pid, nextId)
+        writeStoredGenerationJobId(pid, nextId)
         useQuickCutGenerationStore.setState({ pipelineJobId: nextId })
       }
     })

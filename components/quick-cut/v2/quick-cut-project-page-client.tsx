@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { QuickCutV2GenerationPage } from '@/components/quick-cut/v2'
 import { useQuickCutProjectHydration } from '@/hooks/use-quick-cut-project-hydration'
+import { useGenerationJobResume } from '@/hooks/use-generation-job-resume'
 import { useReelPipelineJobPoll } from '@/hooks/use-reel-pipeline-poll'
 import { QUICK_PLATFORM_OPTIONS, type QuickPlatformValue } from '@/lib/studio/quick-create-options'
 import { QC_V2 } from '@/lib/quick-cut/quick-cut-v2-design'
@@ -20,7 +21,8 @@ function QuickCutProjectPageInner({ projectId }: QuickCutProjectPageClientProps)
     ('youtube_short' as QuickPlatformValue)
 
   useQuickCutProjectHydration(projectId, { platform })
-  useReelPipelineJobPoll(projectId)
+  useGenerationJobResume(projectId)
+  useReelPipelineJobPoll()
 
   return (
     <div

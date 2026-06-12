@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
+  isQuickCutContentReady,
   isQuickCutExportReady,
   projectStatusStageLabel,
   resolveProjectStatus,
@@ -24,6 +25,7 @@ export function useQuickCutProjectStatus() {
       isGenerating: s.isGenerating,
       generationStep: s.generationStep,
       generationStatus: s.generationStatus,
+      isComplete: s.isComplete,
       pipelineStatus: s.pipelineStatus,
       isRenderingVideo: s.isRenderingVideo,
       videoUrl: s.videoUrl,
@@ -40,6 +42,9 @@ export function useQuickCutProjectStatus() {
       savedProjectId: s.savedProjectId,
       generationStartedAt: s.generationStartedAt,
       exportCompletedAt: s.exportCompletedAt,
+      exportPackageReady: s.exportPackageReady,
+      videoRenderEnabled: s.videoRenderEnabled,
+      voiceFallbackMessage: s.voiceFallbackMessage,
     }))
   )
 
@@ -61,6 +66,9 @@ export function useQuickCutProjectStatus() {
         scenesWithVideo,
         voiceUrl: state.voiceUrl,
         directingSceneLabel: state.directingSceneLabel,
+        exportPackageReady: state.exportPackageReady,
+        videoRenderEnabled: state.videoRenderEnabled,
+        voiceFallbackMessage: state.voiceFallbackMessage,
       }),
     [state, scenesWithVideo]
   )
@@ -75,7 +83,15 @@ export function useQuickCutProjectStatus() {
     [status, state.scenes.length, scenesWithVideo, state.directingSceneLabel]
   )
 
-  const exportReady = isQuickCutExportReady({
+  const exportReady = isQuickCutContentReady({
+    videoUrl: state.videoUrl,
+    pipelineStatus: state.pipelineStatus,
+    exportPackageReady: state.exportPackageReady,
+    videoRenderEnabled: state.videoRenderEnabled,
+    isComplete: state.isComplete,
+  })
+
+  const mp4ExportReady = isQuickCutExportReady({
     videoUrl: state.videoUrl,
     pipelineStatus: state.pipelineStatus,
   })
@@ -94,6 +110,7 @@ export function useQuickCutProjectStatus() {
     status,
     stageLabel,
     exportReady,
+    mp4ExportReady,
     progressPercent,
     projectName,
     scenesCount: state.scenes.length,

@@ -48,18 +48,28 @@ export type QuickCutStatusInput = {
   directingSceneLabel: string | null
 }
 
-export function resolveProjectStatus(input: QuickCutStatusInput): ProjectStatus {
+export function resolveProjectStatus(input: QuickCutStatusInput & {
+  exportPackageReady?: boolean
+  videoRenderEnabled?: boolean
+  voiceFallbackMessage?: string | null
+}): ProjectStatus {
   if (input.pipelineStatus === 'failed' || input.generationStatus === 'failed') {
     return 'FAILED'
   }
 
   if (
-    isQuickCutExportReady({
+    isQuickCutContentReady({
       videoUrl: input.videoUrl,
       pipelineStatus: input.pipelineStatus,
+      exportPackageReady: input.exportPackageReady,
+      videoRenderEnabled: input.videoRenderEnabled,
     })
   ) {
     return 'COMPLETE'
+  }
+
+  if (!input.isGenerating && input.voiceFallbackMessage && !input.voiceUrl?.trim()) {
+    return 'VOICEOVER'
   }
 
   if (input.pipelineStatus === 'mp4_rendering' || input.isRenderingVideo) {
@@ -134,6 +144,22 @@ export function isQuickCutExportReady(input: {
     Boolean(input.videoUrl?.trim()) &&
     isValidReelDownloadUrl(input.videoUrl)
   )
+}
+
+/** Content ready for results — MP4 or creator pack when server export is disabled. */
+export function isQuickCutContentReady(input: {
+  videoUrl: string | null
+  pipelineStatus: ReelPipelineStatus
+  exportPackageReady?: boolean
+  videoRenderEnabled?: boolean
+  isComplete?: boolean
+}): boolean {
+  if (isQuickCutExportReady(input)) return true
+  if (input.isComplete && !input.videoRenderEnabled && input.exportPackageReady) return true
+  if (!input.videoRenderEnabled && input.exportPackageReady && input.pipelineStatus === 'timeline_complete') {
+    return true
+  }
+  return false
 }
 
 export function isQuickCutMp4ExportReady(input: {

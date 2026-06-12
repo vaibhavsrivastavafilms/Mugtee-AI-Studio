@@ -26,9 +26,11 @@ import type { ProjectGalleryFilter } from '@/components/create/projects-gallery-
 import { useProjectLibrary } from '@/hooks/use-project-library'
 import {
   deriveProjectCreationStatus,
+  deriveProjectDisplayStatus,
   deriveProjectPreviewSnippet,
   PROJECT_CREATION_STATUS_LABEL,
   type ProjectCreationStatus,
+  type ProjectDisplayStatus,
 } from '@/lib/project-card-meta'
 
 export type ProjectCardModel = {
@@ -38,6 +40,8 @@ export type ProjectCardModel = {
   statusLabel: string
   creationStatus: ProjectCreationStatus
   creationStatusLabel: string
+  displayStatus: ProjectDisplayStatus
+  displayStatusLabel: string
   previewSnippet: string | null
   projectTypeLabel: string
   mode: CreatorMode
@@ -120,6 +124,13 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
     videoUrl: project.video_url,
     status: project.status,
   })
+  const display = deriveProjectDisplayStatus({
+    videoUrl: project.video_url,
+    status: project.status,
+    voice: project.voice,
+    scenes: project.scenes,
+    script: project.script,
+  })
 
   return {
     id: project.id,
@@ -128,6 +139,8 @@ export function summaryToCard(project: CinematicProjectSummary): ProjectCardMode
     statusLabel: STATUS_LABEL[project.status] || 'In progress',
     creationStatus,
     creationStatusLabel: PROJECT_CREATION_STATUS_LABEL[creationStatus],
+    displayStatus: display.key,
+    displayStatusLabel: display.label,
     previewSnippet: deriveProjectPreviewSnippet({
       hook: project.hook,
       script: project.script,
@@ -371,6 +384,7 @@ export function UnifiedProjectsGrid({
                   <p className="text-[11px] text-gold-300/75 tracking-wide">
                     {p.projectTypeLabel}
                   </p>
+                  <p className="text-[10px] text-white/55 tracking-wide">{p.displayStatusLabel}</p>
                   <p className="text-[10px] text-muted-foreground tracking-wide">
                     Last edited {lastEdited}
                   </p>
