@@ -144,7 +144,7 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
   return promise
 }
 
-export async function fetchActiveGenerationJob(projectId: string): Promise<{
+export type ActiveGenerationJob = {
   jobId: string
   status: string
   progress: number
@@ -152,19 +152,17 @@ export async function fetchActiveGenerationJob(projectId: string): Promise<{
   lastCompletedStep: string | null
   canResume: boolean
   label: string
-} | null> {
+  finalMp4Url?: string | null
+  errorMessage?: string | null
+}
+
+export async function fetchActiveGenerationJob(
+  projectId: string
+): Promise<ActiveGenerationJob | null> {
   const res = await fetch(`/api/generation/jobs?projectId=${encodeURIComponent(projectId)}`)
   if (!res.ok) return null
   const data = (await res.json().catch(() => null)) as {
-    job?: {
-      jobId: string
-      status: string
-      progress: number
-      currentStep: string | null
-      lastCompletedStep: string | null
-      canResume: boolean
-      label: string
-    } | null
+    job?: ActiveGenerationJob | null
   }
   return data?.job ?? null
 }

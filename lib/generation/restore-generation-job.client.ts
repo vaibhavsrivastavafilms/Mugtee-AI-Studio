@@ -1,0 +1,53 @@
+'use client'
+
+import type { ReelPipelineStatus } from '@/lib/pipeline/reel-generation-orchestrator'
+import type { QuickCutGenerationStoreState } from '@/stores/quick-cut-generation-store'
+import type { ActiveGenerationJob } from '@/lib/generation/generation-job-sync.client'
+
+type ActiveJob = ActiveGenerationJob
+
+type StoreGet = () => QuickCutGenerationStoreState
+type StoreSet = (
+  partial:
+    | Partial<QuickCutGenerationStoreState>
+    | ((state: QuickCutGenerationStoreState) => Partial<QuickCutGenerationStoreState>)
+) => void
+
+/** Rehydrate store + polling from a durable generation_jobs row after refresh. */
+export function applyActiveGenerationJobToStore(
+  job: ActiveJob,
+  get: StoreGet,
+  set: StoreSet
+): void {
+  const patch: Partial<QuickCutGenerationStoreState> = {
+    pipelineJobId: job.jobId,
+    pipelineStatus: job.status as ReelPipelineStatus,
+    progress: job.progress,
+  }
+
+  if (job.finalMp4Url) {
+    patch.videoUrl = job.finalMp4Url
+    patch.isComplete = true
+    patch.isGenerating = false
+    patch.generationStatus = 'completed'
+    patch.generationStep = 'complete'
+    patch.renderPollUrl = null
+    patch.renderError = null
+  } else if (job.status === 'failed') {
+    patch.isGenerating = false
+    patch.generationStatus = 'failed'
+    patch.renderError = job.errorMessage ?? 'Generation failed'
+  } else if (job.canResume) {
+    patch.isGenerating = false
+    patch.generationStatus = 'generating'
+    if (job.lastCompletedStep) {
+      patch.lastCompletedStep = job.lastCompletedStep as QuickCutGenerationStoreState['lastCompletedStep']
+    }
+  }
+
+  set(patch)
+
+  if (job.status === 'mp4_rendering' && !get().videoUrl) {
+    void get().resumeRenderPoll()
+  }
+}

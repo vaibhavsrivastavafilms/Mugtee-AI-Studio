@@ -113,3 +113,8 @@ credentials.json
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local secret-remediation scripts (never commit — contains replacement patterns)
+scripts/git-filter-repo.py
+scripts/remediate-git-secrets.ps1
+scripts/secrets-replacements.txt

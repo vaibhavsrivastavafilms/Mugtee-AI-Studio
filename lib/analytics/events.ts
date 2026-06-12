@@ -66,6 +66,11 @@ export const AnalyticsEvents = {
   COMPANION_USED: 'companion_used',
   STORY_GENERATED_AFTER_COMPANION: 'story_generated_after_companion',
   EXPORT_COMPLETED_AFTER_COMPANION: 'export_completed_after_companion',
+
+  /** Freemium sponsored placements */
+  SPONSORED_PLACEMENT_VIEW: 'sponsored_placement_view',
+  SPONSORED_PLACEMENT_IMPRESSION: 'sponsored_placement_impression',
+  SPONSORED_PLACEMENT_CLICK: 'sponsored_placement_click',
 } as const
 
 export type AnalyticsEventName = (typeof AnalyticsEvents)[keyof typeof AnalyticsEvents]
