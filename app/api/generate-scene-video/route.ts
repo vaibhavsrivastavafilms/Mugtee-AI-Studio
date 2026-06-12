@@ -11,6 +11,8 @@ import {
   isSceneVideoGenerationEnabled,
   resolveSceneVideoProviderId,
 } from '@/lib/video-providers/factory'
+import { normalizeGenerationMode } from '@/lib/economics/generation-mode'
+import { resolveUserPlanType } from '@/lib/economics/resolve-user-plan.server'
 import { createVideoJob } from '@/lib/video/video-job'
 import { processSceneVideoJob } from '@/lib/video/process-scene-video.server'
 import {
@@ -31,14 +33,31 @@ type JobResponse = {
 
 export async function POST(req: NextRequest) {
   try {
-    if (!isSceneVideoGenerationEnabled()) {
+    const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
+    const generationMode = normalizeGenerationMode(raw?.generationMode ?? raw?.generation_mode)
+
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+    }
+
+    const planType = await resolveUserPlanType(user.id)
+    const gate = { generationMode, planType }
+
+    if (!isSceneVideoGenerationEnabled(gate)) {
       return NextResponse.json(
-        { error: 'Scene video generation is not enabled', code: 'video_generation_disabled' },
-        { status: 503 }
+        {
+          error: 'Runway clips require Studio plan and Cinematic mode',
+          code: 'video_generation_disabled',
+        },
+        { status: 403 }
       )
     }
 
-    const provider = getVideoProvider()
+    const provider = getVideoProvider(undefined, gate)
     if (!provider) {
       return NextResponse.json(
         { error: 'No video provider configured', code: 'video_provider_missing' },
@@ -46,22 +65,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const scenes = Array.isArray(raw?.scenes) ? (raw.scenes as GeneratedScene[]) : []
     if (scenes.length === 0) {
       return NextResponse.json({ error: 'scenes array required' }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (user) {
-      const limit = await checkSceneVideoLimit(user.id)
-      if (!limit.allowed) {
-        return NextResponse.json(buildSceneVideoLimitError(limit), { status: 429 })
-      }
+    const limit = await checkSceneVideoLimit(user.id)
+    if (!limit.allowed) {
+      return NextResponse.json(buildSceneVideoLimitError(limit), { status: 429 })
     }
 
     const asyncMode = raw?.async !== false
@@ -78,7 +89,7 @@ export async function POST(req: NextRequest) {
       ? scenes.filter((s) => sceneIds.includes(s.id))
       : scenes
 
-    const providerId = resolveSceneVideoProviderId() ?? provider.id
+    const providerId = resolveSceneVideoProviderId(gate) ?? provider.id
     const jobs: JobResponse[] = []
 
     for (const scene of targets) {

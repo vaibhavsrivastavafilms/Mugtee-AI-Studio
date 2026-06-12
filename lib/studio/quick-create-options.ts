@@ -9,9 +9,13 @@ export const V4_QUICK_PROMPT_CHIPS = [
 ] as const
 
 export const QUICK_DURATION_OPTIONS = [
+  { value: 15, label: '15 Seconds' },
   { value: 30, label: '30 Seconds' },
   { value: 60, label: '60 Seconds' },
 ] as const
+
+export { GENERATION_MODE_LABELS, GENERATION_MODES } from '@/lib/economics/generation-mode'
+export type { GenerationMode } from '@/lib/economics/generation-mode'
 
 export type QuickPlatformValue = 'instagram_reel' | 'youtube_short' | 'youtube_video'
 

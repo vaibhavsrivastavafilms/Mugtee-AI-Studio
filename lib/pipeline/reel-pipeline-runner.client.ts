@@ -18,6 +18,7 @@ import {
   ReelPipelineStageError,
 } from '@/lib/pipeline/reel-generation-orchestrator'
 import { syncGenerationJobProgress } from '@/lib/generation/generation-job-sync.client'
+import { writeStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
 import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
 import {
   pollGenerationJobUntilTerminal,
@@ -116,7 +117,10 @@ export async function syncPipelineJob(
   })
 
   if (jobId && isValidGenerationJobId(jobId) && jobId !== state.pipelineJobId) {
-    set({ pipelineJobId: jobId })
+    set({ pipelineJobId: jobId, jobPollWarning: null })
+    if (state.savedProjectId) {
+      writeStoredGenerationJobId(state.savedProjectId, jobId)
+    }
   }
   return isValidGenerationJobId(jobId) ? jobId : isValidGenerationJobId(state.pipelineJobId) ? state.pipelineJobId : null
 }

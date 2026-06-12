@@ -51,6 +51,8 @@ export type GenerateVoiceInput = {
   parsedIntent?: ParsedCreatorIntent | null
   audienceType?: string
   skipCache?: boolean
+  /** When false, skip ElevenLabs even if keyed (Free/Creator economics). */
+  preferElevenLabs?: boolean
 }
 
 export type GenerateVoiceResult = {
@@ -150,9 +152,10 @@ async function uploadVoiceBuffer(
 
 async function synthesizeWithDirector(
   narration: string,
-  voiceId: string
+  voiceId: string,
+  preferElevenLabs = true
 ): Promise<{ buffer: Buffer | null; provider: VoiceMetadata['provider']; fallbackMessage?: string }> {
-  if (allowElevenLabsVoice() && getElevenLabsApiKey()) {
+  if (preferElevenLabs && allowElevenLabsVoice() && getElevenLabsApiKey()) {
     const result = await synthesizeElevenLabsSpeech(narration, {
       voiceId,
       modelId: getDefaultElevenLabsModelId(),
@@ -250,7 +253,11 @@ export async function generateVoice(
     }
   }
 
-  const synth = await synthesizeWithDirector(narration, plan.voiceId)
+  const synth = await synthesizeWithDirector(
+    narration,
+    plan.voiceId,
+    input.preferElevenLabs !== false
+  )
 
   if (!synth.buffer) {
     return {

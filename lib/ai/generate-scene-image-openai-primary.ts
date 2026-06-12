@@ -9,7 +9,8 @@ import {
   persistRemoteImage,
   type SceneImageOptions,
 } from '@/lib/ai/generate-scene-image'
-import { generateImage } from '@/lib/image-providers'
+import { generateImage, generateDraftImage } from '@/lib/image-providers'
+import type { ImageProviderTier } from '@/lib/economics/provider-routing.server'
 import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 
@@ -45,6 +46,8 @@ type PrimaryImageOpts = {
   hasReferenceStyle?: boolean
   aspectRatio?: string
   imageOptions?: SceneImageOptions
+  /** Economics routing — draft skips paid image APIs. */
+  imageTier?: ImageProviderTier
 }
 
 /**
@@ -63,6 +66,23 @@ export async function generateSceneImageOpenAIPrimary(
     (opts.userId
       ? `${opts.userId}/cinematic/auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`
       : undefined)
+
+  if (opts.imageTier === 'draft') {
+    const draft = await generateDraftImage(trimmed)
+    if (!draft) return { url: null }
+    if (filename) {
+      const uploaded = await persistRemoteImage({
+        remoteUrl: draft.url,
+        userId: opts.userId,
+        filename,
+      })
+      const assetPath =
+        extractStoragePathFromUrl(uploaded) ??
+        (uploaded.includes('/project-assets/') ? filename : undefined)
+      return { url: uploaded, provider: draft.provider, assetPath }
+    }
+    return { url: draft.url, provider: draft.provider }
+  }
 
   if (allowDalleImages()) {
     const remoteUrl = await generateOpenAISceneImage(trimmed, opts.imageOptions)

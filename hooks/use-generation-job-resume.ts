@@ -78,11 +78,16 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
 
     void fetchActiveGenerationJob(pid).then((job) => {
       if (!job) {
+        const live = useQuickCutGenerationStore.getState()
+        if (live.isGenerating && live.savedProjectId === pid) {
+          return
+        }
         if (stored && isValidGenerationJobId(stored)) {
           clearStaleGenerationJobReference({
             jobId: stored,
             projectId: pid,
             reason: '404',
+            resetGenerationUi: !live.isGenerating,
           })
         } else if (stored) {
           clearStoredGenerationJobId(pid, stored)
@@ -137,10 +142,13 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       videoRenderEnabled: state.videoRenderEnabled,
       pipelineStatus: state.pipelineStatus,
     }).then((nextId) => {
-      if (nextId && nextId !== jobId && isValidGenerationJobId(nextId)) {
-        setJobId(nextId)
+      if (nextId && isValidGenerationJobId(nextId)) {
+        if (nextId !== jobId) setJobId(nextId)
         writeStoredGenerationJobId(pid, nextId)
-        useQuickCutGenerationStore.setState({ pipelineJobId: nextId })
+        const live = useQuickCutGenerationStore.getState()
+        if (live.pipelineJobId !== nextId) {
+          useQuickCutGenerationStore.setState({ pipelineJobId: nextId, jobPollWarning: null })
+        }
       }
     })
   }, [

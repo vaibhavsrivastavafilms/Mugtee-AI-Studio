@@ -102,6 +102,12 @@ export default function FounderDashboardPage() {
         </Link>
         <div className="flex items-center gap-4 ml-auto flex-wrap">
           <Link
+            href="/admin/unit-economics"
+            className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
+          >
+            Unit economics <ExternalLink className="w-3 h-3" />
+          </Link>
+          <Link
             href="/admin/analytics"
             className="inline-flex items-center gap-1 text-xs text-gold-300/80 hover:text-gold-300 transition"
           >

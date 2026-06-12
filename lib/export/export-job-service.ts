@@ -13,6 +13,8 @@ export type ExportJobStatus =
   | 'failed'
   | 'cancelled'
 
+import { MAX_RENDER_RETRIES, estimateExportCostUsd } from '@/lib/economics/cost-estimates'
+
 export type ExportJobMetadata = {
   label?: string
   stage?: string
@@ -23,6 +25,7 @@ export type ExportJobMetadata = {
   includeCaptions?: boolean
   heartbeatAt?: string
   quality?: string
+  durationSec?: number
 }
 
 export type ExportJobRow = {
@@ -34,6 +37,9 @@ export type ExportJobRow = {
   render_url: string | null
   error: string | null
   metadata: ExportJobMetadata
+  retry_count: number
+  cost_estimate_usd: number | null
+  render_seconds: number | null
   created_at: string
   updated_at: string
 }
@@ -248,12 +254,63 @@ export async function cancelExportJob(jobId: string, userId: string): Promise<bo
 export async function retryExportJob(jobId: string, userId: string): Promise<ExportJobRow | null> {
   const row = await getExportJob(jobId, userId)
   if (!row || row.status !== 'failed') return null
+
+  const retryCount = row.retry_count ?? 0
+  if (retryCount >= MAX_RENDER_RETRIES) {
+    console.warn('[export_jobs] retry blocked — max retries', { jobId, retryCount })
+    return null
+  }
+
+  const supabase = createSupabaseServerClient()
+  await supabase
+    .from('export_jobs')
+    .update({
+      retry_count: retryCount + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', jobId)
+
   return updateExportJob(jobId, {
     status: 'queued',
     progress: 0,
     error: null,
     metadata: { ...row.metadata, label: 'Retry queued…' },
   })
+}
+
+export async function recordExportRenderMetrics(
+  jobId: string,
+  input: { renderSeconds: number; durationSec?: number }
+): Promise<void> {
+  const row = await getExportJob(jobId)
+  if (!row) return
+  const cost = estimateExportCostUsd(input.durationSec ?? input.renderSeconds)
+  const supabase = createSupabaseServerClient()
+  await supabase
+    .from('export_jobs')
+    .update({
+      render_seconds: input.renderSeconds,
+      cost_estimate_usd: cost,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', jobId)
+}
+
+export async function incrementExportRetryCount(jobId: string): Promise<number | null> {
+  const row = await getExportJob(jobId)
+  if (!row) return null
+  const next = (row.retry_count ?? 0) + 1
+  if (next > MAX_RENDER_RETRIES) return null
+  const supabase = createSupabaseServerClient()
+  await supabase
+    .from('export_jobs')
+    .update({ retry_count: next, updated_at: new Date().toISOString() })
+    .eq('id', jobId)
+  return next
+}
+
+export function canRetryExportJob(row: ExportJobRow): boolean {
+  return row.status === 'failed' && (row.retry_count ?? 0) < MAX_RENDER_RETRIES
 }
 
 export async function syncExportJobFromRenderJob(params: {

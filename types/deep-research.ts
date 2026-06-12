@@ -6,6 +6,7 @@ export type DeepResearchProvider =
   | 'openai'
   | 'anthropic'
   | 'gemini'
+  | 'cache'
   | 'mock'
 
 /** Known failure / fallback reasons from the engine. */

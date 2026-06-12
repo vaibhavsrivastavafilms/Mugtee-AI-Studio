@@ -49,6 +49,8 @@ export function useQuickCutProjectHydration(
     void loadSavedProject(projectId, stageTab ? { stageTab } : undefined)
       .then((ok) => {
         if (!ok) {
+          const live = useQuickCutGenerationStore.getState()
+          if (live.isGenerating && live.savedProjectId === projectId) return
           router.replace(STUDIO.projects)
           return
         }

@@ -48,9 +48,10 @@ export async function GET() {
     videoRenderEnabled: isVideoRenderEnabled(),
     runway: hasRunwayApiKey(),
     videoProvider: isRemotionRenderAvailable() ? 'remotion' : resolveRunwayVideoProvider(),
-    sceneVideoEnabled: isSceneVideoGenerationEnabled(),
+    sceneVideoEnabled: false,
+    sceneVideoRequiresStudio: true,
     seedance: hasSeedanceApiKey(),
-    sceneVideoProvider: resolveSceneVideoProviderId(),
+    sceneVideoProvider: null,
     v3PipelineEnabled: isV3PipelineEnabled(),
     models: providers.models,
   }

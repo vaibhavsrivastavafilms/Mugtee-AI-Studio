@@ -21,7 +21,7 @@ import { CINEMATIC_NICHES, NICHE_PROFILES } from '@/lib/cinematic/niches'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import { glassPanel, goldButton, outlineGoldButton, STUDIO_QUICK } from '@/components/home/cinematic-home-styles'
 
-const DURATIONS = [15, 30, 60, 90] as const
+const DURATIONS = [15, 30, 60] as const
 
 const ASSET_CHECKLIST = [
   { label: 'Hook', detail: 'Attention grabbing start', icon: Zap },

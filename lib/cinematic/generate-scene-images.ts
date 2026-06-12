@@ -36,6 +36,7 @@ import {
   mergeVisualBibleIntoBlueprints,
 } from '@/lib/cinematic/visual-bible'
 import type { VisualBible } from '@/lib/pipeline/v3-types'
+import { resolveProviderRouting } from '@/lib/economics/provider-routing.server'
 import {
   rebuildAlignedImagePrompt,
   scoreSceneAlignment,
@@ -80,6 +81,8 @@ export type GenerateSceneImagesInput = {
   visualBible?: VisualBible | null
   outputAlignmentControls?: OutputAlignmentControls | null
   styleTemplateId?: string | null
+  /** Economics — draft | creator | cinematic controls image provider tier. */
+  generationMode?: import('@/lib/economics/generation-mode').GenerationMode
 }
 
 export type GenerateSceneImagesResult = {
@@ -194,6 +197,10 @@ export async function generateSceneImages(
     ? validateSequenceCoherence(blueprintSource)
     : undefined
 
+  const imageTier = resolveProviderRouting({
+    generationMode: input.generationMode,
+  }).image
+
   let anyMock = !canGenerate
   const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
   const alignmentResults: NonNullable<GenerateSceneImagesResult['alignmentResults']> = []
@@ -290,6 +297,7 @@ export async function generateSceneImages(
         filename,
         userId: input.userId,
         hasReferenceStyle: ctx.hasReferenceStyle,
+        imageTier,
       })
       imageUrl = result.url
       if (result.assetPath) imageAssetPath = result.assetPath

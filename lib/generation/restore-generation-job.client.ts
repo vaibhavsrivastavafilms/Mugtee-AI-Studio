@@ -25,11 +25,13 @@ export function applyActiveGenerationJobToStore(
   if (!job?.jobId) {
     if (projectId) {
       const staleId = get().pipelineJobId
-      if (staleId) {
+      const live = get()
+      if (staleId && !(live.isGenerating && live.savedProjectId === projectId)) {
         clearStaleGenerationJobReference({
           jobId: staleId,
           projectId,
           reason: 'missing-payload',
+          resetGenerationUi: !live.isGenerating,
         })
       }
     }

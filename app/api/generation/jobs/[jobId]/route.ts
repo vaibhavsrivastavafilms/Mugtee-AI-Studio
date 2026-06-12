@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
+  logJobNotFound,
+  logJobPollRequest,
+  logJobPollResult,
+} from '@/lib/cinematic/generation-logger'
+import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
+import {
   generationJobToPollResponse,
   getGenerationJob,
   updateGenerationJob,
@@ -23,12 +29,26 @@ export async function GET(
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
 
+  logJobPollRequest(jobId, { userId: user.id })
+
+  if (!isValidGenerationJobId(jobId)) {
+    logJobNotFound(jobId, { reason: 'invalid jobId format', userId: user.id })
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+  }
+
   const row = await getGenerationJob(jobId, user.id)
   if (!row) {
+    logJobNotFound(jobId, { userId: user.id, table: 'generation_jobs', column: 'id' })
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
   const job = generationJobToPollResponse(row)
+  logJobPollResult(jobId, {
+    userId: user.id,
+    status: job.status,
+    progress: job.progress,
+    projectId: row.project_id,
+  })
   return NextResponse.json({
     ...job,
     status: job.status,

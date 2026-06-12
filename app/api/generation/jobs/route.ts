@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
+  logJobCreated,
+  logJobInsertFailed,
+  logJobInsertSuccess,
+} from '@/lib/cinematic/generation-logger'
+import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
+import {
   createGenerationJob,
   findActiveGenerationJobForProject,
   generationJobToPollResponse,
@@ -54,8 +60,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'projectId required' }, { status: 400 })
   }
 
-  if (raw.jobId) {
-    const updated = await updateGenerationJob(raw.jobId, user.id, {
+  const incomingJobId =
+    raw.jobId && isValidGenerationJobId(raw.jobId) ? raw.jobId : null
+  if (raw.jobId && !incomingJobId) {
+    console.warn('[JOB_INSERT_FAILED]', {
+      projectId: raw.projectId,
+      reason: 'invalid jobId — expected gen_ prefix',
+      jobId: raw.jobId,
+    })
+  }
+
+  if (incomingJobId) {
+    const updated = await updateGenerationJob(incomingJobId, user.id, {
       status: raw.status,
       progress: raw.progress,
       current_step: raw.currentStep,
@@ -84,6 +100,7 @@ export async function POST(req: NextRequest) {
   }
 
   const id = `gen_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`
+  logJobCreated(raw.projectId, id)
   const created = await createGenerationJob({
     id,
     userId: user.id,
@@ -93,8 +110,11 @@ export async function POST(req: NextRequest) {
   })
 
   if (!created) {
+    logJobInsertFailed(raw.projectId, 'createGenerationJob returned null')
     return NextResponse.json({ error: 'Could not create job' }, { status: 500 })
   }
+
+  logJobInsertSuccess(raw.projectId, created.id)
 
   const patched = await updateGenerationJob(created.id, user.id, {
     progress: raw.progress,

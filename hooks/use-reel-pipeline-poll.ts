@@ -13,6 +13,8 @@ import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.cl
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 const POLL_MS = 2500
+const NOT_FOUND_RETRY_MS = 3000
+const MAX_NOT_FOUND_WARN_MS = 120_000
 
 /**
  * Poll `/api/generation/jobs/[jobId]` until mp4_complete or failed.
@@ -21,11 +23,11 @@ const POLL_MS = 2500
 export function useReelPipelineJobPoll() {
   const pipelineJobId = useQuickCutGenerationStore((s) => s.pipelineJobId)
   const savedProjectId = useQuickCutGenerationStore((s) => s.savedProjectId)
-  const stoppedRef = useRef<Set<string>>(new Set())
+  const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const notFoundSinceRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!pipelineJobId || !isValidGenerationJobId(pipelineJobId)) return
-    if (stoppedRef.current.has(pipelineJobId)) return
 
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -54,9 +56,27 @@ export function useReelPipelineJobPoll() {
       if (cancelled) return
 
       if (!poll) {
-        stoppedRef.current.add(pipelineJobId)
+        const now = Date.now()
+        if (notFoundSinceRef.current == null) {
+          notFoundSinceRef.current = now
+        }
+        const waitingMs = now - notFoundSinceRef.current
+        if (waitingMs < MAX_NOT_FOUND_WARN_MS) {
+          useQuickCutGenerationStore.setState({
+            jobPollWarning: 'Waiting for generation job to sync…',
+          })
+        } else {
+          useQuickCutGenerationStore.setState({
+            jobPollWarning:
+              'Generation job not found yet — still retrying. Stay on this page.',
+          })
+        }
+        schedule(isGenerating ? NOT_FOUND_RETRY_MS : POLL_MS)
         return
       }
+
+      notFoundSinceRef.current = null
+      useQuickCutGenerationStore.setState({ jobPollWarning: null })
 
       const resumeRenderPoll = useQuickCutGenerationStore.getState().resumeRenderPoll
 
@@ -71,6 +91,7 @@ export function useReelPipelineJobPoll() {
           isComplete: true,
           isGenerating: false,
           progress: 100,
+          jobPollWarning: null,
         })
       } else if (poll.status === 'failed') {
         useQuickCutGenerationStore.setState({
@@ -91,12 +112,14 @@ export function useReelPipelineJobPoll() {
             }) ?? poll.errorMessage,
           failedPipelineStage: poll.failedStage,
           isComplete: false,
+          jobPollWarning: null,
         })
       } else {
         useQuickCutGenerationStore.setState({
           pipelineStatus: poll.status,
           pipelineJobId: poll.jobId,
           progress: poll.progress,
+          jobPollWarning: null,
         })
         if (poll.status === 'mp4_rendering') {
           void resumeRenderPoll()
@@ -107,13 +130,14 @@ export function useReelPipelineJobPoll() {
       schedule(POLL_MS)
     }
 
+    notFoundSinceRef.current = null
     void tick()
 
     return () => {
       cancelled = true
       clearTimer()
     }
-  }, [pipelineJobId, savedProjectId])
+  }, [pipelineJobId, savedProjectId, isGenerating])
 }
 
 /** Selector hook — pipelineStatus from store fields (authoritative). */

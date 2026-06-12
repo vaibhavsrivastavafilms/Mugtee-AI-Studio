@@ -12,6 +12,9 @@ import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { generateVoice } from '@/lib/voice/generateVoice'
 import { selectVoiceProfile } from '@/lib/voice/voiceProfiles'
+import { normalizeGenerationMode } from '@/lib/economics/generation-mode'
+import { resolveProviderRouting, shouldUseElevenLabsVoice } from '@/lib/economics/provider-routing.server'
+import { resolveUserPlanType } from '@/lib/economics/resolve-user-plan.server'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { parseSceneBlueprints } from '@/lib/cinematic/scene-blueprint'
 import {
@@ -87,6 +90,11 @@ export async function POST(req: NextRequest) {
       if (blocked) return blocked
     }
 
+    const generationMode = normalizeGenerationMode(raw?.generationMode ?? raw?.generation_mode)
+    const planType = user ? await resolveUserPlanType(user.id) : 'FREE'
+    const voicePolicy = resolveProviderRouting({ generationMode, planType })
+    const preferElevenLabs = shouldUseElevenLabsVoice(voicePolicy)
+
     const result = await generateVoice(
       {
         script,
@@ -102,6 +110,7 @@ export async function POST(req: NextRequest) {
           raw?.sceneBlueprints ?? raw?.scene_blueprints
         ),
         skipCache: raw?.skipCache === true,
+        preferElevenLabs,
       },
       supabase
     )

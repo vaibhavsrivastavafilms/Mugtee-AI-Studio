@@ -148,3 +148,35 @@ export function logGenerationError(
     })
   )
 }
+
+export function logJobCreated(projectId: string | null | undefined, jobId: string, extra?: LogPayload) {
+  console.info('[JOB_CREATED]', payload(projectId, { jobId, ...extra }))
+}
+
+export function logJobInsertSuccess(
+  projectId: string | null | undefined,
+  jobId: string,
+  extra?: LogPayload
+) {
+  console.info('[JOB_INSERT_SUCCESS]', payload(projectId, { jobId, ...extra }))
+}
+
+export function logJobInsertFailed(
+  projectId: string | null | undefined,
+  reason: string,
+  extra?: LogPayload
+) {
+  console.warn('[JOB_INSERT_FAILED]', payload(projectId, { reason: reason.slice(0, 300), ...extra }))
+}
+
+export function logJobPollRequest(jobId: string, extra?: LogPayload) {
+  console.info('[JOB_POLL_REQUEST]', { jobId, ...extra })
+}
+
+export function logJobPollResult(jobId: string, extra?: LogPayload) {
+  console.info('[JOB_POLL_RESULT]', { jobId, ...extra })
+}
+
+export function logJobNotFound(jobId: string, extra?: LogPayload) {
+  console.warn('[JOB_NOT_FOUND]', { jobId, ...extra })
+}

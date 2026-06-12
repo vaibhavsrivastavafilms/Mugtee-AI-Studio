@@ -1,6 +1,11 @@
 'use client'
 
 import {
+  logJobNotFound,
+  logJobPollRequest,
+  logJobPollResult,
+} from '@/lib/cinematic/generation-logger'
+import {
   clearStaleGenerationJobReference,
   isValidGenerationJobId,
 } from '@/lib/generation/stale-generation-job.client'
@@ -75,6 +80,7 @@ export async function pollGenerationJobOrchestrator(
   options?: PollOptions
 ): Promise<GenerationJobOrchestratorPoll | null> {
   if (!isValidGenerationJobId(jobId)) {
+    logJobPollRequest(jobId, { reason: 'invalid-id', projectId: options?.projectId ?? null })
     clearStaleGenerationJobReference({
       jobId,
       projectId: options?.projectId ?? null,
@@ -83,17 +89,20 @@ export async function pollGenerationJobOrchestrator(
     return null
   }
 
+  logJobPollRequest(jobId, { projectId: options?.projectId ?? null })
+
   const res = await fetch(`/api/generation/jobs/${encodeURIComponent(jobId)}`, {
     credentials: 'include',
     cache: 'no-store',
   })
 
+  logJobPollResult(jobId, {
+    httpStatus: res.status,
+    projectId: options?.projectId ?? null,
+  })
+
   if (res.status === 404) {
-    clearStaleGenerationJobReference({
-      jobId,
-      projectId: options?.projectId ?? null,
-      reason: '404',
-    })
+    logJobNotFound(jobId, { projectId: options?.projectId ?? null })
     return null
   }
 
@@ -116,11 +125,6 @@ export async function pollGenerationJobOrchestrator(
 
   const job = data?.job
   if (!job?.jobId) {
-    clearStaleGenerationJobReference({
-      jobId,
-      projectId: options?.projectId ?? null,
-      reason: 'missing-payload',
-    })
     return null
   }
 

@@ -1,15 +1,12 @@
 'use client'
 
 import { clearStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
+import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
-const loggedStaleJobs = new Set<string>()
+export { isValidGenerationJobId }
 
-/** Durable generation_jobs IDs are prefixed at creation time (see POST /api/generation/jobs). */
-export function isValidGenerationJobId(jobId: string | null | undefined): jobId is string {
-  if (!jobId?.trim()) return false
-  return jobId.startsWith('gen_')
-}
+const loggedStaleJobs = new Set<string>()
 
 export type StaleGenerationJobReason = '404' | 'invalid-id' | 'missing-payload'
 
@@ -21,16 +18,15 @@ export function clearStaleGenerationJobReference(input: {
   jobId: string
   projectId?: string | null
   reason: StaleGenerationJobReason
+  /** When true, reset generation UI (default: only for invalid-id). */
+  resetGenerationUi?: boolean
 }): void {
   const { jobId, projectId, reason } = input
+  const resetGenerationUi = input.resetGenerationUi ?? reason === 'invalid-id'
+
   if (!loggedStaleJobs.has(jobId)) {
     loggedStaleJobs.add(jobId)
-    console.warn('[generation] stale job reference', jobId)
-    if (reason === '404') {
-      console.warn('[generation] polling stopped', jobId)
-    } else {
-      console.warn('[generation] restore skipped', jobId)
-    }
+    console.warn('[generation] stale job reference', { jobId, reason })
   }
 
   if (projectId) {
@@ -40,15 +36,24 @@ export function clearStaleGenerationJobReference(input: {
   const state = useQuickCutGenerationStore.getState()
   if (state.pipelineJobId !== jobId) return
 
-  useQuickCutGenerationStore.setState({
+  const patch: Parameters<typeof useQuickCutGenerationStore.setState>[0] = {
     pipelineJobId: null,
-    isGenerating: false,
-    isRenderingVideo: false,
-    renderPollUrl: null,
-    renderError:
-      reason === '404' || reason === 'missing-payload'
-        ? 'Generation unavailable — start a new run when ready.'
-        : state.renderError,
-    generationStatus: state.isComplete ? state.generationStatus : 'pending',
-  })
+  }
+
+  if (reason === 'invalid-id') {
+    patch.jobPollWarning = 'Reconnecting generation job…'
+  }
+
+  if (resetGenerationUi && !state.isGenerating) {
+    patch.isRenderingVideo = false
+    patch.renderPollUrl = null
+    if (reason === '404' || reason === 'missing-payload') {
+      patch.renderError = 'Generation unavailable — start a new run when ready.'
+    }
+    if (!state.isComplete) {
+      patch.generationStatus = 'pending'
+    }
+  }
+
+  useQuickCutGenerationStore.setState(patch)
 }

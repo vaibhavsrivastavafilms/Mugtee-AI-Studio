@@ -205,6 +205,8 @@ import { creatorHistoryPayload } from '@/lib/creator/knowledge-base'
 import { pickRecommendedVoice, voiceStyleToElevenCategory } from '@/lib/ai/elevenlabs'
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
 import { recommendVoiceStyle } from '@/lib/cinematic/voice-match'
+import type { GenerationMode } from '@/lib/economics/generation-mode'
+import { DEFAULT_GENERATION_MODE } from '@/lib/economics/generation-mode'
 import type { DeepResearchStoreFields } from '@/types/deep-research'
 import {
   EMPTY_STORYBOARD_FIELDS,
@@ -224,6 +226,7 @@ import {
   logGenerationResumed,
   logGenerationStart,
   logGenerationSuccess,
+  logJobCreated,
   logPipelineStepStart,
   logStepFailed,
   logStoryboardFrame,
@@ -336,12 +339,14 @@ import {
   pipelineStageToStatus,
   renderMp4AndWait,
   resumeMp4FromGenerationJob,
+  syncPipelineJob,
   validateStageOrFail,
 } from '@/lib/pipeline/reel-pipeline-runner.client'
 import { pollGenerationJobOrchestrator } from '@/lib/pipeline/reel-generation-orchestrator.client'
 import {
   fetchActiveGenerationJob,
 } from '@/lib/generation/generation-job-sync.client'
+import { writeStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
 import { applyActiveGenerationJobToStore } from '@/lib/generation/restore-generation-job.client'
 import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
 import { VOICE_UNAVAILABLE_MESSAGE } from '@/lib/generation/generation-pipeline-messages'
@@ -525,12 +530,16 @@ interface QuickCutGenerationStateBase {
   /** Phase 4 orchestrator — canonical pipeline status (see reel-generation-orchestrator.ts). */
   pipelineStatus: ReelPipelineStatus
   pipelineJobId: string | null
+  /** Non-blocking warning when job poll is waiting / retrying. */
+  jobPollWarning: string | null
   failedPipelineStage: ReelPipelineFailedStage | null
   /** MP4 URL missing or download failed — user must re-export. */
   exportExpired: boolean
   videoRenderEnabled: boolean
   /** Seedance scene clip generation — distinct from final MP4 compile */
   sceneVideoEnabled: boolean
+  /** draft | creator | cinematic — controls provider routing & unit economics */
+  generationMode: GenerationMode
   isGeneratingSceneVideos: boolean
   virlo: VirloMetadata | null
   language: ProjectLanguage
@@ -648,6 +657,7 @@ export interface QuickCutGenerationActions {
   ) => Promise<boolean>
   setRepurposedAsset: (type: RepurposeOutputType, entry: RepurposedAssetEntry) => void
   setSelectedElevenLabsVoice: (voiceId: string, name: string) => void
+  setGenerationMode: (mode: GenerationMode) => void
   ensureRecommendedElevenLabsVoice: () => Promise<void>
   regenerateVoice: () => Promise<void>
   setCreatorProfileOverride: (override: CreatorProfileOverride | null) => void
@@ -727,10 +737,12 @@ const INITIAL: QuickCutGenerationState = {
   exportPackageReady: false,
   pipelineStatus: 'queued',
   pipelineJobId: null,
+  jobPollWarning: null,
   failedPipelineStage: null,
   exportExpired: false,
   videoRenderEnabled: defaultClientVideoRenderEnabled(),
   sceneVideoEnabled: false,
+  generationMode: DEFAULT_GENERATION_MODE,
   isGeneratingSceneVideos: false,
   virlo: null,
   language: 'en',
@@ -1232,7 +1244,8 @@ async function runSceneVideoGeneration(
   set: typeof useQuickCutGenerationStore.setState
 ) {
   const requireVideos = get().videoRenderEnabled
-  if (!get().sceneVideoEnabled && !requireVideos) return
+  const cinematicMode = get().generationMode === 'cinematic'
+  if ((!get().sceneVideoEnabled && !requireVideos) || !cinematicMode) return
 
   commitPipelineStage(get, set, 'video_generating', 'video')
   const state = get()
@@ -1502,6 +1515,7 @@ async function fetchSceneImages(
     | 'sceneBlueprints'
     | 'outputAlignmentControls'
     | 'visualBible'
+    | 'generationMode'
   >,
   sceneIds?: string[],
   variation = false,
@@ -1539,6 +1553,7 @@ async function fetchSceneImages(
       sceneBlueprints: state.sceneBlueprints,
       visualBible: state.visualBible ?? undefined,
       outputAlignmentControls: state.outputAlignmentControls,
+      generationMode: state.generationMode,
       consistencyInjection: buildConsistencyInjectionBlock(
         buildConsistencyMemory({
           characterDescription: state.characterDescription,
@@ -2213,6 +2228,13 @@ export const useQuickCutGenerationStore = create<
     }
   },
 
+  setGenerationMode: (mode) => {
+    set({
+      generationMode: mode,
+      sceneVideoEnabled: mode === 'cinematic',
+    })
+  },
+
   setCreatorProfileOverride: (override) => {
     set({ creatorProfileOverride: override })
   },
@@ -2762,7 +2784,7 @@ export const useQuickCutGenerationStore = create<
       .then((cfg) => {
         config = cfg as Record<string, boolean>
         videoRenderEnabled = isClientVideoRenderEnabled(cfg.videoRenderEnabled === true)
-        sceneVideoEnabled = cfg.sceneVideoEnabled === true
+        sceneVideoEnabled = get().generationMode === 'cinematic'
         freeTier = cfg.freeTierOnly === true
         const v3Enabled = isV3PipelineEnabledFromConfig(cfg as Record<string, unknown>)
         set({ videoRenderEnabled, sceneVideoEnabled, v3PipelineEnabled: v3Enabled })
@@ -2800,6 +2822,15 @@ export const useQuickCutGenerationStore = create<
       setStep(set, get, 'analyzing')
       await configPromise
       await ensureGenerationJobsMigration()
+
+      const activeProjectId = get().savedProjectId
+      if (activeProjectId) {
+        const jobId = await syncPipelineJob(get, set, null)
+        if (jobId) {
+          logJobCreated(activeProjectId, jobId, { source: 'runPipeline' })
+          writeStoredGenerationJobId(activeProjectId, jobId)
+        }
+      }
 
       if (!videoRenderEnabled) {
         console.warn('[generation] export unavailable', { reason: 'VIDEO_RENDER_ENABLED' })
@@ -2925,6 +2956,11 @@ export const useQuickCutGenerationStore = create<
                   languageMixed,
                   directorMode,
                   parsedIntent: serializeParsedIntent(parsedIntent),
+                  generationMode: get().generationMode,
+                  projectId: get().savedProjectId ?? undefined,
+                  topicChanged:
+                    Boolean(get().lastGeneratedPrompt) &&
+                    get().lastGeneratedPrompt !== parsedIntent.cleanTopic,
                 }),
                 maxRetries: 0,
                 timeoutMs: DEEP_RESEARCH_TIMEOUT_MS,
@@ -3373,6 +3409,7 @@ export const useQuickCutGenerationStore = create<
                     scenes: get().scenes,
                     sceneBlueprints: get().sceneBlueprints,
                     project_id: get().savedProjectId ?? undefined,
+                    generationMode: get().generationMode,
                   }),
                 }),
                 60_000
@@ -4666,7 +4703,10 @@ export const useQuickCutGenerationStore = create<
 
   loadSavedProject: async (projectId, options) => {
     const state = get()
-    if (state.isGenerating) return false
+    if (state.isGenerating) {
+      if (state.savedProjectId === projectId) return true
+      return false
+    }
 
     if (
       state.savedProjectId === projectId &&

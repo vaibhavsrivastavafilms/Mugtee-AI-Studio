@@ -177,7 +177,7 @@ export const TRENDING_CINEMATIC_STYLES = [
 export const POPULAR_CREATOR_FORMATS = [
   { label: 'Emotional hook → 4-beat arc', duration: '45–60s' },
   { label: 'Pattern interrupt opener', duration: '30s' },
-  { label: 'Voiceover-led story reel', duration: '60–90s' },
+  { label: 'Voiceover-led story reel', duration: '15–60s' },
   { label: 'Visual metaphor peak', duration: '45s' },
 ] as const
 

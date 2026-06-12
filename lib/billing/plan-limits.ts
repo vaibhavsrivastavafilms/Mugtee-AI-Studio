@@ -10,21 +10,28 @@ export type PaidPlanTier = 'CREATOR' | 'PRO'
 
 const DEFAULT_LIMITS: PlanLimits = {
   projects: 5,
-  generations: 20,
-  exports: 3,
-  renders: 3,
+  generations: 5,
+  exports: 1,
+  renders: 1,
 }
 
 const DEFAULT_CREATOR_LIMITS: PlanLimits = {
   projects: 25,
-  generations: 100,
-  exports: 15,
-  renders: 15,
+  generations: 30,
+  exports: 5,
+  renders: 5,
 }
 
 const DEFAULT_PRO_LIMITS: PlanLimits = {
   projects: 100,
-  generations: 500,
+  generations: 100,
+  exports: 20,
+  renders: 20,
+}
+
+const DEFAULT_STUDIO_LIMITS: PlanLimits = {
+  projects: 200,
+  generations: 300,
   exports: 50,
   renders: 50,
 }
@@ -87,12 +94,43 @@ export function getProPlanLimits(): PlanLimits {
   }
 }
 
+/** Studio tier — Runway / cinematic credits (env: MUGTEE_STUDIO_LIMIT_*). */
+export function getStudioPlanLimits(): PlanLimits {
+  return {
+    projects: parseLimit(
+      process.env.MUGTEE_STUDIO_LIMIT_PROJECTS,
+      DEFAULT_STUDIO_LIMITS.projects
+    ),
+    generations: parseLimit(
+      process.env.MUGTEE_STUDIO_LIMIT_GENERATIONS,
+      DEFAULT_STUDIO_LIMITS.generations
+    ),
+    exports: parseLimit(
+      process.env.MUGTEE_STUDIO_LIMIT_EXPORTS,
+      DEFAULT_STUDIO_LIMITS.exports
+    ),
+    renders: parseLimit(
+      process.env.MUGTEE_STUDIO_LIMIT_RENDERS,
+      DEFAULT_STUDIO_LIMITS.renders
+    ),
+  }
+}
+
+export function getPlanLimitsForType(planType: string): PlanLimits {
+  const normalized = String(planType || 'FREE').toUpperCase()
+  if (normalized === 'STUDIO' || normalized === 'AGENCY') return getStudioPlanLimits()
+  if (normalized === 'PRO' || normalized === 'PRO_TRIAL') return getProPlanLimits()
+  if (normalized === 'CREATOR') return getCreatorPlanLimits()
+  return getFreePlanLimits()
+}
+
 export function formatLimitValue(n: number): string {
   return Number.isFinite(n) && n >= 999999 ? 'Unlimited' : String(n)
 }
 
+/** Only legacy env bypass — paid tiers use explicit limits for margin protection. */
 export function isUnlimitedPlan(planType: string, trialEndsAt: string | null | undefined): boolean {
-  if (planType === 'PRO') return true
+  if (process.env.MUGTEE_UNLIMITED_PRO === 'true' && planType === 'PRO') return true
   if (planType === 'PRO_TRIAL' && trialEndsAt) {
     return new Date(trialEndsAt) > new Date()
   }
@@ -112,7 +150,7 @@ export function limitForMetric(
 ): number {
   if (isUnlimitedPlan(planType, trialEndsAt)) return Infinity
 
-  let base = getFreePlanLimits()[metric]
+  let base = getPlanLimitsForType(planType)[metric]
 
   if (referral?.referralCreatorPlanBonus && metric === 'generations') {
     base = Math.max(base, getReferralCreatorPlanGenerationCap())

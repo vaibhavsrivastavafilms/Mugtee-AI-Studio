@@ -25,10 +25,13 @@ import {
 import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import {
+  GENERATION_MODE_LABELS,
+  GENERATION_MODES,
   QUICK_AUDIENCE_OPTIONS,
   QUICK_DURATION_OPTIONS,
   QUICK_PLATFORM_OPTIONS,
   QUICK_TONE_OPTIONS,
+  type GenerationMode,
   type QuickPlatformValue,
 } from '@/lib/studio/quick-create-options'
 import { CreativeSystemCompactField } from '@/components/studio/creative-system-compact-field'
@@ -83,6 +86,8 @@ export function QuickCreateControls({
   const voiceName = useQuickCutGenerationStore((s) => s.voiceName)
   const elevenLabsVoiceId = useQuickCutGenerationStore((s) => s.elevenLabsVoiceId)
   const setSelectedElevenLabsVoice = useQuickCutGenerationStore((s) => s.setSelectedElevenLabsVoice)
+  const generationMode = useQuickCutGenerationStore((s) => s.generationMode)
+  const setGenerationMode = useQuickCutGenerationStore((s) => s.setGenerationMode)
   const ensureRecommendedElevenLabsVoice = useQuickCutGenerationStore(
     (s) => s.ensureRecommendedElevenLabsVoice
   )
@@ -173,6 +178,25 @@ export function QuickCreateControls({
               {QUICK_DURATION_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={String(opt.value)}>
                   {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CompactDropdown>
+
+        <CompactDropdown icon={Brain} label="Quality">
+          <Select
+            value={generationMode}
+            onValueChange={(v) => setGenerationMode(v as GenerationMode)}
+            disabled={disabled}
+          >
+            <SelectTrigger className={selectTriggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {GENERATION_MODES.map((mode) => (
+                <SelectItem key={mode} value={mode}>
+                  {GENERATION_MODE_LABELS[mode]}
                 </SelectItem>
               ))}
             </SelectContent>

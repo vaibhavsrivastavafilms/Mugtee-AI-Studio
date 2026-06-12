@@ -20,6 +20,7 @@ import {
 import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
 import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import { normalizeGenerationMode } from '@/lib/economics/generation-mode'
 import {
   IMAGE_GENERATION_UNAVAILABLE,
   IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
           : undefined
 
     const projectId = parseFeatureUsageProjectId(raw)
+    const generationMode = normalizeGenerationMode(raw?.generationMode ?? raw?.generation_mode)
 
     const consistencyInjection =
       typeof raw?.consistencyInjection === 'string' ? raw.consistencyInjection.trim() : ''
@@ -67,6 +69,7 @@ export async function POST(req: NextRequest) {
     const result = await generateSceneImages({
       scenes,
       projectId,
+      generationMode,
       characterDescription,
       niche: typeof raw?.niche === 'string' ? raw.niche : undefined,
       virlo:

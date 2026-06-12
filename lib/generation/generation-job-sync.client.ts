@@ -7,7 +7,7 @@ import {
   reelPipelineStateToJobMetadata,
   type ReelPipelineStatus,
 } from '@/lib/pipeline/reel-generation-orchestrator'
-import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
+import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
 const STEP_PROGRESS: Partial<Record<QuickCutGenerationStep, number>> = {
   hook: 8,
   script: 18,
@@ -129,11 +129,21 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
       body: JSON.stringify(body),
     })
     if (!res.ok) {
+      console.warn('[JOB_INSERT_FAILED]', {
+        projectId: input.projectId,
+        status: res.status,
+        jobId: input.jobId,
+      })
       return isValidGenerationJobId(input.jobId) ? input.jobId : null
     }
     const data = (await res.json().catch(() => ({}))) as { jobId?: string }
     const nextId = data.jobId ?? input.jobId
-    if (isValidGenerationJobId(nextId)) return nextId
+    if (isValidGenerationJobId(nextId)) {
+      if (nextId !== input.jobId) {
+        console.info('[JOB_CREATED]', { projectId: input.projectId, jobId: nextId })
+      }
+      return nextId
+    }
     return isValidGenerationJobId(input.jobId) ? input.jobId : null
   }
 

@@ -40,6 +40,7 @@ const STYLE_OPTIONS = [
 ]
 
 const DURATION_OPTIONS = [
+  { value: 15, label: '15 sec' },
   { value: 30, label: '30 sec' },
   { value: 60, label: '60 sec' },
 ]
