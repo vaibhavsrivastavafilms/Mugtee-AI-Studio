@@ -305,6 +305,12 @@ export async function renderMp4AndWait(
 ): Promise<boolean> {
   if (!validateStageOrFail(get, set, 'timeline')) return false
   if (!validateStageOrFail(get, set, 'video')) return false
+  if (!validateStageOrFail(get, set, 'images')) return false
+
+  console.info('[MP4_RENDER] start', {
+    projectId: get().savedProjectId,
+    sceneCount: get().scenes.length,
+  })
 
   commitPipelineStage(get, set, 'mp4_rendering', 'mp4', {
     isRenderingVideo: true,

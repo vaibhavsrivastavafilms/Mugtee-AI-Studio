@@ -1,0 +1,95 @@
+{
+  "at": "2026-06-12T22:52:55.181Z",
+  "checks": [
+    {
+      "name": "file:lib/quick-cut/template-system.ts",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "file:components/quick-cut/template-selector.tsx",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "file:public/templates/creator-story.jpg",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "file:public/templates/explainer-studio.jpg",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "file:public/templates/documentary-cinematic.jpg",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "template-id:creator_story",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "template-id:explainer_studio",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "template-id:documentary_cinematic",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "default-template:documentary_cinematic",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "store:visualTemplate-field",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "store:generate-scenes-payload",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "store:template-analytics",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "captions:visualTemplate-payload",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "images:template-prompt-prefix",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "api:quick-cut/config",
+      "status": "PASS",
+      "detail": "openai=true images=true videoRender=true"
+    },
+    {
+      "name": "http:/templates/creator-story.jpg",
+      "status": "PASS",
+      "detail": "image/jpeg"
+    },
+    {
+      "name": "http:/templates/explainer-studio.jpg",
+      "status": "PASS",
+      "detail": "image/jpeg"
+    },
+    {
+      "name": "http:/templates/documentary-cinematic.jpg",
+      "status": "PASS",
+      "detail": "image/jpeg"
+    }
+  ]
+}

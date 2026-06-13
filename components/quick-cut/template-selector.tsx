@@ -52,29 +52,27 @@ export function TemplateSelector({
         {VISUAL_TEMPLATE_LIST.map((template) => {
           const selected = value === template.id
           return (
-            <button
+            <label
               key={template.id}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              disabled={disabled}
-              onClick={() => handleSelect(template.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  handleSelect(template.id)
-                }
-              }}
               className={cn(
-                'group relative flex-shrink-0 w-[72vw] max-w-[220px] sm:w-auto snap-start',
+                'group relative flex-shrink-0 w-[72vw] max-w-[220px] sm:w-auto snap-start cursor-pointer',
                 'rounded-xl border bg-[#050505] text-left transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111]',
-                'disabled:opacity-45 disabled:pointer-events-none',
+                'has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#D4AF37]/50 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[#111111]',
+                disabled && 'opacity-45 pointer-events-none',
                 selected
                   ? 'border-[#D4AF37] shadow-[0_0_24px_rgba(212,175,55,0.35)]'
                   : 'border-[rgba(212,175,55,0.15)] hover:border-[rgba(212,175,55,0.4)] hover:shadow-[0_0_18px_rgba(212,175,55,0.15)]'
               )}
             >
+              <input
+                type="radio"
+                name="visual-template"
+                value={template.id}
+                checked={selected}
+                disabled={disabled}
+                onChange={() => handleSelect(template.id)}
+                className="sr-only"
+              />
               <div className="relative aspect-[16/10] overflow-hidden rounded-t-xl">
                 <Image
                   src={template.thumbnail}
@@ -105,7 +103,7 @@ export function TemplateSelector({
                 </p>
                 <p className="text-[11px] text-white/45 leading-snug">{template.subtitle}</p>
               </div>
-            </button>
+            </label>
           )
         })}
       </div>

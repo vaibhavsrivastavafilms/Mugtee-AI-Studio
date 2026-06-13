@@ -117,41 +117,48 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
     }
   }
 
-  const sceneTotal = input.scenes.length
+  const imageCount = input.scenes.length
   const completedVideos = input.scenes.filter((s) => s.videoUrl?.trim()).length
-  const completedFrames = input.scenes.filter((s) => s.imageUrl?.trim()).length
+  const completedFrames = input.scenes.filter((s) =>
+    Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim())
+  ).length
 
-  if (QUICK_CUT_V2_TEXT_TO_VIDEO) {
-    if (
-      input.generationStep === 'motion' ||
-      input.sectionStatus.storyboard === 'generating' ||
-      completedVideos < sceneTotal
-    ) {
-      const sceneN = Math.min(sceneTotal, Math.max(1, completedVideos + 1))
-      if (sceneTotal > 0) {
-        appendGenerationActivity({
-          id: `video-${sceneN}`,
-          label: `Creating Scene ${sceneN} of ${sceneTotal}`,
-          status: completedVideos >= sceneTotal ? 'completed' : 'current',
-          at: now,
-        })
-      }
+  if (
+    input.sectionStatus.storyboard === 'generating' ||
+    input.generationStep === 'images' ||
+    (QUICK_CUT_V2_TEXT_TO_VIDEO && completedFrames < imageCount)
+  ) {
+    const sceneN = Math.max(1, Math.min(imageCount, completedFrames + 1))
+    if (imageCount > 0) {
+      appendGenerationActivity({
+        id: `storyboard-${sceneN}`,
+        label: `Rendering storyboard ${sceneN} of ${imageCount}`,
+        status: completedFrames >= imageCount ? 'completed' : 'current',
+        at: now,
+      })
     }
-  } else if (input.sectionStatus.storyboard === 'generating' || input.generationStep === 'images') {
-    const sceneN = Math.max(1, completedFrames + 1)
-    appendGenerationActivity({
-      id: `storyboard-${sceneN}`,
-      label: `Storyboard Scene ${sceneN}`,
-      status: 'current',
-      at: now,
-    })
-  } else if (input.sectionStatus.storyboard === 'completed') {
+  } else if (input.sectionStatus.storyboard === 'completed' || completedFrames >= imageCount) {
     appendGenerationActivity({
       id: 'storyboard',
       label: 'Storyboard complete',
       status: 'completed',
       at: now,
     })
+  }
+
+  if (
+    QUICK_CUT_V2_TEXT_TO_VIDEO &&
+    (input.generationStep === 'motion' || completedVideos < imageCount)
+  ) {
+    const sceneN = Math.min(imageCount, Math.max(1, completedVideos + 1))
+    if (imageCount > 0 && completedFrames >= imageCount) {
+      appendGenerationActivity({
+        id: `video-${sceneN}`,
+        label: `Creating Scene ${sceneN} of ${imageCount}`,
+        status: completedVideos >= imageCount ? 'completed' : 'current',
+        at: now,
+      })
+    }
   }
 
   if (input.voiceUrl || input.sectionStatus.voice === 'completed') {

@@ -40,6 +40,24 @@ export function stepShouldRun(
   return stepIdx > fromIdx
 }
 
+export function stepBeforePersistedStep(
+  step: PersistedGenerationStep
+): PersistedGenerationStep | null {
+  const idx = PERSISTED_STEP_ORDER.indexOf(step)
+  if (idx <= 0) return null
+  return PERSISTED_STEP_ORDER[idx - 1] ?? null
+}
+
+/** Best step to pass as `resumeFrom` after an interrupted run. */
+export function resolveResumeFromStep(input: {
+  lastCompletedStep: PersistedGenerationStep | null
+  failedAtStep: PersistedGenerationStep | null
+}): PersistedGenerationStep | null {
+  if (input.lastCompletedStep) return input.lastCompletedStep
+  if (input.failedAtStep) return stepBeforePersistedStep(input.failedAtStep)
+  return null
+}
+
 export function inferLastCompletedStep(state: {
   hook?: string
   script?: string

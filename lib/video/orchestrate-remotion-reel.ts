@@ -48,6 +48,10 @@ import {
 } from '@/lib/export/export-api-checkpoints.server'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
 import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
+import {
+  renderPipelineError,
+  renderPipelineLog,
+} from '@/lib/export/render-pipeline-log.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -109,6 +113,14 @@ export async function orchestrateRemotionReel(
     }
 
     report('prepare', EXPORT_STAGE_LABELS.preparing)
+    renderPipelineLog('RENDER_PREP', {
+      projectId: input.projectId,
+      jobId,
+      sceneCount: input.scenes.length,
+      frameCount: input.scenes.length,
+      audioExists: Boolean(input.voiceUrl?.trim()),
+      status: 'started',
+    })
     mp4RenderLog(1, 'starting asset validation', {
       projectId: input.projectId,
       jobId,
@@ -192,12 +204,28 @@ export async function orchestrateRemotionReel(
 
     report('render_segments', EXPORT_STAGE_LABELS.timeline)
     exportApiCheckpoint('remotion_start', { jobId, projectId: input.projectId })
-    exportLog.ffmpegStarted({ jobId, projectId: input.projectId, mock: process.env.VIDEO_RENDER_MOCK === 'true' })
-    ffmpegCheckpoint('loaded', { available: isFfmpegAvailable(), mock: process.env.VIDEO_RENDER_MOCK === 'true' })
-    exportApiCheckpoint('ffmpeg_start', { jobId, mock: process.env.VIDEO_RENDER_MOCK === 'true' })
-    ffmpegCheckpoint('start', { jobId, provider: 'remotion' })
-
     const mock = process.env.VIDEO_RENDER_MOCK === 'true'
+    renderPipelineLog('REMOTION_RENDER_START', {
+      projectId: input.projectId,
+      jobId,
+      frameCount: timedScenes.length,
+      audioExists: Boolean(input.voiceUrl?.trim()),
+      duration: totalDuration,
+      outputPath,
+      status: mock ? 'mock' : 'remotion',
+    })
+    exportLog.ffmpegStarted({ jobId, projectId: input.projectId, mock })
+    ffmpegCheckpoint('loaded', { available: isFfmpegAvailable(), mock })
+    exportApiCheckpoint('ffmpeg_start', { jobId, mock })
+    ffmpegCheckpoint('start', { jobId, provider: 'remotion' })
+    renderPipelineLog('FFMPEG_START', {
+      projectId: input.projectId,
+      jobId,
+      outputPath,
+      mock,
+      status: 'started',
+    })
+
     let durationSec = 0
     let thumbnailPath: string | null = null
 
@@ -229,6 +257,38 @@ export async function orchestrateRemotionReel(
       thumbnailPath = renderResult.thumbnailPath
     }
 
+    const outputStat = await fs.stat(outputPath).catch(() => null)
+    renderPipelineLog('REMOTION_RENDER_COMPLETE', {
+      projectId: input.projectId,
+      jobId,
+      duration: durationSec,
+      outputPath,
+      size: outputStat?.size ?? 0,
+      status: outputStat && outputStat.size > 0 ? 'complete' : 'empty_output',
+    })
+    renderPipelineLog('FFMPEG_COMPLETE', {
+      projectId: input.projectId,
+      jobId,
+      outputPath,
+      duration: durationSec,
+      size: outputStat?.size ?? 0,
+      codec: 'h264',
+      status: 'complete',
+    })
+    renderPipelineLog('FFMPEG_OUTPUT', {
+      projectId: input.projectId,
+      jobId,
+      outputPath,
+      size: outputStat?.size ?? 0,
+      duration: durationSec,
+      codec: 'h264',
+      status: outputStat && outputStat.size > 0 ? 'valid' : 'invalid',
+    })
+
+    if (!outputStat || outputStat.size <= 0) {
+      throw new Error('FFmpeg/Remotion produced an empty output file.')
+    }
+
     mp4RenderLog(5, 'MP4 encode complete', { durationSec, outputPath })
     report('assemble', EXPORT_STAGE_LABELS.encoding)
     ffmpegCheckpoint('done', { jobId, durationSec })
@@ -241,6 +301,13 @@ export async function orchestrateRemotionReel(
 
     report('upload', EXPORT_STAGE_LABELS.uploading)
     exportApiCheckpoint('upload_start', { jobId, projectId: input.projectId })
+    renderPipelineLog('UPLOAD_START', {
+      projectId: input.projectId,
+      jobId,
+      outputPath,
+      size: outputStat.size,
+      status: 'started',
+    })
     exportLog.uploadStarted({ jobId, projectId: input.projectId })
 
     if (input.userId && input.projectId) {
@@ -263,6 +330,20 @@ export async function orchestrateRemotionReel(
       )
       videoUrl = uploaded.videoUrl
       storagePath = uploaded.storagePath
+      renderPipelineLog('UPLOAD_COMPLETE', {
+        projectId: input.projectId,
+        jobId,
+        storagePath,
+        videoUrl,
+        status: 'complete',
+      })
+      renderPipelineLog('DOWNLOAD_VERIFY', {
+        projectId: input.projectId,
+        jobId,
+        videoUrl,
+        storagePath,
+        status: videoUrl ? 'url_generated' : 'missing_url',
+      })
       exportLog.uploadComplete({
         jobId,
         projectId: input.projectId,
@@ -309,6 +390,14 @@ export async function orchestrateRemotionReel(
     report('complete', EXPORT_STAGE_LABELS.ready)
     exportApiCheckpoint('completed', { jobId, projectId: input.projectId, videoUrl })
     exportLog.urlGenerated({ jobId, projectId: input.projectId, videoUrl })
+    renderPipelineLog('MP4_DOWNLOAD_VERIFY', {
+      projectId: input.projectId,
+      jobId,
+      videoUrl,
+      storagePath,
+      duration: durationSec,
+      status: 'project_updated',
+    })
     mp4RenderLog(6, 'output.mp4 saved', {
       outputPath,
       videoUrl,
@@ -366,6 +455,10 @@ export async function orchestrateRemotionReel(
     const message =
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
     const stack = err instanceof Error ? err.stack : undefined
+    renderPipelineError('REMOTION_RENDER_COMPLETE', err, {
+      projectId: input.projectId,
+      jobId,
+    })
     if (message.toLowerCase().includes('ffmpeg') || stack?.toLowerCase().includes('ffmpeg')) {
       ffmpegCheckpoint('failed', { jobId, message, stack: stack?.slice(0, 2000) })
     }

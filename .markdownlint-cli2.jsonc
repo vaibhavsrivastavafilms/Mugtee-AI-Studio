@@ -1,0 +1,5 @@
+{
+  "ignores": [
+    "test_result.md"
+  ]
+}

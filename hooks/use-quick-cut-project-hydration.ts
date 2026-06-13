@@ -14,6 +14,8 @@ import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 type HydrationOptions = {
   platform?: QuickPlatformValue
+  /** When true, resume an interrupted failed run after load (generation monitor pages). */
+  autoResumeFailed?: boolean
 }
 
 /** Loads a saved Quick Cut project and optionally auto-starts generation. */
@@ -57,34 +59,51 @@ export function useQuickCutProjectHydration(
 
         const shouldAutorun = autorunPipeline && !pipelineStartedRef.current
         const shouldRegen = regenPipeline && !pipelineStartedRef.current
-        if (!shouldAutorun && !shouldRegen) return
+        if (shouldAutorun || shouldRegen) {
+          const pending = loadQuickCutPending()
+          const state = useQuickCutGenerationStore.getState()
+          const prompt = (pending?.prompt ?? state.prompt).trim()
+          if (prompt.length < 6) return
 
-        const pending = loadQuickCutPending()
-        const state = useQuickCutGenerationStore.getState()
-        const prompt = (pending?.prompt ?? state.prompt).trim()
-        if (prompt.length < 6) return
+          pipelineStartedRef.current = true
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('autorun')
+            url.searchParams.delete('regen')
+            window.history.replaceState({}, '', url.pathname + url.search)
+          }
 
-        pipelineStartedRef.current = true
-        if (typeof window !== 'undefined') {
-          const url = new URL(window.location.href)
-          url.searchParams.delete('autorun')
-          url.searchParams.delete('regen')
-          window.history.replaceState({}, '', url.pathname + url.search)
+          void runPipeline({
+            prompt,
+            style: pending?.style ?? state.style,
+            duration: pending?.duration ?? state.duration,
+            platform,
+            language: pending?.language ?? state.language ?? loadContentLanguagePreference(),
+            directorMode:
+              pending?.directorMode ?? loadDirectorModePreference() ?? DEFAULT_DIRECTOR_MODE,
+            visualTemplate: pending?.visualTemplate ?? state.visualTemplate,
+            reuseProject: true,
+            skipResearch: true,
+            ...(shouldRegen ? { regenFresh: true, originalTranscript: state.originalTranscript } : {}),
+          }).finally(() => clearQuickCutPending())
+          return
         }
 
-        void runPipeline({
-          prompt,
-          style: pending?.style ?? state.style,
-          duration: pending?.duration ?? state.duration,
-          platform,
-          language: pending?.language ?? state.language ?? loadContentLanguagePreference(),
-          directorMode:
-            pending?.directorMode ?? loadDirectorModePreference() ?? DEFAULT_DIRECTOR_MODE,
-          visualTemplate: pending?.visualTemplate ?? state.visualTemplate,
-          reuseProject: true,
-          skipResearch: true,
-          ...(shouldRegen ? { regenFresh: true, originalTranscript: state.originalTranscript } : {}),
-        }).finally(() => clearQuickCutPending())
+        if (options?.autoResumeFailed !== true) return
+
+        const state = useQuickCutGenerationStore.getState()
+        const resumableInterrupted =
+          !pipelineStartedRef.current &&
+          Boolean(state.lastCompletedStep) &&
+          state.prompt.trim().length >= 6 &&
+          !state.videoUrl &&
+          !state.isComplete &&
+          (state.generationStatus === 'failed' || state.generationStep === 'error')
+
+        if (!resumableInterrupted) return
+
+        pipelineStartedRef.current = true
+        void useQuickCutGenerationStore.getState().resumeGeneration()
       })
       .finally(() => {
         if (hydratingRef.current === hydrationKey) {
@@ -97,6 +116,7 @@ export function useQuickCutProjectHydration(
     regenPipeline,
     autorunPipeline,
     platform,
+    options?.autoResumeFailed,
     loadSavedProject,
     runPipeline,
     router,

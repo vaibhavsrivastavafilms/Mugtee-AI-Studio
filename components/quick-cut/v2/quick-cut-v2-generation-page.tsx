@@ -1,7 +1,8 @@
 'use client'
 
-import { type RefObject } from 'react'
+import { type RefObject, useEffect, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { resolveResumeFromStep } from '@/lib/cinematic/generation-state'
 import { QC_V2 } from '@/lib/quick-cut/quick-cut-v2-design'
 import { QuickCutV2StatusCard } from '@/components/quick-cut/v2/quick-cut-v2-status-card'
 import { QuickCutV2ProgressBar } from '@/components/quick-cut/v2/quick-cut-v2-progress-bar'
@@ -34,10 +35,38 @@ export function QuickCutV2GenerationPage({
   const generationStep = useQuickCutGenerationStore((s) => s.generationStep)
   const generationStatus = useQuickCutGenerationStore((s) => s.generationStatus)
   const isGenerating = useQuickCutGenerationStore((s) => s.isGenerating)
+  const generationInFlight = useQuickCutGenerationStore((s) => s.generationInFlight)
   const renderError = useQuickCutGenerationStore((s) => s.renderError)
   const lastCompletedStep = useQuickCutGenerationStore((s) => s.lastCompletedStep)
   const failedAtStep = useQuickCutGenerationStore((s) => s.failedAtStep)
+  const prompt = useQuickCutGenerationStore((s) => s.prompt)
   const resumeGeneration = useQuickCutGenerationStore((s) => s.resumeGeneration)
+  const [autoResumePhase, setAutoResumePhase] = useState<'idle' | 'running' | 'done'>('idle')
+
+  const canAutoResume = useMemo(() => {
+    if (exportReady || isGenerating || generationInFlight) return false
+    const resumeFrom = resolveResumeFromStep({ lastCompletedStep, failedAtStep })
+    return (
+      Boolean(resumeFrom) &&
+      prompt.trim().length >= 6 &&
+      (generationStatus === 'failed' || generationStep === 'error')
+    )
+  }, [
+    exportReady,
+    failedAtStep,
+    generationInFlight,
+    generationStatus,
+    generationStep,
+    isGenerating,
+    lastCompletedStep,
+    prompt,
+  ])
+
+  useEffect(() => {
+    if (!canAutoResume || autoResumePhase !== 'idle') return
+    setAutoResumePhase('running')
+    void resumeGeneration().finally(() => setAutoResumePhase('done'))
+  }, [autoResumePhase, canAutoResume, resumeGeneration])
 
   const generationUnavailable =
     Boolean(renderError?.includes('Generation unavailable')) &&
@@ -60,7 +89,12 @@ export function QuickCutV2GenerationPage({
     )
   }
 
-  const showRecovery = generationStep === 'error' || generationStatus === 'failed' || status === 'FAILED'
+  const showRecovery =
+    autoResumePhase === 'done' &&
+    !isGenerating &&
+    !generationInFlight &&
+    generationStatus !== 'generating' &&
+    (generationStep === 'error' || generationStatus === 'failed' || status === 'FAILED')
 
   if (showRecovery) {
     return (

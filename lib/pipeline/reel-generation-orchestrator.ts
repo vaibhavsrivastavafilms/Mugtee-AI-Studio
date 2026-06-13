@@ -7,6 +7,7 @@
  */
 
 import type { GeneratedScene } from '@/lib/cinematic/generation'
+import { sceneHasExportableStoryboard } from '@/lib/export/scene-export-validation'
 import type { SectionStatusMap } from '@/lib/cinematic/section-generation-status'
 import type { ReelTimeline } from '@/lib/reel/types'
 import { buildCaptionsSrt } from '@/lib/reel/export-format'
@@ -156,7 +157,7 @@ function sceneCount(snapshot: ReelPipelineSnapshot): number {
 
 function scenesHaveImages(scenes: GeneratedScene[]): boolean {
   if (scenes.length < 1) return false
-  return scenes.every((s) => Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim()))
+  return scenes.every((s) => sceneHasExportableStoryboard(s))
 }
 
 function scenesHaveVideos(scenes: GeneratedScene[]): boolean {

@@ -8,12 +8,22 @@ import { cn } from '@/lib/utils'
 import { shouldPrefer2DFallback } from '@/lib/webgl/capabilities'
 import type { MugteeAvatarSize, MugteeAvatarState } from '@/components/avatar/types'
 import { MUGTEE_AVATAR_SIZE_PX } from '@/components/avatar/types'
-import { AvatarCanvasSkeleton } from '@/components/avatar/mugtee-avatar-canvas'
+import { AvatarCanvasSkeleton } from '@/components/avatar/avatar-canvas-skeleton'
 import { MUGTEE_SIDEKICK_SRC } from '@/components/sidekick/mugtee-sidekick-avatar'
 
 const MugteeAvatarCanvas = dynamic(
   () =>
-    import('@/components/avatar/mugtee-avatar-canvas').then((m) => m.MugteeAvatarCanvas),
+    import('@/components/avatar/mugtee-avatar-canvas')
+      .then((m) => m.MugteeAvatarCanvas)
+      .catch(() => {
+        function Avatar3DLoadFailed({ onError }: { onError?: () => void }) {
+          useEffect(() => {
+            onError?.()
+          }, [onError])
+          return null
+        }
+        return Avatar3DLoadFailed
+      }),
   { ssr: false, loading: () => <AvatarCanvasSkeleton /> }
 )
 

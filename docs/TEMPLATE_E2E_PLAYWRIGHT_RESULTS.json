@@ -1,0 +1,29 @@
+{
+  "at": "2026-06-12T22:53:16.514Z",
+  "results": {
+    "creator_story": {
+      "generate": "SKIP",
+      "export": "SKIP",
+      "download": "SKIP",
+      "persistence": "SKIP",
+      "visualQuality": "MANUAL",
+      "notes": []
+    },
+    "explainer_studio": {
+      "generate": "SKIP",
+      "export": "SKIP",
+      "download": "SKIP",
+      "persistence": "SKIP",
+      "visualQuality": "MANUAL",
+      "notes": []
+    },
+    "documentary_cinematic": {
+      "generate": "SKIP",
+      "export": "SKIP",
+      "download": "SKIP",
+      "persistence": "SKIP",
+      "visualQuality": "MANUAL",
+      "notes": []
+    }
+  }
+}

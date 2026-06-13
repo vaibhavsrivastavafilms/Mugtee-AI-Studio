@@ -16,9 +16,17 @@ export type MugteeSidekickAvatarSize = keyof typeof SIZE_PX
 
 const MugteeSidekick3DViewer = dynamic(
   () =>
-    import('@/components/sidekick/mugtee-sidekick-3d-viewer').then(
-      (m) => m.MugteeSidekick3DViewer
-    ),
+    import('@/components/sidekick/mugtee-sidekick-3d-viewer')
+      .then((m) => m.MugteeSidekick3DViewer)
+      .catch(() => {
+        function Sidekick3DLoadFailed({ onError }: { onError?: () => void }) {
+          useEffect(() => {
+            onError?.()
+          }, [onError])
+          return null
+        }
+        return Sidekick3DLoadFailed
+      }),
   { ssr: false, loading: () => <SidekickAvatarSkeleton /> }
 )
 

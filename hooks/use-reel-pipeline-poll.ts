@@ -9,6 +9,7 @@ import {
   formatReelPipelineFailureMessage,
   isReelPipelineTerminal,
 } from '@/lib/pipeline/reel-generation-orchestrator'
+import { isActiveGenerationRun } from '@/lib/generation/restore-generation-job.client'
 import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
@@ -94,39 +95,61 @@ export function useReelPipelineJobPoll() {
           jobPollWarning: null,
         })
       } else if (poll.status === 'failed') {
-        useQuickCutGenerationStore.setState({
-          pipelineStatus: poll.status,
-          pipelineJobId: poll.jobId,
-          isGenerating: false,
-          renderError:
-            formatReelPipelineFailureMessage({
-              status: 'failed',
-              failedStage: poll.failedStage,
-              errorMessage: poll.errorMessage,
-              progress: 0,
-              currentStage: null,
-              jobId: poll.jobId,
-              finalMp4Url: null,
-              timeline: null,
-              exportReady: false,
-            }) ?? poll.errorMessage,
-          failedPipelineStage: poll.failedStage,
-          isComplete: false,
-          jobPollWarning: null,
-        })
+        const live = useQuickCutGenerationStore.getState()
+        if (!isActiveGenerationRun(live)) {
+          useQuickCutGenerationStore.setState({
+            pipelineStatus: poll.status,
+            pipelineJobId: poll.jobId,
+            isGenerating: false,
+            renderError:
+              formatReelPipelineFailureMessage({
+                status: 'failed',
+                failedStage: poll.failedStage,
+                errorMessage: poll.errorMessage,
+                progress: 0,
+                currentStage: null,
+                jobId: poll.jobId,
+                finalMp4Url: null,
+                timeline: null,
+                exportReady: false,
+              }) ?? poll.errorMessage,
+            failedPipelineStage: poll.failedStage,
+            isComplete: false,
+            jobPollWarning: null,
+          })
+        }
       } else {
-        useQuickCutGenerationStore.setState({
-          pipelineStatus: poll.status,
-          pipelineJobId: poll.jobId,
-          progress: poll.progress,
-          jobPollWarning: null,
+        useQuickCutGenerationStore.setState((prev) => {
+          const pollProgress = poll.progress ?? 0
+          const pollStaleWhileGenerating =
+            isActiveGenerationRun(prev) &&
+            poll.status === 'queued' &&
+            pollProgress <= prev.progress
+          if (pollStaleWhileGenerating) {
+            return { jobPollWarning: null }
+          }
+          return {
+            pipelineStatus: poll.status,
+            pipelineJobId: poll.jobId,
+            progress: Math.max(prev.progress, pollProgress),
+            jobPollWarning: null,
+          }
         })
         if (poll.status === 'mp4_rendering') {
           void resumeRenderPoll()
         }
       }
 
-      if (isReelPipelineTerminal(poll.status)) return
+      if (isReelPipelineTerminal(poll.status)) {
+        if (
+          poll.status === 'failed' &&
+          isActiveGenerationRun(useQuickCutGenerationStore.getState())
+        ) {
+          schedule(POLL_MS)
+          return
+        }
+        return
+      }
       schedule(POLL_MS)
     }
 

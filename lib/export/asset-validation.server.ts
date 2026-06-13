@@ -70,7 +70,7 @@ function formatUnreachableSceneMessage(indices: number[]): string {
       : nums.length === 2
         ? `${nums[0]} and ${nums[1]}`
         : `${nums.slice(0, -1).join(', ')}, and ${nums[nums.length - 1]}`
-  return `Cannot export reel — ${sceneWord.toLowerCase()} ${list} ${verb} missing reachable storyboard images (link may have expired). Regenerate them, then try export again.`
+  return `Cannot export reel — ${sceneWord.toLowerCase()} ${list} ${verb} missing storyboard images in storage. Regenerate them, then try export again.`
 }
 
 /** Pre-render validation — surfaces missing assets before FFmpeg/Remotion starts. */

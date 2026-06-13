@@ -1,0 +1,73 @@
+name: Quick Cut Smoke
+
+on:
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: quick-cut-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    timeout-minutes: 8
+    runs-on: ubuntu-latest
+
+    env:
+      CI_QUICK_CUT_SMOKE: 'true'
+      CI_SMOKE_MP4_SECONDS: '2'
+      VIDEO_RENDER_MOCK: 'true'
+      VIDEO_RENDER_ENABLED: 'true'
+      MUGTEE_LIMITS_ENABLED: 'false'
+      NEXT_PUBLIC_DEV_UNLOCK_EXPORT: 'true'
+      CI_BASE_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Start server
+        run: |
+          npm run start &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/quick-cut/config > /dev/null; then
+              echo "Server ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server failed to start"
+          exit 1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CI_E2E_EMAIL: ${{ secrets.CI_E2E_EMAIL }}
+          CI_E2E_PASSWORD: ${{ secrets.CI_E2E_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FLUXAPI_KEY: ${{ secrets.FLUXAPI_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+
+      - name: Quick Cut export smoke
+        run: node scripts/ci/quick-cut-smoke.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CI_E2E_EMAIL: ${{ secrets.CI_E2E_EMAIL }}
+          CI_E2E_PASSWORD: ${{ secrets.CI_E2E_PASSWORD }}

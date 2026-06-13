@@ -5,7 +5,10 @@ import {
   fetchActiveGenerationJob,
   syncGenerationJobProgress,
 } from '@/lib/generation/generation-job-sync.client'
-import { applyActiveGenerationJobToStore } from '@/lib/generation/restore-generation-job.client'
+import {
+  applyActiveGenerationJobToStore,
+  isActiveGenerationRun,
+} from '@/lib/generation/restore-generation-job.client'
 import {
   clearStoredGenerationJobId,
   readStoredGenerationJobId,
@@ -36,6 +39,7 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       lastCompletedStep: s.lastCompletedStep,
       isGenerating: s.isGenerating,
       isComplete: s.isComplete,
+      generationInFlight: s.generationInFlight,
       generationStatus: s.generationStatus,
       prompt: s.prompt,
       script: s.script,
@@ -117,16 +121,13 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
           useQuickCutGenerationStore.setState,
           pid
         )
-        const live = useQuickCutGenerationStore.getState()
-        if (job.canResume && !live.isGenerating && !live.isComplete) {
-          void live.resumeGeneration()
-        }
       }
     })
   }, [pid])
 
   useEffect(() => {
     if (!pid || state.isComplete) return
+    if (isActiveGenerationRun(state)) return
     void syncGenerationJobProgress({
       jobId: isValidGenerationJobId(jobId) ? jobId : null,
       projectId: pid,
@@ -165,6 +166,7 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
     state.generationStep,
     state.lastCompletedStep,
     state.isGenerating,
+    state.generationInFlight,
     state.isComplete,
     state.generationStatus,
     state.prompt,

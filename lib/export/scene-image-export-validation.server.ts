@@ -5,6 +5,7 @@ import {
   resolveSceneExportAssetPath,
   resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
+import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 import { retryWithBackoff } from '@/lib/video/retry.server'
 import {
   recoverSceneAssetPath,
@@ -28,6 +29,8 @@ export type SceneImageValidationEntry = {
   regenerated: 'SUCCESS' | 'FAILED' | 'SKIPPED'
   validated: boolean
   freshSignedUrl: string | null
+  signedUrlExpiry: string | null
+  validationResult: 'PASS' | 'PASS_STORAGE' | 'PASS_HTTP' | 'FAIL_MISSING_STORAGE' | 'FAIL_NO_URL'
 }
 
 export type SceneImageValidationResult = {
@@ -37,7 +40,30 @@ export type SceneImageValidationResult = {
   reportLines: string[]
 }
 
-async function assetReachable(url: string): Promise<boolean> {
+function parseSignedUrlExpiry(url: string | null): string | null {
+  if (!url?.trim()) return null
+  try {
+    const token = new URL(url).searchParams.get('token')
+    if (!token) return null
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const payload = JSON.parse(
+      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+    ) as { exp?: number }
+    if (typeof payload.exp !== 'number') return null
+    return new Date(payload.exp * 1000).toISOString()
+  } catch {
+    return null
+  }
+}
+
+function signedUrlIsExpired(url: string | null): boolean {
+  const expiry = parseSignedUrlExpiry(url)
+  if (!expiry) return staleUrlLikelyExpired(url)
+  return Date.parse(expiry) <= Date.now()
+}
+
+async function probeUrlReachable(url: string): Promise<boolean> {
   if (!url?.trim()) return false
   if (url.startsWith('data:')) return true
   try {
@@ -55,7 +81,7 @@ async function assetReachable(url: string): Promise<boolean> {
         if (headRes.ok || headRes.status === 405) return
         throw new Error(`Asset unreachable (${getRes.status})`)
       },
-      { maxAttempts: 3, label: 'export scene image' }
+      { maxAttempts: 2, label: 'export scene image probe' }
     )
     return true
   } catch {
@@ -68,22 +94,133 @@ function staleUrlLikelyExpired(url: string | null): boolean {
   return url.includes('/object/sign/') || url.includes('token=')
 }
 
+function logAssetRefresh(payload: Record<string, unknown>): void {
+  console.info('[ASSET_REFRESH]', payload)
+}
+
+function logExportAssetCheck(payload: Record<string, unknown>): void {
+  console.info('[EXPORT_ASSET_CHECK]', payload)
+}
+
+function applyFreshUrlToScene(
+  scene: CinematicScene,
+  assetPath: string,
+  freshSignedUrl: string
+): CinematicScene {
+  const storyboard = scene.storyboardImages ?? []
+  return {
+    ...scene,
+    imageAssetPath: assetPath,
+    imageUrl: freshSignedUrl,
+    storyboardImages: storyboard.length
+      ? storyboard.map((img) => ({
+          ...img,
+          assetPath: img.assetPath ?? assetPath,
+          url: freshSignedUrl,
+        }))
+      : scene.storyboardImages,
+  }
+}
+
+async function refreshExportImageFromStorage(params: {
+  scene: CinematicScene
+  sceneIndex: number
+  assetPath: string
+  persistedUrl: string | null
+  lookup: LegacyAssetLookup
+  supabase: ReturnType<typeof createSupabaseServerClient>
+  projectId: string
+}): Promise<{
+  scene: CinematicScene
+  freshSignedUrl: string | null
+  storage: 'FOUND' | 'MISSING'
+  signedUrl: 'FRESH' | 'EXPIRED' | 'NONE'
+  regenerated: 'SUCCESS' | 'FAILED' | 'SKIPPED'
+  validated: boolean
+  validationResult: SceneImageValidationEntry['validationResult']
+}> {
+  const { assetPath, persistedUrl, supabase, projectId, scene } = params
+  const wasExpired = signedUrlIsExpired(persistedUrl)
+
+  logAssetRefresh({
+    projectId,
+    sceneId: scene.id,
+    sceneIndex: params.sceneIndex + 1,
+    imageAssetPath: assetPath,
+    priorImageUrl: persistedUrl,
+    priorSignedUrlExpiry: parseSignedUrlExpiry(persistedUrl),
+    priorExpired: wasExpired,
+  })
+
+  let freshSignedUrl = await refreshStoryboardUrl(assetPath, supabase)
+  let storage: 'FOUND' | 'MISSING' = freshSignedUrl ? 'FOUND' : 'MISSING'
+
+  if (!freshSignedUrl) {
+    const exists = await storyboardStorageExists(assetPath, supabase)
+    storage = exists ? 'FOUND' : 'MISSING'
+    if (exists) {
+      freshSignedUrl = await refreshStoryboardUrl(assetPath, supabase)
+    }
+  }
+
+  if (freshSignedUrl) {
+    logAssetRefresh({
+      projectId,
+      sceneId: scene.id,
+      sceneIndex: params.sceneIndex + 1,
+      imageAssetPath: assetPath,
+      freshSignedUrl,
+      freshSignedUrlExpiry: parseSignedUrlExpiry(freshSignedUrl),
+      result: 'regenerated',
+    })
+    return {
+      scene: applyFreshUrlToScene(scene, assetPath, freshSignedUrl),
+      freshSignedUrl,
+      storage: 'FOUND',
+      signedUrl: 'FRESH',
+      regenerated: 'SUCCESS',
+      validated: true,
+      validationResult: 'PASS_STORAGE',
+    }
+  }
+
+  if (storage === 'FOUND') {
+    const fallbackUrl = resolveSceneExportImageUrl(scene)
+    if (fallbackUrl && !signedUrlIsExpired(fallbackUrl)) {
+      return {
+        scene: { ...scene, imageAssetPath: assetPath, imageUrl: fallbackUrl },
+        freshSignedUrl: fallbackUrl,
+        storage: 'FOUND',
+        signedUrl: 'FRESH',
+        regenerated: 'SKIPPED',
+        validated: true,
+        validationResult: 'PASS_STORAGE',
+      }
+    }
+  }
+
+  return {
+    scene,
+    freshSignedUrl: null,
+    storage,
+    signedUrl: wasExpired ? 'EXPIRED' : 'NONE',
+    regenerated: storage === 'FOUND' ? 'FAILED' : 'FAILED',
+    validated: false,
+    validationResult: storage === 'FOUND' ? 'FAIL_NO_URL' : 'FAIL_MISSING_STORAGE',
+  }
+}
+
 function buildReportLine(entry: SceneImageValidationEntry): string {
-  const regen =
-    entry.regenerated === 'SUCCESS'
-      ? 'SUCCESS'
-      : entry.regenerated === 'FAILED'
-        ? 'FAILED'
-        : 'SKIPPED'
   return [
     `Scene ${entry.sceneIndex}`,
     `  sceneId: ${entry.sceneId}`,
     `  imageUrl: ${entry.imageUrl ?? 'null'}`,
     `  imageAssetPath: ${entry.imageAssetPath ?? 'null'}`,
-    `  storyboardImages: ${entry.storyboardImageCount}`,
+    `  signedUrlExpiry: ${entry.signedUrlExpiry ?? 'null'}`,
+    `  validationResult: ${entry.validationResult}`,
     `  storage: ${entry.storage}`,
     `  signedUrl: ${entry.signedUrl}`,
-    `  regenerated: ${regen}`,
+    `  regenerated: ${entry.regenerated}`,
     `  validated: ${entry.validated ? 'PASS' : 'FAIL'}`,
   ].join('\n')
 }
@@ -92,17 +229,36 @@ export function logSceneImageValidationReport(
   projectId: string,
   result: SceneImageValidationResult
 ): void {
-  console.group(`[Export Image Validation] projectId=${projectId}`)
+  console.group(`[EXPORT] asset_validation projectId=${projectId}`)
+  for (const entry of result.entries) {
+    logExportAssetCheck({
+      projectId,
+      sceneId: entry.sceneId,
+      sceneIndex: entry.sceneIndex,
+      imageUrl: entry.freshSignedUrl ?? entry.imageUrl,
+      imageAssetPath: entry.imageAssetPath,
+      signedUrlExpiry: entry.signedUrlExpiry,
+      validationResult: entry.validationResult,
+      storage: entry.storage,
+      signedUrl: entry.signedUrl,
+      regenerated: entry.regenerated,
+      validated: entry.validated,
+    })
+  }
   for (const line of result.reportLines) {
     console.info(line)
   }
   if (result.unreachableIndices.length) {
-    console.warn('[Export Image Validation] unreachable scenes', result.unreachableIndices)
+    console.warn('[EXPORT] unreachable_scenes', {
+      projectId,
+      scenes: result.unreachableIndices,
+      reason: 'storage_missing_or_no_durable_path',
+    })
   }
   console.groupEnd()
 }
 
-/** Refresh storage-backed URLs, then validate reachability (never trust stale signed URLs). */
+/** Refresh storage-backed URLs; storage path is source of truth (never fail on stale signed URLs alone). */
 export async function refreshAndValidateExportSceneImages(params: {
   scenes: CinematicScene[]
   projectId: string
@@ -125,56 +281,67 @@ export async function refreshAndValidateExportSceneImages(params: {
   const unreachableIndices: number[] = []
 
   for (let i = 0; i < scenes.length; i++) {
-    const scene = scenes[i]
+    let scene = scenes[i]
     const storyboard = scene.storyboardImages ?? []
+    const persistedUrl = resolveSceneExportImageUrl(scene)
+
     let assetPath =
       resolveSceneExportAssetPath(scene) ??
-      (await recoverSceneAssetPath(scene, i, lookup, supabase))
+      (await recoverSceneAssetPath(scene, i, lookup, supabase)) ??
+      extractStoragePathFromUrl(persistedUrl)
 
-    const persistedUrl = resolveSceneExportImageUrl(scene)
     let freshSignedUrl: string | null = null
     let storage: SceneImageValidationEntry['storage'] = 'MISSING'
-    let signedUrl: SceneImageValidationEntry['signedUrl'] = 'NONE'
+    let signedUrl: SceneImageValidationEntry['signedUrl'] = signedUrlIsExpired(persistedUrl)
+      ? 'EXPIRED'
+      : 'NONE'
     let regenerated: SceneImageValidationEntry['regenerated'] = 'SKIPPED'
     let validated = false
+    let validationResult: SceneImageValidationEntry['validationResult'] = 'FAIL_NO_URL'
 
     if (assetPath) {
-      freshSignedUrl = await refreshStoryboardUrl(assetPath, supabase)
-      if (freshSignedUrl) {
-        regenerated = 'SUCCESS'
-        signedUrl = 'FRESH'
-        storage = 'FOUND'
-        scenes[i] = {
-          ...scene,
-          imageAssetPath: assetPath,
-          imageUrl: freshSignedUrl,
-          storyboardImages: storyboard.length
-            ? storyboard.map((img) => ({
-                ...img,
-                assetPath: img.assetPath ?? assetPath ?? undefined,
-                url: freshSignedUrl ?? img.url ?? undefined,
-              }))
-            : scene.storyboardImages,
-        }
-        validated = await assetReachable(freshSignedUrl)
-      } else {
-        storage = (await storyboardStorageExists(assetPath, supabase)) ? 'FOUND' : 'MISSING'
-        regenerated = 'FAILED'
-        signedUrl = staleUrlLikelyExpired(persistedUrl) ? 'EXPIRED' : 'NONE'
+      const refreshed = await refreshExportImageFromStorage({
+        scene,
+        sceneIndex: i,
+        assetPath,
+        persistedUrl,
+        lookup,
+        supabase,
+        projectId: params.projectId,
+      })
+      scene = refreshed.scene
+      scenes[i] = scene
+      freshSignedUrl = refreshed.freshSignedUrl
+      storage = refreshed.storage
+      signedUrl = refreshed.signedUrl
+      regenerated = refreshed.regenerated
+      validated = refreshed.validated
+      validationResult = refreshed.validationResult
+
+      if (validated && freshSignedUrl) {
+        const httpOk = await probeUrlReachable(freshSignedUrl)
+        if (httpOk) validationResult = 'PASS_HTTP'
       }
     }
 
     if (!validated && persistedUrl && !assetPath) {
-      signedUrl = staleUrlLikelyExpired(persistedUrl) ? 'EXPIRED' : signedUrl
-      validated = await assetReachable(persistedUrl)
-      if (validated) signedUrl = 'FRESH'
+      const httpOk = await probeUrlReachable(persistedUrl)
+      if (httpOk) {
+        validated = true
+        signedUrl = 'FRESH'
+        validationResult = 'PASS_HTTP'
+        freshSignedUrl = persistedUrl
+      } else if (signedUrlIsExpired(persistedUrl)) {
+        signedUrl = 'EXPIRED'
+        validationResult = 'FAIL_NO_URL'
+      }
     }
 
     if (!validated) {
       unreachableIndices.push(i + 1)
     }
 
-    const entry: SceneImageValidationEntry = {
+    entries.push({
       sceneIndex: i + 1,
       sceneId: scene.id,
       imageUrl: persistedUrl,
@@ -189,16 +356,15 @@ export async function refreshAndValidateExportSceneImages(params: {
       regenerated,
       validated,
       freshSignedUrl,
-    }
-    entries.push(entry)
+      signedUrlExpiry: parseSignedUrlExpiry(persistedUrl),
+      validationResult,
+    })
   }
-
-  const reportLines = entries.map(buildReportLine)
 
   return {
     scenes,
     entries,
     unreachableIndices,
-    reportLines,
+    reportLines: entries.map(buildReportLine),
   }
 }

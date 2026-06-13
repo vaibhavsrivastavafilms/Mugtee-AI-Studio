@@ -2,21 +2,23 @@
 
 **Date:** 2026-06-09  
 **Source:** `.env.example`, `PRODUCTION_SETUP.md`, codebase grep  
-**Auth note:** Mugtee uses **Supabase Auth**, not NextAuth. `NEXTAUTH_SECRET` from the launch spec is **not used** — omit or replace with Supabase-managed secrets.
+**Auth note:** Mugtee uses **Supabase Auth**, not NextAuth.
+`NEXTAUTH_SECRET` from the launch spec is **not used** — omit or use Supabase secrets.
 
 ---
 
 ## 1. Validation Status
 
 | Capability | Status |
-|------------|--------|
+| --- | --- |
 | Centralized env schema (Zod / t3-env) | ❌ Missing |
 | Build-time validation | ❌ Missing |
 | Runtime startup fail-fast | ❌ Missing |
 | Launch auto-probes | ✅ `lib/admin/launch-readiness.ts` (partial) |
 | Public health endpoint | ❌ Missing |
 
-**Recommendation:** Add `lib/env/server.ts` + `lib/env/client.ts` with Zod; fail in `instrumentation.ts` when `NODE_ENV=production` and required vars missing.
+**Recommendation:** Add `lib/env/server.ts` and `lib/env/client.ts` with Zod.
+Fail in `instrumentation.ts` when production and required vars are missing.
 
 ---
 
@@ -25,16 +27,16 @@
 ### Must be set (fail fast if missing)
 
 | Variable | Purpose | Used in |
-|----------|---------|---------|
+| --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Auth, DB, storage |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server user-scoped access | `lib/supabase/*` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin metrics, usage tracker, billing sync, webhooks | `lib/supabase/service.ts`, admin APIs |
-| `NEXT_PUBLIC_BASE_URL` | OAuth redirects, export URLs | `app/auth/callback`, export paths |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin metrics, usage, billing sync | `lib/supabase/service.ts` |
+| `NEXT_PUBLIC_BASE_URL` | OAuth redirects, export URLs | `app/auth/callback`, export |
 
 ### Strongly recommended (launch)
 
 | Variable | Purpose |
-|----------|---------|
+| --- | --- |
 | `ADMIN_EMAILS` or `ADMIN_USER_IDS` | Admin dashboard access |
 | `GEMINI_API_KEY` or `OPENAI_API_KEY` | Core generation (at least one AI provider) |
 | `VIDEO_RENDER_ENABLED` | Must be `true` for MP4 |
@@ -46,7 +48,7 @@
 ### AI providers (plan-dependent)
 
 | Variable | Used for |
-|----------|----------|
+| --- | --- |
 | `OPENAI_API_KEY` | Script, TTS (Free/Creator), images |
 | `GEMINI_API_KEY` | Script fallback |
 | `ANTHROPIC_API_KEY` | Script |
@@ -60,7 +62,7 @@
 ## 3. Dangerous Defaults (must NOT ship to production)
 
 | Variable | `.env.example` default | Risk |
-|----------|------------------------|------|
+| --- | --- | --- |
 | `VIDEO_RENDER_MOCK` | `true` | Fake MP4 URLs |
 | `NEXT_PUBLIC_DEV_UNLOCK_EXPORT` | `true` | Bypasses export/plan gates |
 | `FREE_TIER_ONLY` | `true` | Restricts paid providers |
@@ -82,7 +84,7 @@ NODE_ENV=production                   # set by Vercel
 ## 4. Billing Environment
 
 | Variable | Purpose | Status in `.env.example` |
-|----------|---------|--------------------------|
+| --- | --- | --- |
 | `RAZORPAY_KEY_ID` | API auth | ✅ Documented |
 | `RAZORPAY_KEY_SECRET` | API auth | ✅ Documented |
 | `RAZORPAY_WEBHOOK_SECRET` | Webhook HMAC | ✅ Documented |
@@ -100,7 +102,7 @@ NODE_ENV=production                   # set by Vercel
 All optional; defaults in `lib/billing/plan-limits.ts`.
 
 | Prefix | Example |
-|--------|---------|
+| --- | --- |
 | `MUGTEE_LIMIT_*` | Free tier |
 | `MUGTEE_CREATOR_LIMIT_*` | Creator tier |
 | `MUGTEE_PRO_LIMIT_*` | Pro tier |
@@ -112,7 +114,7 @@ All optional; defaults in `lib/billing/plan-limits.ts`.
 ## 6. Feature Flags
 
 | Variable | Effect |
-|----------|--------|
+| --- | --- |
 | `VIDEO_RENDER_ENABLED` | MP4 export |
 | `PIPELINE_DEBUG` | Verbose generation logs |
 | `MUGTEE_UNLIMITED_PRO` | Pro tier unlimited metrics |
@@ -122,7 +124,7 @@ All optional; defaults in `lib/billing/plan-limits.ts`.
 ## 7. Analytics & Monitoring
 
 | Variable | Purpose | Required? |
-|----------|---------|-----------|
+| --- | --- | --- |
 | `NEXT_PUBLIC_POSTHOG_KEY` | PostHog | Recommended |
 | `NEXT_PUBLIC_POSTHOG_HOST` | PostHog host | Optional |
 | Sentry DSN | Crash reporting | ❌ Not configured |
@@ -133,7 +135,7 @@ All optional; defaults in `lib/billing/plan-limits.ts`.
 ## 8. Ads
 
 | Variable | Purpose |
-|----------|---------|
+| --- | --- |
 | `NEXT_PUBLIC_ADSENSE_CLIENT` | Publisher ID |
 | `NEXT_PUBLIC_ADSENSE_SLOT_*` | Placement slots |
 
@@ -144,7 +146,7 @@ All optional; defaults in `lib/billing/plan-limits.ts`.
 ## 9. Storage & Export
 
 | Variable | Purpose |
-|----------|---------|
+| --- | --- |
 | `SUPABASE_STORAGE_BUCKET` | Asset storage |
 | `REMOTION_*` | Render config (if used) |
 
@@ -172,7 +174,8 @@ const productionForbidden = [
 ] as const
 ```
 
-At least **one** of: `OPENAI_API_KEY`, `GEMINI_API_KEY` should be required for generation.
+At least **one** of: `OPENAI_API_KEY`, `GEMINI_API_KEY` should be required for
+generation.
 
 ---
 
@@ -192,7 +195,7 @@ Run before launch (manual):
 ## 12. Gap Summary
 
 | Gap | Priority |
-|-----|----------|
+| --- | --- |
 | No automated env validation at boot | High |
 | Dangerous defaults in `.env.example` | High |
 | No Sentry/Datadog env vars | Medium |

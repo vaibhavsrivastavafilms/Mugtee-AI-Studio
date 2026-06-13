@@ -20,7 +20,7 @@ function QuickCutProjectPageInner({ projectId }: QuickCutProjectPageClientProps)
     QUICK_PLATFORM_OPTIONS.find((o) => o.value === platformParam)?.value ??
     ('youtube_short' as QuickPlatformValue)
 
-  useQuickCutProjectHydration(projectId, { platform })
+  useQuickCutProjectHydration(projectId, { platform, autoResumeFailed: true })
   useGenerationJobResume(projectId)
   useReelPipelineJobPoll()
 

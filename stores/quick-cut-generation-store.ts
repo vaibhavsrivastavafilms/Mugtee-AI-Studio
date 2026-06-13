@@ -1,7 +1,6 @@
 'use client'
 
 import { create } from 'zustand'
-import { QUICK_CUT_V2_TEXT_TO_VIDEO } from '@/lib/quick-cut/quick-cut-v2-config'
 import {
   DEFAULT_VISUAL_TEMPLATE,
   normalizeVisualTemplate,
@@ -84,6 +83,13 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { simulateMockExport } from '@/lib/cinematic/quick-cut/mock-export.client'
 import { friendlyReelRenderError } from '@/lib/video/reel-render-errors'
 import { sceneExportReadiness, reelExportReadiness } from '@/lib/export/scene-export-validation'
+import {
+  backfillStoryboardAssetsClient,
+  logStoryboardAssetChecks,
+  scenesMissingExportImages,
+  storyboardImagesError,
+  storyboardImagesReady,
+} from '@/lib/export/ensure-export-images.client'
 import {
   pickExportStoryboardScenes,
   scenesToExportRequestPayload,
@@ -221,6 +227,7 @@ import {
 import {
   inferLastCompletedStep,
   PERSISTED_STEP_ORDER,
+  resolveResumeFromStep,
   stepShouldRun,
   type GenerationStatus,
   type PersistedGenerationStep,
@@ -353,8 +360,8 @@ import { pollGenerationJobOrchestrator } from '@/lib/pipeline/reel-generation-or
 import {
   fetchActiveGenerationJob,
 } from '@/lib/generation/generation-job-sync.client'
-import { writeStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
-import { applyActiveGenerationJobToStore } from '@/lib/generation/restore-generation-job.client'
+import { writeStoredGenerationJobId, clearStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
+import { applyActiveGenerationJobToStore, isActiveGenerationRun } from '@/lib/generation/restore-generation-job.client'
 import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
 import { VOICE_UNAVAILABLE_MESSAGE } from '@/lib/generation/generation-pipeline-messages'
 import { canRegenerateSingleScene } from '@/lib/quick-cut/scene-regen-guard'
@@ -1370,6 +1377,24 @@ async function saveCompletedStages(
   logGenerationRecoverable(state.savedProjectId, lastCompleted, userError)
 }
 
+function persistedStepToFailedStage(
+  step: PersistedGenerationStep | null | undefined
+): ReelPipelineFailedStage {
+  switch (step) {
+    case 'storyboard':
+      return 'images'
+    case 'voice':
+      return 'voice'
+    case 'export':
+      return 'export'
+    case 'hook':
+    case 'script':
+    case 'visual_direction':
+    default:
+      return 'script'
+  }
+}
+
 function resolveSaveError(err: unknown): string {
   if (err instanceof CinematicProjectsUnavailableError) return err.message
   if (isCinematicProjectsUnavailable(err)) return getCinematicProjectsMigrationHint(err)
@@ -1719,6 +1744,91 @@ function mergeScenesById(
   })
 }
 
+type StoreSetPatch = (
+  partial:
+    | Partial<QuickCutGenerationState>
+    | ((state: QuickCutGenerationState) => Partial<QuickCutGenerationState>)
+) => void
+
+/** Regenerate missing storyboard stills — backfill storage first, then per-scene image API. */
+async function regenerateMissingStoryboardImages(
+  get: () => QuickCutGenerationState,
+  set: StoreSetPatch,
+  options?: { reason?: string; maxAttempts?: number }
+): Promise<{ ok: boolean; message: string | null }> {
+  const maxAttempts = options?.maxAttempts ?? 2
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let scenes = get().scenes
+    let missing = scenesMissingExportImages(scenes)
+    if (missing.length === 0) {
+      logStoryboardAssetChecks(get().savedProjectId, scenes)
+      return { ok: true, message: null }
+    }
+
+    console.info('[STORYBOARD] regenerate_missing', {
+      projectId: get().savedProjectId,
+      reason: options?.reason ?? 'export_recovery',
+      attempt,
+      missing: missing.map((m) => m.index),
+    })
+
+    const projectId = get().savedProjectId
+    if (projectId && attempt === 1) {
+      const backfill = await backfillStoryboardAssetsClient(projectId)
+      if (backfill.scenes.length > 0) {
+        set({ scenes: backfill.scenes, storyboard: backfill.scenes })
+        missing = scenesMissingExportImages(backfill.scenes)
+        if (missing.length === 0) {
+          logStoryboardAssetChecks(projectId, backfill.scenes)
+          return { ok: true, message: null }
+        }
+      }
+    }
+
+    for (const m of missing) {
+      const scene = get().scenes.find((s) => s.id === m.id)
+      if (!scene?.id) continue
+      try {
+        const imgResult = await fetchSceneImages(
+          { ...get(), scenes: get().scenes },
+          [scene.id],
+          false,
+          attempt
+        )
+        set((state) => {
+          const patch = imgResult.scenes.find((s) => s.id === scene.id)
+          const merged = patch ? mergeScenesById(state.scenes, [patch], [scene.id]) : state.scenes
+          return { scenes: merged, storyboard: merged }
+        })
+      } catch (err) {
+        console.warn('[STORYBOARD] frame_regen_failed', {
+          frameId: scene.id,
+          sceneIndex: m.index,
+          imageExists: false,
+          imageUrl: null,
+          storageVerified: false,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
+
+    scenes = get().scenes
+    missing = scenesMissingExportImages(scenes)
+    if (missing.length === 0) {
+      logStoryboardAssetChecks(get().savedProjectId, scenes)
+      return { ok: true, message: null }
+    }
+  }
+
+  const finalMissing = scenesMissingExportImages(get().scenes)
+  logStoryboardAssetChecks(get().savedProjectId, get().scenes)
+  return {
+    ok: false,
+    message: storyboardImagesError(finalMissing),
+  }
+}
+
 function stripSceneImages(scenes: GeneratedScene[]): GeneratedScene[] {
   return scenes.map((scene) => ({
     ...scene,
@@ -1869,6 +1979,26 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
     }
   }
 
+  if (!storyboardImagesReady(state.scenes)) {
+    console.info('[EXPORT] images_missing_pre_render', {
+      projectId: state.savedProjectId,
+      sceneCount: state.scenes.length,
+      missing: scenesMissingExportImages(state.scenes).map((m) => m.index),
+    })
+    const recovery = await regenerateMissingStoryboardImages(
+      () => useQuickCutGenerationStore.getState(),
+      (patch) => useQuickCutGenerationStore.setState(patch),
+      { reason: 'request_video_render' }
+    )
+    if (!recovery.ok) {
+      return {
+        renderRes: { ok: false, status: 400 } as Response,
+        renderData: { error: recovery.message, status: 'failed' },
+      }
+    }
+    state = useQuickCutGenerationStore.getState()
+  }
+
   const readiness = reelExportReadiness(state.scenes, state.voiceUrl)
   if (!readiness.ready && readiness.message) {
     return {
@@ -1878,45 +2008,6 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
   }
 
   if (state.savedProjectId && asyncMode) {
-    try {
-      console.log('[EXPORT] Project', { projectId: state.savedProjectId })
-      console.log('[EXPORT] Scenes', state.scenes.map((s) => ({ id: s.id, imageUrl: s.imageUrl ?? null })))
-      console.log('[EXPORT] Storyboards', state.storyboard?.map((s) => ({
-        id: s.id,
-        imageAssetPath: s.imageAssetPath ?? null,
-      })))
-
-      const backfillRes = await fetch(
-        `/api/projects/${encodeURIComponent(state.savedProjectId)}/backfill-storyboard-assets`,
-        { method: 'POST' }
-      )
-      const backfillData = (await backfillRes.json()) as {
-        scenes?: typeof state.scenes
-        error?: string
-        missingAssets?: unknown
-      }
-      console.log('[EXPORT] Backfill', {
-        status: backfillRes.status,
-        ok: backfillRes.ok,
-        error: backfillData.error,
-      })
-      if (backfillRes.ok) {
-        if (Array.isArray(backfillData.scenes) && backfillData.scenes.length > 0) {
-          useQuickCutGenerationStore.setState({
-            scenes: backfillData.scenes,
-            storyboard: backfillData.scenes,
-          })
-        }
-      } else if (!backfillRes.ok && backfillData.error) {
-        console.warn('[EXPORT] Backfill failed', {
-          status: backfillRes.status,
-          error: backfillData.error,
-        })
-      }
-    } catch (err) {
-      console.warn('[EXPORT] Backfill request failed', err)
-    }
-
     const latest = useQuickCutGenerationStore.getState()
     exportPayloadTrace('project_loaded', {
       scenes: latest.scenes,
@@ -2573,9 +2664,24 @@ export const useQuickCutGenerationStore = create<
 
   resumeGeneration: async () => {
     const state = get()
-    if (state.isGenerating || state.generationInFlight || !state.prompt.trim()) return
-    const resumeFrom = state.lastCompletedStep
+    if (isActiveGenerationRun(state) || !state.prompt.trim()) return
+
+    const resumeFrom = resolveResumeFromStep({
+      lastCompletedStep: state.lastCompletedStep,
+      failedAtStep: state.failedAtStep,
+    })
     if (!resumeFrom && state.generationStatus !== 'failed') return
+
+    if (state.savedProjectId) {
+      clearStoredGenerationJobId(state.savedProjectId)
+    }
+    set({
+      pipelineJobId: null,
+      pipelineStatus: 'queued',
+      error: null,
+      renderError: null,
+      failedAtStep: null,
+    })
 
     await get().runPipeline({
       prompt: state.prompt,
@@ -3033,81 +3139,84 @@ export const useQuickCutGenerationStore = create<
           })()
         : null
 
-      await Promise.all([
-        needsHook
-          ? (async () => {
-              patchSectionStatus(set, get, 'hook', 'generating')
-              genPerf.start('hook')
-              genPerf.log('hook', `started ${Date.now() - pipelineStartedAt}ms after pipeline click`)
+      const hookTask = needsHook
+        ? (async () => {
+            patchSectionStatus(set, get, 'hook', 'generating')
+            genPerf.start('hook')
+            genPerf.log('hook', `started ${Date.now() - pipelineStartedAt}ms after pipeline click`)
 
-              const progress = createHookProgressController((patch) => {
-                const next: Partial<QuickCutGenerationState> = { ...patch }
-                if (patch.generationStep) {
-                  next.progress = STEP_PROGRESS[patch.generationStep]
-                }
-                if (patch.activeStageTab && !get().stageTabPinned) {
-                  next.activeStageTab = patch.activeStageTab
-                }
-                set(next)
-              })
-
-              progress.start()
-
-              try {
-                const titleHookResult = await fetchValidatedTitleHook(
-                  {
-                    idea: prompt,
-                    parsedIntent: serializeParsedIntent(parsedIntent),
-                    sessionSeed,
-                    language,
-                    recentContentAngles: loadRecentContentAngles(),
-                    recentTitles: get().recentTitles,
-                    contentBrief: sessionContentBrief ?? undefined,
-                    ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
-                  },
-                  parsedIntent.rawInput,
-                  get().recentTitles,
-                  progress
-                )
-                const titleData = titleHookResult.data
-
-                title = titleHookResult.title
-                hook = formatFinalHook(titleHookResult.hook)
-                virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
-                if (titleData.mock === true) anyMock = true
-
-                set({
-                  title,
-                  hook,
-                  virlo,
-                  recentTitles: recordRecentTitle(get().recentTitles, title),
-                  ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
-                  storyboard: isResume ? get().storyboard : [],
-                  previousHooks: regenFresh ? regenAvoidHooks : [],
-                  hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
-                  variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
-                    select: true,
-                  }),
-                })
-                persistHookSession(get())
-                patchSectionStatus(set, get, 'hook', 'completed')
-                if (!regenFresh && hook) {
-                  logHookAccept(hook, {
-                    projectId: get().savedProjectId ?? undefined,
-                    topic: parsedIntent.cleanTopic,
-                    theme: useCompanionStore.getState().creativeBrief?.theme,
-                  })
-                }
-                genPerf.end('hook')
-              } finally {
-                progress.stop()
+            const progress = createHookProgressController((patch) => {
+              const next: Partial<QuickCutGenerationState> = { ...patch }
+              if (patch.generationStep) {
+                next.progress = STEP_PROGRESS[patch.generationStep]
               }
-            })()
-          : Promise.resolve(),
+              if (patch.activeStageTab && !get().stageTabPinned) {
+                next.activeStageTab = patch.activeStageTab
+              }
+              set(next)
+            })
+
+            progress.start()
+
+            try {
+              const titleHookResult = await fetchValidatedTitleHook(
+                {
+                  idea: prompt,
+                  parsedIntent: serializeParsedIntent(parsedIntent),
+                  sessionSeed,
+                  language,
+                  recentContentAngles: loadRecentContentAngles(),
+                  recentTitles: get().recentTitles,
+                  contentBrief: sessionContentBrief ?? undefined,
+                  ...(regenAvoidHooks.length ? { previousHooks: regenAvoidHooks } : {}),
+                },
+                parsedIntent.rawInput,
+                get().recentTitles,
+                progress
+              )
+              const titleData = titleHookResult.data
+
+              title = titleHookResult.title
+              hook = formatFinalHook(titleHookResult.hook)
+              virlo = (titleData.virlo as VirloMetadata | undefined) ?? null
+              if (titleData.mock === true) anyMock = true
+
+              set({
+                title,
+                hook,
+                virlo,
+                recentTitles: recordRecentTitle(get().recentTitles, title),
+                ...trackContentAngleFromResponse(titleData as Record<string, unknown>),
+                storyboard: isResume ? get().storyboard : [],
+                previousHooks: regenFresh ? regenAvoidHooks : [],
+                hookVariantNumber: regenFresh ? regenAvoidHooks.length + 1 : 1,
+                variationHistory: appendHookVersion(emptyVariationHistory(), hook, {
+                  select: true,
+                }),
+              })
+              persistHookSession(get())
+              patchSectionStatus(set, get, 'hook', 'completed')
+              if (!regenFresh && hook) {
+                logHookAccept(hook, {
+                  projectId: get().savedProjectId ?? undefined,
+                  topic: parsedIntent.cleanTopic,
+                  theme: useCompanionStore.getState().creativeBrief?.theme,
+                })
+              }
+              genPerf.end('hook')
+            } finally {
+              progress.stop()
+            }
+          })()
+        : null
+
+      await Promise.all([
+        hookTask ?? Promise.resolve(),
         needsScript
           ? (async () => {
               await configPromise
               if (researchTask) await researchTask
+              if (hookTask) await hookTask
 
               setStep(set, get, 'script')
               patchSectionStatus(set, get, 'script', 'generating')
@@ -3116,8 +3225,8 @@ export const useQuickCutGenerationStore = create<
 
               const researchDocument = get().researchDocument ?? undefined
               const researchReport = get().researchReport ?? undefined
-              const hookSeed = needsHook ? undefined : hook || undefined
-              const titleSeed = needsHook ? undefined : title || undefined
+              const hookSeed = hook || undefined
+              const titleSeed = title || undefined
 
               const scriptResult = await pipelineFetchJson('/api/generate-script', {
                 method: 'POST',
@@ -3586,8 +3695,7 @@ export const useQuickCutGenerationStore = create<
 
       throwIfPipelineAborted()
 
-      const storyboardShouldRun =
-        !QUICK_CUT_V2_TEXT_TO_VIDEO && stepShouldRun(resumeFrom, 'storyboard')
+      const storyboardShouldRun = stepShouldRun(resumeFrom, 'storyboard')
       logStepShouldRunDecision(resumeFrom, 'storyboard', storyboardShouldRun)
 
       if (storyboardShouldRun) {
@@ -3686,8 +3794,20 @@ export const useQuickCutGenerationStore = create<
           sceneCount: scenes.length,
           projectId: get().savedProjectId,
         })
+
+        const imageGate = await regenerateMissingStoryboardImages(get, set, {
+          reason: 'storyboard_complete',
+          maxAttempts: 2,
+        })
+        if (!imageGate.ok) {
+          patchSectionStatus(set, get, 'storyboard', 'failed')
+          patchSectionStatus(set, get, 'thumbnail', 'failed')
+          throw new Error(imageGate.message ?? 'Storyboard images incomplete')
+        }
+
         set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
         patchSectionStatus(set, get, 'storyboard', 'completed')
+        await syncPipelineJob(get, set, 'images')
         const sceneOneThumb = resolveActiveThumbnailUrl(null, scenes)
         if (sceneOneThumb) {
           set({ thumbnailImageUrl: sceneOneThumb })
@@ -3777,6 +3897,25 @@ export const useQuickCutGenerationStore = create<
           throw new Error(get().renderError ?? 'Caption generation failed')
         }
         commitPipelineStage(get, set, 'timeline_complete', 'timeline')
+
+        console.info('[EXPORT] preflight_start', {
+          projectId: get().savedProjectId,
+          sceneCount: get().scenes.length,
+        })
+        const preExportImages = await regenerateMissingStoryboardImages(get, set, {
+          reason: 'pre_export',
+        })
+        if (!preExportImages.ok || !validateStageOrFail(get, set, 'images')) {
+          genPerf.end('export')
+          throw new Error(
+            preExportImages.message ??
+              get().renderError ??
+              'Storyboard images are required before MP4 export'
+          )
+        }
+        commitPipelineStage(get, set, 'images_complete', 'images')
+        await syncPipelineJob(get, set, 'images')
+
         setStep(set, get, 'render')
         genPerf.start('export')
 
@@ -4032,19 +4171,22 @@ export const useQuickCutGenerationStore = create<
       } catch {
         /* recovery UI still shown */
       }
+      failPipeline(
+        get,
+        set,
+        persistedStepToFailedStage(nextFailedStep ?? failedAt),
+        userMessage
+      )
       set({
         error: userMessage,
         generationStep: 'error',
-        generationStatus: 'failed',
         generationState: 'idle',
         assemblyPreviewAutoplay: false,
         lastCompletedStep: failedAt,
         failedAtStep: nextFailedStep ?? failedAt,
-        isGenerating: false,
         isComplete: false,
         saveState: 'saved',
         directingSceneLabel: null,
-        generationInFlight: false,
       })
       genPerf.end('pipeline')
     }
@@ -4745,7 +4887,7 @@ export const useQuickCutGenerationStore = create<
 
   loadSavedProject: async (projectId, options) => {
     const state = get()
-    if (state.isGenerating) {
+    if (isActiveGenerationRun(state)) {
       if (state.savedProjectId === projectId) return true
       return false
     }
@@ -4765,9 +4907,19 @@ export const useQuickCutGenerationStore = create<
       const row = await loadProject(projectId)
       if (inferProjectMode(row) === 'director') return false
 
+      if (isActiveGenerationRun(get()) && get().savedProjectId === projectId) {
+        return true
+      }
+
       const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
       logPipelineStepStart('project_reload', projectId, { source: 'loadSavedProject' })
       const workflow = restoreWorkflowContinuity()
+      const activeJob = await fetchActiveGenerationJob(projectId)
+
+      if (isActiveGenerationRun(get()) && get().savedProjectId === projectId) {
+        return true
+      }
+
       set({
         ...INITIAL,
         ...patch,
@@ -4776,7 +4928,6 @@ export const useQuickCutGenerationStore = create<
         saveError: null,
       })
 
-      const activeJob = await fetchActiveGenerationJob(projectId)
       applyActiveGenerationJobToStore(activeJob, get, set, projectId)
 
       persistHookSession(get())

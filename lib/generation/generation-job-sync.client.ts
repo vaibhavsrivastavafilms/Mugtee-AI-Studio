@@ -101,9 +101,11 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
   })
 
   const status = (input.pipelineStatus ?? derived.status) as ReelPipelineStatus
+  const pipelineStatus: ReelPipelineStatus =
+    input.isGenerating && status === 'queued' ? 'script_generating' : status
   const orchestratorMeta = reelPipelineStateToJobMetadata({
     ...derived,
-    status,
+    status: pipelineStatus,
   })
   if (input.exportJobId) {
     orchestratorMeta.exportJobId = input.exportJobId
@@ -112,9 +114,9 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
     orchestratorMeta.visualTemplate = input.visualTemplate
   }
   const legacyStatus =
-    status === 'mp4_complete'
+    pipelineStatus === 'mp4_complete'
       ? 'completed'
-      : status === 'failed'
+      : pipelineStatus === 'failed'
         ? 'failed'
         : input.isGenerating
           ? 'running'

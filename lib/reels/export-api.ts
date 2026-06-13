@@ -59,6 +59,8 @@ import {
 } from '@/lib/analytics/mp4-export-track.server'
 import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import { renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
+import { verifyRenderExportInputs } from '@/lib/export/verify-render-export-inputs.server'
 
 export type ReelExportStatus =
   | 'pending'
@@ -267,6 +269,14 @@ export async function buildValidatedDownloadResponse(
   }
 
   const verification = await verifyReelFileExists(reelUrl, row.id)
+  renderPipelineLog('MP4_DOWNLOAD_VERIFY', {
+    projectId: row.id,
+    videoUrl: reelUrl,
+    status: verification.ok ? 'accessible' : 'fallback',
+    size: verification.size,
+    validated: verification.ok,
+    validationError: verification.ok ? null : verification.error,
+  })
   if (!verification.ok) {
     exportLog.error('download validate', verification.error ?? 'unreachable', {
       projectId: row.id,
@@ -389,6 +399,15 @@ export async function queueReelExportForProject(params: {
     },
   })
 
+  renderPipelineLog('EXPORT_START', {
+    projectId: params.row.id,
+    jobId,
+    frameCount: scenes.length,
+    audioExists: Boolean(voiceUrl),
+    duration: expectedDurationSec,
+    status: 'queued',
+  })
+
   exportLog.exportStart({
     projectId: params.row.id,
     userId: params.userId,
@@ -481,8 +500,14 @@ export async function queueReelExportForProject(params: {
   }
 
   exportApiCheckpoint('background_scheduled', { projectId: params.row.id, jobId })
-  runExportInBackground(() =>
-    orchestrateRemotionReel(input, {
+  runExportInBackground(async () => {
+    await verifyRenderExportInputs({
+      row: exportRow,
+      scenes,
+      includeVoiceover: params.includeVoiceover,
+      jobId,
+    })
+    return orchestrateRemotionReel(input, {
       jobId,
       baseUrl: params.baseUrl,
       musicUrl: null,
@@ -541,7 +566,7 @@ export async function queueReelExportForProject(params: {
           reelJobId: null,
         }).catch(() => undefined)
       })
-  )
+  })
 
   return { jobId, status: 'queued' }
 }

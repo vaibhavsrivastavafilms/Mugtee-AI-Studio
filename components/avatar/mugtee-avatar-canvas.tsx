@@ -11,18 +11,9 @@ import {
   preloadMugteeGlb,
 } from '@/components/avatar/mugtee-glb-model'
 import { MugteeProceduralModel } from '@/components/avatar/mugtee-procedural-model'
+import { AvatarCanvasSkeleton } from '@/components/avatar/avatar-canvas-skeleton'
 
-export function AvatarCanvasSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        'relative h-full w-full rounded-full bg-gradient-to-b from-gold-500/20 via-gold-500/5 to-transparent animate-pulse',
-        className
-      )}
-    />
-  )
-}
+export { AvatarCanvasSkeleton } from '@/components/avatar/avatar-canvas-skeleton'
 
 const MUGTEE_GLB_ENABLED =
   typeof process !== 'undefined' &&

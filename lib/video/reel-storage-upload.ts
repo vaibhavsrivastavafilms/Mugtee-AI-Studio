@@ -2,6 +2,7 @@ import 'server-only'
 
 import fs from 'fs/promises'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
 
 export const REEL_BUCKET = 'reels'
 
@@ -23,6 +24,15 @@ export async function uploadReelMp4(params: {
   const supabase = createSupabaseServerClient()
   const buffer = await fs.readFile(params.localPath)
   const storagePath = `${params.projectId}/final-reel.mp4`
+  const fileSize = buffer.length
+
+  renderPipelineLog('UPLOAD_START', {
+    projectId: params.projectId,
+    storagePath,
+    size: fileSize,
+    bucket: REEL_BUCKET,
+    status: 'uploading',
+  })
 
   const { error } = await supabase.storage.from(REEL_BUCKET).upload(storagePath, buffer, {
     contentType: 'video/mp4',
@@ -31,11 +41,36 @@ export async function uploadReelMp4(params: {
 
   if (error) {
     const fallback = await uploadReelToProjectAssets(params)
-    if (fallback) return fallback
+    if (fallback) {
+      renderPipelineLog('UPLOAD_VERIFY', {
+        projectId: params.projectId,
+        storagePath: fallback.storagePath,
+        videoUrl: fallback.videoUrl,
+        size: fileSize,
+        bucket: 'project-assets',
+        status: 'fallback_ok',
+      })
+      return fallback
+    }
+    renderPipelineLog('UPLOAD_VERIFY', {
+      projectId: params.projectId,
+      storagePath,
+      size: fileSize,
+      status: 'failed',
+      error: error.message,
+    })
     throw new Error(error.message)
   }
 
   const { data: pub } = supabase.storage.from(REEL_BUCKET).getPublicUrl(storagePath)
+  renderPipelineLog('UPLOAD_VERIFY', {
+    projectId: params.projectId,
+    storagePath,
+    videoUrl: pub.publicUrl,
+    size: fileSize,
+    bucket: REEL_BUCKET,
+    status: 'ok',
+  })
   return { videoUrl: pub.publicUrl, storagePath }
 }
 

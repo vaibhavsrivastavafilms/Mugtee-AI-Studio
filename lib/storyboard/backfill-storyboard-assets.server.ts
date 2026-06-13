@@ -189,6 +189,24 @@ export async function backfillStoryboardAssetsForProject(params: {
 
       const imageUrl = resolveSceneExportImageUrl(scene)
       if (!imageUrl) {
+        if (params.allowRegenerate !== false) {
+          const regen = await regenerateSceneStill({
+            scene,
+            userId,
+            projectId,
+            sequenceIndex: i + 1,
+          })
+          if (regen) {
+            scenes[i] = {
+              ...scene,
+              imageUrl: regen.url,
+              imageAssetPath: regen.assetPath,
+            }
+            regenerated += 1
+            recoveryLog('missing.regenerate', { sceneId: scene.id })
+            continue
+          }
+        }
         console.warn('[EXPORT] Missing image for scene', scene.id)
         continue
       }

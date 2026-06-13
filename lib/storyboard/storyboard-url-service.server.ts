@@ -32,6 +32,11 @@ export async function refreshStoryboardUrl(
   if (!isDurableStoryboardPath(path)) return null
 
   logPipelineStepStart('storage', null, { assetPath: path })
+  console.info('[ASSET_REFRESH]', {
+    phase: 'create_signed_url',
+    assetPath: path,
+    bucket: STORYBOARD_STORAGE_BUCKET,
+  })
   const client = supabase ?? createSupabaseServerClient()
   const { data: signed, error } = await client.storage
     .from(STORYBOARD_STORAGE_BUCKET)
@@ -39,6 +44,11 @@ export async function refreshStoryboardUrl(
 
   if (!error && signed?.signedUrl) {
     devLog('refresh.signed', { assetPath: path })
+    console.info('[ASSET_REFRESH]', {
+      phase: 'signed_url_created',
+      assetPath: path,
+      method: 'signed',
+    })
     logPipelineStepComplete('storage', null, { assetPath: path, method: 'signed' })
     return signed.signedUrl
   }

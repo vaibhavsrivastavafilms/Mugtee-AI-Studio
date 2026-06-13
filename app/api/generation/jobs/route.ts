@@ -7,6 +7,7 @@ import {
 } from '@/lib/cinematic/generation-logger'
 import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
 import {
+  cancelActiveGenerationJobsForProject,
   createGenerationJob,
   findActiveGenerationJobForProject,
   generationJobToPollResponse,
@@ -100,6 +101,7 @@ export async function POST(req: NextRequest) {
   }
 
   const id = `gen_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`
+  await cancelActiveGenerationJobsForProject(raw.projectId, user.id)
   logJobCreated(raw.projectId, id)
   const created = await createGenerationJob({
     id,

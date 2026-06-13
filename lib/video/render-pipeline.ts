@@ -11,6 +11,7 @@ import {
   computeRenderTotalSec,
 } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
+import { renderPipelineError, renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
 
 export const WIDTH = 1080
 export const HEIGHT = 1920
@@ -23,15 +24,33 @@ export function runFfmpeg(args: string[]): Promise<void> {
       reject(new Error('FFmpeg binary not found. Install ffmpeg-static or set FFMPEG_PATH.'))
       return
     }
+    const command = `${bin} ${args.join(' ')}`
+    renderPipelineLog('FFMPEG_START', { command: command.slice(0, 500), status: 'spawn' })
     const proc = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let stderr = ''
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString()
     })
-    proc.on('error', reject)
+    proc.on('error', (spawnErr) => {
+      renderPipelineError('FFMPEG_COMPLETE', spawnErr, {
+        command: command.slice(0, 500),
+        stderr: stderr.slice(-2000),
+      })
+      reject(spawnErr)
+    })
     proc.on('close', (code) => {
-      if (code === 0) resolve()
-      else reject(new Error(stderr.slice(-1200) || `ffmpeg exited with code ${code}`))
+      if (code === 0) {
+        renderPipelineLog('FFMPEG_COMPLETE', { status: 'exit_0', codec: 'h264' })
+        resolve()
+      } else {
+        const err = new Error(stderr.slice(-1200) || `ffmpeg exited with code ${code}`)
+        renderPipelineError('FFMPEG_COMPLETE', err, {
+          command: command.slice(0, 500),
+          exitCode: code,
+          stderr: stderr.slice(-2000),
+        })
+        reject(err)
+      }
     })
   })
 }
@@ -184,9 +203,21 @@ export async function renderMockMp4(input: RenderPipelineInput): Promise<{
     throw new Error('VIDEO_RENDER_MOCK requires ffmpeg-static or FFMPEG_PATH')
   }
   await ensureDir(path.dirname(input.outputPath))
+  const ciSmoke = process.env.CI_QUICK_CUT_SMOKE === 'true'
+  const perSceneMinSec = ciSmoke ? 1 : 2
+  const minTotalSec = ciSmoke
+    ? Number(process.env.CI_SMOKE_MP4_SECONDS || 2)
+    : 15
   const rawTotal =
-    input.scenes.reduce((s, sc) => s + Math.max(2, sc.durationSec), 0) || 45
-  const dur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(15, rawTotal))
+    input.scenes.reduce((s, sc) => s + Math.max(perSceneMinSec, sc.durationSec), 0) ||
+    (ciSmoke ? minTotalSec : 45)
+  const dur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(minTotalSec, rawTotal))
+  renderPipelineLog('FFMPEG_START', {
+    outputPath: input.outputPath,
+    duration: dur,
+    mock: true,
+    status: 'mock_encode',
+  })
   await runFfmpeg([
     '-y',
     '-f',
@@ -208,5 +239,13 @@ export async function renderMockMp4(input: RenderPipelineInput): Promise<{
     String(dur),
     input.outputPath,
   ])
+  const stat = await fs.stat(input.outputPath).catch(() => null)
+  renderPipelineLog('FFMPEG_OUTPUT', {
+    outputPath: input.outputPath,
+    size: stat?.size ?? 0,
+    duration: dur,
+    codec: 'h264',
+    status: stat && stat.size > 0 ? 'valid' : 'empty',
+  })
   return { outputPath: input.outputPath, durationSec: dur, thumbnailPath: null }
 }

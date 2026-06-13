@@ -54,10 +54,17 @@ const ACTIVE: GenerationJobStatus[] = ['queued', 'running', 'paused']
 
 export function generationJobToPollResponse(row: GenerationJobRow) {
   const meta = row.metadata ?? {}
-  const pipelineStatus =
+  let pipelineStatus =
     row.pipeline_status ??
     meta.pipelineStatus ??
     mapLegacyJobToPipelineStatus(row)
+  if (
+    pipelineStatus === 'queued' &&
+    (row.status === 'running' || row.status === 'paused') &&
+    row.current_step
+  ) {
+    pipelineStatus = mapLegacyJobToPipelineStatus(row)
+  }
   const failedStage = row.failed_stage ?? meta.failedStage ?? null
   const finalMp4Url = row.final_mp4_url ?? meta.finalMp4Url ?? null
   const errorMessage = row.error_message ?? row.error ?? null
@@ -90,8 +97,10 @@ function mapLegacyJobToPipelineStatus(row: GenerationJobRow): ReelPipelineStatus
   if (row.status === 'completed') return 'mp4_complete'
   if (row.current_step === 'render') return 'mp4_rendering'
   if (row.current_step === 'voice') return 'voice_generating'
-  if (row.current_step === 'images') return 'images_generating'
-  if (row.current_step === 'script') return 'script_generating'
+  if (row.current_step === 'images' || row.current_step === 'storyboard') return 'images_generating'
+  if (row.current_step === 'script' || row.current_step === 'scenes') return 'script_generating'
+  if (row.status === 'running' || row.status === 'paused') return 'script_generating'
+  if (row.status === 'queued' && row.current_step) return 'script_generating'
   return row.status === 'queued' ? 'queued' : 'script_generating'
 }
 
@@ -248,4 +257,31 @@ export async function findActiveGenerationJobForProject(
     .maybeSingle()
   if (error || !data) return null
   return data as GenerationJobRow
+}
+
+/** Cancel other in-flight jobs so a new pipeline run has a single active row. */
+export async function cancelActiveGenerationJobsForProject(
+  projectId: string,
+  userId: string,
+  exceptJobId?: string | null
+): Promise<void> {
+  const supabase = createSupabaseServerClient()
+  let query = supabase
+    .from('generation_jobs')
+    .update({
+      status: 'cancelled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .in('status', ACTIVE)
+
+  if (exceptJobId) {
+    query = query.neq('id', exceptJobId)
+  }
+
+  const { error } = await query
+  if (error) {
+    console.warn('[generation_jobs] cancel active failed', error.message)
+  }
 }
