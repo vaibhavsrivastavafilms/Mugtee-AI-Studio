@@ -41,13 +41,21 @@ type StoreSet = (
     | ((state: QuickCutGenerationState) => Partial<QuickCutGenerationState>)
 ) => void
 
+function jobSyncContext(state: QuickCutGenerationState) {
+  return {
+    videoRenderEnabled: state.videoRenderEnabled,
+    generationMode: state.generationMode,
+    userPlanType: state.userPlanType,
+    visualTemplate: state.visualTemplate,
+  }
+}
+
 export function buildPipelineSnapshotFromStore(
   get: StoreGet,
   overrides?: Partial<ReelPipelineSnapshot>
 ): ReelPipelineSnapshot {
   return {
     ...quickCutStoreToPipelineSnapshot(get()),
-    requireSceneVideos: true,
     ...overrides,
   }
 }
@@ -113,7 +121,7 @@ export async function syncPipelineJob(
     isRenderingVideo: state.isRenderingVideo,
     renderError: state.renderError,
     sectionStatus: state.sectionStatus,
-    videoRenderEnabled: state.videoRenderEnabled,
+    ...jobSyncContext(state),
   })
 
   if (jobId && isValidGenerationJobId(jobId) && jobId !== state.pipelineJobId) {
@@ -185,7 +193,7 @@ export function failPipeline(
     isRenderingVideo: false,
     renderError: errorMessage,
     sectionStatus: get().sectionStatus,
-    videoRenderEnabled: get().videoRenderEnabled,
+    ...jobSyncContext(get()),
   })
   return state
 }
@@ -230,7 +238,7 @@ export function completeMp4Pipeline(
     isRenderingVideo: false,
     renderError: null,
     sectionStatus: get().sectionStatus,
-    videoRenderEnabled: get().videoRenderEnabled,
+    ...jobSyncContext(get()),
   })
 }
 
@@ -344,7 +352,7 @@ export async function renderMp4AndWait(
       reelTimeline: get().reelTimeline,
       isRenderingVideo: true,
       sectionStatus: get().sectionStatus,
-      videoRenderEnabled: get().videoRenderEnabled,
+      ...jobSyncContext(get()),
     })
   }
 

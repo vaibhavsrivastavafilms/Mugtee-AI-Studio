@@ -407,6 +407,7 @@ export type ArchiveGeneratedProjectInput = {
   directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
   blueprintId?: string | null
   styleTemplateId?: string | null
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate | null
   series?: import('@/lib/cinematic/content-series').ContentSeries | null
   input_type?: string
   original_transcript?: string
@@ -790,6 +791,7 @@ export async function createProject(
 
 export type CinematicProjectPatch = Partial<CinematicProjectState> & {
   share_as_showcase?: boolean
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
   series?: import('@/lib/cinematic/content-series').ContentSeries | null
   repurposedAssets?: RepurposedAssetsMap
   story_bible?: import('@/lib/cinematic/story-bible').StoryBible | null
@@ -854,6 +856,7 @@ export async function updateProject(
     (state as { directorMode?: string }).directorMode !== undefined ||
     (state as { blueprintId?: string | null }).blueprintId !== undefined ||
     (state as { styleTemplateId?: string | null }).styleTemplateId !== undefined ||
+    (state as CinematicProjectPatch).visualTemplate !== undefined ||
     (state as { archetypeId?: string | null }).archetypeId !== undefined ||
     (state as { narrativeArchetype?: string | null }).narrativeArchetype !== undefined ||
     (state as { contentAngleId?: string | null }).contentAngleId !== undefined ||
@@ -877,6 +880,7 @@ export async function updateProject(
         (state as { blueprintId?: string | null }).blueprintId ?? undefined,
       styleTemplateId:
         (state as { styleTemplateId?: string | null }).styleTemplateId ?? undefined,
+      visualTemplate: (state as CinematicProjectPatch).visualTemplate ?? undefined,
       archetypeId: (state as { archetypeId?: string | null }).archetypeId ?? undefined,
       archetypeLabel:
         (state as { archetypeLabel?: string | null }).archetypeLabel ?? undefined,
@@ -1157,6 +1161,7 @@ export async function archiveGeneratedProject(
     directorMode?: import('@/lib/cinematic/director-modes').DirectorMode
     blueprintId?: string | null
     styleTemplateId?: string | null
+    visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate | null
     archetypeId?: string | null
     archetypeLabel?: string | null
     archetypeDisplay?: string | null
@@ -1209,6 +1214,7 @@ export async function archiveGeneratedProject(
     directorMode: input.directorMode,
     blueprintId: input.blueprintId,
     styleTemplateId: input.styleTemplateId ?? undefined,
+    visualTemplate: input.visualTemplate ?? undefined,
     archetypeId: input.archetypeId ?? undefined,
     archetypeLabel: input.archetypeLabel ?? undefined,
     archetypeDisplay: input.archetypeDisplay ?? undefined,

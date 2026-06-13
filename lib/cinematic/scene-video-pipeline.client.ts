@@ -4,6 +4,7 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { SceneBlueprint } from '@/lib/cinematic/scene-blueprint'
 import type { VisualStyle } from '@/lib/cinematic/workflow-state'
 import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
+import type { GenerationMode } from '@/lib/economics/generation-mode'
 import { applyVideoResultToScene } from '@/lib/video/scene-video-shared'
 import { logVideoAsset } from '@/lib/cinematic/generation-logger'
 
@@ -39,8 +40,6 @@ async function pollVideoJob(pollUrl: string): Promise<PollResult> {
   }
 }
 
-import { QUICK_CUT_V2_TEXT_TO_VIDEO } from '@/lib/quick-cut/quick-cut-v2-config'
-
 export async function queueSceneVideos(input: {
   scenes: GeneratedScene[]
   sceneBlueprints?: SceneBlueprint[]
@@ -48,11 +47,9 @@ export async function queueSceneVideos(input: {
   visualStyle?: VisualStyle | null
   projectId?: string | null
   sceneIds?: string[]
+  generationMode?: GenerationMode | string
 }): Promise<SceneVideoJobPoll[]> {
-  const sceneHasVideoSource = (scene: GeneratedScene) =>
-    Boolean(scene.imageUrl?.trim()) ||
-    (QUICK_CUT_V2_TEXT_TO_VIDEO &&
-      Boolean(scene.visualPrompt?.trim() || scene.imagePrompt?.trim() || scene.description?.trim()))
+  const sceneHasVideoSource = (scene: GeneratedScene) => Boolean(scene.imageUrl?.trim())
 
   const targets = input.sceneIds?.length
     ? input.scenes.filter((s) => input.sceneIds!.includes(s.id) && sceneHasVideoSource(s))
@@ -66,6 +63,7 @@ export async function queueSceneVideos(input: {
     body: JSON.stringify({
       async: true,
       projectId: input.projectId,
+      generationMode: input.generationMode ?? 'creator',
       scenes: targets,
       sceneBlueprints: input.sceneBlueprints,
       sceneMotion: input.sceneMotion,
@@ -75,6 +73,13 @@ export async function queueSceneVideos(input: {
 
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (!res.ok) {
+    if (res.status === 403 || res.status === 400 || res.status === 503) {
+      console.warn('[scene-video] request skipped', {
+        status: res.status,
+        error: data.error ?? data.code,
+      })
+      return []
+    }
     throw new Error(String(data.error ?? 'Failed to queue scene videos'))
   }
 

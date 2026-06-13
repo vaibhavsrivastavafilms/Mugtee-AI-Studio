@@ -21,6 +21,7 @@ import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
 import { trackMp4ExportServer } from '@/lib/analytics/mp4-export-track.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { normalizeGenerationMode } from '@/lib/economics/generation-mode'
+import { normalizeVisualTemplate } from '@/lib/quick-cut/template-system'
 import {
   IMAGE_GENERATION_UNAVAILABLE,
   IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
           : typeof raw?.style_template_id === 'string'
             ? raw.style_template_id
             : undefined,
+      visualTemplate: normalizeVisualTemplate(raw?.visualTemplate ?? raw?.visual_template),
       outputAlignmentControls: parseOutputAlignmentControls(
         raw?.outputAlignmentControls ?? raw?.output_alignment_controls
       ),

@@ -48,6 +48,8 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       renderError: s.renderError,
       sectionStatus: s.sectionStatus,
       videoRenderEnabled: s.videoRenderEnabled,
+      generationMode: s.generationMode,
+      userPlanType: s.userPlanType,
       pipelineStatus: s.pipelineStatus,
       resumeGeneration: s.resumeGeneration,
     }))
@@ -83,6 +85,10 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
           return
         }
         if (stored && isValidGenerationJobId(stored)) {
+          const live = useQuickCutGenerationStore.getState()
+          if (live.isGenerating && live.savedProjectId === pid) {
+            return
+          }
           clearStaleGenerationJobReference({
             jobId: stored,
             projectId: pid,
@@ -140,6 +146,8 @@ export function useGenerationJobResume(projectId?: string | null): GenerationJob
       renderError: state.renderError,
       sectionStatus: state.sectionStatus,
       videoRenderEnabled: state.videoRenderEnabled,
+      generationMode: state.generationMode,
+      userPlanType: state.userPlanType,
       pipelineStatus: state.pipelineStatus,
     }).then((nextId) => {
       if (nextId && isValidGenerationJobId(nextId)) {

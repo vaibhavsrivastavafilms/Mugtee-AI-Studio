@@ -47,6 +47,7 @@ export type CreatorPackExportInput = {
   isUnlimited?: boolean
   isGenerating?: boolean
   reelTimeline?: ReelTimeline | null
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
 }
 
 export type CreatorPackMetadata = {
@@ -54,6 +55,7 @@ export type CreatorPackMetadata = {
   exportedAt: string
   projectId: string | null
   title: string
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
   included: string[]
   warnings: string[]
 }
@@ -331,6 +333,7 @@ export async function buildCreatorPackZip(
     exportedAt: new Date().toISOString(),
     projectId: input.savedProjectId ?? null,
     title: input.title || 'Untitled reel',
+    visualTemplate: input.visualTemplate,
     included,
     warnings,
   }
@@ -340,6 +343,7 @@ export async function buildCreatorPackZip(
     exportedAt: metadata.exportedAt,
     projectId: metadata.projectId,
     title: metadata.title,
+    visualTemplate: metadata.visualTemplate,
     included: metadata.included,
     warnings: metadata.warnings,
     sceneCount: input.scenes.length,

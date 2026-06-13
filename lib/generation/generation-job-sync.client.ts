@@ -8,6 +8,7 @@ import {
   type ReelPipelineStatus,
 } from '@/lib/pipeline/reel-generation-orchestrator'
 import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
+import { pipelineRequiresSceneVideos } from '@/lib/economics/scene-video-requirement'
 const STEP_PROGRESS: Partial<Record<QuickCutGenerationStep, number>> = {
   hook: 8,
   script: 18,
@@ -62,7 +63,11 @@ export type GenerationJobSyncInput = {
   renderError?: string | null
   sectionStatus?: Record<string, string>
   videoRenderEnabled?: boolean
+  requireSceneVideos?: boolean
+  generationMode?: string
+  userPlanType?: string | null
   exportJobId?: string | null
+  visualTemplate?: string
 }
 
 let syncInflight: Promise<void> | null = null
@@ -87,7 +92,12 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
     isRenderingVideo: input.isRenderingVideo,
     renderError: input.renderError,
     videoRenderEnabled: input.videoRenderEnabled,
-    requireSceneVideos: true,
+    requireSceneVideos:
+      input.requireSceneVideos ??
+      pipelineRequiresSceneVideos({
+        generationMode: input.generationMode,
+        planType: input.userPlanType,
+      }),
   })
 
   const status = (input.pipelineStatus ?? derived.status) as ReelPipelineStatus
@@ -97,6 +107,9 @@ export async function syncGenerationJobProgress(input: GenerationJobSyncInput): 
   })
   if (input.exportJobId) {
     orchestratorMeta.exportJobId = input.exportJobId
+  }
+  if (input.visualTemplate) {
+    orchestratorMeta.visualTemplate = input.visualTemplate
   }
   const legacyStatus =
     status === 'mp4_complete'

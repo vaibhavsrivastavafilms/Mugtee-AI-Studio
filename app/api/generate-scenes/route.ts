@@ -49,6 +49,10 @@ import {
   trackFeatureUsage,
 } from '@/lib/analytics/feature-usage'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
+import {
+  getTemplateConfig,
+  normalizeVisualTemplate,
+} from '@/lib/quick-cut/template-system'
 
 export const runtime = 'nodejs'
 
@@ -183,6 +187,8 @@ export async function POST(req: NextRequest) {
       visualStyleFromVirloContext(virlo)
 
     const contentBrief = normalizeContentBrief(raw?.contentBrief ?? raw?.content_brief)
+    const visualTemplate = normalizeVisualTemplate(raw?.visualTemplate ?? raw?.visual_template)
+    const templateConfig = getTemplateConfig(visualTemplate)
     const outputAlignmentControls = parseOutputAlignmentControls(
       raw?.outputAlignmentControls ?? raw?.output_alignment_controls
     )
@@ -264,6 +270,7 @@ export async function POST(req: NextRequest) {
         researchDocument,
         retentionMode: durationSec <= 60,
         directorMode,
+        visualTemplateDirective: templateConfig.storyboardDirective,
       })
       if (sopResult && sopResult.storyboardScenes.length >= 2) {
         const sopScenes = storyboardScenesToGeneratedScenes(sopResult.storyboardScenes)

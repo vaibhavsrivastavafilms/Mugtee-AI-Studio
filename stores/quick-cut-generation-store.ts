@@ -2,6 +2,11 @@
 
 import { create } from 'zustand'
 import { QUICK_CUT_V2_TEXT_TO_VIDEO } from '@/lib/quick-cut/quick-cut-v2-config'
+import {
+  DEFAULT_VISUAL_TEMPLATE,
+  normalizeVisualTemplate,
+  type VisualTemplate,
+} from '@/lib/quick-cut/template-system'
 import { coerceDuration } from '@/lib/workspace/validation'
 import {
   ensureScenesHaveImagePrompts,
@@ -255,6 +260,8 @@ import {
   defaultClientVideoRenderEnabled,
   isClientVideoRenderEnabled,
 } from '@/lib/cinematic/quick-cut/video-render-enabled.client'
+import { canInvokeSceneVideoApi } from '@/lib/cinematic/scene-video-gate.client'
+import { pipelineRequireSceneVideosFromStore } from '@/lib/pipeline/reel-generation-orchestrator.client'
 import { PlanLimitError } from '@/lib/cinematic/generation-pipeline-fetch'
 import {
   blockMp4CompileIfNeeded,
@@ -454,6 +461,8 @@ export type QuickCutInput = {
   directorMode?: DirectorMode
   /** Creator Project Template id selected on canvas */
   blueprintId?: string | null
+  /** Quick Cut V2 curated visual system */
+  visualTemplate?: VisualTemplate
   /** Per-project creator profile overrides (project settings win over global profile) */
   creatorProfileOverride?: CreatorProfileOverride
   /** Resume pipeline after last_completed_step (skips completed steps) */
@@ -540,12 +549,16 @@ interface QuickCutGenerationStateBase {
   sceneVideoEnabled: boolean
   /** draft | creator | cinematic — controls provider routing & unit economics */
   generationMode: GenerationMode
+  /** Cached from /api/profile for scene-video + pipeline validation gates */
+  userPlanType: string | null
   isGeneratingSceneVideos: boolean
   virlo: VirloMetadata | null
   language: ProjectLanguage
   directorMode: DirectorMode
   blueprintId: string | null
   styleTemplateId: string | null
+  /** Quick Cut V2 — curated visual template (creator / explainer / documentary) */
+  visualTemplate: VisualTemplate
   niche: CinematicNiche
   style: string
   duration: number
@@ -651,6 +664,7 @@ export interface QuickCutGenerationActions {
   setCreatorBlueprint: (blueprintId: string | null) => void
   applyStyleTemplate: (templateId: string) => void
   setStyleTemplateId: (templateId: string | null) => void
+  setVisualTemplate: (template: VisualTemplate) => void
   loadSavedProject: (
     projectId: string,
     options?: { stageTab?: QuickCutStageTab }
@@ -743,12 +757,14 @@ const INITIAL: QuickCutGenerationState = {
   videoRenderEnabled: defaultClientVideoRenderEnabled(),
   sceneVideoEnabled: false,
   generationMode: DEFAULT_GENERATION_MODE,
+  userPlanType: null,
   isGeneratingSceneVideos: false,
   virlo: null,
   language: 'en',
   directorMode: DEFAULT_DIRECTOR_MODE,
   blueprintId: null,
   styleTemplateId: null,
+  visualTemplate: DEFAULT_VISUAL_TEMPLATE,
   niche: 'storytelling',
   style: 'cinematic',
   duration: 60,
@@ -1178,6 +1194,7 @@ function buildArchiveInput(
     directorMode: state.directorMode,
     blueprintId: state.blueprintId ?? undefined,
     styleTemplateId: state.styleTemplateId ?? undefined,
+    visualTemplate: state.visualTemplate,
     archetypeId: state.scriptArchetypeId ?? undefined,
     archetypeLabel: state.scriptArchetypeLabel ?? undefined,
     archetypeDisplay: state.scriptArchetypeDisplay ?? undefined,
@@ -1243,17 +1260,21 @@ async function runSceneVideoGeneration(
   get: () => QuickCutGenerationState & QuickCutGenerationActions,
   set: typeof useQuickCutGenerationStore.setState
 ) {
-  const requireVideos = get().videoRenderEnabled
-  const cinematicMode = get().generationMode === 'cinematic'
-  if ((!get().sceneVideoEnabled && !requireVideos) || !cinematicMode) return
+  const state = get()
+  const profile = await fetchProfilePlanSnapshot()
+  if (
+    !canInvokeSceneVideoApi({
+      generationMode: state.generationMode,
+      planType: profile.planType,
+      sceneVideoProviderAvailable: state.sceneVideoEnabled,
+    })
+  ) {
+    return
+  }
 
   commitPipelineStage(get, set, 'video_generating', 'video')
-  const state = get()
   const eligible = state.scenes.filter((s) => {
-    const hasSource =
-      Boolean(s.imageUrl?.trim()) ||
-      (QUICK_CUT_V2_TEXT_TO_VIDEO &&
-        Boolean(s.visualPrompt?.trim() || s.imagePrompt?.trim() || s.description?.trim()))
+    const hasSource = Boolean(s.imageUrl?.trim())
     return hasSource && !s.videoUrl?.trim() && s.videoGenerationStatus !== 'failed'
   })
 
@@ -1267,6 +1288,7 @@ async function runSceneVideoGeneration(
         sceneMotion: state.sceneMotion,
         visualStyle: state.visualStyle,
         projectId: state.savedProjectId,
+        generationMode: state.generationMode,
       })
 
       if (jobs.length >= 1) {
@@ -1296,20 +1318,10 @@ async function runSceneVideoGeneration(
     }
 
     get().composeReelTimeline()
-    if (requireVideos && !validateStageOrFail(get, set, 'video')) {
-      throw new Error(get().renderError ?? 'Scene video generation failed')
-    }
     commitPipelineStage(get, set, 'video_complete', 'video')
   } catch (err) {
-    if (requireVideos) {
-      failPipeline(
-        get,
-        set,
-        'video',
-        err instanceof Error ? err.message : 'Scene video generation failed'
-      )
-      throw err
-    }
+    console.warn('[scene-video] generation failed — continuing pipeline', err)
+    commitPipelineStage(get, set, 'video_complete', 'video')
   } finally {
     set({ isGeneratingSceneVideos: false, directingSceneLabel: null })
     get().composeReelTimeline()
@@ -1509,6 +1521,7 @@ async function fetchSceneImages(
     | 'visualStyle'
     | 'storyBible'
     | 'styleTemplateId'
+    | 'visualTemplate'
     | 'language'
     | 'imageNote'
     | 'contentBrief'
@@ -1545,6 +1558,7 @@ async function fetchSceneImages(
       visualStyle: state.visualStyle ?? undefined,
       storyBible: state.storyBible ?? undefined,
       styleTemplateId: state.styleTemplateId ?? undefined,
+      visualTemplate: state.visualTemplate,
       language: state.language,
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
@@ -1612,6 +1626,7 @@ async function fetchThumbnailCoverImage(
     | 'visualStyle'
     | 'storyBible'
     | 'styleTemplateId'
+    | 'visualTemplate'
     | 'language'
     | 'imageNote'
     | 'contentBrief'
@@ -1645,6 +1660,7 @@ async function fetchThumbnailCoverImage(
       visualStyle: state.visualStyle ?? undefined,
       storyBible: state.storyBible ?? undefined,
       styleTemplateId: state.styleTemplateId ?? undefined,
+      visualTemplate: state.visualTemplate,
       language: state.language,
       referenceStyleNote: state.imageNote ?? undefined,
       hasReferenceStyle: Boolean(state.imageNote?.trim()),
@@ -1842,6 +1858,17 @@ async function pollRenderJob(
 }
 
 async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boolean) {
+  if (!isClientVideoRenderEnabled(state.videoRenderEnabled)) {
+    return {
+      renderRes: { ok: false, status: 503 } as Response,
+      renderData: {
+        error: 'Reel export is not enabled on this server. Check VIDEO_RENDER_ENABLED in .env.',
+        code: 'EXPORT_FAILED',
+        status: 'failed',
+      },
+    }
+  }
+
   const readiness = reelExportReadiness(state.scenes, state.voiceUrl)
   if (!readiness.ready && readiness.message) {
     return {
@@ -2394,7 +2421,7 @@ export const useQuickCutGenerationStore = create<
       isRenderingVideo: state.isRenderingVideo,
       renderError: state.renderError,
       videoRenderEnabled: state.videoRenderEnabled,
-      requireSceneVideos: false,
+      requireSceneVideos: pipelineRequireSceneVideosFromStore(state),
     })
     set({
       pipelineStatus: derived.status,
@@ -2496,6 +2523,9 @@ export const useQuickCutGenerationStore = create<
 
   setStyleTemplateId: (templateId) =>
     set({ styleTemplateId: templateId?.trim() || null }),
+
+  setVisualTemplate: (template) =>
+    set({ visualTemplate: normalizeVisualTemplate(template) }),
 
   applyStyleTemplate: (templateId) => {
     const applied = applyStyleTemplateFields(templateId)
@@ -2616,6 +2646,7 @@ export const useQuickCutGenerationStore = create<
           directorMode: prior.directorMode,
           blueprintId: prior.blueprintId,
           styleTemplateId: prior.styleTemplateId,
+          visualTemplate: prior.visualTemplate,
           elevenLabsVoiceId: prior.elevenLabsVoiceId,
           voiceName: prior.voiceName,
           originalTranscript: prior.originalTranscript,
@@ -2644,6 +2675,9 @@ export const useQuickCutGenerationStore = create<
     const styleTemplateId = regenFresh
       ? preserved?.styleTemplateId ?? prior.styleTemplateId
       : prior.styleTemplateId
+    const visualTemplate = normalizeVisualTemplate(
+      input.visualTemplate ?? (regenFresh ? preserved?.visualTemplate : prior.visualTemplate)
+    )
     const blueprintPlatform =
       input.platform ?? creatorBlueprintById(blueprintId)?.suggestedPlatform
     const tone = input.style ?? (regenFresh ? prior.style : undefined) ?? 'cinematic'
@@ -2683,6 +2717,7 @@ export const useQuickCutGenerationStore = create<
         directorMode,
         blueprintId,
         styleTemplateId,
+        visualTemplate,
         style: tone,
         duration,
         imageNote: input.imageNote?.trim() || prior.imageNote,
@@ -2700,6 +2735,10 @@ export const useQuickCutGenerationStore = create<
         blueprintId,
         styleTemplateId:
           regenFresh && !topicChanged ? preserved?.styleTemplateId ?? null : null,
+        visualTemplate:
+          regenFresh && !topicChanged
+            ? preserved?.visualTemplate ?? DEFAULT_VISUAL_TEMPLATE
+            : normalizeVisualTemplate(input.visualTemplate ?? prior.visualTemplate),
         style: tone,
         duration,
         niche:
@@ -2769,7 +2808,12 @@ export const useQuickCutGenerationStore = create<
         duration,
         niche: get().niche,
         style: tone,
+        visualTemplate: get().visualTemplate,
       },
+    })
+    void trackEvent(AnalyticsEvents.TEMPLATE_GENERATION_STARTED, {
+      projectId: preserveProjectId,
+      metadata: { visualTemplate: get().visualTemplate },
     })
     void trackFirstGenerationStarted({ projectId: preserveProjectId })
 
@@ -2783,8 +2827,8 @@ export const useQuickCutGenerationStore = create<
     const configPromise = fetchQuickCutConfig()
       .then((cfg) => {
         config = cfg as Record<string, boolean>
-        videoRenderEnabled = isClientVideoRenderEnabled(cfg.videoRenderEnabled === true)
-        sceneVideoEnabled = get().generationMode === 'cinematic'
+        videoRenderEnabled = cfg.videoRenderEnabled === true
+        sceneVideoEnabled = cfg.sceneVideoEnabled === true
         freeTier = cfg.freeTierOnly === true
         const v3Enabled = isV3PipelineEnabledFromConfig(cfg as Record<string, unknown>)
         set({ videoRenderEnabled, sceneVideoEnabled, v3PipelineEnabled: v3Enabled })
@@ -2821,6 +2865,8 @@ export const useQuickCutGenerationStore = create<
     try {
       setStep(set, get, 'analyzing')
       await configPromise
+      const profile = await fetchProfilePlanSnapshot()
+      set({ userPlanType: profile.planType })
       await ensureGenerationJobsMigration()
 
       const activeProjectId = get().savedProjectId
@@ -2829,6 +2875,11 @@ export const useQuickCutGenerationStore = create<
         if (jobId) {
           logJobCreated(activeProjectId, jobId, { source: 'runPipeline' })
           writeStoredGenerationJobId(activeProjectId, jobId)
+        } else {
+          set({
+            jobPollWarning:
+              'Generation job sync pending — progress will resume when the job is created.',
+          })
         }
       }
 
@@ -3303,6 +3354,7 @@ export const useQuickCutGenerationStore = create<
                     ...(storyboardFromScript.length >= 2
                       ? { storyboardScenes: storyboardFromScript }
                       : {}),
+                    visualTemplate: get().visualTemplate,
                   }),
                   maxRetries: 2,
                 }),
@@ -3453,7 +3505,6 @@ export const useQuickCutGenerationStore = create<
               } else {
                 const voiceSkipped =
                   voiceData?.skipped === true ||
-                  voiceRes.status === 503 ||
                   voiceRes.status === 500
                 if (voiceSkipped) {
                   console.warn('[voice] generation skipped', {
@@ -3490,9 +3541,10 @@ export const useQuickCutGenerationStore = create<
                 buildArchiveInput(get(), buildGenerationOutput(get()))
               )
               if (voiceId) set({ savedProjectId: voiceId, saveState: 'saved' })
-              const voiceStepStatus =
-                voiceUrl || voiceData?.skipped === true || voiceRes.status === 503
-                  ? 'completed'
+              const voiceStepStatus = voiceUrl
+                ? 'completed'
+                : voiceData?.skipped === true
+                  ? 'failed'
                   : voiceRes.ok
                     ? 'completed'
                     : 'failed'
@@ -3699,24 +3751,6 @@ export const useQuickCutGenerationStore = create<
         set({ directingSceneLabel: null })
 
         await runSceneVideoGeneration(get, set)
-      } else if (
-        QUICK_CUT_V2_TEXT_TO_VIDEO &&
-        stepShouldRun(resumeFrom, 'storyboard')
-      ) {
-        clearPipelineWatchdog()
-        setStep(set, get, 'motion')
-        patchSectionStatus(set, get, 'storyboard', 'completed')
-        patchSectionStatus(set, get, 'visualDirection', 'completed')
-        set({
-          directingSceneLabel: 'Creating video scenes…',
-          lastCompletedStep: 'visual_direction',
-        })
-        await runSceneVideoGeneration(get, set)
-        set({ directingSceneLabel: null })
-      }
-
-      if (videoRenderEnabled && stepShouldRun(resumeFrom, 'export')) {
-        await runSceneVideoGeneration(get, set)
       }
 
       const assemblyPresentation = storyboardShouldRun
@@ -3913,7 +3947,12 @@ export const useQuickCutGenerationStore = create<
             niche: get().niche,
             duration: get().duration,
             mock: anyMock,
+            visualTemplate: get().visualTemplate,
           },
+        })
+        void trackEvent(AnalyticsEvents.TEMPLATE_GENERATION_COMPLETED, {
+          projectId: get().savedProjectId,
+          metadata: { visualTemplate: get().visualTemplate },
         })
         trackStoryGeneratedAfterCompanion(get().savedProjectId)
         trackFirstGenerationCompleted({ projectId: get().savedProjectId })
@@ -4642,10 +4681,13 @@ export const useQuickCutGenerationStore = create<
 
   syncVideoRenderConfig: async () => {
     try {
-      const config = (await fetchQuickCutConfig()) as Record<string, boolean>
-      const videoRenderEnabled = isClientVideoRenderEnabled(config.videoRenderEnabled === true)
+      const [config, profile] = await Promise.all([
+        fetchQuickCutConfig() as Promise<Record<string, boolean>>,
+        fetchProfilePlanSnapshot(),
+      ])
+      const videoRenderEnabled = config.videoRenderEnabled === true
       const sceneVideoEnabled = config.sceneVideoEnabled === true
-      set({ videoRenderEnabled, sceneVideoEnabled })
+      set({ videoRenderEnabled, sceneVideoEnabled, userPlanType: profile.planType })
       const state = get()
       if (
         videoRenderEnabled &&

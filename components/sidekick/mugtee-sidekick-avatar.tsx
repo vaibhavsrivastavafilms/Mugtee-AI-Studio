@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { shouldPrefer2DFallback } from '@/lib/webgl/capabilities'
-import { SidekickAvatarSkeleton } from '@/components/sidekick/mugtee-sidekick-3d-viewer'
+import { SidekickAvatarSkeleton } from '@/components/sidekick/sidekick-avatar-skeleton'
 
 export const MUGTEE_SIDEKICK_SRC = '/mugtee/mugtee-sidekick.png'
 

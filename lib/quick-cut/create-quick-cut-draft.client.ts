@@ -3,6 +3,8 @@
 import { archiveGeneratedProject } from '@/lib/cinematic-projects'
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { QuickPlatformValue } from '@/lib/studio/quick-create-options'
+import type { VisualTemplate } from '@/lib/quick-cut/template-system'
+import { normalizeVisualTemplate } from '@/lib/quick-cut/template-system'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export type QuickCutDraftInput = {
@@ -11,11 +13,13 @@ export type QuickCutDraftInput = {
   duration: number
   platform: QuickPlatformValue
   language: string
+  visualTemplate?: VisualTemplate
 }
 
 /** Create a cinematic project row immediately — before pipeline stages run. */
 export async function createQuickCutDraftProject(input: QuickCutDraftInput): Promise<string> {
   const title = input.prompt.trim().slice(0, 72) || 'Untitled reel'
+  const visualTemplate = normalizeVisualTemplate(input.visualTemplate)
   const row = await archiveGeneratedProject({
     title,
     prompt: input.prompt.trim(),
@@ -25,6 +29,7 @@ export async function createQuickCutDraftProject(input: QuickCutDraftInput): Pro
     style: input.style,
     duration: input.duration,
     language: input.language,
+    visualTemplate,
     generation_status: 'generating',
     generation_step: 'hook',
     status: 'generating',
@@ -38,6 +43,7 @@ export async function createQuickCutDraftProject(input: QuickCutDraftInput): Pro
     style: input.style,
     duration: input.duration,
     language: input.language as ProjectLanguage,
+    visualTemplate,
     saveState: 'saved',
     saveError: null,
     lastSavedAt: Date.now(),

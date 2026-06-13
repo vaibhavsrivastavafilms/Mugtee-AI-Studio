@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isFreeTierOnly, buildQuickCutProviderConfig } from '@/lib/ai/free-tier'
+import { isFreeTierOnly, buildQuickCutProviderConfig, allowElevenLabsVoice, getElevenLabsApiKey } from '@/lib/ai/free-tier'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { MAX_VIDEO_DURATION_SEC, logError } from '@/lib/workspace/validation'
 import {
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
           mock: true,
           fallbackMessage: VOICE_UNAVAILABLE_MESSAGE,
         },
-        { status: 503 }
+        { status: 200 }
       )
     }
 
@@ -93,7 +93,10 @@ export async function POST(req: NextRequest) {
     const generationMode = normalizeGenerationMode(raw?.generationMode ?? raw?.generation_mode)
     const planType = user ? await resolveUserPlanType(user.id) : 'FREE'
     const voicePolicy = resolveProviderRouting({ generationMode, planType })
-    const preferElevenLabs = shouldUseElevenLabsVoice(voicePolicy)
+    const preferElevenLabs =
+      shouldUseElevenLabsVoice(voicePolicy) &&
+      allowElevenLabsVoice() &&
+      Boolean(getElevenLabsApiKey())
 
     const result = await generateVoice(
       {
@@ -138,7 +141,7 @@ export async function POST(req: NextRequest) {
           fallbackMessage: result.fallbackMessage ?? VOICE_UNAVAILABLE_MESSAGE,
           voiceMetadata: result.voiceMetadata,
         },
-        { status: 503 }
+        { status: 200 }
       )
     }
 

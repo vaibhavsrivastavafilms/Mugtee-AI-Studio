@@ -17,6 +17,16 @@ import {
   type ReelPipelineState,
 } from '@/lib/pipeline/reel-generation-orchestrator'
 import type { QuickCutGenerationStoreState } from '@/stores/quick-cut-generation-store'
+import { pipelineRequiresSceneVideos } from '@/lib/economics/scene-video-requirement'
+
+export function pipelineRequireSceneVideosFromStore(
+  state: Partial<Pick<QuickCutGenerationStoreState, 'generationMode' | 'userPlanType'>>
+): boolean {
+  return pipelineRequiresSceneVideos({
+    generationMode: state.generationMode ?? 'creator',
+    planType: state.userPlanType ?? null,
+  })
+}
 
 export function quickCutStoreToPipelineSnapshot(
   state: Pick<
@@ -36,7 +46,8 @@ export function quickCutStoreToPipelineSnapshot(
     | 'sectionStatus'
     | 'videoRenderEnabled'
     | 'pipelineJobId'
-  >
+  > &
+    Partial<Pick<QuickCutGenerationStoreState, 'generationMode' | 'userPlanType'>>
 ): ReelPipelineSnapshot {
   return {
     jobId: state.pipelineJobId,
@@ -54,7 +65,7 @@ export function quickCutStoreToPipelineSnapshot(
     isRenderingVideo: state.isRenderingVideo,
     renderError: state.renderError,
     videoRenderEnabled: state.videoRenderEnabled,
-    requireSceneVideos: true,
+    requireSceneVideos: pipelineRequireSceneVideosFromStore(state),
   }
 }
 

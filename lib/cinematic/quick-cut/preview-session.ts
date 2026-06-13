@@ -2,6 +2,7 @@ import type { QuickCutOrchestrationResult } from '@/lib/cinematic/quick-cut/orch
 
 import type { ProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { DirectorMode } from '@/lib/cinematic/director-modes'
+import type { VisualTemplate } from '@/lib/quick-cut/template-system'
 import { ensureScenesHaveImagePrompts } from '@/lib/cinematic/generation'
 import { ensureScenesHavePreviewUrls } from '@/lib/cinematic/scene-preview-url'
 import { REEL_EXPORT_PROGRESS_CAP } from '@/lib/reels/export-poll.client'
@@ -20,6 +21,7 @@ export type QuickCutPending = {
   language?: ProjectLanguage
   directorMode?: DirectorMode
   blueprintId?: string | null
+  visualTemplate?: VisualTemplate
 }
 
 export function saveQuickCutPreview(result: QuickCutOrchestrationResult) {

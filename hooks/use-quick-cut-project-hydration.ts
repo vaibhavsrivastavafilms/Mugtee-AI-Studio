@@ -80,6 +80,7 @@ export function useQuickCutProjectHydration(
           language: pending?.language ?? state.language ?? loadContentLanguagePreference(),
           directorMode:
             pending?.directorMode ?? loadDirectorModePreference() ?? DEFAULT_DIRECTOR_MODE,
+          visualTemplate: pending?.visualTemplate ?? state.visualTemplate,
           reuseProject: true,
           skipResearch: true,
           ...(shouldRegen ? { regenFresh: true, originalTranscript: state.originalTranscript } : {}),

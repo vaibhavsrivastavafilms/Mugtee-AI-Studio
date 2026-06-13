@@ -143,6 +143,8 @@ export type SceneImagePromptContext = {
   visualBibleSection?: string
   /** Style template prompt_prefix — continuity preset layer */
   styleTemplatePrefix?: string
+  /** Quick Cut V2 visual template — curated look system */
+  visualTemplatePrefix?: string
   previousScene?: Pick<
     GeneratedScene,
     | 'title'
@@ -294,6 +296,7 @@ export function buildSceneImagePrompt(
     ctx?.sceneIndex != null ? String(ctx.sceneIndex).padStart(2, '0') : null
 
   const parts: string[] = []
+  if (ctx?.visualTemplatePrefix?.trim()) parts.push(ctx.visualTemplatePrefix.trim())
   if (ctx?.styleTemplatePrefix?.trim()) parts.push(ctx.styleTemplatePrefix.trim())
   if (ctx?.contentBriefSection?.trim()) parts.push(ctx.contentBriefSection.trim())
   const continuity = formatStoryBibleForPrompt(ctx?.storyBible)
@@ -1047,6 +1050,7 @@ export type CaptionsPayload = {
   directorMode?: string
   blueprintId?: string
   styleTemplateId?: string
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1090,6 +1094,7 @@ export function captionsToPayload(state: {
   directorMode?: string
   blueprintId?: string
   styleTemplateId?: string
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1119,6 +1124,7 @@ export function captionsToPayload(state: {
     directorMode: state.directorMode,
     blueprintId: state.blueprintId,
     styleTemplateId: state.styleTemplateId,
+    visualTemplate: state.visualTemplate,
     archetypeId: state.archetypeId,
     archetypeLabel: state.archetypeLabel,
     archetypeDisplay: state.archetypeDisplay,
@@ -1156,6 +1162,7 @@ export function parseCaptionsPayload(
   directorMode?: string
   blueprintId?: string
   styleTemplateId?: string
+  visualTemplate?: import('@/lib/quick-cut/template-system').VisualTemplate
   archetypeId?: string
   archetypeLabel?: string
   archetypeDisplay?: string
@@ -1224,6 +1231,13 @@ export function parseCaptionsPayload(
   const styleTemplateId =
     typeof value?.styleTemplateId === 'string' && value.styleTemplateId.trim()
       ? value.styleTemplateId.trim()
+      : undefined
+  const visualTemplateRaw = (value as { visualTemplate?: unknown })?.visualTemplate
+  const visualTemplate =
+    visualTemplateRaw === 'creator_story' ||
+    visualTemplateRaw === 'explainer_studio' ||
+    visualTemplateRaw === 'documentary_cinematic'
+      ? visualTemplateRaw
       : undefined
   const archetypeId =
     typeof value?.archetypeId === 'string' && value.archetypeId.trim()
@@ -1298,6 +1312,7 @@ export function parseCaptionsPayload(
     directorMode,
     blueprintId,
     styleTemplateId,
+    visualTemplate,
     archetypeId,
     archetypeLabel,
     archetypeDisplay,

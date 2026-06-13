@@ -51,6 +51,11 @@ import {
   type SceneImageDuplicate,
 } from '@/lib/cinematic/scene-image-prompt'
 import { resolveStyleTemplatePromptPrefix } from '@/lib/templates/style-templates'
+import {
+  getTemplatePrompt,
+  normalizeVisualTemplate,
+  type VisualTemplate,
+} from '@/lib/quick-cut/template-system'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -81,6 +86,7 @@ export type GenerateSceneImagesInput = {
   visualBible?: VisualBible | null
   outputAlignmentControls?: OutputAlignmentControls | null
   styleTemplateId?: string | null
+  visualTemplate?: VisualTemplate | null
   /** Economics — draft | creator | cinematic controls image provider tier. */
   generationMode?: import('@/lib/economics/generation-mode').GenerationMode
 }
@@ -141,6 +147,9 @@ function promptContext(
     visualConsistency: visualConsistency ?? undefined,
     visualBibleSection,
     contentBriefSection: formatContentBriefForPrompt(input.contentBrief),
+    visualTemplatePrefix: getTemplatePrompt(
+      normalizeVisualTemplate(input.visualTemplate)
+    ),
     styleTemplatePrefix: resolveStyleTemplatePromptPrefix(input.styleTemplateId),
     previousScene:
       index > 0

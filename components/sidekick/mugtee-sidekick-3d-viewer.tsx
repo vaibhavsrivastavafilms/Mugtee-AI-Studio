@@ -4,18 +4,9 @@ import { Suspense, useCallback, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { cn } from '@/lib/utils'
 import { MugteeSidekick3DModel } from '@/components/sidekick/mugtee-sidekick-3d-model'
+import { SidekickAvatarSkeleton } from '@/components/sidekick/sidekick-avatar-skeleton'
 
-export function SidekickAvatarSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        'relative z-10 h-full w-full rounded-full bg-gradient-to-b from-gold-500/20 to-transparent animate-pulse',
-        className
-      )}
-    />
-  )
-}
+export { SidekickAvatarSkeleton } from '@/components/sidekick/sidekick-avatar-skeleton'
 
 export function MugteeSidekick3DViewer({
   animated = true,

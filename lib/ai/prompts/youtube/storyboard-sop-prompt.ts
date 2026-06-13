@@ -45,6 +45,8 @@ export type StoryboardSopOptions = {
   retentionMode?: boolean
   /** AI Director Mode — visual pacing and scene emphasis */
   directorMode?: DirectorMode
+  /** Quick Cut V2 — template-specific shot composition rules */
+  visualTemplateDirective?: string
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 /** Human-readable segment block for logs / debug (SOP output format). */
@@ -128,6 +130,9 @@ export function buildStoryboardSopPrompt(
     '═══ STORYBOARD SOP — SCRIPT TO VISUAL SEGMENTS ═══',
     langLock,
     options.directorMode ? buildDirectorModePromptSection(options.directorMode) : '',
+    options.visualTemplateDirective
+      ? `VISUAL TEMPLATE — ${options.visualTemplateDirective}`
+      : '',
     retentionNote,
     durationNote,
     research,

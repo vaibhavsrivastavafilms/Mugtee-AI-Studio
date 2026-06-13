@@ -28,6 +28,11 @@ import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { createQuickCutDraftProject } from '@/lib/quick-cut/create-quick-cut-draft.client'
 import { clearGenerationActivityLog } from '@/lib/quick-cut/generation-activity.client'
+import { TemplateSelector } from '@/components/quick-cut/template-selector'
+import {
+  DEFAULT_VISUAL_TEMPLATE,
+  type VisualTemplate,
+} from '@/lib/quick-cut/template-system'
 import { clearQuickCutPending, saveQuickCutPending, type QuickCutPending } from '@/lib/cinematic/quick-cut/preview-session'
 
 const LOGIN_AFTER_QUICK = `${STUDIO.quick}?resume=1`
@@ -45,6 +50,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
   const [prompt, setPrompt] = useState(initialPrompt)
   const [duration, setDuration] = useState(60)
   const [platform, setPlatform] = useState<QuickPlatformValue>('youtube_short')
+  const [visualTemplate, setVisualTemplate] = useState<VisualTemplate>(DEFAULT_VISUAL_TEMPLATE)
   const [chipSeed, setChipSeed] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -89,6 +95,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           duration: pending.duration,
           platform,
           language: pending.language ?? loadContentLanguagePreference(),
+          visualTemplate: pending.visualTemplate ?? visualTemplate,
         })
         clearQuickCutPending()
         saveQuickCutPending({
@@ -97,6 +104,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           duration: pending.duration,
           language: pending.language,
           directorMode: pending.directorMode,
+          visualTemplate: pending.visualTemplate ?? visualTemplate,
         })
         router.push(
           quickCutProjectHref(projectId, {
@@ -108,7 +116,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
         setSubmitting(false)
       }
     },
-    [authReady, isGenerating, platform, router, signedIn, submitting]
+    [authReady, isGenerating, platform, router, signedIn, submitting, visualTemplate]
   )
 
   const handleGenerate = (event?: React.FormEvent) => {
@@ -121,6 +129,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
       duration,
       language: loadContentLanguagePreference(),
       directorMode: loadDirectorModePreference() ?? DEFAULT_DIRECTOR_MODE,
+      visualTemplate,
     })
   }
 
@@ -171,6 +180,15 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           platform={platform}
           onDurationChange={setDuration}
           onPlatformChange={setPlatform}
+          disabled={submitting || isGenerating}
+        />
+
+        <TemplateSelector
+          value={visualTemplate}
+          onChange={(template) => {
+            setVisualTemplate(template)
+            useQuickCutGenerationStore.getState().setVisualTemplate(template)
+          }}
           disabled={submitting || isGenerating}
         />
 

@@ -32,6 +32,10 @@ export async function GET() {
 
   const providers = buildQuickCutProviderConfig()
 
+  const sceneVideoProviderAvailable =
+    process.env.VIDEO_GENERATION_ENABLED !== 'false' &&
+    (hasRunwayApiKey() || hasSeedanceApiKey())
+
   const body = {
     freeTierOnly: providers.freeTierOnly,
     anthropic: providers.anthropic,
@@ -48,10 +52,11 @@ export async function GET() {
     videoRenderEnabled: isVideoRenderEnabled(),
     runway: hasRunwayApiKey(),
     videoProvider: isRemotionRenderAvailable() ? 'remotion' : resolveRunwayVideoProvider(),
-    sceneVideoEnabled: false,
+    sceneVideoEnabled: sceneVideoProviderAvailable,
+    sceneVideoProviderAvailable,
     sceneVideoRequiresStudio: true,
     seedance: hasSeedanceApiKey(),
-    sceneVideoProvider: null,
+    sceneVideoProvider: sceneVideoProviderAvailable ? resolveSceneVideoProviderId() : null,
     v3PipelineEnabled: isV3PipelineEnabled(),
     models: providers.models,
   }

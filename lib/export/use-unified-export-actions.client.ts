@@ -125,6 +125,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
       exportExpired: s.exportExpired,
       researchReport: s.researchReport,
       reelTimeline: s.reelTimeline,
+      visualTemplate: s.visualTemplate,
       syncVideoRenderConfig: s.syncVideoRenderConfig,
       visualStyle: s.visualStyle,
       thumbnailImageUrl: s.thumbnailImageUrl,
@@ -155,6 +156,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     exportExpired,
     researchReport,
     reelTimeline,
+    visualTemplate,
     syncVideoRenderConfig,
     visualStyle,
     thumbnailImageUrl,
@@ -745,6 +747,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
           isUnlimited,
           isGenerating,
           reelTimeline,
+          visualTemplate,
         },
         ({ progress }) => setCreatorPackProgress(progress)
       )
@@ -791,6 +794,7 @@ export function useUnifiedExportActions(options: UnifiedExportMenuOptions = {}) 
     trackExportStarted,
     guardExport,
     reelTimeline,
+    visualTemplate,
     creatorPackState,
     creatorPackResult,
     creatorPackReadiness,

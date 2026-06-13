@@ -29,6 +29,7 @@ export type StoryboardSopGenerationInput = {
   /** Quick Cut — merge segments into retention-scaled beat count */
   retentionMode?: boolean
   directorMode?: DirectorMode
+  visualTemplateDirective?: string
 } & Pick<DeepResearchPipelineOptions, 'researchDocument' | 'researchReport'>
 
 export type StoryboardSopResult = StoryboardProjectFields
@@ -109,6 +110,7 @@ async function generateStoryboardScenesInternal(
             sceneTarget,
             retentionMode,
             directorMode: input.directorMode,
+            visualTemplateDirective: input.visualTemplateDirective,
           }),
         },
       ],

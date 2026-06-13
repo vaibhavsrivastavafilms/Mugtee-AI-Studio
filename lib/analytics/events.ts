@@ -21,6 +21,11 @@ export const AnalyticsEvents = {
   GENERATION_STEP_PERF: 'generation_step_perf',
   RESUME_GENERATION: 'resume_generation',
 
+  /** Quick Cut V2 — visual template funnel */
+  TEMPLATE_SELECTED: 'template_selected',
+  TEMPLATE_GENERATION_STARTED: 'template_generation_started',
+  TEMPLATE_GENERATION_COMPLETED: 'template_generation_completed',
+
   PROJECT_EXPORTED: 'project_exported',
   EXPORT_STARTED: 'export_started',
   EXPORT_COMPLETED: 'export_completed',
@@ -92,6 +97,9 @@ export type FunnelEvent =
   | 'export_completed'
   | 'storyboard_viewed'
   | 'resume_generation'
+  | 'template_selected'
+  | 'template_generation_started'
+  | 'template_generation_completed'
 
 export type AnalyticsMetadata = {
   projectId?: string | null

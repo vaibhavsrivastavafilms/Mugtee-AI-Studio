@@ -253,8 +253,10 @@ function validateStage(stage: ReelPipelineStageId, snapshot: ReelPipelineSnapsho
       }
       return { ok: true }
     case 'video': {
-      const requireVideos = snapshot.requireSceneVideos !== false
-      if (requireVideos && !scenesHaveVideos(snapshot.scenes ?? [])) {
+      if (snapshot.requireSceneVideos !== true) {
+        return { ok: true }
+      }
+      if (!scenesHaveVideos(snapshot.scenes ?? [])) {
         return { ok: false, failedStage: 'video', message: 'Every scene must have a generated video clip' }
       }
       return { ok: true }

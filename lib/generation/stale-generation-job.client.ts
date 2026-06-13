@@ -2,6 +2,7 @@
 
 import { clearStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
 import { isValidGenerationJobId } from '@/lib/generation/generation-job-id'
+import type { QuickCutGenerationState } from '@/stores/quick-cut-generation-store'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 export { isValidGenerationJobId }
@@ -36,7 +37,7 @@ export function clearStaleGenerationJobReference(input: {
   const state = useQuickCutGenerationStore.getState()
   if (state.pipelineJobId !== jobId) return
 
-  const patch: Parameters<typeof useQuickCutGenerationStore.setState>[0] = {
+  const patch: Partial<QuickCutGenerationState> = {
     pipelineJobId: null,
   }
 
