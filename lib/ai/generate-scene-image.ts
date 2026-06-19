@@ -134,15 +134,26 @@ export async function uploadImageBuffer(params: {
   filename: string
   contentType?: string
 }): Promise<string | null> {
+  const { createSupabaseServiceClient } = await import('@/lib/supabase/service')
   const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-  const supabase = createSupabaseServerClient()
+  const supabase = createSupabaseServiceClient() ?? createSupabaseServerClient()
   const { error: upErr } = await supabase.storage
     .from('project-assets')
     .upload(params.filename, params.buffer, {
       contentType: params.contentType ?? 'image/png',
-      upsert: false,
+      upsert: true,
     })
-  if (upErr) return null
+  if (upErr) {
+    console.warn('[uploadImageBuffer] storage upload failed', {
+      filename: params.filename,
+      message: upErr.message,
+    })
+    return null
+  }
+  const { data: signed } = await supabase.storage
+    .from('project-assets')
+    .createSignedUrl(params.filename, 60 * 60 * 24 * 7)
+  if (signed?.signedUrl) return signed.signedUrl
   const { data: pub } = supabase.storage.from('project-assets').getPublicUrl(params.filename)
   return pub.publicUrl
 }

@@ -28,6 +28,7 @@ import {
 } from '@/lib/export/export-schema'
 import { mergeClientExportSnapshot } from '@/lib/export/merge-client-export-snapshot.server'
 import { collectPayloadMissingAssets } from '@/lib/export/export-payload-assets.server'
+import { ensureVoiceExportUrl } from '@/lib/export/voice-export-validation.server'
 import { trackMp4FailedServer } from '@/lib/analytics/mp4-export-track.server'
 import {
   logPipelineStepComplete,
@@ -137,9 +138,25 @@ export async function POST(req: NextRequest) {
     ])
     exportApiCheckpoint('payload_validated', summary)
 
+    const projectId = body.projectId
+    let row = await loadOwnedCinematicProject(projectId, auth.user!.id)
+    if (!row) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    const payloadVoiceUrl = (body.voiceUrl ?? body.voiceover)?.trim() ?? null
+    const voiceResolved = await ensureVoiceExportUrl({
+      row,
+      userId: auth.user!.id,
+      includeVoiceover: body.includeVoiceover,
+      exportPayloadNarrationUrl: payloadVoiceUrl,
+    })
+    row = voiceResolved.row
+
     const payloadMissing = collectPayloadMissingAssets({
       data: body,
       includeVoiceover: body.includeVoiceover,
+      resolvedVoiceUrl: payloadVoiceUrl ?? voiceResolved.voiceUrl,
     })
     if (payloadMissing.length > 0) {
       return NextResponse.json(
@@ -156,18 +173,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const projectId = body.projectId
+    row = mergeClientExportSnapshot(row, {
+      ...body,
+      voiceUrl: payloadVoiceUrl ?? voiceResolved.voiceUrl ?? body.voiceUrl,
+    })
+    exportApiCheckpoint('storyboard_processing', { projectId, phase: 'merge_client_snapshot' })
+
     const quality = body.quality
     const includeVoiceover = body.includeVoiceover
     const includeCaptions = body.includeCaptions
-
-    let row = await loadOwnedCinematicProject(projectId, auth.user!.id)
-    if (!row) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-    }
-
-    row = mergeClientExportSnapshot(row, body)
-    exportApiCheckpoint('storyboard_processing', { projectId, phase: 'merge_client_snapshot' })
 
     if (row.reel_url?.trim()) {
       exportApiCheckpoint('completed', { projectId, source: 'existing_reel_url' })

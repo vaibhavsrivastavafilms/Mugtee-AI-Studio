@@ -74,6 +74,13 @@ export function updateRenderJob(
 ): RenderJobStatus | null {
   const current = getRenderJob(jobId)
   if (!current) return null
+  if (
+    (current.status === 'failed' || current.status === 'done') &&
+    patch.status !== 'failed' &&
+    patch.status !== 'done'
+  ) {
+    return current
+  }
   const next = withTimestamp(current, patch)
   persistJob(next)
   return next

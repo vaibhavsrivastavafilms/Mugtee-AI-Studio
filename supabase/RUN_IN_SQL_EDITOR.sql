@@ -1,9 +1,17 @@
--- Consolidated cinematic_projects migrations (0014-0038)
--- Run once in Supabase Dashboard -> SQL Editor -> New query
+-- =============================================================================
+-- POSTGRESQL / SUPABASE ONLY — do NOT run in SQL Server, SSMS, or Azure SQL.
+-- Run in: Supabase Dashboard → SQL Editor → New query → paste all → Run
+-- VS Code red squiggles on this file are false positives (T-SQL linter); ignore them.
 -- Idempotent: safe to re-run (IF NOT EXISTS / drop policy if exists)
+-- Prerequisite for 0020 block: public.analytics_events (migration 0013) must exist.
+-- =============================================================================
+
+create extension if not exists "pgcrypto";
+
+-- Consolidated cinematic_projects migrations (0014-0038)
 -- Creator tables 0034-0045: run individual files under supabase/migrations/ when needed.
 -- ========== 0014_cinematic_projects.sql ==========
--- MUGTEE â€” Lightweight cinematic creator project persistence.
+-- MUGTEE — Lightweight cinematic creator project persistence.
 -- Single table, no over-normalization. Owner-only via RLS.
 
 create table if not exists public.cinematic_projects (
@@ -55,7 +63,7 @@ alter table public.cinematic_projects
   add column if not exists thumbnail_url text;
 
 -- ========== 0016_unified_projects.sql ==========
--- Unified creator OS â€” mode + Virlo metadata on cinematic_projects.
+-- Unified creator OS — mode + Virlo metadata on cinematic_projects.
 -- video_url / thumbnail_url already added in 0015.
 
 alter table public.cinematic_projects
@@ -177,58 +185,6 @@ alter table public.cinematic_projects
 
 comment on column public.cinematic_projects.scene_motion is
   'Per-scene motion preset assignments: { "<sceneId>": { "presetId": "push_in", "params": {}, "source": "auto|manual" } }';
-
--- ========== VERIFICATION (one-click — run after migrations above) ==========
--- Expect a single row: migration_status = 'OK: cinematic_projects ready for Quick Cut save'
-select
-  case
-    when not exists (
-      select 1
-      from information_schema.tables
-      where table_schema = 'public'
-        and table_name = 'cinematic_projects'
-    ) then 'FAIL: cinematic_projects table missing — re-run the 0014 block above'
-    when (
-      select count(*)
-      from information_schema.columns
-      where table_schema = 'public'
-        and table_name = 'cinematic_projects'
-        and column_name in (
-          'video_url',
-          'thumbnail_url',
-          'mode',
-          'virlo',
-          'storyboard',
-          'language',
-          'input_type',
-          'original_transcript',
-          'variation_history',
-          'visual_style',
-          'viral_script',
-          'generation_status',
-          'generation_step',
-          'generation_error',
-          'last_completed_step',
-          'script_beats',
-          'reel_status',
-          'reel_url',
-          'reel_rendered_at',
-          'share_as_showcase',
-          'reel_job_id',
-          'story_bible',
-          'scene_motion'
-        )
-    ) < 23
-      then 'FAIL: missing columns from 0015–0038 — re-run the 0015–0038 blocks above'
-    when (
-      select count(*)
-      from pg_policies
-      where schemaname = 'public'
-        and tablename = 'cinematic_projects'
-    ) < 4
-      then 'WARN: RLS policies incomplete — re-run the 0014 policy block above'
-    else 'OK: cinematic_projects ready for Quick Cut save'
-  end as migration_status;
 
 -- ========== 0020_creator_validation.sql ==========
 -- Creator feedback, creator metrics, funnel views (analytics_events uses column "event").
@@ -422,3 +378,54 @@ comment on view public.creator_funnel_snapshot is 'Per-creator funnel flags aggr
 -- Optional follow-ups (not required for Quick Cut save):
 -- 0034_creator_profiles.sql, 0036_project_edits.sql, 0037_workspace_preferences.sql,
 -- 0039_creative_companion.sql, 0040–0043 creator agent / companion tables.
+
+-- ========== VERIFICATION (run last — expect migration_status = OK) ==========
+select
+  case
+    when not exists (
+      select 1
+      from information_schema.tables
+      where table_schema = 'public'
+        and table_name = 'cinematic_projects'
+    ) then 'FAIL: cinematic_projects table missing — re-run the 0014 block above'
+    when (
+      select count(*)
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'cinematic_projects'
+        and column_name in (
+          'video_url',
+          'thumbnail_url',
+          'mode',
+          'virlo',
+          'storyboard',
+          'language',
+          'input_type',
+          'original_transcript',
+          'variation_history',
+          'visual_style',
+          'viral_script',
+          'generation_status',
+          'generation_step',
+          'generation_error',
+          'last_completed_step',
+          'script_beats',
+          'reel_status',
+          'reel_url',
+          'reel_rendered_at',
+          'share_as_showcase',
+          'reel_job_id',
+          'story_bible',
+          'scene_motion'
+        )
+    ) < 23
+      then 'FAIL: missing columns from 0015-0038 — re-run the 0015-0038 blocks above'
+    when (
+      select count(*)
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'cinematic_projects'
+    ) < 4
+      then 'WARN: RLS policies incomplete — re-run the 0014 policy block above'
+    else 'OK: cinematic_projects ready for Quick Cut save'
+  end as migration_status;

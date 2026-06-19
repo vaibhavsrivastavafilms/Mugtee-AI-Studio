@@ -42,6 +42,21 @@ export function resolveSceneExportImageUrl(scene: SceneExportImageSource): strin
   return first?.trim() ? first.trim() : null
 }
 
+/** Ephemeral CDN URLs that fail during server-side Remotion download. */
+export function isEphemeralExportImageUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false
+  const lower = url.trim().toLowerCase()
+  return lower.includes('pollinations.ai') || lower.includes('image.pollinations')
+}
+
+export function isDurableExportImageUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false
+  if (extractStoragePathFromUrl(url)) return true
+  if (url.startsWith('data:')) return true
+  if (isEphemeralExportImageUrl(url)) return false
+  return true
+}
+
 export function sceneHasExportableStoryboard(scene: SceneExportImageSource): boolean {
   return Boolean(resolveSceneExportImageUrl(scene) || resolveSceneExportAssetPath(scene))
 }

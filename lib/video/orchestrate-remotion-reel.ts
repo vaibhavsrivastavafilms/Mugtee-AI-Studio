@@ -8,6 +8,11 @@ import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { FacelessRenderInput, RenderProgressStage, RenderVideoResult } from '@/lib/video/types'
 import type { SceneMotionMap } from '@/lib/motion/motion-presets'
 import { createRenderJob, getRenderJob, updateRenderJob } from '@/lib/video/job-store'
+import {
+  logJobStatusTransition,
+  logRenderCompletion,
+  logUploadCompletion,
+} from '@/lib/export/render-job-trace.server'
 import { exportLog } from '@/lib/export/export-log.server'
 import { logError } from '@/lib/workspace/validation'
 import {
@@ -52,6 +57,13 @@ import {
   renderPipelineError,
   renderPipelineLog,
 } from '@/lib/export/render-pipeline-log.server'
+import { logMemoryTrace, logMockRender } from '@/lib/video/render-memory-trace.server'
+import {
+  resolveFfmpegThreadCount,
+  resolveFfmpegX264Preset,
+  resolveMockRenderDurationSec,
+  resolveMockRenderResolution,
+} from '@/lib/remotion/render-settings.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -92,7 +104,8 @@ export async function orchestrateRemotionReel(
   const report = (stage: RenderProgressStage, label?: string) => {
     const friendly = label ?? reelStageLabel(stage)
     const percent = STAGE_PERCENT[stage]
-    updateRenderJob(jobId, { percent, stage, label: friendly, status: 'running' })
+    const jobStatus = stage === 'complete' ? 'done' : 'running'
+    updateRenderJob(jobId, { percent, stage, label: friendly, status: jobStatus })
     const exportStatus =
       stage === 'upload' ? 'uploading' : stage === 'complete' ? 'completed' : 'rendering'
     void syncExportJobFromRenderJob({
@@ -171,6 +184,7 @@ export async function orchestrateRemotionReel(
     const outputDir = path.join(os.tmpdir(), `mugtee-reel-${jobId}`)
     await fs.mkdir(outputDir, { recursive: true })
     const outputPath = path.join(outputDir, 'output.mp4')
+    const encodeStartedAt = Date.now()
     mp4RenderLog(2, 'timeline built', {
       projectId: input.projectId,
       jobId,
@@ -205,6 +219,31 @@ export async function orchestrateRemotionReel(
     report('render_segments', EXPORT_STAGE_LABELS.timeline)
     exportApiCheckpoint('remotion_start', { jobId, projectId: input.projectId })
     const mock = process.env.VIDEO_RENDER_MOCK === 'true'
+    const mockResolution = resolveMockRenderResolution()
+    const mockDuration = resolveMockRenderDurationSec(totalDuration)
+    logMemoryTrace({
+      projectId: input.projectId,
+      jobId,
+      sceneCount: timedScenes.length,
+      resolution: mock ? `${mockResolution.width}x${mockResolution.height}` : '1080x1920',
+      fps: 30,
+      duration: mock ? mockDuration : totalDuration,
+      estimatedFrames: Math.round((mock ? mockDuration : totalDuration) * 30),
+      renderer: mock ? 'renderRemotionReelMock' : 'renderRemotionReel',
+      codec: 'h264',
+      threads: resolveFfmpegThreadCount({ mock }),
+    })
+    if (mock) {
+      logMockRender({
+        VIDEO_RENDER_MOCK: true,
+        rendererUsed: 'renderRemotionReelMock',
+        encoderUsed: 'libx264',
+        threads: resolveFfmpegThreadCount({ mock: true }),
+        preset: resolveFfmpegX264Preset({ mock: true }),
+        resolution: `${mockResolution.width}x${mockResolution.height}`,
+        durationSec: mockDuration,
+      })
+    }
     renderPipelineLog('REMOTION_RENDER_START', {
       projectId: input.projectId,
       jobId,
@@ -238,6 +277,9 @@ export async function orchestrateRemotionReel(
       const renderResult = await renderRemotionReel({
         scenes: timedScenes,
         voiceUrl: input.voiceUrl,
+        voiceAssetPath:
+          input.voiceAssetPath ??
+          null,
         musicUrl: options?.musicUrl ?? null,
         title: input.title,
         hook: input.idea,
@@ -251,20 +293,46 @@ export async function orchestrateRemotionReel(
             label,
             status: 'running',
           })
+          void syncExportJobFromRenderJob({
+            jobId,
+            status: 'rendering',
+            progress: percent,
+            label,
+            stage: 'render_segments',
+          })
         },
       })
       durationSec = renderResult.durationSec
       thumbnailPath = renderResult.thumbnailPath
     }
 
+    logRenderCompletion({
+      jobId,
+      projectId: input.projectId ?? null,
+      durationMs: options?.exportStartedAt ? Date.now() - options.exportStartedAt : null,
+      outputPath,
+      mp4Exists: true,
+      status: 'complete',
+    })
+    logJobStatusTransition({
+      jobId,
+      from: 'running',
+      to: 'running',
+      stage: 'upload',
+      label: 'Uploading reel…',
+    })
+
     const outputStat = await fs.stat(outputPath).catch(() => null)
+    const encodeDurationMs = Date.now() - encodeStartedAt
     renderPipelineLog('REMOTION_RENDER_COMPLETE', {
       projectId: input.projectId,
       jobId,
       duration: durationSec,
+      encodeDurationMs,
       outputPath,
       size: outputStat?.size ?? 0,
       status: outputStat && outputStat.size > 0 ? 'complete' : 'empty_output',
+      mock,
     })
     renderPipelineLog('FFMPEG_COMPLETE', {
       projectId: input.projectId,
@@ -349,6 +417,34 @@ export async function orchestrateRemotionReel(
         projectId: input.projectId,
         storagePath,
       })
+      logUploadCompletion({
+        jobId,
+        projectId: input.projectId ?? null,
+        durationMs: options?.exportStartedAt ? Date.now() - options.exportStartedAt : null,
+        storagePath,
+        downloadUrl: videoUrl,
+        status: 'complete',
+      })
+
+      updateRenderJob(jobId, {
+        status: 'done',
+        percent: 100,
+        stage: 'upload',
+        label: 'Upload complete',
+        videoUrl,
+        thumbnailUrl,
+        mock,
+      })
+      await syncExportJobFromRenderJob({
+        jobId,
+        status: 'completed',
+        progress: 100,
+        label: 'Download ready',
+        stage: 'complete',
+        renderUrl: videoUrl,
+        storagePath,
+        storageBucket: REEL_BUCKET,
+      })
 
       if (thumbnailPath) {
         try {
@@ -386,6 +482,7 @@ export async function orchestrateRemotionReel(
     }
 
     await fs.unlink(outputPath).catch(() => undefined)
+    await fs.rm(outputDir, { recursive: true, force: true }).catch(() => undefined)
 
     report('complete', EXPORT_STAGE_LABELS.ready)
     exportApiCheckpoint('completed', { jobId, projectId: input.projectId, videoUrl })
@@ -431,8 +528,15 @@ export async function orchestrateRemotionReel(
       thumbnailUrl,
       mock,
     })
+    logJobStatusTransition({
+      jobId,
+      from: 'running',
+      to: 'done',
+      stage: 'complete',
+      label: 'Download ready',
+    })
 
-    void syncExportJobFromRenderJob({
+    await syncExportJobFromRenderJob({
       jobId,
       status: 'completed',
       progress: 100,
@@ -452,6 +556,9 @@ export async function orchestrateRemotionReel(
       provider: 'remotion',
     }
   } catch (err) {
+    await fs.rm(path.join(os.tmpdir(), `mugtee-reel-${jobId}`), { recursive: true, force: true }).catch(
+      () => undefined
+    )
     const message =
       err instanceof Error ? err.message : 'Reel render failed — preview is still available.'
     const stack = err instanceof Error ? err.stack : undefined
@@ -506,7 +613,15 @@ export async function orchestrateRemotionReel(
       error: message,
       percent: 0,
     })
-    void syncExportJobFromRenderJob({
+    logJobStatusTransition({
+      jobId,
+      from: getRenderJob(jobId)?.status ?? 'running',
+      to: 'failed',
+      stage: 'error',
+      label: message.slice(0, 120),
+      reason: 'remotion_render',
+    })
+    await syncExportJobFromRenderJob({
       jobId,
       status: 'failed',
       progress: 0,

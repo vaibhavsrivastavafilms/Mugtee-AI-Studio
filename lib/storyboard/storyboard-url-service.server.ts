@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import type { CinematicScene } from '@/stores/cinematic-project'
 import type { StoryboardImage } from '@/stores/cinematic-project'
 import {
@@ -37,29 +38,31 @@ export async function refreshStoryboardUrl(
     assetPath: path,
     bucket: STORYBOARD_STORAGE_BUCKET,
   })
-  const client = supabase ?? createSupabaseServerClient()
-  const { data: signed, error } = await client.storage
-    .from(STORYBOARD_STORAGE_BUCKET)
-    .createSignedUrl(path!, SIGNED_URL_TTL_SEC)
+  const serviceClient = createSupabaseServiceClient()
+  const clients = [
+    supabase,
+    serviceClient,
+    serviceClient ? null : createSupabaseServerClient(),
+  ].filter(Boolean) as SupabaseClient[]
 
-  if (!error && signed?.signedUrl) {
-    devLog('refresh.signed', { assetPath: path })
-    console.info('[ASSET_REFRESH]', {
-      phase: 'signed_url_created',
-      assetPath: path,
-      method: 'signed',
-    })
-    logPipelineStepComplete('storage', null, { assetPath: path, method: 'signed' })
-    return signed.signedUrl
+  for (const client of clients) {
+    const { data: signed, error } = await client.storage
+      .from(STORYBOARD_STORAGE_BUCKET)
+      .createSignedUrl(path!, SIGNED_URL_TTL_SEC)
+
+    if (!error && signed?.signedUrl) {
+      devLog('refresh.signed', { assetPath: path })
+      console.info('[ASSET_REFRESH]', {
+        phase: 'signed_url_created',
+        assetPath: path,
+        method: 'signed',
+      })
+      logPipelineStepComplete('storage', null, { assetPath: path, method: 'signed' })
+      return signed.signedUrl
+    }
   }
 
-  const { data: pub } = client.storage.from(STORYBOARD_STORAGE_BUCKET).getPublicUrl(path!)
-  if (pub?.publicUrl) {
-    devLog('refresh.public', { assetPath: path, signedError: error?.message })
-    return pub.publicUrl
-  }
-
-  devLog('refresh.failed', { assetPath: path, signedError: error?.message })
+  devLog('refresh.failed', { assetPath: path })
   return null
 }
 
@@ -70,7 +73,7 @@ export async function storyboardStorageExists(
   const path = assetPath?.trim()
   if (!isDurableStoryboardPath(path)) return false
 
-  const client = supabase ?? createSupabaseServerClient()
+  const client = createSupabaseServiceClient() ?? supabase ?? createSupabaseServerClient()
   const folder = path!.includes('/') ? path!.slice(0, path!.lastIndexOf('/')) : ''
   const name = path!.includes('/') ? path!.slice(path!.lastIndexOf('/') + 1) : path!
 

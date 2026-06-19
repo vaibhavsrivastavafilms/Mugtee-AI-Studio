@@ -1,0 +1,143 @@
+{
+  "at": "2026-06-13T22:51:59.562Z",
+  "authVerify": {
+    "authenticated": true,
+    "userId": "6374b9cd-d3f8-4a38-8e58-732d22e5cf29",
+    "storageState": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\.auth\\user.json",
+    "email": null
+  },
+  "projectCreated": {
+    "projectId": "79b77095-b192-4015-8fbb-9c16cae4e80a",
+    "template": "creator_story",
+    "timestamp": "2026-06-13T22:52:02.221Z"
+  },
+  "pipelineTrace": [
+    {
+      "stage": "server",
+      "status": "PASS",
+      "start": "2026-06-13T22:51:59.659Z",
+      "end": "2026-06-13T22:51:59.659Z",
+      "duration": 0,
+      "detail": "http://localhost:3000"
+    },
+    {
+      "stage": "project",
+      "status": "PASS",
+      "start": "2026-06-13T22:52:01.088Z",
+      "end": "2026-06-13T22:52:03.015Z",
+      "duration": 1927,
+      "detail": "79b77095-b192-4015-8fbb-9c16cae4e80a"
+    },
+    {
+      "stage": "hook",
+      "status": "PASS",
+      "start": "2026-06-13T22:52:03.015Z",
+      "end": "2026-06-13T22:52:03.015Z",
+      "duration": 0,
+      "detail": "What if your next reel took ninety seconds to plan?"
+    },
+    {
+      "stage": "script",
+      "status": "PASS",
+      "start": "2026-06-13T22:52:03.015Z",
+      "end": "2026-06-13T22:53:59.178Z",
+      "duration": 116163,
+      "detail": "6 scenes"
+    },
+    {
+      "stage": "visual",
+      "status": "PASS",
+      "start": "2026-06-13T22:53:59.178Z",
+      "end": "2026-06-13T22:53:59.178Z",
+      "duration": 0,
+      "detail": "creator_story"
+    },
+    {
+      "stage": "storyboard",
+      "status": "PASS",
+      "start": "2026-06-13T22:53:59.178Z",
+      "end": "2026-06-13T22:54:07.142Z",
+      "duration": 7964,
+      "detail": "6/2 images"
+    },
+    {
+      "stage": "voice",
+      "status": "PASS",
+      "start": "2026-06-13T22:54:07.142Z",
+      "end": "2026-06-13T22:54:14.782Z",
+      "duration": 7640,
+      "detail": "audio ready"
+    },
+    {
+      "stage": "export_readiness",
+      "status": "PASS",
+      "start": "2026-06-13T22:54:15.693Z",
+      "end": "2026-06-13T22:54:19.018Z",
+      "duration": 3325,
+      "detail": "2 images"
+    },
+    {
+      "stage": "export",
+      "status": "FAIL",
+      "start": "2026-06-13T22:54:19.018Z",
+      "end": "2026-06-13T22:54:20.058Z",
+      "duration": 1040,
+      "detail": "Voice narration URL is required before exporting."
+    }
+  ],
+  "exportAssetChecks": [
+    {
+      "sceneId": "scene-1",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2001%20of%206.%20VO%20%2F%20beat%3A%20Most%20people%20think%20Execute%20mode%20is%20a%20tedious%2C%20never-ending%20process%20%E2%80%94%20memory%20held%20in%20frame.%20person%20stuck%20in%20a%20loop%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2001%20of%206.%0A%0ASetting%3A%20dark%20room%0ACamera%3A%20handheld%20intimate%0ALighting%3A%20neon%20accent%20on%20matte%20black%0APalette%3A%20monochrome%20with%20one%20saturated%20hue%0AMovement%3A%20lateral%20track%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    },
+    {
+      "sceneId": "scene-2",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2002%20of%206.%20VO%20%2F%20beat%3A%20But%20what%20if%20that's%20not%20true%3F%20person%20questioning%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2002%20of%206.%0A%0ASetting%3A%20bright%20room%0ACamera%3A%20low-angle%20hero%0ALighting%3A%20cool%20screen-glow%20contrast%0APalette%3A%20film%20grain%2C%20muted%20palette%0AMovement%3A%20locked%20tripod%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    },
+    {
+      "sceneId": "scene-3",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2003%20of%206.%20VO%20%2F%20beat%3A%20What%20if%20there's%20a%20simpler%2C%20more%20effective%20way%20to%20validate%3F%20person%20thinking%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2003%20of%206.%0A%0ASetting%3A%20quiet%20room%0ACamera%3A%20extreme%20close-up%0ALighting%3A%20diffused%20overcast%20softness%0APalette%3A%20deep%20shadow%2C%20gold%20highlight%0AMovement%3A%20lateral%20track%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    },
+    {
+      "sceneId": "scene-4",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2004%20of%206.%20VO%20%2F%20beat%3A%20I%20used%20a%20simple%20daily%20loop%20to%20achieve%20visible%20progress%20in%2030%20days%20%E2%80%94%20memory%20held%20in%20frame.%20person%20working%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2004%20of%206.%0A%0ASetting%3A%20cozy%20room%0ACamera%3A%20locked-off%20wide%0ALighting%3A%20practical%20lamp%20warmth%0APalette%3A%20warm%20skin%20tones%2C%20cool%20background%0AMovement%3A%20locked%20tripod%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    },
+    {
+      "sceneId": "scene-5",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2005%20of%206.%20VO%20%2F%20beat%3A%20When%20you%20apply%20this%20new%20approach%2C%20the%20whole%20problem%20feels%20smaller%20%E2%80%94%20memory%20held%20in%20frame%3B%20camera%20softens.%20person%20relieved%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2005%20of%206.%0A%0ASetting%3A%20calm%20room%0ACamera%3A%20top-down%20macro%0ALighting%3A%20warm%20rim%2C%20deep%20shadow%20fill%0APalette%3A%20high%20contrast%20noir%0AMovement%3A%20lateral%20track%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    },
+    {
+      "sceneId": "scene-6",
+      "imageAssetPath": null,
+      "freshSignedUrl": "https://image.pollinations.ai/prompt/Vertical%209%3A16%20cinematic%20still%2C%20no%20text%2C%20no%20watermark.%20Consistent%202D%20cartoon%20protagonist%20in%20every%20scene.%20Same%20face%2C%20hairstyle%2C%20and%20outfit%20locked%20across%20all%20frames.%20Flat%20illustrated%20creator-storytelling%20style%20with%20emotional%20expressions.%20Dark%20cinematic%20backgrounds%20with%20moody%20red%20or%20warm%20accent%20lighting.%20Floating%20UI%20overlays%2C%20metrics%20cards%2C%20and%20headline%20graphics%20when%20relevant.%20Character-driven%20emotional%20visual%20progression%20beat%20by%20beat.%0A%0AStoryboard%20beat%2006%20of%206.%20VO%20%2F%20beat%3A%20Execute%20mode%20validation%20just%20got%20a%20whole%20lot%20easier%20person%20smiling%20Subject%20consistency%3A%20%5BHOOK%5D%20Stop%20doing%20Execute%20mode%20the%20hard%20way.%0A%0AVertical%209%3A16%20storyboard%20still.%20Scene%2006%20of%206.%0A%0ASetting%3A%20bright%20room%0ACamera%3A%20slow%20dolly-in%20medium%0ALighting%3A%20golden%20hour%20edge%20light%0APalette%3A%20desaturated%20teal%20%2B%20amber%20accent%0AMovement%3A%20locked%20tripod%0A%0ANo%20text%20overlays%2C%20no%20watermarks%2C%20no%20collage.",
+      "exists": true,
+      "validationResult": "PASS"
+    }
+  ],
+  "renderPrep": {
+    "sceneCount": 2,
+    "imageCount": 2,
+    "audioExists": true,
+    "duration": null
+  },
+  "uploadVerify": null,
+  "mp4DownloadVerify": null,
+  "storageAudit": null,
+  "verdict": "BLOCKED",
+  "blocker": "Voice narration URL is required before exporting."
+}

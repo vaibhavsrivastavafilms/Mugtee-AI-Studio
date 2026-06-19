@@ -12,24 +12,63 @@ import {
 } from '@/lib/cinematic/scene-duration'
 import { MAX_VIDEO_DURATION_SEC } from '@/lib/workspace/validation'
 import { renderPipelineError, renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
+import {
+  logMemoryTrace,
+  logMockRender,
+} from '@/lib/video/render-memory-trace.server'
+import {
+  resolveFfmpegThreadCount,
+  resolveFfmpegX264Preset,
+  resolveMockRenderDurationSec,
+  resolveMockRenderResolution,
+} from '@/lib/remotion/render-settings.server'
 
 export const WIDTH = 1080
 export const HEIGHT = 1920
 export const FPS = 30
 
-export function runFfmpeg(args: string[]): Promise<void> {
+const STDERR_CAP_BYTES = 64_000
+
+function appendLibx264EncodeArgs(
+  args: string[],
+  opts: { preset: string; threads: number; crf?: number }
+): void {
+  args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', opts.preset, '-threads', String(opts.threads))
+  if (opts.crf != null) args.push('-crf', String(opts.crf))
+}
+
+function buildLibx264OutputArgs(opts: {
+  preset: string
+  threads: number
+  fps: number
+  crf?: number
+}): string[] {
+  const out: string[] = []
+  appendLibx264EncodeArgs(out, opts)
+  out.push('-r', String(opts.fps))
+  return out
+}
+
+export function runFfmpeg(args: string[], meta?: Record<string, unknown>): Promise<void> {
   return new Promise((resolve, reject) => {
     const bin = resolveFfmpegPath()
     if (!bin) {
       reject(new Error('FFmpeg binary not found. Install ffmpeg-static or set FFMPEG_PATH.'))
       return
     }
+    logMemoryTrace({
+      renderer: 'ffmpeg',
+      codec: 'libx264',
+      ...(meta ?? {}),
+    })
     const command = `${bin} ${args.join(' ')}`
-    renderPipelineLog('FFMPEG_START', { command: command.slice(0, 500), status: 'spawn' })
+    renderPipelineLog('FFMPEG_START', { command: command.slice(0, 500), status: 'spawn', ...(meta ?? {}) })
     const proc = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let stderr = ''
     proc.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
+      if (stderr.length < STDERR_CAP_BYTES) {
+        stderr += chunk.toString().slice(0, STDERR_CAP_BYTES - stderr.length)
+      }
     })
     proc.on('error', (spawnErr) => {
       renderPipelineError('FFMPEG_COMPLETE', spawnErr, {
@@ -74,6 +113,8 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
     return renderMockMp4(input)
   }
 
+  const encodeThreads = resolveFfmpegThreadCount()
+  const encodePreset = resolveFfmpegX264Preset()
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mugtee-render-'))
   try {
     const segmentPaths: string[] = []
@@ -100,24 +141,22 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
         `zoompan=z='min(zoom+0.0008,1.25)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS}`,
       ].join(',')
 
-      await runFfmpeg([
-        '-y',
-        '-loop',
-        '1',
-        '-i',
-        imgPath,
-        '-vf',
-        vf,
-        '-t',
-        String(dur),
-        '-c:v',
-        'libx264',
-        '-pix_fmt',
-        'yuv420p',
-        '-r',
-        String(FPS),
-        segPath,
-      ])
+      await runFfmpeg(
+        [
+          '-y',
+          '-loop',
+          '1',
+          '-i',
+          imgPath,
+          '-vf',
+          vf,
+          '-t',
+          String(dur),
+          ...buildLibx264OutputArgs({ preset: encodePreset, threads: encodeThreads, fps: FPS }),
+          segPath,
+        ],
+        { sceneIndex: i + 1, threads: encodeThreads, preset: encodePreset }
+      )
       segmentPaths.push(segPath)
     }
 
@@ -157,7 +196,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
         `subtitles='${srtForFilter}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=80'`
       )
     }
-    args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS))
+    args.push(...buildLibx264OutputArgs({ preset: encodePreset, threads: encodeThreads, fps: FPS }))
 
     if (input.audioPath) {
       args.push('-c:a', 'aac', '-b:a', '192k', '-shortest')
@@ -192,7 +231,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
   }
 }
 
-/** Dev-only: VIDEO_RENDER_MOCK=true writes a minimal valid MP4 via ffmpeg color source. */
+/** Dev-only: VIDEO_RENDER_MOCK=true writes a minimal valid MP4 (lightweight x264, no Remotion). */
 export async function renderMockMp4(input: RenderPipelineInput): Promise<{
   outputPath: string
   durationSec: number
@@ -203,42 +242,67 @@ export async function renderMockMp4(input: RenderPipelineInput): Promise<{
     throw new Error('VIDEO_RENDER_MOCK requires ffmpeg-static or FFMPEG_PATH')
   }
   await ensureDir(path.dirname(input.outputPath))
-  const ciSmoke = process.env.CI_QUICK_CUT_SMOKE === 'true'
-  const perSceneMinSec = ciSmoke ? 1 : 2
-  const minTotalSec = ciSmoke
-    ? Number(process.env.CI_SMOKE_MP4_SECONDS || 2)
-    : 15
+
+  const perSceneMinSec = process.env.CI_QUICK_CUT_SMOKE === 'true' ? 1 : 2
   const rawTotal =
     input.scenes.reduce((s, sc) => s + Math.max(perSceneMinSec, sc.durationSec), 0) ||
-    (ciSmoke ? minTotalSec : 45)
-  const dur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(minTotalSec, rawTotal))
+    resolveMockRenderDurationSec(0)
+  const dur = resolveMockRenderDurationSec(rawTotal)
+  const { width, height } = resolveMockRenderResolution()
+  const threads = resolveFfmpegThreadCount({ mock: true })
+  const preset = resolveFfmpegX264Preset({ mock: true })
+
+  logMockRender({
+    VIDEO_RENDER_MOCK: true,
+    rendererUsed: 'renderMockMp4',
+    encoderUsed: 'libx264',
+    threads,
+    preset,
+    resolution: `${width}x${height}`,
+    durationSec: dur,
+  })
+  logMemoryTrace({
+    renderer: 'ffmpeg-mock',
+    codec: 'libx264',
+    resolution: `${width}x${height}`,
+    fps: FPS,
+    duration: dur,
+    estimatedFrames: Math.round(dur * FPS),
+    threads,
+    sceneCount: input.scenes.length,
+  })
+
   renderPipelineLog('FFMPEG_START', {
     outputPath: input.outputPath,
     duration: dur,
     mock: true,
     status: 'mock_encode',
+    resolution: `${width}x${height}`,
+    threads,
+    preset,
   })
-  await runFfmpeg([
+
+  const encodeArgs: string[] = [
     '-y',
     '-f',
     'lavfi',
     '-i',
-    `color=c=black:s=${WIDTH}x${HEIGHT}:d=${dur}`,
+    `color=c=black:s=${width}x${height}:d=${dur}`,
     '-f',
     'lavfi',
     '-i',
     'anullsrc=r=44100:cl=mono',
-    '-c:v',
-    'libx264',
-    '-pix_fmt',
-    'yuv420p',
-    '-c:a',
-    'aac',
-    '-shortest',
-    '-t',
-    String(dur),
-    input.outputPath,
-  ])
+  ]
+  appendLibx264EncodeArgs(encodeArgs, { preset, threads, crf: 28 })
+  encodeArgs.push('-tune', 'stillimage', '-c:a', 'aac', '-b:a', '64k', '-shortest', '-t', String(dur), input.outputPath)
+
+  await runFfmpeg(encodeArgs, {
+    mock: true,
+    threads,
+    preset,
+    resolution: `${width}x${height}`,
+    duration: dur,
+  })
   const stat = await fs.stat(input.outputPath).catch(() => null)
   renderPipelineLog('FFMPEG_OUTPUT', {
     outputPath: input.outputPath,

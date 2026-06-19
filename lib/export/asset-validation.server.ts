@@ -15,6 +15,7 @@ import {
   refreshAndValidateExportSceneImages,
   type SceneImageValidationEntry,
 } from '@/lib/export/scene-image-export-validation.server'
+import { ensureVoiceExportUrl } from '@/lib/export/voice-export-validation.server'
 import type { CinematicScene } from '@/stores/cinematic-project'
 
 export type ExportAssetValidation = {
@@ -93,7 +94,12 @@ export async function validateExportAssets(params: {
       ? params.hydratedScenes
       : (await resolveExportScenes(params.row, params.userId, { skipHeavyBackfill: true })).scenes
   const exportScenes = scenesForReelExport(scenes)
-  const voiceUrl = params.row.voice?.audioUrl?.trim() ?? null
+  const voiceResolved = await ensureVoiceExportUrl({
+    row: params.row,
+    userId: params.userId,
+    includeVoiceover: params.includeVoiceover,
+  })
+  const voiceUrl = voiceResolved.voiceUrl?.trim() ?? null
   const timeline = parseReelTimeline(params.row.timeline_state)
 
   validationLog('start', {
@@ -126,6 +132,11 @@ export async function validateExportAssets(params: {
     missing.push('images')
   } else {
     const assetCounts = await loadProjectAssetCounts(params.row.id, params.userId)
+    const mockRender = process.env.VIDEO_RENDER_MOCK === 'true'
+    if (mockRender) {
+      validationLog('mock_render_skip_storage', { projectId: params.row.id })
+      imagesExist = true
+    } else {
     const imageValidation = await refreshAndValidateExportSceneImages({
       scenes,
       projectId: params.row.id,
@@ -155,6 +166,7 @@ export async function validateExportAssets(params: {
         sceneImageDiagnostics,
         refreshedScenes,
       }
+    }
     }
   }
 

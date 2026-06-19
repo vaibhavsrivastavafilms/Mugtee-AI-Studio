@@ -91,6 +91,32 @@ function stripOmittedOptionalColumns(payload: Record<string, unknown>): void {
   }
 }
 
+/** Never persist SQL NULL — column is NOT NULL with default `{}`. */
+function sceneMotionForPersistence(value: unknown): SceneMotionMap {
+  return parseSceneMotionMap(value)
+}
+
+function logSceneMotionTrace(params: {
+  file: string
+  operation: 'insert' | 'update'
+  scene_motion_value: unknown
+  source: string
+}): void {
+  const normalized = sceneMotionForPersistence(params.scene_motion_value)
+  console.info(
+    '[SCENE_MOTION_TRACE]',
+    JSON.stringify({
+      file: params.file,
+      function: 'mutateCinematicProjectRow',
+      operation: params.operation.toUpperCase(),
+      scene_motion_value: params.scene_motion_value ?? null,
+      source_of_value: params.source,
+      can_be_null: false,
+      persisted: normalized,
+    })
+  )
+}
+
 /** Supabase Dashboard → SQL Editor link derived from NEXT_PUBLIC_SUPABASE_URL. */
 export function getSupabaseSqlEditorUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -227,6 +253,15 @@ async function mutateCinematicProjectRow(
 ): Promise<CinematicProjectRow> {
   const supabase = requireBrowserClient()
   let payload = { ...row }
+  if ('scene_motion' in payload) {
+    logSceneMotionTrace({
+      file: 'lib/cinematic-projects.ts',
+      operation,
+      scene_motion_value: payload.scene_motion,
+      source: 'mutateCinematicProjectRow',
+    })
+    payload.scene_motion = sceneMotionForPersistence(payload.scene_motion)
+  }
   stripOmittedOptionalColumns(payload)
   const maxAttempts = OPTIONAL_CINEMATIC_PROJECT_COLUMNS.size + 2
 
@@ -290,6 +325,8 @@ import {
   reviewingStatus,
 } from '@/lib/cinematic/project-status'
 import { coerceDuration } from '@/lib/workspace/validation'
+import { parseSceneMotionMap } from '@/lib/motion/motion-presets'
+import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
 import {
   beatsToPayload,
   payloadToBeats,
@@ -714,7 +751,9 @@ export async function createProject(
     insertRow.style_template_id = (state as { styleTemplateId?: string | null }).styleTemplateId
   }
   if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
-    insertRow.scene_motion = (state as { scene_motion?: unknown }).scene_motion
+    insertRow.scene_motion = sceneMotionForPersistence(
+      (state as { scene_motion?: unknown }).scene_motion
+    )
   }
   if (state.viral_script !== undefined) insertRow.viral_script = state.viral_script
   if ((state as { generation_status?: string }).generation_status !== undefined) {
@@ -952,7 +991,9 @@ export async function updateProject(
     patch.style_template_id = (state as { styleTemplateId?: string | null }).styleTemplateId
   }
   if ((state as { scene_motion?: unknown }).scene_motion !== undefined) {
-    patch.scene_motion = (state as { scene_motion?: unknown }).scene_motion
+    patch.scene_motion = sceneMotionForPersistence(
+      (state as { scene_motion?: unknown }).scene_motion
+    )
   }
   if ((state as { viral_script?: unknown }).viral_script !== undefined) {
     patch.viral_script = (state as { viral_script?: unknown }).viral_script
@@ -1232,7 +1273,6 @@ export async function archiveGeneratedProject(
     variation_history: input.variation_history ?? null,
     visual_style: input.visual_style ?? null,
     story_bible: input.story_bible ?? null,
-    scene_motion: input.scene_motion ?? null,
     viral_script: input.viral_script ?? null,
     generation_status: input.generation_status ?? null,
     generation_step: input.generation_step ?? null,
@@ -1243,6 +1283,10 @@ export async function archiveGeneratedProject(
     sceneBlueprints: input.scene_blueprints,
     outputAlignmentControls: input.output_alignment_controls,
     timeline_state: input.timeline_state ?? undefined,
+  }
+
+  if (input.scene_motion !== undefined) {
+    archivePatch.scene_motion = sceneMotionForPersistence(input.scene_motion)
   }
 
   if (input.projectId) {
@@ -1292,7 +1336,9 @@ export async function archiveGeneratedProject(
       variation_history: input.variation_history ?? null,
       visual_style: input.visual_style ?? null,
       story_bible: input.story_bible ?? null,
-      scene_motion: input.scene_motion ?? null,
+      ...(input.scene_motion !== undefined
+        ? { scene_motion: sceneMotionForPersistence(input.scene_motion) }
+        : {}),
       viral_script: input.viral_script ?? null,
       generation_status: input.generation_status ?? null,
       generation_step: input.generation_step ?? null,

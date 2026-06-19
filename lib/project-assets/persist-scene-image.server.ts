@@ -29,6 +29,11 @@ export async function persistSceneImageAsset(
   if (url.startsWith('data:image/svg')) return null
 
   const supabase = input.supabase ?? createSupabaseServerClient()
+  const storagePathFromUrl = extractStoragePathFromUrl(url)
+  const storagePath =
+    input.storagePath?.trim() && storagePathFromUrl
+      ? input.storagePath.trim()
+      : storagePathFromUrl
   const metadata: Record<string, unknown> = {
     ...(input.metadata ?? {}),
     ...(input.sceneId ? { scene_id: input.sceneId } : {}),
@@ -43,8 +48,7 @@ export async function persistSceneImageAsset(
       user_id: userId,
       kind: 'image',
       url,
-      storage_path:
-        input.storagePath?.trim() || extractStoragePathFromUrl(url) || null,
+      storage_path: storagePath,
       mime_type: 'image/png',
       title: input.title?.trim() || null,
       prompt: input.prompt?.trim() || null,
@@ -62,14 +66,12 @@ export async function persistSceneImageAsset(
     logStoryboardFrame(projectId, {
       frameId: input.sceneId ?? 'unknown',
       imageUrl: url,
-      storagePath: input.storagePath?.trim() || extractStoragePathFromUrl(url) || null,
+      storagePath,
       persisted: false,
     })
     return null
   }
 
-  const storagePath =
-    input.storagePath?.trim() || extractStoragePathFromUrl(url) || null
   logStoryboardFrame(projectId, {
     frameId: input.sceneId ?? data?.id ?? 'unknown',
     imageUrl: data?.url ?? url,

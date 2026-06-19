@@ -52,6 +52,10 @@ import {
   resolveRemotionConcurrency,
 } from '@/lib/remotion/render-settings.server'
 import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
+import {
+  renderPipelineError,
+  renderPipelineLog,
+} from '@/lib/export/render-pipeline-log.server'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
@@ -261,12 +265,38 @@ export async function renderRemotionReel(
         id: REEL_COMPOSITION_ID,
         inputProps: compositionProps,
       })
+      renderPipelineLog('REMOTION_COMPOSITION', {
+        projectId: input.projectId,
+        compositionId: REEL_COMPOSITION_ID,
+        serveUrl,
+        durationInFrames: composition.durationInFrames,
+        fps: composition.fps,
+        width: composition.width,
+        height: composition.height,
+        sceneCount: reelScenes.length,
+        durationSec: durationSecEstimate,
+        audioExists: Boolean(voiceAudioSrc),
+        hasMusic: Boolean(musicAudioSrc),
+        captionTrackCount: captionTracks.length,
+        propsSerialized: true,
+        status: 'loaded',
+      })
       remotionCheckpoint('composition_found', {
         compositionId: REEL_COMPOSITION_ID,
         durationInFrames: composition.durationInFrames,
         fps: composition.fps,
       })
     } catch (compErr) {
+      renderPipelineError('REMOTION_COMPOSITION', compErr, {
+        projectId: input.projectId,
+        compositionId: REEL_COMPOSITION_ID,
+        serveUrl,
+        sceneCount: reelScenes.length,
+        durationSec: durationSecEstimate,
+        audioExists: Boolean(voiceAudioSrc),
+        function: 'selectComposition',
+        file: 'lib/remotion/render-reel.server.ts',
+      })
       remotionCheckpoint('composition_missing', {
         compositionId: REEL_COMPOSITION_ID,
         error: compErr instanceof Error ? compErr.message : String(compErr),
@@ -303,8 +333,19 @@ export async function renderRemotionReel(
       disallowParallelEncoding,
       offthreadVideoCacheSizeInBytes,
     })
+    renderPipelineLog('REMOTION_RENDER_START', {
+      projectId: input.projectId,
+      frameCount: composition.durationInFrames,
+      sceneCount: reelScenes.length,
+      duration: durationSecEstimate,
+      audioExists: Boolean(voiceAudioSrc),
+      outputPath: input.outputPath,
+      concurrency,
+      status: 'renderMedia',
+    })
 
-    await renderMedia({
+    try {
+      await renderMedia({
       serveUrl,
       composition,
       codec: 'h264',
@@ -330,9 +371,27 @@ export async function renderRemotionReel(
         input.onProgress?.('Rendering reel…', pct)
       },
     })
+    } catch (renderErr) {
+      renderPipelineError('REMOTION_RENDER_COMPLETE', renderErr, {
+        projectId: input.projectId,
+        outputPath: input.outputPath,
+        function: 'renderMedia',
+        file: 'lib/remotion/render-reel.server.ts',
+        frameCount: composition.durationInFrames,
+        sceneCount: reelScenes.length,
+      })
+      throw renderErr
+    }
 
     const durationSec = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
     input.onProgress?.('Reel encode complete', 95)
+    renderPipelineLog('REMOTION_RENDER_COMPLETE', {
+      projectId: input.projectId,
+      outputPath: input.outputPath,
+      duration: durationSec,
+      frameCount: composition.durationInFrames,
+      status: 'complete',
+    })
     mp4RenderLog(5, 'Remotion render complete', {
       projectId: input.projectId,
       outputPath: input.outputPath,

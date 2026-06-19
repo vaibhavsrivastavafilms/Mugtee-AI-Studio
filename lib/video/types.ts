@@ -20,6 +20,7 @@ export type FacelessRenderInput = {
   scenes: GeneratedScene[]
   voiceAudioPath: string | null
   voiceUrl: string | null
+  voiceAssetPath?: string | null
   subtitles: SubtitleSegment[]
   userId?: string | null
   projectId?: string | null

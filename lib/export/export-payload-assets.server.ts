@@ -33,6 +33,8 @@ function sceneRowsFromPayload(data: ExportRequestPayload): SceneExportImageSourc
 export function collectPayloadMissingAssets(params: {
   data: ExportRequestPayload
   includeVoiceover: boolean
+  /** DB/storage-resolved narration URL when payload omits voiceUrl. */
+  resolvedVoiceUrl?: string | null
 }): ExportPayloadMissingAsset[] {
   const missing: ExportPayloadMissingAsset[] = []
   const rows = sceneRowsFromPayload(params.data)
@@ -67,14 +69,19 @@ export function collectPayloadMissingAssets(params: {
   })
 
   if (params.includeVoiceover) {
-    const voiceUrl = (params.data.voiceUrl ?? params.data.voiceover)?.trim()
+    const payloadVoiceUrl = (params.data.voiceUrl ?? params.data.voiceover)?.trim()
+    const voiceUrl = payloadVoiceUrl || params.resolvedVoiceUrl?.trim() || null
     if (!voiceUrl) {
       missing.push({
         kind: 'voice',
         field: 'voiceUrl',
         message: 'Voice narration URL is required before exporting.',
       })
-      console.log('[EXPORT API] missing_asset', { field: 'voiceUrl' })
+      console.log('[EXPORT API] missing_asset', {
+        field: 'voiceUrl',
+        payloadVoiceUrl: payloadVoiceUrl ?? null,
+        resolvedVoiceUrl: params.resolvedVoiceUrl?.trim() ?? null,
+      })
     }
   }
 

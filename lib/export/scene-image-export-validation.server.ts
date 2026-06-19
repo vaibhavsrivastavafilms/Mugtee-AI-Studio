@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { CinematicScene } from '@/stores/cinematic-project'
 import {
+  isEphemeralExportImageUrl,
   resolveSceneExportAssetPath,
   resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
@@ -102,6 +103,38 @@ function logExportAssetCheck(payload: Record<string, unknown>): void {
   console.info('[EXPORT_ASSET_CHECK]', payload)
 }
 
+async function persistEphemeralSceneImageForExport(params: {
+  scene: CinematicScene
+  sceneIndex: number
+  imageUrl: string
+  lookup: LegacyAssetLookup
+  supabase: ReturnType<typeof createSupabaseServerClient>
+}): Promise<CinematicScene | null> {
+  if (!isEphemeralExportImageUrl(params.imageUrl)) return null
+  const filename = `${params.lookup.userId}/faceless/scene_${params.scene.id}_${Date.now()}_${params.sceneIndex}.png`
+  const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
+  const uploaded = await persistRemoteImage({
+    remoteUrl: params.imageUrl,
+    userId: params.lookup.userId,
+    filename,
+  })
+  const assetPath = extractStoragePathFromUrl(uploaded)
+  if (!assetPath || !(await storyboardStorageExists(assetPath, params.supabase))) {
+    return null
+  }
+  const freshSignedUrl = (await refreshStoryboardUrl(assetPath, params.supabase)) ?? uploaded
+  logExportAssetCheck({
+    projectId: params.lookup.projectId,
+    sceneId: params.scene.id,
+    sceneIndex: params.sceneIndex + 1,
+    imageAssetPath: assetPath,
+    freshSignedUrl,
+    validationResult: 'PASS_STORAGE',
+    action: 'persist_ephemeral',
+  })
+  return applyFreshUrlToScene(params.scene, assetPath, freshSignedUrl)
+}
+
 function applyFreshUrlToScene(
   scene: CinematicScene,
   assetPath: string,
@@ -185,22 +218,32 @@ async function refreshExportImageFromStorage(params: {
   }
 
   if (storage === 'FOUND') {
-    const fallbackUrl = resolveSceneExportImageUrl(scene)
-    if (fallbackUrl && !signedUrlIsExpired(fallbackUrl)) {
-      return {
-        scene: { ...scene, imageAssetPath: assetPath, imageUrl: fallbackUrl },
-        freshSignedUrl: fallbackUrl,
-        storage: 'FOUND',
-        signedUrl: 'FRESH',
-        regenerated: 'SKIPPED',
-        validated: true,
-        validationResult: 'PASS_STORAGE',
-      }
+    const durableUrl = persistedUrl && !signedUrlIsExpired(persistedUrl) ? persistedUrl : null
+    return {
+      scene: { ...scene, imageAssetPath: assetPath, ...(durableUrl ? { imageUrl: durableUrl } : {}) },
+      freshSignedUrl: durableUrl,
+      storage: 'FOUND',
+      signedUrl: 'NONE',
+      regenerated: 'SKIPPED',
+      validated: true,
+      validationResult: 'PASS_STORAGE',
+    }
+  }
+
+  if (persistedUrl && (await probeUrlReachable(persistedUrl))) {
+    return {
+      scene: { ...scene, imageUrl: persistedUrl, imageAssetPath: undefined },
+      freshSignedUrl: persistedUrl,
+      storage: 'MISSING',
+      signedUrl: 'FRESH',
+      regenerated: 'SKIPPED',
+      validated: true,
+      validationResult: 'PASS_HTTP',
     }
   }
 
   return {
-    scene,
+    scene: { ...scene, imageAssetPath: storage === 'FOUND' ? assetPath : undefined },
     freshSignedUrl: null,
     storage,
     signedUrl: wasExpired ? 'EXPIRED' : 'NONE',
@@ -290,6 +333,10 @@ export async function refreshAndValidateExportSceneImages(params: {
       (await recoverSceneAssetPath(scene, i, lookup, supabase)) ??
       extractStoragePathFromUrl(persistedUrl)
 
+    if (assetPath && !(await storyboardStorageExists(assetPath, supabase))) {
+      assetPath = extractStoragePathFromUrl(persistedUrl)
+    }
+
     let freshSignedUrl: string | null = null
     let storage: SceneImageValidationEntry['storage'] = 'MISSING'
     let signedUrl: SceneImageValidationEntry['signedUrl'] = signedUrlIsExpired(persistedUrl)
@@ -321,6 +368,27 @@ export async function refreshAndValidateExportSceneImages(params: {
       if (validated && freshSignedUrl) {
         const httpOk = await probeUrlReachable(freshSignedUrl)
         if (httpOk) validationResult = 'PASS_HTTP'
+      }
+    }
+
+    if (!validated && persistedUrl) {
+      const persisted = await persistEphemeralSceneImageForExport({
+        scene,
+        sceneIndex: i,
+        imageUrl: persistedUrl,
+        lookup,
+        supabase,
+      })
+      if (persisted) {
+        scene = persisted
+        scenes[i] = scene
+        assetPath = resolveSceneExportAssetPath(scene)
+        freshSignedUrl = resolveSceneExportImageUrl(scene)
+        validated = true
+        storage = 'FOUND'
+        signedUrl = 'FRESH'
+        regenerated = 'SUCCESS'
+        validationResult = 'PASS_STORAGE'
       }
     }
 

@@ -1,0 +1,15 @@
+{
+  "at": "2026-06-13T21:36:53.550Z",
+  "authVerify": {
+    "ok": false,
+    "path": "e2e/.auth/user.json"
+  },
+  "projectCreated": null,
+  "pipelineTrace": [],
+  "storyboardVerify": [],
+  "exportReadiness": null,
+  "mp4Render": null,
+  "mp4DownloadVerify": null,
+  "verdict": "BLOCKED",
+  "blocker": "Missing e2e/.auth/user.json — run npm run test:e2e:auth-interactive or set E2E_EMAIL/E2E_PASSWORD"
+}

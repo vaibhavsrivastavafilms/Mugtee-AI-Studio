@@ -23,6 +23,7 @@ import {
   syncExportJobFromRenderJob,
 } from '@/lib/export/export-job-service'
 import { validateExportAssets } from '@/lib/export/asset-validation.server'
+import { ensureVoiceExportUrl } from '@/lib/export/voice-export-validation.server'
 import {
   allScenesHaveExportImages,
   missingScenesExportMessage,
@@ -61,6 +62,12 @@ import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
 import { renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
 import { verifyRenderExportInputs } from '@/lib/export/verify-render-export-inputs.server'
+import {
+  logJobStatusTransition,
+  logRenderCompletion,
+  logRenderJobTrace,
+  renderJobTraceFromStatus,
+} from '@/lib/export/render-job-trace.server'
 
 export type ReelExportStatus =
   | 'pending'
@@ -316,20 +323,26 @@ export async function queueReelExportForProject(params: {
   hydratedScenes?: CinematicScene[]
 }): Promise<{ jobId: string; status: ReelExportStatus }> {
   exportApiCheckpoint('queue_start', { projectId: params.row.id })
+  const voiceResolved = await ensureVoiceExportUrl({
+    row: params.row,
+    userId: params.userId,
+    includeVoiceover: params.includeVoiceover,
+  })
+  const exportRowBase: CinematicProjectRow = voiceResolved.row
   let hydratedStoreScenes: CinematicScene[]
   let assetCounts: Awaited<ReturnType<typeof loadProjectAssetCounts>>
   let hydratedCount = 0
 
   if (params.hydratedScenes?.length) {
     hydratedStoreScenes = params.hydratedScenes
-    assetCounts = await loadProjectAssetCounts(params.row.id, params.userId)
+    assetCounts = await loadProjectAssetCounts(exportRowBase.id, params.userId)
     exportApiCheckpoint('storyboard_processing', {
       projectId: params.row.id,
       source: 'route_hydrated',
       sceneCount: hydratedStoreScenes.length,
     })
   } else {
-    const resolved = await resolveExportScenes(params.row, params.userId)
+    const resolved = await resolveExportScenes(exportRowBase, params.userId)
     hydratedStoreScenes = resolved.scenes
     assetCounts = resolved.assetCounts
     hydratedCount = resolved.hydratedCount
@@ -347,7 +360,7 @@ export async function queueReelExportForProject(params: {
 
   const readiness = buildExportReadiness({
     scenes: hydratedStoreScenes,
-    voiceUrl: params.row.voice?.audioUrl,
+    voiceUrl: voiceResolved.voiceUrl ?? exportRowBase.voice?.audioUrl,
     assetCounts,
     includeVoiceover: params.includeVoiceover,
   })
@@ -361,7 +374,7 @@ export async function queueReelExportForProject(params: {
   }
 
   const exportRow: CinematicProjectRow = {
-    ...params.row,
+    ...exportRowBase,
     scenes: hydratedStoreScenes,
     storyboard: hydratedStoreScenes,
   }
@@ -372,7 +385,12 @@ export async function queueReelExportForProject(params: {
   }
 
   const voiceUrl = params.includeVoiceover
-    ? exportRow.voice?.audioUrl?.trim() ?? null
+    ? voiceResolved.voiceUrl?.trim() ?? exportRow.voice?.audioUrl?.trim() ?? null
+    : null
+  const voiceAssetPath = params.includeVoiceover
+    ? voiceResolved.audioAssetPath?.trim() ??
+      (exportRow.voice as { audioAssetPath?: string | null } | null)?.audioAssetPath?.trim() ??
+      null
     : null
 
   if (params.includeVoiceover && !voiceUrl) {
@@ -494,6 +512,7 @@ export async function queueReelExportForProject(params: {
     scenes,
     voiceAudioPath: null,
     voiceUrl,
+    voiceAssetPath,
     subtitles: params.includeCaptions ? [] : [],
     userId: params.userId,
     projectId: exportRow.id,
@@ -501,71 +520,113 @@ export async function queueReelExportForProject(params: {
 
   exportApiCheckpoint('background_scheduled', { projectId: params.row.id, jobId })
   runExportInBackground(async () => {
-    await verifyRenderExportInputs({
-      row: exportRow,
-      scenes,
-      includeVoiceover: params.includeVoiceover,
-      jobId,
-    })
-    return orchestrateRemotionReel(input, {
-      jobId,
-      baseUrl: params.baseUrl,
-      musicUrl: null,
-      sceneMotion: parseSceneMotionMap(params.row.scene_motion),
-      exportStartedAt,
-    })
-      .then(() => {
-        recordExportMetricSuccess(Date.now() - exportStartedAt)
+    const failExportJob = async (err: unknown, stage: string) => {
+      logError('reels.export.async', err)
+      recordExportMetricFailure()
+      const exportError = friendlyExportError(err)
+      logRenderCompletion({
+        jobId,
+        projectId: params.row.id,
+        durationMs: Date.now() - exportStartedAt,
+        outputPath: null,
+        mp4Exists: false,
+        status: 'failed',
+        error: exportError,
       })
-      .catch((err) => {
-        logError('reels.export.async', err)
-        recordExportMetricFailure()
-        const exportError = friendlyExportError(err)
-        void trackMp4FailedServer({
-          userId: params.userId,
-          projectId: params.row.id,
-          stage: 'render_segments',
-          err,
-          route: 'POST /api/reels/export',
-        })
-        exportLog.error('async export', err, {
-          jobId,
-          projectId: params.row.id,
-          userId: params.userId,
-          reason: exportError,
-        })
-        updateRenderJob(jobId, {
-          status: 'failed',
-          stage: 'error',
-          label: exportError,
-          error: exportError,
-          percent: 0,
-        })
-        void syncExportJobFromRenderJob({
-          jobId,
-          status: 'failed',
-          progress: 0,
-          error: exportError,
-          label: exportError,
-          stage: 'error',
-        })
-        void createSupabaseServerClient()
-          .from('cinematic_projects')
-          .update({
-            generation_error: exportError.slice(0, 500),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', params.row.id)
-          .eq('user_id', params.userId)
-          .then(() => undefined)
-          .catch(() => undefined)
-        void updateProjectReelStatus({
-          userId: params.userId,
-          projectId: params.row.id,
-          reelStatus: 'failed',
-          reelJobId: null,
-        }).catch(() => undefined)
+      void trackMp4FailedServer({
+        userId: params.userId,
+        projectId: params.row.id,
+        stage,
+        err,
+        route: 'POST /api/reels/export',
       })
+      exportLog.error('async export', err, {
+        jobId,
+        projectId: params.row.id,
+        userId: params.userId,
+        reason: exportError,
+      })
+      const prior = getRenderJob(jobId)
+      logJobStatusTransition({
+        jobId,
+        from: prior?.status ?? null,
+        to: 'failed',
+        stage: 'error',
+        label: exportError,
+        reason: stage,
+      })
+      updateRenderJob(jobId, {
+        status: 'failed',
+        stage: 'error',
+        label: exportError,
+        error: exportError,
+        percent: 0,
+      })
+      const failedJob = getRenderJob(jobId)
+      if (failedJob) logRenderJobTrace(renderJobTraceFromStatus(failedJob, false))
+      await syncExportJobFromRenderJob({
+        jobId,
+        status: 'failed',
+        progress: 0,
+        error: exportError,
+        label: exportError,
+        stage: 'error',
+      })
+      void createSupabaseServerClient()
+        .from('cinematic_projects')
+        .update({
+          generation_error: exportError.slice(0, 500),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.row.id)
+        .eq('user_id', params.userId)
+        .then(() => undefined)
+        .catch(() => undefined)
+      void updateProjectReelStatus({
+        userId: params.userId,
+        projectId: params.row.id,
+        reelStatus: 'failed',
+        reelJobId: null,
+      }).catch(() => undefined)
+    }
+
+    try {
+      updateRenderJob(jobId, {
+        status: 'running',
+        stage: 'prepare',
+        label: 'Verifying render assets…',
+        percent: 5,
+      })
+      logJobStatusTransition({
+        jobId,
+        from: 'queued',
+        to: 'running',
+        stage: 'prepare',
+        label: 'Verifying render assets…',
+      })
+      await verifyRenderExportInputs({
+        row: exportRow,
+        scenes,
+        includeVoiceover: params.includeVoiceover,
+        jobId,
+      })
+      await orchestrateRemotionReel(input, {
+        jobId,
+        baseUrl: params.baseUrl,
+        musicUrl: null,
+        sceneMotion: parseSceneMotionMap(params.row.scene_motion),
+        exportStartedAt,
+      })
+      recordExportMetricSuccess(Date.now() - exportStartedAt)
+      const doneJob = getRenderJob(jobId)
+      if (doneJob) logRenderJobTrace(renderJobTraceFromStatus(doneJob, Boolean(doneJob.videoUrl)))
+    } catch (err) {
+      const stage =
+        err instanceof Error && err.message.includes('Voice narration')
+          ? 'render_prep'
+          : 'render_segments'
+      await failExportJob(err, stage)
+    }
   })
 
   return { jobId, status: 'queued' }

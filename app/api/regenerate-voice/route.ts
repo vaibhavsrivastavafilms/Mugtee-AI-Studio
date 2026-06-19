@@ -11,6 +11,7 @@ import { generateVoice } from '@/lib/voice/generateVoice'
 import { applyVoiceDirectionToBlueprints } from '@/lib/voice/voiceDirector'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import { parseSceneBlueprints } from '@/lib/cinematic/scene-blueprint'
+import { logVoiceTrace } from '@/lib/export/voice-export-validation.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
             voiceName: result.voiceMetadata.voiceName,
             style: result.voiceMetadata.profileId,
             audioUrl: result.audioUrl,
+            ...(result.storagePath ? { audioAssetPath: result.storagePath } : {}),
             narration: result.narration,
             metadata: result.voiceMetadata,
           },
@@ -111,9 +113,19 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id)
     }
 
+    logVoiceTrace({
+      projectId: projectId ?? 'none',
+      audioAssetPath: result.storagePath ?? null,
+      narrationUrl: result.audioUrl ?? null,
+      uploadStatus: result.storagePath ? 'uploaded' : result.audioUrl?.startsWith('data:') ? 'inline' : 'missing',
+      persisted: Boolean(projectId && result.audioUrl),
+      exportPayloadNarrationUrl: null,
+    })
+
     return NextResponse.json({
       ok: true,
       audioUrl: result.audioUrl,
+      storagePath: result.storagePath,
       voiceName: result.voiceMetadata?.voiceName,
       elevenLabsVoiceId: result.voiceMetadata?.voiceId,
       voiceProfileId: result.voiceMetadata?.profileId,
