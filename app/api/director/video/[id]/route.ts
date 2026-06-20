@@ -8,14 +8,15 @@ import { logError } from '@/lib/workspace/validation'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type RouteContext = { params: { id: string } }
+type RouteContext = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
+    const { id: rawId } = await params
     const auth = await requireCinematicUser()
     if (auth.response) return auth.response
 
-    const id = params?.id?.trim()
+    const id = rawId?.trim()
     if (!id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 })
     }

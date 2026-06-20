@@ -10,7 +10,7 @@
 // Lazy-loaded Next.js Image, no gallery libraries.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Image as ImageIcon, Mic2, Music, Film, Wand2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Play, Pause, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -137,7 +137,7 @@ function ImagesGrid({ assets, loading, onRemove }: { assets: ProjectAsset[]; loa
         <div key={a.id} className="group relative rounded-xl overflow-hidden border border-gold-soft hover:border-gold-500/40 transition bg-black">
           <div className="relative aspect-[9/16] bg-zinc-900">
             {a.url && (
-              <Image
+              <RemoteImage
                 src={a.url}
                 alt={a.prompt || 'asset'}
                 fill

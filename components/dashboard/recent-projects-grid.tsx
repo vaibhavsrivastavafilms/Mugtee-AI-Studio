@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { motion } from 'framer-motion'
 import { ArrowRight, FileText, Image as ImageIcon, Sparkles, Clock, Layers, Film, Mic } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -172,7 +172,7 @@ export function RecentProjectsGrid() {
               >
                 <div className="relative aspect-[4/5] bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900">
                   {p.thumbnail ? (
-                    <Image
+                    <RemoteImage
                       src={p.thumbnail}
                       alt={p.title}
                       fill

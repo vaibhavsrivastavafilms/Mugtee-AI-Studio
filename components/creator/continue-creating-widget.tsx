@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clock3, Film, Loader2, Play } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -98,7 +98,7 @@ export function ContinueCreatingWidget({ limit = 8 }: { limit?: number }) {
               >
                 <div className="relative aspect-video bg-black/50">
                   {project.thumbnail ? (
-                    <Image
+                    <RemoteImage
                       src={project.thumbnail}
                       alt=""
                       fill

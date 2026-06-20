@@ -6,10 +6,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 /** POST /api/sponsored-placements/[id]/impression */
 export async function POST(req: Request, { params }: Props) {
+  const { id } = await params
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -24,7 +25,7 @@ export async function POST(req: Request, { params }: Props) {
   }
 
   await recordPlacementEvent({
-    placementId: params.id,
+    placementId: id,
     eventType: 'impression',
     userId: user?.id ?? null,
     pagePath,
@@ -34,7 +35,7 @@ export async function POST(req: Request, { params }: Props) {
     void trackServerEvent({
       event: AnalyticsEvents.SPONSORED_PLACEMENT_IMPRESSION,
       userId: user.id,
-      metadata: { placement_id: params.id, page_path: pagePath ?? undefined },
+      metadata: { placement_id: id, page_path: pagePath ?? undefined },
     })
   }
 

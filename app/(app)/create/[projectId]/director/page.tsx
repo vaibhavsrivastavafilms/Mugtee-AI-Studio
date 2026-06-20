@@ -3,8 +3,9 @@ import { directorWorkspaceHref } from '@/lib/create/routes'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { projectId: string } }
+type Props = { params: Promise<{ projectId: string }> }
 
-export default function CreateDirectorPage({ params }: Props) {
-  redirect(directorWorkspaceHref(params.projectId))
+export default async function CreateDirectorPage({ params }: Props) {
+  const { projectId } = await params
+  redirect(directorWorkspaceHref(projectId))
 }

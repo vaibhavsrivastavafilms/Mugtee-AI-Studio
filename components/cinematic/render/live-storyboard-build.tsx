@@ -1,11 +1,10 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
-import { shouldUnoptimizeImageSrc } from '@/lib/image/ephemeral-image-url'
 
 export function LiveStoryboardBuild({
   scenes,
@@ -57,13 +56,12 @@ export function LiveStoryboardBuild({
               )}
             >
               {frame ? (
-                <Image
+                <RemoteImage
                   src={frame}
                   alt={scene.title}
                   fill
                   sizes="72px"
                   className="object-cover"
-                  unoptimized={shouldUnoptimizeImageSrc(frame)}
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-[#120D08] to-black flex items-center justify-center">

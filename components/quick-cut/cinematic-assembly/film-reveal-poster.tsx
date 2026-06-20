@@ -1,10 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { shouldUnoptimizeImageSrc } from '@/lib/image/ephemeral-image-url'
 
 export function FilmRevealPoster({
   posterUrl,
@@ -49,14 +48,13 @@ export function FilmRevealPoster({
         />
 
         {posterUrl ? (
-          <Image
+          <RemoteImage
             src={posterUrl}
             alt={title || 'Reel poster'}
             fill
             sizes="280px"
             className="object-cover"
             priority
-            unoptimized={shouldUnoptimizeImageSrc(posterUrl)}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#2B1A08] via-black to-black" />

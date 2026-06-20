@@ -104,9 +104,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-7958251746228863'
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>{/* suppress PerformanceServerTiming DataCloneError */}<script dangerouslySetInnerHTML={{ __html: 'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);' }} />{adsenseClient ? <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossOrigin="anonymous" /> : null}</head>
-      <body className="min-h-screen min-w-0 bg-background text-foreground antialiased scrollbar-luxe overflow-x-clip">
+      <body className="min-h-screen min-w-0 bg-background text-foreground antialiased scrollbar-luxe overflow-x-clip" suppressHydrationWarning>
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
         {/* PWA — offline shell + static precache (production only). */}

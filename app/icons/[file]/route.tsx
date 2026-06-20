@@ -22,8 +22,9 @@ export function generateStaticParams() {
   return Object.keys(FILES).map((file) => ({ file }))
 }
 
-export async function GET(_req: Request, ctx: { params: { file: string } }) {
-  const source = FILES[ctx.params.file]
+export async function GET(_req: Request, ctx: { params: Promise<{ file: string }> }) {
+  const { file } = await ctx.params
+  const source = FILES[file]
   if (!source) {
     return new Response('Not found', { status: 404 })
   }

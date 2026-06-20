@@ -42,9 +42,11 @@ function backfillSuccessBody(params: {
 /** POST — recover/persist storyboard stills for legacy projects (pollinations URLs, etc.). */
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const projectId = params.id?.trim()
+  const { id } = await params
+
+  const projectId = id?.trim()
   if (!projectId) {
     return NextResponse.json(
       { success: false, recovered: false, error: 'project id required', missingAssets: [] },

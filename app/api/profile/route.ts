@@ -9,27 +9,14 @@
 //                                   Safe to call repeatedly — the `trial_claimed` flag guards.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-
-import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function getSupabase() {
-  const env = getSupabasePublicEnv()
-  if (!env) return null
-
-  const cookieStore = cookies()
-  return createServerClient(env.url, env.anonKey, {
-    cookies: {
-      get: (n: string) => cookieStore.get(n)?.value,
-      set: (n: string, v: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: v, ...o }) } catch {} },
-      remove: (n: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: '', ...o }) } catch {} },
-    },
-  })
+  return tryCreateSupabaseServerClient()
 }
 
 function computeStatus(row: any) {

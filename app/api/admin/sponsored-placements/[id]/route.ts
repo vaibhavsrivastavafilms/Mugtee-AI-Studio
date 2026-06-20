@@ -12,7 +12,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 async function requireAdmin() {
   const supabase = createSupabaseServerClient()
@@ -26,6 +26,7 @@ async function requireAdmin() {
 
 /** PATCH /api/admin/sponsored-placements/[id] */
 export async function PATCH(req: Request, { params }: Props) {
+  const { id } = await params
   const auth = await requireAdmin()
   if ('error' in auth && auth.error) return auth.error
 
@@ -34,17 +35,18 @@ export async function PATCH(req: Request, { params }: Props) {
     return NextResponse.json({ error: 'Invalid placementType' }, { status: 400 })
   }
 
-  const row = await updatePlacement(params.id, body)
+  const row = await updatePlacement(id, body)
   if (!row) return NextResponse.json({ error: 'Not found or update failed' }, { status: 404 })
   return NextResponse.json({ ok: true, item: row })
 }
 
 /** DELETE /api/admin/sponsored-placements/[id] */
 export async function DELETE(_req: Request, { params }: Props) {
+  const { id } = await params
   const auth = await requireAdmin()
   if ('error' in auth && auth.error) return auth.error
 
-  const ok = await deletePlacement(params.id)
+  const ok = await deletePlacement(id)
   if (!ok) return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

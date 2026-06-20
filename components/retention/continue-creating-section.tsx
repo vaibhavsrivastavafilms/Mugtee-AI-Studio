@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { ArrowRight, Clock3, Film, Loader2, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -98,7 +98,7 @@ export function ContinueCreatingSection({
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 <div className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-black/40 text-gold-400/50">
                   {project.thumbnail ? (
-                    <Image
+                    <RemoteImage
                       src={project.thumbnail}
                       alt=""
                       width={40}

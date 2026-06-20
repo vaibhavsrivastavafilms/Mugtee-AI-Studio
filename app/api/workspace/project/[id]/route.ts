@@ -29,9 +29,10 @@ function reversePlatform(p?: string | null): 'instagram_reel' | 'youtube_short' 
   return 'instagram_reel'
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
   try {
-    const id = params?.id
     // Fail fast on malformed UUID — prevents Supabase from throwing 22P02.
     if (!isUuid(id)) {
       return NextResponse.json({ error: 'Invalid project id' }, { status: 400 })
@@ -108,7 +109,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       legacy: !isWorkspaceRow,
     })
   } catch (e: any) {
-    logError('workspace.project.exception', e, { id: params?.id })
+    logError('workspace.project.exception', e, { id })
     return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
   }
 }

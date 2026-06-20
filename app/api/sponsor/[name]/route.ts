@@ -14,27 +14,15 @@
 // URL is read straight from the trusted config in lib/sponsors.ts.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { getSponsor } from '@/lib/sponsors'
-import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function getSupabase() {
-  const env = getSupabasePublicEnv()
-  if (!env) return null
-
-  const cookieStore = cookies()
-  return createServerClient(env.url, env.anonKey, {
-    cookies: {
-      get: (n: string) => cookieStore.get(n)?.value,
-      set: (n: string, v: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: v, ...o }) } catch {} },
-      remove: (n: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: '', ...o }) } catch {} },
-    },
-  })
+  return tryCreateSupabaseServerClient()
 }
 
 function utcDayBounds(): { startISO: string; endISO: string } {
@@ -120,8 +108,9 @@ async function recordClick(
 
 // GET handler — logs + redirects.
 // Optional ?check=1 returns JSON (no redirect) so the UI can pre-flight eligibility.
-export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
-  const slug = (params?.name || '').toLowerCase().trim()
+export async function GET(req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+  const { name } = await params
+  const slug = (name || '').toLowerCase().trim()
   const sponsor = getSponsor(slug)
   if (!sponsor) return NextResponse.json({ error: 'Unknown sponsor' }, { status: 404 })
 

@@ -4,15 +4,16 @@ import { hrefForProject } from '@/lib/create/routes'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { projectId: string } }
+type Props = { params: Promise<{ projectId: string }> }
 
 /** Project shell — routes to generate or director based on stored mode + status. */
 export default async function CreateProjectPage({ params }: Props) {
+  const { projectId } = await params
   const supabase = createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id, status, mode')
-    .eq('id', params.projectId)
+    .eq('id', projectId)
     .maybeSingle()
 
   if (error || !row) {

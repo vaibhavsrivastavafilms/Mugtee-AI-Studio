@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import Link from 'next/link'
 import { AlertCircle, Film, RefreshCw, Sparkles } from 'lucide-react'
 import { TRUST_COPY } from '@/lib/creator/trust-copy'
@@ -155,11 +155,10 @@ export function CinematicFadeImage({
         <div className="absolute inset-0 shimmer-cinematic" aria-hidden />
       ) : null}
       <div className="absolute inset-0">
-        <Image
+        <RemoteImage
           src={displaySrc}
           alt={alt}
           fill
-          unoptimized={displaySrc.startsWith('data:') || displaySrc.startsWith('blob:')}
           sizes="(max-width: 768px) 100vw, 400px"
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}

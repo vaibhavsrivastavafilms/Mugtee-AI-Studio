@@ -3,9 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { tryCreateSupabaseServerClient, type SupabaseServerClient } from '@/lib/supabase/server'
 import {
   applyXpAward,
   missionProfileToRow,
@@ -18,31 +16,14 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function getSupabase() {
-  const env = getSupabasePublicEnv()
-  if (!env) return null
-  const cookieStore = cookies()
-  return createServerClient(env.url, env.anonKey, {
-    cookies: {
-      get: (n: string) => cookieStore.get(n)?.value,
-      set: (n: string, v: string, o: CookieOptions) => {
-        try {
-          cookieStore.set({ name: n, value: v, ...o })
-        } catch {}
-      },
-      remove: (n: string, o: CookieOptions) => {
-        try {
-          cookieStore.set({ name: n, value: '', ...o })
-        } catch {}
-      },
-    },
-  })
+  return tryCreateSupabaseServerClient()
 }
 
 const MISSION_COLUMNS =
   'creator_xp, creator_level, mission_streak, achievements, daily_quests, last_active_date, mission_stats'
 
 async function loadMissionRow(
-  supabase: ReturnType<typeof createServerClient>,
+  supabase: SupabaseServerClient,
   userId: string
 ): Promise<MissionRow | null> {
   const { data } = await supabase

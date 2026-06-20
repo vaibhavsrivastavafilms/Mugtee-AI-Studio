@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QC_V2 } from '@/lib/quick-cut/quick-cut-v2-design'
@@ -74,7 +74,7 @@ export function TemplateSelector({
                 className="sr-only"
               />
               <div className="relative aspect-[16/10] overflow-hidden rounded-t-xl">
-                <Image
+                <RemoteImage
                   src={template.thumbnail}
                   alt=""
                   fill

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import {
   getMetaCreds, metaCredsReady, getInstagramApiBase,
   validateToken, publishImage, publishReel, publishCarousel, getPublishingLimit,
   IGPublishError, type MetaApiError,
 } from '@/lib/instagram'
-import { getSupabasePublicEnv } from '@/lib/supabase/env'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,17 +16,7 @@ const FB_OAUTH = 'https://www.facebook.com/v20.0/dialog/oauth'
 const SCOPES = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
 
 function getSupabase() {
-  const env = getSupabasePublicEnv()
-  if (!env) return null
-
-  const cookieStore = cookies()
-  return createServerClient(env.url, env.anonKey, {
-    cookies: {
-      get(name: string) { return cookieStore.get(name)?.value },
-      set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }) } catch {} },
-      remove(name: string, options: CookieOptions) { try { cookieStore.set({ name, value: '', ...options }) } catch {} },
-    },
-  })
+  return tryCreateSupabaseServerClient()
 }
 
 function redirectUri(req: NextRequest) {
@@ -47,8 +35,9 @@ async function notify(supabase: any, user_id: string, payload: { title: string; 
 // =====================================================================
 // GET — handles /connect (redirect to FB OAuth) + /callback (code exchange)
 // =====================================================================
-export async function GET(req: NextRequest, { params }: { params: { action: string } }) {
-  const action = params.action
+export async function GET(req: NextRequest, { params }: { params: Promise<{ action: string }> }) {
+  const { action } = await params
+
   const supabase = getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
@@ -177,7 +166,9 @@ export async function GET(req: NextRequest, { params }: { params: { action: stri
 // =====================================================================
 // POST — handles /publish (queue-based) + /publish-image, /publish-carousel, /publish-reel (direct)
 // =====================================================================
-export async function POST(req: NextRequest, { params }: { params: { action: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ action: string }> }) {
+  const { action } = await params
+
   const supabase = getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
@@ -190,7 +181,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
   // Body: { caption?: string, image_url?: string, video_url?: string,
   //         media_urls?: string[], share_to_feed?: boolean }
   // -------------------------------------------------------------------
-  if (params.action === 'publish-image' || params.action === 'publish-carousel' || params.action === 'publish-reel') {
+  if (action === 'publish-image' || action === 'publish-carousel' || action === 'publish-reel') {
     if (!metaCredsReady()) {
       return NextResponse.json({ error: 'Meta credentials not configured on the server.' }, { status: 500 })
     }
@@ -213,11 +204,11 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
 
     try {
       let result
-      if (params.action === 'publish-image') {
+      if (action === 'publish-image') {
         const imageUrl: string = String(body?.image_url || body?.media_url || '').trim()
         if (!imageUrl) return NextResponse.json({ error: 'image_url required' }, { status: 400 })
         result = await publishImage(igBusinessId, imageUrl, caption, token)
-      } else if (params.action === 'publish-reel') {
+      } else if (action === 'publish-reel') {
         const videoUrl: string = String(body?.video_url || body?.media_url || '').trim()
         if (!videoUrl) return NextResponse.json({ error: 'video_url required' }, { status: 400 })
         result = await publishReel(igBusinessId, videoUrl, caption, token, { share_to_feed: body?.share_to_feed !== false })
@@ -252,7 +243,7 @@ export async function POST(req: NextRequest, { params }: { params: { action: str
   // -------------------------------------------------------------------
   // Existing queue-based publish — unchanged.
   // -------------------------------------------------------------------
-  if (params.action !== 'publish') return NextResponse.json({ error: 'Unknown action' }, { status: 404 })
+  if (action !== 'publish') return NextResponse.json({ error: 'Unknown action' }, { status: 404 })
 
   const body = await req.json().catch(() => ({}))
   const queueId = String(body?.queue_id || '')

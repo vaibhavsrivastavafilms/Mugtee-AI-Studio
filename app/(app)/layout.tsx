@@ -22,7 +22,7 @@ export default async function AppLayout({
     : null
 
   if (!user) {
-    const pathname = headers().get('x-pathname') ?? APP_ROUTE_LOGIN_FALLBACK
+    const pathname = (await headers()).get('x-pathname') ?? APP_ROUTE_LOGIN_FALLBACK
     redirect(loginRedirectUrl(pathname))
   }
 

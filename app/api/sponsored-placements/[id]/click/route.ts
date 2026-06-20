@@ -7,10 +7,11 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 /** GET /api/sponsored-placements/[id]/click — track click and redirect */
 export async function GET(_req: Request, { params }: Props) {
+  const { id } = await params
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -24,7 +25,7 @@ export async function GET(_req: Request, { params }: Props) {
   const { data } = await db
     .from('sponsored_placements')
     .select('destination_url, active, title')
-    .eq('id', params.id)
+    .eq('id', id)
     .maybeSingle()
 
   if (!data?.active || !data.destination_url) {
@@ -32,7 +33,7 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   await recordPlacementEvent({
-    placementId: params.id,
+    placementId: id,
     eventType: 'click',
     userId: user?.id ?? null,
   })
@@ -42,7 +43,7 @@ export async function GET(_req: Request, { params }: Props) {
       event: AnalyticsEvents.SPONSORED_PLACEMENT_CLICK,
       userId: user.id,
       metadata: {
-        placement_id: params.id,
+        placement_id: id,
         sponsor_title: data.title,
       },
     })

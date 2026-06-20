@@ -5,20 +5,21 @@ import { QuickCutProjectPageClient } from '@/components/quick-cut/v2/quick-cut-p
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 /** Quick Cut V2 — cinematic generation page for a single project. */
 export default async function ProjectsQuickCutPage({ params }: Props) {
+  const { id } = await params
   const supabase = createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id')
-    .eq('id', params.id)
+    .eq('id', id)
     .maybeSingle()
 
   if (error || !row) {
     redirect(STUDIO.projects)
   }
 
-  return <QuickCutProjectPageClient projectId={params.id} />
+  return <QuickCutProjectPageClient projectId={id} />
 }

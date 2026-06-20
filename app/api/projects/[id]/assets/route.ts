@@ -29,14 +29,15 @@ export async function GET(
   {
     params,
   }: {
-    params: {
+    params: Promise<{
       id: string
-    }
+    }>
   }
 ) {
+  const { id } = await params
   try {
     const project = projects.find(
-      (item) => item.id === params.id
+      (item) => item.id === id
     )
 
     if (!project) {

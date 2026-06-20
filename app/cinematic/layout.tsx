@@ -10,7 +10,7 @@ export default async function CinematicLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = headers().get('x-pathname') ?? ''
+  const pathname = (await headers()).get('x-pathname') ?? ''
   const isPublicExample = pathname.startsWith('/cinematic/examples')
 
   if (isPublicExample) {

@@ -1,3 +1,5 @@
+'use client'
+
 import nextDynamic from 'next/dynamic'
 import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
 
@@ -8,8 +10,6 @@ const CreatorAnalyticsDashboard = nextDynamic(
     ),
   { ssr: false }
 )
-
-export const dynamic = 'force-dynamic'
 
 export default function StudioAnalyticsPage() {
   return (

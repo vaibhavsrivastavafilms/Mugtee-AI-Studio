@@ -5,12 +5,13 @@ import { CreateEntry } from '@/components/create/create-entry'
 export const dynamic = 'force-dynamic'
 
 type Props = {
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default function CreatePage({ searchParams }: Props) {
+export default async function CreatePage({ searchParams }: Props) {
+  const sp = await searchParams
   const qs = new URLSearchParams()
-  for (const [key, value] of Object.entries(searchParams)) {
+  for (const [key, value] of Object.entries(sp)) {
     if (typeof value === 'string') qs.set(key, value)
     else if (Array.isArray(value) && value[0]) qs.set(key, value[0])
   }

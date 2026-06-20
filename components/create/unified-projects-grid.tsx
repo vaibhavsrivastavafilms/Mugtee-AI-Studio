@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { RemoteImage } from '@/components/ui/remote-image'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -345,7 +345,7 @@ export function UnifiedProjectsGrid({
                       playsInline
                     />
                   ) : p.thumbnail ? (
-                    <Image
+                    <RemoteImage
                       src={p.thumbnail}
                       alt={p.title}
                       fill

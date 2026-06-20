@@ -5,10 +5,11 @@ export function generateStaticParams() {
   return getShowcaseSlugs().map((slug) => ({ slug }))
 }
 
-export default function ShowcaseExamplePage({
+export default async function ShowcaseExamplePage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  return <ShowcaseExampleView slug={params.slug} />
+  const { slug } = await params
+  return <ShowcaseExampleView slug={slug} />
 }
