@@ -3,7 +3,7 @@ import { useStore } from '@/lib/store'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, format, isSameMonth, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Film, Image as ImageIcon, FileVideo, Music, Check, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORM_META, STATUS_META } from '@/lib/dummy-data'
@@ -20,10 +20,17 @@ import { NotionCalendarSync } from '@/components/integrations/notion-calendar-sy
 export default function CalendarPage() {
   const { content, addContent, updateContent, removeContent } = useStore()
   const confirm = useConfirm()
-  const [cursor, setCursor] = useState(new Date())
+  const [cursor, setCursor] = useState<Date | null>(null)
+  const [today, setToday] = useState<Date | null>(null)
   const [creating, setCreating] = useState<{date: Date | null, open: boolean}>({date:null, open:false})
   const [editing, setEditing] = useState<ContentPiece | null>(null)
   const [plannerOpen, setPlannerOpen] = useState(false)
+
+  useEffect(() => {
+    const now = new Date()
+    setCursor(now)
+    setToday(now)
+  }, [])
   // Phase 7C — drag-to-reschedule (native HTML5, no deps). Preserves time-of-day, just shifts the date part.
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverKey, setDragOverKey] = useState<string | null>(null)
@@ -39,9 +46,9 @@ export default function CalendarPage() {
     updateContent(item.id, { scheduled_at: next.toISOString() })
   }
 
-  const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
-  const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 })
-  const days = eachDayOfInterval({ start, end })
+  const start = cursor ? startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 }) : null
+  const end = cursor ? endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 }) : null
+  const days = start && end ? eachDayOfInterval({ start, end }) : []
 
   // Phase P1 — perf: build per-day index maps ONCE per content/cursor change,
   // instead of running filter() and a nested loop on every one of the 42 cells per render.
@@ -76,11 +83,11 @@ export default function CalendarPage() {
       <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}>
         <div className="text-xs tracking-[0.3em] uppercase text-gold-400/80 mb-2">Content Calendar</div>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">{format(cursor, 'MMMM')}</span> {format(cursor, 'yyyy')}</h1>
+          <h1 className="font-display text-4xl sm:text-5xl"><span className="text-gold-gradient">{cursor ? format(cursor, 'MMMM') : 'Calendar'}</span>{cursor ? ` ${format(cursor, 'yyyy')}` : ''}</h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setCursor(subMonths(cursor, 1))}
+              onClick={() => cursor && setCursor(subMonths(cursor, 1))}
               className="p-2 rounded-lg glass"
               aria-label="Previous month"
               title="Previous month"
@@ -90,7 +97,7 @@ export default function CalendarPage() {
             <button onClick={() => setCursor(new Date())} className="px-3 py-2 text-xs rounded-lg glass">Today</button>
             <button
               type="button"
-              onClick={() => setCursor(addMonths(cursor, 1))}
+              onClick={() => cursor && setCursor(addMonths(cursor, 1))}
               className="p-2 rounded-lg glass"
               aria-label="Next month"
               title="Next month"
@@ -126,8 +133,8 @@ export default function CalendarPage() {
             const dayKey2 = format(day, 'yyyy-MM-dd')
             const items = itemsByDay.get(dayKey2) || []
             const stageEvents = stagesByDay.get(dayKey2) || []
-            const inMonth = isSameMonth(day, cursor)
-            const today = isSameDay(day, new Date())
+            const inMonth = cursor ? isSameMonth(day, cursor) : false
+            const isToday = today ? isSameDay(day, today) : false
             const dayKey = day.toISOString()
             const isDragOver = dragOverKey === dayKey && !!dragId
             return (
@@ -138,13 +145,13 @@ export default function CalendarPage() {
                 className={cn(
                   'group relative min-h-[88px] sm:min-h-[140px] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 transition-all cursor-pointer hover:bg-white/[0.04]',
                   inMonth ? 'bg-white/[0.02] border border-white/[0.05]' : 'bg-transparent border border-transparent opacity-40',
-                  today && 'ring-1 ring-gold-500/60 bg-gold-500/[0.06]',
+                  isToday && 'ring-1 ring-gold-500/60 bg-gold-500/[0.06]',
                   isDragOver && 'ring-2 ring-gold-400/80 bg-gold-500/[0.12] scale-[1.01]'
                 )}
                 onClick={() => { setCreating({date: day, open: true}) }}
               >
                 <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                  <div className={cn('text-[11px] sm:text-sm font-medium tabular-nums', today ? 'text-gold-300' : 'text-foreground')}>{format(day, 'd')}</div>
+                  <div className={cn('text-[11px] sm:text-sm font-medium tabular-nums', isToday ? 'text-gold-300' : 'text-foreground')}>{format(day, 'd')}</div>
                   <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-70 text-gold-300 hidden sm:block" />
                 </div>
                 <div className="space-y-1">
@@ -210,7 +217,7 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
   const [title, setTitle] = useState(initial?.title || '')
   const [platform, setPlatform] = useState<Platform>((initial?.platform as Platform) || 'instagram')
   const [status, setStatus] = useState((initial?.status as any) || 'scheduled')
-  const [when, setWhen] = useState(initial?.scheduled_at ? format(parseISO(initial.scheduled_at), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))
+  const [when, setWhen] = useState(initial?.scheduled_at ? format(parseISO(initial.scheduled_at), "yyyy-MM-dd'T'HH:mm") : '')
   const [desc, setDesc] = useState(initial?.description || '')
   const initLocal = (iso?: string | null) => iso ? format(parseISO(iso), "yyyy-MM-dd'T'HH:mm") : ''
   const [scriptDue, setScriptDue] = useState(initLocal(initial?.script_due_date as any))
@@ -225,6 +232,14 @@ function CreateOrEditDialog({ initial, onSubmit, onDelete }: { initial?: Partial
   const selectedAsset = mediaUrl ? media.find(m => m.url === mediaUrl) : null
   const urlWarning = mediaUrl && !validMediaUrl ? 'Media URL must start with http(s)://' : null
   const formatWarning = mediaUrl && validMediaUrl && !supportedFormat ? 'Unsupported format. Use .mp4, .mov, .jpg, .png, or .webp.' : null
+
+  useEffect(() => {
+    if (initial?.scheduled_at) {
+      setWhen(format(parseISO(initial.scheduled_at), "yyyy-MM-dd'T'HH:mm"))
+      return
+    }
+    setWhen(format(new Date(), "yyyy-MM-dd'T'HH:mm"))
+  }, [initial?.scheduled_at])
 
   return (
     <DialogContent className="glass-strong sm:max-w-lg">

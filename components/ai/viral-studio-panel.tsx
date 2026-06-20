@@ -108,10 +108,9 @@ export function useViralIdeas() {
   const [topic, setTopic] = useState('')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone] = useState<string>('cinematic_emotional')
-  // Niche + audience seed from localStorage so the creator's profile is the default everywhere
-  const seed = typeof window !== 'undefined' ? readCreatorProfile() : { niche: 'general', audience: 'mass' }
-  const [niche, setNicheInternal] = useState<string>(seed.niche)
-  const [audience, setAudienceInternal] = useState<string>(seed.audience)
+  // Niche + audience hydrate from localStorage after mount so SSR and first client render match.
+  const [niche, setNicheInternal] = useState<string>('general')
+  const [audience, setAudienceInternal] = useState<string>('mass')
   const setNiche    = (n: string) => { setNicheInternal(n);    writeCreatorProfile({ niche: n }) }
   const setAudience = (a: string) => { setAudienceInternal(a); writeCreatorProfile({ audience: a }) }
   const [loading, setLoading] = useState(false)
@@ -120,6 +119,12 @@ export function useViralIdeas() {
   const [adding, setAdding] = useState<number | null>(null)
   const [scriptBusy, setScriptBusy] = useState<number | null>(null)
   const [scripts, setScripts] = useState<Record<number, string>>({})
+
+  useEffect(() => {
+    const seed = readCreatorProfile()
+    setNicheInternal(seed.niche)
+    setAudienceInternal(seed.audience)
+  }, [])
 
   const generate = useCallback(async () => {
     const t = topic.trim()

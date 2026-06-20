@@ -18,11 +18,11 @@ import { normalizeCreatorMemoryProfile } from '@/lib/creator/creator-memory'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function getSupabase() {
+async function getSupabase() {
   const env = getSupabasePublicEnv()
   if (!env) return null
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       get: (n: string) => cookieStore.get(n)?.value,
@@ -53,7 +53,7 @@ function computeStatus(row: any) {
 }
 
 export async function GET() {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({
       plan_type: 'FREE',
@@ -86,7 +86,7 @@ export async function GET() {
 
 // POST /api/profile/claim-trial — server-side helper called by auth callback.
 export async function POST(req: NextRequest) {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
   }
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/profile — save Creator Memory Profile (Phase 2.3).
 export async function PATCH(req: NextRequest) {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
   }

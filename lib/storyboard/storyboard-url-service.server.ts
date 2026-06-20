@@ -11,8 +11,6 @@ import {
   type StoryboardAsset,
 } from '@/lib/storyboard/storyboard-asset'
 
-const SIGNED_URL_TTL_SEC = 60 * 60
-
 import {
   logPipelineStepComplete,
   logPipelineStepStart,
@@ -23,7 +21,7 @@ function devLog(event: string, payload: Record<string, unknown>): void {
   console.info(`[Storyboard Recovery] ${event}`, payload)
 }
 
-/** Fresh URL for a stored storyboard object (signed when possible, else public). */
+/** Fresh stable URL for a stored storyboard object in the public project-assets bucket. */
 export async function refreshStoryboardUrl(
   assetPath: string,
   supabase?: SupabaseClient
@@ -33,23 +31,14 @@ export async function refreshStoryboardUrl(
 
   logPipelineStepStart('storage', null, { assetPath: path })
   const client = supabase ?? createSupabaseServerClient()
-  const { data: signed, error } = await client.storage
-    .from(STORYBOARD_STORAGE_BUCKET)
-    .createSignedUrl(path!, SIGNED_URL_TTL_SEC)
-
-  if (!error && signed?.signedUrl) {
-    devLog('refresh.signed', { assetPath: path })
-    logPipelineStepComplete('storage', null, { assetPath: path, method: 'signed' })
-    return signed.signedUrl
-  }
-
   const { data: pub } = client.storage.from(STORYBOARD_STORAGE_BUCKET).getPublicUrl(path!)
   if (pub?.publicUrl) {
-    devLog('refresh.public', { assetPath: path, signedError: error?.message })
+    devLog('refresh.public', { assetPath: path })
+    logPipelineStepComplete('storage', null, { assetPath: path, method: 'public' })
     return pub.publicUrl
   }
 
-  devLog('refresh.failed', { assetPath: path, signedError: error?.message })
+  devLog('refresh.failed', { assetPath: path })
   return null
 }
 

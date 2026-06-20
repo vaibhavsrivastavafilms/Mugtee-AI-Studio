@@ -54,14 +54,14 @@ export function ViralQuickStart() {
   // V3.7 — Personalised greeting. Tries a fast localStorage cache first so the
   // hero never flickers, then upgrades from /api/profile in the background.
   // Falls back gracefully to a neutral heading when we don't know the user yet.
-  const [firstName, setFirstName] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    try { return localStorage.getItem('mugtee:user-firstname:v1') } catch { return null }
-  })
+  const [firstName, setFirstName] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
+        const cached = localStorage.getItem('mugtee:user-firstname:v1')
+        if (cached && !cancelled) setFirstName(cached)
+
         const r = await fetch('/api/profile', { cache: 'no-store' })
         const d = await r.json()
         const raw: string = d?.profile?.full_name || d?.profile?.name || d?.user?.email || ''

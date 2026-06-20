@@ -18,6 +18,25 @@ export type GenerateImageResult = {
   provider: ImageProviderName
 }
 
+/** Cheap draft-tier stills — Together or Pollinations only (no Flux/OpenAI). */
+export async function generateDraftImage(
+  prompt: string
+): Promise<GenerateImageResult | null> {
+  const trimmed = prompt.trim()
+  if (!trimmed) return null
+
+  if (hasTogetherApiKey()) {
+    const url = await generateTogetherImage(trimmed)
+    if (url) return { url, provider: 'together' }
+  }
+
+  try {
+    return { url: getPollinationsImageUrl(trimmed), provider: 'pollinations' }
+  } catch {
+    return null
+  }
+}
+
 /** Try FluxAPI Kontext, then Together AI, then Pollinations. Returns null when all fail. */
 export async function generateImage(
   prompt: string,

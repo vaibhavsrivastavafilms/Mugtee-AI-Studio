@@ -47,6 +47,7 @@ import {
   logPipelineStepStart,
 } from '@/lib/cinematic/generation-logger'
 import { remotionCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import { renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
 import {
   estimateRemotionRenderMemory,
   logRemotionRenderDiagnostics,

@@ -14,6 +14,7 @@ import { quickCutStudioHref } from '@/lib/create/routes'
 import { FeatureStatusBadge, type FeatureStatus } from '@/components/marketing/feature-status-badge'
 
 const PROOF_STATUS: FeatureStatus[] = ['live', 'live', 'beta']
+const COPYRIGHT_YEAR = 2026
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -226,7 +227,7 @@ export default function MarketingHome() {
 
       <footer className="border-t border-white/[0.04] py-10 px-5 sm:px-6">
         <div className="container max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] tracking-wider uppercase text-muted-foreground/80">
-          <span>© {new Date().getFullYear()} Mugtee · {FOOTER.tagline}</span>
+          <span>© {COPYRIGHT_YEAR} Mugtee · {FOOTER.tagline}</span>
           <div className="flex items-center gap-5">
             <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>
             <Link href="/privacy" className="hover:text-gold-300 transition">Privacy</Link>

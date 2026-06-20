@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const COPYRIGHT_YEAR = 2026
+
 export const FooterCTA = memo(function FooterCTA({
   dashboardHref = '/create?mode=quick',
   loginHref = '/create?mode=quick',
@@ -47,7 +49,7 @@ export const FooterCTA = memo(function FooterCTA({
         </motion.div>
 
         <footer className="mt-16 pt-8 border-t border-white/[0.04] text-[11px] text-luxe/40 tracking-wide">
-          <p>© {new Date().getFullYear()} Mugtee · Cinematic AI Studio</p>
+          <p>© {COPYRIGHT_YEAR} Mugtee · Cinematic AI Studio</p>
         </footer>
       </div>
     </section>

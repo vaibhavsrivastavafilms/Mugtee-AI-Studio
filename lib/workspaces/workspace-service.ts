@@ -6,6 +6,17 @@ export async function createTeamWorkspace(
   ownerId: string,
   name: string
 ): Promise<Workspace> {
+  // For temp users (development/testing), return mock workspace
+  if (ownerId.startsWith('temp-user-')) {
+    return {
+      id: 'temp-ws-' + Math.random().toString(36).slice(2),
+      name: name.slice(0, 120),
+      ownerId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  }
+
   const { data, error } = await supabase
     .from('ecosystem_workspaces')
     .insert({ name: name.slice(0, 120), owner_id: ownerId })
@@ -33,6 +44,11 @@ export async function listUserWorkspaces(
   supabase: SupabaseClient,
   userId: string
 ): Promise<Workspace[]> {
+  // Return empty array for temp users (development/testing)
+  if (userId.startsWith('temp-user-')) {
+    return []
+  }
+
   const { data: owned } = await supabase
     .from('ecosystem_workspaces')
     .select('*')
@@ -73,6 +89,17 @@ export async function addWorkspaceMember(
   memberUserId: string,
   role: WorkspaceRole = 'editor'
 ): Promise<TeamMember> {
+  // For temp users (development/testing), return mock member
+  if (ownerId.startsWith('temp-user-')) {
+    return {
+      id: 'temp-member-' + Math.random().toString(36).slice(2),
+      workspaceId,
+      userId: memberUserId,
+      role,
+      createdAt: new Date().toISOString(),
+    }
+  }
+
   const { data: ws } = await supabase
     .from('ecosystem_workspaces')
     .select('owner_id')

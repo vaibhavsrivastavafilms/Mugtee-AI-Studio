@@ -17,10 +17,10 @@ import type { XpEventType } from '@/lib/mission/xp-config'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function getSupabase() {
+async function getSupabase() {
   const env = getSupabasePublicEnv()
   if (!env) return null
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       get: (n: string) => cookieStore.get(n)?.value,
@@ -54,7 +54,7 @@ async function loadMissionRow(
 }
 
 export async function GET() {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ signed_in: false, mission: null })
   }
@@ -74,7 +74,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
   }

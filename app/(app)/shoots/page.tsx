@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { Clapperboard, MapPin, Clock, Users, Plus, Trash2, Edit3, MoreHorizontal, Archive } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '@/lib/store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -60,7 +60,7 @@ export default function ShootsPage() {
                         <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full ${s.status==='today' ? 'bg-gold-500/20 text-gold-300' : s.status==='wrapped' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-zinc-500/15 text-zinc-400'}`}>{s.status || 'planned'}</span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-1 rounded-lg hover:bg-white/5"><MoreHorizontal className="w-4 h-4" /></button>
+                            <button className="p-1 rounded-lg hover:bg-white/5" aria-label="Open shoot actions" title="Open shoot actions"><MoreHorizontal className="w-4 h-4" /></button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-strong">
                             <DropdownMenuItem onClick={() => setEditing(s)}><Edit3 className="w-3.5 h-3.5 mr-2" />Edit</DropdownMenuItem>
@@ -94,11 +94,15 @@ export default function ShootsPage() {
 
 function ShootDialog({ initial, onSubmit }: { initial?: Shoot; onSubmit: (data: Partial<Shoot>) => void | Promise<void> }) {
   const [title, setTitle] = useState(initial?.title || '')
-  const [date, setDate] = useState(initial?.date || format(new Date(), 'yyyy-MM-dd'))
+  const [date, setDate] = useState(initial?.date || '')
   const [start, setStart] = useState(initial?.start_time || '09:00')
   const [end, setEnd] = useState(initial?.end_time || '17:00')
   const [loc, setLoc] = useState(initial?.location || '')
   const [status, setStatus] = useState<ShootStatus>((initial?.status as ShootStatus) || 'planned')
+
+  useEffect(() => {
+    setDate(initial?.date || format(new Date(), 'yyyy-MM-dd'))
+  }, [initial?.date])
 
   return (
     <DialogContent className="glass-strong sm:max-w-lg">

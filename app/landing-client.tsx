@@ -26,6 +26,8 @@ import { HomeTrustLayer } from '@/components/landing/home-trust-layer'
 import { MobileStickyCta } from '@/components/landing/mobile-sticky-cta'
 import { HERO, PRICING as PRICING_COPY, FINAL_CTA, FOOTER, ATMOSPHERE_STATS } from '@/lib/marketing/site-copy'
 
+const COPYRIGHT_YEAR = 2026
+
 // Small fade-up helper — keeps animation system lightweight.
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
@@ -303,7 +305,7 @@ export default function LandingClient() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 border-t border-white/[0.04] text-[11px] tracking-wider uppercase text-muted-foreground/80">
-            <span>© {new Date().getFullYear()} Mugtee · {FOOTER.tagline}</span>
+            <span>© {COPYRIGHT_YEAR} Mugtee · {FOOTER.tagline}</span>
             <div className="flex items-center gap-5 flex-wrap justify-center">
               <Link href="/blog" className="hover:text-gold-300 transition">Blog</Link>
               <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>

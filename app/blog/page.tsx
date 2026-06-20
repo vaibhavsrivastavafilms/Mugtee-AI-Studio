@@ -31,6 +31,8 @@ const POSTS = [
   },
 ]
 
+const COPYRIGHT_YEAR = 2026
+
 export default function BlogIndex() {
   return (
     <div className="relative min-h-screen bg-background text-luxe overflow-x-hidden">
@@ -79,7 +81,7 @@ export default function BlogIndex() {
 
       <footer className="border-t border-white/[0.04] py-10 px-5 sm:px-6 text-[11px] tracking-wider uppercase text-muted-foreground/80">
         <div className="container max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>© {new Date().getFullYear()} Mugtee · An AI Production OS for creators</span>
+          <span>© {COPYRIGHT_YEAR} Mugtee · An AI Production OS for creators</span>
           <div className="flex items-center gap-5">
             <Link href="/" className="hover:text-gold-300 transition">Home</Link>
             <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>

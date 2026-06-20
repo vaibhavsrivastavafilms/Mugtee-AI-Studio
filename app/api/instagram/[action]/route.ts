@@ -17,11 +17,11 @@ const GRAPH = 'https://graph.facebook.com/v20.0'
 const FB_OAUTH = 'https://www.facebook.com/v20.0/dialog/oauth'
 const SCOPES = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
 
-function getSupabase() {
+async function getSupabase() {
   const env = getSupabasePublicEnv()
   if (!env) return null
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       get(name: string) { return cookieStore.get(name)?.value },
@@ -49,7 +49,7 @@ async function notify(supabase: any, user_id: string, payload: { title: string; 
 // =====================================================================
 export async function GET(req: NextRequest, { params }: { params: { action: string } }) {
   const action = params.action
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
   }
@@ -178,7 +178,7 @@ export async function GET(req: NextRequest, { params }: { params: { action: stri
 // POST — handles /publish (queue-based) + /publish-image, /publish-carousel, /publish-reel (direct)
 // =====================================================================
 export async function POST(req: NextRequest, { params }: { params: { action: string } }) {
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return NextResponse.json({ error: 'Authentication is not configured' }, { status: 503 })
   }

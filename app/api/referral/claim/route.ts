@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
   const fromBody = String(body?.code || body?.referral_code || '').trim()
-  const fromCookie = cookies().get(REFERRAL_COOKIE_NAME)?.value?.trim() || ''
+  const fromCookie = (await cookies()).get(REFERRAL_COOKIE_NAME)?.value?.trim() || ''
   const code = fromBody || fromCookie
 
   if (!code) {

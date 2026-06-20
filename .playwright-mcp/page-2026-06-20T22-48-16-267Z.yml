@@ -1,0 +1,115 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - link "M MUGTEE AI Creator Operating System" [ref=e7] [cursor=pointer]:
+            - /url: /studio/quick
+            - generic [ref=e8]: M
+            - generic [ref=e9]:
+              - generic [ref=e10]: MUGTEE
+              - generic [ref=e11]: AI Creator Operating System
+          - tablist "Creator mode" [ref=e12]:
+            - tab "Quick Mode" [selected] [ref=e13] [cursor=pointer]:
+              - img [ref=e14]
+              - generic [ref=e16]: Quick Mode
+            - tab "Director Mode" [ref=e17] [cursor=pointer]:
+              - img [ref=e18]
+              - generic [ref=e23]: Director Mode
+          - generic [ref=e24]:
+            - button "⌘KSearch or run command…" [ref=e25] [cursor=pointer]:
+              - img [ref=e26]
+              - generic [ref=e29]: ⌘KSearch or run command…
+            - button "Help" [ref=e30] [cursor=pointer]:
+              - img [ref=e31]
+            - link "New Project" [ref=e34] [cursor=pointer]:
+              - /url: /studio/quick
+              - img
+              - text: New Project
+            - button "Notifications" [ref=e36] [cursor=pointer]:
+              - img [ref=e37]
+            - button "25 credits remaining" [ref=e40] [cursor=pointer]:
+              - img [ref=e41]
+              - generic [ref=e43]: 25 credits
+            - button "Account" [ref=e44] [cursor=pointer]:
+              - generic [ref=e46]: TU
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - paragraph [ref=e50]: Quick Cut
+            - heading "Idea → MP4" [level=1] [ref=e51]
+            - paragraph [ref=e52]: Your AI production team, one tap away.
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - textbox "What reel should Mugtee produce for you?" [ref=e55]
+              - img [ref=e56]
+              - generic [ref=e58]: 0/500
+            - generic [ref=e59]:
+              - button "Psychology Reel" [ref=e60] [cursor=pointer]
+              - button "Motivational Short" [ref=e61] [cursor=pointer]
+              - button "Restaurant Storytelling" [ref=e62] [cursor=pointer]
+              - button "Daily Habits" [ref=e63] [cursor=pointer]
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - img [ref=e67]
+                  - generic [ref=e71]:
+                    - paragraph [ref=e72]: Creative System
+                    - paragraph [ref=e73]: Optional — lock look & continuity before generate
+                - button "Browse Systems" [ref=e74] [cursor=pointer]
+              - generic [ref=e75]:
+                - generic [ref=e76]:
+                  - img [ref=e77]
+                  - generic [ref=e80]:
+                    - paragraph [ref=e81]: Duration
+                    - combobox [ref=e82] [cursor=pointer]:
+                      - img [ref=e83]
+                    - combobox [ref=e85]
+                - generic [ref=e86]:
+                  - img [ref=e87]
+                  - generic [ref=e89]:
+                    - paragraph [ref=e90]: Platform
+                    - combobox [ref=e91] [cursor=pointer]:
+                      - img [ref=e92]
+                    - combobox [ref=e94]
+                - generic [ref=e95]:
+                  - img [ref=e96]
+                  - generic [ref=e99]:
+                    - paragraph [ref=e100]: Voice
+                    - combobox [disabled] [ref=e101]:
+                      - generic: Auto voice
+                      - img [ref=e102]
+                    - combobox [disabled] [ref=e104]
+                - generic [ref=e105]:
+                  - img [ref=e106]
+                  - generic [ref=e109]:
+                    - paragraph [ref=e110]: Language
+                    - combobox [ref=e111] [cursor=pointer]:
+                      - img [ref=e112]
+                    - combobox [ref=e114]
+                - generic [ref=e115]:
+                  - img [ref=e116]
+                  - generic [ref=e120]:
+                    - paragraph [ref=e121]: Target Audience
+                    - combobox [ref=e122] [cursor=pointer]:
+                      - img [ref=e123]
+                    - combobox [ref=e125]
+                - generic [ref=e126]:
+                  - img [ref=e127]
+                  - generic [ref=e137]:
+                    - paragraph [ref=e138]: Tone
+                    - combobox [ref=e139] [cursor=pointer]:
+                      - img [ref=e140]
+                    - combobox [ref=e142]
+            - button "Generate Reel" [disabled] [ref=e143]:
+              - img [ref=e144]
+              - text: Generate Reel
+        - generic [ref=e146]:
+          - paragraph [ref=e147]: Switch to Director Mode for advanced editing, timeline, and full creative control.
+          - link "Open Director Mode" [ref=e148] [cursor=pointer]:
+            - /url: /studio/director
+            - text: Open Director Mode
+            - img [ref=e149]
+    - button "⌘K" [ref=e151] [cursor=pointer]:
+      - img [ref=e152]
+      - generic [ref=e154]: ⌘K
+  - region "Notifications alt+T"

@@ -23,11 +23,11 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function getSupabase() {
+async function getSupabase() {
   const env = getSupabasePublicEnv()
   if (!env) return null
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       get: (n: string) => cookieStore.get(n)?.value,
@@ -51,7 +51,7 @@ type ClickRecordResult = {
 }
 
 async function readEligibility(
-  supabase: NonNullable<ReturnType<typeof getSupabase>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabase>>>,
   userId: string,
   slug: string,
 ): Promise<{ rewarded: boolean; alreadyClaimedToday: boolean }> {
@@ -96,7 +96,7 @@ async function recordClick(
     }
   }
 
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return { rewarded: false, alreadyClaimedToday: false, creditsGiven: 0 }
   }
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest, { params }: { params: { name: string
   if (!sponsor) return NextResponse.json({ error: 'Unknown sponsor' }, { status: 404 })
 
   const checkOnly = req.nextUrl.searchParams.get('check') === '1'
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   const { data: { user } } = supabase
     ? await supabase.auth.getUser()
     : { data: { user: null } }

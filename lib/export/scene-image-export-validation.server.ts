@@ -410,6 +410,16 @@ export async function refreshAndValidateExportSceneImages(params: {
       regenerated,
       validated,
       freshSignedUrl,
+      signedUrlExpiry: parseSignedUrlExpiry(freshSignedUrl ?? persistedUrl),
+      validationResult: validated
+        ? storage === 'FOUND'
+          ? 'PASS_STORAGE'
+          : 'PASS_HTTP'
+        : assetPath
+          ? 'FAIL_MISSING_STORAGE'
+          : persistedUrl
+            ? 'FAIL_MISSING_STORAGE'
+            : 'FAIL_NO_URL',
     }
     entries.push(entry)
   }

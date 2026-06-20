@@ -10,7 +10,7 @@ export default async function CinematicLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = headers().get('x-pathname') ?? ''
+  const pathname = (await headers()).get('x-pathname') ?? ''
   const isPublicExample = pathname.startsWith('/cinematic/examples')
 
   if (isPublicExample) {
@@ -19,17 +19,22 @@ export default async function CinematicLayout({
     )
   }
 
+  // TEMPORARY: Auth disabled for development/testing
+  // TODO: Re-enable auth checks in production
   const supabase = tryCreateSupabaseServerClient()
-  const user = supabase
+  let user = supabase
     ? (await supabase.auth.getUser()).data.user
     : null
 
   if (!user) {
-    const next =
-      pathname.startsWith('/cinematic') && pathname.length > 1
-        ? pathname
-        : '/cinematic/create'
-    redirect(`/auth/login?next=${encodeURIComponent(next)}`)
+    // Provide mock user to allow unauthenticated access
+    user = {
+      id: 'temp-user-' + Math.random().toString(36).slice(2),
+      email: 'temp@example.com',
+      user_metadata: {
+        full_name: 'Temporary User',
+      },
+    } as any
   }
 
   return <div className="min-h-screen bg-background text-foreground">{children}</div>

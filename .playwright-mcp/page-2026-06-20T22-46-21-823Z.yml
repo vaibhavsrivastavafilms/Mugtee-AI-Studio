@@ -1,0 +1,90 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Mugtee AI Studio" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e6]: Mugtee
+          - generic [ref=e7]: AI Studio
+        - navigation [ref=e8]:
+          - link "Pricing" [ref=e9] [cursor=pointer]:
+            - /url: /pricing
+          - link "About" [ref=e10] [cursor=pointer]:
+            - /url: /about
+        - button "Start Creating" [ref=e11] [cursor=pointer]:
+          - text: Start Creating
+          - img [ref=e12]
+    - generic [ref=e14]:
+      - heading "MUGTEE The Creator Operating System" [level=1] [ref=e15]:
+        - generic [ref=e16]: MUGTEE
+        - text: The Creator Operating System
+      - paragraph [ref=e17]: Turn one idea into a complete reel.
+      - list "Pipeline outputs" [ref=e18]:
+        - listitem [ref=e19]:
+          - generic [ref=e20]: ✓
+          - text: Script
+        - listitem [ref=e21]:
+          - generic [ref=e22]: ✓
+          - text: Storyboard
+        - listitem [ref=e23]:
+          - generic [ref=e24]: ✓
+          - text: Voice
+        - listitem [ref=e25]:
+          - generic [ref=e26]: ✓
+          - text: Motion
+        - listitem [ref=e27]:
+          - generic [ref=e28]: ✓
+          - text: MP4
+      - generic [ref=e29]:
+        - button "Start Creating" [ref=e30] [cursor=pointer]:
+          - text: Start Creating
+          - img [ref=e31]
+        - link "Watch Demo" [ref=e33] [cursor=pointer]:
+          - /url: "#how-it-works"
+          - text: Watch Demo
+          - img [ref=e34]
+    - main [ref=e36]:
+      - region "Choose your workflow" [ref=e37]:
+        - article [ref=e38]:
+          - img [ref=e40]
+          - heading "Quick Cut" [level=2] [ref=e42]
+          - paragraph [ref=e43]: Generate a complete reel in minutes.
+          - paragraph [ref=e44]: Input an idea. Mugtee creates everything automatically.
+          - button "Start Quick Cut" [ref=e45] [cursor=pointer]:
+            - text: Start Quick Cut
+            - img [ref=e46]
+        - article [ref=e48]:
+          - img [ref=e50]
+          - heading "Director Mode" [level=2] [ref=e53]
+          - paragraph [ref=e54]: Control every scene.
+          - paragraph [ref=e55]: Edit script, visuals, motion, voice and timing.
+          - button "Open Director Mode" [ref=e56] [cursor=pointer]:
+            - text: Open Director Mode
+            - img [ref=e57]
+      - generic [ref=e60]:
+        - paragraph [ref=e61]: How It Works
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - generic [ref=e64]: "1"
+            - heading "Add Your Idea" [level=3] [ref=e65]
+            - paragraph [ref=e66]: Describe your reel.
+          - generic [ref=e67]: →
+          - generic [ref=e68]:
+            - generic [ref=e69]: "2"
+            - heading "AI Creates Everything" [level=3] [ref=e70]
+            - paragraph [ref=e71]: Script · Storyboard · Voice · Motion
+          - generic [ref=e72]: →
+          - generic [ref=e73]:
+            - generic [ref=e74]: "3"
+            - heading "Preview & Edit" [level=3] [ref=e75]
+            - paragraph [ref=e76]: Review every scene.
+          - generic [ref=e77]: →
+          - generic [ref=e78]:
+            - generic [ref=e79]: "4"
+            - heading "Export & Publish" [level=3] [ref=e80]
+            - paragraph [ref=e81]: Download MP4.
+      - generic [ref=e83]:
+        - heading "Built for Creators" [level=2] [ref=e84]
+        - paragraph [ref=e85]: Generate cinematic content faster than traditional workflows.
+      - button "Not sure? Compare workflows →" [ref=e87] [cursor=pointer]
+  - region "Notifications alt+T"

@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 
+const path = require('path')
+
+const reactRoot = path.dirname(require.resolve('react/package.json'))
+const reactDomRoot = path.dirname(require.resolve('react-dom/package.json'))
+
 const nextConfig = {
   // Standalone file tracing fails on Windows (ENOENT in collect-build-traces).
   // Set NEXT_OUTPUT_STANDALONE=1 for self-hosted Docker/Linux builds only.
@@ -24,10 +29,17 @@ const nextConfig = {
     optimizePackageImports: ['framer-motion'],
   },
 
-  turbopack: {},
+  turbopack: {
+    // Single React instance — @react-three/fiber breaks if Turbopack resolves a second copy.
+    resolveAlias: {
+      react: reactRoot,
+      'react-dom': reactDomRoot,
+    },
+  },
 
   images: {
     remotePatterns: [
+      { protocol: 'https', hostname: 'oikvspgxllujvgyxatbb.supabase.co', pathname: '/storage/v1/object/**' },
       { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },
@@ -43,6 +55,12 @@ const nextConfig = {
   },
 
   webpack(config, { dev }) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      react: reactRoot,
+      'react-dom': reactDomRoot,
+    }
+
     if (dev) {
       config.watchOptions = {
         poll: 2000,

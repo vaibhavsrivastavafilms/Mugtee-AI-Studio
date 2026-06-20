@@ -329,6 +329,7 @@ import {
   type SectionStatusMap,
 } from '@/lib/cinematic/section-generation-status'
 import { recordStageDuration } from '@/lib/generation/generation-stage-timing.client'
+import { clearStoredGenerationJobId } from '@/lib/generation/generation-job-session.client'
 import { generationStepToProgressStageId } from '@/lib/quick-cut/cinematic-generation-progress'
 import {
   deriveReelPipelineState,

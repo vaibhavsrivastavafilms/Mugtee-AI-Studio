@@ -47,6 +47,7 @@ const PILLAR_META: Record<string, { color: string; icon: any }> = {
   trend:         { color: 'text-rose-300 bg-rose-500/10 border-rose-500/30',     icon: TrendingUp },
 }
 const TYPE_ICON: Record<string, any> = { reel: Film, post: ImageIcon, carousel: LayoutList, short: MonitorPlay }
+const DEFAULT_START_DATE = ''
 
 export interface PlanDay {
   day_index: number
@@ -74,16 +75,15 @@ function readCreatorProfile(): { niche: string; audience: string } {
 export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { addContent } = useStore()
   const { guard, bump, upgradeOpen, setUpgradeOpen, upgradeReason } = useUsage()
-  const seed = readCreatorProfile()
-  const [niche, setNiche]       = useState(seed.niche)
-  const [audience, setAudience] = useState(seed.audience)
+  const [niche, setNiche]       = useState('general')
+  const [audience, setAudience] = useState('mass')
   const [platform, setPlatform] = useState<Platform>('instagram')
   const [tone, setTone]         = useState('storytelling')
   const [language, setLanguage] = useState('auto')
   const [goal, setGoal]         = useState('engagement')
   const [frequency, setFrequency] = useState('daily')
   const [days, setDays]         = useState(7)
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [startDate, setStartDate] = useState(DEFAULT_START_DATE)
   const [loading, setLoading]   = useState(false)
   const [regenIdx, setRegenIdx] = useState<number | null>(null)
   const [strategy, setStrategy] = useState<string>('')
@@ -96,6 +96,7 @@ export function WeeklyPlannerDialog({ open, onOpenChange }: { open: boolean; onO
     if (open) {
       const s = readCreatorProfile()
       setNiche(s.niche); setAudience(s.audience)
+      setStartDate((value) => value || format(new Date(), 'yyyy-MM-dd'))
     }
   }, [open])
 

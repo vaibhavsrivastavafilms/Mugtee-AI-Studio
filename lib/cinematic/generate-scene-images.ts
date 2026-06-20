@@ -50,6 +50,7 @@ import {
   type SceneImageDuplicate,
 } from '@/lib/cinematic/scene-image-prompt'
 import { resolveStyleTemplatePromptPrefix } from '@/lib/templates/style-templates'
+import { resolveProviderRouting } from '@/lib/economics/provider-routing.server'
 
 export type GenerateSceneImagesInput = {
   scenes: GeneratedScene[]
@@ -80,6 +81,7 @@ export type GenerateSceneImagesInput = {
   visualBible?: VisualBible | null
   outputAlignmentControls?: OutputAlignmentControls | null
   styleTemplateId?: string | null
+  generationMode?: import('@/lib/economics/generation-mode').GenerationMode
 }
 
 export type GenerateSceneImagesResult = {
@@ -193,6 +195,10 @@ export async function generateSceneImages(
   const sequenceCoherence = blueprintSource.length
     ? validateSequenceCoherence(blueprintSource)
     : undefined
+
+  const imageTier = resolveProviderRouting({
+    generationMode: input.generationMode,
+  }).image
 
   let anyMock = !canGenerate
   const imageFailures: Array<{ sceneId: string; attempted: string[] }> = []
