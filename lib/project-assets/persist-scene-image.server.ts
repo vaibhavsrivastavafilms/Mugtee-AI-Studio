@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
 import { logStoryboardFrame } from '@/lib/cinematic/generation-logger'
+import type { ImageUploadTraceSession } from '@/lib/export/image-upload-trace.server'
 
 export type PersistSceneImageAssetInput = {
   userId: string
@@ -16,6 +17,7 @@ export type PersistSceneImageAssetInput = {
   sequenceIndex?: number | null
   metadata?: Record<string, unknown>
   supabase?: SupabaseClient
+  trace?: ImageUploadTraceSession
 }
 
 /** Insert a storyboard still into project_assets (kind=image) for export/library tracking. */
@@ -29,6 +31,8 @@ export async function persistSceneImageAsset(
   if (url.startsWith('data:image/svg')) return null
 
   const supabase = input.supabase ?? createSupabaseServerClient()
+  const storagePathFromUrl = extractStoragePathFromUrl(url)
+  const storagePath = input.storagePath?.trim() || storagePathFromUrl || null
   const metadata: Record<string, unknown> = {
     ...(input.metadata ?? {}),
     ...(input.sceneId ? { scene_id: input.sceneId } : {}),
@@ -59,6 +63,12 @@ export async function persistSceneImageAsset(
       sceneId: input.sceneId,
       message: error.message,
     })
+    input.trace?.recordStorageResponse('dbInsert', {
+      ok: false,
+      path: `project_assets:${input.sceneId ?? 'unknown'}`,
+      error,
+      detail: 'project_assets insert failed',
+    })
     logStoryboardFrame(projectId, {
       frameId: input.sceneId ?? 'unknown',
       imageUrl: url,
@@ -68,8 +78,19 @@ export async function persistSceneImageAsset(
     return null
   }
 
-  const storagePath =
-    input.storagePath?.trim() || extractStoragePathFromUrl(url) || null
+  input.trace?.recordStorageResponse('dbInsert', {
+    ok: true,
+    path: `project_assets:${data?.id ?? input.sceneId ?? 'unknown'}`,
+    detail: `storage_path=${storagePath ?? 'null'}`,
+  })
+  if (input.trace) {
+    input.trace.dbUpdated = Boolean(data?.id)
+    input.trace.thumbnailUrl = data?.url ?? url
+    if (storagePath && !input.trace.storagePath) {
+      input.trace.storagePath = storagePath
+    }
+  }
+
   logStoryboardFrame(projectId, {
     frameId: input.sceneId ?? data?.id ?? 'unknown',
     imageUrl: data?.url ?? url,
@@ -132,6 +153,7 @@ export async function persistGeneratedSceneImages(params: {
   scenes: Array<{
     id: string
     imageUrl?: string | null
+    imageAssetPath?: string | null
     imagePrompt?: string | null
     title?: string | null
   }>
@@ -147,6 +169,7 @@ export async function persistGeneratedSceneImages(params: {
       userId: params.userId,
       projectId: params.projectId,
       url: imageUrl,
+      storagePath: scene.imageAssetPath?.trim() || undefined,
       prompt: scene.imagePrompt ?? null,
       title: scene.title ?? null,
       sceneId: scene.id,

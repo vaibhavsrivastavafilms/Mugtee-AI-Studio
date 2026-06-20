@@ -25,6 +25,7 @@ import {
   IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
   ImageGenerationUnavailableError,
 } from '@/lib/ai/image-provider-errors'
+import { StorageUploadError } from '@/lib/storage/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -155,6 +156,18 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError('generate-images', err)
+    if (err instanceof StorageUploadError) {
+      return NextResponse.json(
+        {
+          error: err.status,
+          message: err.message,
+          bucket: err.bucket,
+          path: err.path,
+          supabaseError: err.supabaseError,
+        },
+        { status: 502 }
+      )
+    }
     if (err instanceof ImageGenerationUnavailableError) {
       return NextResponse.json(
         {

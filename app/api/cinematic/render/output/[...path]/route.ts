@@ -7,8 +7,9 @@ export const dynamic = 'force-dynamic'
 /** Internal film output stub — structured not-ready until FFmpeg provider lands. */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
+  { params }: { params: Promise<{ path: string[] }> }
+) {const { path } = await params
+  
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -17,7 +18,7 @@ export async function GET(
     return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
   }
 
-  const segments = params.path ?? []
+  const segments = path ?? []
   const filename = segments[segments.length - 1] ?? 'film.mp4'
   const digest = filename.replace(/\.mp4$/i, '')
 

@@ -5,40 +5,32 @@ import {
   type ExecuteWithFallbackResult,
   type ProviderId,
 } from '@/lib/ai/providers/types'
-import { recordProviderFailure, recordProviderSuccess, isProviderHealthy } from '@/lib/ai/providers/health'
+import {
+  getCooldownRemainingMs,
+  recordProviderFailure,
+  recordProviderSuccess,
+  isProviderHealthy,
+} from '@/lib/ai/providers/health'
 import { getProviderAttemptOrder } from '@/lib/ai/providers/task-routing'
+import { getProviderModel } from '@/lib/ai/providers/config.server'
+import { classifyProviderError, isNonRetryableClassified } from '@/lib/ai/providers/error-classifier'
+import { getProviderInstance } from '@/lib/ai/providers/provider-registry.server'
+import {
+  logAIProviderAttempt,
+  logAIProviderResult,
+  logAIRouter,
+  newProviderRequestId,
+} from '@/lib/ai/providers/trace.server'
+import {
+  maxRetryAfterSeconds,
+  type ProviderFailureSummary,
+} from '@/lib/ai/providers/provider-diagnostics.types'
 import { sleep } from '@/lib/ai/providers/shared'
-import { GeminiProvider } from '@/lib/ai/providers/providers/gemini-provider'
-import { GroqProvider } from '@/lib/ai/providers/providers/groq-provider'
-import { OpenAIProvider } from '@/lib/ai/providers/providers/openai-provider'
-import { OpenRouterProvider } from '@/lib/ai/providers/providers/openrouter-provider'
-import { DeepSeekProvider } from '@/lib/ai/providers/providers/deepseek-provider'
 
-const PROVIDER_INSTANCES: Record<ProviderId, AIProvider> = {
-  openai: new OpenAIProvider(),
-  gemini: new GeminiProvider(),
-  groq: new GroqProvider(),
-  openrouter: new OpenRouterProvider(),
-  deepseek: new DeepSeekProvider(),
-}
+export { getProviderInstance } from '@/lib/ai/providers/provider-registry.server'
 
 const MAX_RETRIES_PER_PROVIDER = 2
 const RETRY_BACKOFF_MS = [400, 1200]
-const NON_RETRYABLE_HTTP_STATUSES = new Set([429, 402, 404])
-
-/** Quota, billing, and missing-model errors should fail over immediately. */
-function isNonRetryableProviderError(err: Error): boolean {
-  const msg = err.message
-  const httpMatch = msg.match(/\bHTTP\s+(\d{3})\b/i)
-  if (httpMatch) {
-    const status = Number(httpMatch[1])
-    if (NON_RETRYABLE_HTTP_STATUSES.has(status)) return true
-  }
-  if (/\b429\b/.test(msg) && /quota|rate.?limit/i.test(msg)) return true
-  if (/\b402\b/.test(msg) && /insufficient|balance|payment/i.test(msg)) return true
-  if (/\b404\b/.test(msg) && /not found|no endpoints/i.test(msg)) return true
-  return false
-}
 
 const FRIENDLY_ERRORS: Record<AITask, string> = {
   hook: 'Hook generation is taking a break — try again in a moment.',
@@ -49,10 +41,6 @@ const FRIENDLY_ERRORS: Record<AITask, string> = {
   storyboard: 'Storyboard generation paused — try again shortly.',
   voice: 'Voice generation paused — try again shortly.',
   research: 'Research generation paused — try again shortly.',
-}
-
-export function getProviderInstance(id: ProviderId): AIProvider {
-  return PROVIDER_INSTANCES[id]
 }
 
 export function getProviderForTask(task: AITask): AIProvider | null {
@@ -69,17 +57,56 @@ async function runWithRetries<T>(
   provider: AIProvider,
   fn: (provider: AIProvider) => Promise<T>
 ): Promise<T> {
+  const model = getProviderModel(provider.id)
   let lastError: Error | undefined
+  let lastClassification = classifyProviderError('unknown')
 
   for (let attempt = 0; attempt <= MAX_RETRIES_PER_PROVIDER; attempt++) {
+    const requestId = newProviderRequestId()
+    const startedAt = new Date().toISOString()
+    const started = Date.now()
+
+    logAIProviderAttempt({
+      provider: provider.id,
+      model,
+      requestId,
+      startedAt,
+    })
+
     try {
       const result = await fn(provider)
       recordProviderSuccess(provider.id, task)
+      logAIProviderResult({
+        provider: provider.id,
+        success: true,
+        httpStatus: 200,
+        latencyMs: Date.now() - started,
+        tokens: null,
+        finishReason: 'stop',
+        errorCode: null,
+        errorMessage: null,
+        retryable: false,
+      })
       return result
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
-      recordProviderFailure(provider.id, lastError.message, task)
-      if (isNonRetryableProviderError(lastError)) break
+      lastClassification = classifyProviderError(lastError)
+      recordProviderFailure(provider.id, lastClassification.message, task, {
+        status: lastClassification.httpStatus,
+        errorCode: lastClassification.kind,
+      })
+      logAIProviderResult({
+        provider: provider.id,
+        success: false,
+        httpStatus: lastClassification.httpStatus,
+        latencyMs: Date.now() - started,
+        tokens: null,
+        finishReason: null,
+        errorCode: lastClassification.kind,
+        errorMessage: lastClassification.reason,
+        retryable: lastClassification.retryable,
+      })
+      if (isNonRetryableClassified(lastClassification)) break
       if (attempt < MAX_RETRIES_PER_PROVIDER) {
         await sleep(RETRY_BACKOFF_MS[attempt] ?? 1200)
       }
@@ -99,43 +126,110 @@ export async function executeWithFallback<T extends { provider: ProviderId }>(
 ): Promise<ExecuteWithFallbackResult<T>> {
   const order = getProviderAttemptOrder(task)
   const attemptedProviders: ProviderId[] = []
-  const errors: string[] = []
+  const providerFailures: ProviderFailureSummary[] = []
 
   if (order.length === 0) {
-    throw createFriendlyError(task, 'No AI provider keys configured')
+    throw createAggregatedError(task, [
+      {
+        provider: 'openai',
+        status: null,
+        reason: 'No AI provider keys configured',
+        errorCode: 'unconfigured',
+        retryable: false,
+        skipped: true,
+      },
+    ])
   }
 
   for (const id of order) {
     const provider = getProviderInstance(id)
-    if (!provider.isAvailable()) continue
-    if (!isProviderHealthy(id, task)) {
-      errors.push(`${id}: unhealthy (cooldown)`)
+    const cooldownRemaining = getCooldownRemainingMs(id, task)
+    const healthy = isProviderHealthy(id, task)
+    const available = provider.isAvailable()
+
+    if (!available) {
+      logAIRouter({
+        provider: id,
+        healthy: false,
+        cooldownRemaining: 0,
+        selected: false,
+        reason: 'not configured',
+      })
+      providerFailures.push({
+        provider: id,
+        status: null,
+        reason: 'Not configured',
+        errorCode: 'unconfigured',
+        retryable: false,
+        skipped: true,
+      })
       continue
     }
+
+    if (!healthy) {
+      logAIRouter({
+        provider: id,
+        healthy: false,
+        cooldownRemaining,
+        selected: false,
+        reason: `cooldown (${Math.ceil(cooldownRemaining / 1000)}s remaining)`,
+      })
+      providerFailures.push({
+        provider: id,
+        status: null,
+        reason: 'In cooldown — retry shortly',
+        errorCode: 'cooldown_skip',
+        retryable: true,
+        cooldownRemaining,
+        skipped: true,
+      })
+      continue
+    }
+
+    logAIRouter({
+      provider: id,
+      healthy: true,
+      cooldownRemaining: 0,
+      selected: true,
+      reason: 'selected for attempt',
+    })
 
     attemptedProviders.push(id)
     try {
       const result = await runWithRetries(task, provider, fn)
       return { ...result, attemptedProviders }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      errors.push(`${id}: ${message}`)
+      const classified = classifyProviderError(err)
+      providerFailures.push({
+        provider: id,
+        status: classified.httpStatus,
+        reason: classified.reason,
+        errorCode: classified.kind,
+        retryable: classified.retryable,
+      })
       console.warn(`[ai-router] ${task} failed on ${id}, trying next provider`)
     }
   }
 
-  throw createFriendlyError(
-    task,
-    errors.length ? errors.join('; ') : 'All providers failed'
-  )
+  throw createAggregatedError(task, providerFailures)
 }
 
-function createFriendlyError(task: AITask, detail: string): AIProviderError {
+function createAggregatedError(
+  task: AITask,
+  providerFailures: ProviderFailureSummary[]
+): AIProviderError {
+  const detail =
+    providerFailures.length > 0
+      ? providerFailures.map((f) => `${f.provider}: ${f.reason}`).join('; ')
+      : 'All providers failed'
+
   return new AIProviderError(
     detail,
     FRIENDLY_ERRORS[task] ?? 'Generation paused — try again.',
     undefined,
-    task
+    task,
+    providerFailures,
+    maxRetryAfterSeconds(providerFailures)
   )
 }
 

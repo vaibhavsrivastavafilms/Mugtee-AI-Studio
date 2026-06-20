@@ -52,13 +52,24 @@ import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
-import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import {
+  Mp4ExportEvents,
+  resolveMp4ExportFailureStage,
+  type Mp4ExportStage,
+} from '@/lib/analytics/mp4-export-events'
 import {
   trackMp4ExportServer,
   trackMp4FailedServer,
 } from '@/lib/analytics/mp4-export-track.server'
 import { computeRenderTotalSec } from '@/lib/cinematic/scene-duration'
 import { exportApiCheckpoint } from '@/lib/export/export-api-checkpoints.server'
+import { verifyRenderExportInputs } from '@/lib/export/verify-render-export-inputs.server'
+import {
+  logJobStatusTransition,
+  logRenderCompletion,
+  logRenderJobTrace,
+  renderJobTraceFromStatus,
+} from '@/lib/export/render-job-trace.server'
 
 export type ReelExportStatus =
   | 'pending'
@@ -481,67 +492,112 @@ export async function queueReelExportForProject(params: {
   }
 
   exportApiCheckpoint('background_scheduled', { projectId: params.row.id, jobId })
-  runExportInBackground(() =>
-    orchestrateRemotionReel(input, {
-      jobId,
-      baseUrl: params.baseUrl,
-      musicUrl: null,
-      sceneMotion: parseSceneMotionMap(params.row.scene_motion),
-      exportStartedAt,
-    })
-      .then(() => {
-        recordExportMetricSuccess(Date.now() - exportStartedAt)
+  runExportInBackground(async () => {
+    const failExportJob = async (err: unknown, stage: Mp4ExportStage) => {
+      logError('reels.export.async', err)
+      recordExportMetricFailure()
+      const exportError = friendlyExportError(err)
+      logRenderCompletion({
+        jobId,
+        projectId: params.row.id,
+        durationMs: Date.now() - exportStartedAt,
+        outputPath: null,
+        mp4Exists: false,
+        status: 'failed',
+        error: exportError,
       })
-      .catch((err) => {
-        logError('reels.export.async', err)
-        recordExportMetricFailure()
-        const exportError = friendlyExportError(err)
-        void trackMp4FailedServer({
-          userId: params.userId,
-          projectId: params.row.id,
-          stage: 'render_segments',
-          err,
-          route: 'POST /api/reels/export',
-        })
-        exportLog.error('async export', err, {
-          jobId,
-          projectId: params.row.id,
-          userId: params.userId,
-          reason: exportError,
-        })
-        updateRenderJob(jobId, {
-          status: 'failed',
-          stage: 'error',
-          label: exportError,
-          error: exportError,
-          percent: 0,
-        })
-        void syncExportJobFromRenderJob({
-          jobId,
-          status: 'failed',
-          progress: 0,
-          error: exportError,
-          label: exportError,
-          stage: 'error',
-        })
-        void createSupabaseServerClient()
-          .from('cinematic_projects')
-          .update({
-            generation_error: exportError.slice(0, 500),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', params.row.id)
-          .eq('user_id', params.userId)
-          .then(() => undefined)
-          .catch(() => undefined)
-        void updateProjectReelStatus({
-          userId: params.userId,
-          projectId: params.row.id,
-          reelStatus: 'failed',
-          reelJobId: null,
-        }).catch(() => undefined)
+      void trackMp4FailedServer({
+        userId: params.userId,
+        projectId: params.row.id,
+        stage,
+        err,
+        route: 'POST /api/reels/export',
       })
-  )
+      exportLog.error('async export', err, {
+        jobId,
+        projectId: params.row.id,
+        userId: params.userId,
+        reason: exportError,
+      })
+      const prior = getRenderJob(jobId)
+      logJobStatusTransition({
+        jobId,
+        from: prior?.status ?? null,
+        to: 'failed',
+        stage: 'error',
+        label: exportError,
+        reason: stage,
+      })
+      updateRenderJob(jobId, {
+        status: 'failed',
+        stage: 'error',
+        label: exportError,
+        error: exportError,
+        percent: 0,
+      })
+      const failedJob = getRenderJob(jobId)
+      if (failedJob) logRenderJobTrace(renderJobTraceFromStatus(failedJob, false))
+      await syncExportJobFromRenderJob({
+        jobId,
+        status: 'failed',
+        progress: 0,
+        error: exportError,
+        label: exportError,
+        stage: 'error',
+      })
+      void createSupabaseServerClient()
+        .from('cinematic_projects')
+        .update({
+          generation_error: exportError.slice(0, 500),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.row.id)
+        .eq('user_id', params.userId)
+        .then(() => undefined)
+        .catch(() => undefined)
+      void updateProjectReelStatus({
+        userId: params.userId,
+        projectId: params.row.id,
+        reelStatus: 'failed',
+        reelJobId: null,
+      }).catch(() => undefined)
+    }
+
+    try {
+      updateRenderJob(jobId, {
+        status: 'running',
+        stage: 'prepare',
+        label: 'Verifying render assets…',
+        percent: 5,
+      })
+      logJobStatusTransition({
+        jobId,
+        from: 'queued',
+        to: 'running',
+        stage: 'prepare',
+        label: 'Verifying render assets…',
+      })
+      await verifyRenderExportInputs({
+        row: exportRow,
+        scenes,
+        includeVoiceover: params.includeVoiceover,
+        jobId,
+      })
+      await orchestrateRemotionReel(input, {
+        jobId,
+        baseUrl: params.baseUrl,
+        musicUrl: null,
+        sceneMotion: parseSceneMotionMap(params.row.scene_motion),
+        exportStartedAt,
+      })
+      recordExportMetricSuccess(Date.now() - exportStartedAt)
+      const doneJob = getRenderJob(jobId)
+      if (doneJob) logRenderJobTrace(renderJobTraceFromStatus(doneJob, Boolean(doneJob.videoUrl)))
+    } catch (err) {
+      const stage = resolveMp4ExportFailureStage(err)
+      await failExportJob(err, stage)
+    }
+  })
 
   return { jobId, status: 'queued' }
 }

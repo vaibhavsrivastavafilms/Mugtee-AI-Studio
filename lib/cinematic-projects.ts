@@ -1003,9 +1003,11 @@ export async function loadProject(id: string): Promise<CinematicProjectRow> {
 
 /** Permanently remove a project from the library (owner-only via RLS). */
 export async function deleteProject(id: string): Promise<void> {
-  const supabase = requireBrowserClient()
-  const { error } = await supabase.from('cinematic_projects').delete().eq('id', id)
-  if (error) throwIfUnavailable(error)
+  const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Delete failed (${res.status})`)
+  }
 }
 
 /** Clone a project row into a new draft (no video/reel output copied). */

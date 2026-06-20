@@ -19,6 +19,10 @@ import {
   computeRenderTotalSec,
 } from '@/lib/cinematic/scene-duration'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
+import {
+  downloadSceneImageForRender,
+  downloadVoiceAssetForRender,
+} from '@/lib/export/project-asset-download.server'
 import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
@@ -35,9 +39,8 @@ import {
   findScenesMissingExportImages,
   missingScenesExportMessage,
   resolveSceneExportAssetPath,
-  resolveSceneExportImageUrl,
 } from '@/lib/export/scene-export-validation'
-import { refreshStoryboardUrl } from '@/lib/storyboard/storyboard-url-service.server'
+import { resolveSceneRenderImageUrl } from '@/lib/export/scene-render-image.server'
 import {
   logPipelineStepComplete,
   logPipelineStepError,
@@ -48,9 +51,13 @@ import {
   estimateRemotionRenderMemory,
   logRemotionRenderDiagnostics,
   resolveDisallowParallelEncoding,
+  resolveFfmpegThreadCount,
   resolveOffthreadVideoCacheBytes,
   resolveRemotionConcurrency,
+  resolveRemotionCrf,
+  resolveRemotionX264Preset,
 } from '@/lib/remotion/render-settings.server'
+import { logMemoryTrace } from '@/lib/video/render-memory-trace.server'
 import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
 
 let cachedBundleLocation: string | null = null
@@ -100,6 +107,7 @@ async function getServeUrl(): Promise<string> {
 export type RenderRemotionReelInput = {
   scenes: GeneratedScene[]
   voiceUrl: string | null
+  voiceAssetPath?: string | null
   musicUrl?: string | null
   title: string
   hook?: string
@@ -133,26 +141,52 @@ export async function renderRemotionReel(
     let httpAssetCount = 0
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
-      let imageUrl =
-        resolveSceneExportImageUrl(scene)?.trim() ?? scene.imageUrl?.trim() ?? ''
-      if (!imageUrl) {
-        const assetPath = resolveSceneExportAssetPath(scene)
-        if (assetPath) {
-          imageUrl = (await refreshStoryboardUrl(assetPath))?.trim() ?? ''
-        }
-      }
+      const imageUrl = (await resolveSceneRenderImageUrl(scene))?.trim() ?? ''
+      const assetPath = resolveSceneExportAssetPath(scene)
+      console.info(
+        '[IMAGE_UPLOAD_TRACE]',
+        JSON.stringify({
+          scene: i + 1,
+          phase: 'remotion_input',
+          remotionInputUrl: imageUrl.includes('pollinations') ? null : imageUrl,
+          providerUrl: scene.imageUrl?.includes('pollinations') ? scene.imageUrl : null,
+          usesSignedUrl: Boolean(imageUrl && !imageUrl.includes('pollinations.ai')),
+          imageAssetPath: assetPath,
+        })
+      )
       if (!imageUrl) {
         const missing = findScenesMissingExportImages(timedScenes)
         logPipelineStepError('export', null, missingScenesExportMessage(missing), {
           sceneIndex: i + 1,
           sceneId: scene.id,
+          imageAssetPath: assetPath,
         })
         throw new Error(missingScenesExportMessage(missing))
       }
+      renderPipelineLog('RENDER_PREP', {
+        phase: 'scene_download_url',
+        sceneIndex: i + 1,
+        sceneId: scene.id,
+        imageAssetPath: assetPath,
+        imageUrl: imageUrl.includes('pollinations') ? '[ephemeral]' : imageUrl,
+        status: 'resolved',
+      })
       const ext = extFromUrl(imageUrl, '.jpg')
       const localImage = path.join(workDir, `scene_${i}${ext}`)
       try {
-        await downloadToFile(imageUrl, localImage)
+        const download = await downloadSceneImageForRender({
+          assetPath,
+          url: imageUrl,
+          destPath: localImage,
+        })
+        renderPipelineLog('RENDER_PREP', {
+          phase: 'scene_download',
+          sceneIndex: i + 1,
+          sceneId: scene.id,
+          imageAssetPath: assetPath,
+          method: download.method,
+          status: 'downloaded',
+        })
       } catch (err) {
         const sceneNum = i + 1
         const detail = err instanceof Error ? err.message : 'download failed'
@@ -212,7 +246,11 @@ export async function renderRemotionReel(
     if (input.voiceUrl?.trim()) {
       const ext = extFromUrl(input.voiceUrl, '.mp3')
       const voicePath = path.join(workDir, `voice${ext}`)
-      await downloadToFile(input.voiceUrl, voicePath)
+      await downloadVoiceAssetForRender({
+        assetPath: input.voiceAssetPath,
+        url: input.voiceUrl,
+        destPath: voicePath,
+      })
       voiceAudioSrc = isHttpUrl(input.voiceUrl)
         ? input.voiceUrl.trim()
         : await localPathToDataUrl(voicePath)
@@ -277,6 +315,9 @@ export async function renderRemotionReel(
     const concurrency = resolveRemotionConcurrency()
     const disallowParallelEncoding = resolveDisallowParallelEncoding()
     const offthreadVideoCacheSizeInBytes = resolveOffthreadVideoCacheBytes()
+    const x264Preset = resolveRemotionX264Preset()
+    const crf = resolveRemotionCrf()
+    const ffmpegThreads = resolveFfmpegThreadCount()
     const memoryEstimate = estimateRemotionRenderMemory({
       durationInFrames: composition.durationInFrames,
       concurrency,
@@ -286,11 +327,26 @@ export async function renderRemotionReel(
       httpAssetCount,
     })
     logRemotionRenderDiagnostics(memoryEstimate)
+    logMemoryTrace({
+      projectId: input.projectId,
+      sceneCount: reelScenes.length,
+      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      fps: REEL_FPS,
+      duration: durationSecEstimate,
+      estimatedFrames: composition.durationInFrames,
+      renderer: 'renderMedia',
+      codec: 'h264',
+      threads: ffmpegThreads,
+      concurrency,
+    })
     mp4RenderLog(5, 'starting Remotion renderMedia', {
       projectId: input.projectId,
       outputPath: input.outputPath,
       concurrency,
       disallowParallelEncoding,
+      x264Preset,
+      crf,
+      ffmpegThreads,
       fps: REEL_FPS,
       resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
       sceneCount: reelScenes.length,
@@ -313,8 +369,17 @@ export async function renderRemotionReel(
       imageFormat: 'jpeg',
       jpegQuality: 90,
       concurrency,
+      crf,
+      x264Preset,
       disallowParallelEncoding,
       offthreadVideoCacheSizeInBytes,
+      ffmpegOverride: ({ type, args }) => {
+        if (type !== 'stitcher') return args
+        if (args.some((a) => a === '-threads')) return args
+        const idx = args.indexOf('-c:v')
+        if (idx === -1) return [...args, '-threads', String(ffmpegThreads)]
+        return [...args.slice(0, idx + 2), '-threads', String(ffmpegThreads), ...args.slice(idx + 2)]
+      },
       chromiumOptions: {
         enableMultiProcessOnLinux: false,
       },

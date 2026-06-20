@@ -5,24 +5,26 @@ const nextConfig = {
   // Set NEXT_OUTPUT_STANDALONE=1 for self-hosted Docker/Linux builds only.
   ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
 
+  serverExternalPackages: [
+    'ffmpeg-static',
+    'mongodb',
+    '@remotion/renderer',
+    '@remotion/bundler',
+    'remotion',
+  ],
+
+  outputFileTracingIncludes: {
+    '/api/render/reel': ['./lib/remotion/compositions/**/*'],
+    '/api/quick-cut/config': ['./lib/remotion/compositions/**/*'],
+    '/api/reels/export': ['./lib/remotion/compositions/**/*'],
+    '/api/timeline/render': ['./lib/remotion/compositions/**/*'],
+  },
+
   experimental: {
     optimizePackageImports: ['framer-motion'],
-    // Next 14.2: keep native/heavy packages out of webpack bundles (avoids BSON OOM at build).
-    serverComponentsExternalPackages: [
-      'ffmpeg-static',
-      'mongodb',
-      '@remotion/renderer',
-      '@remotion/bundler',
-      'remotion',
-    ],
-    // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them.
-    outputFileTracingIncludes: {
-      '/api/render/reel': ['./lib/remotion/compositions/**/*'],
-      '/api/quick-cut/config': ['./lib/remotion/compositions/**/*'],
-      '/api/reels/export': ['./lib/remotion/compositions/**/*'],
-      '/api/timeline/render': ['./lib/remotion/compositions/**/*'],
-    },
   },
+
+  turbopack: {},
 
   images: {
     remotePatterns: [

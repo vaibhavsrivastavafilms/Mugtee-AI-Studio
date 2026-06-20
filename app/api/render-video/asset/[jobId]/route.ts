@@ -8,9 +8,10 @@ export const dynamic = 'force-dynamic'
 /** Serves locally rendered MP4 when user is not signed in (dev / landing). */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { jobId: string } }
-) {
-  const safeId = params.jobId.replace(/[^a-zA-Z0-9_-]/g, '')
+  { params }: { params: Promise<{ jobId: string }> }
+) {const { jobId } = await params
+  
+  const safeId = jobId.replace(/[^a-zA-Z0-9_-]/g, '')
   const filePath = path.join(process.cwd(), '.tmp', 'renders', `${safeId}.mp4`)
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: 'Render not found' }, { status: 404 })

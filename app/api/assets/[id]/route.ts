@@ -6,8 +6,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> }
+) {const { id } = await params
+  
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -16,13 +17,13 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const engine = createAssetEngine(supabase, user.id)
-    const asset = await engine.getAsset(params.id)
+    const asset = await engine.getAsset(id)
     if (!asset) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const [graph, insights, versions] = await Promise.all([
-      engine.getGraph(params.id),
-      engine.insights(params.id),
-      engine.versions(params.id),
+      engine.getGraph(id),
+      engine.insights(id),
+      engine.versions(id),
     ])
 
     return NextResponse.json({ asset, graph, insights, versions })

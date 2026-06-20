@@ -1,7 +1,9 @@
 import { getAnthropicClient, CLAUDE_SCRIPT_MODEL } from '@/lib/ai/anthropic-client'
 import { allowAnthropicScript } from '@/lib/ai/free-tier'
 import { generateScriptViaRouter } from '@/lib/ai/providers/generation-bridge'
-import { getAvailableProviders } from '@/lib/ai/providers'
+import { getAvailableProviders, AIProviderError } from '@/lib/ai/providers'
+import { isScriptGenerationMockEnabled } from '@/lib/ai/mock/mock-script-mode.server'
+import { buildMockScriptWithLog } from '@/lib/ai/mock/mock-script-fallback.server'
 import {
   buildCinematicScriptPrompt,
 } from '@/lib/ai/prompts/cinematic/build-prompt'
@@ -28,7 +30,6 @@ import { normalizeProjectLanguage } from '@/lib/cinematic/language-detection'
 import type { ViralStructureAnalysis } from '@/lib/cinematic/viral-structure'
 import type { ViralScript, VisualStyle } from '@/lib/cinematic/workflow-state'
 import {
-  buildMockCinematicOutput,
   finalizeCinematicOutput,
   normalizeCinematicOutput,
   validateCinematicOutput,
@@ -327,7 +328,10 @@ async function generateWithClaude(
 }
 
 /** Multi-provider script generation via AI router, with Anthropic as legacy fallback. */
-async function generateScript(input: GenInput, retryNote?: string) {
+async function generateScript(
+  input: GenInput,
+  retryNote?: string
+): Promise<{ parsed: Record<string, unknown>; usedMock?: boolean }> {
   const userPrompt = buildUserPrompt(input, retryNote)
   const systemPrompt = buildSystemPrompt(input.scriptArchetype)
   const errors: string[] = []
@@ -360,10 +364,14 @@ async function generateScript(input: GenInput, retryNote?: string) {
         console.log('[generate-script] router provider', routerResult.provider)
       }
       if (hasUsableLlmScript(routerResult.parsed, input.topic)) {
-        return routerResult.parsed
+        return {
+          parsed: routerResult.parsed,
+          usedMock: routerResult.mock === true,
+        }
       }
       errors.push(`${routerResult.provider}_echo_or_empty`)
     } catch (err) {
+      if (err instanceof AIProviderError) throw err
       if (process.env.NODE_ENV === 'development') {
         console.error('[generate-script] router failed', err)
       }
@@ -376,7 +384,7 @@ async function generateScript(input: GenInput, retryNote?: string) {
   if (allowAnthropicScript()) {
     try {
       const claude = await generateWithClaude(userPrompt, systemPrompt, retryNote)
-      if (hasUsableLlmScript(claude, input.topic)) return claude
+      if (hasUsableLlmScript(claude, input.topic)) return { parsed: claude }
       errors.push('claude_echo_or_empty')
     } catch {
       errors.push('claude_failed')
@@ -578,7 +586,7 @@ export async function runScriptGeneration(
     const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
     const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
     const output = {
-      ...buildMockCinematicOutput({
+      ...buildMockScriptWithLog({
         topic,
         tone,
         duration,
@@ -586,6 +594,8 @@ export async function runScriptGeneration(
         virloContext,
         viralStructure,
         scriptArchetype: archetypeMeta,
+        sessionSeed: input.sessionSeed,
+        reason: 'missing_api_key',
       }),
       ...angleMeta,
     }
@@ -629,6 +639,8 @@ export async function runScriptGeneration(
       issues: [],
     }
 
+    let scriptUsedMock = false
+
     for (let attempt = 0; attempt <= maxSopRetries; attempt++) {
       let parsed: Record<string, unknown>
       if (attempt > 0) {
@@ -636,9 +648,13 @@ export async function runScriptGeneration(
         const retryNote = !validation.valid
           ? validation.issues.join(', ')
           : buildSopRetryNote(sopCompliance, niche)
-        parsed = await generateScript(genInput, retryNote)
+        const scriptResult = await generateScript(genInput, retryNote)
+        parsed = scriptResult.parsed
+        if (scriptResult.usedMock) scriptUsedMock = true
       } else {
-        parsed = await generateScript(genInput)
+        const scriptResult = await generateScript(genInput)
+        parsed = scriptResult.parsed
+        if (scriptResult.usedMock) scriptUsedMock = true
       }
 
       const shaped = shapeScriptFromLlm(parsed, {
@@ -679,7 +695,7 @@ export async function runScriptGeneration(
         })
     return {
       output,
-      mock: false,
+      mock: scriptUsedMock,
       virlo,
       language,
       visualStyle: resolvedVisualStyle,
@@ -695,22 +711,36 @@ export async function runScriptGeneration(
       ...(storyboard ?? {}),
     }
   } catch (err) {
-    if (!hasScriptGenerationKey()) {
+    const failures = err instanceof AIProviderError ? err.providerFailures : undefined
+    const allCooldown =
+      failures != null &&
+      failures.length > 0 &&
+      failures.every((f) => f.skipped && f.errorCode === 'cooldown_skip')
+    const mockReason = allCooldown ? 'providers_in_cooldown' : 'all_providers_failed'
+
+    if (isScriptGenerationMockEnabled() || !hasScriptGenerationKey()) {
       const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
-      const output = buildMockCinematicOutput({
-        topic,
-        tone,
-        duration,
-        niche,
-        virloContext,
-        viralStructure,
-        scriptArchetype: archetypeMeta,
-      })
+      const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
+      const output = {
+        ...buildMockScriptWithLog({
+          topic,
+          tone,
+          duration,
+          niche,
+          virloContext,
+          viralStructure,
+          scriptArchetype: archetypeMeta,
+          sessionSeed: input.sessionSeed,
+          reason: !hasScriptGenerationKey() ? 'missing_api_key' : mockReason,
+          providerFailures: failures,
+        }),
+        ...angleMeta,
+      }
       const viralScript = mergeViralScript(blueprint, output.script, output.hook)
       return {
         output,
         mock: true,
-        reason: 'provider_fallback',
+        reason: 'provider_mock_fallback',
         virlo,
         language,
         visualStyle: resolvedVisualStyle,
@@ -723,6 +753,7 @@ export async function runScriptGeneration(
         narrativeFrameworkId: narrativeFramework.id,
       }
     }
+    if (err instanceof AIProviderError) throw err
     throw err instanceof Error ? err : new Error('Script generation failed')
   }
 }

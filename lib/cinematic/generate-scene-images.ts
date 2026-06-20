@@ -278,7 +278,13 @@ export async function generateSceneImages(
 
     let imageUrl: string | null = null
     let imageAssetPath: string | undefined
+    let imageAssetId: string | undefined
+    let thumbnailUrl: string | undefined
     const attempted: string[] = []
+    const hasPersist =
+      Boolean(input.projectId?.trim()) &&
+      Boolean(input.userId?.trim()) &&
+      !input.variation
 
     attempted.push('openai-flux-fallback')
     try {
@@ -290,12 +296,33 @@ export async function generateSceneImages(
         filename,
         userId: input.userId,
         hasReferenceStyle: ctx.hasReferenceStyle,
+        imageTier,
+        ...(hasPersist
+          ? {
+              persist: {
+                userId: input.userId!.trim(),
+                projectId: input.projectId!.trim(),
+                sceneId: scene.id,
+                previousAssetId: scene.imageAssetId ?? null,
+                prompt: scenePrompt,
+                title: scene.title ?? null,
+                sequenceIndex: index + 1,
+              },
+            }
+          : {}),
       })
       imageUrl = result.url
       if (result.assetPath) imageAssetPath = result.assetPath
+      if (result.imageAssetId) imageAssetId = result.imageAssetId
+      if (result.thumbnailUrl) thumbnailUrl = result.thumbnailUrl
       if (result.provider) attempted.push(result.provider)
     } catch (err) {
       if (err instanceof ImageGenerationUnavailableError) throw err
+      const { StorageUploadError } = await import('@/lib/storage/errors')
+      if (err instanceof StorageUploadError) {
+        imageFailures.push({ sceneId: scene.id, attempted: [...attempted, err.status] })
+        throw err
+      }
     }
 
     if (!imageUrl) {
@@ -327,50 +354,27 @@ export async function generateSceneImages(
       imageAssetPath = filename
     }
 
-    if (
-      !input.variation &&
-      imageUrl &&
-      !imageAssetPath &&
-      input.projectId?.trim() &&
-      input.userId?.trim()
-    ) {
-      const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
-      if (isEphemeralRemoteImageUrl(imageUrl)) {
-        const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
-        const repaired = await persistRemoteImage({
-          remoteUrl: imageUrl,
-          userId: input.userId,
-          filename,
-        })
-        if (repaired && repaired !== imageUrl) {
-          imageUrl = repaired
-          const { extractStoragePathFromUrl } = await import('@/lib/storyboard/storyboard-asset')
-          imageAssetPath = extractStoragePathFromUrl(repaired) ?? filename
-        }
-      }
-    }
-
     if (input.variation) {
       scene.variationImageUrl = imageUrl
     } else {
       scene.imageUrl = imageUrl
       if (imageAssetPath) scene.imageAssetPath = imageAssetPath
-      if (input.projectId?.trim() && input.userId?.trim() && imageUrl) {
-        const { persistSceneImageAsset } = await import(
-          '@/lib/project-assets/persist-scene-image.server'
-        )
-        const { logPipelineStepStart } = await import('@/lib/cinematic/generation-logger')
-        logPipelineStepStart('assets', input.projectId, { sceneId: scene.id })
-        await persistSceneImageAsset({
-          userId: input.userId.trim(),
+      if (imageAssetId) scene.imageAssetId = imageAssetId
+      if (thumbnailUrl) scene.thumbnailUrl = thumbnailUrl
+      if (!thumbnailUrl && imageUrl) scene.thumbnailUrl = imageUrl
+
+      if (hasPersist && input.projectId?.trim()) {
+        const { verifyStorageIntegrity } = await import('@/lib/storage/verify-integrity.server')
+        await verifyStorageIntegrity({
           projectId: input.projectId.trim(),
-          url: imageUrl,
-          storagePath: imageAssetPath ?? filename,
-          prompt: scenePrompt,
-          title: scene.title ?? null,
-          sceneId: scene.id,
-          sequenceIndex: index + 1,
-          metadata: { source: 'generate-images', variation: false },
+          userId: input.userId!.trim(),
+          scenes: [
+            {
+              id: scene.id,
+              imageAssetId: scene.imageAssetId,
+              imageAssetPath: scene.imageAssetPath,
+            },
+          ],
         })
       }
     }

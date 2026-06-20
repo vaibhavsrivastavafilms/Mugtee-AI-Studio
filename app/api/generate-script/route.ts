@@ -48,7 +48,9 @@ import {
   resolveParsedIntentSync,
   serializeParsedIntent,
 } from '@/lib/input-understanding'
-import { getLastProviderForTask } from '@/lib/ai/providers'
+import { getLastProviderForTask, AIProviderError } from '@/lib/ai/providers'
+import { isScriptGenerationMockEnabled } from '@/lib/ai/mock/mock-script-mode.server'
+import { buildMockScriptWithLog } from '@/lib/ai/mock/mock-script-fallback.server'
 import {
   parseDirectorStudioContextFromBody,
   resolveDirectorStudioContextFromProject,
@@ -458,6 +460,47 @@ export async function POST(req: NextRequest) {
       const message = err instanceof Error ? err.message : 'Script generation failed'
       const stack = err instanceof Error ? err.stack : undefined
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })
+
+      const failures = err instanceof AIProviderError ? err.providerFailures : undefined
+      const allCooldown =
+        failures != null &&
+        failures.length > 0 &&
+        failures.every((f) => f.skipped && f.errorCode === 'cooldown_skip')
+
+      if (isScriptGenerationMockEnabled()) {
+        const virloContext = buildVirloContext(topic, {
+          platform,
+          tone,
+          duration,
+          niche,
+          sessionSeed,
+        })
+        const output = buildMockScriptWithLog({
+          topic,
+          tone,
+          duration,
+          niche,
+          virloContext,
+          sessionSeed,
+          reason: allCooldown
+            ? 'providers_in_cooldown'
+            : !hasScriptGenerationKey()
+              ? 'missing_api_key'
+              : 'all_providers_failed',
+          providerFailures: failures,
+        })
+        const validation = validateCinematicOutput(output, niche, topic)
+        return NextResponse.json({
+          output,
+          mock: true,
+          reason: 'provider_mock_fallback',
+          niche,
+          validation,
+          virlo: virloMetadataFromContext(virloContext),
+          ...(failures ? { providerFailures: failures } : {}),
+        })
+      }
+
       if (!hasScriptGenerationKey()) {
         const virloContext = buildVirloContext(topic, {
           platform,
@@ -475,6 +518,36 @@ export async function POST(req: NextRequest) {
           virlo: virloMetadataFromContext(virloContext),
         })
       }
+
+      if (err instanceof AIProviderError) {
+        logStepFailed('script', user.id, message)
+        logGenerationError(user.id, 'script', message, {
+          reason: 'provider_failed',
+          providers: err.providerFailures,
+        })
+        void trackServerError('openai', message, {
+          step: 'script',
+          topic: topic.slice(0, 40),
+          providers: err.providerFailures.map((p) => p.provider).join(','),
+        }, user.id)
+        console.error('[GENERATE_SCRIPT_ERROR]', { message, stack, providers: err.providerFailures })
+        return NextResponse.json(
+          {
+            error: 'AI providers temporarily unavailable.',
+            reason: 'provider_failed',
+            providers: err.providerFailures.map((p) => ({
+              provider: p.provider,
+              status: p.status,
+              reason: p.reason,
+              errorCode: p.errorCode,
+              retryable: p.retryable,
+            })),
+            retryAfterSeconds: err.retryAfterSeconds ?? 0,
+          },
+          { status: 502 }
+        )
+      }
+
       logStepFailed('script', user.id, message)
       logGenerationError(user.id, 'script', message, { reason: 'provider_failed' })
       void trackServerError(

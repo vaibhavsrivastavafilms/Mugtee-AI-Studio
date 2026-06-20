@@ -98,6 +98,10 @@ export type GeneratedScene = {
   imageUrl?: string | null
   /** Durable Supabase path for imageUrl refresh on load/export. */
   imageAssetPath?: string | null
+  /** project_assets.id — source of truth linkage. */
+  imageAssetId?: string | null
+  /** Fresh signed URL for display — regenerate on load, do not persist long-term. */
+  thumbnailUrl?: string | null
   /** Populated after Seedance scene video generation */
   videoUrl?: string | null
   videoThumbnailUrl?: string | null

@@ -8,6 +8,7 @@ import type { CreatorStyleFingerprint } from '@/lib/ai/style-fingerprint'
 import type { DirectorStudioContext } from '@/lib/director/types'
 import type { CreatorMemoryProfile } from '@/lib/director/memory/types'
 import type { CreatorIntelligenceGraphData, Insight } from '@/lib/intelligence/types'
+import type { ProviderFailureSummary } from '@/lib/ai/providers/provider-diagnostics.types'
 
 /** Supported text-generation providers for Phase 1 routing. */
 export type ProviderId = 'openai' | 'gemini' | 'groq' | 'openrouter' | 'deepseek'
@@ -117,7 +118,9 @@ export class AIProviderError extends Error {
     message: string,
     readonly friendlyMessage: string,
     readonly provider?: ProviderId,
-    readonly task?: AITask
+    readonly task?: AITask,
+    readonly providerFailures: ProviderFailureSummary[] = [],
+    readonly retryAfterSeconds?: number
   ) {
     super(message)
     this.name = 'AIProviderError'

@@ -11,7 +11,7 @@ import {
   type StoryboardAsset,
 } from '@/lib/storyboard/storyboard-asset'
 
-const SIGNED_URL_TTL_SEC = 60 * 60 * 24 * 7
+const SIGNED_URL_TTL_SEC = 60 * 60
 
 import {
   logPipelineStepComplete,

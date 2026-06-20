@@ -6,16 +6,15 @@ import {
 import {
   generateOpenAISceneImage,
   generateSceneImage,
-  persistRemoteImage,
   type SceneImageOptions,
+  type SceneImagePersistContext,
 } from '@/lib/ai/generate-scene-image'
-import { generateImage } from '@/lib/image-providers'
-import { extractStoragePathFromUrl } from '@/lib/storyboard/storyboard-asset'
-import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
+import { generateImage, generateDraftImage } from '@/lib/image-providers'
+import type { ImageProviderTier } from '@/lib/economics/provider-routing.server'
+import { persistRemoteStoryboardImage } from '@/lib/storage/persist-storyboard-image.server'
 
 const OPENAI_IMAGE_CONCURRENCY = 3
 
-/** Bounded parallel map — keeps OpenAI rate limits sane while speeding multi-scene batches. */
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -45,49 +44,101 @@ type PrimaryImageOpts = {
   hasReferenceStyle?: boolean
   aspectRatio?: string
   imageOptions?: SceneImageOptions
+  imageTier?: ImageProviderTier
+  persist?: SceneImagePersistContext
 }
 
-/**
- * Storyboard still: OpenAI Images (gpt-image-1 / dall-e) when OPENAI_API_KEY is set,
- * then Flux/Together/Pollinations. Persists to Supabase when filename is provided.
- */
 export async function generateSceneImageOpenAIPrimary(
   prompt: string,
   opts: PrimaryImageOpts = {}
-): Promise<{ url: string | null; provider?: string; assetPath?: string }> {
+): Promise<{
+  url: string | null
+  provider?: string
+  assetPath?: string
+  imageAssetId?: string
+  thumbnailUrl?: string
+}> {
   const trimmed = prompt.trim()
   if (!trimmed) return { url: null }
 
-  const filename =
-    opts.filename ??
-    (opts.userId
-      ? `${opts.userId}/cinematic/auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`
-      : undefined)
-
-  if (allowDalleImages()) {
-    const remoteUrl = await generateOpenAISceneImage(trimmed, opts.imageOptions)
-    if (remoteUrl && filename) {
-      const uploaded = await persistRemoteImage({
+  async function persistProviderUrl(
+    remoteUrl: string,
+    provider: string
+  ): Promise<{
+    url: string
+    provider: string
+    assetPath?: string
+    imageAssetId?: string
+    thumbnailUrl?: string
+  }> {
+    if (opts.persist) {
+      const result = await persistRemoteStoryboardImage({
         remoteUrl,
-        userId: opts.userId,
-        filename,
+        userId: opts.persist.userId,
+        projectId: opts.persist.projectId,
+        sceneId: opts.persist.sceneId,
+        previousAssetId: opts.persist.previousAssetId,
+        prompt: opts.persist.prompt,
+        title: opts.persist.title,
+        sequenceIndex: opts.persist.sequenceIndex,
+        metadata: { source: 'openai-primary', provider },
       })
-      const assetPath =
-        extractStoragePathFromUrl(uploaded) ??
-        (uploaded.includes('/project-assets/') ? filename : undefined)
-      if (assetPath && !isEphemeralRemoteImageUrl(uploaded)) {
-        return { url: uploaded, provider: 'openai', assetPath }
+      return {
+        url: result.imageUrl,
+        provider,
+        assetPath: result.imageAssetPath,
+        imageAssetId: result.imageAssetId,
+        thumbnailUrl: result.thumbnailUrl,
       }
-      return { url: uploaded, provider: 'openai', assetPath }
     }
-    if (remoteUrl) {
-      return { url: remoteUrl, provider: 'openai' }
+    const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
+    const { extractStoragePathFromUrl } = await import('@/lib/storyboard/storyboard-asset')
+    const filename =
+      opts.filename ??
+      (opts.userId
+        ? `${opts.userId}/cinematic/auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`
+        : undefined)
+    if (!filename) {
+      return { url: remoteUrl, provider }
+    }
+    const url = await persistRemoteImage({
+      remoteUrl,
+      userId: opts.userId,
+      filename,
+    })
+    return {
+      url,
+      provider,
+      assetPath: extractStoragePathFromUrl(url) ?? filename,
     }
   }
 
-  if (filename) {
+  if (opts.imageTier === 'draft') {
+    const draft = await generateDraftImage(trimmed)
+    if (!draft) return { url: null }
+    const persisted = await persistProviderUrl(draft.url, draft.provider)
+    return persisted
+  }
+
+  if (allowDalleImages()) {
+    const remoteUrl = await generateOpenAISceneImage(trimmed, opts.imageOptions)
+    if (remoteUrl) {
+      return persistProviderUrl(remoteUrl, 'openai')
+    }
+  }
+
+  if (opts.persist) {
     return generateSceneImage(trimmed, {
-      filename,
+      userId: opts.userId,
+      hasReferenceStyle: opts.hasReferenceStyle,
+      aspectRatio: opts.aspectRatio,
+      persist: opts.persist,
+    })
+  }
+
+  if (opts.filename) {
+    return generateSceneImage(trimmed, {
+      filename: opts.filename,
       userId: opts.userId,
       hasReferenceStyle: opts.hasReferenceStyle,
       aspectRatio: opts.aspectRatio,

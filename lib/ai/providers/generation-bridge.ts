@@ -2,9 +2,16 @@ import {
   buildProviderContext,
   getAvailableProviders,
   hasProviderKey,
+  AIProviderError,
   type ProviderContextInput,
 } from '@/lib/ai/providers'
 import { executeWithStyleGuard } from '@/lib/ai/providers/style-consistency'
+import { isScriptGenerationMockEnabled } from '@/lib/ai/mock/mock-script-mode.server'
+import {
+  mockScriptToParsedRecord,
+  generateMockScript,
+} from '@/lib/ai/mock/mock-script-generator'
+import { logMockScript, providerIdsFromFailures } from '@/lib/ai/mock/mock-script-log.server'
 import { isHookTooSimilar } from '@/lib/cinematic/hook-variation'
 import { isBannedHookOpening } from '@/lib/cinematic/content-angle-engine'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
@@ -107,26 +114,58 @@ export async function generateScriptViaRouter(input: AiScriptRouterInput) {
   const context = buildProviderContext(
     input.contextInput ?? { topic: input.topic }
   )
+  const started = Date.now()
 
-  const result = await executeWithStyleGuard<ScriptResult>(
-    'script',
-    'script',
-    context.styleFingerprint,
-    (r) => scriptTextForScoring(r.parsed),
-    async (provider) =>
-      provider.generateScript({
-        systemPrompt: input.systemPrompt,
-        userPrompt: input.userPrompt,
+  try {
+    const result = await executeWithStyleGuard<ScriptResult>(
+      'script',
+      'script',
+      context.styleFingerprint,
+      (r) => scriptTextForScoring(r.parsed),
+      async (provider) =>
+        provider.generateScript({
+          systemPrompt: input.systemPrompt,
+          userPrompt: input.userPrompt,
+          topic: input.topic,
+          temperature: input.temperature,
+          context,
+        })
+    )
+
+    return {
+      parsed: result.parsed,
+      provider: result.styleProvider,
+      attemptedProviders: result.attemptedProviders,
+    }
+  } catch (err) {
+    if (err instanceof AIProviderError && isScriptGenerationMockEnabled()) {
+      const allCooldown = err.providerFailures.every(
+        (f) => f.skipped && f.errorCode === 'cooldown_skip'
+      )
+      const mockOutput = generateMockScript({
         topic: input.topic,
-        temperature: input.temperature,
-        context,
+        tone: input.contextInput?.tone,
+        duration: input.contextInput?.duration,
+        niche:
+          typeof input.contextInput?.niche === 'string'
+            ? (input.contextInput.niche as CinematicNiche)
+            : undefined,
+        platform: input.contextInput?.platform,
       })
-  )
-
-  return {
-    parsed: result.parsed,
-    provider: result.styleProvider,
-    attemptedProviders: result.attemptedProviders,
+      logMockScript({
+        enabled: true,
+        reason: allCooldown ? 'providers_in_cooldown' : 'all_providers_failed',
+        providerFailures: providerIdsFromFailures(err.providerFailures),
+        durationMs: Date.now() - started,
+      })
+      return {
+        parsed: mockScriptToParsedRecord(mockOutput),
+        provider: 'openai' as const,
+        attemptedProviders: err.providerFailures.map((f) => f.provider),
+        mock: true as const,
+      }
+    }
+    throw err
   }
 }
 

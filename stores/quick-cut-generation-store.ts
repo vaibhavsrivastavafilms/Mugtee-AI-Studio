@@ -121,6 +121,7 @@ import {
   type QuickCutStageTab,
 } from '@/lib/cinematic/quick-cut/stage-tabs'
 import { buildQuickCutHydrationFromRow } from '@/lib/cinematic/quick-cut/project-hydration'
+import { refreshAllSceneStoryboardUrlsClient } from '@/lib/storyboard/storyboard-url-service.client'
 import {
   buildThumbnailCoverScene,
   resolveActiveThumbnailUrl,
@@ -247,6 +248,12 @@ import {
   SCRIPT_GENERATION_TIMEOUT_MS,
 } from '@/lib/cinematic/generation-pipeline-fetch'
 import { toUserGenerationError } from '@/lib/cinematic/generation-errors'
+import {
+  parseProviderFailures,
+  ProviderFailureError,
+  PROVIDER_UNAVAILABLE_HEADLINE,
+  type ProviderFailureSummary,
+} from '@/lib/ai/providers/provider-diagnostics.client'
 import { fetchQuickCutConfig } from '@/lib/quick-cut/quick-cut-config-cache.client'
 import {
   defaultClientVideoRenderEnabled,
@@ -556,6 +563,9 @@ interface QuickCutGenerationStateBase {
   generationStatus: GenerationStatus
   lastCompletedStep: PersistedGenerationStep | null
   failedAtStep: PersistedGenerationStep | null
+  scriptUsedMock: boolean
+  providerDiagnostics: ProviderFailureSummary[] | null
+  providerRetryAfterSeconds: number | null
   isGenerating: boolean
   isComplete: boolean
   /** Saved project opened via OPEN — show storyboard studio instead of export/home. */
@@ -754,6 +764,9 @@ const INITIAL: QuickCutGenerationState = {
   generationStatus: 'pending',
   lastCompletedStep: null,
   failedAtStep: null,
+  scriptUsedMock: false,
+  providerDiagnostics: null,
+  providerRetryAfterSeconds: null,
   isGenerating: false,
   isComplete: false,
   studioReviewMode: false,
@@ -1029,6 +1042,8 @@ function buildGenerationOutput(
       movementStyle: s.movementStyle || visualDefaults.movementStyle,
       imageUrl: s.imageUrl,
       ...(s.imageAssetPath?.trim() ? { imageAssetPath: s.imageAssetPath.trim() } : {}),
+      ...(s.imageAssetId?.trim() ? { imageAssetId: s.imageAssetId.trim() } : {}),
+      ...(s.thumbnailUrl?.trim() ? { thumbnailUrl: s.thumbnailUrl.trim() } : {}),
       ...(s.storyboardImages?.length
         ? {
             storyboardImages: s.storyboardImages,
@@ -2519,6 +2534,20 @@ export const useQuickCutGenerationStore = create<
     const resumeFrom = state.lastCompletedStep
     if (!resumeFrom && state.generationStatus !== 'failed') return
 
+    if (state.savedProjectId) {
+      clearStoredGenerationJobId(state.savedProjectId)
+    }
+    set({
+      pipelineJobId: null,
+      pipelineStatus: 'queued',
+      error: null,
+      renderError: null,
+      failedAtStep: null,
+      providerDiagnostics: null,
+      providerRetryAfterSeconds: null,
+      scriptUsedMock: false,
+    })
+
     await get().runPipeline({
       prompt: state.prompt,
       style: state.style,
@@ -2647,6 +2676,9 @@ export const useQuickCutGenerationStore = create<
         generationStep: 'analyzing',
         error: null,
         failedAtStep: null,
+        scriptUsedMock: false,
+        providerDiagnostics: null,
+        providerRetryAfterSeconds: null,
         saveState: 'resumed',
         studioReviewMode: false,
         prompt,
@@ -3076,6 +3108,25 @@ export const useQuickCutGenerationStore = create<
                 patchSectionStatus(set, get, 'script', 'failed')
                 patchSectionStatus(set, get, 'captions', 'failed')
                 logStepFailed('script', get().savedProjectId, 'script')
+                const providers = parseProviderFailures(
+                  (scriptData as { providers?: unknown }).providers
+                )
+                const retryAfter =
+                  typeof (scriptData as { retryAfterSeconds?: unknown }).retryAfterSeconds ===
+                  'number'
+                    ? (scriptData as { retryAfterSeconds: number }).retryAfterSeconds
+                    : null
+                if (providers) {
+                  set({
+                    providerDiagnostics: providers,
+                    providerRetryAfterSeconds: retryAfter,
+                  })
+                  throw new ProviderFailureError(
+                    String(scriptData?.error || PROVIDER_UNAVAILABLE_HEADLINE),
+                    providers,
+                    retryAfter ?? undefined
+                  )
+                }
                 throw new Error(String(scriptData?.error || 'Script generation failed'))
               }
 
@@ -3110,6 +3161,7 @@ export const useQuickCutGenerationStore = create<
               if (scriptData.mock === true) {
                 anyMock = true
                 noteMissing('script')
+                set({ scriptUsedMock: true })
               }
 
               const hookHistory =
@@ -3898,6 +3950,14 @@ export const useQuickCutGenerationStore = create<
           )
         ]
       const userMessage = toUserGenerationError(err)
+      const providerFailures =
+        err instanceof ProviderFailureError
+          ? err.providers
+          : get().providerDiagnostics
+      const retryAfter =
+        err instanceof ProviderFailureError
+          ? (err.retryAfterSeconds ?? null)
+          : get().providerRetryAfterSeconds
       const state = get()
       try {
         await saveCompletedStages(state, userMessage)
@@ -3913,6 +3973,8 @@ export const useQuickCutGenerationStore = create<
         lastCompletedStep: failedAt,
         failedAtStep: nextFailedStep ?? failedAt,
         isGenerating: false,
+        providerDiagnostics: providerFailures,
+        providerRetryAfterSeconds: retryAfter,
         isComplete: false,
         saveState: 'saved',
         directingSceneLabel: null,
@@ -4630,11 +4692,18 @@ export const useQuickCutGenerationStore = create<
       if (inferProjectMode(row) === 'director') return false
 
       const patch = buildQuickCutHydrationFromRow(row, options?.stageTab)
+      const refreshedScenes = refreshAllSceneStoryboardUrlsClient(patch.scenes)
+      const thumbnailImageUrl =
+        resolveActiveThumbnailUrl(patch.thumbnailImageUrl, refreshedScenes) ??
+        patch.thumbnailImageUrl
       logPipelineStepStart('project_reload', projectId, { source: 'loadSavedProject' })
       const workflow = restoreWorkflowContinuity()
       set({
         ...INITIAL,
         ...patch,
+        scenes: refreshedScenes,
+        storyboard: refreshedScenes,
+        thumbnailImageUrl,
         ...workflow,
         saveState: 'idle',
         saveError: null,

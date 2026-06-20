@@ -7,12 +7,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> }
+) {const { id } = await params
+  
   const auth = await requireCompanionUser()
   if (auth.response) return auth.response
 
-  const workflow = await getAgentWorkflow(auth.supabase, auth.user!.id, params.id)
+  const workflow = await getAgentWorkflow(auth.supabase, auth.user!.id, id)
   if (!workflow) {
     return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
   }
