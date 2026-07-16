@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     const snapshot = await loadDirectorStudioSnapshot(projectId, userId)
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: memoryRow } = await supabase
       .from('creator_profiles')
       .select(

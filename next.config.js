@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 
+const path = require('path')
+
 const nextConfig = {
   // Standalone file tracing fails on Windows (ENOENT in collect-build-traces).
   // Set NEXT_OUTPUT_STANDALONE=1 for self-hosted Docker/Linux builds only.
@@ -26,6 +28,7 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
+      { protocol: 'https', hostname: 'oikvspgxllujvgyxatbb.supabase.co', pathname: '/storage/v1/object/**' },
       { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },

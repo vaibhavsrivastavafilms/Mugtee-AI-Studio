@@ -8,7 +8,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head><style>{`
               .ge-body {
                 margin: 0;

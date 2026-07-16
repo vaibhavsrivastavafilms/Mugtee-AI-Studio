@@ -96,8 +96,12 @@ export type GeneratedScene = {
   movementStyle: string
   /** Populated after /api/generate-images */
   imageUrl?: string | null
+  /** Durable project_assets row id for the storyboard image. */
+  imageAssetId?: string | null
   /** Durable Supabase path for imageUrl refresh on load/export. */
   imageAssetPath?: string | null
+  /** Signed thumbnail URL for the storyboard image. */
+  thumbnailUrl?: string | null
   /** Populated after Seedance scene video generation */
   videoUrl?: string | null
   videoThumbnailUrl?: string | null

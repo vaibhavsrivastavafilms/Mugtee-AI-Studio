@@ -100,7 +100,7 @@ function rowToGraph(row: GraphRow): CreatorIntelligenceGraph {
 export async function getOrCreateCreatorIntelligenceGraph(
   userId: string
 ): Promise<CreatorIntelligenceGraph> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: existing } = await supabase
     .from('creator_intelligence_graph')
     .select('*')
@@ -126,7 +126,7 @@ export async function updateGraph(
   graphData: CreatorIntelligenceGraphData
 ): Promise<CreatorIntelligenceGraph> {
   await getOrCreateCreatorIntelligenceGraph(userId)
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creator_intelligence_graph')
     .update({
@@ -148,7 +148,7 @@ export async function updateInsights(
   insights: Insight[]
 ): Promise<CreatorIntelligenceGraph> {
   await getOrCreateCreatorIntelligenceGraph(userId)
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creator_intelligence_graph')
     .update({
@@ -188,7 +188,7 @@ export async function rebuildCreatorIntelligenceGraph(
   const graphData = buildCreatorGraph(sources, history)
   const insights = generateInsights(graphData)
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creator_intelligence_graph')
     .update({

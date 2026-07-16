@@ -15,7 +15,7 @@ import {
   storyboardStorageExists,
   type LegacyAssetLookup,
 } from '@/lib/storyboard/storyboard-url-service.server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, type SupabaseServerClient } from '@/lib/supabase/server'
 
 export type SceneImageValidationEntry = {
   sceneIndex: number
@@ -108,7 +108,7 @@ async function persistEphemeralSceneImageForExport(params: {
   sceneIndex: number
   imageUrl: string
   lookup: LegacyAssetLookup
-  supabase: ReturnType<typeof createSupabaseServerClient>
+  supabase: SupabaseServerClient
 }): Promise<CinematicScene | null> {
   if (!isEphemeralExportImageUrl(params.imageUrl)) return null
   const filename = `${params.lookup.userId}/faceless/scene_${params.scene.id}_${Date.now()}_${params.sceneIndex}.png`
@@ -161,7 +161,7 @@ async function refreshExportImageFromStorage(params: {
   assetPath: string
   persistedUrl: string | null
   lookup: LegacyAssetLookup
-  supabase: ReturnType<typeof createSupabaseServerClient>
+  supabase: SupabaseServerClient
   projectId: string
 }): Promise<{
   scene: CinematicScene
@@ -243,13 +243,13 @@ async function refreshExportImageFromStorage(params: {
   }
 
   return {
-    scene: { ...scene, imageAssetPath: storage === 'FOUND' ? assetPath : undefined },
+    scene: { ...scene, imageAssetPath: undefined },
     freshSignedUrl: null,
-    storage,
+    storage: 'MISSING',
     signedUrl: wasExpired ? 'EXPIRED' : 'NONE',
-    regenerated: storage === 'FOUND' ? 'FAILED' : 'FAILED',
+    regenerated: 'FAILED',
     validated: false,
-    validationResult: storage === 'FOUND' ? 'FAIL_NO_URL' : 'FAIL_MISSING_STORAGE',
+    validationResult: 'FAIL_MISSING_STORAGE',
   }
 }
 
@@ -308,7 +308,7 @@ export async function refreshAndValidateExportSceneImages(params: {
   userId: string
   lookup?: LegacyAssetLookup
 }): Promise<SceneImageValidationResult> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const lookup: LegacyAssetLookup =
     params.lookup ?? {
       projectId: params.projectId,

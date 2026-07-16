@@ -21,7 +21,7 @@ export async function GET(
   context: { params: Promise<{ jobId: string }> }
 ) {
   const { jobId } = await context.params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -72,7 +72,7 @@ export async function PATCH(
   context: { params: Promise<{ jobId: string }> }
 ) {
   const { jobId } = await context.params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

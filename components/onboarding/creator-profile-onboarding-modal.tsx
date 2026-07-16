@@ -8,6 +8,7 @@ import {
   Building2,
   Clapperboard,
   Film,
+  Heart,
   Instagram,
   Linkedin,
   Loader2,
@@ -29,10 +30,11 @@ import {
   type CreatorMemoryProfile,
 } from '@/lib/creator/creator-memory'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 6
 const REDIRECT_PATH = '/studio'
 
 type CardOption = {
@@ -44,131 +46,99 @@ type CardOption = {
 type StepDef = {
   question: string
   subtitle: string
-  mode: 'single' | 'multi'
-  options: CardOption[]
+  mode: 'intro' | 'text' | 'single' | 'multi' | 'final'
+  placeholder?: string
+  options?: CardOption[]
 }
 
 const STEPS: StepDef[] = [
   {
-    question: 'What kind of creator are you?',
-    subtitle: 'Pick the lane that feels most like you.',
-    mode: 'single',
-    options: [
-      { id: 'filmmaker', label: 'Filmmaker', icon: Clapperboard },
-      { id: 'youtuber', label: 'YouTuber', icon: Youtube },
-      { id: 'instagram_creator', label: 'Instagram Creator', icon: Instagram },
-      { id: 'brand_owner', label: 'Brand Owner', icon: Building2 },
-      { id: 'agency', label: 'Agency', icon: Users },
-      { id: 'freelancer', label: 'Freelancer', icon: User },
-      { id: 'other', label: 'Other', icon: Sparkles },
-    ],
+    question: "Hi. I've been waiting for someone creative.",
+    subtitle: "I'm Mugtee. Not a tool. More like the imaginary friend who helps you finish the thing in your head.",
+    mode: 'intro',
   },
   {
-    question: 'Where do you create the most?',
-    subtitle: 'Mugtee tunes hooks and formats to your home platform.',
-    mode: 'single',
-    options: [
-      { id: 'instagram', label: 'Instagram', icon: Instagram },
-      { id: 'youtube', label: 'YouTube', icon: Youtube },
-      { id: 'linkedin', label: 'LinkedIn', icon: Linkedin },
-      { id: 'x', label: 'X', icon: Megaphone },
-      { id: 'tiktok', label: 'TikTok', icon: Zap },
-      { id: 'multi', label: 'Multiple Platforms', icon: Rocket },
-    ],
+    question: "What's your name?",
+    subtitle: "I want to remember what to call you when we're making something together.",
+    mode: 'text',
+    placeholder: 'Your name',
   },
   {
-    question: "What's your biggest goal?",
-    subtitle: 'We prioritize the workflow that gets you there.',
-    mode: 'single',
-    options: [
-      { id: 'grow', label: 'Grow Audience', icon: TrendingUp },
-      { id: 'viral', label: 'Go Viral', icon: Zap },
-      { id: 'clients', label: 'Get Clients', icon: Target },
-      { id: 'brand', label: 'Build Personal Brand', icon: Sparkles },
-      { id: 'products', label: 'Sell Products', icon: Rocket },
-      { id: 'consistent', label: 'Stay Consistent', icon: Film },
-    ],
-  },
-  {
-    question: 'What content do you create?',
-    subtitle: 'Select all that apply.',
+    question: 'What do you love creating?',
+    subtitle: 'Pick the worlds you naturally drift toward.',
     mode: 'multi',
     options: [
-      { id: 'reels', label: 'Reels', icon: Instagram },
-      { id: 'shorts', label: 'Shorts', icon: Youtube },
-      { id: 'longform', label: 'Long-form Videos', icon: Film },
-      { id: 'podcasts', label: 'Podcasts', icon: Mic2 },
-      { id: 'ads', label: 'Ads', icon: Megaphone },
-      { id: 'cinematic', label: 'Cinematic Films', icon: Clapperboard },
+      { id: 'video', label: 'Video', icon: Film },
+      { id: 'photography', label: 'Photography', icon: Clapperboard },
+      { id: 'business', label: 'Business', icon: Building2 },
+      { id: 'food', label: 'Food', icon: Sparkles },
+      { id: 'fashion', label: 'Fashion', icon: Megaphone },
+      { id: 'music', label: 'Music', icon: Mic2 },
+      { id: 'anything', label: 'Anything', icon: Rocket },
     ],
   },
   {
-    question: 'Experience level',
-    subtitle: 'No judgment — Mugtee meets you where you are.',
+    question: 'How should I help you?',
+    subtitle: 'Tell me the kind of friend you need.',
     mode: 'single',
     options: [
-      { id: 'beginner', label: 'Beginner', icon: Sparkles },
-      { id: 'intermediate', label: 'Intermediate', icon: TrendingUp },
-      { id: 'advanced', label: 'Advanced', icon: Rocket },
-      { id: 'professional', label: 'Professional', icon: Target },
+      { id: 'push_me', label: 'Push me', icon: TrendingUp },
+      { id: 'challenge_me', label: 'Challenge me', icon: Target },
+      { id: 'encourage_me', label: 'Encourage me', icon: Sparkles },
+      { id: 'teach_me', label: 'Teach me', icon: Film },
+      { id: 'keep_focused', label: 'Keep me focused', icon: Zap },
     ],
+  },
+  {
+    question: "Choose Mugtee's personality.",
+    subtitle: 'This changes the way I nudge, react, and help you think.',
+    mode: 'single',
+    options: [
+      { id: 'calm', label: 'Calm', icon: Sparkles },
+      { id: 'funny', label: 'Funny', icon: Zap },
+      { id: 'bold', label: 'Bold', icon: Rocket },
+      { id: 'energetic', label: 'Energetic', icon: TrendingUp },
+      { id: 'thoughtful', label: 'Thoughtful', icon: Heart },
+    ],
+  },
+  {
+    question: "We're friends now.",
+    subtitle: "Let's make something unforgettable.",
+    mode: 'final',
   },
 ]
 
 type SelectionState = {
-  creatorType: string | null
-  platform: string | null
-  goal: string | null
-  contentTypes: string[]
-  experience: string | null
+  creatorName: string
+  lovesCreating: string[]
+  helpStyle: string | null
+  personality: string | null
 }
 
 const EMPTY_SELECTION: SelectionState = {
-  creatorType: null,
-  platform: null,
-  goal: null,
-  contentTypes: [],
-  experience: null,
-}
-
-const CREATOR_TYPE_NICHE: Record<string, string> = {
-  filmmaker: 'cinematic',
-  youtuber: 'general',
-  instagram_creator: 'lifestyle',
-  brand_owner: 'business',
-  agency: 'business',
-  freelancer: 'general',
-  other: 'general',
-}
-
-const CREATOR_TYPE_NAME: Record<string, string> = {
-  filmmaker: 'Filmmaker',
-  youtuber: 'YouTuber',
-  instagram_creator: 'Instagram Creator',
-  brand_owner: 'Brand Owner',
-  agency: 'Agency',
-  freelancer: 'Freelancer',
-  other: 'Creator',
+  creatorName: '',
+  lovesCreating: [],
+  helpStyle: null,
+  personality: null,
 }
 
 function buildProfileFromSelection(
   selection: SelectionState,
   skipped = false
 ): CreatorMemoryProfile {
-  const creatorType = selection.creatorType ?? (skipped ? 'other' : 'other')
-  const platform = selection.platform ?? 'multi'
-  const goal = selection.goal ?? 'consistent'
-  const contentTypes =
-    selection.contentTypes.length > 0 ? selection.contentTypes : ['reels']
-  const experience = selection.experience ?? 'beginner'
+  const lovesCreating =
+    selection.lovesCreating.length > 0 ? selection.lovesCreating : ['anything']
+  const helpStyle = selection.helpStyle ?? 'encourage_me'
+  const personality = selection.personality ?? 'thoughtful'
+  const creatorName = selection.creatorName.trim() || (skipped ? 'Creator' : 'Creator')
 
   return {
-    creatorName: CREATOR_TYPE_NAME[creatorType] ?? 'Creator',
-    niche: CREATOR_TYPE_NICHE[creatorType] ?? 'general',
-    primaryPlatform: platform,
-    creatorGoal: goal,
-    contentStyle: contentTypes.join(','),
-    experience,
+    creatorName,
+    niche: lovesCreating[0] ?? 'general',
+    primaryPlatform: 'multi',
+    creatorGoal: helpStyle,
+    contentStyle: lovesCreating.join(','),
+    experience: personality,
     updatedAt: new Date().toISOString(),
   }
 }
@@ -262,27 +232,27 @@ export function CreatorProfileOnboardingModal({
 
   const stepValue = useMemo(() => {
     switch (step) {
-      case 0:
-        return selection.creatorType
       case 1:
-        return selection.platform
+        return selection.creatorName
       case 2:
-        return selection.goal
+        return selection.lovesCreating
       case 3:
-        return selection.contentTypes
+        return selection.helpStyle
       case 4:
-        return selection.experience
+        return selection.personality
       default:
         return null
     }
   }, [step, selection])
 
   const canContinue = useMemo(() => {
+    if (currentStep.mode === 'intro' || currentStep.mode === 'final') return true
+    if (currentStep.mode === 'text') return selection.creatorName.trim().length > 0
     if (currentStep.mode === 'multi') {
-      return selection.contentTypes.length > 0
+      return selection.lovesCreating.length > 0
     }
     return Boolean(stepValue)
-  }, [currentStep.mode, selection.contentTypes.length, stepValue])
+  }, [currentStep.mode, selection.creatorName, selection.lovesCreating.length, stepValue])
 
   const goNext = useCallback(() => {
     setDirection(1)
@@ -330,21 +300,19 @@ export function CreatorProfileOnboardingModal({
   }
 
   const handleSelect = (id: string) => {
-    if (step === 0) setSelection((s) => ({ ...s, creatorType: id }))
-    else if (step === 1) setSelection((s) => ({ ...s, platform: id }))
-    else if (step === 2) setSelection((s) => ({ ...s, goal: id }))
-    else if (step === 3) {
+    if (step === 2) {
       setSelection((s) => ({
         ...s,
-        contentTypes: s.contentTypes.includes(id)
-          ? s.contentTypes.filter((x) => x !== id)
-          : [...s.contentTypes, id],
+        lovesCreating: s.lovesCreating.includes(id)
+          ? s.lovesCreating.filter((x) => x !== id)
+          : [...s.lovesCreating, id],
       }))
-    } else if (step === 4) setSelection((s) => ({ ...s, experience: id }))
+    } else if (step === 3) setSelection((s) => ({ ...s, helpStyle: id }))
+    else if (step === 4) setSelection((s) => ({ ...s, personality: id }))
   }
 
   const isSelected = (id: string) => {
-    if (step === 3) return selection.contentTypes.includes(id)
+    if (step === 2) return selection.lovesCreating.includes(id)
     return stepValue === id
   }
 
@@ -384,10 +352,10 @@ export function CreatorProfileOnboardingModal({
               <MugteeSidekickAvatar size="lg" priority />
             </motion.div>
             <p className="text-[10px] tracking-[0.35em] uppercase text-gold-300/80 mb-3">
-              Personalizing
+              Remembering
             </p>
             <h2 className="font-display text-2xl sm:text-3xl text-luxe max-w-md leading-snug">
-              Mugtee is adapting to your workflow
+              Mugtee is learning how to be your creative friend
             </h2>
             <Loader2 className="mt-8 h-6 w-6 animate-spin text-gold-400/70" aria-hidden />
           </motion.div>
@@ -399,7 +367,7 @@ export function CreatorProfileOnboardingModal({
                 <div className="flex items-center gap-2.5 min-w-0">
                   <MugteeSidekickAvatar size="sm" className="shrink-0" />
                   <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75 truncate">
-                    Creator setup
+                    Adopt Mugtee
                   </p>
                 </div>
                 <button
@@ -408,7 +376,7 @@ export function CreatorProfileOnboardingModal({
                   disabled={saving}
                   className="shrink-0 text-[11px] tracking-wide text-luxe/45 hover:text-gold-300/80 transition-colors py-2 px-1"
                 >
-                  Skip Setup
+                  Maybe later
                 </button>
               </div>
 
@@ -455,16 +423,32 @@ export function CreatorProfileOnboardingModal({
                       {currentStep.subtitle}
                     </p>
 
-                    <div className="space-y-3">
-                      {currentStep.options.map((option) => (
-                        <SelectableCard
-                          key={option.id}
-                          option={option}
-                          selected={isSelected(option.id)}
-                          onSelect={() => handleSelect(option.id)}
-                        />
-                      ))}
-                    </div>
+                    {currentStep.mode === 'text' ? (
+                      <Input
+                        value={selection.creatorName}
+                        onChange={(e) =>
+                          setSelection((s) => ({ ...s, creatorName: e.target.value }))
+                        }
+                        placeholder={currentStep.placeholder}
+                        className="h-12 rounded-2xl border-white/[0.1] bg-white/[0.04] px-4 text-base text-luxe"
+                      />
+                    ) : currentStep.options?.length ? (
+                      <div className="space-y-3">
+                        {currentStep.options.map((option) => (
+                          <SelectableCard
+                            key={option.id}
+                            option={option}
+                            selected={isSelected(option.id)}
+                            onSelect={() => handleSelect(option.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-3xl border border-gold-500/20 bg-gold-500/[0.06] p-5 text-sm leading-relaxed text-luxe/70">
+                        Mugtee will remember your style, your clients, your favorite pacing, your
+                        colors, your deadlines, and the stories you keep coming back to.
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -486,12 +470,12 @@ export function CreatorProfileOnboardingModal({
                     </>
                   ) : step >= TOTAL_STEPS - 1 ? (
                     <>
-                      Enter Mugtee
+                      We&apos;re friends now
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   ) : (
                     <>
-                      Continue
+                      Let&apos;s keep going
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}

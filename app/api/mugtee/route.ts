@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Light auth gate — only signed-in users may use the assistant (prevents anon abuse).
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 

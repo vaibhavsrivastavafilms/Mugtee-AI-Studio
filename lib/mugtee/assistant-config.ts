@@ -27,65 +27,65 @@ export type MugteeFaqCategory = {
 }
 
 export const MUGTEE_GREETING =
-  "Bhai, welcome to Mugtee Studio.\n\nI'm Mugtee — your creative best friend, not another boring chatbot. One idea → hook → script → storyboard → export. Fast.\n\nWhat are we building today? Yaar, don't overthink — just tell me."
+  "Hi. I'm Mugtee — the imaginary friend every creator wishes they had.\n\nTell me what's in your head, even if it's messy. I'll help you find the story, shape the visuals, and decide what to do next.\n\nWhat are we making together?"
 
 export const MUGTEE_TAGLINE = MUGTEE_PERSONALITY.tagline
 
-export const MUGTEE_INPUT_PLACEHOLDER = "Bol — what's the idea?"
+export const MUGTEE_INPUT_PLACEHOLDER = "Tell Mugtee what's on your mind..."
 
 export const MUGTEE_INPUT_EXAMPLE =
-  'Example: "Bhai, ek faceless reel on discipline — hook should slap in 1.5 seconds."'
+  'Example: "I have no ideas, but I need to post something honest today."'
 
 export const MUGTEE_QUICK_ACTIONS: MugteeQuickAction[] = [
   {
-    label: 'Generate Reel Idea',
-    prompt: 'Generate 3 cinematic reel ideas with scroll-stopping hooks for my niche.',
+    label: 'I have no ideas',
+    prompt: 'I have no ideas. Ask me a few friendly questions and help me find one story worth making today.',
     href: quickCutStudioHref(),
   },
   {
-    label: 'Create Cinematic Script',
-    prompt: 'Help me outline a cinematic script — cold open, escalation, and payoff.',
+    label: 'Write the story with me',
+    prompt: 'Help me turn this rough thought into a story with a strong beginning, middle, and ending.',
     href: quickCutStudioHref({ tab: 'script' }),
   },
   {
-    label: 'Build Storyboard',
-    prompt: 'Walk me through building a storyboard from my script in Mugtee Studio.',
+    label: 'Picture the scenes',
+    prompt: 'Help me imagine the scenes, camera feeling, colors, and rhythm for this idea.',
     href: quickCutStudioHref({ tab: 'scenes' }),
   },
   {
-    label: "Mugtee's Hook",
-    prompt: 'Write 5 pattern-interrupt hooks for my reel topic. Make them specific and cinematic.',
+    label: "Find the opening",
+    prompt: 'Find a stronger opening for my idea. Make it human, specific, and hard to ignore.',
     href: quickCutStudioHref({ tab: 'hook' }),
   },
   {
-    label: 'Rewrite Existing Script',
-    prompt: 'I have a script to rewrite. Ask me to paste it, then tighten pacing and hooks.',
+    label: 'My client rejected everything',
+    prompt: 'My client rejected everything. Help me calmly understand what went wrong and rebuild the idea.',
     chatFirst: true,
   },
   {
-    label: 'Analyze YouTube Video',
-    prompt: 'How do I analyze a YouTube video or channel for content opportunities in Mugtee?',
+    label: 'Research with me',
+    prompt: 'Help me study a creator, brand, or topic and find angles that feel original.',
     href: STUDIO.create,
     chatFirst: true,
   },
   {
-    label: "Mugtee's Captions",
-    prompt: 'Generate Instagram captions and hashtags for my reel — hook-first, platform-native.',
+    label: "Help me share this",
+    prompt: 'Help me choose the caption, hashtags, thumbnail idea, and best platform for this story.',
     chatFirst: true,
   },
   {
-    label: 'Create Voiceover',
-    prompt: 'Guide me through adding cinematic voiceover to my reel in Mugtee Studio.',
+    label: 'Find the voice',
+    prompt: 'Help me choose the voice, pace, and emotional tone for this piece.',
     href: quickCutStudioHref({ tab: 'voice' }),
   },
   {
-    label: 'Create Documentary Story',
-    prompt: 'Help me structure a documentary-style faceless story with research beats and narration arc.',
+    label: 'Make it documentary',
+    prompt: 'Help me shape this into a documentary-style story with research beats and a narrator arc.',
     href: quickCutStudioHref({ tone: 'documentary' }),
   },
   {
-    label: 'Create Faceless Reel',
-    prompt: 'Create a faceless reel concept — B-roll direction, voice tone, and retention structure.',
+    label: 'I shot this today',
+    prompt: 'I shot something today. Help me turn it into a story people will care about.',
     href: quickCutStudioHref(),
   },
 ]

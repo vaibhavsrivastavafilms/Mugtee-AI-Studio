@@ -188,7 +188,7 @@ export async function orchestrateFacelessVideo(
       if (thumbnailPath) {
         const thumbBuf = await fs.readFile(thumbnailPath)
         const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-        const supabase = createSupabaseServerClient()
+        const supabase = await createSupabaseServerClient()
         const thumbStorage = `${input.userId}/renders/${jobId}_thumb.jpg`
         await supabase.storage.from('project-assets').upload(thumbStorage, thumbBuf, {
           contentType: 'image/jpeg',

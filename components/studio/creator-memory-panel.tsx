@@ -3,7 +3,6 @@
 import { getCreatorOsProfile } from '@/lib/creator/creator-os-profile'
 import { v4PanelClass } from '@/lib/studio/v4-design-tokens'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 
 type CreatorMemoryPanelProps = {
@@ -12,8 +11,8 @@ type CreatorMemoryPanelProps = {
 
 /** Phase E — shows what Mugtee remembers (local additive profile). */
 export function CreatorMemoryPanel({ className }: CreatorMemoryPanelProps) {
-  const isComplete = useQuickCutGenerationStore((s) => s.isComplete)
-  const profile = useMemo(() => getCreatorOsProfile(), [isComplete])
+  useQuickCutGenerationStore((s) => s.isComplete)
+  const profile = getCreatorOsProfile()
 
   const rows = [
     { label: 'Last Reel', value: profile.lastReelTitle },

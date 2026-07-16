@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

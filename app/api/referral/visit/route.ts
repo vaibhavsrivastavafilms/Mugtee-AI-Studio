@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   let visitorUserId: string | null = null
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

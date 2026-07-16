@@ -10,7 +10,7 @@ export async function uploadRenderMp4(params: {
   jobId: string
   projectId?: string | null
 }): Promise<{ videoUrl: string; storagePath: string }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const buffer = await fs.readFile(params.localPath)
   const folder = params.projectId
     ? `${params.userId}/${params.projectId}`
@@ -51,7 +51,7 @@ export async function persistProjectVideo(params: {
   title?: string
   thumbnailUrl?: string | null
 }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase.from('project_assets').insert({
     project_id: params.projectId,
     user_id: params.userId,

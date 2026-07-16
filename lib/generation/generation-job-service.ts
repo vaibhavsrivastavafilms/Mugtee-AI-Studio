@@ -119,7 +119,7 @@ export async function createGenerationJob(params: {
   currentStep?: string | null
   metadata?: GenerationJobMetadata
 }): Promise<GenerationJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('generation_jobs')
@@ -156,7 +156,7 @@ export async function updateGenerationJob(
     metadata?: GenerationJobMetadata
   }
 ): Promise<GenerationJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const body: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (patch.status) body.status = patch.status
   if (patch.progress != null) body.progress = Math.max(0, Math.min(100, Math.round(patch.progress)))
@@ -215,7 +215,7 @@ export async function getGenerationJob(
   jobId: string,
   userId: string
 ): Promise<GenerationJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('generation_jobs')
     .select()
@@ -230,7 +230,7 @@ export async function listGenerationJobsForUser(
   userId: string,
   limit = 20
 ): Promise<GenerationJobRow[]> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('generation_jobs')
     .select()
@@ -245,7 +245,7 @@ export async function findActiveGenerationJobForProject(
   projectId: string,
   userId: string
 ): Promise<GenerationJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('generation_jobs')
     .select()
@@ -265,7 +265,7 @@ export async function cancelActiveGenerationJobsForProject(
   userId: string,
   exceptJobId?: string | null
 ): Promise<void> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase
     .from('generation_jobs')
     .update({

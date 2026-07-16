@@ -14,8 +14,8 @@ const CreatorAnalyticsDashboard = nextDynamic(
 export default function StudioAnalyticsPage() {
   return (
     <UnifiedCreatorShell
-      title="Analytics"
-      subtitle="Studio output from your Mugtee projects — scripts, videos, series, and milestones."
+      title="Growth"
+      subtitle="Mugtee explains what connected, what lost people, and what we should try next."
     >
       <CreatorAnalyticsDashboard />
     </UnifiedCreatorShell>

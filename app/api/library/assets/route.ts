@@ -16,7 +16,7 @@ const ALLOWED_KINDS = ['image', 'voiceover', 'export', 'video', 'music', 'prompt
 
 export async function GET(req: Request) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ assets: [], signed_in: false }, { status: 200 })
 

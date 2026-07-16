@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const VALID_PLANS = new Set<PlanInterest>(['free', 'creator', 'pro'])
 
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const revenueType = normalizeRevenueEventType(eventType)
   if (revenueType) {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid plan interest' }, { status: 400 })
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

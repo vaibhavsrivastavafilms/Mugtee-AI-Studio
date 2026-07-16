@@ -59,7 +59,7 @@ function rowToProducerReport(row: ProducerReportRow): ProducerReport {
 
 /** Aggregate intelligence inputs from existing tables — no duplicate learning logic. */
 export async function loadIntelligenceSources(userId: string): Promise<IntelligenceSourceBundle> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const [creatorMemory, producerRes, frameworksRes, projectsRes, profileRes] = await Promise.all([
     getOrCreateCreatorMemory(userId),

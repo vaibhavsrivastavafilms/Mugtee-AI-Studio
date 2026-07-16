@@ -30,7 +30,7 @@ function weekStartKey(iso: string): string {
 }
 
 export async function GET(req: Request) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

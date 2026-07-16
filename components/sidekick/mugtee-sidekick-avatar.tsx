@@ -1,12 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { shouldPrefer2DFallback } from '@/lib/webgl/capabilities'
-import { SidekickAvatarSkeleton } from '@/components/sidekick/sidekick-avatar-skeleton'
 
 export const MUGTEE_SIDEKICK_SRC = '/mugtee/mugtee-sidekick.png'
 
@@ -14,21 +10,6 @@ const SIZE_PX = { sm: 40, md: 56, lg: 72 } as const
 
 export type MugteeSidekickAvatarSize = keyof typeof SIZE_PX
 
-const MugteeSidekick3DViewer = dynamic(
-  () =>
-    import('@/components/sidekick/mugtee-sidekick-3d-viewer')
-      .then((m) => m.MugteeSidekick3DViewer)
-      .catch(() => {
-        function Sidekick3DLoadFailed({ onError }: { onError?: () => void }) {
-          useEffect(() => {
-            onError?.()
-          }, [onError])
-          return null
-        }
-        return Sidekick3DLoadFailed
-      }),
-  { ssr: false, loading: () => <SidekickAvatarSkeleton /> }
-)
 
 function SidekickAvatarFallback({
   px,
@@ -67,13 +48,6 @@ export function MugteeSidekickAvatar({
   priority?: boolean
 }) {
   const px = SIZE_PX[size]
-  const [use2D, setUse2D] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    setUse2D(shouldPrefer2DFallback())
-  }, [])
-
-  const show3D = use2D === false
 
   const avatarContent = (
     <>
@@ -90,13 +64,7 @@ export function MugteeSidekickAvatar({
           className="absolute left-1/2 top-[20%] z-[1] h-[18%] w-[38%] -translate-x-1/2 rounded-full bg-amber-300/50 blur-md animate-pulse pointer-events-none"
         />
       ) : null}
-      {use2D === null ? (
-        <SidekickAvatarSkeleton />
-      ) : show3D ? (
-        <MugteeSidekick3DViewer animated={animated} onError={() => setUse2D(true)} />
-      ) : (
-        <SidekickAvatarFallback px={px} priority={priority} animated={animated} />
-      )}
+      <SidekickAvatarFallback px={px} priority={priority} animated={animated} />
     </>
   )
 

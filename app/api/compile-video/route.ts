@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const scenes = Array.isArray(raw?.scenes) ? (raw.scenes as GeneratedScene[]) : []
     const voiceUrl = typeof raw?.voiceUrl === 'string' ? raw.voiceUrl : null
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

@@ -26,7 +26,7 @@ async function latestVoiceoverStoragePath(
   projectId: string,
   userId: string
 ): Promise<string | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('project_assets')
     .select('storage_path, url')
@@ -74,7 +74,7 @@ async function persistVoiceUrl(
   voiceUrl: string,
   audioAssetPath: string | null
 ): Promise<boolean> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const nextVoice = {
     ...(row.voice ?? {}),
     audioUrl: voiceUrl,

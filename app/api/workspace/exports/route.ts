@@ -12,7 +12,7 @@ import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 

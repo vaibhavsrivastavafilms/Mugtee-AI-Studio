@@ -7,7 +7,7 @@ export async function isDirectorApprovedProject(
   projectId: string,
   userId: string
 ): Promise<boolean> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('director_project_state')
     .select('director_approved')

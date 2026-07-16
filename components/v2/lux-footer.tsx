@@ -14,6 +14,7 @@ const PRODUCT_LINKS = [
 ] as const
 
 const SUPPORT_EMAIL = 'hello@mugtee.in'
+const COPYRIGHT_YEAR = 2026
 
 const COMPANY_LINKS = [
   { label: 'About', href: '/about' },
@@ -153,7 +154,7 @@ export function LuxFooter({ className }: { className?: string }) {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-[var(--v2-border)]">
           <span className="text-[11px] tracking-wider text-[var(--v2-text-secondary)]">
-            © {new Date().getFullYear()} Mugtee
+            © {COPYRIGHT_YEAR} Mugtee
           </span>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6">
             <Link

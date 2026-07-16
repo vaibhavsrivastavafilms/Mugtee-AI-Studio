@@ -19,7 +19,7 @@ export async function synthesizeQuickCutVoice(
     voiceName?: string
   }
 ): Promise<VoiceSynthesisResult> {
-  const supabase = userId ? createSupabaseServerClient() : undefined
+  const supabase = userId ? await createSupabaseServerClient() : undefined
   const result = await generateVoice(
     {
       script,

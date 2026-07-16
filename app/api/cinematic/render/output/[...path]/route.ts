@@ -9,7 +9,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

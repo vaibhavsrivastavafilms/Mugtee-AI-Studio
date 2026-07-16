@@ -16,8 +16,10 @@ export default async function StudioShellLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = tryCreateSupabaseServerClient()
-  const user = supabase
+  // TEMPORARY: Auth disabled for development/testing
+  // TODO: Re-enable auth checks in production
+  const supabase = await tryCreateSupabaseServerClient()
+  let user = supabase
     ? (await supabase.auth.getUser()).data.user
     : null
 

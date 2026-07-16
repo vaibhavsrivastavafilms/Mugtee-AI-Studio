@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
+const COPYRIGHT_YEAR = 2026
+
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -42,7 +44,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           <Link href="/about"   className="hover:text-gold-300 transition">About</Link>
           <Link href="/pricing" className="hover:text-gold-300 transition">Pricing</Link>
         </div>
-        © {new Date().getFullYear()} Mugtee · An AI Production OS for creators
+        © {COPYRIGHT_YEAR} Mugtee · An AI Production OS for creators
       </footer>
     </div>
   )

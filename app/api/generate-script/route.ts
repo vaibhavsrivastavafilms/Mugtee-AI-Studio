@@ -49,6 +49,7 @@ import {
   serializeParsedIntent,
 } from '@/lib/input-understanding'
 import { getLastProviderForTask } from '@/lib/ai/providers'
+import { classifyProviderError } from '@/lib/ai/providers/error-classifier'
 import {
   parseDirectorStudioContextFromBody,
   resolveDirectorStudioContextFromProject,
@@ -89,8 +90,9 @@ function parseCreatorProfile(raw: unknown): CreatorMemoryProfile | undefined {
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now()
   try {
-    console.log('[SCRIPT_DEBUG] request received')
+    console.log('[Script] Request received')
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
 
     if (raw?.landing === true || raw?.mock === true) {
@@ -138,10 +140,15 @@ export async function POST(req: NextRequest) {
     const auth = await requireAuth()
     if (auth.response) return auth.response
     const user = auth.user
-    const supabase = createSupabaseServerClient()
+    console.log('[Script] User authenticated', { userId: user.id })
+    const supabase = await createSupabaseServerClient()
 
     const limitBlocked = await guardUsageLimit(user.id, 'generations')
-    if (limitBlocked) return limitBlocked
+    if (limitBlocked) {
+      console.warn('[Script] Credits/usage limit blocked', { userId: user.id })
+      return limitBlocked
+    }
+    console.log('[Script] Credits verified', { userId: user.id })
 
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return NextResponse.json(
@@ -384,18 +391,31 @@ export async function POST(req: NextRequest) {
       contentBrief: contentBrief ?? undefined,
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[generate-script] REQUEST START', { topic: topic.slice(0, 48) })
-    }
+    console.log('[Script] Project loaded', {
+      userId: user.id,
+      projectId: parseFeatureUsageProjectId(raw),
+      hasCreatorProfile: Boolean(creatorProfile),
+      hasMemoryProfile: Boolean(memoryProfile),
+      directorMode,
+      skipResearch: Boolean(skipResearch),
+    })
+    console.log('[Script] Building prompt', {
+      topicChars: topic.length,
+      niche,
+      platform,
+      duration,
+      language,
+    })
 
     try {
       const result = await runScriptGeneration(input)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[generate-script] REQUEST SUCCESS', {
-          mock: result.mock,
-          sopRegenAttempts: result.sopRegenAttempts,
-        })
-      }
+      console.log('[Script] Generation complete', {
+        mock: result.mock,
+        reason: result.reason,
+        sopRegenAttempts: result.sopRegenAttempts,
+        provider: getLastProviderForTask('script'),
+        durationMs: Date.now() - startedAt,
+      })
       let validation = validateCinematicOutput(result.output, niche, topic)
       if (!validation.valid && result.output.script?.trim()) {
         logStepFailed('script', user.id, validation.issues.join('; '))
@@ -409,7 +429,7 @@ export async function POST(req: NextRequest) {
 
       logStepComplete('script', user.id)
 
-      console.log('[SCRIPT_DEBUG] before save')
+      console.log('[Script] Saving usage + analytics')
       await trackUsageMetric(user.id, 'generations')
       void trackFeatureUsage(
         user.id,
@@ -430,7 +450,11 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      console.log('[SCRIPT_DEBUG] before response')
+      console.log('[Script] Returning response', {
+        durationMs: Date.now() - startedAt,
+        mock: result.mock,
+        sceneCount: result.sceneCount,
+      })
       return NextResponse.json({
         output: result.output,
         mock: result.mock,
@@ -457,7 +481,26 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Script generation failed'
       const stack = err instanceof Error ? err.stack : undefined
+      const cause = err instanceof Error ? err.cause : undefined
+      const classified = classifyProviderError(err)
+      const durationMs = Date.now() - startedAt
       logError('generate-script.openai', err, { topic: topic.slice(0, 40) })
+
+      // Full diagnostic dump — name, message, stack, cause, classification, timing, prompt size.
+      console.error('[Script] EXCEPTION', {
+        name: err instanceof Error ? err.name : typeof err,
+        message,
+        kind: classified.kind,
+        httpStatus: classified.httpStatus,
+        reason: classified.reason,
+        retryable: classified.retryable,
+        cause: cause instanceof Error ? cause.message : cause,
+        provider: getLastProviderForTask('script') ?? null,
+        topicChars: topic.length,
+        durationMs,
+        stack,
+      })
+
       if (!hasScriptGenerationKey()) {
         const virloContext = buildVirloContext(topic, {
           platform,
@@ -467,6 +510,7 @@ export async function POST(req: NextRequest) {
           sessionSeed,
         })
         const output = buildMockCinematicOutput({ topic, tone, duration, niche, virloContext })
+        console.warn('[Script] No provider key — returning mock output')
         return NextResponse.json({
           output,
           mock: true,
@@ -476,24 +520,36 @@ export async function POST(req: NextRequest) {
         })
       }
       logStepFailed('script', user.id, message)
-      logGenerationError(user.id, 'script', message, { reason: 'provider_failed' })
+      logGenerationError(user.id, 'script', message, {
+        reason: 'provider_failed',
+        kind: classified.kind,
+        httpStatus: classified.httpStatus,
+        durationMs,
+      })
       void trackServerError(
-        message.toLowerCase().includes('timeout') ? 'timeout' : 'openai',
+        classified.kind === 'timeout' ? 'timeout' : 'openai',
         message,
-        { step: 'script', topic: topic.slice(0, 40) },
+        { step: 'script', topic: topic.slice(0, 40), kind: classified.kind },
         user.id
       )
-      console.error('[GENERATE_SCRIPT_ERROR]', { message, stack })
       return NextResponse.json(
         {
           error: 'Script generation failed',
           reason: 'provider_failed',
+          kind: classified.kind,
+          retryable: classified.retryable,
         },
         { status: 502 }
       )
     }
   } catch (err) {
     logError('generate-script.exception', err)
+    console.error('[Script] FATAL (outer)', {
+      name: err instanceof Error ? err.name : typeof err,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      durationMs: Date.now() - startedAt,
+    })
     return NextResponse.json(
       { error: SOFT_ERROR_COPY.storyPaused },
       { status: 500 }

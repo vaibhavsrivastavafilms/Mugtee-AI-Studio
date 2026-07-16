@@ -14,9 +14,9 @@ const CATEGORY_FILTERS: { id: ProjectCategoryFilter; label: string }[] = [
 ]
 
 const SORT_OPTIONS: { id: ProjectSortOrder; label: string }[] = [
-  { id: 'recently_edited', label: 'Recently Edited' },
-  { id: 'newest', label: 'Newest First' },
-  { id: 'oldest', label: 'Oldest First' },
+  { id: 'recently_edited', label: 'Recently remembered' },
+  { id: 'newest', label: 'Newest conversations' },
+  { id: 'oldest', label: 'Oldest memories' },
 ]
 
 export function ProjectSearchToolbar({
@@ -42,7 +42,7 @@ export function ProjectSearchToolbar({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search projects..."
+            placeholder="Search conversations..."
             className={cn(
               'w-full h-10 pl-10 pr-3 rounded-xl text-sm',
               'bg-black/40 border border-white/[0.08] text-luxe',
@@ -55,7 +55,7 @@ export function ProjectSearchToolbar({
           <select
             value={sort}
             onChange={(e) => onSortChange(e.target.value as ProjectSortOrder)}
-            aria-label="Sort projects"
+            aria-label="Sort conversations"
             className={cn(
               'w-full sm:w-[180px] h-10 appearance-none pl-3 pr-9 rounded-xl text-sm',
               'bg-black/40 border border-white/[0.08] text-luxe',
@@ -96,7 +96,7 @@ export function ProjectSearchToolbar({
 export function ProjectSearchEmptyState({ onClearFilters }: { onClearFilters: () => void }) {
   return (
     <div className="py-16 text-center space-y-4">
-      <p className="text-sm text-muted-foreground">No matching projects found.</p>
+      <p className="text-sm text-muted-foreground">No matching conversations found.</p>
       <button
         type="button"
         onClick={onClearFilters}

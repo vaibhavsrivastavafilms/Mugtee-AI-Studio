@@ -60,7 +60,8 @@
     "**/*.js",
     "**/*.jsx",
     ".next/types/**/*.ts",
-    "components/ui/input.tsk"
+    "components/ui/input.tsk",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -134,12 +134,12 @@ export function HeaderSearchDropdown({
                       goto(`/studio/assets?q=${encodeURIComponent(query.trim())}`)
                     }
                   >
-                    View all in Asset Library →
+                    Ask Mugtee to search every memory →
                   </button>
                 </SearchGroup>
               )}
               {results && results.content.length > 0 && (
-                <SearchGroup label="Content" icon={Film}>
+                <SearchGroup label="Stories" icon={Film}>
                   {results.content.map((c) => (
                     <SearchRow
                       key={c.id}
@@ -175,7 +175,7 @@ export function HeaderSearchDropdown({
                 </SearchGroup>
               )}
               {results && results.media.length > 0 && (
-                <SearchGroup label="Media" icon={ImageIcon}>
+                <SearchGroup label="Memories" icon={ImageIcon}>
                   {results.media.map((m) => (
                     <SearchRow
                       key={m.id}
@@ -322,9 +322,9 @@ export function HeaderRightActions({ user }: { user: User }) {
         <DropdownMenuContent align="end" className="w-56 glass-strong">
           <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push('/settings')}>Studio Settings</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/settings')}>Mugtee Preferences</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push('/pricing')} className="text-gold-300">
-            <Zap className="w-3.5 h-3.5 mr-2" /> Recharge Credits
+            <Zap className="w-3.5 h-3.5 mr-2" /> Add creative energy
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>

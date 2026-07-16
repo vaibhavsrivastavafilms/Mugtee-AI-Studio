@@ -15,7 +15,7 @@ import { rowToMemoryProfile } from '@/lib/memory/creator-memory-engine'
 import type { CreativeTeamContext } from '@/lib/creative-team/types'
 
 async function loadCreatorDna(userId: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('creator_profiles')
     .select('niche, platform, content_style, creator_dna')

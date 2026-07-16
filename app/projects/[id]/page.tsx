@@ -10,7 +10,7 @@ type Props = { params: Promise<{ id: string }> }
 /** Quick Cut V2 — cinematic generation page for a single project. */
 export default async function ProjectsQuickCutPage({ params }: Props) {
   const { id } = await params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id')

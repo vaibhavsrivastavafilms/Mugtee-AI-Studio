@@ -22,7 +22,7 @@ export async function DELETE(
   if (auth.response) return auth.response
   const userId = auth.user.id
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error: loadErr } = await supabase
     .from('cinematic_projects')
     .select('id, user_id')

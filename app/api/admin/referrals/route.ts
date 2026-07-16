@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 /** GET /api/admin/referrals — all referral attributions (admin only). */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

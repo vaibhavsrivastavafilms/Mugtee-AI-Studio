@@ -25,7 +25,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 async function loadCreatorDna(userId: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('creator_profiles')
     .select('niche, platform, content_style, creator_dna')

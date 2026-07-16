@@ -46,7 +46,7 @@ export function GenerationActivityFeed({ className, maxItems = 8 }: GenerationAc
     void input.generationStep
     void activityTick
     return getGenerationActivityLog().slice(-maxItems).reverse()
-  }, [mounted, input.generationStep, input.sectionStatus, input.scenes.length, maxItems, activityTick])
+  }, [mounted, input.generationStep, maxItems, activityTick])
 
   if (!mounted || entries.length === 0) return null
 

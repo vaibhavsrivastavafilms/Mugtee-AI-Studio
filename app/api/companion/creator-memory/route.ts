@@ -4,11 +4,12 @@ import {
   normalizeCreatorMemory,
 } from '@/lib/companion/creator-memory'
 import { parseJsonObject, requireCompanionUser } from '@/lib/companion/api-helpers'
+import type { SupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function loadMemoryRow(supabase: ReturnType<typeof import('@/lib/supabase/server').createSupabaseServerClient>, userId: string) {
+async function loadMemoryRow(supabase: SupabaseServerClient, userId: string) {
   const { data } = await supabase
     .from('creator_profiles')
     .select('creator_memory')

@@ -65,7 +65,7 @@ export async function loadProjectAssetCounts(
   projectId: string,
   userId: string
 ): Promise<ProjectAssetCounts> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('project_assets')
     .select('id, kind, url, storage_path, metadata')

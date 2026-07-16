@@ -3,8 +3,8 @@ import nextDynamic from 'next/dynamic'
 
 export const dynamic = 'force-dynamic'
 
-const TITLE = 'Choose Your Workflow · Mugtee'
-const DESCRIPTION = 'Quick Cut for fast reels or Director Mode for full cinematic control.'
+const TITLE = 'Create With Mugtee'
+const DESCRIPTION = 'Choose how your creative companion should help today.'
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -28,7 +28,7 @@ const StudioModeSelectionPage = nextDynamic(
   }
 )
 
-/** Public mode selection — Quick Cut vs Director Mode. */
+/** Companion entry — choose how Mugtee helps today. */
 export default function StudioEntryPage() {
   return <StudioModeSelectionPage />
 }

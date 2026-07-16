@@ -24,7 +24,7 @@ import { STORY_FRAMEWORKS } from '@/lib/ai/prompts/director/story-frameworks'
 import type { ContentAngleId } from '@/lib/cinematic/content-angle-engine'
 
 export async function verifyDirectorProject(projectId: string, userId: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
     .select('id, user_id, title, prompt, script, scenes')
@@ -73,7 +73,7 @@ export async function loadDirectorStudioSnapshot(
   const project = await verifyDirectorProject(projectId, userId)
   if (!project) return null
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const [
     storyRes,
     treatmentRes,
@@ -183,7 +183,7 @@ export async function upsertStoryDirections(
     activeStoryDirection?: StoryDirectionOption | null
   }
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const row = {
     project_id: projectId,
     user_id: userId,
@@ -201,7 +201,7 @@ export async function upsertDirectorTreatment(
   userId: string,
   payload: DirectorTreatment
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('director_treatments').upsert(
     {
       project_id: projectId,
@@ -229,7 +229,7 @@ export async function upsertDirectorProjectState(
     frameworkAnalysis: FrameworkAnalysis | null
   }>
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const existing = await supabase
     .from('director_project_state')
     .select('*')
@@ -273,7 +273,7 @@ export async function upsertActiveStoryFramework(
   userId: string,
   rec: StoryFrameworkRecommendation
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase
     .from('story_frameworks')
     .update({ is_active: false })
@@ -307,7 +307,7 @@ export async function upsertCharacterBible(
   userId: string,
   payload: CharacterBible
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('character_bibles').upsert(
     { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
     { onConflict: 'project_id' }
@@ -319,7 +319,7 @@ export async function upsertCameraProfile(
   userId: string,
   cameraLanguage: CameraLanguagePlan
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('camera_profiles').upsert(
     {
       project_id: projectId,
@@ -336,7 +336,7 @@ export async function upsertVoiceProfile(
   userId: string,
   payload: VoiceProfile
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('voice_profiles').upsert(
     { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
     { onConflict: 'project_id' }
@@ -348,7 +348,7 @@ export async function upsertMusicProfile(
   userId: string,
   payload: MusicDirection
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('music_profiles').upsert(
     { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
     { onConflict: 'project_id' }
@@ -360,7 +360,7 @@ export async function upsertMotionPlan(
   userId: string,
   payload: MotionPlan
 ) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   return supabase.from('motion_plans').upsert(
     { project_id: projectId, user_id: userId, payload, updated_at: new Date().toISOString() },
     { onConflict: 'project_id' }

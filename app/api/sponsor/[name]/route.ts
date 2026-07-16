@@ -21,8 +21,8 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function getSupabase() {
-  return tryCreateSupabaseServerClient()
+async function getSupabase() {
+  return await tryCreateSupabaseServerClient()
 }
 
 function utcDayBounds(): { startISO: string; endISO: string } {
@@ -39,7 +39,7 @@ type ClickRecordResult = {
 }
 
 async function readEligibility(
-  supabase: NonNullable<ReturnType<typeof getSupabase>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabase>>>,
   userId: string,
   slug: string,
 ): Promise<{ rewarded: boolean; alreadyClaimedToday: boolean }> {
@@ -84,7 +84,7 @@ async function recordClick(
     }
   }
 
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   if (!supabase) {
     return { rewarded: false, alreadyClaimedToday: false, creditsGiven: 0 }
   }
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ name
   if (!sponsor) return NextResponse.json({ error: 'Unknown sponsor' }, { status: 404 })
 
   const checkOnly = req.nextUrl.searchParams.get('check') === '1'
-  const supabase = getSupabase()
+  const supabase = await getSupabase()
   const { data: { user } } = supabase
     ? await supabase.auth.getUser()
     : { data: { user: null } }

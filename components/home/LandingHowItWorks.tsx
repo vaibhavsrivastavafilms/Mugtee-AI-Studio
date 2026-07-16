@@ -7,20 +7,20 @@ import { cn } from '@/lib/utils'
 
 const STEPS = [
   {
-    title: 'Add Your Idea',
-    body: 'Describe your reel.',
+    title: 'Talk to Mugtee',
+    body: 'Say the messy thought out loud.',
   },
   {
-    title: 'AI Creates Everything',
-    body: 'Script · Storyboard · Voice · Motion',
+    title: 'Find the Story',
+    body: 'Mugtee helps shape the hook, scenes, voice, and feeling.',
   },
   {
-    title: 'Preview & Edit',
-    body: 'Review every scene.',
+    title: 'Make It Together',
+    body: 'Adjust the world until it feels like yours.',
   },
   {
-    title: 'Export & Publish',
-    body: 'Download MP4.',
+    title: 'Share It',
+    body: 'Mugtee helps choose the platform, caption, and moment.',
   },
 ] as const
 
@@ -35,7 +35,7 @@ export function LandingHowItWorks({ className }: LandingHowItWorksProps) {
     <section id="how-it-works" className={cn('px-4 py-12 sm:px-6 sm:py-14', className)}>
       <div className="mx-auto max-w-5xl">
         <p className="text-center text-[10px] uppercase tracking-[0.32em] text-[#D4AF37]/70">
-          How It Works
+          How Friendship Works
         </p>
 
         <motion.div

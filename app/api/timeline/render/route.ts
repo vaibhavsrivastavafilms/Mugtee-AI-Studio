@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (timelineOverride) {
-      const supabase = createSupabaseServerClient()
+      const supabase = await createSupabaseServerClient()
       await supabase
         .from('cinematic_projects')
         .update({ timeline_json: timelineOverride, updated_at: new Date().toISOString() })

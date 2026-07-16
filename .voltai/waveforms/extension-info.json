@@ -1,8 +1,8 @@
 {
   "extensionId": "voltai.voltai-agent",
-  "extensionVersion": "1.6.4",
+  "extensionVersion": "1.6.5",
   "schemaVersion": 1,
-  "writtenAt": 1781301919673,
+  "writtenAt": 1782849231701,
   "uri": {
     "routes": [
       "waveform",

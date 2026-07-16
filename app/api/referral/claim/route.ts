@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 /** POST /api/referral/claim — attribute signup to referrer (idempotent). */
 export async function POST(req: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

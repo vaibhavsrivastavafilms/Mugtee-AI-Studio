@@ -27,7 +27,7 @@ export async function uploadSceneClipFromUrl(params: {
   sceneId: string
   jobId: string
 }): Promise<{ videoUrl: string; storagePath: string }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const workDir = path.join(process.cwd(), '.tmp', 'scene-clips')
   await fs.mkdir(workDir, { recursive: true })
   const localPath = path.join(workDir, `${params.jobId}.mp4`)
@@ -52,7 +52,7 @@ export async function persistSceneVideoOnProject(params: {
   sceneId: string
   result: VideoResult
 }): Promise<SceneVideoRecord> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error: readErr } = await supabase
     .from('cinematic_projects')
     .select('scenes, captions')

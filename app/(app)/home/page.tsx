@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 }
 
 export default async function HomeCompanionPage() {
-  const supabase = tryCreateSupabaseServerClient()
+  const supabase = await tryCreateSupabaseServerClient()
   const user = supabase ? (await supabase.auth.getUser()).data.user : null
   if (!user || !canAccessLiveCompanion(user)) {
     redirect(STUDIO.root)

@@ -35,7 +35,7 @@ export async function trackFeatureUsage(
     }
 
     const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     await supabase.from('feature_usage_events').insert(row)
   } catch {
     /* never block workflow */

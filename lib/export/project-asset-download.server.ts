@@ -12,10 +12,10 @@ import {
 } from '@/lib/storyboard/storyboard-asset'
 
 /** Prefer service role for background export (no user cookies). */
-export function resolveProjectAssetStorageClient(
+export async function resolveProjectAssetStorageClient(
   supabase?: SupabaseClient
-): SupabaseClient {
-  return supabase ?? createSupabaseServiceClient() ?? createSupabaseServerClient()
+): Promise<SupabaseClient> {
+  return supabase ?? createSupabaseServiceClient() ?? await createSupabaseServerClient()
 }
 
 /** Download a project-assets object via authenticated storage API (works for private buckets). */
@@ -29,7 +29,7 @@ export async function downloadProjectAssetToFile(
     throw new Error('Invalid storage path')
   }
 
-  const client = resolveProjectAssetStorageClient(supabase)
+  const client = await resolveProjectAssetStorageClient(supabase)
   const { data, error } = await client.storage
     .from(STORYBOARD_STORAGE_BUCKET)
     .download(normalized!)

@@ -333,6 +333,11 @@ async function generateScript(input: GenInput, retryNote?: string) {
   const errors: string[] = []
 
   if (getAvailableProviders().length > 0) {
+    console.log('[Script] Calling AI Provider...', {
+      providers: getAvailableProviders(),
+      promptChars: systemPrompt.length + userPrompt.length,
+      retry: Boolean(retryNote),
+    })
     try {
       const routerResult = await generateScriptViaRouter({
         systemPrompt,
@@ -356,18 +361,19 @@ async function generateScript(input: GenInput, retryNote?: string) {
           directorIntelligence: input.directorIntelligence,
         },
       })
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[generate-script] router provider', routerResult.provider)
-      }
+      console.log('[Script] AI response received', {
+        provider: routerResult.provider,
+        attemptedProviders: routerResult.attemptedProviders,
+        keys: Object.keys(routerResult.parsed).length,
+      })
       if (hasUsableLlmScript(routerResult.parsed, input.topic)) {
         return routerResult.parsed
       }
       errors.push(`${routerResult.provider}_echo_or_empty`)
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[generate-script] router failed', err)
-      }
-      errors.push('router_failed')
+      const detail = err instanceof Error ? err.message : String(err)
+      console.error('[Script] router failed', { detail: detail.slice(0, 240) })
+      errors.push(`router_failed: ${detail.slice(0, 160)}`)
     }
   } else {
     errors.push('no_provider_keys')
@@ -695,9 +701,10 @@ export async function runScriptGeneration(
       ...(storyboard ?? {}),
     }
   } catch (err) {
-    if (!hasScriptGenerationKey()) {
-      const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
-      const output = buildMockCinematicOutput({
+    const archetypeMeta = archetypeMetaFromSelection(scriptArchetype)
+    const angleMeta = contentAngleMetaFromSelection(contentAngle, hookFramework)
+    const output = {
+      ...buildMockCinematicOutput({
         topic,
         tone,
         duration,
@@ -705,24 +712,27 @@ export async function runScriptGeneration(
         virloContext,
         viralStructure,
         scriptArchetype: archetypeMeta,
-      })
-      const viralScript = mergeViralScript(blueprint, output.script, output.hook)
-      return {
-        output,
-        mock: true,
-        reason: 'provider_fallback',
-        virlo,
-        language,
-        visualStyle: resolvedVisualStyle,
-        viralScript,
-        viralStructure,
-        researchDocument,
-        researchReport,
-        researchMock,
-        scriptArchetype: archetypeMeta,
-        narrativeFrameworkId: narrativeFramework.id,
-      }
+      }),
+      ...angleMeta,
     }
-    throw err instanceof Error ? err : new Error('Script generation failed')
+    const viralScript = mergeViralScript(blueprint, output.script, output.hook)
+    console.warn('[Script] Provider failed — using free local fallback', {
+      reason: err instanceof Error ? err.message.slice(0, 180) : String(err).slice(0, 180),
+    })
+    return {
+      output,
+      mock: true,
+      reason: hasScriptGenerationKey() ? 'provider_fallback' : 'missing_api_key',
+      virlo,
+      language,
+      visualStyle: resolvedVisualStyle,
+      viralScript,
+      viralStructure,
+      researchDocument,
+      researchReport,
+      researchMock,
+      scriptArchetype: archetypeMeta,
+      narrativeFrameworkId: narrativeFramework.id,
+    }
   }
 }

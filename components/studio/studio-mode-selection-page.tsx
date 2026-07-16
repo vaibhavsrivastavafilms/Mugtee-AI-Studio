@@ -15,16 +15,16 @@ import { authLoginHref, persistModeEntry } from '@/lib/create/mode-selection'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { cn } from '@/lib/utils'
 
-const QUICK_FLOW = ['Idea', 'Script', 'Storyboard', 'Voice', 'MP4'] as const
+const QUICK_FLOW = ['Idea', 'Story', 'Look', 'Voice', 'Share'] as const
 const DIRECTOR_FLOW = [
   'Idea',
-  'Hook',
-  'Script',
-  'Visual Direction',
-  'Storyboard',
-  'Motion',
+  'Research',
+  'Story',
+  'Visual world',
+  'Scenes',
+  'Rhythm',
   'Voice',
-  'Export',
+  'Share',
 ] as const
 
 type ModeCardProps = {
@@ -58,7 +58,7 @@ function ModeCard({ icon: Icon, title, subtitle, flow, cta, onSelect, delay = 0 
       </h2>
       <p className="mt-2 text-sm text-white/75">{subtitle}</p>
 
-      <p className="mt-4 text-[9px] uppercase tracking-[0.18em] text-white/35">Flow</p>
+      <p className="mt-4 text-[9px] uppercase tracking-[0.18em] text-white/35">How Mugtee helps</p>
       <p className="mt-1.5 text-[11px] text-white/50 leading-relaxed">
         {flow.join(' → ')}
       </p>
@@ -110,7 +110,7 @@ export function StudioModeSelectionPage() {
               Mugtee
             </span>
             <span className="block text-[9px] tracking-[0.32em] uppercase text-white/70 mt-0.5">
-              AI Studio
+              Creative Companion
             </span>
           </Link>
         </div>
@@ -124,29 +124,29 @@ export function StudioModeSelectionPage() {
           className="text-center"
         >
           <h1 className="font-display text-2xl sm:text-3xl text-white">
-            How would you like to create?
+            How should Mugtee help today?
           </h1>
           <p className="mt-2 text-sm text-white/50">
-            Choose your workflow — you can switch modes anytime.
+            Pick the kind of friendship you need for this idea. You can change your mind anytime.
           </p>
         </motion.div>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
           <ModeCard
             icon={Zap}
-            title="Quick Cut"
-            subtitle="One idea → complete reel"
+            title="Tell me the idea"
+            subtitle="Mugtee takes a messy thought and turns it into something ready to share."
             flow={QUICK_FLOW}
-            cta="Create With Quick Cut"
+            cta="Start together"
             onSelect={goQuick}
             delay={0.06}
           />
           <ModeCard
             icon={Armchair}
-            title="Director Mode"
-            subtitle="Full cinematic control"
+            title="Build a creative world"
+            subtitle="For stories that need research, scenes, rhythm, and a stronger emotional arc."
             flow={DIRECTOR_FLOW}
-            cta="Open Director Mode"
+            cta="Open our world"
             onSelect={goDirector}
             delay={0.12}
           />

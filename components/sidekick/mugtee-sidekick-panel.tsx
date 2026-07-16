@@ -61,14 +61,14 @@ function SidekickCard({
       <div className="flex flex-col items-center gap-2 rounded-xl border border-gold-500/15 bg-gold-500/[0.03] px-3 py-4">
         <MugteeSidekickAvatar size="lg" priority />
         <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/75">
-          Mugtee · Cinematic guide
+          Mugtee · Creative friend
         </p>
         {showCompanionLink ? (
           <Link
             href="/home"
             className="text-[9px] tracking-[0.16em] uppercase text-gold-300/55 hover:text-gold-200 transition"
           >
-            Open Story Companion →
+            Talk to Mugtee →
           </Link>
         ) : null}
       </div>
@@ -98,7 +98,7 @@ function SidekickCard({
         <div className="rounded-xl border border-white/[0.08] bg-black/30 px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] tracking-[0.2em] uppercase text-luxe/45">
-              Creator progress
+              Friendship progress
             </span>
             <span className="text-xs font-medium text-gold-200">{journey.label}</span>
           </div>
@@ -112,7 +112,7 @@ function SidekickCard({
           className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-gold-300/60 hover:text-gold-200 transition"
         >
           <Sparkles className="w-3 h-3" />
-          Tune my creator profile
+          Tune what Mugtee remembers
         </Link>
       ) : null}
     </div>

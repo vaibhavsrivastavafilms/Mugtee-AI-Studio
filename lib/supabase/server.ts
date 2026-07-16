@@ -9,7 +9,7 @@ export type SupabaseServerClient = ReturnType<typeof createServerClient>
  * Request-time Supabase client with cookie bridge.
  * Uses getSupabasePublicEnv() — never reads env at module scope.
  */
-export function createSupabaseServerClient(): SupabaseServerClient {
+export async function createSupabaseServerClient(): Promise<SupabaseServerClient> {
   const env = getSupabasePublicEnv()
   if (!env) {
     throw new Error(
@@ -17,7 +17,7 @@ export function createSupabaseServerClient(): SupabaseServerClient {
     )
   }
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {
@@ -40,11 +40,11 @@ export function createSupabaseServerClient(): SupabaseServerClient {
 }
 
 /** Returns null instead of throwing when Supabase public env is absent. */
-export function tryCreateSupabaseServerClient(): SupabaseServerClient | null {
+export async function tryCreateSupabaseServerClient(): Promise<SupabaseServerClient | null> {
   const env = getSupabasePublicEnv()
   if (!env) return null
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {

@@ -585,6 +585,7 @@ interface QuickCutGenerationStateBase {
   isRegeneratingTitle: boolean
   isRegeneratingScript: boolean
   mock: boolean
+  scriptUsedMock: boolean
   missingKeys: string[]
   pipeline: QuickCutPipelineStatus | null
   error: string | null
@@ -789,6 +790,7 @@ const INITIAL: QuickCutGenerationState = {
   isRegeneratingTitle: false,
   isRegeneratingScript: false,
   mock: false,
+  scriptUsedMock: false,
   missingKeys: [],
   pipeline: null,
   error: null,
@@ -4031,6 +4033,7 @@ export const useQuickCutGenerationStore = create<
         renderError: exportFailedFinal ? get().renderError : null,
         exportPackageReady,
         mock: anyMock,
+        scriptUsedMock: scriptData.mock === true,
         missingKeys: [...missingKeys],
         pipeline,
         isGenerating: false,

@@ -14,7 +14,7 @@ export async function insertAnalyticsEventRow(
 ): Promise<void> {
   if (!row) return
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     await supabase.from('analytics_events').insert(row)
   } catch {
     /* never block workflow */

@@ -87,7 +87,7 @@ export async function loadCreativeTeamReport(
   projectId: string,
   userId: string
 ): Promise<CreativeTeamPackage | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creative_team_reports')
     .select('*')
@@ -103,7 +103,7 @@ export async function verifyCreativeTeamReport(
   reportId: string,
   userId: string
 ): Promise<CreativeTeamPackage | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creative_team_reports')
     .select('*')
@@ -120,7 +120,7 @@ export async function upsertCreativeTeamReport(
   userId: string,
   input: CreativeTeamReportUpsert
 ): Promise<{ data: CreativeTeamPackage | null; error: Error | null }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const row = packageToRow(projectId, userId, input)
 
   if (input.reportId) {
@@ -152,7 +152,7 @@ export async function patchCreativeTeamAgentState(
   agentStates: AgentStatesMap,
   patch: CreativeTeamReportPatch
 ): Promise<{ data: CreativeTeamPackage | null; error: Error | null }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const update: Record<string, unknown> = {
     agent_states: agentStates,
     updated_at: new Date().toISOString(),

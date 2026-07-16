@@ -56,10 +56,10 @@ export default function CinematicHomePage() {
         >
           <LandingProductCard
             icon={Zap}
-            title="Quick Cut"
-            description="Generate a complete reel in minutes."
-            detail="Input an idea. Mugtee creates everything automatically."
-            ctaLabel="Start Quick Cut"
+            title="Tell Mugtee the idea"
+            description="For the days when you just need to start."
+            detail="A rough thought becomes story, visuals, voice, and something ready to share."
+            ctaLabel="Start together"
             href={STUDIO_QUICK}
             onClick={(e) => {
               e.preventDefault()
@@ -68,10 +68,10 @@ export default function CinematicHomePage() {
           />
           <LandingProductCard
             icon={Armchair}
-            title="Director Mode"
-            description="Control every scene."
-            detail="Edit script, visuals, motion, voice and timing."
-            ctaLabel="Open Director Mode"
+            title="Build a creative world"
+            description="For stories that need care."
+            detail="Research, scenes, emotion, rhythm, voice, and the ending Mugtee keeps pushing for."
+            ctaLabel="Open our world"
             href={STUDIO_DIRECTOR}
             onClick={(e) => {
               e.preventDefault()
@@ -89,7 +89,7 @@ export default function CinematicHomePage() {
             onClick={goStudio}
             className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37]/70 hover:text-[#D4AF37] transition-colors"
           >
-            Not sure? Compare workflows →
+            Not sure? Let Mugtee help you choose →
           </button>
         </div>
       </main>

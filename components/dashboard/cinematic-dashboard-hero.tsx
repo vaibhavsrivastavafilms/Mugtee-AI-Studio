@@ -5,19 +5,15 @@ import { motion } from 'framer-motion'
 import { Film } from 'lucide-react'
 
 export function CinematicDashboardHero() {
-  const [firstName, setFirstName] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    try {
-      return localStorage.getItem('mugtee:user-firstname:v1')
-    } catch {
-      return null
-    }
-  })
+  const [firstName, setFirstName] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
+        const cached = localStorage.getItem('mugtee:user-firstname:v1')
+        if (cached && !cancelled) setFirstName(cached)
+
         const r = await fetch('/api/profile', { cache: 'no-store' })
         const d = await r.json()
         const raw: string = d?.profile?.full_name || d?.profile?.name || d?.user?.email || ''

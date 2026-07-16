@@ -11,7 +11,7 @@ type Props = { params: Promise<{ id: string }> }
 /** POST /api/sponsored-placements/[id]/impression */
 export async function POST(req: Request, { params }: Props) {
   const { id } = await params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const generationMode = normalizeGenerationMode(raw?.generationMode ?? raw?.generation_mode)
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

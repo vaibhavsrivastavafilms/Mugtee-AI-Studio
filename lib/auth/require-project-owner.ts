@@ -12,7 +12,7 @@ export async function requireProjectOwner(
   const id = projectId?.trim()
   if (!id) return null
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: piece } = await supabase
     .from('content_pieces')

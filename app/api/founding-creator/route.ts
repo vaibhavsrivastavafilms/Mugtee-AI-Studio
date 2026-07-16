@@ -13,7 +13,7 @@ const CREATOR_TYPE_IDS = new Set(FOUNDING_CREATOR_TYPES.map((c) => c.id))
 const VOLUME_IDS = new Set(FOUNDING_CONTENT_VOLUMES.map((v) => v.id))
 
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -32,7 +32,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

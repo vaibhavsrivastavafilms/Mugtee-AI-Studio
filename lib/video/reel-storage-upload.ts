@@ -21,7 +21,7 @@ export async function uploadReelMp4(params: {
   projectId: string
   userId: string
 }): Promise<{ videoUrl: string; storagePath: string }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const buffer = await fs.readFile(params.localPath)
   const storagePath = `${params.projectId}/final-reel.mp4`
   const fileSize = buffer.length
@@ -79,7 +79,7 @@ async function uploadReelToProjectAssets(params: {
   projectId: string
   userId: string
 }): Promise<{ videoUrl: string; storagePath: string } | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const buffer = await fs.readFile(params.localPath)
   const storagePath = `${params.userId}/${params.projectId}/final-reel.mp4`
 
@@ -102,7 +102,7 @@ export async function persistProjectReel(params: {
   thumbnailUrl?: string | null
   reelStatus?: ReelStatus
 }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const now = new Date().toISOString()
   const status = params.reelStatus ?? 'ready'
   const dbReelStatus = status === 'ready' ? 'completed' : status
@@ -143,7 +143,7 @@ export async function updateProjectReelStatus(params: {
   reelStatus: ReelStatus
   reelJobId?: string | null
 }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const patch: Record<string, unknown> = {
     reel_status: params.reelStatus,
     updated_at: new Date().toISOString(),

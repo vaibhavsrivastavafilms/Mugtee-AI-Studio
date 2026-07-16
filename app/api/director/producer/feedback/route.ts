@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseJsonBody, requireCinematicUser } from '@/lib/cinematic/regen-auth'
 import { verifyDirectorProject } from '@/lib/director/director-db.server'
 import { recordSuggestionFeedback } from '@/lib/director/producer/producer-memory'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   loadProducerReport,
   updateProducerReportMemory,
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const userId = auth.user!.id
-    const supabase = await import('@/lib/supabase/server').then((m) => m.createSupabaseServerClient())
+    const supabase = await createSupabaseServerClient()
     const { data: row } = await supabase
       .from('producer_reports')
       .select('project_id, producer_memory')

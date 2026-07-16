@@ -62,7 +62,7 @@ export async function loadProducerReport(
   projectId: string,
   userId: string
 ): Promise<ProducerReport | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('producer_reports')
     .select('*')
@@ -79,7 +79,7 @@ export async function upsertProducerReport(
   userId: string,
   report: Omit<ProducerReport, 'createdAt' | 'updatedAt'>
 ): Promise<{ data: ProducerReport | null; error: Error | null }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const now = new Date().toISOString()
 
   const row = {
@@ -120,7 +120,7 @@ export async function updateProducerReportMemory(
   userId: string,
   memory: ProducerMemory
 ): Promise<{ error: Error | null }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from('producer_reports')
     .update({ producer_memory: memory, updated_at: new Date().toISOString() })
@@ -131,7 +131,7 @@ export async function updateProducerReportMemory(
 }
 
 export async function loadCreatorProducerMemory(userId: string): Promise<ProducerMemory> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('creator_memories')
     .select('producer_memory')
@@ -145,7 +145,7 @@ export async function upsertCreatorProducerMemory(
   userId: string,
   memory: ProducerMemory
 ): Promise<void> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: existing } = await supabase
     .from('creator_memories')
     .select('id, producer_memory')
@@ -175,7 +175,7 @@ export async function setProducerApproved(
   userId: string,
   approved: boolean
 ): Promise<void> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: prev } = await supabase
     .from('director_project_state')
     .select('*')
@@ -206,7 +206,7 @@ export async function loadProducerApproved(
   projectId: string,
   userId: string
 ): Promise<boolean> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('director_project_state')
     .select('producer_approved')

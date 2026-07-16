@@ -19,7 +19,7 @@ export type SceneVideoRow = {
 }
 
 export async function getSceneVideoById(id: string, userId: string): Promise<SceneVideoRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('scene_videos')
     .select('*')
@@ -36,7 +36,7 @@ export async function getSceneVideoForScene(
   sceneId: string,
   userId: string
 ): Promise<SceneVideoRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('scene_videos')
     .select('*')
@@ -55,7 +55,7 @@ export async function listSceneVideosForProject(
   projectId: string,
   userId: string
 ): Promise<SceneVideoRow[]> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('scene_videos')
     .select('*')
@@ -75,7 +75,7 @@ export async function createSceneVideoRow(input: {
   sourceImageUrl: string
   motionPlan?: MotionPlanScene | Record<string, unknown> | null
 }): Promise<SceneVideoRow> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const now = new Date().toISOString()
   const row = {
     project_id: input.projectId,
@@ -112,7 +112,7 @@ export async function updateSceneVideoRow(
     providerJobId: string | null
   }>
 ): Promise<void> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const row: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (patch.status !== undefined) row.status = patch.status
   if (patch.videoUrl !== undefined) row.video_url = patch.videoUrl

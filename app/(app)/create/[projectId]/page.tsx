@@ -9,7 +9,7 @@ type Props = { params: Promise<{ projectId: string }> }
 /** Project shell — routes to generate or director based on stored mode + status. */
 export default async function CreateProjectPage({ params }: Props) {
   const { projectId } = await params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id, status, mode')

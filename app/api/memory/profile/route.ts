@@ -10,11 +10,12 @@ import {
   rowToMemoryProfile,
 } from '@/lib/memory/creator-memory-engine'
 import { updateDnaFromProfile } from '@/lib/memory/creator-dna'
+import type { SupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function loadRow(supabase: ReturnType<typeof import('@/lib/supabase/server').createSupabaseServerClient>, userId: string) {
+async function loadRow(supabase: SupabaseServerClient, userId: string) {
   const { data } = await supabase
     .from('creator_profiles')
     .select(

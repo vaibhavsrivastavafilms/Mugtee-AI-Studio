@@ -11,6 +11,7 @@ import { rowToMissionProfile } from '@/lib/mission/mission-server'
 import type { CreatorWorldId } from '@/lib/multiverse/types'
 import type { SidekickPersonalityPreset } from '@/lib/multiverse/types'
 import { SIDEKICK_PERSONALITY_PRESETS } from '@/lib/multiverse/sidekick-evolution'
+import type { SupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ const VALID_WORLDS: CreatorWorldId[] = [
 ]
 
 async function loadRow(
-  supabase: ReturnType<typeof import('@/lib/supabase/server').createSupabaseServerClient>,
+  supabase: SupabaseServerClient,
   userId: string
 ): Promise<MultiverseRow | null> {
   const { data } = await supabase

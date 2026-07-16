@@ -24,7 +24,7 @@ export async function loadCachedResearch(input: {
   projectId?: string | null
   topic: string
 }): Promise<CachedResearchRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const topicHash = hashResearchTopic(input.topic)
 
   if (input.projectId) {
@@ -59,7 +59,7 @@ export async function storeResearchCache(input: {
   document: string
   report: DeepResearchReport
 }): Promise<void> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const topicHash = hashResearchTopic(input.topic)
   const researchText = input.document.trim() || serializeDeepResearchReport(input.report)
 

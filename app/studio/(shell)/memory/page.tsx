@@ -42,16 +42,16 @@ export default function StudioMemoryPage() {
       a.download = `mugtee-memory-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
       URL.revokeObjectURL(url)
-      toast.success('Memory exported')
+      toast.success("Mugtee's memory was saved")
     } catch {
-      toast.error('Could not export memory')
+      toast.error("I couldn't save that memory file")
     } finally {
       setBusy(false)
     }
   }
 
   const deleteMemory = async () => {
-    if (!confirm('Delete all learned memory? Creator profile DNA will reset.')) return
+    if (!confirm("Delete everything Mugtee has learned about you?")) return
     setBusy(true)
     try {
       const res = await fetch('/api/memory/delete', {
@@ -60,11 +60,11 @@ export default function StudioMemoryPage() {
         body: JSON.stringify({ scope: 'all' }),
       })
       if (!res.ok) throw new Error('Delete failed')
-      toast.success('Memory cleared')
+      toast.success("Mugtee's memory was cleared")
       await loadBrands()
       window.location.reload()
     } catch {
-      toast.error('Could not delete memory')
+      toast.error("I couldn't clear the memory")
     } finally {
       setBusy(false)
     }
@@ -82,12 +82,12 @@ export default function StudioMemoryPage() {
         }),
       })
       if (!res.ok) throw new Error('Failed')
-      toast.success(`Brand "${newBrandName}" saved`)
+      toast.success(`Creative world "${newBrandName}" saved`)
       setNewBrandSlug('')
       setNewBrandName('')
       await loadBrands()
     } catch {
-      toast.error('Could not save brand')
+      toast.error("I couldn't save that world")
     } finally {
       setBusy(false)
     }
@@ -97,11 +97,14 @@ export default function StudioMemoryPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       <header>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gold-400/80 mb-1">
-          MugteeOS Phase 3
+          Memory
         </p>
-        <h1 className="font-display text-2xl sm:text-3xl text-[#F4E7C1]">Creator Memory</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-[#F4E7C1]">
+          What Mugtee remembers about you
+        </h1>
         <p className="text-sm text-luxe/55 mt-2 max-w-xl">
-          View and manage what Mugtee knows — brands, patterns, projects, and preferences.
+          Favorite styles, voice, clients, deadlines, colors, pacing, hooks, and the creative worlds
+          you keep returning to.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
           <Button
@@ -113,7 +116,7 @@ export default function StudioMemoryPage() {
             className="gap-2"
           >
             <Download className="w-3.5 h-3.5" />
-            Export JSON
+            Save memory file
           </Button>
           <Button
             type="button"
@@ -124,7 +127,7 @@ export default function StudioMemoryPage() {
             className="gap-2 text-red-300/90 border-red-500/20"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Delete all memory
+            Clear everything
           </Button>
         </div>
       </header>
@@ -132,7 +135,7 @@ export default function StudioMemoryPage() {
       <MemoryDashboardPanel />
 
       <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-4">
-        <h2 className="text-sm font-medium text-luxe/80">Multi-brand spaces</h2>
+        <h2 className="text-sm font-medium text-luxe/80">Creative worlds</h2>
         {brands.length > 0 ? (
           <ul className="space-y-2">
             {brands.map((b) => (
@@ -152,12 +155,12 @@ export default function StudioMemoryPage() {
           </ul>
         ) : (
           <p className="text-xs text-luxe/45">
-            No brands yet — add Table Tales or other series for isolated memory.
+            No worlds yet — add Table Tales, a wedding series, a restaurant client, or anything you want Mugtee to remember separately.
           </p>
         )}
         <div className="flex flex-wrap gap-2 items-end">
           <div>
-            <label className="text-[10px] text-luxe/40 uppercase">Slug</label>
+            <label className="text-[10px] text-luxe/40 uppercase">World key</label>
             <Input
               value={newBrandSlug}
               onChange={(e) => setNewBrandSlug(e.target.value)}
@@ -166,7 +169,7 @@ export default function StudioMemoryPage() {
             />
           </div>
           <div>
-            <label className="text-[10px] text-luxe/40 uppercase">Name</label>
+            <label className="text-[10px] text-luxe/40 uppercase">World name</label>
             <Input
               value={newBrandName}
               onChange={(e) => setNewBrandName(e.target.value)}
@@ -175,7 +178,7 @@ export default function StudioMemoryPage() {
             />
           </div>
           <Button type="button" size="sm" disabled={busy || !newBrandSlug.trim()} onClick={() => void addBrand()}>
-            Add brand
+            Add world
           </Button>
         </div>
       </section>

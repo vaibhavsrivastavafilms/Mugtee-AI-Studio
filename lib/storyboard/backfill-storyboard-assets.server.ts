@@ -142,7 +142,7 @@ export async function backfillStoryboardAssetsForProject(params: {
   const projectId = params.row.id.trim()
   let supabase: SupabaseClient
   try {
-    supabase = params.supabase ?? createSupabaseServerClient()
+    supabase = params.supabase ?? await createSupabaseServerClient()
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Supabase unavailable'
     return {

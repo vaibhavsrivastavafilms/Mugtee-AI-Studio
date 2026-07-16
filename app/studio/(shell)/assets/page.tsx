@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { AssetDashboard } from '@/components/assets/asset-dashboard'
 
 export const metadata = {
-  title: 'Asset Library | Mugtee Studio',
+  title: 'Memories | Mugtee',
 }
 
 export default function StudioAssetsPage() {
@@ -10,7 +10,7 @@ export default function StudioAssetsPage() {
     <Suspense
       fallback={
         <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-          Loading asset library…
+          Mugtee is remembering…
         </div>
       }
     >

@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
 
     const timelineOverride = parseTimelineProject(body.timelineJson)
     if (timelineOverride) {
-      const supabase = createSupabaseServerClient()
+      const supabase = await createSupabaseServerClient()
       await supabase
         .from('cinematic_projects')
         .update({

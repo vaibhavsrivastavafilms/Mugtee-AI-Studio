@@ -1,13 +1,20 @@
 // GET /api/youtube/auth — redirect to Google consent
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import { buildAuthUrl } from '@/lib/youtube'
 import { safeRelative } from '@/lib/url'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await tryCreateSupabaseServerClient()
+  if (!supabase) {
+    const u = new URL('/login', req.url)
+    u.searchParams.set('returnTo', '/settings')
+    u.searchParams.set('yt_error', 'auth_not_configured')
+    return NextResponse.redirect(u)
+  }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     const u = new URL('/login', req.url); u.searchParams.set('returnTo', '/settings')

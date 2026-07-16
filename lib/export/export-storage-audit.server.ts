@@ -396,7 +396,7 @@ function firstFailure(
 
 /** End-to-end Supabase storage audit for authenticated reel export workflow. */
 export async function runExportStorageAudit(userId: string): Promise<ExportStorageAuditResult> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const auditProjectId = randomUUID()
   const storagePath = `${auditProjectId}/final-reel.mp4`
   const buffer = probeMp4Buffer()

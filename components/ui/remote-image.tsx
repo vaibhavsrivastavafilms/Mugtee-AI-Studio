@@ -11,11 +11,12 @@ type RemoteImageProps = Omit<ImageProps, 'unoptimized'> & {
  * Use for user-generated / remote storyboard URLs (pollinations, signed storage, etc.).
  * Bypasses `/_next/image` when the proxy URL would exceed Next.js limits.
  */
-export function RemoteImage({ src, unoptimized, ...props }: RemoteImageProps) {
+export function RemoteImage({ src, alt, unoptimized, ...props }: RemoteImageProps) {
   const srcStr = typeof src === 'string' ? src : undefined
   return (
     <Image
       src={src}
+      alt={alt}
       unoptimized={unoptimized ?? shouldUnoptimizeImageSrc(srcStr)}
       {...props}
     />

@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { Toaster } from '@/components/ui/sonner'
 import { AnalyticsBoot } from '@/components/analytics/analytics-boot'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
@@ -10,9 +11,9 @@ import { getCanonicalSiteUrl } from '@/lib/url'
 
 const SITE_URL = getCanonicalSiteUrl()
 const SITE_NAME = 'Mugtee'
-const SITE_TAGLINE = 'Your Cinematic AI Studio'
+const SITE_TAGLINE = 'Your Creative Companion'
 const SITE_DESCRIPTION =
-  'Turn stories into cinematic moments — hook, script, storyboard, voice, and export-ready Creator Packs.'
+  'The imaginary friend every creator wishes they had — a creative companion for stories, images, scripts, research, memories, and sharing.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -102,11 +103,27 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-7958251746228863'
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim()
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head>{/* suppress PerformanceServerTiming DataCloneError */}<script dangerouslySetInnerHTML={{ __html: 'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);' }} />{adsenseClient ? <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossOrigin="anonymous" /> : null}</head>
       <body className="min-h-screen min-w-0 bg-background text-foreground antialiased scrollbar-luxe overflow-x-clip" suppressHydrationWarning>
+        <Script
+          id="performance-server-timing-data-clone-error-guard"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html:
+              'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);',
+          }}
+        />
+        {adsenseClient ? (
+          <Script
+            id="google-adsense"
+            strategy="afterInteractive"
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+          />
+        ) : null}
         {/* V4.0 — PostHog + first-party analytics bootstrapped once per browser tab. */}
         <AnalyticsBoot />
         {/* PWA — offline shell + static precache (production only). */}

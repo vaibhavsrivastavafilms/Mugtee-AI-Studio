@@ -53,18 +53,77 @@ async function callGemini(params: {
   )
 
   if (!res.ok) {
-    throw new Error(`Gemini HTTP ${res.status}`)
+    // Capture the response body — Google returns the real reason here
+    // (e.g. API_KEY_INVALID, quota, model not found). `Gemini HTTP 400` alone is useless.
+    const errBody = await res.text().catch(() => '')
+    let detail = ''
+    try {
+      const parsed = JSON.parse(errBody) as {
+        error?: { status?: string; message?: string }
+      }
+      detail = [parsed.error?.status, parsed.error?.message].filter(Boolean).join(': ')
+    } catch {
+      detail = errBody.slice(0, 300)
+    }
+    console.error('[Gemini] request failed', {
+      httpStatus: res.status,
+      model,
+      detail: detail.slice(0, 300),
+    })
+    throw new Error(`Gemini HTTP ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ''}`)
   }
 
   const json = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> }
+      finishReason?: string
+      safetyRatings?: Array<{ category?: string; probability?: string }>
+    }>
+    promptFeedback?: { blockReason?: string; safetyRatings?: unknown }
+    usageMetadata?: {
+      promptTokenCount?: number
+      candidatesTokenCount?: number
+      totalTokenCount?: number
+    }
   }
-  return (
-    json.candidates?.[0]?.content?.parts
+
+  const candidate = json.candidates?.[0]
+  const finishReason = candidate?.finishReason
+  const blockReason = json.promptFeedback?.blockReason
+
+  // Safety block / non-STOP finish reasons produce empty text — surface them explicitly.
+  if (blockReason) {
+    console.error('[Gemini] prompt blocked', {
+      blockReason,
+      promptFeedback: json.promptFeedback,
+    })
+    throw new Error(`Gemini prompt blocked: ${blockReason}`)
+  }
+  if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
+    console.error('[Gemini] abnormal finishReason', {
+      finishReason,
+      safetyRatings: candidate?.safetyRatings,
+      usageMetadata: json.usageMetadata,
+    })
+  }
+
+  const text =
+    candidate?.content?.parts
       ?.map((p) => p.text)
       .filter(Boolean)
       .join('') ?? ''
-  )
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Gemini] response', {
+      model,
+      finishReason: finishReason ?? 'none',
+      promptTokens: json.usageMetadata?.promptTokenCount,
+      completionTokens: json.usageMetadata?.candidatesTokenCount,
+      textLength: text.length,
+    })
+  }
+
+  return text
 }
 
 export class GeminiProvider implements AIProvider {

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({} as Record<string, unknown>))
     const rawEvents = Array.isArray(body.events) ? body.events : [body]
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

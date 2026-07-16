@@ -164,6 +164,7 @@ export function SceneWorkspaceV2({ className }: { className?: string }) {
   const originalPrompt = scene?.imagePrompt?.trim() || scene?.visualPrompt?.trim() || ''
 
   const activityStamp = useMemo(() => {
+    void sceneStatus
     if (!mounted || !scene || !state.generationStartedAt) return null
     const log = getGenerationActivityLog()
     const hit = log.find((e) => e.id === 'storyboard' || e.label.toLowerCase().includes('storyboard'))

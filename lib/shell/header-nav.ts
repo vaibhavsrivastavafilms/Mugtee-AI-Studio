@@ -1,3 +1,5 @@
+import { COMPANION_NAV_LABELS } from '@/lib/brand/mugtee-v2'
+
 export type HeaderNavId =
   | 'home'
   | 'create'
@@ -12,21 +14,21 @@ export type HeaderNavId =
 
 export const COMPANION_HEADER_NAV_ITEM = {
   id: 'home' as const,
-  label: 'Companion',
+  label: COMPANION_NAV_LABELS.home,
   href: '/home',
 }
 
 export const HEADER_NAV = [
   COMPANION_HEADER_NAV_ITEM,
-  { id: 'create' as const, label: 'Create', href: '/studio/quick' },
-  { id: 'video' as const, label: 'Demo', href: '/studio/video' },
-  { id: 'projects' as const, label: 'Projects', href: '/studio/projects' },
-  { id: 'assets' as const, label: 'Assets', href: '/studio/assets' },
-  { id: 'knowledge' as const, label: 'Knowledge', href: '/studio/knowledge' },
-  { id: 'analytics' as const, label: 'Analytics', href: '/studio/analytics' },
-  { id: 'director' as const, label: 'Director Mode', href: '/studio/director' },
-  { id: 'exports' as const, label: 'Exports', href: '/studio/exports' },
-  { id: 'settings' as const, label: 'Settings', href: '/studio/settings' },
+  { id: 'create' as const, label: COMPANION_NAV_LABELS.create, href: '/studio/quick' },
+  { id: 'projects' as const, label: COMPANION_NAV_LABELS.projects, href: '/studio/projects' },
+  { id: 'assets' as const, label: COMPANION_NAV_LABELS.assets, href: '/studio/assets' },
+  { id: 'knowledge' as const, label: COMPANION_NAV_LABELS.knowledge, href: '/studio/knowledge' },
+  { id: 'analytics' as const, label: COMPANION_NAV_LABELS.analytics, href: '/studio/analytics' },
+  { id: 'director' as const, label: COMPANION_NAV_LABELS.director, href: '/studio/director' },
+  { id: 'exports' as const, label: COMPANION_NAV_LABELS.exports, href: '/studio/exports' },
+  { id: 'video' as const, label: COMPANION_NAV_LABELS.video, href: '/studio/video' },
+  { id: 'settings' as const, label: COMPANION_NAV_LABELS.settings, href: '/studio/settings' },
 ]
 
 export function headerNavForCompanionAccess(showCompanion: boolean) {

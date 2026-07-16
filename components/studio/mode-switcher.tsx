@@ -18,8 +18,8 @@ type ModeSwitcherProps = {
 }
 
 const MODES: { id: CreatorMode; label: string; shortLabel: string; icon: typeof Zap }[] = [
-  { id: 'quick', label: 'Quick Mode', shortLabel: 'Quick', icon: Zap },
-  { id: 'director', label: 'Director Mode', shortLabel: 'Director', icon: Clapperboard },
+  { id: 'quick', label: 'Fast idea', shortLabel: 'Idea', icon: Zap },
+  { id: 'director', label: 'Creative world', shortLabel: 'World', icon: Clapperboard },
 ]
 
 export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) {
@@ -37,7 +37,7 @@ export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) 
         className
       )}
       role="tablist"
-      aria-label="Creator mode"
+      aria-label="How Mugtee helps"
     >
       {MODES.map(({ id, label, shortLabel, icon: Icon }) => {
         const active = activeMode === id

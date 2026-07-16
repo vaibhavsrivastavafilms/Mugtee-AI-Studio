@@ -8,7 +8,7 @@ type Props = { params: Promise<{ projectId: string }> }
 
 export default async function StudioCreateProjectPage({ params }: Props) {
   const { projectId } = await params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id, status, mode')

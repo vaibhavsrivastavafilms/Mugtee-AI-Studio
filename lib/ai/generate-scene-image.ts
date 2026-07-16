@@ -136,7 +136,7 @@ export async function uploadImageBuffer(params: {
 }): Promise<string | null> {
   const { createSupabaseServiceClient } = await import('@/lib/supabase/service')
   const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-  const supabase = createSupabaseServiceClient() ?? createSupabaseServerClient()
+  const supabase = createSupabaseServiceClient() ?? await createSupabaseServerClient()
   const { error: upErr } = await supabase.storage
     .from('project-assets')
     .upload(params.filename, params.buffer, {

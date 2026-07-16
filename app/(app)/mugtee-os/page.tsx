@@ -7,7 +7,7 @@ import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export default async function MugteeOsPage() {
-  const supabase = tryCreateSupabaseServerClient()
+  const supabase = await tryCreateSupabaseServerClient()
   const user = supabase ? (await supabase.auth.getUser()).data.user : null
   if (!user || !canAccessLiveCompanion(user)) {
     redirect(STUDIO.root)

@@ -39,7 +39,7 @@ async function verifySceneForRender(
   scene: GeneratedScene,
   index: number
 ): Promise<RenderInputSceneCheck> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   let imageAssetPath =
     resolveSceneExportAssetPath(scene) ??
     extractStoragePathFromUrl(resolveSceneExportImageUrl(scene))
@@ -90,7 +90,7 @@ async function verifyAudioForRender(params: {
   let exists = !params.required
 
   if (params.required && voiceUrl) {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     if (voiceAssetPath) {
       const freshUrl = await refreshStoryboardUrl(voiceAssetPath, supabase)
       exists =

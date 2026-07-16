@@ -70,7 +70,7 @@ async function rangeCheck(url: string): Promise<ReelFileVerification> {
 }
 
 async function storageFallback(projectId: string): Promise<ReelFileVerification> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const storagePath = `${projectId}/final-reel.mp4`
   const { data, error } = await supabase.storage.from(REEL_BUCKET).download(storagePath)
   if (error || !data) {

@@ -31,7 +31,7 @@ export function CinematicHomeHeader({ className }: CinematicHomeHeaderProps) {
             Mugtee
           </span>
           <span className="block text-[9px] sm:text-[10px] tracking-[0.32em] uppercase text-white/70 mt-0.5">
-            AI Studio
+            Creative Companion
           </span>
         </Link>
 

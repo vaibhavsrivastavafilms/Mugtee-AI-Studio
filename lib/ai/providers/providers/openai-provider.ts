@@ -53,17 +53,42 @@ export class OpenAIProvider implements AIProvider {
   async generateScript(input: ScriptInput): Promise<ScriptResult> {
     const { systemPrompt, userPrompt } = buildScriptMessages(input)
     const openai = getOpenAIClient()
-    const completion = await createCachedOpenAIChatCompletion(openai, {
-      model: process.env.OPENAI_MODEL?.trim() || FREE_OPENAI_CHAT_MODEL,
-      temperature: input.temperature ?? 0.85,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    })
-    const parsed = parseLlmJsonText(completion.choices[0]?.message?.content || '{}')
-    return { parsed, provider: this.id }
+    const model = process.env.OPENAI_MODEL?.trim() || FREE_OPENAI_CHAT_MODEL
+    const temperature = input.temperature ?? 0.85
+    try {
+      const completion = await createCachedOpenAIChatCompletion(openai, {
+        model,
+        temperature,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      })
+      const content = completion.choices[0]?.message?.content || '{}'
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[OpenAI] script response', {
+          model,
+          temperature,
+          promptChars: systemPrompt.length + userPrompt.length,
+          completionChars: content.length,
+          promptTokens: completion.usage?.prompt_tokens,
+          completionTokens: completion.usage?.completion_tokens,
+          finishReason: completion.choices[0]?.finish_reason,
+        })
+      }
+      return { parsed: parseLlmJsonText(content), provider: this.id }
+    } catch (err) {
+      const status = (err as { status?: number })?.status
+      console.error('[OpenAI] script request failed', {
+        model,
+        temperature,
+        httpStatus: status,
+        promptChars: systemPrompt.length + userPrompt.length,
+        rawError: err instanceof Error ? err.message.slice(0, 240) : String(err),
+      })
+      throw err
+    }
   }
 
   async generateTitle(input: HookInput): Promise<TitleResult> {

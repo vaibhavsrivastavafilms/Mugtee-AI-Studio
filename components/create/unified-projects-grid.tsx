@@ -86,8 +86,8 @@ const CREATION_STATUS_TONE: Record<ProjectCreationStatus, string> = {
 }
 
 const MODE_BADGE: Record<CreatorMode, { label: string; icon: typeof Zap }> = {
-  quick: { label: 'Quick Cut', icon: Zap },
-  director: { label: 'Director Cut', icon: Clapperboard },
+  quick: { label: 'Fast idea', icon: Zap },
+  director: { label: 'Creative world', icon: Clapperboard },
 }
 
 export function summaryToCard(project: CinematicProjectSummary): ProjectCardModel {
@@ -267,13 +267,13 @@ export function UnifiedProjectsGrid({
       {!galleryMode ? (
         <div className="flex items-center justify-between mb-3">
           <div className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] uppercase text-gold-300">
-            <Film className="w-3 h-3" /> Cinematic Stories
+            <Film className="w-3 h-3" /> Recent conversations
           </div>
           <Link
             href={createEntryHref(undefined, { tab: 'projects' })}
             className="text-[10px] tracking-wider uppercase text-muted-foreground hover:text-gold-300 transition inline-flex items-center gap-1"
           >
-            See all <ArrowRight className="w-3 h-3" />
+            Remember all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       ) : null}
@@ -333,7 +333,7 @@ export function UnifiedProjectsGrid({
                   isSelected && 'border-gold-500/45'
                 )}
               >
-                {/* TOP — thumbnail, duration, mode badge */}
+                {/* TOP — memory cover, duration, conversation badge */}
                 <div className="relative aspect-[4/5] bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 overflow-hidden">
                   {isHovered && p.videoUrl ? (
                     <video
@@ -359,14 +359,14 @@ export function UnifiedProjectsGrid({
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                   <span className="absolute bottom-3 left-3 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-[10px] tracking-widest text-luxe/90 border border-white/[0.08]">
-                    {p.duration}s
+                    {p.duration}s story
                   </span>
                   <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur text-[9px] tracking-widest uppercase text-luxe/85 border border-white/[0.06] inline-flex items-center gap-1">
                     <ModeIcon className="w-2.5 h-2.5 text-gold-300" /> {modeMeta.label}
                   </span>
                 </div>
 
-                {/* CENTER — title, type, status, preview */}
+                {/* CENTER — title, memory note, status, preview */}
                 <div className="p-3 sm:p-4 space-y-2 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-display text-[15px] leading-snug line-clamp-2 flex-1" title={p.title}>
@@ -382,11 +382,11 @@ export function UnifiedProjectsGrid({
                     </span>
                   </div>
                   <p className="text-[11px] text-gold-300/75 tracking-wide">
-                    {p.projectTypeLabel}
+                    Mugtee remembers this as a {p.projectTypeLabel.toLowerCase()}.
                   </p>
                   <p className="text-[10px] text-white/55 tracking-wide">{p.displayStatusLabel}</p>
                   <p className="text-[10px] text-muted-foreground tracking-wide">
-                    Last edited {lastEdited}
+                    We last touched this {lastEdited}
                   </p>
                   {p.previewSnippet ? (
                     <p className="text-[11px] text-luxe/55 italic leading-relaxed line-clamp-2">
@@ -402,7 +402,7 @@ export function UnifiedProjectsGrid({
                       href={openHref}
                       className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl bg-gold-500/15 border border-gold-500/30 text-[10px] tracking-[0.18em] uppercase text-gold-200 hover:bg-gold-500/25 hover:border-gold-500/45 transition"
                     >
-                      Continue Creating
+                      Continue with Mugtee
                       <ArrowRight className="w-3 h-3" />
                     </Link>
                     <ProjectMp4Button

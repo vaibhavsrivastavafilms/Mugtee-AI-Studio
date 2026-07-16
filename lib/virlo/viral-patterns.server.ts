@@ -68,7 +68,7 @@ function seedFallbackPatterns(): ViralPattern[] {
 
 /** Load viral patterns from DB (falls back to in-memory seed). */
 export async function loadViralPatterns(platform?: string): Promise<ViralPattern[]> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase
     .from('viral_patterns')
     .select('*')

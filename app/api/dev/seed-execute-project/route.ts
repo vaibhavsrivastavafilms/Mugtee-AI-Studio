@@ -24,7 +24,7 @@ export async function POST() {
   const projectId = randomUUID()
   const now = new Date().toISOString()
   const scenes = makeSmokeScenes()
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const { error: cinematicErr } = await supabase.from('cinematic_projects').insert({
     id: projectId,

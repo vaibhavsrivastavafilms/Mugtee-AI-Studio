@@ -22,9 +22,9 @@ export function ProjectsGalleryChrome({
 }) {
   const filters: { id: ProjectGalleryFilter; label: string }[] = [
     { id: 'all', label: 'All' },
-    { id: 'quick', label: 'Quick Cut' },
-    { id: 'director', label: 'Director Cut' },
-    { id: 'downloaded', label: 'Downloaded' },
+    { id: 'quick', label: 'Fast ideas' },
+    { id: 'director', label: 'Creative worlds' },
+    { id: 'downloaded', label: 'Ready to share' },
   ]
 
   return (
@@ -42,7 +42,7 @@ export function ProjectsGalleryChrome({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search cinematic stories…"
+            placeholder="Search conversations…"
             className={cn(
               'w-full h-10 pl-10 pr-3 rounded-xl text-sm',
               'bg-black/40 border border-white/[0.08] text-luxe',

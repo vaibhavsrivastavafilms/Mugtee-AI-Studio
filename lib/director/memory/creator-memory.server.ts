@@ -209,7 +209,7 @@ function mergeCreatorPreferences(
 }
 
 export async function getOrCreateCreatorMemory(userId: string): Promise<CreatorMemoryProfile> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: existing } = await supabase
     .from('creator_memories')
     .select('*')
@@ -252,7 +252,7 @@ export async function updateCreatorMemoryFromAnalysis(
     opts?.mood ?? null
   )
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('creator_memories')
     .update({

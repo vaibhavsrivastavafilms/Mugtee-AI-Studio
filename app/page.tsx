@@ -5,9 +5,9 @@ import { getCanonicalSiteUrl } from '@/lib/url'
 export const dynamic = 'force-dynamic'
 
 const SITE_URL = getCanonicalSiteUrl()
-const HOME_TITLE = 'Mugtee · Your Cinematic AI Studio'
+const HOME_TITLE = 'Mugtee · Your Creative Companion'
 const HOME_DESCRIPTION =
-  'Turn one idea into a complete reel — script, storyboard, voice, motion, and MP4 export.'
+  'The imaginary friend every creator wishes they had — a creative companion for stories, images, scripts, research, and sharing.'
 
 export const metadata: Metadata = {
   title: HOME_TITLE,

@@ -80,7 +80,7 @@ function categorize(status: number, sample: string): { code: string; label: stri
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Sign in to hear your story' }, { status: 401 })
 

@@ -37,7 +37,7 @@ export function buildAuthUrl(state: string) {
  * Throws Error('not_connected') | Error('invalid_grant') | Error('refresh_failed').
  */
 export async function getFreshYoutubeCredentials() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('unauthenticated')
 

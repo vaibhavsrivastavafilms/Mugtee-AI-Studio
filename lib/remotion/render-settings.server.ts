@@ -1,4 +1,4 @@
-import 'server-only'
+﻿import 'server-only'
 
 import os from 'os'
 import { REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
@@ -18,7 +18,7 @@ export type RemotionRenderMemoryEstimate = {
   httpAssetCount: number
 }
 
-/** Cap parallel Chromium tabs — default low on local dev to avoid x264 malloc failures. */
+/** Cap parallel Chromium tabs ΓÇö default low on local dev to avoid x264 malloc failures. */
 export function resolveRemotionConcurrency(): number {
   const raw = process.env.REMOTION_CONCURRENCY?.trim()
   if (raw) {

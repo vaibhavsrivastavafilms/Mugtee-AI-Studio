@@ -63,7 +63,7 @@ export function AssetDashboard() {
       const data = await res.json()
       setAssets(data.assets ?? [])
     } catch {
-      setError('Failed to load assets')
+      setError("I couldn't find those memories yet.")
     } finally {
       setLoading(false)
       setNlLoading(false)
@@ -98,13 +98,13 @@ export function AssetDashboard() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <header className="space-y-2">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400/80">MugteeOS Phase 4</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400/80">Memories</p>
         <h1 className="font-display text-2xl sm:text-3xl text-luxe tracking-wide">
-          Creative Asset Library
+          Everything Mugtee can remember with you
         </h1>
         <p className="text-sm text-luxe/55 max-w-xl">
-          Search scripts, storyboards, voiceovers, and exports across brands and projects. Use
-          natural language or filters — wired to Mugtee Cmd+K search.
+          Photos, videos, voice notes, ideas, references, scripts, and scenes. Search like you are
+          talking to a friend.
         </p>
       </header>
 
@@ -115,22 +115,23 @@ export function AssetDashboard() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void load({ natural: true })}
-            placeholder='Find all Table Tales campaigns…'
+            placeholder='Find the Table Tales memories…'
             className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-10 pr-3 py-2.5 text-sm text-luxe focus:outline-none focus:border-cyan-400/40"
           />
         </div>
         <input
           value={brand}
           onChange={(e) => setBrand(e.target.value)}
-          placeholder="Brand slug"
+          placeholder="World"
           className="sm:w-36 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-luxe"
         />
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
+          aria-label="Filter memories by type"
           className="sm:w-40 rounded-xl border border-white/10 bg-[#0a0f12] px-3 py-2.5 text-sm text-luxe"
         >
-          <option value="">All types</option>
+          <option value="">All memories</option>
           {ASSET_TYPES.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -142,7 +143,7 @@ export function AssetDashboard() {
           onClick={() => void load({ semantic: true })}
           className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-luxe hover:border-cyan-400/40"
         >
-          Search
+          Find
         </button>
         <button
           type="button"
@@ -151,7 +152,7 @@ export function AssetDashboard() {
           className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm text-cyan-200 flex items-center gap-2"
         >
           {nlLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          NL
+          Ask
         </button>
       </div>
 
@@ -215,7 +216,9 @@ export function AssetDashboard() {
             </div>
           )}
           {!loading && !assets.length ? (
-            <p className="text-sm text-luxe/45 py-8 text-center">No assets yet — create a project to index.</p>
+            <p className="text-sm text-luxe/45 py-8 text-center">
+              No memories yet — create with Mugtee and this room will start filling up.
+            </p>
           ) : null}
         </div>
 

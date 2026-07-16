@@ -147,11 +147,15 @@ export function CinematicGenerationProgress({ className }: CinematicGenerationPr
   )
 
   const stageAveragesMs = useMemo(
-    () => (mounted ? allStageAverages(input.scenesCount) : {}),
+    () => {
+      void tick
+      return mounted ? allStageAverages(input.scenesCount) : {}
+    },
     [mounted, input.scenesCount, tick]
   )
 
   const eta = useMemo(() => {
+    void tick
     if (!mounted) {
       return {
         etaSeconds: null,

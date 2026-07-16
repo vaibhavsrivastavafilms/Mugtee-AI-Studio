@@ -17,6 +17,7 @@ import {
 import { ModeSwitcher } from '@/components/studio/mode-switcher'
 import { Button } from '@/components/ui/button'
 import { PublicBetaBadge } from '@/components/shell/public-beta-badge'
+import { MUGTEE_V2 } from '@/lib/brand/mugtee-v2'
 type User = { email?: string | null; user_metadata?: Record<string, unknown> }
 
 export function CinematicHeader({
@@ -116,11 +117,11 @@ function CinematicHeaderInner({
             <div className="flex items-center gap-2 mt-0.5">
               {isApp ? (
                 <div className="text-[9px] tracking-[0.28em] uppercase text-violet-300/55">
-                  {isV4CreatorRoute ? 'Creator Operating System' : 'Studio'}
+                  {isV4CreatorRoute ? 'Creating together' : MUGTEE_V2.role}
                 </div>
               ) : (
                 <div className="text-[9px] tracking-[0.28em] uppercase text-gold-400/70">
-                  Cinematic reels
+                  Imaginary friend for creators
                 </div>
               )}
               <PublicBetaBadge />
@@ -174,7 +175,7 @@ function CinematicHeaderInner({
             <Search className="w-3.5 h-3.5 shrink-0" />
             <span className="text-[12px] truncate">
               <span className="text-luxe/35 mr-1">⌘K</span>
-              Search or run command…
+              Ask Mugtee or find a memory…
             </span>
           </button>
         ) : (
@@ -199,7 +200,7 @@ function CinematicHeaderInner({
                   setSearchOpen(false)
                 }
               }}
-              placeholder="Search projects, scripts, storyboards..."
+              placeholder={MUGTEE_V2.searchPlaceholder}
               className={cn(
                 'w-full h-9 sm:h-10 pl-10 pr-3 rounded-xl text-sm transition-all',
                 'bg-gradient-to-r from-black/60 via-zinc-950/80 to-black/60',
@@ -240,7 +241,7 @@ function CinematicHeaderInner({
                 className="hidden sm:inline-flex h-9 gap-1.5 rounded-full bg-gold-gradient text-black hover:opacity-90 font-medium shadow-gold-glow"
               >
                 <Link href={quickCutStudioHref()}>
-                  <Plus className="w-4 h-4" /> New Project
+                  <Plus className="w-4 h-4" /> Start Creating
                 </Link>
               </Button>
               <Link
@@ -250,7 +251,7 @@ function CinematicHeaderInner({
                 Sign in
               </Link>
               <Button size="sm" asChild className="h-9 rounded-full bg-gold-gradient text-black">
-                <Link href={STUDIO.root}>Open Studio</Link>
+                <Link href={STUDIO.root}>Meet Mugtee</Link>
               </Button>
             </>
           )}

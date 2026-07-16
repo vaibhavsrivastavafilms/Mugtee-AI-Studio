@@ -277,9 +277,6 @@ export async function orchestrateRemotionReel(
       const renderResult = await renderRemotionReel({
         scenes: timedScenes,
         voiceUrl: input.voiceUrl,
-        voiceAssetPath:
-          input.voiceAssetPath ??
-          null,
         musicUrl: options?.musicUrl ?? null,
         title: input.title,
         hook: input.idea,
@@ -450,7 +447,7 @@ export async function orchestrateRemotionReel(
         try {
           const thumbBuf = await fs.readFile(thumbnailPath)
           const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-          const supabase = createSupabaseServerClient()
+          const supabase = await createSupabaseServerClient()
           const thumbStorage = `${input.projectId}/reel-thumb.jpg`
           await supabase.storage.from('reels').upload(thumbStorage, thumbBuf, {
             contentType: 'image/jpeg',
@@ -594,7 +591,7 @@ export async function orchestrateRemotionReel(
         reelStatus: 'failed',
         reelJobId: null,
       }).catch(() => undefined)
-      void createSupabaseServerClient()
+      void (await createSupabaseServerClient())
         .from('cinematic_projects')
         .update({
           generation_error: exportError.slice(0, 500),

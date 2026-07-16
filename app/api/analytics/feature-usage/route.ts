@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 /** Authenticated fire-and-forget feature usage insert (client export paths). */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

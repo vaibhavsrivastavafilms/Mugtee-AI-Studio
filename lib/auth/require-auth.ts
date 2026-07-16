@@ -12,7 +12,7 @@ export async function requireAuth(): Promise<
   | { user: User; response: null }
   | { user: null; response: NextResponse }
 > {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

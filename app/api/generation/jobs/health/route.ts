@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 /** Verify generation_jobs table exists (migrations 0064 + 0065). */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

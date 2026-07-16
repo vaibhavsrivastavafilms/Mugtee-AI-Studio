@@ -53,7 +53,7 @@ import { isValidReelDownloadUrl } from '@/lib/export/reel-url-validation'
 import { verifyReelFileExists } from '@/lib/export/reel-url-validation.server'
 import { logError } from '@/lib/workspace/validation'
 import { friendlyReelRenderErrorFromUnknown } from '@/lib/video/reel-render-errors'
-import { Mp4ExportEvents } from '@/lib/analytics/mp4-export-events'
+import { Mp4ExportEvents, type Mp4ExportStage } from '@/lib/analytics/mp4-export-events'
 import {
   trackMp4ExportServer,
   trackMp4FailedServer,
@@ -165,7 +165,7 @@ export async function loadOwnedCinematicProject(
   projectId: string,
   userId: string
 ): Promise<CinematicProjectRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
     .select('*')
@@ -182,7 +182,7 @@ export async function loadOwnedProjectByReelJobId(
   reelJobId: string,
   userId: string
 ): Promise<CinematicProjectRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('cinematic_projects')
     .select('*')
@@ -494,7 +494,7 @@ export async function queueReelExportForProject(params: {
     reelJobId: jobId,
   }).catch(() => undefined)
 
-  void createSupabaseServerClient()
+  void (await createSupabaseServerClient())
     .from('cinematic_projects')
     .update({
       generation_error: null,
@@ -520,7 +520,7 @@ export async function queueReelExportForProject(params: {
 
   exportApiCheckpoint('background_scheduled', { projectId: params.row.id, jobId })
   runExportInBackground(async () => {
-    const failExportJob = async (err: unknown, stage: string) => {
+    const failExportJob = async (err: unknown, stage: Mp4ExportStage) => {
       logError('reels.export.async', err)
       recordExportMetricFailure()
       const exportError = friendlyExportError(err)
@@ -572,7 +572,7 @@ export async function queueReelExportForProject(params: {
         label: exportError,
         stage: 'error',
       })
-      void createSupabaseServerClient()
+      void (await createSupabaseServerClient())
         .from('cinematic_projects')
         .update({
           generation_error: exportError.slice(0, 500),
@@ -623,7 +623,7 @@ export async function queueReelExportForProject(params: {
     } catch (err) {
       const stage =
         err instanceof Error && err.message.includes('Voice narration')
-          ? 'render_prep'
+          ? 'prepare'
           : 'render_segments'
       await failExportJob(err, stage)
     }

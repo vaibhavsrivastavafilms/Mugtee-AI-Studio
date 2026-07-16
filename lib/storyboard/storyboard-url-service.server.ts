@@ -24,7 +24,7 @@ function devLog(event: string, payload: Record<string, unknown>): void {
   console.info(`[Storyboard Recovery] ${event}`, payload)
 }
 
-/** Fresh URL for a stored storyboard object (signed when possible, else public). */
+/** Fresh stable URL for a stored storyboard object in the public project-assets bucket. */
 export async function refreshStoryboardUrl(
   assetPath: string,
   supabase?: SupabaseClient
@@ -42,7 +42,7 @@ export async function refreshStoryboardUrl(
   const clients = [
     supabase,
     serviceClient,
-    serviceClient ? null : createSupabaseServerClient(),
+    serviceClient ? null : await createSupabaseServerClient(),
   ].filter(Boolean) as SupabaseClient[]
 
   for (const client of clients) {
@@ -73,7 +73,7 @@ export async function storyboardStorageExists(
   const path = assetPath?.trim()
   if (!isDurableStoryboardPath(path)) return false
 
-  const client = createSupabaseServiceClient() ?? supabase ?? createSupabaseServerClient()
+  const client = createSupabaseServiceClient() ?? supabase ?? await createSupabaseServerClient()
   const folder = path!.includes('/') ? path!.slice(0, path!.lastIndexOf('/')) : ''
   const name = path!.includes('/') ? path!.slice(path!.lastIndexOf('/') + 1) : path!
 
@@ -148,7 +148,7 @@ export async function recoverSceneAssetPath(
     return bySeq.storagePath.trim()
   }
 
-  const client = supabase ?? createSupabaseServerClient()
+  const client = supabase ?? await createSupabaseServerClient()
   const { data } = await client
     .from('project_assets')
     .select('storage_path, url, metadata')
@@ -216,7 +216,7 @@ export async function refreshSceneStoryboardUrls(
   index: number,
   opts?: { lookup?: LegacyAssetLookup; supabase?: SupabaseClient }
 ): Promise<CinematicScene> {
-  const supabase = opts?.supabase ?? createSupabaseServerClient()
+  const supabase = opts?.supabase ?? await createSupabaseServerClient()
   let assetPath = await recoverSceneAssetPath(scene, index, opts?.lookup, supabase)
 
   const storyboardImages = await Promise.all(
@@ -254,7 +254,7 @@ export async function refreshAllSceneStoryboardUrls(
   scenes: CinematicScene[],
   opts?: { lookup?: LegacyAssetLookup; supabase?: SupabaseClient }
 ): Promise<CinematicScene[]> {
-  const supabase = opts?.supabase ?? createSupabaseServerClient()
+  const supabase = opts?.supabase ?? await createSupabaseServerClient()
   const refreshed: CinematicScene[] = []
   for (let i = 0; i < scenes.length; i++) {
     refreshed.push(

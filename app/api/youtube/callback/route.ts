@@ -1,14 +1,14 @@
 // GET /api/youtube/callback — exchange code, fetch channel, upsert row, redirect.
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
 import { createYoutubeOAuthClient, fetchMyChannel } from '@/lib/youtube'
 import { safeRelative } from '@/lib/url'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await tryCreateSupabaseServerClient()
   const url = new URL(req.url)
   const code  = url.searchParams.get('code')
   const error = url.searchParams.get('error')
@@ -30,6 +30,8 @@ export async function GET(req: Request) {
     return NextResponse.redirect(u)
   }
 
+  if (!supabase) return fail('auth_not_configured')
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return fail('unauthenticated')
   if (error) return fail(error)
   if (!code)  return fail('missing_code')

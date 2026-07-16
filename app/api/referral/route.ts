@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 /** GET /api/referral — referral code, link, and stats for the signed-in user. */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

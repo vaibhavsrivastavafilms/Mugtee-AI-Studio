@@ -44,31 +44,31 @@ export function ProjectsInsightsPanel({
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-gold-300" />
         <div>
-          <div className="font-display text-sm text-luxe">AI Director</div>
+          <div className="font-display text-sm text-luxe">Mugtee remembers</div>
           <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-            Cinematic insights
+            Conversation notes
           </div>
         </div>
       </div>
 
       {!project ? (
         <p className="text-xs text-muted-foreground leading-relaxed italic">
-          Hover a reel to see tone, platform, and production metadata — every generation lives in
-          your unified library.
+          Choose a conversation and I’ll remind you what we were making, what mattered, and where
+          the story wants to go next.
         </p>
       ) : (
         <div className="space-y-3">
           <div className="rounded-xl border border-gold-500/20 bg-gold-500/[0.06] px-3 py-2.5">
             <div className="text-[9px] tracking-[0.22em] uppercase text-gold-300/80 mb-1">
-              {project.mode === 'quick' ? 'Quick Cut' : 'Director Cut'}
+              {project.mode === 'quick' ? 'Fast idea' : 'Creative world'}
             </div>
             <p className="text-sm text-luxe font-medium leading-snug line-clamp-2">{project.title}</p>
           </div>
 
-          <StatRow icon={Film} label="Tone" value={project.style} />
+          <StatRow icon={Film} label="Feeling" value={project.style} />
           <StatRow icon={Target} label="Platform" value={project.platform} />
-          <StatRow icon={Gauge} label="Duration" value={`${project.duration}s reel`} />
-          <StatRow icon={Heart} label="Status" value={project.creationStatusLabel} />
+          <StatRow icon={Gauge} label="Shape" value={`${project.duration}s story`} />
+          <StatRow icon={Heart} label="Where we left it" value={project.creationStatusLabel} />
 
           <p className="text-[10px] text-muted-foreground tracking-wide">
             Updated{' '}

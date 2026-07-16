@@ -18,7 +18,7 @@ const CINEMATIC_EXTENDED_SELECT =
 
 /** Probe whether cinematic_projects is ready for Quick Cut save (0014–0038). */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   async function probeSelect(columns: string) {
     return supabase.from('cinematic_projects').select(columns).limit(1)

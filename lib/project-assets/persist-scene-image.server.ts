@@ -28,7 +28,7 @@ export async function persistSceneImageAsset(
   if (!url || !projectId || !userId) return null
   if (url.startsWith('data:image/svg')) return null
 
-  const supabase = input.supabase ?? createSupabaseServerClient()
+  const supabase = input.supabase ?? await createSupabaseServerClient()
   const storagePathFromUrl = extractStoragePathFromUrl(url)
   const storagePath =
     input.storagePath?.trim() && storagePathFromUrl

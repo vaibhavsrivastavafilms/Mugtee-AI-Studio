@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-13T21:36:53.550Z",
+  "at": "2026-06-30T20:41:45.896Z",
   "authVerify": {
-    "ok": false,
+    "ok": true,
     "path": "e2e/.auth/user.json"
   },
   "projectCreated": null,
@@ -11,5 +11,5 @@
   "mp4Render": null,
   "mp4DownloadVerify": null,
   "verdict": "BLOCKED",
-  "blocker": "Missing e2e/.auth/user.json — run npm run test:e2e:auth-interactive or set E2E_EMAIL/E2E_PASSWORD"
+  "blocker": "Playwright session not signed in — refresh e2e/.auth/user.json"
 }

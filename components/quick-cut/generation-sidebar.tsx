@@ -97,6 +97,7 @@ export function GenerationSidebar({ projectId, className }: GenerationSidebarPro
   )
 
   const eta = useMemo(() => {
+    void tick
     if (!mounted) {
       return {
         etaSeconds: null,

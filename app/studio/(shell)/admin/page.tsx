@@ -7,7 +7,7 @@ import { CreatorValidationDashboard } from '@/components/admin/creator-validatio
 export const dynamic = 'force-dynamic'
 
 export default async function StudioAdminPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

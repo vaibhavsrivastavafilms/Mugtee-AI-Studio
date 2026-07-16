@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -220,18 +221,32 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
   const thumbUrl = scenes.find((s) => s.imageUrl)?.imageUrl
   const hashtagCount = Math.max(3, Math.min(12, script.split('#').length - 1 || 12))
 
-  const ctx: AssetContext = {
-    section: (key) => sectionStatus[key as keyof typeof sectionStatus],
-    isGenerating,
-    isComplete,
-    generationStep,
-    scenesCount: scenes.length,
-    hasThumb: Boolean(thumbUrl),
-    hasVoice: Boolean(voiceUrl?.trim()),
-    hasScript: Boolean(script?.trim()),
-    hashtagCount,
-    exportReady: mp4ExportReady,
-  }
+  const ctx = useMemo<AssetContext>(
+    () => ({
+      section: (key) => sectionStatus[key as keyof typeof sectionStatus],
+      isGenerating,
+      isComplete,
+      generationStep,
+      scenesCount: scenes.length,
+      hasThumb: Boolean(thumbUrl),
+      hasVoice: Boolean(voiceUrl?.trim()),
+      hasScript: Boolean(script?.trim()),
+      hashtagCount,
+      exportReady: mp4ExportReady,
+    }),
+    [
+      sectionStatus,
+      isGenerating,
+      isComplete,
+      generationStep,
+      scenes.length,
+      thumbUrl,
+      voiceUrl,
+      script,
+      hashtagCount,
+      mp4ExportReady,
+    ]
+  )
 
   const visible = ASSETS.filter((a) => {
     const st = a.resolveStatus(ctx)
@@ -250,19 +265,7 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
       }
       prevStatusRef.current[asset.id] = status
     }
-  }, [
-    isGenerating,
-    isComplete,
-    generationStep,
-    scenes.length,
-    voiceUrl,
-    script,
-    exportPackageReady,
-    videoUrl,
-    sectionStatus,
-    thumbUrl,
-    hashtagCount,
-  ])
+  }, [ctx])
 
   const handleOpen = (tab?: QuickCutStageTab) => {
     if (tab) setActiveStageTab(tab, true)
@@ -299,7 +302,7 @@ export function QuickModeAssetCards({ projectId, className, compact }: QuickMode
           >
             {showThumb ? (
               <span className="relative h-10 w-8 shrink-0 overflow-hidden rounded-md border border-white/[0.08]">
-                <img src={thumbUrl!} alt="" className="h-full w-full object-cover" />
+                <Image src={thumbUrl!} alt="" fill sizes="32px" className="object-cover" />
               </span>
             ) : (
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-violet-300/80">

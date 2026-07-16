@@ -1,0 +1,207 @@
+import type { WorkflowTemplateRecord } from '@/lib/automation-engine/types'
+
+/** Default Mugtee workflow templates — seeded into workflow_templates. */
+export const DEFAULT_WORKFLOW_TEMPLATES: Omit<
+  WorkflowTemplateRecord,
+  'id' | 'installed' | 'workflow_id'
+>[] = [
+  {
+    slug: 'content-manager',
+    category: 'content_creation',
+    title: 'Content Manager',
+    description:
+      'End-to-end content pipeline from idea through research, script, storyboard, assets, voice, publish, and analytics.',
+    icon: 'clapperboard',
+    estimated_runtime_sec: 480,
+    inputs: [
+      { key: 'idea', label: 'Content idea', type: 'textarea', required: true },
+      { key: 'platform', label: 'Target platform', type: 'select' },
+      { key: 'project_id', label: 'Project', type: 'project' },
+    ],
+    outputs: [
+      { key: 'script', label: 'Script', type: 'text' },
+      { key: 'storyboard', label: 'Storyboard', type: 'text' },
+      { key: 'video', label: 'Video', type: 'text' },
+      { key: 'publish_package', label: 'Publish package', type: 'text' },
+    ],
+    stages: [
+      { id: 'idea', label: 'Idea', agentId: 'strategy' },
+      { id: 'trend_research', label: 'Trend Research', agentId: 'research' },
+      { id: 'hook', label: 'Hook Generator', agentId: 'writer' },
+      { id: 'script', label: 'Script Writer', agentId: 'writer' },
+      { id: 'storyboard', label: 'Storyboard', agentId: 'storyboard' },
+      { id: 'shot_list', label: 'Shot List', agentId: 'storyboard' },
+      { id: 'image_prompt', label: 'Image Prompt', agentId: 'designer' },
+      { id: 'veo_prompt', label: 'Video Prompt', agentId: 'video' },
+      { id: 'thumbnail', label: 'Thumbnail Prompt', agentId: 'designer' },
+      { id: 'voice', label: 'Voice Script', agentId: 'voice' },
+      { id: 'caption', label: 'Caption', agentId: 'writer' },
+      { id: 'hashtags', label: 'Hashtags', agentId: 'writer' },
+      { id: 'approval', label: 'Approval' },
+      { id: 'publish', label: 'Publish', agentId: 'publishing' },
+      { id: 'analytics', label: 'Analytics', agentId: 'analytics' },
+    ],
+    agent_ids: ['research', 'strategy', 'writer', 'storyboard', 'designer', 'video', 'voice', 'publishing', 'analytics', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+  {
+    slug: 'restaurant-marketing-manager',
+    category: 'restaurant',
+    title: 'Restaurant Marketing Manager',
+    description:
+      'Instagram reels, stories, carousels, festival campaigns, menu promos, and customer engagement.',
+    icon: 'utensils',
+    estimated_runtime_sec: 360,
+    inputs: [
+      { key: 'offer', label: 'Offer or menu focus', type: 'textarea', required: true },
+      { key: 'occasion', label: 'Occasion', type: 'text' },
+    ],
+    outputs: [
+      { key: 'reels', label: 'Reel concepts', type: 'text' },
+      { key: 'stories', label: 'Stories', type: 'text' },
+      { key: 'carousel', label: 'Carousel', type: 'text' },
+    ],
+    stages: [
+      { id: 'menu_promo', label: 'Menu Promotion', agentId: 'writer' },
+      { id: 'reels', label: 'Instagram Reels', agentId: 'video' },
+      { id: 'stories', label: 'Stories', agentId: 'designer' },
+      { id: 'carousel', label: 'Carousel', agentId: 'designer' },
+      { id: 'festival', label: 'Festival Campaign', agentId: 'strategy' },
+      { id: 'reviews', label: 'Review Follow-up', agentId: 'writer' },
+      { id: 'engagement', label: 'Customer Engagement', agentId: 'publishing' },
+    ],
+    agent_ids: ['strategy', 'writer', 'designer', 'video', 'publishing', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+  {
+    slug: 'brand-strategist',
+    category: 'marketing',
+    title: 'Brand Strategist',
+    description:
+      'Competitor research, trend discovery, campaign suggestions, content calendar, and analytics recommendations.',
+    icon: 'target',
+    estimated_runtime_sec: 300,
+    inputs: [
+      { key: 'brand_context', label: 'Brand context', type: 'brand' },
+      { key: 'goal', label: 'Campaign goal', type: 'textarea' },
+    ],
+    outputs: [
+      { key: 'calendar', label: 'Content calendar', type: 'text' },
+      { key: 'campaigns', label: 'Campaign ideas', type: 'text' },
+    ],
+    stages: [
+      { id: 'competitors', label: 'Competitor Research', agentId: 'research' },
+      { id: 'trends', label: 'Trend Discovery', agentId: 'research' },
+      { id: 'campaigns', label: 'Campaign Suggestions', agentId: 'strategy' },
+      { id: 'calendar', label: 'Content Calendar', agentId: 'strategy' },
+      { id: 'analytics', label: 'Analytics Review', agentId: 'analytics' },
+      { id: 'recommendations', label: 'Recommendations', agentId: 'strategy' },
+    ],
+    agent_ids: ['research', 'strategy', 'analytics', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+  {
+    slug: 'community-manager',
+    category: 'creator',
+    title: 'Community Manager',
+    description:
+      'Reply suggestions, comment analysis, sentiment detection, auto FAQ, and DM drafting.',
+    icon: 'messages-square',
+    estimated_runtime_sec: 120,
+    inputs: [
+      { key: 'comments', label: 'Comments or DMs', type: 'textarea', required: true },
+    ],
+    outputs: [
+      { key: 'replies', label: 'Suggested replies', type: 'text' },
+      { key: 'sentiment', label: 'Sentiment report', type: 'text' },
+    ],
+    stages: [
+      { id: 'sentiment', label: 'Sentiment Detection', agentId: 'analytics' },
+      { id: 'analysis', label: 'Comment Analysis', agentId: 'research' },
+      { id: 'replies', label: 'Reply Suggestions', agentId: 'writer' },
+      { id: 'faq', label: 'Auto FAQ', agentId: 'writer' },
+      { id: 'dm', label: 'DM Drafting', agentId: 'writer' },
+    ],
+    agent_ids: ['writer', 'analytics', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+  {
+    slug: 'analytics-manager',
+    category: 'research',
+    title: 'Analytics Manager',
+    description:
+      'Collect metrics across Instagram, Facebook, LinkedIn, YouTube, and web — monthly reports and growth suggestions.',
+    icon: 'bar-chart-3',
+    estimated_runtime_sec: 240,
+    inputs: [
+      { key: 'period', label: 'Reporting period', type: 'select' },
+      { key: 'platforms', label: 'Platforms', type: 'text' },
+    ],
+    outputs: [
+      { key: 'report', label: 'Monthly report', type: 'text' },
+      { key: 'growth', label: 'Growth suggestions', type: 'text' },
+    ],
+    stages: [
+      { id: 'collect', label: 'Collect Metrics', agentId: 'analytics' },
+      { id: 'instagram', label: 'Instagram', agentId: 'analytics' },
+      { id: 'facebook', label: 'Facebook', agentId: 'analytics' },
+      { id: 'linkedin', label: 'LinkedIn', agentId: 'analytics' },
+      { id: 'youtube', label: 'YouTube', agentId: 'analytics' },
+      { id: 'website', label: 'Website', agentId: 'analytics' },
+      { id: 'report', label: 'Monthly Report', agentId: 'analytics' },
+      { id: 'growth', label: 'Growth Suggestions', agentId: 'strategy' },
+    ],
+    agent_ids: ['analytics', 'strategy', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+  {
+    slug: 'quick-cut-v3',
+    category: 'content_creation',
+    title: 'Quick Cut V3',
+    description:
+      'Stage-based production pipeline: Idea → Research → Script → Storyboard → Assets → Voice → Video → Captions → Publishing → Analytics.',
+    icon: 'zap',
+    estimated_runtime_sec: 420,
+    inputs: [
+      { key: 'idea', label: 'Idea', type: 'textarea', required: true },
+      { key: 'project_id', label: 'Project', type: 'project' },
+    ],
+    outputs: [
+      { key: 'mp4', label: 'Rendered video', type: 'text' },
+      { key: 'captions', label: 'Captions', type: 'text' },
+    ],
+    stages: [
+      { id: 'idea', label: 'Idea', agentId: 'strategy' },
+      { id: 'research', label: 'Research', agentId: 'research' },
+      { id: 'script', label: 'Script', agentId: 'writer' },
+      { id: 'storyboard', label: 'Storyboard', agentId: 'storyboard' },
+      { id: 'assets', label: 'Assets', agentId: 'designer' },
+      { id: 'voice', label: 'Voice', agentId: 'voice' },
+      { id: 'video', label: 'Video', agentId: 'video' },
+      { id: 'captions', label: 'Captions', agentId: 'writer' },
+      { id: 'publishing', label: 'Publishing', agentId: 'publishing' },
+      { id: 'analytics', label: 'Analytics', agentId: 'analytics' },
+    ],
+    agent_ids: ['research', 'writer', 'storyboard', 'designer', 'video', 'voice', 'publishing', 'analytics', 'memory'],
+    is_default: true,
+    is_public: true,
+  },
+]
+
+export const QUICK_CUT_V3_STAGE_IDS = [
+  'idea',
+  'research',
+  'script',
+  'storyboard',
+  'assets',
+  'voice',
+  'video',
+  'captions',
+  'publishing',
+  'analytics',
+] as const

@@ -9,7 +9,7 @@ type Props = { params: Promise<{ id: string }> }
 /** Legacy /project/[id] — forwards to Quick Cut V2 project page. */
 export default async function ProjectContinuityPage({ params }: Props) {
   const { id } = await params
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: row, error } = await supabase
     .from('cinematic_projects')
     .select('id')

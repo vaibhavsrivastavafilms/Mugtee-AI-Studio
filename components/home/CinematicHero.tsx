@@ -39,8 +39,8 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         <span className="block text-[10px] sm:text-xs tracking-[0.35em] uppercase text-[#D4AF37]/80 mb-2 font-sans font-medium not-italic">
           MUGTEE
         </span>
-        The Creator{' '}
-        <span className="text-[#D4AF37] italic">Operating System</span>
+        The imaginary friend{' '}
+        <span className="text-[#D4AF37] italic">every creator wishes they had.</span>
       </motion.h1>
 
       <motion.p
@@ -49,7 +49,8 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         transition={{ duration: 0.6, delay: 0.08 }}
         className="mt-4 max-w-xl mx-auto text-sm sm:text-base text-white/60 leading-relaxed px-1"
       >
-        Turn one idea into a complete reel.
+        Tell Mugtee what you are imagining. Your creative companion helps shape the story,
+        pictures, voice, rhythm, and what to share next.
       </motion.p>
       <motion.div
         initial={fadeIn}
@@ -59,7 +60,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         role="list"
         aria-label="Pipeline outputs"
       >
-        {['Script', 'Storyboard', 'Voice', 'Motion', 'MP4'].map((item) => (
+        {['Stories', 'Images', 'Voice', 'Rhythm', 'Share'].map((item) => (
           <span key={item} role="listitem" className="inline-flex items-center gap-1">
             <span className="text-emerald-400/80" aria-hidden>
               ✓
@@ -76,7 +77,7 @@ export function CinematicHero({ className }: CinematicHeroProps) {
         className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
       >
         <button type="button" onClick={handleStart} className={cn(goldButton, 'px-6 py-2.5')}>
-          Start Creating
+          Meet Mugtee
           <Sparkles className="w-3.5 h-3.5" aria-hidden />
         </button>
         <Link href={WATCH_DEMO_HREF} className={cn(ghostButton, 'px-6 py-2.5')}>

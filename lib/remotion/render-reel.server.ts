@@ -93,6 +93,7 @@ async function getServeUrl(): Promise<string> {
       entryPoint: entry,
       webpackOverride: remotionWebpackOverride,
     }).then((location) => {
+      if (!location) throw new Error('Remotion bundle did not return a serve URL')
       cachedBundleLocation = location
       remotionCheckpoint('bundle_done', { serveUrl: location })
       return location

@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 let anonClient: SupabaseClient | null | undefined
 
 /**
- * Lazy anon Supabase client. Prefer `createSupabaseServerClient()` in API routes
+ * Lazy anon Supabase client. Prefer `await createSupabaseServerClient()` in API routes
  * so auth cookies are respected. Never call at module scope — env vars may be
  * absent during Next.js build ("Collecting page data").
  */

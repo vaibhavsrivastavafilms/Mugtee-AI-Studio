@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 /** JSON founder report for last 7 or 30 days (admin-only). */
 export async function GET(req: Request) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

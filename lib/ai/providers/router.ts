@@ -6,6 +6,7 @@ import {
   type ProviderId,
 } from '@/lib/ai/providers/types'
 import { recordProviderFailure, recordProviderSuccess, isProviderHealthy } from '@/lib/ai/providers/health'
+import { classifyProviderError } from '@/lib/ai/providers/error-classifier'
 import { getProviderAttemptOrder } from '@/lib/ai/providers/task-routing'
 import { sleep } from '@/lib/ai/providers/shared'
 import { GeminiProvider } from '@/lib/ai/providers/providers/gemini-provider'
@@ -24,20 +25,17 @@ const PROVIDER_INSTANCES: Record<ProviderId, AIProvider> = {
 
 const MAX_RETRIES_PER_PROVIDER = 2
 const RETRY_BACKOFF_MS = [400, 1200]
-const NON_RETRYABLE_HTTP_STATUSES = new Set([429, 402, 404])
 
-/** Quota, billing, and missing-model errors should fail over immediately. */
+/**
+ * Auth (400/401/403), quota (402/429), and missing-model (404) errors are
+ * deterministic — retrying the same provider only adds latency (and can cascade
+ * into a request timeout). Fail over to the next provider immediately.
+ */
 function isNonRetryableProviderError(err: Error): boolean {
-  const msg = err.message
-  const httpMatch = msg.match(/\bHTTP\s+(\d{3})\b/i)
-  if (httpMatch) {
-    const status = Number(httpMatch[1])
-    if (NON_RETRYABLE_HTTP_STATUSES.has(status)) return true
-  }
-  if (/\b429\b/.test(msg) && /quota|rate.?limit/i.test(msg)) return true
-  if (/\b402\b/.test(msg) && /insufficient|balance|payment/i.test(msg)) return true
-  if (/\b404\b/.test(msg) && /not found|no endpoints/i.test(msg)) return true
-  return false
+  const classified = classifyProviderError(err)
+  // Bad-key / auth failures are never worth retrying on the same provider.
+  if (classified.httpStatus === 400 || classified.httpStatus === 403) return true
+  return !classified.retryable
 }
 
 const FRIENDLY_ERRORS: Record<AITask, string> = {
@@ -118,12 +116,20 @@ export async function executeWithFallback<T extends { provider: ProviderId }>(
       const result = await runWithRetries(task, provider, fn)
       return { ...result, attemptedProviders }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      errors.push(`${id}: ${message}`)
-      console.warn(`[ai-router] ${task} failed on ${id}, trying next provider`)
+      const classified = classifyProviderError(err)
+      errors.push(`${id}: ${classified.message}`)
+      console.warn(`[ai-router] ${task} failed on ${id} (${classified.kind}`, {
+        httpStatus: classified.httpStatus,
+        reason: classified.reason,
+        nextProvider: order[order.indexOf(id) + 1] ?? 'none',
+      })
     }
   }
 
+  console.error(`[ai-router] ${task} exhausted all providers`, {
+    attemptedProviders,
+    errors: errors.map((e) => e.slice(0, 160)),
+  })
   throw createFriendlyError(
     task,
     errors.length ? errors.join('; ') : 'All providers failed'

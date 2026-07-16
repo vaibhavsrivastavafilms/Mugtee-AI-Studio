@@ -15,8 +15,8 @@ function ExportsDashboardInner() {
       <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
         <div className="flex-1 min-w-0">
           <ProjectsGalleryChrome
-            title="Exports"
-            subtitle="Downloaded reels and finished outputs."
+            title="Share"
+            subtitle="Finished stories Mugtee can help package for the right platform, caption, thumbnail, and moment."
             search={gallerySearch}
             onSearchChange={setGallerySearch}
             filter="downloaded"
@@ -43,7 +43,7 @@ export default function StudioExportsPage() {
     <Suspense
       fallback={
         <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-          Loading exports…
+          Mugtee is gathering what is ready to share…
         </div>
       }
     >

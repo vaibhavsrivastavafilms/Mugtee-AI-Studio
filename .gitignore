@@ -119,3 +119,4 @@ credentials.json
 scripts/git-filter-repo.py
 scripts/remediate-git-secrets.ps1
 scripts/secrets-replacements.txt
+.env*

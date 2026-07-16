@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const privacyStatus  = body.privacyStatus || 'unlisted'
     if (!contentPieceId) return NextResponse.json({ error: 'missing_content_piece' }, { status: 400 })
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 

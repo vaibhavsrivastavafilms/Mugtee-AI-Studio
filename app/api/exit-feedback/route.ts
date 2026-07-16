@@ -9,7 +9,7 @@ const VALID_REASONS = new Set(EXIT_FEEDBACK_REASONS.map((r) => r.value))
 const VALID_TRIGGERS = new Set<string>(EXIT_FEEDBACK_TRIGGERS)
 
 export async function POST(req: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

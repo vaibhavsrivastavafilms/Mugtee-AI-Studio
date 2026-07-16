@@ -20,7 +20,7 @@ function parseMetric(raw: unknown): UsageMetric | null {
 
 /** GET /api/usage — current usage vs FREE plan limits. */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -37,7 +37,7 @@ export async function GET() {
  * body: { metric: UsageMetric, action?: 'check' | 'increment' }
  */
 export async function POST(req: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

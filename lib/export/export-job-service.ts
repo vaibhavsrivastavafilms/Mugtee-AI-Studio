@@ -101,7 +101,7 @@ export async function createExportJob(params: {
   projectId: string | null
   metadata?: ExportJobMetadata
 }): Promise<ExportJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('export_jobs')
@@ -129,7 +129,7 @@ export async function getExportJob(
   jobId: string,
   userId?: string
 ): Promise<ExportJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase.from('export_jobs').select('*').eq('id', jobId)
   if (userId) query = query.eq('user_id', userId)
   const { data, error } = await query.maybeSingle()
@@ -147,7 +147,7 @@ export async function updateExportJob(
     metadata: ExportJobMetadata
   }>
 ): Promise<ExportJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const existing = await getExportJob(jobId)
   if (!existing) return null
 
@@ -198,7 +198,7 @@ export async function findActiveExportJobForProject(
   projectId: string,
   userId: string
 ): Promise<ExportJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('export_jobs')
     .select('*')
@@ -230,7 +230,7 @@ export async function enqueueExportJob(params: {
 
 /** Stub: external worker would claim next queued job. */
 export async function dequeueExportJob(): Promise<ExportJobRow | null> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('export_jobs')
     .select('*')
@@ -261,7 +261,7 @@ export async function retryExportJob(jobId: string, userId: string): Promise<Exp
     return null
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase
     .from('export_jobs')
     .update({
@@ -285,7 +285,7 @@ export async function recordExportRenderMetrics(
   const row = await getExportJob(jobId)
   if (!row) return
   const cost = estimateExportCostUsd(input.durationSec ?? input.renderSeconds)
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase
     .from('export_jobs')
     .update({
@@ -301,7 +301,7 @@ export async function incrementExportRetryCount(jobId: string): Promise<number |
   if (!row) return null
   const next = (row.retry_count ?? 0) + 1
   if (next > MAX_RENDER_RETRIES) return null
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase
     .from('export_jobs')
     .update({ retry_count: next, updated_at: new Date().toISOString() })

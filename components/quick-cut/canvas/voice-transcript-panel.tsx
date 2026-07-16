@@ -3,6 +3,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
+const VOICE_BAR_PEAKS = [44, 68, 52, 82, 60, 74, 48, 88, 56, 70, 50, 80]
+
 export function VoiceTranscriptPanel({
   transcript,
   interim,
@@ -63,7 +65,7 @@ export function VoiceTranscriptPanel({
                 <motion.span
                   key={i}
                   className="w-0.5 rounded-full bg-gold-400/70"
-                  animate={{ height: ['20%', `${30 + Math.random() * 70}%`, '20%'] }}
+                  animate={{ height: ['20%', `${VOICE_BAR_PEAKS[i] ?? 60}%`, '20%'] }}
                   transition={{
                     duration: 0.5 + (i % 4) * 0.1,
                     repeat: Infinity,
