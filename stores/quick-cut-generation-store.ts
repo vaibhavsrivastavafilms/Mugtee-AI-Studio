@@ -218,6 +218,7 @@ import type { ElevenLabsVoiceOption } from '@/lib/ai/elevenlabs'
 import { recommendVoiceStyle } from '@/lib/cinematic/voice-match'
 import type { GenerationMode } from '@/lib/economics/generation-mode'
 import { DEFAULT_GENERATION_MODE } from '@/lib/economics/generation-mode'
+import type { ProviderFailureSummary } from '@/lib/ai/providers/provider-diagnostics.client'
 import type { DeepResearchStoreFields } from '@/types/deep-research'
 import {
   EMPTY_STORYBOARD_FIELDS,
@@ -588,6 +589,8 @@ interface QuickCutGenerationStateBase {
   scriptUsedMock: boolean
   missingKeys: string[]
   pipeline: QuickCutPipelineStatus | null
+  providerDiagnostics: ProviderFailureSummary[] | null
+  providerRetryAfterSeconds: number | null
   error: string | null
   generationStatus: GenerationStatus
   lastCompletedStep: PersistedGenerationStep | null
@@ -793,6 +796,8 @@ const INITIAL: QuickCutGenerationState = {
   scriptUsedMock: false,
   missingKeys: [],
   pipeline: null,
+  providerDiagnostics: null,
+  providerRetryAfterSeconds: null,
   error: null,
   generationStatus: 'pending',
   lastCompletedStep: null,

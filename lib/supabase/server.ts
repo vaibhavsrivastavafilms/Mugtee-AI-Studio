@@ -20,16 +20,17 @@ export async function createSupabaseServerClient(): Promise<SupabaseServerClient
   const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll()
+      async getAll() {
+        return (await cookieStore).getAll()
       },
-      setAll(
+      async setAll(
         cookiesToSet: { name: string; value: string; options: CookieOptions }[],
         _headers: Record<string, string>
       ) {
         try {
+          const store = await cookieStore
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            store.set(name, value, options)
           )
         } catch {
           // Server Components cannot write cookies — middleware refreshes them.
@@ -47,16 +48,17 @@ export async function tryCreateSupabaseServerClient(): Promise<SupabaseServerCli
   const cookieStore = await cookies()
   return createServerClient(env.url, env.anonKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll()
+      async getAll() {
+        return (await cookieStore).getAll()
       },
-      setAll(
+      async setAll(
         cookiesToSet: { name: string; value: string; options: CookieOptions }[],
         _headers: Record<string, string>
       ) {
         try {
+          const store = await cookieStore
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            store.set(name, value, options)
           )
         } catch {
           // Server Components cannot write cookies — middleware refreshes them.

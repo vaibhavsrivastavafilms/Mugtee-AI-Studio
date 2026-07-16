@@ -40,7 +40,19 @@ export {
   isProviderHealthy,
   recordProviderFailure,
   recordProviderSuccess,
+  getCooldownRemainingMs,
+  getProviderHealthPublicSnapshot,
 } from '@/lib/ai/providers/health'
+export {
+  getProviderConfigSnapshot,
+  getProviderModel,
+  isScriptMockFallbackEnabled,
+  isScriptGenerationMockEnabled,
+} from '@/lib/ai/providers/config.server'
+export type {
+  ProviderFailureSummary,
+  ProviderHealthPublic,
+} from '@/lib/ai/providers/provider-diagnostics.types'
 export {
   executeWithFallback,
   getProviderForTask,

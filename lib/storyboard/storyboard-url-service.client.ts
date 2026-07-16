@@ -1,13 +1,22 @@
 'use client'
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import type { CinematicScene } from '@/stores/cinematic-project'
 import type { StoryboardImage } from '@/stores/cinematic-project'
 import {
   extractStoragePathFromUrl,
   isDurableStoryboardPath,
   STORYBOARD_STORAGE_BUCKET,
 } from '@/lib/storyboard/storyboard-asset'
+
+export type StoryboardUrlScene = {
+  id: string
+  imageUrl?: string | null
+  imageAssetPath?: string | null
+  imageAssetId?: string | null
+  thumbnailUrl?: string | null
+  activeStoryboardId?: string
+  storyboardImages?: StoryboardImage[]
+}
 
 function devLog(event: string, payload: Record<string, unknown>): void {
   if (process.env.NODE_ENV === 'production') return
@@ -33,7 +42,7 @@ function refreshStoryboardImageClient(img: StoryboardImage): StoryboardImage {
   return { ...img, assetPath, url }
 }
 
-export function refreshSceneStoryboardUrlsClient(scene: CinematicScene): CinematicScene {
+export function refreshSceneStoryboardUrlsClient<T extends StoryboardUrlScene>(scene: T): T {
   const storyboardImages = (scene.storyboardImages ?? []).map(refreshStoryboardImageClient)
 
   let assetPath =
@@ -62,13 +71,13 @@ export function refreshSceneStoryboardUrlsClient(scene: CinematicScene): Cinemat
   return {
     ...scene,
     imageAssetPath: assetPath,
-    storyboardImages: storyboardImages.length ? storyboardImages : scene.storyboardImages,
     imageUrl: active?.url ?? imageUrl,
+    thumbnailUrl: active?.url ?? imageUrl,
   }
 }
 
-export function refreshAllSceneStoryboardUrlsClient(
-  scenes: CinematicScene[]
-): CinematicScene[] {
+export function refreshAllSceneStoryboardUrlsClient<T extends StoryboardUrlScene>(
+  scenes: T[]
+): T[] {
   return scenes.map(refreshSceneStoryboardUrlsClient)
 }

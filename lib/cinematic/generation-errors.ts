@@ -6,6 +6,10 @@ import {
   IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
   ImageGenerationUnavailableError,
 } from '@/lib/ai/image-provider-errors'
+import {
+  ProviderFailureError,
+  PROVIDER_UNAVAILABLE_HEADLINE,
+} from '@/lib/ai/providers/provider-diagnostics.client'
 
 const RAW_USER_MESSAGES = new Set([
   SOFT_ERROR_COPY.storyPaused,
@@ -24,6 +28,9 @@ const RAW_USER_MESSAGES = new Set([
 
 /** Never surface provider/JSON/stack details in the UI. */
 export function toUserGenerationError(err: unknown): string {
+  if (err instanceof ProviderFailureError) {
+    return PROVIDER_UNAVAILABLE_HEADLINE
+  }
   if (err instanceof ImageGenerationUnavailableError) {
     return err.message || IMAGE_GENERATION_UNAVAILABLE_MESSAGE
   }

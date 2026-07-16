@@ -55,6 +55,32 @@ export type Mp4ExportStage =
   | 'client_compile'
   | 'unknown'
 
+const MP4_EXPORT_STAGES: readonly Mp4ExportStage[] = [
+  'auth',
+  'validation',
+  'queue',
+  'prepare',
+  'download_assets',
+  'render_segments',
+  'assemble',
+  'upload',
+  'download',
+  'client_compile',
+  'unknown',
+]
+
+export function isMp4ExportStage(value: string): value is Mp4ExportStage {
+  return (MP4_EXPORT_STAGES as readonly string[]).includes(value)
+}
+
+/** Resolve async export catch blocks to a canonical funnel stage. */
+export function resolveMp4ExportFailureStage(err: unknown): Mp4ExportStage {
+  if (err instanceof Error && err.message.includes('Voice narration')) {
+    return 'prepare'
+  }
+  return 'render_segments'
+}
+
 export type Mp4FailedPayload = AnalyticsMetadata & {
   projectId?: string | null
   stage: Mp4ExportStage

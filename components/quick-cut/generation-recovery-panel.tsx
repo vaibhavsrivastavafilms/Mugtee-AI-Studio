@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { Check, Circle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -10,6 +11,12 @@ import {
 } from '@/lib/cinematic/generation-state'
 import { GENERATION_RECOVERY_MESSAGE } from '@/lib/cinematic/generation-errors'
 import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
+import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import {
+  formatProviderLabel,
+  PROVIDER_UNAVAILABLE_HEADLINE,
+  type ProviderFailureSummary,
+} from '@/lib/ai/providers/provider-diagnostics.client'
 
 type GenerationRecoveryPanelProps = {
   lastCompletedStep: PersistedGenerationStep | null
@@ -37,6 +44,25 @@ function stepStatus(
   return 'pending'
 }
 
+function ProviderFailureList({ providers }: { providers: ProviderFailureSummary[] }) {
+  const actionable = providers.filter((p) => !p.skipped || p.reason !== 'Not configured')
+  if (actionable.length === 0) return null
+
+  return (
+    <ul className="text-left max-w-sm mx-auto space-y-2 rounded-xl border border-amber-500/20 bg-black/30 px-4 py-3">
+      {actionable.map((p) => (
+        <li key={p.provider} className="text-sm">
+          <span className="font-medium text-gold-200/90">{formatProviderLabel(p.provider)}</span>
+          <span className="text-luxe/65"> — {p.reason}</span>
+          {p.status != null ? (
+            <span className="text-luxe/40 text-xs ml-1">({p.status})</span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function GenerationRecoveryPanel({
   lastCompletedStep,
   failedAtStep,
@@ -46,6 +72,22 @@ export function GenerationRecoveryPanel({
   workspaceHref = '/studio/quick-cut',
   className,
 }: GenerationRecoveryPanelProps) {
+  const providerDiagnostics = useQuickCutGenerationStore((s) => s.providerDiagnostics)
+  const providerRetryAfterSeconds = useQuickCutGenerationStore((s) => s.providerRetryAfterSeconds)
+  const [retryCountdown, setRetryCountdown] = useState(providerRetryAfterSeconds ?? 0)
+
+  useEffect(() => {
+    setRetryCountdown(providerRetryAfterSeconds ?? 0)
+  }, [providerRetryAfterSeconds])
+
+  useEffect(() => {
+    if (providerRetryAfterSeconds == null || providerRetryAfterSeconds <= 0) return
+    const timer = setInterval(() => {
+      setRetryCountdown((n) => (n > 0 ? n - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [providerRetryAfterSeconds])
+
   const inferredFailed =
     failedAtStep ??
     (lastCompletedStep
@@ -57,6 +99,9 @@ export function GenerationRecoveryPanel({
         ]
       : 'hook')
 
+  const hasProviderDetails =
+    providerDiagnostics != null && providerDiagnostics.length > 0
+
   return (
     <div
       className={cn(
@@ -67,15 +112,27 @@ export function GenerationRecoveryPanel({
     >
       <div className="space-y-2">
         <p className="text-[10px] tracking-[0.28em] uppercase text-gold-300/80">
-          Generation interrupted
+          {hasProviderDetails ? 'AI provider issue' : 'Generation interrupted'}
         </p>
         <h3 className="font-display text-xl sm:text-2xl text-[#F4E7C1] italic">
-          Your previous outputs are safe
+          {hasProviderDetails ? PROVIDER_UNAVAILABLE_HEADLINE : 'Your previous outputs are safe'}
         </h3>
         <p className="text-sm text-luxe/70 max-w-md mx-auto leading-relaxed">
-          {GENERATION_RECOVERY_MESSAGE}
+          {hasProviderDetails
+            ? 'Each provider reported a specific issue below. Your previous outputs are still saved.'
+            : GENERATION_RECOVERY_MESSAGE}
         </p>
       </div>
+
+      {hasProviderDetails ? (
+        <ProviderFailureList providers={providerDiagnostics} />
+      ) : null}
+
+      {retryCountdown > 0 ? (
+        <p className="text-xs text-amber-200/80 tracking-wide">
+          Retry in {retryCountdown} second{retryCountdown === 1 ? '' : 's'}.
+        </p>
+      ) : null}
 
       <ul className="text-left max-w-xs mx-auto space-y-2">
         {PERSISTED_STEP_ORDER.map((step) => {
@@ -116,7 +173,7 @@ export function GenerationRecoveryPanel({
         <button
           type="button"
           onClick={onContinue}
-          disabled={isResuming}
+          disabled={isResuming || retryCountdown > 0}
           className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gold-gradient text-black text-[12px] font-semibold tracking-[0.12em] uppercase shadow-gold-glow disabled:opacity-60"
         >
           {isResuming ? (
@@ -124,8 +181,10 @@ export function GenerationRecoveryPanel({
               <Loader2 className="h-4 w-4 animate-spin" />
               Continuing…
             </>
+          ) : retryCountdown > 0 ? (
+            `Retry in ${retryCountdown}s`
           ) : (
-            'Retry Step →'
+            'Retry →'
           )}
         </button>
         <Link

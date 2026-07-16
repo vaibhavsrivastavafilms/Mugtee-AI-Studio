@@ -117,9 +117,12 @@ export function resolveActiveThumbnailUrl(
 ): string | null {
   if (isRealSceneImageUrl(thumbnailImageUrl)) return thumbnailImageUrl!.trim()
   const first = scenes[0]
+  if (isRealSceneImageUrl(first?.thumbnailUrl)) return first!.thumbnailUrl!.trim()
   if (isRealSceneImageUrl(first?.imageUrl)) return first!.imageUrl!.trim()
-  const alt = scenes.find((s) => isRealSceneImageUrl(s.imageUrl))
-  return alt?.imageUrl?.trim() ?? null
+  const alt = scenes.find(
+    (s) => isRealSceneImageUrl(s.thumbnailUrl) || isRealSceneImageUrl(s.imageUrl)
+  )
+  return alt?.thumbnailUrl?.trim() ?? alt?.imageUrl?.trim() ?? null
 }
 
 /** Append cache-bust param for browser display after regeneration. */

@@ -71,6 +71,10 @@ export interface CinematicScene {
   imageUrl?: string
   /** Primary still storage path when imageUrl is ephemeral. */
   imageAssetPath?: string
+  /** project_assets row id. */
+  imageAssetId?: string
+  /** Display thumbnail — fresh signed URL at hydration. */
+  thumbnailUrl?: string
   storyboardImages?: StoryboardImage[]
   activeStoryboardId?: string
   metadata?: Record<string, unknown>

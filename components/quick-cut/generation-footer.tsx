@@ -6,6 +6,7 @@ import { AchievementToast } from '@/components/mission/achievement-toast'
 import { GenerationSaveIndicator } from '@/components/quick-cut/generation-save-indicator'
 import { ExportRetryStrip } from '@/components/quick-cut/render-progress'
 import { ContentSeriesTrigger } from '@/components/quick-cut/content-series-panel'
+import { MockScriptBadge } from '@/components/quick-cut/mock-script-badge'
 import { useMissionGenerationSync } from '@/lib/mission/use-mission-generation-sync'
 import { cn } from '@/lib/utils'
 import { useMissionStore } from '@/stores/mission-store'
@@ -84,6 +85,7 @@ export function QuickCutGenerationFooter({ className }: { className?: string }) 
 
           <div className="relative flex flex-wrap items-center gap-2">
             <XpFloat />
+            <MockScriptBadge />
             <GenerationSaveIndicator persistent className="sm:hidden" />
             <GenerationSaveIndicator className="hidden sm:inline-flex" />
             <ContentSeriesTrigger variant="footer" />
