@@ -15,11 +15,17 @@ export function LandingSocialProof({ className }: LandingSocialProofProps) {
   const metrics = getLandingSocialProofMetrics()
 
   return (
-    <section className={cn('px-4 py-12 sm:px-6 sm:py-14 text-center', className)}>
-      <div className="mx-auto max-w-2xl">
-        <h2 className="font-display text-xl sm:text-2xl text-white">Built for Creators</h2>
-        <p className="mt-3 text-sm text-white/50 leading-relaxed">
-          Generate cinematic content faster than traditional workflows.
+    <section className={cn('py-14 text-center sm:py-20', className)}>
+      <div className="mx-auto max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#D4AF37]">
+          Creator stories
+        </p>
+        <h2 className="mt-4 font-display text-4xl leading-tight text-white sm:text-5xl">
+          Built for the ideas that keep following you around.
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-[#B8B8B8]">
+          Mugtee is designed for project memory, creative continuity, and the quiet confidence
+          that your unfinished thoughts are still safe.
         </p>
 
         {showMetrics ? (
@@ -27,16 +33,29 @@ export function LandingSocialProof({ className }: LandingSocialProofProps) {
             {metrics.map((metric) => (
               <li
                 key={metric.id}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5"
+                className="rounded-[1.75rem] border border-[rgba(212,175,55,0.18)] bg-[#191919]/90 px-4 py-5 shadow-[0_14px_36px_rgba(0,0,0,0.4)]"
               >
-                <p className="font-display text-2xl text-[#D4AF37]">{metric.value}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-white/60">
+                <p className="font-display text-3xl text-[#D4AF37]">{metric.value}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#888888]">
                   {metric.label}
                 </p>
               </li>
             ))}
           </ul>
-        ) : null}
+        ) : (
+          <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+            {['Your style remembered', 'Your worlds organized', 'Your next step clearer'].map(
+              (item) => (
+                <li
+                  key={item}
+                  className="rounded-[1.75rem] border border-[rgba(212,175,55,0.18)] bg-[#191919]/90 px-4 py-5 shadow-[0_14px_36px_rgba(0,0,0,0.4)]"
+                >
+                  <p className="font-display text-2xl text-white">{item}</p>
+                </li>
+              )
+            )}
+          </ul>
+        )}
       </div>
     </section>
   )

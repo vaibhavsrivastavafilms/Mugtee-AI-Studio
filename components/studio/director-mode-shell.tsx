@@ -15,8 +15,8 @@ function DirectorModeShellInner({ children, projectId, className }: DirectorMode
   return (
     <div
       className={cn(
-        '-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)] min-w-0 overflow-x-hidden flex flex-col bg-[#060606]',
-        'bg-[radial-gradient(ellipse_70%_40%_at_50%_-8%,rgba(88,28,135,0.14),transparent)]',
+        '-mx-3 sm:-mx-5 lg:-mx-6 -my-4 sm:-my-5 lg:-my-6 min-h-[calc(100dvh-4rem)] min-w-0 overflow-x-clip flex flex-col bg-[#090A0F] text-white',
+        'bg-[radial-gradient(ellipse_70%_40%_at_50%_-8%,rgba(212,175,55,0.12),transparent_58%),radial-gradient(ellipse_40%_30%_at_90%_10%,rgba(85,124,255,0.10),transparent_60%)]',
         className
       )}
     >

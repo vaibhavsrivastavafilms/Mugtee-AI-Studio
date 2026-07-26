@@ -6,14 +6,14 @@ import { Armchair, ArrowRight, Zap, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import {
-  glassPanel,
-  goldButton,
   STUDIO_DIRECTOR,
   STUDIO_QUICK,
 } from '@/components/home/cinematic-home-styles'
 import { authLoginHref, persistModeEntry } from '@/lib/create/mode-selection'
 import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { cn } from '@/lib/utils'
+import { MugteeCompanionCharacter } from '@/components/home/MugteeCompanionCharacter'
+import { MugteeWorldBackground } from '@/components/home/MugteeWorldBackground'
 
 const QUICK_FLOW = ['Idea', 'Story', 'Look', 'Voice', 'Share'] as const
 const DIRECTOR_FLOW = [
@@ -34,11 +34,22 @@ type ModeCardProps = {
   flow: readonly string[]
   cta: string
   onSelect: () => void
+  tone: 'quick' | 'director'
   delay?: number
 }
 
-function ModeCard({ icon: Icon, title, subtitle, flow, cta, onSelect, delay = 0 }: ModeCardProps) {
+function ModeCard({
+  icon: Icon,
+  title,
+  subtitle,
+  flow,
+  cta,
+  onSelect,
+  tone,
+  delay = 0,
+}: ModeCardProps) {
   const initial = useCinematicMotionInitial({ opacity: 0, y: 14 })
+  const quick = tone === 'quick'
 
   return (
     <motion.article
@@ -46,27 +57,52 @@ function ModeCard({ icon: Icon, title, subtitle, flow, cta, onSelect, delay = 0 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
       className={cn(
-        glassPanel,
-        'flex flex-col p-6 sm:p-7 transition-shadow duration-300 hover:shadow-[0_0_40px_rgba(212,175,55,0.12)]'
+        'mugtee-world-card flex min-h-[28rem] flex-col overflow-hidden rounded-[2rem] border border-[rgba(212,175,55,0.18)] bg-[#191919] p-6 text-white shadow-[0_28px_80px_rgba(0,0,0,0.55)] sm:p-7',
+        quick && 'relative'
       )}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/12">
-        <Icon className="h-5 w-5 text-[#D4AF37]" aria-hidden />
-      </div>
-      <h2 className="mt-4 text-[11px] font-semibold tracking-[0.22em] uppercase text-[#D4AF37]">
-        {title}
-      </h2>
-      <p className="mt-2 text-sm text-white/75">{subtitle}</p>
+      {quick ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#60A5FA]/50 to-transparent"
+          aria-hidden
+        />
+      ) : null}
 
-      <p className="mt-4 text-[9px] uppercase tracking-[0.18em] text-white/35">How Mugtee helps</p>
-      <p className="mt-1.5 text-[11px] text-white/50 leading-relaxed">
-        {flow.join(' → ')}
+      <div
+        className={cn(
+          'flex h-12 w-12 items-center justify-center rounded-2xl border',
+          quick
+            ? 'border-[rgba(96,165,250,0.35)] bg-[#141414]'
+            : 'border-[rgba(212,175,55,0.35)] bg-[#141414]'
+        )}
+      >
+        <Icon
+          className={cn('h-5 w-5', quick ? 'text-[#93C5FD]' : 'text-[#D4AF37]')}
+          aria-hidden
+        />
+      </div>
+      <h2 className="mt-5 font-display text-4xl leading-tight text-white">{title}</h2>
+      <p className="mt-3 text-base leading-7 text-[#B8B8B8]">{subtitle}</p>
+
+      <p
+        className={cn(
+          'mt-6 text-[10px] font-semibold uppercase tracking-[0.18em]',
+          quick ? 'text-[#93C5FD]' : 'text-[#D4AF37]'
+        )}
+      >
+        How Mugtee helps
       </p>
+      <p className="mt-2 text-sm leading-7 text-[#888888]">{flow.join(' → ')}</p>
 
       <button
         type="button"
         onClick={onSelect}
-        className={cn(goldButton, 'mt-auto pt-8 w-full py-2.5 text-[10px]')}
+        className={cn(
+          'mt-auto inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4',
+          quick
+            ? 'border border-[rgba(96,165,250,0.45)] bg-[#141414] text-[#E0F2FE] shadow-[0_0_28px_rgba(96,165,250,0.12)] hover:border-[#93C5FD]/60 focus-visible:ring-[#60A5FA]/25'
+            : 'bg-gradient-to-r from-[#E6C252] via-[#D4AF37] to-[#B8962E] text-[#050505] shadow-[0_0_28px_rgba(212,175,55,0.22)] focus-visible:ring-[#D4AF37]/25'
+        )}
       >
         {cta}
         <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -93,61 +129,55 @@ export function StudioModeSelectionPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#050505] text-white">
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 opacity-30"
-        aria-hidden
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(212,175,55,0.08), transparent 55%)',
-        }}
-      />
-
-      <header className="border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+    <div className="relative min-h-screen overflow-x-clip bg-[#050505] text-white">
+      <MugteeWorldBackground />
+      <header className="relative z-10 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border border-[rgba(212,175,55,0.18)] bg-[#0D0D0D]/80 px-5 shadow-[0_16px_42px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           <Link href="/" className="group hover:opacity-90 transition-opacity">
-            <span className="block font-display text-xl tracking-[0.12em] uppercase text-[#D4AF37] leading-none">
-              Mugtee
-            </span>
-            <span className="block text-[9px] tracking-[0.32em] uppercase text-white/70 mt-0.5">
-              Creative Companion
+            <span className="block font-display text-2xl leading-none text-white">Mugtee</span>
+            <span className="mt-0.5 block text-[9px] uppercase tracking-[0.24em] text-[#888888]">
+              Choose your studio
             </span>
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <motion.div
           initial={fadeUp}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <h1 className="font-display text-2xl sm:text-3xl text-white">
-            How should Mugtee help today?
+          <MugteeCompanionCharacter size="sm" mood="curious" />
+          <h1 className="mx-auto mt-6 max-w-3xl font-display text-4xl leading-tight text-white sm:text-6xl">
+            Choose how you want to create.
           </h1>
-          <p className="mt-2 text-sm text-white/50">
-            Pick the kind of friendship you need for this idea. You can change your mind anytime.
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#B8B8B8]">
+            Quick Cut is fast and focused. Director Mode is cinematic and precise. The same Mugtee
+            adapts to the way you want to create.
           </p>
         </motion.div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid gap-5 lg:grid-cols-2">
           <ModeCard
             icon={Zap}
-            title="Tell me the idea"
-            subtitle="Mugtee takes a messy thought and turns it into something ready to share."
+            title="Quick Cut"
+            subtitle="Momentum-first creation — idea to finished reel with speed and clarity."
             flow={QUICK_FLOW}
-            cta="Start together"
+            cta="Make something now"
             onSelect={goQuick}
+            tone="quick"
             delay={0.06}
           />
           <ModeCard
             icon={Armchair}
-            title="Build a creative world"
-            subtitle="For stories that need research, scenes, rhythm, and a stronger emotional arc."
+            title="Director Mode"
+            subtitle="A premium cinematic studio where every creative decision feels intentional."
             flow={DIRECTOR_FLOW}
-            cta="Open our world"
+            cta="Enter the studio"
             onSelect={goDirector}
+            tone="director"
             delay={0.12}
           />
         </div>

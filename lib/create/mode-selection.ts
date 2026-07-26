@@ -124,19 +124,16 @@ export function authLoginHref(
 
 export const MODE_LOGIN_COPY = {
   quick: {
-    heading: 'Continue to Quick Cut',
-    subtext:
-      'Generate cinematic reels instantly with AI-powered storytelling.',
+    heading: 'Welcome back',
+    subtext: 'Your creative companion has been waiting.',
   },
   director: {
-    heading: 'Enter Director Workspace',
-    subtext:
-      'Sign in for scene-by-scene control — timeline, storyboards, visual direction, and cinematic compile.',
+    heading: 'Welcome back',
+    subtext: 'Your creative companion has been waiting.',
   },
   default: {
-    heading: 'Continue to Quick Cut',
-    subtext:
-      'Generate cinematic reels instantly with AI-powered storytelling.',
+    heading: 'Welcome back',
+    subtext: 'Your creative companion has been waiting.',
   },
 } as const
 

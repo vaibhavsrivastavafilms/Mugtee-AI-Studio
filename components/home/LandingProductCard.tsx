@@ -38,35 +38,30 @@ export function LandingProductCard({
       transition={{ duration: 0.5 }}
       className={cn(
         glassPanel,
-        'group flex flex-col p-5 sm:p-6 transition-shadow duration-300',
-        'hover:shadow-[0_0_40px_rgba(212,175,55,0.12)]',
+        'group flex min-h-[20rem] flex-col p-6 sm:p-7',
+        'hover:shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_40px_rgba(212,175,55,0.08)]',
         className
       )}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/12">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(212,175,55,0.22)] bg-[#141414]">
         <Icon className="h-5 w-5 text-[#D4AF37]" aria-hidden />
       </div>
 
-      <h2 className="mt-4 text-[11px] font-semibold tracking-[0.22em] uppercase text-[#D4AF37]">
-        {title}
-      </h2>
-      <p className="mt-2 text-sm text-white/80 leading-snug">{description}</p>
-      <p className="mt-2 text-[12px] text-white/45 leading-relaxed">{detail}</p>
+      <h2 className="mt-5 font-display text-3xl leading-tight text-white">{title}</h2>
+      <p className="mt-3 text-base font-medium text-[#B8B8B8] leading-snug">{description}</p>
+      <p className="mt-3 text-sm text-[#888888] leading-7">{detail}</p>
 
       {onClick ? (
         <button
           type="button"
           onClick={onClick}
-          className={cn(goldButton, 'mt-auto pt-6 w-full py-2.5 text-[10px]')}
+          className={cn(goldButton, 'mt-auto w-full px-5 py-3 text-[10px]')}
         >
           {ctaLabel}
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </button>
       ) : (
-        <Link
-          href={href}
-          className={cn(goldButton, 'mt-auto pt-6 w-full py-2.5 text-[10px]')}
-        >
+        <Link href={href} className={cn(goldButton, 'mt-auto w-full px-5 py-3 text-[10px]')}>
           {ctaLabel}
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </Link>

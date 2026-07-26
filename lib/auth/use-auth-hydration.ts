@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { logAuthConfigDiagnostics } from '@/lib/auth/log-auth-config'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export type AuthHydrationState = {
@@ -26,6 +27,7 @@ export function useAuthHydration(): AuthHydrationState {
   })
 
   useEffect(() => {
+    logAuthConfigDiagnostics('auth-hydration')
     const supabase = createSupabaseBrowserClient()
     if (!supabase) {
       setState({

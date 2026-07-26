@@ -83,34 +83,34 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
   const started = input.generationStartedAt ?? now
 
   if (input.generationStep === 'analyzing' || input.sectionStatus.contentDirectorBrief === 'generating') {
-    appendGenerationActivity({ id: 'topic', label: 'Researching topic', status: 'current', at: now })
+    appendGenerationActivity({ id: 'topic', label: 'Finding the best opening...', status: 'current', at: now })
   } else if (input.sectionStatus.contentDirectorBrief === 'completed') {
-    appendGenerationActivity({ id: 'topic', label: 'Topic analyzed', status: 'completed', at: started })
+    appendGenerationActivity({ id: 'topic', label: 'The opening spark is ready', status: 'completed', at: started })
   }
 
   if (input.hook.trim() || input.sectionStatus.hook === 'completed') {
     if (input.sectionStatus.hook === 'generating') {
-      appendGenerationActivity({ id: 'hook', label: 'Writing hook', status: 'current', at: now })
+      appendGenerationActivity({ id: 'hook', label: 'Shaping the hook...', status: 'current', at: now })
     } else if (input.sectionStatus.hook === 'completed' || input.hook.trim()) {
-      appendGenerationActivity({ id: 'hook', label: 'Hook generated', status: 'completed', at: now })
+      appendGenerationActivity({ id: 'hook', label: 'The hook is ready', status: 'completed', at: now })
     }
   }
 
   if (input.script.trim() || input.sectionStatus.script === 'completed') {
     if (input.sectionStatus.script === 'generating') {
-      appendGenerationActivity({ id: 'script', label: 'Writing script', status: 'current', at: now })
+      appendGenerationActivity({ id: 'script', label: 'Writing the story with you...', status: 'current', at: now })
     } else if (input.sectionStatus.script === 'completed' || input.script.trim()) {
-      appendGenerationActivity({ id: 'script', label: 'Script completed', status: 'completed', at: now })
+      appendGenerationActivity({ id: 'script', label: 'The story has a shape', status: 'completed', at: now })
     }
   }
 
   if (input.scenes.length > 0 || input.sectionStatus.visualDirection === 'completed') {
     if (input.sectionStatus.visualDirection === 'generating') {
-      appendGenerationActivity({ id: 'scenes', label: 'Breaking down scenes', status: 'current', at: now })
+      appendGenerationActivity({ id: 'scenes', label: 'Planning camera moments...', status: 'current', at: now })
     } else if (input.sectionStatus.visualDirection === 'completed' || input.scenes.length > 0) {
       appendGenerationActivity({
         id: 'scenes',
-        label: 'Scene breakdown complete',
+        label: 'The scene rhythm is mapped',
         status: 'completed',
         at: now,
       })
@@ -132,7 +132,7 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
     if (imageCount > 0) {
       appendGenerationActivity({
         id: `storyboard-${sceneN}`,
-        label: `Rendering storyboard ${sceneN} of ${imageCount}`,
+        label: `Painting scene ${sceneN} of ${imageCount}...`,
         status: completedFrames >= imageCount ? 'completed' : 'current',
         at: now,
       })
@@ -140,7 +140,7 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
   } else if (input.sectionStatus.storyboard === 'completed' || completedFrames >= imageCount) {
     appendGenerationActivity({
       id: 'storyboard',
-      label: 'Storyboard complete',
+      label: 'The visual world is ready',
       status: 'completed',
       at: now,
     })
@@ -154,7 +154,7 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
     if (imageCount > 0 && completedFrames >= imageCount) {
       appendGenerationActivity({
         id: `video-${sceneN}`,
-        label: `Creating Scene ${sceneN} of ${imageCount}`,
+        label: `Giving scene ${sceneN} movement...`,
         status: completedVideos >= imageCount ? 'completed' : 'current',
         at: now,
       })
@@ -163,27 +163,27 @@ export function syncGenerationActivityFromState(input: ActivitySyncInput): Gener
 
   if (input.voiceUrl || input.sectionStatus.voice === 'completed') {
     if (input.sectionStatus.voice === 'generating') {
-      appendGenerationActivity({ id: 'voice', label: 'Generating voiceover', status: 'current', at: now })
+      appendGenerationActivity({ id: 'voice', label: 'Listening for the rhythm...', status: 'current', at: now })
     } else if (input.sectionStatus.voice === 'completed' || input.voiceUrl) {
-      appendGenerationActivity({ id: 'voice', label: 'Voiceover generated', status: 'completed', at: now })
+      appendGenerationActivity({ id: 'voice', label: 'The narration is ready', status: 'completed', at: now })
     }
   }
 
   if (input.sectionStatus.captions === 'generating') {
-    appendGenerationActivity({ id: 'captions', label: 'Adding captions', status: 'current', at: now })
+    appendGenerationActivity({ id: 'captions', label: 'Making the words easy to follow...', status: 'current', at: now })
   } else if (input.sectionStatus.captions === 'completed') {
-    appendGenerationActivity({ id: 'captions', label: 'Captions added', status: 'completed', at: now })
+    appendGenerationActivity({ id: 'captions', label: 'The words are placed', status: 'completed', at: now })
   }
 
   if (input.sectionStatus.export === 'generating' || input.generationStep === 'render' || input.isRenderingVideo) {
     appendGenerationActivity({
       id: 'export',
-      label: input.isRenderingVideo ? 'Rendering reel' : 'Exporting MP4',
+      label: input.isRenderingVideo ? 'Building your timeline...' : 'Wrapping everything together...',
       status: 'current',
       at: now,
     })
   } else if (input.sectionStatus.export === 'completed' || input.pipelineStatus === 'mp4_complete') {
-    appendGenerationActivity({ id: 'export', label: 'MP4 ready', status: 'completed', at: now })
+    appendGenerationActivity({ id: 'export', label: 'Your reel is ready to share', status: 'completed', at: now })
   }
 
   return getGenerationActivityLog()

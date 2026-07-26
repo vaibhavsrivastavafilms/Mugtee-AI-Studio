@@ -19,10 +19,10 @@ const StudioModeSelectionPage = nextDynamic(
   {
     loading: () => (
       <div
-        className="flex min-h-[100dvh] items-center justify-center bg-[#050505]"
+        className="flex min-h-[100dvh] items-center justify-center bg-[#FFD428]"
         aria-busy="true"
       >
-        <div className="h-10 w-10 animate-pulse rounded-xl bg-gradient-to-br from-[#E8C547] to-[#B8962E]" />
+        <div className="h-12 w-12 animate-pulse rounded-full bg-[#00AEEF] shadow-[0_14px_30px_rgba(0,174,239,0.24)]" />
       </div>
     ),
   }

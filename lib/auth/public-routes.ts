@@ -9,6 +9,7 @@ const PUBLIC_EXACT = new Set([
   '/auth',
   '/login',
   '/auth/login',
+  '/auth/unavailable',
   '/signin',
   '/pricing',
   '/contact',

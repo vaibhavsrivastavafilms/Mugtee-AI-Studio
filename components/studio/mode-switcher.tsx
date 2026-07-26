@@ -33,10 +33,9 @@ export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) 
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-full border border-white/[0.08] bg-black/40 p-0.5',
+        'inline-flex items-center rounded-full border border-black/[0.08] bg-white/75 p-0.5 shadow-[0_10px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl',
         className
       )}
-      role="tablist"
       aria-label="How Mugtee helps"
     >
       {MODES.map(({ id, label, shortLabel, icon: Icon }) => {
@@ -46,8 +45,7 @@ export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) 
           <Link
             key={id}
             href={href}
-            role="tab"
-            aria-selected={active}
+            aria-current={active ? 'page' : undefined}
             onClick={() => {
               storeCreatorMode(id)
               if (id === 'quick' && !projectId) resetQuickCutForFreshCreate()
@@ -56,9 +54,9 @@ export function ModeSwitcher({ className, compact = false }: ModeSwitcherProps) 
               'inline-flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-all',
               active
                 ? id === 'quick'
-                  ? 'bg-[#8b5cf6] text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.55)]'
-                  : 'bg-gold-gradient text-black border border-gold-500/35 shadow-gold-glow'
-                : 'text-muted-foreground hover:text-luxe hover:bg-white/[0.04]'
+                  ? 'bg-[#FFD428] text-[#1D1D1D] shadow-[0_10px_22px_rgba(255,212,40,0.28)]'
+                  : 'bg-[#14161D] text-[#F6F1E8] border border-[#D4AF37]/35 shadow-[0_10px_24px_rgba(9,10,15,0.22)]'
+                : 'text-[#5E4B62] hover:text-[#1D1D1D] hover:bg-[#FFF8D8]'
             )}
           >
             <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />

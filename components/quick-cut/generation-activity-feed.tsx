@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useClientMounted } from '@/lib/hooks/use-client-mounted'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import {
   formatActivityElapsed,
   getGenerationActivityLog,
@@ -51,8 +51,8 @@ export function GenerationActivityFeed({ className, maxItems = 8 }: GenerationAc
   if (!mounted || entries.length === 0) return null
 
   return (
-    <div className={cn('space-y-1.5', className)} aria-label="Recent activity">
-      <p className="text-[9px] tracking-[0.18em] uppercase text-luxe/45">Recent Activity</p>
+    <div className={cn('space-y-1.5', className)} aria-label="Mugtee thinking activity">
+      <p className="text-[9px] tracking-[0.18em] uppercase text-luxe/45">Mugtee is thinking</p>
       <ul className="space-y-1 max-h-[140px] overflow-y-auto scrollbar-luxe">
         {entries.map((entry) => (
           <li
@@ -66,7 +66,7 @@ export function GenerationActivityFeed({ className, maxItems = 8 }: GenerationAc
             {entry.status === 'completed' ? (
               <Check className="w-3 h-3 shrink-0 text-emerald-400/80" aria-hidden />
             ) : (
-              <Loader2 className="w-3 h-3 shrink-0 animate-spin text-gold-300/80" aria-hidden />
+              <Sparkles className="w-3 h-3 shrink-0 animate-pulse text-gold-300/80" aria-hidden />
             )}
             <span className="tabular-nums text-luxe/40 shrink-0">
               {formatActivityElapsed(entry.at, input.generationStartedAt)}

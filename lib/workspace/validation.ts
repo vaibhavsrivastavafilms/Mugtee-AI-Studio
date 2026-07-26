@@ -44,12 +44,15 @@ export function coerceTone(raw: unknown): string {
   return 'cinematic'
 }
 
-export const MAX_VIDEO_DURATION_SEC = 60
+/** Production OS maximum runtime (3 minutes). */
+export const MAX_VIDEO_DURATION_SEC = 180
 export const MIN_VIDEO_DURATION_SEC = 15
+/** Default when duration is missing/invalid — short-form first. */
+export const DEFAULT_VIDEO_DURATION_SEC = 60
 
 export function coerceDuration(raw: unknown): number {
   const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
-  if (!Number.isFinite(n)) return MAX_VIDEO_DURATION_SEC
+  if (!Number.isFinite(n)) return DEFAULT_VIDEO_DURATION_SEC
   return Math.min(
     Math.max(Math.round(n), MIN_VIDEO_DURATION_SEC),
     MAX_VIDEO_DURATION_SEC

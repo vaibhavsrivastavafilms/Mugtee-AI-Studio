@@ -125,6 +125,12 @@ export async function orchestrateRemotionReel(
       )
     }
 
+    // Failsafe: pause new renders near/at storage quota — never let exports deepen a 402 lockout.
+    const { assertStorageAllowsRenders } = await import(
+      '@/lib/storage/quota-failsafe.server'
+    )
+    await assertStorageAllowsRenders()
+
     report('prepare', EXPORT_STAGE_LABELS.preparing)
     renderPipelineLog('RENDER_PREP', {
       projectId: input.projectId,

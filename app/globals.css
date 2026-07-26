@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,13 +6,21 @@
 
 @layer base {
   :root {
-    /* MUGTEE V2 — luxury cinematic tokens */
-    --v2-bg: #000000;
-    --v2-surface: #0A0A0A;
+    /* MUGTEE V6 — premium black & gold */
+    --v2-bg: #050505;
+    --v2-bg-secondary: #0D0D0D;
+    --v2-elevated: #141414;
+    --v2-card: #191919;
+    --v2-surface: #0D0D0D;
     --v2-gold: #D4AF37;
-    --v2-text-primary: #F8F4E8;
-    --v2-text-secondary: rgba(248, 244, 232, 0.65);
-    --v2-border: rgba(212, 175, 55, 0.12);
+    --v2-gold-hover: #E6C252;
+    --v2-gold-glow: rgba(212, 175, 55, 0.22);
+    --v2-text-primary: #FFFFFF;
+    --v2-text-secondary: #B8B8B8;
+    --v2-text-muted: #888888;
+    --v2-border: rgba(212, 175, 55, 0.18);
+    --v2-success: #4CAF50;
+    --v2-error: #D9534F;
     --v2-motion-page: 300ms;
     --v2-motion-hover: 150ms;
 
@@ -56,8 +64,8 @@
     --accent-h: 46;
     --accent-s: 65%;
     --accent-soft: rgba(212, 175, 55, 0.12);
-    --accent-text: #F8F4E8;
-    --card-border: rgba(212, 175, 55, 0.12);
+    --accent-text: #FFFFFF;
+    --card-border: rgba(212, 175, 55, 0.18);
     --card-glow: rgba(212, 175, 55, 0.22);
   }
 
@@ -109,17 +117,83 @@
       overflow-x: hidden;
     }
   }
-  /* Cinematic `/` — lock viewport scroll without client-only style mutation */
-  html:has([data-cinematic-home]),
-  html:has([data-cinematic-home]) body {
-    overflow: hidden;
-    overscroll-behavior: none;
-    height: 100%;
-  }
 }
 
 @layer components {
   .font-display { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
+  /* Legacy aliases — map to premium type stack */
+  .font-world-display { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
+  .font-world-body { font-family: 'Inter', 'Manrope', system-ui, sans-serif; }
+  .mugtee-world-float {
+    animation: mugtee-world-float 9s ease-in-out infinite;
+    transform: translateZ(0);
+  }
+  .mugtee-world-drift {
+    animation: mugtee-world-drift 18s ease-in-out infinite;
+    transform: translateZ(0);
+  }
+  .mugtee-world-blink {
+    animation: mugtee-world-blink 6.5s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .mugtee-world-wave {
+    animation: mugtee-world-wave 8s ease-in-out infinite;
+    transform-origin: 70% 55%;
+  }
+  .mugtee-world-sparkle {
+    animation: mugtee-world-sparkle 12s ease-in-out infinite;
+    transform: translateZ(0);
+  }
+  .mugtee-film-grain {
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .mugtee-world-card {
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 280ms ease,
+      border-color 280ms ease,
+      background-color 280ms ease;
+  }
+  .mugtee-world-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 48px -24px var(--v2-gold-glow);
+  }
+  @keyframes mugtee-world-float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -6px, 0); }
+  }
+  @keyframes mugtee-world-drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+    50% { transform: translate3d(8px, -10px, 0) scale(1.02); opacity: 0.8; }
+  }
+  @keyframes mugtee-world-blink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    92%, 94% { transform: scaleY(0.12); }
+  }
+  @keyframes mugtee-world-wave {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(2deg); }
+  }
+  @keyframes mugtee-world-sparkle {
+    0%, 100% { opacity: 0.2; transform: translate3d(0, 0, 0) scale(1); }
+    50% { opacity: 0.55; transform: translate3d(0, -4px, 0) scale(1.04); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mugtee-world-float,
+    .mugtee-world-drift,
+    .mugtee-world-blink,
+    .mugtee-world-wave,
+    .mugtee-world-sparkle {
+      animation: none;
+    }
+    .mugtee-world-card,
+    .mugtee-world-card:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
   .v2-page-enter { animation: v2-page-enter var(--v2-motion-page) cubic-bezier(0.22, 1, 0.36, 1) both; }
   .v2-surface { background: var(--v2-surface); }
   .v2-text-primary { color: var(--v2-text-primary); }

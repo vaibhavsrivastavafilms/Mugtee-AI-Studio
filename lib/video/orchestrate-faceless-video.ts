@@ -72,6 +72,11 @@ export async function orchestrateFacelessVideo(
       )
     }
 
+    const { assertStorageAllowsRenders } = await import(
+      '@/lib/storage/quota-failsafe.server'
+    )
+    await assertStorageAllowsRenders()
+
     report('prepare', 'Preparing cinematic assembly…')
 
     const scenes = input.scenes.filter(

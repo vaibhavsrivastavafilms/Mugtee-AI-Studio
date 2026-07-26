@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Play, Sparkles } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 import { useCinematicMotionInitial } from '@/components/home/cinematic-home-motion'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -10,8 +10,8 @@ import {
   ghostButton,
   goldButton,
   STUDIO_ENTRY,
-  WATCH_DEMO_HREF,
 } from '@/components/home/cinematic-home-styles'
+import { MugteeCompanionCharacter } from '@/components/home/MugteeCompanionCharacter'
 
 type CinematicHeroProps = {
   className?: string
@@ -23,66 +23,61 @@ export function CinematicHero({ className }: CinematicHeroProps) {
   const fadeIn = useCinematicMotionInitial({ opacity: 0 })
   const fadeUp = useCinematicMotionInitial({ opacity: 0, y: 8 })
 
-  const handleStart = (e: React.MouseEvent) => {
-    e.preventDefault()
-    router.push(STUDIO_ENTRY)
-  }
-
   return (
-    <section className={cn('relative shrink-0 text-center px-4 pt-10 pb-6 sm:pt-14 sm:pb-8', className)}>
+    <section
+      className={cn(
+        'relative overflow-hidden px-4 pt-16 pb-14 text-center sm:pt-24 sm:pb-16',
+        className
+      )}
+    >
+      <div
+        className="pointer-events-none absolute left-1/2 top-8 -z-10 h-80 w-80 -translate-x-1/2 rounded-full bg-[#D4AF37]/[0.12] blur-3xl"
+        aria-hidden
+      />
+      <motion.div
+        initial={fadeUp}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="opacity-90"
+      >
+        <MugteeCompanionCharacter size="sm" mood="hello" />
+      </motion.div>
+
       <motion.h1
         initial={fadeUpH1}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.65 }}
-        className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-tight text-white"
+        className="mx-auto mt-6 max-w-4xl font-display text-5xl leading-[0.98] text-white sm:text-6xl lg:text-[5.25rem]"
       >
-        <span className="block text-[10px] sm:text-xs tracking-[0.35em] uppercase text-[#D4AF37]/80 mb-2 font-sans font-medium not-italic">
-          MUGTEE
-        </span>
-        The imaginary friend{' '}
-        <span className="text-[#D4AF37] italic">every creator wishes they had.</span>
+        Your story. Finished as film.
       </motion.h1>
 
       <motion.p
         initial={fadeIn}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.08 }}
-        className="mt-4 max-w-xl mx-auto text-sm sm:text-base text-white/60 leading-relaxed px-1"
+        className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#B8B8B8] sm:text-lg"
       >
-        Tell Mugtee what you are imagining. Your creative companion helps shape the story,
-        pictures, voice, rhythm, and what to share next.
+        Mugtee turns an idea into a cinematic reel.
       </motion.p>
-      <motion.div
-        initial={fadeIn}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs sm:text-sm text-white/45"
-        role="list"
-        aria-label="Pipeline outputs"
-      >
-        {['Stories', 'Images', 'Voice', 'Rhythm', 'Share'].map((item) => (
-          <span key={item} role="listitem" className="inline-flex items-center gap-1">
-            <span className="text-emerald-400/80" aria-hidden>
-              ✓
-            </span>{' '}
-            {item}
-          </span>
-        ))}
-      </motion.div>
 
       <motion.div
         initial={fadeUp}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.14 }}
-        className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+        className="mt-9 flex flex-wrap items-center justify-center gap-3"
       >
-        <button type="button" onClick={handleStart} className={cn(goldButton, 'px-6 py-2.5')}>
-          Meet Mugtee
-          <Sparkles className="w-3.5 h-3.5" aria-hidden />
+        <button
+          type="button"
+          onClick={() => router.push(STUDIO_ENTRY)}
+          className={cn(goldButton, 'min-h-12 px-7 py-3')}
+        >
+          Start creating
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </button>
-        <Link href={WATCH_DEMO_HREF} className={cn(ghostButton, 'px-6 py-2.5')}>
-          Watch Demo
-          <Play className="w-3.5 h-3.5 fill-current" aria-hidden />
+        <Link href="#watch" className={cn(ghostButton, 'min-h-12 px-6 py-3')}>
+          Watch Mugtee create
+          <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
         </Link>
       </motion.div>
     </section>

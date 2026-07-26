@@ -35,26 +35,26 @@ function QuickModeShellInner({ children, projectId, className }: QuickModeShellP
   return (
     <div
       className={cn(
-        '-mx-3 sm:-mx-5 lg:-mx-6 -my-3 sm:-my-4 lg:-my-5 min-h-[calc(100dvh-3rem)] min-w-0 overflow-hidden flex flex-col bg-[#050505]',
+        '-mx-3 sm:-mx-5 lg:-mx-6 -my-3 sm:-my-4 lg:-my-5 min-h-[calc(100dvh-3rem)] min-w-0 overflow-x-clip flex flex-col bg-[#FFD428] text-[#1D1D1D]',
         className
       )}
     >
       <SessionContinuityGuard projectId={projectId} />
       <StudioWorkspaceTopbar user={shellUser} variant="quick" />
       <MobileSaveTrustBar />
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-y-contain xl:overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-y-contain xl:overflow-x-clip">
         {children}
       </div>
 
-      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0D0D0D]/90">
-        <p className="text-[11px] sm:text-xs text-luxe/55 max-w-2xl leading-relaxed">
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-black/[0.08] bg-[#FFF8D8]/90 backdrop-blur-xl">
+        <p className="text-[11px] sm:text-xs text-[#1D1D1D]/70 max-w-2xl leading-relaxed">
           Switch to Director Mode for advanced editing, timeline, and full creative control.
         </p>
         <Link
           href={pid ? directorWorkspaceHref(pid) : directorWorkspaceHref()}
           className={cn(
             'inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl text-xs font-medium',
-            'border border-white/[0.1] bg-white/[0.04] text-luxe/90 hover:border-violet-400/35 hover:bg-violet-500/[0.08] transition shrink-0'
+            'border border-black/[0.08] bg-white text-[#1D1D1D] shadow-[0_10px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:bg-[#FFF8D8] transition shrink-0'
           )}
         >
           Open Director Mode

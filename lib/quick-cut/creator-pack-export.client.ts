@@ -52,6 +52,8 @@ export type CreatorPackExportInput = {
 
 export type CreatorPackMetadata = {
   format: 'mugtee-creator-pack'
+  /** Production OS package contract version. */
+  productionOs: 'v1'
   exportedAt: string
   projectId: string | null
   title: string
@@ -330,6 +332,7 @@ export async function buildCreatorPackZip(
 
   const metadata: CreatorPackMetadata = {
     format: 'mugtee-creator-pack',
+    productionOs: 'v1',
     exportedAt: new Date().toISOString(),
     projectId: input.savedProjectId ?? null,
     title: input.title || 'Untitled reel',

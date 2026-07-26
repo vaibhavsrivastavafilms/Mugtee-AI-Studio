@@ -10,13 +10,14 @@
 // The /login page is intentionally preserved so deep-links + the nav "Sign in" link
 // keep working unchanged.
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { track } from '@/lib/posthog'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { trackEvent } from '@/lib/analytics/track-event'
 import { persistPostLoginRedirect } from '@/lib/create/mode-selection'
+import { logAuthError } from '@/lib/auth/log-auth-error'
 
 export default function HeroGoogleCta({
   helper = 'Start creating cinematic stories instantly.',
@@ -30,6 +31,7 @@ export default function HeroGoogleCta({
   source?: string
 }) {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const handleGoogle = async () => {
     if (loading) return
@@ -41,8 +43,8 @@ export default function HeroGoogleCta({
       persistPostLoginRedirect(next)
       const supabase = createSupabaseBrowserClient()
       if (!supabase) {
-        toast.error('Sign-in is unavailable — authentication is not configured.')
-        setLoading(false)
+        logAuthError('hero-cta', 'Auth not configured — continuing in development mode')
+        router.push(next)
         return
       }
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}&welcome=1`
@@ -51,12 +53,14 @@ export default function HeroGoogleCta({
         options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } },
       })
       if (error) {
-        toast.error('Could not start Google sign-in. Please try again.')
+        logAuthError('hero-cta', error)
+        router.push(next)
         setLoading(false)
       }
       // On success the browser navigates to Google — no further state changes needed here.
-    } catch {
-      toast.error('Sign-in failed. Please try again.')
+    } catch (error) {
+      logAuthError('hero-cta', error)
+      router.push(next)
       setLoading(false)
     }
   }

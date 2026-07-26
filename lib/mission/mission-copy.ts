@@ -1,28 +1,29 @@
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
+import { productionOsLabelForQuickCutStep } from '@/lib/production-os/map-quick-cut-step'
+import { PRODUCTION_OS_READY_LINE } from '@/lib/production-os/progress-copy'
 
-/** Mission-style loading copy — replaces generic pipeline labels. */
+/** Mission-style loading copy — Production OS creative progress. */
 export const MISSION_STEP_LABELS: Record<QuickCutGenerationStep, string> = {
   idle: '',
-  analyzing: 'Mugtee is reading your audience brief…',
-  title: 'Mugtee is discovering your story angle…',
-  hook: 'Mugtee is crafting your scroll-stopping hook…',
-  script: 'Mugtee is directing your next viral story.',
-  scenes: 'Mugtee is building your scene breakdown…',
-  images: 'Mugtee is generating cinematic visuals…',
-  motion: 'Mugtee is applying cinematic motion…',
-  voice: 'Mugtee is creating your voiceover…',
-  render: 'Mugtee is rendering your reel…',
-  complete: 'Your cinematic video is ready',
+  analyzing: productionOsLabelForQuickCutStep('analyzing'),
+  title: productionOsLabelForQuickCutStep('title'),
+  hook: productionOsLabelForQuickCutStep('hook'),
+  script: productionOsLabelForQuickCutStep('script'),
+  scenes: productionOsLabelForQuickCutStep('scenes'),
+  images: productionOsLabelForQuickCutStep('images'),
+  motion: productionOsLabelForQuickCutStep('motion'),
+  voice: productionOsLabelForQuickCutStep('voice'),
+  render: productionOsLabelForQuickCutStep('render'),
+  complete: PRODUCTION_OS_READY_LINE,
   error: 'Generation paused',
 }
 
 export function missionStatusLabel(
   step?: QuickCutGenerationStep,
-  sceneCount = 0,
+  _sceneCount = 0,
   directingLabel?: string | null
 ): string {
   if (directingLabel) return directingLabel
-  if (!step || step === 'idle') return 'Mugtee is directing your next viral story.'
-  if (step === 'scenes' || sceneCount > 0) return 'Mugtee is building your scene breakdown…'
-  return MISSION_STEP_LABELS[step] || 'Mugtee is directing your next viral story.'
+  if (!step || step === 'idle') return productionOsLabelForQuickCutStep('script')
+  return MISSION_STEP_LABELS[step] || productionOsLabelForQuickCutStep('script')
 }

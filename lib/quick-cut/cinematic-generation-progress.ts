@@ -1,4 +1,5 @@
 import type { SectionId, SectionStatusMap } from '@/lib/cinematic/section-generation-status'
+import { PRODUCTION_OS_READY_LINE } from '@/lib/production-os/progress-copy'
 import type { QuickCutGenerationStep } from '@/stores/quick-cut-generation-store'
 import { STEP_LABELS } from '@/stores/quick-cut-generation-store'
 
@@ -339,7 +340,7 @@ export function resolveCinematicGenerationProgress(
     .filter((s) => s.status === 'pending' || s.status === 'failed')
     .map((s) => s.label)
 
-  const headline = isReady ? '✓ Your Reel Is Ready' : 'Building Your Reel…'
+  const headline = isReady ? PRODUCTION_OS_READY_LINE : 'Creating your film…'
   const currentStepLabel = isReady ? null : resolveCurrentStepLabel(stages, allDefinitions, input)
 
   return {
