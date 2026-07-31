@@ -207,18 +207,25 @@ export function completeMp4Pipeline(
     failPipeline(get, set, 'export', 'Final MP4 URL missing or invalid')
     return
   }
+  const nextSectionStatus = {
+    ...get().sectionStatus,
+    export: 'completed' as const,
+  }
   set({
     pipelineStatus: 'mp4_complete',
     progress: 100,
     videoUrl: finalMp4Url,
     renderError: null,
     isRenderingVideo: false,
+    renderPollUrl: null,
     generationStatus: 'completed',
     generationStep: 'complete',
     isComplete: true,
     isGenerating: false,
     generationInFlight: false,
     exportCompletedAt: Date.now(),
+    lastCompletedStep: 'export',
+    sectionStatus: nextSectionStatus,
   })
   void syncGenerationJobProgress({
     jobId: get().pipelineJobId,
@@ -228,6 +235,7 @@ export function completeMp4Pipeline(
     isGenerating: false,
     isComplete: true,
     generationStatus: 'completed',
+    pipelineStatus: 'mp4_complete',
     prompt: get().prompt,
     script: get().script,
     scriptBeats: get().scriptBeats,
@@ -237,7 +245,7 @@ export function completeMp4Pipeline(
     reelTimeline: get().reelTimeline,
     isRenderingVideo: false,
     renderError: null,
-    sectionStatus: get().sectionStatus,
+    sectionStatus: nextSectionStatus,
     ...jobSyncContext(get()),
   })
 }

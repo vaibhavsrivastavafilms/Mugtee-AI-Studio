@@ -71,7 +71,7 @@ export type MotionPreset = {
   ffmpegFilter: FfmpegMotionFilter
 }
 
-export type SceneMotionSource = 'auto' | 'manual'
+export type SceneMotionSource = 'auto' | 'manual' | 'camera_director_v3'
 
 /** @deprecated Use SceneMotion */
 export type SceneMotionEntry = SceneMotion

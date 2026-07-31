@@ -45,3 +45,53 @@ export {
   evaluateProductionOsExportReadiness,
   type ProductionOsRunPlan,
 } from '@/lib/production-os/orchestrator'
+
+export {
+  createPhaseEvent,
+  messageForPhaseEvent,
+  PRODUCTION_OS_V2_ACTIVITY,
+  type ProductionOsV2PhaseEvent,
+  type ProductionOsV2EventStatus,
+  type ProductionOsV2Checkpoint,
+} from '@/lib/production-os/v2/events'
+
+export {
+  computeProductionOsV2Eta,
+  quickCutStepToEtaPhase,
+  type ProductionOsV2EtaResult,
+} from '@/lib/production-os/v2/eta'
+
+export { computeProductionOsV2Progress } from '@/lib/production-os/v2/progress'
+
+export {
+  PRODUCTION_OS_V3,
+  PRODUCTION_OS_V3_PHASE_ORDER,
+  ensureCinematicMotionMap,
+  buildCameraDirectedMotionMap,
+  buildCharacterReference,
+  buildEnvironmentProfile,
+  runQualityEngine,
+  buildSceneProductionGraph,
+  createProductionJob,
+  reportWorker,
+  snapshotProgress,
+  computeV3Progress,
+  saveProductionCheckpoint,
+  loadProductionCheckpoint,
+} from '@/lib/production-os/v3'
+
+export {
+  PRODUCTION_OS_V4,
+  PRODUCTION_OS_V4_MAX_DURATION_SEC,
+  PRODUCTION_OS_V4_PHASE_ORDER,
+  PRODUCTION_OS_V4_PHASES,
+  buildCompanionProductionPlan,
+  buildCharacterBible,
+  buildEnvironmentBible,
+  resolveCompanionSeed,
+  thinkingForPhase,
+  createThinkingEvent,
+  PRODUCTION_OS_V4_PACKAGE_CATALOG,
+  V4_STORAGE_POLICY,
+} from '@/lib/production-os/v4'
+// Server-only video router: import from `@/lib/production-os/v4/provider-router`

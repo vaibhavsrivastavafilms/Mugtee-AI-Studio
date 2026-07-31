@@ -42,23 +42,46 @@ export function resolveSceneExportImageUrl(scene: SceneExportImageSource): strin
   return first?.trim() ? first.trim() : null
 }
 
-/** Ephemeral CDN URLs that fail during server-side Remotion download. */
+/** Ephemeral / placeholder URLs that must not count as export-ready stills. */
 export function isEphemeralExportImageUrl(url: string | null | undefined): boolean {
   if (!url?.trim()) return false
   const lower = url.trim().toLowerCase()
-  return lower.includes('pollinations.ai') || lower.includes('image.pollinations')
+  return (
+    lower.includes('pollinations.ai') ||
+    lower.includes('image.pollinations') ||
+    lower.includes('images.unsplash.com') ||
+    lower.includes('placehold.co') ||
+    lower.includes('via.placeholder') ||
+    lower.startsWith('data:image/svg')
+  )
 }
 
 export function isDurableExportImageUrl(url: string | null | undefined): boolean {
   if (!url?.trim()) return false
-  if (extractStoragePathFromUrl(url)) return true
-  if (url.startsWith('data:')) return true
   if (isEphemeralExportImageUrl(url)) return false
-  return true
+  if (extractStoragePathFromUrl(url)) return true
+  if (url.startsWith('data:image/') && !url.startsWith('data:image/svg')) return true
+  // Same-origin / Supabase signed URLs only
+  if (lowerIsSupabaseOrLocal(url)) return true
+  return false
+}
+
+function lowerIsSupabaseOrLocal(url: string): boolean {
+  const lower = url.trim().toLowerCase()
+  return (
+    lower.includes('supabase.co') ||
+    lower.includes('/storage/v1/object/') ||
+    lower.startsWith('/') ||
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1')
+  )
 }
 
 export function sceneHasExportableStoryboard(scene: SceneExportImageSource): boolean {
-  return Boolean(resolveSceneExportImageUrl(scene) || resolveSceneExportAssetPath(scene))
+  const assetPath = resolveSceneExportAssetPath(scene)
+  if (assetPath) return true
+  const url = resolveSceneExportImageUrl(scene)
+  return isDurableExportImageUrl(url)
 }
 
 export function findScenesMissingExportImages(
@@ -115,12 +138,16 @@ export function sceneExportReadiness(scenes: GeneratedScene[] | SceneExportImage
   }
 }
 
+/** @deprecated Voice is soft-optional — kept for older error string matches. */
 export const VOICE_REQUIRED_EXPORT_MSG = 'Add voiceover before exporting.'
 
-/** Client + server pre-export gate: voice narration and a still for every scene. */
+/**
+ * Pre-export gate: every scene needs a still.
+ * Voice is soft-optional (Production OS) — continue without narration.
+ */
 export function reelExportReadiness(
   scenes: GeneratedScene[] | SceneExportImageSource[],
-  voiceUrl: string | null | undefined
+  _voiceUrl?: string | null | undefined
 ): {
   ready: boolean
   missing: MissingExportScene[]
@@ -136,9 +163,6 @@ export function reelExportReadiness(
   const sceneCheck = sceneExportReadiness(scenes)
   if (!sceneCheck.ready) {
     return sceneCheck
-  }
-  if (!voiceUrl?.trim()) {
-    return { ready: false, missing: [], message: VOICE_REQUIRED_EXPORT_MSG }
   }
   return { ready: true, missing: [], message: null }
 }

@@ -115,6 +115,43 @@ export function applyActiveGenerationJobToStore(
     patch.generationStatus = 'failed'
     patch.renderError = job.errorMessage ?? 'Generation failed'
   } else if (job.canResume) {
+    const scenesHaveImages = live.scenes.some((s) =>
+      Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim())
+    )
+    const jobLooksBehindLocal =
+      scenesHaveImages &&
+      !live.videoUrl?.trim() &&
+      ((job.progress ?? 0) < 50 ||
+        job.status === 'queued' ||
+        !job.currentStep ||
+        job.currentStep === 'analyzing' ||
+        job.currentStep === 'hook' ||
+        job.currentStep === 'script' ||
+        job.currentStep === 'scenes' ||
+        job.currentStep === 'visual_direction')
+
+    // Zombie job: storyboard already on the client, job still at Researching @ 0%.
+    // Clear the stale row reference so export resume can run (don't poll forever).
+    if (jobLooksBehindLocal) {
+      const pid = projectId ?? live.savedProjectId
+      if (pid) clearStoredGenerationJobId(pid, job.jobId)
+      set({
+        pipelineJobId: null,
+        jobPollWarning: null,
+        isGenerating: false,
+        generationInFlight: false,
+        generationStatus: 'failed',
+        failedAtStep: 'export',
+        lastCompletedStep: live.lastCompletedStep ?? 'storyboard',
+        generationStep: 'render',
+        progress: Math.max(live.progress || 0, 92),
+        pipelineStatus: 'timeline_complete',
+        error: null,
+        renderError: null,
+      })
+      return
+    }
+
     patch.isGenerating = false
     patch.generationStatus = 'generating'
     patch.generationStep = resumeGenerationStepFromJob(job)

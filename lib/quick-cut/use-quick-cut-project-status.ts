@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
   isQuickCutContentReady,
@@ -10,13 +10,23 @@ import {
   type ProjectStatus,
 } from '@/lib/quick-cut/project-status'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
+import { computeProductionOsV2Eta, quickCutStepToEtaPhase } from '@/lib/production-os/v2/eta'
+import { computeProductionOsV2Progress } from '@/lib/production-os/v2/progress'
+import { PRODUCTION_OS_PHASE_ORDER, type ProductionOsPhaseId } from '@/lib/production-os/phases'
+import { formatEtaLabel } from '@/lib/generation/generation-eta'
 
 export function formatEtaRemaining(seconds: number | null | undefined): string | null {
-  if (seconds == null || seconds <= 0) return null
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  if (m <= 0) return `${s}s Remaining`
-  return `${m}m ${s}s Remaining`
+  if (seconds == null || seconds < 0) return null
+  if (seconds === 0) return 'Done'
+  return formatEtaLabel(Math.max(1, Math.floor(seconds)))
+}
+
+function completedPhasesFromStep(step: string): ProductionOsPhaseId[] {
+  const current = quickCutStepToEtaPhase(step)
+  if (!current) return [...PRODUCTION_OS_PHASE_ORDER]
+  const idx = PRODUCTION_OS_PHASE_ORDER.indexOf(current)
+  if (idx <= 0) return []
+  return PRODUCTION_OS_PHASE_ORDER.slice(0, idx)
 }
 
 export function useQuickCutProjectStatus() {
@@ -45,11 +55,27 @@ export function useQuickCutProjectStatus() {
       exportPackageReady: s.exportPackageReady,
       videoRenderEnabled: s.videoRenderEnabled,
       voiceFallbackMessage: s.voiceFallbackMessage,
+      currentStageStartedAt: s.currentStageStartedAt,
+      renderStartedAt: s.renderStartedAt,
     }))
   )
 
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    if (!state.isGenerating && state.isComplete) return
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [state.isGenerating, state.isComplete])
+
   const scenesWithVideo = useMemo(
     () => state.scenes.filter((s) => s.videoUrl?.trim()).length,
+    [state.scenes]
+  )
+
+  const imagesDone = useMemo(
+    () =>
+      state.scenes.filter((s) => Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim())).length,
     [state.scenes]
   )
 
@@ -96,9 +122,113 @@ export function useQuickCutProjectStatus() {
     pipelineStatus: state.pipelineStatus,
   })
 
+  // Heal stuck EXPORTING @ 99% after MP4 URL arrives but poll lagged.
+  useEffect(() => {
+    if (!mp4ExportReady) return
+    if (
+      state.pipelineStatus === 'mp4_complete' &&
+      state.isComplete &&
+      !state.isGenerating &&
+      !state.isRenderingVideo
+    ) {
+      return
+    }
+    useQuickCutGenerationStore.setState({
+      pipelineStatus: 'mp4_complete',
+      isComplete: true,
+      isGenerating: false,
+      isRenderingVideo: false,
+      progress: 100,
+      generationStep: 'complete',
+      generationStatus: 'completed',
+      eta: 0,
+    })
+  }, [
+    mp4ExportReady,
+    state.pipelineStatus,
+    state.isComplete,
+    state.isGenerating,
+    state.isRenderingVideo,
+  ])
+
+  const currentPhase = quickCutStepToEtaPhase(state.generationStep)
+  const completedPhases = completedPhasesFromStep(state.generationStep)
+
+  const renderPercent =
+    state.isRenderingVideo || state.pipelineStatus === 'mp4_rendering'
+      ? Math.max(0, Math.min(99, state.progress))
+      : null
+
+  const liveProgress = exportReady
+    ? 100
+    : computeProductionOsV2Progress({
+        currentPhase,
+        completedPhases,
+        imagesDone,
+        imagesTotal: state.scenes.length,
+        animationDone: scenesWithVideo,
+        animationTotal: state.scenes.length,
+        renderPercent,
+        isComplete: exportReady,
+      })
+
+  // Prefer real counter progress; fall back to store bucket while idle.
   const progressPercent = exportReady
     ? 100
-    : Math.min(99, Math.max(0, Math.round(state.progress)))
+    : state.isGenerating
+      ? Math.max(liveProgress, Math.min(99, Math.round(state.progress)))
+      : Math.min(99, Math.max(0, Math.round(state.progress)))
+
+  const eta = useMemo(() => {
+    void tick
+    return computeProductionOsV2Eta({
+      currentPhase,
+      completedPhases,
+      phaseStartedAtMs: state.currentStageStartedAt,
+      sceneCount: state.scenes.length,
+      imagesDone,
+      imagesTotal: state.scenes.length,
+      animationDone: scenesWithVideo,
+      animationTotal: state.scenes.length,
+      renderPercent,
+      renderStartedAtMs: state.renderStartedAt,
+      isComplete: exportReady || status === 'COMPLETE',
+    })
+  }, [
+    tick,
+    currentPhase,
+    completedPhases,
+    state.currentStageStartedAt,
+    state.scenes.length,
+    imagesDone,
+    scenesWithVideo,
+    renderPercent,
+    state.renderStartedAt,
+    exportReady,
+    status,
+  ])
+
+  // Persist live ETA into the store so other surfaces stay in sync.
+  // Never write a lower progress (zombie job / analyzing step would reset to 0%).
+  useEffect(() => {
+    if (exportReady) {
+      if (state.eta !== 0) useQuickCutGenerationStore.setState({ eta: 0 })
+      return
+    }
+    if (state.isGenerating && state.eta !== eta.remainingSec) {
+      useQuickCutGenerationStore.setState({
+        eta: eta.remainingSec,
+        progress: Math.max(state.progress || 0, progressPercent),
+      })
+    }
+  }, [
+    eta.remainingSec,
+    exportReady,
+    state.eta,
+    state.isGenerating,
+    state.progress,
+    progressPercent,
+  ])
 
   const projectName =
     state.title?.trim() ||
@@ -115,6 +245,9 @@ export function useQuickCutProjectStatus() {
     projectName,
     scenesCount: state.scenes.length,
     scenesWithVideo,
-    etaLabel: formatEtaRemaining(state.eta > 0 ? state.eta : null),
+    imagesDone,
+    etaLabel: eta.label,
+    etaDisplay: eta.display,
+    etaSeconds: eta.remainingSec,
   }
 }

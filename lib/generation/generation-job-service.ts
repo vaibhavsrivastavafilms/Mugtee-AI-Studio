@@ -67,6 +67,10 @@ export function generationJobToPollResponse(row: GenerationJobRow) {
   }
   const failedStage = row.failed_stage ?? meta.failedStage ?? null
   const finalMp4Url = row.final_mp4_url ?? meta.finalMp4Url ?? null
+  // Durable URL wins — never report mp4_rendering once the file exists.
+  if (finalMp4Url?.trim() && pipelineStatus !== 'failed') {
+    pipelineStatus = 'mp4_complete'
+  }
   const errorMessage = row.error_message ?? row.error ?? null
   return {
     jobId: row.id,

@@ -160,30 +160,7 @@ export async function verifyRenderExportInputs(params: {
     status: 'started',
   })
 
-  if (process.env.VIDEO_RENDER_MOCK === 'true') {
-    const voiceUrl = params.includeVoiceover
-      ? params.row.voice?.audioUrl?.trim() ?? null
-      : null
-    const audio: RenderInputAudioCheck = {
-      voiceAssetPath: null,
-      voiceUrl,
-      exists: !params.includeVoiceover || Boolean(voiceUrl),
-      required: params.includeVoiceover,
-    }
-    renderPipelineLog('RENDER_PREP', {
-      projectId: params.row.id,
-      jobId: params.jobId ?? null,
-      status: 'pass_mock',
-      mock: true,
-      audioExists: audio.exists,
-    })
-    return {
-      scenes: [],
-      audio,
-      allScenesReady: true,
-      audioReady: audio.exists,
-    }
-  }
+  // Always verify durable scene assets — VIDEO_RENDER_MOCK only lightens encode, never skips readiness.
 
   const sceneChecks = await Promise.all(
     params.scenes.map((scene, index) => verifySceneForRender(scene, index))

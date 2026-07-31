@@ -109,12 +109,17 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
   durationSec: number
   thumbnailPath: string | null
 }> {
-  if (process.env.VIDEO_RENDER_MOCK === 'true') {
-    return renderMockMp4(input)
+  // Always encode real storyboard stills. VIDEO_RENDER_MOCK only lightens encode settings —
+  // never substitute a black lavfi stub for a finished movie.
+  if (!input.scenes.length || input.scenes.some((s) => !s.imageUrl?.trim())) {
+    throw new Error(
+      'MP4 export requires a storyboard image for every scene. Regenerate missing images, then retry.'
+    )
   }
 
-  const encodeThreads = resolveFfmpegThreadCount()
-  const encodePreset = resolveFfmpegX264Preset()
+  const mockLite = process.env.VIDEO_RENDER_MOCK === 'true'
+  const encodeThreads = resolveFfmpegThreadCount({ mock: mockLite })
+  const encodePreset = resolveFfmpegX264Preset({ mock: mockLite })
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mugtee-render-'))
   try {
     const segmentPaths: string[] = []
@@ -231,85 +236,32 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
   }
 }
 
-/** Dev-only: VIDEO_RENDER_MOCK=true writes a minimal valid MP4 (lightweight x264, no Remotion). */
+/**
+ * Dev shortcut when VIDEO_RENDER_MOCK=true — still encodes real storyboard stills
+ * (Ken Burns slideshow + optional voice). Never a black stub.
+ */
 export async function renderMockMp4(input: RenderPipelineInput): Promise<{
   outputPath: string
   durationSec: number
   thumbnailPath: string | null
 }> {
-  const bin = resolveFfmpegPath()
-  if (!bin) {
+  if (!resolveFfmpegPath()) {
     throw new Error('VIDEO_RENDER_MOCK requires ffmpeg-static or FFMPEG_PATH')
   }
-  await ensureDir(path.dirname(input.outputPath))
-
-  const perSceneMinSec = process.env.CI_QUICK_CUT_SMOKE === 'true' ? 1 : 2
-  const rawTotal =
-    input.scenes.reduce((s, sc) => s + Math.max(perSceneMinSec, sc.durationSec), 0) ||
-    resolveMockRenderDurationSec(0)
-  const dur = resolveMockRenderDurationSec(rawTotal)
   const { width, height } = resolveMockRenderResolution()
   const threads = resolveFfmpegThreadCount({ mock: true })
   const preset = resolveFfmpegX264Preset({ mock: true })
-
+  const dur = resolveMockRenderDurationSec(
+    input.scenes.reduce((s, sc) => s + Math.max(2, sc.durationSec), 0) || 8
+  )
   logMockRender({
     VIDEO_RENDER_MOCK: true,
-    rendererUsed: 'renderMockMp4',
+    rendererUsed: 'renderFacelessMp4',
     encoderUsed: 'libx264',
     threads,
     preset,
     resolution: `${width}x${height}`,
     durationSec: dur,
   })
-  logMemoryTrace({
-    renderer: 'ffmpeg-mock',
-    codec: 'libx264',
-    resolution: `${width}x${height}`,
-    fps: FPS,
-    duration: dur,
-    estimatedFrames: Math.round(dur * FPS),
-    threads,
-    sceneCount: input.scenes.length,
-  })
-
-  renderPipelineLog('FFMPEG_START', {
-    outputPath: input.outputPath,
-    duration: dur,
-    mock: true,
-    status: 'mock_encode',
-    resolution: `${width}x${height}`,
-    threads,
-    preset,
-  })
-
-  const encodeArgs: string[] = [
-    '-y',
-    '-f',
-    'lavfi',
-    '-i',
-    `color=c=black:s=${width}x${height}:d=${dur}`,
-    '-f',
-    'lavfi',
-    '-i',
-    'anullsrc=r=44100:cl=mono',
-  ]
-  appendLibx264EncodeArgs(encodeArgs, { preset, threads, crf: 28 })
-  encodeArgs.push('-tune', 'stillimage', '-c:a', 'aac', '-b:a', '64k', '-shortest', '-t', String(dur), input.outputPath)
-
-  await runFfmpeg(encodeArgs, {
-    mock: true,
-    threads,
-    preset,
-    resolution: `${width}x${height}`,
-    duration: dur,
-  })
-  const stat = await fs.stat(input.outputPath).catch(() => null)
-  renderPipelineLog('FFMPEG_OUTPUT', {
-    outputPath: input.outputPath,
-    size: stat?.size ?? 0,
-    duration: dur,
-    codec: 'h264',
-    status: stat && stat.size > 0 ? 'valid' : 'empty',
-  })
-  return { outputPath: input.outputPath, durationSec: dur, thumbnailPath: null }
+  return renderFacelessMp4(input)
 }

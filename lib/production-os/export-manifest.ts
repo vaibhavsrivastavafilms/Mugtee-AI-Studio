@@ -20,9 +20,14 @@ export type ProductionOsPackageItemId =
   | 'screenplay_pdf'
   | 'creative_brief_pdf'
   | 'research_report_pdf'
+  | 'shot_list_pdf'
+  | 'character_bible_pdf'
+  | 'environment_bible_pdf'
   | 'thumbnail'
+  | 'poster'
   | 'social_captions'
   | 'hashtags'
+  | 'creator_pack'
 
 export type ProductionOsPackageItem = {
   id: ProductionOsPackageItemId
@@ -33,17 +38,22 @@ export type ProductionOsPackageItem = {
 }
 
 export const PRODUCTION_OS_PACKAGE_CATALOG: readonly ProductionOsPackageItem[] = [
-  { id: 'video_mp4', label: 'Final MP4', required: true, available: true },
-  { id: 'video_mov', label: 'Final MOV', required: false, available: false },
+  { id: 'video_mp4', label: 'Professional MP4', required: true, available: true },
+  { id: 'video_mov', label: 'Professional MOV', required: false, available: false },
   { id: 'captions_srt', label: 'Captions (SRT)', required: true, available: true },
   { id: 'voiceover', label: 'Voiceover', required: false, available: true },
   { id: 'music', label: 'Music bed', required: false, available: false },
   { id: 'project_archive', label: 'Project archive', required: true, available: true },
+  { id: 'creator_pack', label: 'Creator Pack', required: true, available: true },
   { id: 'storyboard_pdf', label: 'Storyboard PDF', required: false, available: true },
-  { id: 'screenplay_pdf', label: 'Screenplay PDF', required: false, available: false },
-  { id: 'creative_brief_pdf', label: 'Creative Brief PDF', required: false, available: false },
+  { id: 'screenplay_pdf', label: 'Screenplay PDF', required: false, available: true },
+  { id: 'creative_brief_pdf', label: 'Creative Brief PDF', required: false, available: true },
   { id: 'research_report_pdf', label: 'Research Report PDF', required: false, available: true },
-  { id: 'thumbnail', label: 'Thumbnail', required: false, available: true },
+  { id: 'shot_list_pdf', label: 'Shot List PDF', required: false, available: true },
+  { id: 'character_bible_pdf', label: 'Character Bible PDF', required: false, available: true },
+  { id: 'environment_bible_pdf', label: 'Environment Bible PDF', required: false, available: true },
+  { id: 'thumbnail', label: 'Thumbnail', required: true, available: true },
+  { id: 'poster', label: 'Poster', required: true, available: true },
   { id: 'social_captions', label: 'Social captions', required: false, available: true },
   { id: 'hashtags', label: 'Hashtags', required: false, available: true },
 ] as const

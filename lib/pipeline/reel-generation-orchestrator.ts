@@ -85,6 +85,8 @@ export type ReelPipelineSnapshot = {
   renderError?: string | null
   videoRenderEnabled?: boolean
   requireSceneVideos?: boolean
+  /** When true, missing voice fails the voice stage. Default: optional. */
+  requireVoice?: boolean
 }
 
 export type ReelPipelineState = {
@@ -186,7 +188,8 @@ function captionsValid(snapshot: ReelPipelineSnapshot, timeline: ReelPipelineTim
 
 export function buildReelPipelineTimeline(snapshot: ReelPipelineSnapshot): ReelPipelineTimeline | null {
   const scenes = snapshot.scenes ?? []
-  if (scenes.length < 1 || !voiceValid(snapshot)) return null
+  // Production OS V2: voice is optional — continue without narration.
+  if (scenes.length < 1) return null
   const reelTimeline = snapshot.reelTimeline
   if (!reelTimeline || reelTimeline.totalDurationSec <= 0) return null
   let captionsSrt = ''
@@ -263,13 +266,18 @@ function validateStage(stage: ReelPipelineStageId, snapshot: ReelPipelineSnapsho
       return { ok: true }
     }
     case 'voice':
-      if (!voiceValid(snapshot)) {
+      // Soft-optional: missing voice is skipped, not a hard stage failure.
+      if (!voiceValid(snapshot) && snapshot.requireVoice === true) {
         return { ok: false, failedStage: 'voice', message: 'Voiceover URL missing' }
       }
       return { ok: true }
     case 'captions': {
       const timeline = buildReelPipelineTimeline(snapshot)
       if (!captionsValid(snapshot, timeline)) {
+        // Soft-optional when continuing without narration — do not block MP4.
+        if (!voiceValid(snapshot)) {
+          return { ok: true }
+        }
         return { ok: false, failedStage: 'captions', message: 'Caption track missing' }
       }
       return { ok: true }

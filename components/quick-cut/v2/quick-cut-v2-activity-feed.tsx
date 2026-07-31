@@ -8,6 +8,10 @@ import {
   getGenerationActivityLog,
   syncGenerationActivityFromState,
 } from '@/lib/quick-cut/generation-activity.client'
+import {
+  subscribeProductionOsV2Events,
+  getProductionOsV2Events,
+} from '@/lib/production-os/v2/event-bus.client'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { useShallow } from 'zustand/react/shallow'
 import { useQuickCutProjectStatus } from '@/lib/quick-cut/use-quick-cut-project-status'
@@ -19,11 +23,11 @@ type QuickCutV2ActivityFeedProps = {
 
 export function QuickCutV2ActivityFeed({
   className,
-  maxItems = 5,
+  maxItems = 6,
 }: QuickCutV2ActivityFeedProps) {
   const mounted = useClientMounted()
   const [tick, setTick] = useState(0)
-  const { stageLabel, status } = useQuickCutProjectStatus()
+  const { stageLabel, status, savedProjectId } = useQuickCutProjectStatus()
 
   const input = useQuickCutGenerationStore(
     useShallow((s) => ({
@@ -47,11 +51,50 @@ export function QuickCutV2ActivityFeed({
     setTick((t) => t + 1)
   }, [mounted, input])
 
+  // Subscribe to in-process V2 events + SSE from backend
+  useEffect(() => {
+    if (!mounted) return
+    const unsub = subscribeProductionOsV2Events(() => setTick((t) => t + 1))
+
+    const projectId = savedProjectId
+    const url = projectId
+      ? `/api/production-os/events?projectId=${encodeURIComponent(projectId)}`
+      : '/api/production-os/events'
+    const es = new EventSource(url)
+    es.onmessage = (msg) => {
+      try {
+        const data = JSON.parse(msg.data) as { type?: string }
+        if (data.type === 'event') setTick((t) => t + 1)
+      } catch {
+        /* ignore */
+      }
+    }
+    return () => {
+      unsub()
+      es.close()
+    }
+  }, [mounted, savedProjectId])
+
   const entries = useMemo(() => {
     if (!mounted) return []
     void tick
-    const log = getGenerationActivityLog().slice(-maxItems).reverse()
-    if (log.length > 0) return log
+    const fromLog = getGenerationActivityLog()
+    const fromEvents = getProductionOsV2Events().map((e) => ({
+      id: e.id,
+      label: e.message,
+      status:
+        e.status === 'completed' || e.status === 'skipped' || e.status === 'failed'
+          ? ('completed' as const)
+          : ('current' as const),
+      at: e.at,
+    }))
+
+    const merged = [...fromLog, ...fromEvents]
+      .sort((a, b) => a.at - b.at)
+      .slice(-maxItems)
+      .reverse()
+
+    if (merged.length > 0) return merged
 
     if (status === 'FAILED') {
       return [{ id: 'failed', label: 'Generation failed', status: 'current' as const, at: Date.now() }]

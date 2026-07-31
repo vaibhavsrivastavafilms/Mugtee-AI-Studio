@@ -10,6 +10,11 @@ import {
   POST_LOGIN_REDIRECT_COOKIE,
   resolvePostLoginRedirect,
 } from '@/lib/auth/post-login-redirect'
+import {
+  classifySupabaseRestrictionText,
+  isSupabaseInfrastructureRestriction,
+  logSupabaseProjectStatus,
+} from '@/lib/auth/supabase-restriction'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { claimReferral } from '@/lib/referral/referral-service'
@@ -40,10 +45,30 @@ export async function GET(request: NextRequest) {
   const host  = request.headers.get('x-forwarded-host')  || request.headers.get('host') || request.nextUrl.host
   const base  = `${proto}://${host}`.replace(/\/$/, '')
 
+  const oauthError = url.searchParams.get('error')
+  const oauthErrorDescription = url.searchParams.get('error_description')
   if (!code) {
-    console.warn('[bootstrap] auth/callback missing code')
+    const restriction = classifySupabaseRestrictionText(
+      `${oauthError ?? ''} ${oauthErrorDescription ?? ''}`
+    )
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[bootstrap] auth/callback missing code', {
+        oauthError,
+        oauthErrorDescription,
+        restriction,
+      })
+    } else {
+      console.warn('[bootstrap] auth/callback missing code')
+    }
+
+    if (isSupabaseInfrastructureRestriction(restriction) || oauthError === 'access_denied') {
+      const unavailable = new URL('/auth/unavailable', base)
+      unavailable.searchParams.set('next', next)
+      return NextResponse.redirect(unavailable)
+    }
+
     const loginUrl = new URL('/auth/login', base)
-    loginUrl.searchParams.set('error', 'missing_code')
+    loginUrl.searchParams.set('error', oauthError ? 'oauth_failed' : 'missing_code')
     loginUrl.searchParams.set('next', next)
     return NextResponse.redirect(loginUrl)
   }
@@ -80,10 +105,28 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    console.error('[bootstrap] auth/callback exchange error:', error.message)
+    const restriction = classifySupabaseRestrictionText(error.message)
+    if (process.env.NODE_ENV === 'development') {
+      logSupabaseProjectStatus('auth-callback-exchange', {
+        ok: false,
+        kind: restriction === 'none' ? 'service_restricted' : restriction,
+        httpStatus: null,
+        reason: error.message,
+        supabaseUrl: env.url,
+        rawBodyPreview: error.message,
+      }, { fullError: error })
+    } else {
+      console.error('[bootstrap] auth/callback exchange error')
+    }
+
+    if (isSupabaseInfrastructureRestriction(restriction)) {
+      const unavailable = new URL('/auth/unavailable', base)
+      unavailable.searchParams.set('next', next)
+      return NextResponse.redirect(unavailable)
+    }
+
     const loginUrl = new URL('/auth/login', base)
     loginUrl.searchParams.set('error', 'oauth_failed')
-    loginUrl.searchParams.set('msg', error.message)
     loginUrl.searchParams.set('next', next)
     return NextResponse.redirect(loginUrl)
   }

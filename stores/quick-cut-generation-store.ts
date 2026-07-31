@@ -1,6 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { productionOsLabelForQuickCutStep } from '@/lib/production-os/map-quick-cut-step'
 import {
   DEFAULT_VISUAL_TEMPLATE,
   normalizeVisualTemplate,
@@ -365,6 +366,7 @@ import { writeStoredGenerationJobId, clearStoredGenerationJobId } from '@/lib/ge
 import { applyActiveGenerationJobToStore, isActiveGenerationRun } from '@/lib/generation/restore-generation-job.client'
 import { isValidGenerationJobId } from '@/lib/generation/stale-generation-job.client'
 import { VOICE_UNAVAILABLE_MESSAGE } from '@/lib/generation/generation-pipeline-messages'
+import { appendGenerationActivity } from '@/lib/quick-cut/generation-activity.client'
 import { canRegenerateSingleScene } from '@/lib/quick-cut/scene-regen-guard'
 import { canEditTimeline } from '@/lib/quick-cut/timeline-edit-guard'
 import {
@@ -430,19 +432,20 @@ export const STEP_PROGRESS: Record<QuickCutGenerationStep, number> = {
   error: 0,
 }
 
+/** Production OS creative progress — never expose technical stage names. */
 export const STEP_LABELS: Record<QuickCutGenerationStep, string> = {
   idle: '',
-  analyzing: 'Mugtee is reading your audience brief…',
-  title: 'Mugtee is discovering your story angle…',
-  hook: 'Mugtee is crafting your scroll-stopping hook…',
-  script: 'Mugtee is directing your next viral story.',
-  scenes: 'Mugtee is building your scene breakdown…',
-  images: 'Mugtee is generating cinematic visuals…',
-  motion: 'Mugtee is applying cinematic motion…',
-  voice: 'Mugtee is creating your voiceover…',
-  render: 'Mugtee is rendering your reel…',
-  complete: 'Your cinematic video is ready',
-  error: 'Generation paused',
+  analyzing: productionOsLabelForQuickCutStep('analyzing'),
+  title: productionOsLabelForQuickCutStep('title'),
+  hook: productionOsLabelForQuickCutStep('hook'),
+  script: productionOsLabelForQuickCutStep('script'),
+  scenes: productionOsLabelForQuickCutStep('scenes'),
+  images: productionOsLabelForQuickCutStep('images'),
+  motion: productionOsLabelForQuickCutStep('motion'),
+  voice: productionOsLabelForQuickCutStep('voice'),
+  render: productionOsLabelForQuickCutStep('render'),
+  complete: productionOsLabelForQuickCutStep('complete'),
+  error: productionOsLabelForQuickCutStep('error'),
 }
 
 export type QuickCutInput = {
@@ -1884,14 +1887,46 @@ function setStep(
     logStateTransition(previousState, step, {
       projectId: get().savedProjectId ?? undefined,
     })
+
+    // Production OS V2 — emit real phase events into Live Activity
+    void import('@/lib/production-os/v2/eta').then(({ quickCutStepToEtaPhase }) =>
+      import('@/lib/production-os/v2/events').then(({ createPhaseEvent }) =>
+        import('@/lib/production-os/v2/event-bus.client').then(({ publishProductionOsV2Event }) => {
+          const prevPhase = quickCutStepToEtaPhase(previousState)
+          const nextPhase = quickCutStepToEtaPhase(step)
+          if (prevPhase && prevPhase !== nextPhase) {
+            publishProductionOsV2Event(
+              createPhaseEvent({
+                phase: prevPhase,
+                status: 'completed',
+                durationMs: Date.now() - (get().currentStageStartedAt ?? Date.now()),
+              })
+            )
+          }
+          if (nextPhase) {
+            publishProductionOsV2Event(
+              createPhaseEvent({
+                phase: nextPhase,
+                status: step === 'complete' ? 'completed' : 'started',
+                current: get().scenes.filter((s) => s.imageUrl?.trim()).length,
+                total: get().scenes.length || undefined,
+              })
+            )
+          }
+        })
+      )
+    )
   }
   set(patch)
 }
 
 function hasCreatorPackAssets(state: QuickCutGenerationState): boolean {
-  return (
+  // Production OS V2: voice is optional — pack ready when storyboard + script exist.
+  const imagesReady =
     state.scenes.length > 0 &&
-    Boolean(state.voiceUrl?.trim()) &&
+    state.scenes.every((s) => Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim()))
+  return (
+    imagesReady &&
     Boolean(state.script?.trim() || state.hook?.trim())
   )
 }
@@ -2977,6 +3012,50 @@ export const useQuickCutGenerationStore = create<
 
     try {
       setStep(set, get, 'analyzing')
+      // Mugtee Agent System — idea → story → screenplay → bibles → prompts (Agents 1–7)
+      try {
+        const {
+          runMugteeAgentSystem,
+          persistMugteeAgentPackage,
+          toCinematicStoryPackage,
+          companionLineForAgent,
+        } = await import('@/lib/mugtee-agents')
+        const { persistCinematicStoryPackage } = await import(
+          '@/lib/cinematic-story-engine'
+        )
+        const agentPkg = runMugteeAgentSystem(
+          {
+            idea: prompt,
+            durationSec: duration,
+            language: language || 'hi',
+            platform: blueprintPlatform,
+            style: tone,
+            advancedMode: false,
+          },
+          (event) => {
+            if (event.status !== 'completed') return
+            appendGenerationActivity({
+              id: `mugtee-agent-${event.agent}`,
+              label: event.line,
+              status: 'completed',
+              at: Date.now(),
+            })
+            set({ directingSceneLabel: event.line })
+          }
+        )
+        persistMugteeAgentPackage(agentPkg)
+        const storyPkg = toCinematicStoryPackage(agentPkg)
+        persistCinematicStoryPackage(storyPkg)
+        const leadLock =
+          agentPkg.characters[0]?.identityLock ||
+          storyPkg.characterBible.identityLock
+        set({
+          characterDescription: leadLock,
+          directingSceneLabel: companionLineForAgent('idea_analyzer'),
+        })
+      } catch {
+        /* non-blocking — pipeline continues */
+      }
       await configPromise
       const profile = await fetchProfilePlanSnapshot()
       set({ userPlanType: profile.planType })
@@ -3489,13 +3568,37 @@ export const useQuickCutGenerationStore = create<
               )
               if (scenesData.mock === true) anyMock = true
 
-              characterDescription = extractCharacterDescription(script, scenes)
+              characterDescription =
+                get().characterDescription?.trim() ||
+                extractCharacterDescription(script, scenes)
               scenes = scenesWithCharacterImagePrompts(scenes, {
                 characterDescription,
                 hook: scriptHook,
                 emotionalGoal: scriptVirlo?.emotionalGoal,
                 total: scenes.length,
               })
+
+              // Cinematic Story Engine — inject production prompts (creator never sees prompt craft)
+              try {
+                const {
+                  loadCinematicStoryPackage,
+                  applyScenePromptsToScenes,
+                } = await import('@/lib/cinematic-story-engine')
+                const storyPkg = loadCinematicStoryPackage()
+                if (storyPkg) {
+                  scenes = applyScenePromptsToScenes(scenes, storyPkg)
+                  characterDescription =
+                    storyPkg.characterBible.identityLock || characterDescription
+                  appendGenerationActivity({
+                    id: 'cinematic-storyboard-prompts',
+                    label: '🎨 Creating your storyboard…',
+                    status: 'completed',
+                    at: Date.now(),
+                  })
+                }
+              } catch {
+                /* non-blocking */
+              }
 
               const storyBible = buildStoryBibleFromVisualDirection({
                 scenes,
@@ -3851,14 +3954,15 @@ export const useQuickCutGenerationStore = create<
 
         setStep(set, get, 'motion')
         set({ directingSceneLabel: 'Applying cinematic motion…' })
-        const motionMap = assignSceneMotion(
+        const { ensureCinematicMotionMap } = await import(
+          '@/lib/production-os/v3/camera-director'
+        )
+        const motionMap = ensureCinematicMotionMap(
           scenes,
-          get().storyBible,
-          get().sceneMotion,
-          {
+          assignSceneMotion(scenes, get().storyBible, get().sceneMotion, {
             sceneBlueprints: get().sceneBlueprints,
             outputAlignmentControls: get().outputAlignmentControls,
-          }
+          })
         )
         scenes = applySceneMotionToScenes(scenes, motionMap)
         set({
@@ -4017,7 +4121,79 @@ export const useQuickCutGenerationStore = create<
       const exportPackageReady =
         get().exportPackageReady ||
         (!videoRenderEnabled && hasCreatorPackAssets(get()) && !exportFailedFinal)
-      const contentReadyForResults = mp4Ready || exportPackageReady
+
+      // Production OS V3 — never declare success until quality engine verifies assets
+      const { runQualityEngine } = await import('@/lib/production-os/v3/quality-engine')
+      const posterFallback =
+        get().thumbnailImageUrl?.trim() ||
+        resolveActiveThumbnailUrl(null, get().scenes) ||
+        get().scenes[0]?.imageUrl?.trim() ||
+        null
+      if (posterFallback && !get().thumbnailImageUrl?.trim()) {
+        set({ thumbnailImageUrl: posterFallback })
+      }
+      const quality = runQualityEngine({
+        scenes: get().scenes,
+        voiceUrl: get().voiceUrl,
+        captionsPresent: get().sectionStatus.captions === 'completed',
+        videoUrl: get().videoUrl,
+        thumbnailUrl: posterFallback,
+        posterUrl: posterFallback,
+        durationSec: get().duration,
+        requireSceneVideos: false,
+      })
+      // Pack path may skip MP4; MP4 path requires quality engine pass
+      const contentReadyForResults = exportFailedFinal
+        ? false
+        : exportPackageReady && !videoRenderEnabled
+          ? true
+          : mp4Ready && quality.readyForSuccessScreen
+
+      const projectIdForCheckpoint = get().savedProjectId
+      if (projectIdForCheckpoint) {
+        const { buildSceneProductionGraph } = await import('@/lib/production-os/v3/scene-graph')
+        const { saveProductionCheckpoint } = await import('@/lib/production-os/v3/checkpoints')
+        const units = buildSceneProductionGraph(get().scenes)
+        saveProductionCheckpoint({
+          version: 'v3',
+          projectId: projectIdForCheckpoint,
+          phase: contentReadyForResults ? 'export' : 'rendering',
+          sceneIndex: 0,
+          completedPhases: contentReadyForResults
+            ? [
+                'idea',
+                'research',
+                'creative_direction',
+                'script',
+                'screenplay',
+                'storyboard',
+                'shot_list',
+                'voice',
+                'characters',
+                'environment',
+                'image_generation',
+                'animation',
+                'video_editing',
+                'music',
+                'sound_design',
+                'captions',
+                'rendering',
+                'quality_check',
+                'export',
+              ]
+            : ['idea', 'script', 'screenplay', 'storyboard', 'image_generation'],
+          scenes: units.map((u) => ({
+            id: u.id,
+            status: u.status,
+            checkpoint: u.checkpoint,
+            imageUrl: u.imageUrl,
+            videoUrl: u.videoUrl,
+          })),
+          characterRef: null,
+          environmentRef: null,
+          updatedAt: Date.now(),
+        })
+      }
 
       const pipeline: QuickCutPipelineStatus = {
         steps: {

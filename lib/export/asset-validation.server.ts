@@ -132,11 +132,6 @@ export async function validateExportAssets(params: {
     missing.push('images')
   } else {
     const assetCounts = await loadProjectAssetCounts(params.row.id, params.userId)
-    const mockRender = process.env.VIDEO_RENDER_MOCK === 'true'
-    if (mockRender) {
-      validationLog('mock_render_skip_storage', { projectId: params.row.id })
-      imagesExist = true
-    } else {
     const imageValidation = await refreshAndValidateExportSceneImages({
       scenes,
       projectId: params.row.id,
@@ -166,7 +161,6 @@ export async function validateExportAssets(params: {
         sceneImageDiagnostics,
         refreshedScenes,
       }
-    }
     }
   }
 

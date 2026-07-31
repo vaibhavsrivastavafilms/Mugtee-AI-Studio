@@ -275,11 +275,23 @@ export async function orchestrateRemotionReel(
     let thumbnailPath: string | null = null
 
     if (mock) {
-      mp4RenderLog(5, 'rendering MP4 (mock)', { outputPath, mock: true })
-      const mockResult = await renderRemotionReelMock({ outputPath, durationSec: totalDuration })
+      mp4RenderLog(5, 'rendering MP4 (ffmpeg stills)', { outputPath, mock: true })
+      const mockResult = await renderRemotionReelMock({
+        outputPath,
+        durationSec: totalDuration,
+        scenes: timedScenes,
+        voiceUrl: input.voiceUrl,
+      })
       durationSec = mockResult.durationSec
       thumbnailPath = mockResult.thumbnailPath
     } else {
+      const { ensureCinematicMotionMap } = await import(
+        '@/lib/production-os/v3/camera-director'
+      )
+      const cinematicMotion = ensureCinematicMotionMap(
+        timedScenes,
+        options?.sceneMotion ?? null
+      )
       const renderResult = await renderRemotionReel({
         scenes: timedScenes,
         voiceUrl: input.voiceUrl,
@@ -288,8 +300,8 @@ export async function orchestrateRemotionReel(
         hook: input.idea,
         projectId: input.projectId,
         outputPath,
-        sceneMotion: options?.sceneMotion ?? null,
-        onProgress: (label, percent) => {
+        sceneMotion: cinematicMotion,
+        onProgress: (label, percent, meta) => {
           updateRenderJob(jobId, {
             percent,
             stage: 'render_segments',
@@ -302,21 +314,22 @@ export async function orchestrateRemotionReel(
             progress: percent,
             label,
             stage: 'render_segments',
+            metadata: meta
+              ? {
+                  framesRendered: meta.framesRendered,
+                  framesTotal: meta.framesTotal,
+                  fps: meta.fps,
+                  productionOs: 'v3',
+                }
+              : { productionOs: 'v3' },
           })
+          options?.onProgress?.(percent, 'render_segments', label)
         },
       })
       durationSec = renderResult.durationSec
       thumbnailPath = renderResult.thumbnailPath
     }
 
-    logRenderCompletion({
-      jobId,
-      projectId: input.projectId ?? null,
-      durationMs: options?.exportStartedAt ? Date.now() - options.exportStartedAt : null,
-      outputPath,
-      mp4Exists: true,
-      status: 'complete',
-    })
     logJobStatusTransition({
       jobId,
       from: 'running',
@@ -325,6 +338,7 @@ export async function orchestrateRemotionReel(
       label: 'Uploading reel…',
     })
 
+    // Production OS V3 — verify file exists BEFORE declaring render success
     const outputStat = await fs.stat(outputPath).catch(() => null)
     const encodeDurationMs = Date.now() - encodeStartedAt
     renderPipelineLog('REMOTION_RENDER_COMPLETE', {
@@ -359,6 +373,15 @@ export async function orchestrateRemotionReel(
     if (!outputStat || outputStat.size <= 0) {
       throw new Error('FFmpeg/Remotion produced an empty output file.')
     }
+
+    logRenderCompletion({
+      jobId,
+      projectId: input.projectId ?? null,
+      durationMs: options?.exportStartedAt ? Date.now() - options.exportStartedAt : null,
+      outputPath,
+      mp4Exists: true,
+      status: 'complete',
+    })
 
     mp4RenderLog(5, 'MP4 encode complete', { durationSec, outputPath })
     report('assemble', EXPORT_STAGE_LABELS.encoding)
@@ -401,6 +424,11 @@ export async function orchestrateRemotionReel(
       )
       videoUrl = uploaded.videoUrl
       storagePath = uploaded.storagePath
+      if (!videoUrl?.trim()) {
+        throw new Error('MP4 upload finished without a downloadable URL')
+      }
+      const { verifyReelFileExists } = await import('@/lib/export/reel-url-validation.server')
+      const verification = await verifyReelFileExists(videoUrl, input.projectId)
       renderPipelineLog('UPLOAD_COMPLETE', {
         projectId: input.projectId,
         jobId,
@@ -413,8 +441,15 @@ export async function orchestrateRemotionReel(
         jobId,
         videoUrl,
         storagePath,
-        status: videoUrl ? 'url_generated' : 'missing_url',
+        status: verification.ok ? 'verified' : 'failed',
+        bytes: verification.size ?? null,
       })
+      if (!verification.ok) {
+        throw new Error(
+          verification.error ||
+            'MP4 uploaded but the download URL is not readable — retry export.'
+        )
+      }
       exportLog.uploadComplete({
         jobId,
         projectId: input.projectId,

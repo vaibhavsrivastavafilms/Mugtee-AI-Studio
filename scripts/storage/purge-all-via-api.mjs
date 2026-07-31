@@ -40,6 +40,7 @@ const SAFE = [
   'renders',
   'temporary',
   'cache',
+  'preview',
   'thumbnails',
   'generated-images',
   'voiceovers',

@@ -172,23 +172,31 @@ export async function persistRemoteImage(params: {
         filename: params.filename,
         contentType: dataMatch[1],
       })
-      return uploaded ?? params.remoteUrl
+      if (!uploaded) throw new Error('Failed to persist data-URL storyboard image')
+      return uploaded
     }
 
     const isPollinations = /pollinations\.ai/i.test(params.remoteUrl)
     const imgRes = await fetch(params.remoteUrl, {
       signal: AbortSignal.timeout(isPollinations ? 60_000 : 30_000),
     })
-    if (!imgRes.ok) return params.remoteUrl
+    if (!imgRes.ok) {
+      throw new Error(`Failed to download storyboard image (${imgRes.status})`)
+    }
     const buffer = Buffer.from(await imgRes.arrayBuffer())
     const uploaded = await uploadImageBuffer({
       buffer,
       filename: params.filename,
       contentType: imgRes.headers.get('content-type') ?? 'image/png',
     })
-    return uploaded ?? params.remoteUrl
-  } catch {
-    return params.remoteUrl
+    if (!uploaded) {
+      throw new Error('Failed to persist storyboard image to storage')
+    }
+    return uploaded
+  } catch (err) {
+    // Never keep ephemeral Pollinations/prompt-path URLs as durable scene assets.
+    if (err instanceof Error) throw err
+    throw new Error('Failed to persist storyboard image')
   }
 }
 

@@ -33,6 +33,11 @@ export type ReelSceneMotionConfig = {
 export type ReelSceneInput = {
   id: string
   imageSrc: string
+  /**
+   * Optional per-scene video clip. When present, Remotion plays OffthreadVideo
+   * (true motion). Image + camera motion is the cinematic fallback — never static.
+   */
+  videoSrc?: string | null
   durationSec: number
   caption: string
   /** @deprecated Use motionConfig */

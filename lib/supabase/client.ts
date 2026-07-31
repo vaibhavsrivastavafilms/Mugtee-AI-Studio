@@ -3,19 +3,28 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { logAuthConfigDiagnostics } from '@/lib/auth/log-auth-config'
 import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 let browserClient: SupabaseClient | undefined
 let warnedMissingEnv = false
+let loggedConfigOnce = false
 
 function warnMissingEnvOnce(): void {
   if (warnedMissingEnv) return
   warnedMissingEnv = true
   if (process.env.NODE_ENV !== 'production') {
+    logAuthConfigDiagnostics('supabase-missing')
     console.error(
       '[supabase] Missing NEXT_PUBLIC_SUPABASE_URL and/or anon/publishable key — auth disabled'
     )
   }
+}
+
+function logConfigOnce(): void {
+  if (loggedConfigOnce) return
+  loggedConfigOnce = true
+  logAuthConfigDiagnostics('supabase-client')
 }
 
 /** True when public Supabase env vars are present (safe at call time, not module scope). */
@@ -29,6 +38,8 @@ export function isSupabaseBrowserConfigured(): boolean {
  */
 export function createSupabaseBrowserClient(): SupabaseClient | null {
   if (browserClient) return browserClient
+
+  logConfigOnce()
 
   const env = getSupabasePublicEnv()
   if (!env) {

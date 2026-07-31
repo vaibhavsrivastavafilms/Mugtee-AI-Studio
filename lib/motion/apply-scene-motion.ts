@@ -116,18 +116,39 @@ export function buildReelSceneInput(
   sceneIndex: number,
   input: {
     imageSrc: string
+    videoSrc?: string | null
     caption?: string
     sceneMotion?: SceneMotionMap | null
     totalScenes?: number
   }
 ): ReelSceneInput {
-  const motionConfig = resolveSceneMotionConfig(scene, sceneIndex, input.sceneMotion)
+  let motionConfig = resolveSceneMotionConfig(scene, sceneIndex, input.sceneMotion)
+  // Production OS V3 — never export near-static motion
+  if (
+    !motionConfig.motionType ||
+    motionConfig.motionType === 'static_drift' ||
+    (motionConfig.animationIntensity ?? 0) < 36
+  ) {
+    motionConfig = {
+      ...motionConfig,
+      motionType: motionConfig.motionType === 'static_drift' ? 'push_in' : motionConfig.motionType,
+      animationIntensity: Math.max(42, motionConfig.animationIntensity ?? 42),
+      depthEnabled: true,
+      particleType:
+        motionConfig.particleType && motionConfig.particleType !== 'none'
+          ? motionConfig.particleType
+          : 'dust',
+      scaleFrom: Math.min(motionConfig.scaleFrom, 1.02),
+      scaleTo: Math.max(motionConfig.scaleTo, 1.16),
+    }
+  }
   const entry = input.sceneMotion?.[scene.id || `scene-${sceneIndex + 1}`]
-  const durationSec = Math.max(2, entry?.duration ?? scene.duration ?? 4)
+  const durationSec = Math.max(2.5, entry?.duration ?? scene.duration ?? 4)
 
   return {
     id: scene.id || `scene-${sceneIndex}`,
     imageSrc: input.imageSrc,
+    videoSrc: input.videoSrc?.trim() || scene.videoUrl?.trim() || null,
     durationSec,
     caption: input.caption ?? '',
     motionConfig,

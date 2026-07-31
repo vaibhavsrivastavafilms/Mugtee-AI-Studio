@@ -1,5 +1,4 @@
 import { buildSceneBlueprintInput } from '@/lib/video-providers/build-scene-video-prompt'
-import { getVideoProvider } from '@/lib/video-providers/factory'
 import type { SceneBlueprintInput } from '@/lib/video-providers/types'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { SceneBlueprint } from '@/lib/cinematic/scene-blueprint'
@@ -52,16 +51,6 @@ export function buildSceneVideoInputFromScene(
 }
 
 export async function processSceneVideoJob(input: ProcessSceneVideoJobInput): Promise<void> {
-  const provider = getVideoProvider()
-  if (!provider) {
-    updateVideoJob(input.jobId, {
-      status: 'failed',
-      error: 'Scene video generation is not configured',
-      label: 'Video generation unavailable',
-    })
-    return
-  }
-
   if (!input.scene.imageUrl?.trim()) {
     const hasTextPrompt = Boolean(
       input.scene.visualPrompt?.trim() ||
@@ -80,12 +69,29 @@ export async function processSceneVideoJob(input: ProcessSceneVideoJobInput): Pr
 
   updateVideoJob(input.jobId, {
     status: 'running',
-    label: 'Generating cinematic clip…',
+    label: 'Animating performances…',
   })
 
   try {
     const sceneInput = buildSceneVideoInputFromScene(input)
-    const result = await provider.generateVideo(sceneInput)
+    // Production OS V4 — provider router with official fallbacks (never a single hardcode)
+    const { generateSceneWithRouter } = await import('@/lib/production-os/v4/provider-router')
+    const routed = await generateSceneWithRouter(sceneInput, {
+      preferImageToVideo: Boolean(sceneInput.imageUrl),
+      aspectRatio: '9:16',
+    })
+
+    if (!routed.result?.videoUrl) {
+      // Remotion cinematic path — caller / export uses Camera Director motion
+      updateVideoJob(input.jobId, {
+        status: 'failed',
+        error: 'Using cinematic motion fallback',
+        label: 'Cinematic motion ready',
+      })
+      return
+    }
+
+    const result = routed.result
 
     let finalUrl = result.videoUrl
     let thumbnailUrl = result.thumbnailUrl

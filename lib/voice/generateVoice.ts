@@ -4,7 +4,7 @@ import {
   getDefaultElevenLabsModelId,
 } from '@/lib/ai/elevenlabs'
 import { allowElevenLabsVoice, getElevenLabsApiKey } from '@/lib/ai/free-tier'
-import { synthesizeSpeechBuffer, buildNarrationFromScript } from '@/lib/ai/synthesize-speech'
+import { buildNarrationFromScript } from '@/lib/ai/synthesize-speech'
 import type { CinematicNiche } from '@/lib/cinematic/niches'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { SceneBlueprint } from '@/lib/cinematic/scene-blueprint'
@@ -154,7 +154,12 @@ async function synthesizeWithDirector(
   narration: string,
   voiceId: string,
   preferElevenLabs = true
-): Promise<{ buffer: Buffer | null; provider: VoiceMetadata['provider']; fallbackMessage?: string }> {
+): Promise<{
+  buffer: Buffer | null
+  provider: VoiceMetadata['provider']
+  fallbackMessage?: string
+}> {
+  // Production OS V2 cascade: ElevenLabs → OpenAI → Emergent → Google → Edge → silent skip
   if (preferElevenLabs && allowElevenLabsVoice() && getElevenLabsApiKey()) {
     const result = await synthesizeElevenLabsSpeech(narration, {
       voiceId,
@@ -165,13 +170,25 @@ async function synthesizeWithDirector(
     }
   }
 
-  const fallback = await synthesizeSpeechBuffer(narration, {
+  const { synthesizeWithCascade } = await import('@/lib/voice/tts-cascade')
+  const cascade = await synthesizeWithCascade(narration, {
     elevenLabsVoiceId: voiceId,
+    allowSilentStub: false,
   })
+
+  const provider: VoiceMetadata['provider'] =
+    cascade.provider === 'elevenlabs' ||
+    cascade.provider === 'openai_tts' ||
+    cascade.provider === 'emergent_tts'
+      ? cascade.provider
+      : cascade.buffer
+        ? 'openai_tts'
+        : 'none'
+
   return {
-    buffer: fallback.buffer,
-    provider: fallback.provider,
-    fallbackMessage: fallback.fallbackMessage,
+    buffer: cascade.buffer,
+    provider,
+    fallbackMessage: cascade.fallbackMessage,
   }
 }
 

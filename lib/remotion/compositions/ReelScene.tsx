@@ -3,6 +3,7 @@ import React from 'react'
 import {
   AbsoluteFill,
   Img,
+  OffthreadVideo,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
@@ -100,22 +101,38 @@ export function ReelScene({
       })
     : []
 
-  const imgStyle = {
+  const mediaStyle = {
     width: '100%',
     height: '100%',
     objectFit: 'cover' as const,
   }
 
-  const particleType = config.particleType ?? 'none'
+  const particleType =
+    config.particleType && config.particleType !== 'none' ? config.particleType : 'dust'
   const particleDensity =
     particleType === 'dust' ? 0.7 : particleType === 'fog' ? 0.55 : 0.45
 
+  const hasVideo = Boolean(scene.videoSrc?.trim())
+
+  const media = hasVideo ? (
+    <OffthreadVideo
+      src={scene.videoSrc!}
+      style={mediaStyle}
+      muted
+      volume={0}
+      // Loop short clips to fill scene duration
+      onError={() => undefined}
+    />
+  ) : (
+    <Img src={scene.imageSrc} style={mediaStyle} />
+  )
+
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0807', opacity }}>
-      {useParallax
+      {useParallax && !hasVideo
         ? parallaxLayers.map((layer) => (
             <AbsoluteFill key={layer.id} style={parallaxLayerStyle(layer)}>
-              <Img src={scene.imageSrc} style={imgStyle} />
+              <Img src={scene.imageSrc} style={mediaStyle} />
             </AbsoluteFill>
           ))
         : null}
@@ -126,7 +143,7 @@ export function ReelScene({
           filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
         }}
       >
-        <Img src={scene.imageSrc} style={imgStyle} />
+        {media}
       </AbsoluteFill>
 
       {leakOpacity > 0 ? (

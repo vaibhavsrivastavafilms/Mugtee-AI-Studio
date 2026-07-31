@@ -323,6 +323,7 @@ export async function syncExportJobFromRenderJob(params: {
   error?: string | null
   storagePath?: string
   storageBucket?: string
+  metadata?: Record<string, unknown>
 }): Promise<void> {
   await updateExportJob(params.jobId, {
     status: params.status,
@@ -334,6 +335,7 @@ export async function syncExportJobFromRenderJob(params: {
       stage: params.stage,
       storagePath: params.storagePath,
       storageBucket: params.storageBucket,
+      ...params.metadata,
     },
   })
 }

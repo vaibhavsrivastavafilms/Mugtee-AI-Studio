@@ -28,11 +28,7 @@ import { useAuthHydration } from '@/lib/auth/use-auth-hydration'
 import { useQuickCutGenerationStore } from '@/stores/quick-cut-generation-store'
 import { createQuickCutDraftProject } from '@/lib/quick-cut/create-quick-cut-draft.client'
 import { clearGenerationActivityLog } from '@/lib/quick-cut/generation-activity.client'
-import { TemplateSelector } from '@/components/quick-cut/template-selector'
-import {
-  DEFAULT_VISUAL_TEMPLATE,
-  type VisualTemplate,
-} from '@/lib/quick-cut/template-system'
+import { DEFAULT_VISUAL_TEMPLATE } from '@/lib/quick-cut/template-system'
 import { clearQuickCutPending, saveQuickCutPending, type QuickCutPending } from '@/lib/cinematic/quick-cut/preview-session'
 
 const LOGIN_AFTER_QUICK = `${STUDIO.quick}?resume=1`
@@ -50,7 +46,6 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
   const [prompt, setPrompt] = useState(initialPrompt)
   const [duration, setDuration] = useState(60)
   const [platform, setPlatform] = useState<QuickPlatformValue>('youtube_short')
-  const [visualTemplate, setVisualTemplate] = useState<VisualTemplate>(DEFAULT_VISUAL_TEMPLATE)
   const [chipSeed, setChipSeed] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -95,7 +90,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           duration: pending.duration,
           platform,
           language: pending.language ?? loadContentLanguagePreference(),
-          visualTemplate: pending.visualTemplate ?? visualTemplate,
+          visualTemplate: pending.visualTemplate ?? DEFAULT_VISUAL_TEMPLATE,
         })
         clearQuickCutPending()
         saveQuickCutPending({
@@ -104,7 +99,7 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           duration: pending.duration,
           language: pending.language,
           directorMode: pending.directorMode,
-          visualTemplate: pending.visualTemplate ?? visualTemplate,
+          visualTemplate: pending.visualTemplate ?? DEFAULT_VISUAL_TEMPLATE,
         })
         router.push(
           quickCutProjectHref(projectId, {
@@ -116,20 +111,44 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
         setSubmitting(false)
       }
     },
-    [authReady, isGenerating, platform, router, signedIn, submitting, visualTemplate]
+    [authReady, isGenerating, platform, router, signedIn, submitting]
   )
 
   const handleGenerate = (event?: React.FormEvent) => {
     event?.preventDefault()
     const trimmed = prompt.trim()
     if (trimmed.length < 6) return
+    // Production OS V4 — build companion plan (invisible studio) before launch
+    void import('@/lib/production-os/v4/companion').then(({ buildCompanionProductionPlan }) => {
+      const plan = buildCompanionProductionPlan({
+        idea: trimmed,
+        intent: {
+          durationSec: duration,
+          platform:
+            platform === 'youtube_short'
+              ? 'youtube_short'
+              : platform === 'instagram_reel'
+                ? 'instagram_reel'
+                : platform === 'youtube_video'
+                  ? 'youtube'
+                  : 'other',
+          language: loadContentLanguagePreference(),
+          tone: style || 'cinematic_emotional',
+        },
+      })
+      try {
+        sessionStorage.setItem('mugtee:companion-plan:v4', JSON.stringify(plan))
+      } catch {
+        /* quota */
+      }
+    })
     void launch({
       prompt: trimmed,
       style: style || 'cinematic_emotional',
       duration,
       language: loadContentLanguagePreference(),
       directorMode: loadDirectorModePreference() ?? DEFAULT_DIRECTOR_MODE,
-      visualTemplate,
+      visualTemplate: DEFAULT_VISUAL_TEMPLATE,
     })
   }
 
@@ -183,24 +202,25 @@ export function QuickCutV2CreatePage({ initialPrompt = '', className }: QuickCut
           disabled={submitting || isGenerating}
         />
 
-        <TemplateSelector
-          value={visualTemplate}
-          onChange={(template) => {
-            setVisualTemplate(template)
-            useQuickCutGenerationStore.getState().setVisualTemplate(template)
-          }}
-          disabled={submitting || isGenerating}
-        />
-
-        <button type="submit" disabled={!canGenerate} className={cn(qcV2GoldButton, 'w-full')}>
+        <button
+          type="submit"
+          disabled={!canGenerate}
+          className={cn(
+            qcV2GoldButton,
+            'w-full text-base font-semibold tracking-wide',
+            !canGenerate && 'text-[#F4E7A8]'
+          )}
+          aria-label="Generate Reel"
+          aria-disabled={!canGenerate}
+        >
           {submitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
               Creating Project…
             </>
           ) : (
             <>
-              <Zap className="w-4 h-4" />
+              <Zap className="w-4 h-4 shrink-0" strokeWidth={2.5} />
               Generate Reel
             </>
           )}

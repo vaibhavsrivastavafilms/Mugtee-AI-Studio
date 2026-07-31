@@ -23,7 +23,7 @@ import {
   downloadSceneImageForRender,
   downloadVoiceAssetForRender,
 } from '@/lib/export/project-asset-download.server'
-import { isHttpUrl, localPathToDataUrl } from '@/lib/remotion/local-asset-url'
+import { localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
 import {
@@ -32,7 +32,8 @@ import {
 } from '@/lib/remotion/build-export-captions'
 import { generateReelThumbnail } from '@/lib/remotion/generate-reel-thumbnail.server'
 import { buildReelSceneInput } from '@/lib/motion/apply-scene-motion'
-import type { SceneMotionMap } from '@/lib/motion/motion-presets'
+import { ensureCinematicMotionMap } from '@/lib/production-os/v3/camera-director'
+import type { SceneMotionMap } from '@/lib/motion/scene-motion-types'
 import type { ReelCompositionProps, ReelSceneInput } from '@/lib/remotion/compositions/types'
 import {
   assertAllScenesHaveExportImages,
@@ -120,7 +121,11 @@ export type RenderRemotionReelInput = {
   projectId?: string | null
   outputPath: string
   sceneMotion?: SceneMotionMap | null
-  onProgress?: (label: string, percent: number) => void
+  onProgress?: (
+    label: string,
+    percent: number,
+    meta?: { framesRendered?: number; framesTotal?: number; fps?: number }
+  ) => void
 }
 
 export async function renderRemotionReel(
@@ -136,6 +141,9 @@ export async function renderRemotionReel(
       input.scenes.filter((s) => s.description || s.visualPrompt || s.title),
       computeRenderTotalSec(input.scenes)
     )
+
+    // Camera Director V3 — every scene gets intentional cinematic motion (never static)
+    const cinematicMotion = ensureCinematicMotionMap(timedScenes, input.sceneMotion)
 
     assertAllScenesHaveExportImages(timedScenes)
     logPipelineStepStart('export', null, { phase: 'remotion_download_assets', sceneCount: timedScenes.length })
@@ -201,17 +209,31 @@ export async function renderRemotionReel(
       }
       if (i === 0) thumbnailLocalPath = localImage
 
-      const imageSrc = isHttpUrl(imageUrl)
-        ? imageUrl
-        : await localPathToDataUrl(localImage)
-      if (isHttpUrl(imageSrc)) httpAssetCount += 1
-      else dataUrlAssetCount += 1
+      // Always feed Remotion local data URLs — remote HTTP hits CORP/COEP in Chromium.
+      const imageSrc = await localPathToDataUrl(localImage)
+      dataUrlAssetCount += 1
+
+      // Production OS V3 — download per-scene video when present (true motion)
+      let videoSrc: string | null = null
+      const sceneVideoUrl = scene.videoUrl?.trim()
+      if (sceneVideoUrl) {
+        try {
+          const vExt = extFromUrl(sceneVideoUrl, '.mp4')
+          const localVideo = path.join(workDir, `scene_${i}_clip${vExt}`)
+          await downloadToFile(sceneVideoUrl, localVideo)
+          videoSrc = await localPathToDataUrl(localVideo)
+          dataUrlAssetCount += 1
+        } catch {
+          videoSrc = null
+        }
+      }
 
       reelScenes.push(
         buildReelSceneInput(scene, i, {
           imageSrc,
+          videoSrc,
           caption: '',
-          sceneMotion: input.sceneMotion,
+          sceneMotion: cinematicMotion,
           totalScenes: timedScenes.length,
         })
       )
@@ -256,11 +278,8 @@ export async function renderRemotionReel(
         url: input.voiceUrl,
         destPath: voicePath,
       })
-      voiceAudioSrc = isHttpUrl(input.voiceUrl)
-        ? input.voiceUrl.trim()
-        : await localPathToDataUrl(voicePath)
-      if (voiceAudioSrc.startsWith('data:')) dataUrlAssetCount += 1
-      else httpAssetCount += 1
+      voiceAudioSrc = await localPathToDataUrl(voicePath)
+      dataUrlAssetCount += 1
     }
 
     let musicAudioSrc: string | null = null
@@ -268,11 +287,8 @@ export async function renderRemotionReel(
       const ext = extFromUrl(input.musicUrl, '.mp3')
       const musicPath = path.join(workDir, `music${ext}`)
       await downloadToFile(input.musicUrl, musicPath)
-      musicAudioSrc = isHttpUrl(input.musicUrl)
-        ? input.musicUrl.trim()
-        : await localPathToDataUrl(musicPath)
-      if (musicAudioSrc.startsWith('data:')) dataUrlAssetCount += 1
-      else httpAssetCount += 1
+      musicAudioSrc = await localPathToDataUrl(musicPath)
+      dataUrlAssetCount += 1
     }
 
     mp4RenderLog(4, 'audio merged into composition', {
@@ -431,10 +447,21 @@ export async function renderRemotionReel(
           parallelEncoding,
           resolvedConcurrency,
         })
+        input.onProgress?.('🎞 Rendering movie…', 40, {
+          framesRendered: 0,
+          framesTotal: frameCount,
+        })
       },
-      onProgress: ({ progress }) => {
-        const pct = 40 + Math.round(progress * 50)
-        input.onProgress?.('Rendering reel…', pct)
+      onProgress: (event) => {
+        const framesTotal = composition.durationInFrames
+        const progress = event.progress
+        const framesRendered = Math.round(progress * framesTotal)
+        const pct = 40 + Math.round(progress * 55)
+        input.onProgress?.(
+          `🎞 Rendering ${framesRendered} / ${framesTotal} frames`,
+          Math.min(95, pct),
+          { framesRendered, framesTotal, fps: REEL_FPS }
+        )
       },
     })
     } catch (renderErr) {
@@ -516,19 +543,77 @@ export function isRemotionRenderAvailable(): boolean {
   return isVideoRenderEnabled()
 }
 
-/** Dev stub when VIDEO_RENDER_MOCK=true — copies first scene image metadata only. */
+/**
+ * Dev shortcut when VIDEO_RENDER_MOCK=true — FFmpeg Ken Burns from real storyboard stills.
+ * Never encodes placehold.co / black stubs.
+ */
 export async function renderRemotionReelMock(input: {
   outputPath: string
   durationSec?: number
+  scenes?: GeneratedScene[]
+  voiceUrl?: string | null
 }): Promise<{ outputPath: string; durationSec: number; thumbnailPath: string | null }> {
-  const { renderMockMp4 } = await import('@/lib/video/render-pipeline')
-  const result = await renderMockMp4({
-    scenes: [{ id: 'mock', imageUrl: 'https://placehold.co/1080x1920', durationSec: input.durationSec ?? 8 }],
-    audioPath: null,
-    subtitles: [],
-    outputPath: input.outputPath,
-  })
-  return result
+  const scenes = (input.scenes ?? []).filter((s) =>
+    Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim())
+  )
+  if (scenes.length < 1) {
+    throw new Error(
+      'MP4 export requires storyboard images. Regenerate images, then retry export.'
+    )
+  }
+
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mugtee-mock-reel-'))
+  try {
+    const renderScenes: { id: string; imageUrl: string; durationSec: number }[] = []
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i]
+      const imageUrl = (await resolveSceneRenderImageUrl(scene))?.trim() ?? ''
+      const assetPath = resolveSceneExportAssetPath(scene)
+      if (!imageUrl && !assetPath) {
+        throw new Error(
+          `Cannot export reel — scene ${i + 1} is missing a durable storyboard image.`
+        )
+      }
+      const ext = extFromUrl(imageUrl || '.jpg', '.jpg')
+      const localImage = path.join(workDir, `scene_${i}${ext}`)
+      await downloadSceneImageForRender({
+        assetPath,
+        url: imageUrl || null,
+        destPath: localImage,
+      })
+      // Faceless encoder expects a fetchable URL — use data URL from local file.
+      const dataUrl = await localPathToDataUrl(localImage)
+      renderScenes.push({
+        id: scene.id,
+        imageUrl: dataUrl,
+        durationSec: Math.max(2, scene.duration ?? 4),
+      })
+    }
+
+    let audioPath: string | null = null
+    if (input.voiceUrl?.trim()) {
+      const voiceLocal = path.join(workDir, 'voice.mp3')
+      try {
+        await downloadVoiceAssetForRender({
+          url: input.voiceUrl,
+          destPath: voiceLocal,
+        })
+        audioPath = voiceLocal
+      } catch {
+        audioPath = null
+      }
+    }
+
+    const { renderFacelessMp4 } = await import('@/lib/video/render-pipeline')
+    return renderFacelessMp4({
+      scenes: renderScenes,
+      audioPath,
+      subtitles: [],
+      outputPath: input.outputPath,
+    })
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined)
+  }
 }
 
 export { REEL_FPS }

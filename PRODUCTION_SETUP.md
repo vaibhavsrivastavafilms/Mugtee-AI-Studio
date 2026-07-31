@@ -85,13 +85,44 @@ https://www.mugtee.in
 
 ```text
 https://mugtee.in/api/youtube/callback
-https://<your-supabase-ref>.supabase.co/auth/v1/callback
+https://oikvspgxllujvgyxatbb.supabase.co/auth/v1/callback
 ```
 
-**Important:** Supabase's Google sign-in callback URL stays as the Supabase
-project URL (`<ref>.supabase.co/auth/v1/callback`). That's Supabase's
-responsibility, not yours. Only the **YouTube** callback uses your `mugtee.in`
-domain directly.
+**Important:** Google’s consent screen shows whatever **Auth callback host**
+Supabase uses. By default that is `oikvspgxllujvgyxatbb.supabase.co` — you
+**cannot** fix this by changing `NEXT_PUBLIC_SUPABASE_URL` in the app to
+`mugtee.in` (that would break the API).
+
+### Fix Google consent screen branding (`mugtee.in` / Mugtee)
+
+Do **both** of the following in Google Cloud (APIs & Services → OAuth consent
+screen / Auth Platform → Branding):
+
+1. **App name:** `Mugtee`  
+2. **App domain / homepage:** `https://mugtee.in`  
+3. **Authorized domains:** `mugtee.in` (verify ownership in Search Console)  
+4. **Privacy / Terms:** `https://mugtee.in/privacy`, `https://mugtee.in/terms`  
+5. Submit **brand verification** so Google shows the app name instead of the
+   raw Supabase hostname (can take a few business days).
+
+To make the consent screen literally say **`mugtee.in`** (or a subdomain)
+instead of `*.supabase.co`, enable a **Supabase Custom Domain** (paid add-on):
+
+1. Prefer `auth.mugtee.in` or `api.mugtee.in` (apex `mugtee.in` needs a CNAME
+   subdomain — not the bare domain).
+2. Dashboard → Project Settings → Custom Domains (or CLI `supabase domains …`).
+3. Add DNS CNAME + TXT as instructed; activate the domain.
+4. In Google OAuth client, **add** (keep the old one too until cutover):
+
+```text
+https://auth.mugtee.in/auth/v1/callback
+```
+
+1. Optionally set `NEXT_PUBLIC_SUPABASE_URL=https://auth.mugtee.in` after
+   activation (old `*.supabase.co` URL still works).
+
+Until custom domain +/or brand verification is done, Google will keep showing
+`oikvspgxllujvgyxatbb.supabase.co` on the consent screen.
 
 ### What to remove (optional cleanup)
 

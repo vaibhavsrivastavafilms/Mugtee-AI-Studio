@@ -77,31 +77,25 @@ export function createPlaceholderStoryboard(scene: CinematicScene, index: number
   }
 }
 
-/** Ensure every scene has a non-empty imageUrl for export compilers. */
+/**
+ * Normalize titles/prompts for export. Does NOT inject Unsplash/placeholder stills —
+ * missing images must fail export so the pipeline regenerates real assets.
+ */
 export function ensureExportSafeScenes(scenes: CinematicScene[]): CinematicScene[] {
-  return scenes.map((scene, index) => {
-    const hasImage =
-      Boolean(scene.imageUrl?.trim()) ||
-      Boolean(scene.imageAssetPath?.trim()) ||
-      Boolean(scene.storyboardImages?.some((img) => img.url?.trim() || img.assetPath?.trim()))
-    if (hasImage) {
-      return {
-        ...scene,
-        title: fallbackSceneTitle(scene, index),
-        imagePrompt: fallbackScenePrompt(scene, index),
-      }
-    }
-    return createPlaceholderStoryboard(scene, index)
-  })
+  return scenes.map((scene, index) => ({
+    ...scene,
+    title: fallbackSceneTitle(scene, index),
+    imagePrompt: fallbackScenePrompt(scene, index),
+  }))
 }
 
-/** Ensure timeline clips always reference an image URL for browser compile. */
+/** Ensure timeline clip metadata is filled. Does not inject placeholder stills. */
 export function ensureExportSafeTimeline(timeline: ReelTimeline): ReelTimeline {
   const clips: ReelTimelineClip[] = timeline.clips.map((clip, index) => ({
     ...clip,
     sceneId: clip.sceneId || `scene-${index + 1}`,
     title: clip.title?.trim() || `${DEFAULT_SCENE_TITLE} ${index + 1}`,
-    image: clip.image?.trim() || clip.video?.trim() || DEFAULT_PLACEHOLDER_IMAGE,
+    image: clip.image?.trim() || clip.video?.trim() || '',
     caption: clip.caption
       ? {
           ...clip.caption,

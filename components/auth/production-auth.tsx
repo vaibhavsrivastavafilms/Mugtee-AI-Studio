@@ -219,20 +219,27 @@ export function ProductionAuth({
       subtitle="Your creative companion has been waiting."
     >
       <div className="space-y-5" role="region" aria-label="Sign in">
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={loading}
-          aria-busy={loading}
-          className="flex min-h-[48px] h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-medium text-zinc-900 transition-colors duration-150 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] disabled:opacity-70 touch-manipulation"
-        >
-          {loading ? (
+        {loading ? (
+          <button
+            type="button"
+            disabled
+            aria-busy="true"
+            className="flex min-h-[48px] h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-medium text-zinc-900 transition-colors duration-150 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] disabled:opacity-70 touch-manipulation"
+          >
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-          ) : (
+            Continue with Google
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleGoogle}
+            aria-busy="false"
+            className="flex min-h-[48px] h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-medium text-zinc-900 transition-colors duration-150 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] disabled:opacity-70 touch-manipulation"
+          >
             <GoogleIcon />
-          )}
-          Continue with Google
-        </button>
+            Continue with Google
+          </button>
+        )}
 
         {emailAuth ? (
           <>
@@ -252,6 +259,7 @@ export function ProductionAuth({
                 Email
                 <input
                   type="email"
+                  name="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -261,14 +269,27 @@ export function ProductionAuth({
               </label>
               <label className="block text-[11px] uppercase tracking-wider text-[var(--v2-text-secondary)]">
                 Password
-                <input
-                  type="password"
-                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 h-12 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-bg)] px-4 text-sm text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
-                  placeholder="••••••••"
-                />
+                {mode === 'signup' ? (
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-2 h-12 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-bg)] px-4 text-sm text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
+                    placeholder="••••••••"
+                  />
+                ) : (
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-2 h-12 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-bg)] px-4 text-sm text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
+                    placeholder="••••••••"
+                  />
+                )}
               </label>
 
               <div className="flex items-center justify-between gap-3 pt-1">

@@ -77,7 +77,9 @@ export function quickCutCanCompileMp4(
 ): boolean {
 
   const renderEnabled = isClientVideoRenderEnabled(videoRenderEnabled)
-  if (!renderEnabled || !voiceUrl?.trim() || scenes.length < 1) return false
+  // Voice is soft-optional — storyboard stills are enough to compile MP4.
+  if (!renderEnabled || scenes.length < 1) return false
+  void voiceUrl
 
   return allScenesHaveExportImages(scenes)
 
@@ -182,13 +184,14 @@ async function requestReelExport(
     storyboards: snapshot.storyboards,
   })
 
+  const voiceUrl = rowSnapshot.voice?.audioUrl?.trim() ?? null
   const payload = {
 
     projectId,
 
     quality: '1080p' as const,
 
-    includeVoiceover: true,
+    includeVoiceover: Boolean(voiceUrl),
 
     includeCaptions: true,
 
@@ -196,7 +199,7 @@ async function requestReelExport(
 
     script: rowSnapshot.script ?? null,
 
-    voiceUrl: rowSnapshot.voice?.audioUrl?.trim() ?? null,
+    voiceUrl,
 
     thumbnailUrl: rowSnapshot.thumbnail_url?.trim() ?? null,
 
@@ -320,16 +323,6 @@ async function compileProjectMp4Inner(
     mugteeExportEnd()
 
     throw new Error(readiness.message)
-
-  }
-
-
-
-  if (!voiceUrl) {
-
-    mugteeExportEnd()
-
-    throw new Error('Add voice narration before compiling MP4.')
 
   }
 

@@ -6,7 +6,6 @@ import {
   type GeneratedScene,
   type SceneImagePromptContext,
 } from '@/lib/cinematic/generation'
-import { placeholderSceneImageUrl } from '@/lib/cinematic/scene-preview-url'
 import { ImageGenerationUnavailableError } from '@/lib/ai/image-provider-errors'
 import { hasImageGenerationKey } from '@/lib/ai/generate-scene-image'
 import {
@@ -176,7 +175,31 @@ function resolveCharacterDescription(input: GenerateSceneImagesInput): string {
 export async function generateSceneImages(
   input: GenerateSceneImagesInput
 ): Promise<GenerateSceneImagesResult> {
-  const characterDescription = resolveCharacterDescription(input)
+  // Production OS V4 — Character Bible + Environment Bible locked into every frame
+  const { buildCharacterBible, formatCharacterBibleForPrompt } = await import(
+    '@/lib/production-os/v4/character-bible'
+  )
+  const { buildEnvironmentBible, formatEnvironmentBibleForPrompt } = await import(
+    '@/lib/production-os/v4/environment-bible'
+  )
+  const baseCharacter = resolveCharacterDescription(input)
+  const characterBible = buildCharacterBible({
+    characterDescription: baseCharacter,
+    title: input.scenes[0]?.title,
+    scenes: input.scenes,
+  })
+  const environmentBible = buildEnvironmentBible({
+    environmentHint: input.scenes[0]?.environment,
+    style: input.style,
+    scenes: input.scenes,
+  })
+  const characterDescription = [
+    baseCharacter,
+    formatCharacterBibleForPrompt(characterBible),
+    formatEnvironmentBibleForPrompt(environmentBible),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
   const canGenerate = hasImageGenerationKey()
   const idFilter = input.sceneIds?.length
     ? new Set(input.sceneIds)
@@ -319,8 +342,10 @@ export async function generateSceneImages(
       if (canGenerate && attempted.length > 0) {
         imageFailures.push({ sceneId: scene.id, attempted })
       }
-      imageUrl = placeholderSceneImageUrl(scene, index)
-      anyMock = true
+      // Never attach Unsplash/pollinations placeholders as "success".
+      scene.imageUrl = undefined
+      scene.imageAssetPath = undefined
+      return scene
     }
 
     const prevScene = index > 0 ? updated[index - 1] : null
@@ -353,16 +378,21 @@ export async function generateSceneImages(
     ) {
       const { isEphemeralRemoteImageUrl } = await import('@/lib/image/ephemeral-image-url')
       if (isEphemeralRemoteImageUrl(imageUrl)) {
-        const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
-        const repaired = await persistRemoteImage({
-          remoteUrl: imageUrl,
-          userId: input.userId,
-          filename,
-        })
-        if (repaired && repaired !== imageUrl) {
+        try {
+          const { persistRemoteImage } = await import('@/lib/ai/generate-scene-image')
+          const repaired = await persistRemoteImage({
+            remoteUrl: imageUrl,
+            userId: input.userId,
+            filename,
+          })
           imageUrl = repaired
           const { extractStoragePathFromUrl } = await import('@/lib/storyboard/storyboard-asset')
           imageAssetPath = extractStoragePathFromUrl(repaired) ?? filename
+        } catch {
+          imageFailures.push({ sceneId: scene.id, attempted: [...attempted, 'persist'] })
+          scene.imageUrl = undefined
+          scene.imageAssetPath = undefined
+          return scene
         }
       }
     }
@@ -401,6 +431,17 @@ export async function generateSceneImages(
       updated[index] = await renderSceneStill(scene, index)
     }
   )
+
+  const missingStills = updated
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => !s.imageUrl?.trim() && !s.imageAssetPath?.trim())
+  if (missingStills.length > 0) {
+    throw new Error(
+      `Storyboard image failed for scene${missingStills.length > 1 ? 's' : ''} ${missingStills
+        .map(({ i }) => i + 1)
+        .join(', ')}. Check image provider keys, then retry.`
+    )
+  }
 
   const duplicateImageWarnings = findConsecutiveDuplicateSceneImages(updated)
   if (duplicateImageWarnings.length) {
