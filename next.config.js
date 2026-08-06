@@ -85,11 +85,6 @@ const nextConfig = {
       '/cinematic/:path*',
     ]
 
-    const studioCrossOriginIsolationHeaders = [
-      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-      { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-    ]
-
     return [
       {
         source: '/ffmpeg/:path*',
@@ -100,9 +95,10 @@ const nextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       },
+      // Match /create: credentialless COEP so Supabase/CDN thumbs load (no CORP failures).
       {
         source: '/studio/:path*',
-        headers: studioCrossOriginIsolationHeaders,
+        headers: crossOriginIsolationHeaders,
       },
       ...crossOriginIsolationRoutes.map((source) => ({
         source,

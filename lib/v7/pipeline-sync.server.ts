@@ -17,11 +17,14 @@ import type {
 const STALE_RUNNING_MS = 30 * 60 * 1000
 /** Image generation can stall after a dev restart — recover sooner than other stages. */
 const IMAGE_STALE_RUNNING_MS = 8 * 60 * 1000
+/** Scene video generation can outlive a dev hot reload or API timeout — recover and retry. */
+const ANIMATION_STALE_RUNNING_MS = 10 * 60 * 1000
 /** Render runs inside a 300s API window — recover orphaned runs after timeout or hot reload. */
 const RENDER_STALE_RUNNING_MS = 6 * 60 * 1000
 
 function getStaleRunningMs(stage: V7StageId): number {
   if (stage === 'image') return IMAGE_STALE_RUNNING_MS
+  if (stage === 'animation') return ANIMATION_STALE_RUNNING_MS
   if (stage === 'render') return RENDER_STALE_RUNNING_MS
   return STALE_RUNNING_MS
 }

@@ -6,6 +6,15 @@
     },
     "app/api/ai/deep-research/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/v7/productions/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/v7/productions/[id]/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/v7/productions/[id]/retry/route.ts": {
+      "maxDuration": 300
     }
   },
   "redirects": [
