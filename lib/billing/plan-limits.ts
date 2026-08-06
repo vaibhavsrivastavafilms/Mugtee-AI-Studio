@@ -9,8 +9,8 @@ export type PlanLimits = Record<UsageMetric, number>
 export type PaidPlanTier = 'CREATOR' | 'PRO'
 
 const DEFAULT_LIMITS: PlanLimits = {
-  projects: 5,
-  generations: 5,
+  projects: 3,
+  generations: 3,
   exports: 1,
   renders: 1,
 }
@@ -42,8 +42,9 @@ function parseLimit(raw: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback
 }
 
-/** When false, all limit checks pass (useful for local dev). */
+/** When false, all limit checks pass (personal studio / local dev). */
 export function areLimitsEnabled(): boolean {
+  if (process.env.NODE_ENV === 'development') return false
   return process.env.MUGTEE_LIMITS_ENABLED !== 'false'
 }
 
@@ -131,6 +132,7 @@ export function formatLimitValue(n: number): string {
 /** Only legacy env bypass — paid tiers use explicit limits for margin protection. */
 export function isUnlimitedPlan(planType: string, trialEndsAt: string | null | undefined): boolean {
   if (process.env.MUGTEE_UNLIMITED_PRO === 'true' && planType === 'PRO') return true
+  if (planType === 'AGENCY' || planType === 'STUDIO') return true
   if (planType === 'PRO_TRIAL' && trialEndsAt) {
     return new Date(trialEndsAt) > new Date()
   }

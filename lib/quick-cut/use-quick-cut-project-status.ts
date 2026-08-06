@@ -42,6 +42,7 @@ export function useQuickCutProjectStatus() {
       scenes: s.scenes,
       voiceUrl: s.voiceUrl,
       directingSceneLabel: s.directingSceneLabel,
+      currentImageSceneIndex: s.currentImageSceneIndex,
       progress: s.progress,
       eta: s.eta,
       title: s.title,
@@ -235,6 +236,13 @@ export function useQuickCutProjectStatus() {
     state.hook?.trim().slice(0, 64) ||
     'Your Reel'
 
+  const imagesProgress = useMemo(() => {
+    if (state.isGenerating && state.generationStep === 'images' && state.currentImageSceneIndex > 0) {
+      return Math.max(imagesDone, state.currentImageSceneIndex)
+    }
+    return imagesDone
+  }, [state.isGenerating, state.generationStep, state.currentImageSceneIndex, imagesDone])
+
   return {
     ...state,
     status,
@@ -245,7 +253,7 @@ export function useQuickCutProjectStatus() {
     projectName,
     scenesCount: state.scenes.length,
     scenesWithVideo,
-    imagesDone,
+    imagesDone: imagesProgress,
     etaLabel: eta.label,
     etaDisplay: eta.display,
     etaSeconds: eta.remainingSec,

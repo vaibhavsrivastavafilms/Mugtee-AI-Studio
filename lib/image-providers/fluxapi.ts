@@ -16,6 +16,7 @@ export function getFluxApiKey(): string | undefined {
   return (
     process.env.FLUXAPI_KEY?.trim() ||
     process.env.FLUX_API_KEY?.trim() ||
+    process.env.FLUX_API_AI?.trim() ||
     undefined
   )
 }

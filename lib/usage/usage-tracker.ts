@@ -183,6 +183,6 @@ export function buildLimitErrorBody(check: LimitCheckResult) {
     metric: check.metric,
     used: check.used,
     limit: check.limit,
-    upgrade_coming_soon: true,
+    upgrade_url: '/pricing',
   }
 }

@@ -178,10 +178,21 @@ export async function POST(req: NextRequest) {
         {
           error: IMAGE_GENERATION_UNAVAILABLE,
           message: err.message || IMAGE_GENERATION_UNAVAILABLE_MESSAGE,
+          code: 'IMAGE_GENERATION_FAILED',
         },
         { status: 503 }
       )
     }
-    return NextResponse.json({ error: 'Image generation paused' }, { status: 500 })
+
+    const message = err instanceof Error ? err.message : 'Image generation failed'
+    console.error('[generate-images]', message, err instanceof Error ? err.stack : err)
+    return NextResponse.json(
+      {
+        error: 'IMAGE_GENERATION_FAILED',
+        message,
+        code: 'IMAGE_GENERATION_FAILED',
+      },
+      { status: 500 }
+    )
   }
 }

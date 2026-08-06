@@ -27,9 +27,8 @@ export default function PricingPage() {
             <span className="block text-[var(--v2-text-primary)] mt-1">cinematic studio tier.</span>
           </h1>
           <p className="text-[var(--v2-text-secondary)] mt-4 text-sm sm:text-base leading-relaxed">
-            Cinematic Story Pipeline access — not generic AI generation. Begin free; Creator (₹599/mo)
-            and Pro (₹999/mo) raise your monthly project, export, and render caps. Join the waitlist
-            — billing launches soon.
+            Start free with 3 cinematic generations. Upgrade to Creator (₹999/mo), Pro (₹2,499/mo),
+            or Agency (fair-use unlimited) for higher monthly caps and priority export.
           </p>
         </div>
 
@@ -38,7 +37,7 @@ export default function PricingPage() {
         <PricingFaq />
 
         <div className="text-center mt-12 text-[11px] tracking-widest uppercase text-[var(--v2-text-secondary)]">
-          Creator ₹599 · Pro ₹999 · Waitlist open · Built in Ahmedabad
+          Creator ₹999 · Pro ₹2,499 · Agency fair-use unlimited · Built in Ahmedabad
         </div>
       </div>
       <LuxFooter />

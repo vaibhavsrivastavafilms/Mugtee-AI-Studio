@@ -45,6 +45,12 @@
       ],
       "@/types/*": [
         "./types/*"
+      ],
+      "@/agents/*": [
+        "./agents/*"
+      ],
+      "@/features/*": [
+        "./features/*"
       ]
     },
     "strictNullChecks": true,

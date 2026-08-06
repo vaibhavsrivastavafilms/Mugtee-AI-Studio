@@ -1,10 +1,8 @@
-// POST /api/billing/verify
-// Verifies the signature Razorpay returns to the client `handler` after a successful subscription auth.
-// Marks the user's subscription row as `active`. No public webhook needed for the MVP.
-
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { verifySubscriptionSignature } from '@/lib/razorpay'
+import { syncSubscriptionEntitlements } from '@/lib/billing/sync-subscription-entitlements.server'
+import type { PlanKey } from '@/lib/razorpay'
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +23,6 @@ export async function POST(req: Request) {
     const ok = verifySubscriptionSignature({ razorpay_payment_id, razorpay_subscription_id, razorpay_signature })
     if (!ok) return NextResponse.json({ error: 'Signature mismatch' }, { status: 400 })
 
-    // Find this subscription row — it must belong to the calling user.
     const { data: existing } = await supabase
       .from('subscriptions')
       .select('plan, razorpay_subscription_id')
@@ -34,28 +31,27 @@ export async function POST(req: Request) {
       .single()
     if (!existing) return NextResponse.json({ error: 'Subscription not found for user' }, { status: 404 })
 
-    // Optional: hit Razorpay to fetch authoritative period info. Kept minimal here.
     const now = new Date()
     const next = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())
+    const plan = existing.plan as PlanKey
 
-    const { error: updErr } = await supabase
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        current_period_start: now.toISOString(),
-        current_period_end:   next.toISOString(),
-        raw: { last_payment_id: razorpay_payment_id, verified_at: now.toISOString() },
-      })
-      .eq('user_id', user.id)
-      .eq('razorpay_subscription_id', razorpay_subscription_id)
-    if (updErr) {
-      console.error('[verify] update failed', updErr)
-      return NextResponse.json({ error: 'Could not persist active status' }, { status: 500 })
+    const sync = await syncSubscriptionEntitlements({
+      userId: user.id,
+      plan,
+      status: 'active',
+      razorpaySubscriptionId: razorpay_subscription_id,
+      currentPeriodStart: now.toISOString(),
+      currentPeriodEnd: next.toISOString(),
+      raw: { last_payment_id: razorpay_payment_id, verified_at: now.toISOString() },
+    })
+
+    if (!sync.ok) {
+      return NextResponse.json({ error: sync.error ?? 'Entitlement sync failed' }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, plan: existing.plan, status: 'active' })
-  } catch (err: any) {
-    console.error('[verify]', err)
-    return NextResponse.json({ error: err?.message || 'Internal error' }, { status: 500 })
+    return NextResponse.json({ ok: true, plan, status: 'active' })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

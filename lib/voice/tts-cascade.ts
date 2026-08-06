@@ -1,12 +1,15 @@
 /**
- * Voice cascade: ElevenLabs → OpenAI → Emergent/Google → Edge TTS → silent.
+ * Voice cascade: Kokoro → Piper → ElevenLabs → OpenAI → Emergent/Google → Edge TTS → silent.
  * Failures never throw — callers continue the pipeline.
  */
 
 import { synthesizeSpeechBuffer, type SpeechSynthesisResult } from '@/lib/ai/synthesize-speech'
+import { synthesizeKokoroTts, synthesizePiperTts } from '@/lib/voice/local-tts.server'
 import { logError } from '@/lib/workspace/validation'
 
 export type TtsCascadeProvider =
+  | 'kokoro'
+  | 'piper'
   | 'elevenlabs'
   | 'openai_tts'
   | 'emergent_tts'
@@ -82,6 +85,29 @@ export async function synthesizeWithCascade(
   text: string,
   options?: { elevenLabsVoiceId?: string; voiceName?: string; allowSilentStub?: boolean }
 ): Promise<TtsCascadeResult> {
+  const narration = text.trim()
+  if (narration.length >= 1) {
+    const kokoro = await synthesizeKokoroTts(narration)
+    if (kokoro) {
+      return {
+        buffer: kokoro,
+        provider: 'kokoro',
+        voiceName: options?.voiceName || process.env.KOKORO_VOICE?.trim() || 'Kokoro',
+        warnOnce: false,
+      }
+    }
+
+    const piper = await synthesizePiperTts(narration)
+    if (piper) {
+      return {
+        buffer: piper,
+        provider: 'piper',
+        voiceName: options?.voiceName || 'Piper',
+        warnOnce: false,
+      }
+    }
+  }
+
   const primary: SpeechSynthesisResult = await synthesizeSpeechBuffer(text, {
     elevenLabsVoiceId: options?.elevenLabsVoiceId,
     voiceName: options?.voiceName,

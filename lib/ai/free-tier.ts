@@ -31,12 +31,34 @@ function envTruthy(name: string): boolean {
   return v === '1' || v === 'true' || v === 'yes'
 }
 
+function isAiStudioGeminiKey(key: string): boolean {
+  return key.startsWith('AIza')
+}
+
+function pickGeminiKey(): string | undefined {
+  const candidates = [
+    process.env.GEMINI_API_KEY?.trim(),
+    process.env.GEMINI_KEY?.trim(),
+    process.env.GOOGLE_API_KEY?.trim(),
+  ].filter(Boolean) as string[]
+
+  const aiStudio = candidates.find(isAiStudioGeminiKey)
+  if (aiStudio) return aiStudio
+
+  return candidates[0]
+}
+
 export function getGeminiApiKey(): string | undefined {
-  return (
-    process.env.GEMINI_API_KEY?.trim() ||
-    process.env.GOOGLE_API_KEY?.trim() ||
-    undefined
-  )
+  return pickGeminiKey()
+}
+
+/** Non-secret hint for logs/diagnostics — never log full keys. */
+export function describeGeminiKeyFormat(): 'missing' | 'ai-studio' | 'vertex-oauth' | 'unknown' {
+  const key = getGeminiApiKey()
+  if (!key) return 'missing'
+  if (key.startsWith('AIza')) return 'ai-studio'
+  if (key.startsWith('AQ.') || key.startsWith('ya29.')) return 'vertex-oauth'
+  return 'unknown'
 }
 
 /** Primary: ELEVENLABS_API_KEY. Aliases accepted for misnamed Vercel / .env.local entries. */

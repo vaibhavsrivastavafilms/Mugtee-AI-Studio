@@ -24,7 +24,7 @@ const BUCKET = 'project-assets'
 
 export type VoiceMetadata = {
   cacheKey: string
-  provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'none'
+  provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'kokoro' | 'piper' | 'none'
   profileId: VoiceProfileId | string
   voiceId: string
   voiceName: string
@@ -159,17 +159,6 @@ async function synthesizeWithDirector(
   provider: VoiceMetadata['provider']
   fallbackMessage?: string
 }> {
-  // Production OS V2 cascade: ElevenLabs → OpenAI → Emergent → Google → Edge → silent skip
-  if (preferElevenLabs && allowElevenLabsVoice() && getElevenLabsApiKey()) {
-    const result = await synthesizeElevenLabsSpeech(narration, {
-      voiceId,
-      modelId: getDefaultElevenLabsModelId(),
-    })
-    if (result.buffer) {
-      return { buffer: result.buffer, provider: 'elevenlabs' }
-    }
-  }
-
   const { synthesizeWithCascade } = await import('@/lib/voice/tts-cascade')
   const cascade = await synthesizeWithCascade(narration, {
     elevenLabsVoiceId: voiceId,
@@ -179,15 +168,25 @@ async function synthesizeWithDirector(
   const provider: VoiceMetadata['provider'] =
     cascade.provider === 'elevenlabs' ||
     cascade.provider === 'openai_tts' ||
-    cascade.provider === 'emergent_tts'
+    cascade.provider === 'emergent_tts' ||
+    cascade.provider === 'kokoro' ||
+    cascade.provider === 'piper'
       ? cascade.provider
       : cascade.buffer
         ? 'openai_tts'
         : 'none'
 
+  if (cascade.buffer) {
+    return {
+      buffer: cascade.buffer,
+      provider,
+      fallbackMessage: cascade.fallbackMessage,
+    }
+  }
+
   return {
-    buffer: cascade.buffer,
-    provider,
+    buffer: null,
+    provider: 'none',
     fallbackMessage: cascade.fallbackMessage,
   }
 }

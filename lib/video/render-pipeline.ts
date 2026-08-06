@@ -22,6 +22,7 @@ import {
   resolveMockRenderDurationSec,
   resolveMockRenderResolution,
 } from '@/lib/remotion/render-settings.server'
+import { ensureRenderAudioPath } from '@/lib/export/render-audio-fallback.server'
 
 export const WIDTH = 1080
 export const HEIGHT = 1920
@@ -102,6 +103,12 @@ export type RenderPipelineInput = {
   crossfadeSec?: number
   /** When true, burn subtitle segments into the exported video. Defaults to off. */
   burnSubtitles?: boolean
+  /** Timeline length used for generated silence when narration is missing. */
+  durationSec?: number
+  voiceUrl?: string | null
+  voiceAssetPath?: string | null
+  musicUrl?: string | null
+  sfxTracks?: Array<{ name: string; url: string; startSec?: number }>
 }
 
 export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
@@ -186,9 +193,56 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
     const finalPath = input.outputPath
     await ensureDir(path.dirname(finalPath))
 
+    const resolvedAudioPath = await ensureRenderAudioPath({
+      audioPath: input.audioPath,
+      workDir,
+      durationSec: totalDuration,
+      voiceUrl: input.voiceUrl,
+      voiceAssetPath: input.voiceAssetPath,
+    })
+
+    const audioInputs: string[] = []
+    if (resolvedAudioPath) audioInputs.push(resolvedAudioPath)
+
+    if (input.musicUrl?.trim()) {
+      const musicPath = path.join(workDir, 'music.mp3')
+      try {
+        await downloadToFile(input.musicUrl, musicPath)
+        audioInputs.push(musicPath)
+      } catch {
+        renderPipelineLog('FFMPEG_START', { phase: 'music_download_failed', status: 'skipped' })
+      }
+    }
+
+    for (let i = 0; i < (input.sfxTracks ?? []).length; i++) {
+      const track = input.sfxTracks![i]
+      if (!track.url?.trim()) continue
+      const sfxPath = path.join(workDir, `sfx_${i}.mp3`)
+      try {
+        await downloadToFile(track.url, sfxPath)
+        audioInputs.push(sfxPath)
+      } catch {
+        renderPipelineLog('FFMPEG_START', {
+          phase: 'sfx_download_failed',
+          track: track.name,
+          status: 'skipped',
+        })
+      }
+    }
+
+    let masterAudioPath: string | null = null
+    if (audioInputs.length === 1) {
+      masterAudioPath = audioInputs[0] ?? null
+    } else if (audioInputs.length > 1) {
+      masterAudioPath = path.join(workDir, 'master_audio.m4a')
+      const mixFilter = `${audioInputs.map((_, index) => `[${index}:a]`).join('')}amix=inputs=${audioInputs.length}:duration=first:dropout_transition=2[aout]`
+      const mixArgs = ['-y', ...audioInputs.flatMap((file) => ['-i', file]), '-filter_complex', mixFilter, '-map', '[aout]', '-t', String(totalDuration), masterAudioPath]
+      await runFfmpeg(mixArgs, { phase: 'master_audio_mix', inputCount: audioInputs.length })
+    }
+
     const args = ['-y', '-i', mergedVideo]
-    if (input.audioPath) {
-      args.push('-i', input.audioPath)
+    if (masterAudioPath) {
+      args.push('-i', masterAudioPath)
     }
 
     const burnSubtitles = input.burnSubtitles === true && input.subtitles.length > 0
@@ -203,7 +257,7 @@ export async function renderFacelessMp4(input: RenderPipelineInput): Promise<{
     }
     args.push(...buildLibx264OutputArgs({ preset: encodePreset, threads: encodeThreads, fps: FPS }))
 
-    if (input.audioPath) {
+    if (masterAudioPath) {
       args.push('-c:a', 'aac', '-b:a', '192k', '-shortest')
     } else {
       args.push('-an')

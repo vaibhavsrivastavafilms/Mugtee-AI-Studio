@@ -13,16 +13,16 @@ const TASK_ENV_PREFIX: Record<AITask, string> = {
   research: 'RESEARCH',
 }
 
-/** Task-specific default priority when env vars are unset. */
+/** Task-specific default priority when env vars are unset. OSS/free-first ordering. */
 const TASK_DEFAULT_ORDER: Record<AITask, ProviderId[]> = {
-  hook: ['gemini', 'groq', 'openai', 'openrouter', 'deepseek'],
-  script: ['gemini', 'groq', 'openrouter', 'openai', 'deepseek'],
-  title: ['gemini', 'openai', 'groq', 'openrouter', 'deepseek'],
-  caption: ['groq', 'gemini', 'openai', 'openrouter', 'deepseek'],
-  visual: ['openai', 'gemini', 'openrouter', 'deepseek', 'groq'],
-  storyboard: ['openai', 'gemini', 'groq', 'openrouter', 'deepseek'],
+  hook: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  script: ['groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
+  title: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  caption: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  visual: ['openrouter', 'gemini', 'groq', 'deepseek', 'openai'],
+  storyboard: ['groq', 'openrouter', 'gemini', 'deepseek', 'openai'],
   voice: ['openai', 'gemini', 'groq', 'openrouter', 'deepseek'],
-  research: ['openai', 'gemini', 'openrouter', 'deepseek', 'groq'],
+  research: ['groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
 }
 
 function parseProviderId(raw: string | undefined): ProviderId | null {

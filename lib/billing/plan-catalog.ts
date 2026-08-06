@@ -6,6 +6,7 @@ import {
   getStudioPlanLimits,
   type PlanLimits,
 } from '@/lib/billing/plan-limits'
+import { isBillingLive } from '@/lib/billing/plan-mapping'
 
 export type PlanInterest = 'free' | 'creator' | 'pro' | 'studio'
 
@@ -37,6 +38,7 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
   const creator = getCreatorPlanLimits()
   const pro = getProPlanLimits()
   const studio = getStudioPlanLimits()
+  const live = isBillingLive()
 
   return [
     {
@@ -64,16 +66,16 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
       priceLabel: '₹999',
       priceNote: '/ month',
       featured: true,
-      cta: 'Join Waitlist',
+      cta: live ? 'Subscribe' : 'Join Waitlist',
       limits: creator,
       features: [
         ...limitFeatures(creator, 'Up to '),
-        'Full Quick Cut pipeline (script → export)',
-        'Cached research — lower cost per reel',
-        'GPT Image 1 scene stills',
-        'No Runway scene clips (margin-safe)',
+        'Full cinematic pipeline (prompt → MP4)',
+        'GPT Image master frames + Veo clips',
+        'OpenAI voice narration',
+        'Captions + Remotion export',
       ],
-      waitlist: true,
+      waitlist: !live,
     },
     {
       id: 'pro',
@@ -82,34 +84,33 @@ export function getPlanCatalog(): PlanCatalogEntry[] {
       priceLabel: '₹2,499',
       priceNote: '/ month',
       featured: false,
-      cta: 'Join Waitlist',
+      cta: live ? 'Subscribe' : 'Join Waitlist',
       limits: pro,
       features: [
         ...limitFeatures(pro, 'Up to '),
+        '100 video generations / month',
         'ElevenLabs premium voice',
         'Priority render queue',
-        'Higher export limits',
-        'Advanced export profiles',
+        'No watermark exports',
       ],
-      waitlist: true,
+      waitlist: !live,
     },
     {
       id: 'studio',
-      name: 'Studio',
-      badge: 'Cinematic',
+      name: 'Agency',
+      badge: 'Unlimited',
       priceLabel: '₹4,999',
-      priceNote: '/ month + credits',
+      priceNote: '/ month',
       featured: false,
-      cta: 'Join Waitlist',
+      cta: live ? 'Subscribe' : 'Join Waitlist',
       limits: studio,
       features: [
-        ...limitFeatures(studio, 'Up to '),
-        'Cinematic mode — Runway scene clips',
-        'Cinematic credits (₹149–299 / AI film)',
-        'ElevenLabs + live Perplexity research',
+        'Unlimited generations (fair use)',
+        'Team-ready project library',
         'Priority support',
+        'All Pro features',
       ],
-      waitlist: true,
+      waitlist: !live,
     },
   ]
 }

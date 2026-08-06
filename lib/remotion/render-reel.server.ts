@@ -19,10 +19,8 @@ import {
   computeRenderTotalSec,
 } from '@/lib/cinematic/scene-duration'
 import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asset'
-import {
-  downloadSceneImageForRender,
-  downloadVoiceAssetForRender,
-} from '@/lib/export/project-asset-download.server'
+import { downloadSceneImageForRender } from '@/lib/export/project-asset-download.server'
+import { resolveVoiceAudioPathForRender } from '@/lib/export/render-audio-fallback.server'
 import { localPathToDataUrl } from '@/lib/remotion/local-asset-url'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
@@ -269,26 +267,29 @@ export async function renderRemotionReel(
       assetsViaBase64: dataUrlAssetCount,
     })
 
-    let voiceAudioSrc: string | null = null
-    if (input.voiceUrl?.trim()) {
-      const ext = extFromUrl(input.voiceUrl, '.mp3')
-      const voicePath = path.join(workDir, `voice${ext}`)
-      await downloadVoiceAssetForRender({
-        assetPath: input.voiceAssetPath,
-        url: input.voiceUrl,
-        destPath: voicePath,
-      })
-      voiceAudioSrc = await localPathToDataUrl(voicePath)
-      dataUrlAssetCount += 1
-    }
+    const voiceResolved = await resolveVoiceAudioPathForRender({
+      workDir,
+      voiceUrl: input.voiceUrl,
+      voiceAssetPath: input.voiceAssetPath,
+      durationSec: durationSecEstimate,
+    })
+    const voiceAudioSrc = await localPathToDataUrl(voiceResolved.path)
+    dataUrlAssetCount += 1
 
     let musicAudioSrc: string | null = null
     if (input.musicUrl?.trim()) {
       const ext = extFromUrl(input.musicUrl, '.mp3')
       const musicPath = path.join(workDir, `music${ext}`)
-      await downloadToFile(input.musicUrl, musicPath)
-      musicAudioSrc = await localPathToDataUrl(musicPath)
-      dataUrlAssetCount += 1
+      try {
+        await downloadToFile(input.musicUrl, musicPath)
+        const stat = await fs.stat(musicPath).catch(() => null)
+        if (stat && stat.isFile() && stat.size > 0) {
+          musicAudioSrc = await localPathToDataUrl(musicPath)
+          dataUrlAssetCount += 1
+        }
+      } catch {
+        musicAudioSrc = null
+      }
     }
 
     mp4RenderLog(4, 'audio merged into composition', {
@@ -552,6 +553,9 @@ export async function renderRemotionReelMock(input: {
   durationSec?: number
   scenes?: GeneratedScene[]
   voiceUrl?: string | null
+  subtitles?: import('@/lib/video/types').SubtitleSegment[]
+  musicUrl?: string | null
+  sfxTracks?: Array<{ name: string; url: string; startSec?: number }>
 }): Promise<{ outputPath: string; durationSec: number; thumbnailPath: string | null }> {
   const scenes = (input.scenes ?? []).filter((s) =>
     Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim())
@@ -590,26 +594,27 @@ export async function renderRemotionReelMock(input: {
       })
     }
 
-    let audioPath: string | null = null
-    if (input.voiceUrl?.trim()) {
-      const voiceLocal = path.join(workDir, 'voice.mp3')
-      try {
-        await downloadVoiceAssetForRender({
-          url: input.voiceUrl,
-          destPath: voiceLocal,
-        })
-        audioPath = voiceLocal
-      } catch {
-        audioPath = null
-      }
-    }
+    const durationSec =
+      input.durationSec ??
+      renderScenes.reduce((sum, s) => sum + Math.max(2, s.durationSec), 0)
+    const voiceResolved = await resolveVoiceAudioPathForRender({
+      workDir,
+      voiceUrl: input.voiceUrl,
+      durationSec,
+    })
 
     const { renderFacelessMp4 } = await import('@/lib/video/render-pipeline')
+    const subtitles = input.subtitles ?? []
     return renderFacelessMp4({
       scenes: renderScenes,
-      audioPath,
-      subtitles: [],
+      audioPath: voiceResolved.path,
+      subtitles,
       outputPath: input.outputPath,
+      durationSec,
+      burnSubtitles: subtitles.length > 0,
+      voiceUrl: input.voiceUrl,
+      musicUrl: input.musicUrl ?? null,
+      sfxTracks: input.sfxTracks ?? [],
     })
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined)

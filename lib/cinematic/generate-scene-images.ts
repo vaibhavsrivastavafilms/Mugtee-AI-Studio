@@ -336,6 +336,13 @@ export async function generateSceneImages(
       if (result.provider) attempted.push(result.provider)
     } catch (err) {
       if (err instanceof ImageGenerationUnavailableError) throw err
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[generate-scene-images] provider/persist failed', {
+        sceneId: scene.id,
+        sceneNumber: index + 1,
+        message,
+      })
+      attempted.push(`error:${message.slice(0, 120)}`)
     }
 
     if (!imageUrl) {
@@ -436,10 +443,16 @@ export async function generateSceneImages(
     .map((s, i) => ({ s, i }))
     .filter(({ s }) => !s.imageUrl?.trim() && !s.imageAssetPath?.trim())
   if (missingStills.length > 0) {
-    throw new Error(
+    const detail =
+      imageFailures.length > 0
+        ? ` Providers tried: ${imageFailures
+            .map((f) => `${f.sceneId}=[${f.attempted.join(', ')}]`)
+            .join('; ')}.`
+        : ''
+    throw new ImageGenerationUnavailableError(
       `Storyboard image failed for scene${missingStills.length > 1 ? 's' : ''} ${missingStills
         .map(({ i }) => i + 1)
-        .join(', ')}. Check image provider keys, then retry.`
+        .join(', ')}.${detail} Check image provider keys or rate limits, then retry.`
     )
   }
 

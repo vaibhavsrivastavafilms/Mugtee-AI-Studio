@@ -12,11 +12,14 @@ import {
   trackRevenueValidation,
 } from '@/lib/analytics/revenue-validation.client'
 import { UpgradeWaitlistModal } from '@/components/billing/upgrade-waitlist-modal'
+import { RazorpayCheckoutButton } from '@/components/billing/razorpay-checkout-button'
+import { catalogPlanToRazorpay } from '@/lib/billing/plan-mapping'
 
 const ICONS = {
   free: Sparkles,
   creator: Crown,
   pro: Users,
+  studio: Users,
 } as const
 
 type Props = {
@@ -63,7 +66,7 @@ export function PricingPlans({ plans }: Props) {
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-14 sm:mt-16 items-stretch">
         {plans.map((plan, idx) => {
-          const Icon = ICONS[plan.id]
+          const Icon = ICONS[plan.id as keyof typeof ICONS] ?? Sparkles
           return (
             <motion.div
               key={plan.id}
@@ -132,13 +135,19 @@ export function PricingPlans({ plans }: Props) {
                 >
                   <Zap className="w-4 h-4" /> {plan.cta}
                 </Button>
-              ) : (
+              ) : plan.id === 'free' ? (
                 <Button
                   disabled
                   className="w-full h-11 bg-white/[0.03] text-luxe/50 border border-white/[0.06] cursor-default"
                 >
                   {plan.cta}
                 </Button>
+              ) : (
+                <RazorpayCheckoutButton
+                  plan={catalogPlanToRazorpay(plan.id) ?? 'creator'}
+                  label={plan.cta}
+                  className="w-full"
+                />
               )}
             </motion.div>
           )

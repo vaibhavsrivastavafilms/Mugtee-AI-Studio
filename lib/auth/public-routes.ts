@@ -23,7 +23,6 @@ const PUBLIC_EXACT = new Set([
 const PUBLIC_PREFIXES = [
   '/auth/',
   '/invite/',
-  '/quick-cut',
   '/blog',
   '/about',
   '/privacy',
@@ -52,6 +51,7 @@ export function isPublicApiPath(pathname: string): boolean {
 /** App routes that require a session (middleware redirect). */
 const PROTECTED_PREFIXES = [
   '/dashboard',
+  '/v3',
   '/create',
   '/studio',
   '/workspace',
@@ -87,6 +87,9 @@ export function isPublicPath(pathname: string): boolean {
 export function isProtectedPath(pathname: string): boolean {
   const path = pathname.split('?')[0] || '/'
   if (path === '/studio' || path === '/studio/') return false
+  if (path.startsWith('/studio/') && path !== '/studio/quick' && !path.startsWith('/studio/quick')) {
+    return true
+  }
   if (isPublicPath(path)) return false
   if (path.startsWith('/cinematic/examples')) return false
   for (const prefix of PROTECTED_PREFIXES) {
@@ -102,7 +105,7 @@ export function isProtectedPath(pathname: string): boolean {
  * OAuth/login defaults — so unauthenticated `(app)` access never steals the
  * Quick Cut `/?resume=1` return path.
  */
-export const APP_ROUTE_LOGIN_FALLBACK = '/studio/quick'
+export const APP_ROUTE_LOGIN_FALLBACK = '/studio'
 
 export function loginRedirectUrl(requestPath: string): string {
   const next =

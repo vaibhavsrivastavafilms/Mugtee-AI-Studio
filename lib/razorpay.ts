@@ -26,14 +26,14 @@ export const PLAN_SPECS: Record<PlanKey, PlanSpec> = {
   creator: {
     key: 'creator',
     label: 'Creator',
-    amountPaise: planAmountPaise('RAZORPAY_CREATOR_AMOUNT_PAISE', 59900),
+    amountPaise: planAmountPaise('RAZORPAY_CREATOR_AMOUNT_PAISE', 99900),
     period: 'monthly',
     interval: 1,
   },
   agency: {
     key: 'agency',
     label: 'Pro',
-    amountPaise: planAmountPaise('RAZORPAY_PRO_AMOUNT_PAISE', 99900),
+    amountPaise: planAmountPaise('RAZORPAY_PRO_AMOUNT_PAISE', 249900),
     period: 'monthly',
     interval: 1,
   },

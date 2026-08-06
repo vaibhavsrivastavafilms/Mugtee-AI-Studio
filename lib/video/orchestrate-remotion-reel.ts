@@ -92,6 +92,7 @@ export async function orchestrateRemotionReel(
     onProgress?: ReelProgressCallback
     baseUrl?: string
     musicUrl?: string | null
+    sfxTracks?: Array<{ name: string; url: string; startSec?: number }> | null
     sceneMotion?: SceneMotionMap | null
     exportStartedAt?: number
   }
@@ -281,6 +282,9 @@ export async function orchestrateRemotionReel(
         durationSec: totalDuration,
         scenes: timedScenes,
         voiceUrl: input.voiceUrl,
+        subtitles: input.subtitles,
+        musicUrl: options?.musicUrl ?? null,
+        sfxTracks: options?.sfxTracks ?? [],
       })
       durationSec = mockResult.durationSec
       thumbnailPath = mockResult.thumbnailPath

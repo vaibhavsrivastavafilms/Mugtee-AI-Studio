@@ -16,6 +16,7 @@ import {
   cloneWithPathname,
   legacyStudioPathname,
 } from '@/lib/shell/legacy-studio-redirect'
+import { v7LegacyRedirectPath } from '@/lib/shell/v7-legacy-redirect'
 import {
   createMiddlewareSupabaseClient,
   mergeSupabaseResponseCookies,
@@ -33,6 +34,12 @@ function oauthCodeRedirect(request: NextRequest): NextResponse | null {
     new URLSearchParams(searchParams.toString())
   )
   return NextResponse.redirect(target)
+}
+
+function v7LegacyRedirect(request: NextRequest): NextResponse | null {
+  const targetPath = v7LegacyRedirectPath(request.nextUrl.pathname)
+  if (!targetPath) return null
+  return NextResponse.redirect(cloneWithPathname(request, targetPath))
 }
 
 function legacyStudioPathRedirect(request: NextRequest): NextResponse | null {
@@ -63,6 +70,9 @@ function passThroughWithPathname(request: NextRequest, pathname: string): NextRe
 }
 
 export async function proxy(request: NextRequest) {
+  const v7Redirect = v7LegacyRedirect(request)
+  if (v7Redirect) return v7Redirect
+
   const legacyRedirect = legacyStudioPathRedirect(request)
   if (legacyRedirect) return legacyRedirect
 
