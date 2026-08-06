@@ -225,7 +225,11 @@ export async function runV7TextProviderChain(
       continue
     }
 
-    const health = await provider.health()
+    // Cloud LLM keys are validated at configure-time; repeated /models probes during a
+    // multi-stage production run can trip provider rate limits and fail later stages.
+    const skipHealthProbe =
+      process.env.NODE_ENV === 'production' && provider.id !== 'ollama'
+    const health = skipHealthProbe ? { healthy: true as const } : await provider.health()
     if (!health.healthy) {
       failures.push({ provider: provider.id, code: 'PROVIDER_UNHEALTHY', message: health.message })
       if (next) {
