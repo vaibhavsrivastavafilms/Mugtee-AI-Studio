@@ -1,8 +1,12 @@
-import type { V7VideoProviderId } from '@/lib/v7/providers/video-provider.types'
+import type {
+  V7VideoProviderCapabilityReport,
+  V7VideoProviderId,
+} from '@/lib/v7/providers/video-provider.types'
 
 export type V7VideoProviderErrorCode =
   | 'PROVIDER_AUTH_FAILED'
   | 'PROVIDER_RATE_LIMITED'
+  | 'PROVIDER_QUOTA_EXCEEDED'
   | 'PROVIDER_TIMEOUT'
   | 'PROVIDER_UNAVAILABLE'
   | 'PROVIDER_INVALID_RESPONSE'
@@ -35,17 +39,70 @@ export class V7AllVideoProvidersFailedError extends Error {
     code: V7VideoProviderErrorCode
     message?: string
   }>
+  readonly evaluations: V7VideoProviderCapabilityReport[]
 
   constructor(
     failures: Array<{
       provider: V7VideoProviderId
       code: V7VideoProviderErrorCode
       message?: string
-    }>
+    }>,
+    evaluations: V7VideoProviderCapabilityReport[] = []
   ) {
     super('ALL_PROVIDERS_FAILED')
     this.name = 'V7AllVideoProvidersFailedError'
     this.failures = failures
+    this.evaluations = evaluations
+  }
+}
+
+export class V7VideoProviderNotReadyError extends Error {
+  readonly code = 'VIDEO_PROVIDER_NOT_READY' as const
+  readonly provider = 'pollinations' as const
+  readonly reason: string
+  readonly action: string
+
+  constructor(snapshot: {
+    reason?: string | null
+    action?: string | null
+    selectedModel?: string | null
+  }) {
+    const reason = snapshot.reason ?? 'Pollinations video provider is not ready'
+    super(reason)
+    this.name = 'V7VideoProviderNotReadyError'
+    this.reason = reason
+    this.action = snapshot.action ?? 'Add POLLINATIONS_API_KEY and ensure sufficient Pollen balance.'
+  }
+}
+
+export class V7VideoProviderCapabilityBlockedError extends Error {
+  readonly code = 'VIDEO_PROVIDER_NOT_READY' as const
+  readonly evaluations: V7VideoProviderCapabilityReport[]
+  readonly sceneNumber?: number
+  readonly executionFailures?: Array<{
+    provider: V7VideoProviderId
+    code: V7VideoProviderErrorCode
+    message?: string
+    stack?: string
+  }>
+
+  constructor(
+    evaluations: V7VideoProviderCapabilityReport[],
+    options?: {
+      sceneNumber?: number
+      executionFailures?: Array<{
+        provider: V7VideoProviderId
+        code: V7VideoProviderErrorCode
+        message?: string
+        stack?: string
+      }>
+    }
+  ) {
+    super('VIDEO_PROVIDER_NOT_READY')
+    this.name = 'V7VideoProviderCapabilityBlockedError'
+    this.evaluations = evaluations
+    this.sceneNumber = options?.sceneNumber
+    this.executionFailures = options?.executionFailures
   }
 }
 
@@ -73,6 +130,19 @@ export function classifyV7VideoUnknownError(
     return new V7VideoProviderRequestError('PROVIDER_RATE_LIMITED', provider, { cause: err })
   }
 
+  if (
+    message.includes('402') ||
+    message.includes('pollinations_credits_exhausted') ||
+    message.includes('pollinations_credits_required') ||
+    message.includes('insufficient pollen') ||
+    message.includes('insufficient balance')
+  ) {
+    return new V7VideoProviderRequestError('PROVIDER_QUOTA_EXCEEDED', provider, {
+      message: err instanceof Error ? err.message : String(err),
+      cause: err,
+    })
+  }
+
   if (message.includes('no video') || message.includes('empty') || message.includes('invalid')) {
     return new V7VideoProviderRequestError('PROVIDER_INVALID_RESPONSE', provider, { cause: err })
   }
@@ -82,7 +152,37 @@ export function classifyV7VideoUnknownError(
 
 export function isV7VideoRetryableError(err: unknown): boolean {
   if (!(err instanceof V7VideoProviderRequestError)) return false
+
+  const cause = err.cause
+  if (
+    cause &&
+    typeof cause === 'object' &&
+    'code' in cause &&
+    ((cause as { code: unknown }).code === 'WAN_MODEL_NOT_ENABLED' ||
+      (cause as { code: unknown }).code === 'MODEL_NOT_AVAILABLE')
+  ) {
+    return false
+  }
+  if (
+    cause &&
+    typeof cause === 'object' &&
+    'code' in cause &&
+    typeof (cause as { code: unknown }).code === 'string' &&
+    ((cause as { code: string }).code.startsWith('POLLINATIONS_') &&
+      (cause as { code: string }).code !== 'POLLINATIONS_RATE_LIMITED')
+  ) {
+    return false
+  }
   if (err.code === 'PROVIDER_AUTH_FAILED') return false
   if (err.code === 'PROVIDER_INVALID_RESPONSE') return false
-  return true
+  if (err.code === 'PROVIDER_QUOTA_EXCEEDED') return false
+  if (
+    cause &&
+    typeof cause === 'object' &&
+    'retryable' in cause &&
+    typeof (cause as { retryable: unknown }).retryable === 'boolean'
+  ) {
+    return (cause as { retryable: boolean }).retryable
+  }
+  return err.code === 'PROVIDER_RATE_LIMITED' || err.code === 'PROVIDER_TIMEOUT' || err.code === 'PROVIDER_UNAVAILABLE'
 }

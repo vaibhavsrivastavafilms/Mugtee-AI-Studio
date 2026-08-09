@@ -51,9 +51,19 @@ export class V7ProviderRequestError extends Error {
 
 export class V7AllProvidersFailedError extends Error {
   readonly code: V7ProviderErrorCode = 'ALL_PROVIDERS_FAILED'
-  readonly failures: Array<{ provider: V7TextProviderId; code: V7ProviderErrorCode }>
+  readonly failures: Array<{
+    provider: V7TextProviderId
+    code: V7ProviderErrorCode
+    message?: string
+  }>
 
-  constructor(failures: Array<{ provider: V7TextProviderId; code: V7ProviderErrorCode }>) {
+  constructor(
+    failures: Array<{
+      provider: V7TextProviderId
+      code: V7ProviderErrorCode
+      message?: string
+    }>
+  ) {
     super('ALL_PROVIDERS_FAILED')
     this.name = 'V7AllProvidersFailedError'
     this.failures = failures

@@ -3,7 +3,13 @@ import 'server-only'
 import type { V3AspectRatio } from '@/types/v3/production'
 
 /** Internal image provider slot IDs — never shown in UI. */
-export type V7ImageProviderId = 'flux' | 'sdxl' | 'comfyui' | 'gpt-image' | 'pollinations'
+export type V7ImageProviderId =
+  | 'openart-mcp'
+  | 'flux'
+  | 'sdxl'
+  | 'comfyui'
+  | 'gpt-image'
+  | 'pollinations'
 
 export type V7ImageConsistencyMode = 'instantid' | 'ip-adapter' | 'pulid' | 'controlnet' | 'prompt'
 
@@ -23,6 +29,10 @@ export type V7ImageGenerationInput = {
   consistencyModes?: V7ImageConsistencyMode[]
   promptArchive?: Record<string, unknown>
   timeoutMs?: number
+  /** Safe execution mode: single Pollinations attempt (no paid retries). */
+  maxAttempts?: number
+  /** Explicit Pollinations model id from live catalog estimate. */
+  model?: string
 }
 
 export type V7ImageGenerationResult = {

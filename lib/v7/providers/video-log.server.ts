@@ -3,6 +3,13 @@ import 'server-only'
 import type { V7VideoProviderErrorCode } from '@/lib/v7/providers/video-errors'
 import type { V7VideoProviderId } from '@/lib/v7/providers/video-provider.types'
 
+type ProviderReportEntry = {
+  provider: string
+  available: boolean
+  reason?: string
+  message?: string
+}
+
 export function logV7VideoProviderSuccess(params: {
   sceneNumber: number
   productionId: string
@@ -14,6 +21,31 @@ export function logV7VideoProviderSuccess(params: {
   storagePath: string
 }): void {
   console.info('[v7-video] scene complete', params)
+}
+
+export function logV7VideoProviderSelected(params: {
+  productionId: string
+  sceneNumber: number
+  providerPriority: number
+  selectedProvider: string | null
+  providerReport: ProviderReportEntry[]
+  generationTimeMs: number
+  videoUrl: string
+  storagePath: string
+  checkpointSaved: boolean
+}): void {
+  console.info('[v7-video] provider selected', params)
+}
+
+export function logV7VideoProviderSkip(params: {
+  productionId: string
+  sceneNumber: number
+  providerId: V7VideoProviderId
+  providerPriority: number
+  reason: string
+  message?: string
+}): void {
+  console.info('[v7-video] provider skipped (capability)', params)
 }
 
 export function logV7VideoProviderFailure(params: {
@@ -48,6 +80,8 @@ export function logV7VideoAllFailed(params: {
   sceneNumber: number
   productionId: string
   failures: Array<{ provider: V7VideoProviderId; code: V7VideoProviderErrorCode; message?: string }>
+  selectedProvider?: string | null
+  providerReport?: ProviderReportEntry[]
 }): void {
   console.error('[v7-video] all providers failed', params)
 }

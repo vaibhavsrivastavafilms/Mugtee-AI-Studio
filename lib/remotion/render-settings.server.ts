@@ -83,6 +83,16 @@ export function resolveRemotionCrf(): number {
   return 23
 }
 
+/** OffthreadVideo proxy + delayRender() — allow long local/remote asset staging. */
+export function resolveRemotionDelayRenderTimeoutMs(): number {
+  const raw = process.env.REMOTION_DELAY_RENDER_TIMEOUT_MS?.trim()
+  if (raw) {
+    const n = Number.parseInt(raw, 10)
+    if (Number.isFinite(n) && n >= 30_000) return n
+  }
+  return 120_000
+}
+
 /** Mock stub duration — matches content length; never force a 15s full-res encode. */
 export function resolveMockRenderDurationSec(sceneDurationSec: number): number {
   const raw = process.env.MOCK_RENDER_SECONDS?.trim()

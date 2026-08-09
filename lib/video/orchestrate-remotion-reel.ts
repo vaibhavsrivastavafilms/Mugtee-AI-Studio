@@ -491,15 +491,17 @@ export async function orchestrateRemotionReel(
       if (thumbnailPath) {
         try {
           const thumbBuf = await fs.readFile(thumbnailPath)
-          const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-          const supabase = await createSupabaseServerClient()
-          const thumbStorage = `${input.projectId}/reel-thumb.jpg`
-          await supabase.storage.from('reels').upload(thumbStorage, thumbBuf, {
-            contentType: 'image/jpeg',
-            upsert: true,
-          })
-          const { data: pub } = supabase.storage.from('reels').getPublicUrl(thumbStorage)
-          thumbnailUrl = pub.publicUrl
+          const { createSupabaseServiceClient } = await import('@/lib/supabase/service')
+          const supabase = createSupabaseServiceClient()
+          if (supabase) {
+            const thumbStorage = `${input.projectId}/reel-thumb.jpg`
+            await supabase.storage.from('reels').upload(thumbStorage, thumbBuf, {
+              contentType: 'image/jpeg',
+              upsert: true,
+            })
+            const { data: pub } = supabase.storage.from('reels').getPublicUrl(thumbStorage)
+            thumbnailUrl = pub.publicUrl
+          }
         } catch {
           /* optional thumbnail */
         }
@@ -513,7 +515,7 @@ export async function orchestrateRemotionReel(
         title: input.title,
         thumbnailUrl,
         reelStatus: 'ready',
-      })
+      }).catch(() => undefined)
     } else {
       const local = await saveLocalRenderAsset({ localPath: outputPath, jobId })
       videoUrl = local.videoUrl
@@ -636,16 +638,21 @@ export async function orchestrateRemotionReel(
         reelStatus: 'failed',
         reelJobId: null,
       }).catch(() => undefined)
-      void (await createSupabaseServerClient())
-        .from('cinematic_projects')
-        .update({
-          generation_error: exportError.slice(0, 500),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', input.projectId)
-        .eq('user_id', input.userId)
-        .then(() => undefined)
-        .catch(() => undefined)
+      const service = (await import('@/lib/supabase/service')).createSupabaseServiceClient()
+      if (service) {
+        try {
+          await service
+            .from('cinematic_projects')
+            .update({
+              generation_error: exportError.slice(0, 500),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', input.projectId)
+            .eq('user_id', input.userId)
+        } catch {
+          // optional cinematic_projects row
+        }
+      }
     }
 
     updateRenderJob(jobId, {

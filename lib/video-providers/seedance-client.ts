@@ -37,8 +37,8 @@ export function seedanceApiBase(): string {
   return (process.env.SEEDANCE_API_BASE?.trim() || DEFAULT_BASE).replace(/\/$/, '')
 }
 
-function seedanceHeaders(): HeadersInit {
-  const key = getSeedanceApiKey()
+function seedanceHeaders(apiKey?: string): HeadersInit {
+  const key = apiKey?.trim() || getSeedanceApiKey()
   if (!key) throw new Error('SEEDANCE_API_KEY is not configured')
   return {
     'Content-Type': 'application/json',
@@ -58,6 +58,7 @@ export async function createSeedanceTask(input: {
   durationSec?: number
   aspectRatio?: string
   model?: string
+  apiKey?: string
 }): Promise<string> {
   const body: Record<string, unknown> = {
     prompt: input.prompt.slice(0, 900),
@@ -72,7 +73,7 @@ export async function createSeedanceTask(input: {
 
   const res = await fetch(`${seedanceApiBase()}/generate`, {
     method: 'POST',
-    headers: seedanceHeaders(),
+    headers: seedanceHeaders(input.apiKey),
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(120_000),
   })
@@ -96,13 +97,13 @@ export async function createSeedanceTask(input: {
   return taskId.trim()
 }
 
-export async function retrieveSeedanceTask(taskId: string): Promise<SeedanceStatusResponse> {
+export async function retrieveSeedanceTask(taskId: string, apiKey?: string): Promise<SeedanceStatusResponse> {
   const url = new URL(`${seedanceApiBase()}/status`)
   url.searchParams.set('task_id', taskId)
 
   const res = await fetch(url.toString(), {
     method: 'GET',
-    headers: seedanceHeaders(),
+    headers: seedanceHeaders(apiKey),
     signal: AbortSignal.timeout(60_000),
   })
 
@@ -122,7 +123,7 @@ export async function retrieveSeedanceTask(taskId: string): Promise<SeedanceStat
 
 export async function waitForSeedanceOutput(
   taskId: string,
-  options?: { onProgress?: (label: string) => void; maxAttempts?: number }
+  options?: { onProgress?: (label: string) => void; maxAttempts?: number; apiKey?: string }
 ): Promise<{ videoUrl: string; thumbnailUrl: string | null }> {
   const maxAttempts = options?.maxAttempts ?? 90
 
@@ -131,7 +132,7 @@ export async function waitForSeedanceOutput(
 
     let task: SeedanceStatusResponse
     try {
-      task = await retrieveSeedanceTask(taskId)
+      task = await retrieveSeedanceTask(taskId, options?.apiKey)
     } catch (err) {
       logError('seedance.poll', err)
       options?.onProgress?.('Seedance still processing…')

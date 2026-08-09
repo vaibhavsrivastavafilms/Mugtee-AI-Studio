@@ -1,13 +1,16 @@
 import 'server-only'
 
+import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { ImageAgentSceneResult } from '@/agents/image/run.server'
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 import {
   buildV7ScenePromptBundles,
   buildV7SceneStoragePath,
+  validateV7SceneImagePrompt,
   type V7ScenePromptBundle,
 } from '@/lib/v7/image-prompt.server'
+import { V7ImagePromptValidationError } from '@/lib/v7/providers/image-errors.server'
 import { generateV7SceneImage } from '@/lib/v7/providers/image.server'
 import type { V7ImageGenerationResult } from '@/lib/v7/providers/image-provider.types'
 import type { V7CreativeBrief } from '@/types/v7/production'
@@ -46,7 +49,7 @@ function validateV7SceneImageResult(params: {
 }
 
 async function checkpointSceneImage(params: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  supabase: SupabaseServerClient
   sceneId: string
   imageUrl: string
   metadata: Record<string, unknown>
@@ -86,9 +89,11 @@ export async function runV7ImageOrchestrator(params: {
   productionId: string
   characterBible?: V7CharacterBible | null
   worldBible?: V7WorldBible | null
+  supabase?: SupabaseServerClient
+  forceRegenerate?: boolean
 }): Promise<{ images: ImageAgentSceneResult[]; durationMs: number }> {
   const started = Date.now()
-  const supabase = await createSupabaseServerClient()
+  const supabase = params.supabase ?? (await createSupabaseServerClient())
 
   const { data: production, error: prodError } = await supabase
     .from('v7_productions')
@@ -145,8 +150,30 @@ export async function runV7ImageOrchestrator(params: {
     return (
       archive.action === current.action &&
       archive.location === current.location &&
-      archive.sceneNumber === current.sceneNumber
+      archive.sceneNumber === current.sceneNumber &&
+      JSON.stringify(archive.characters ?? []) === JSON.stringify(current.characters ?? []) &&
+      archive.promptScore === current.promptScore
     )
+  }
+
+  for (const bundle of bundles) {
+    const validation = validateV7SceneImagePrompt({
+      spec: bundle.spec,
+      prompt: bundle.prompt,
+      negativePrompt: bundle.negativePrompt,
+      characterBible: params.characterBible,
+    })
+
+    if (!validation.valid) {
+      throw new V7ImagePromptValidationError({
+        sceneNumber: bundle.sceneNumber,
+        missingRequirements: validation.missingRequirements,
+        forbiddenTermsFound: validation.forbiddenTermsFound,
+        finalPrompt: validation.finalPrompt,
+        negativePrompt: validation.negativePrompt,
+        score: validation.score.overall,
+      })
+    }
   }
 
   const results: ImageAgentSceneResult[] = []
@@ -159,7 +186,12 @@ export async function runV7ImageOrchestrator(params: {
     const checkpointCurrent =
       hasCheckpoint && checkpointMatchesCurrentPrompt(archive, bundle)
 
-    if (existingUrl && !isEphemeralRemoteImageUrl(existingUrl) && checkpointCurrent) {
+    if (
+      !params.forceRegenerate &&
+      existingUrl &&
+      !isEphemeralRemoteImageUrl(existingUrl) &&
+      checkpointCurrent
+    ) {
       results.push({
         sceneId: bundle.sceneId,
         sceneNumber: bundle.sceneNumber,
@@ -186,7 +218,12 @@ export async function runV7ImageOrchestrator(params: {
       continue
     }
 
-    if (existingUrl && !isEphemeralRemoteImageUrl(existingUrl) && !hasCheckpoint) {
+    if (
+      !params.forceRegenerate &&
+      existingUrl &&
+      !isEphemeralRemoteImageUrl(existingUrl) &&
+      !hasCheckpoint
+    ) {
       await checkpointSceneImage({
         supabase,
         sceneId: bundle.sceneId,

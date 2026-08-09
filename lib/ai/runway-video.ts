@@ -36,6 +36,7 @@ export type RunwayVideoInput = {
   durationSec?: number
   ratio?: string
   model?: string
+  apiKey?: string
   onProgress?: (label: string) => void
 }
 
@@ -45,12 +46,17 @@ function delay(ms: number) {
 
 /** Scene video clips: RUNWAY_API_KEY or RUNWAYML_API_SECRET; optional RUNWAY_MODEL, VIDEO_GENERATION_PROVIDER=runway */
 /** Primary env var per product spec; official Runway docs use RUNWAYML_API_SECRET. */
+export function isValidRunwayApiKeyFormat(key: string): boolean {
+  return /^key_[0-9a-f]{128}$/i.test(key.trim())
+}
+
 export function getRunwayApiKey(): string | undefined {
-  return (
+  const key =
     process.env.RUNWAY_API_KEY?.trim() ||
     process.env.RUNWAYML_API_SECRET?.trim() ||
     undefined
-  )
+  if (!key) return undefined
+  return isValidRunwayApiKeyFormat(key) ? key : undefined
 }
 
 export function hasRunwayApiKey(): boolean {
@@ -73,8 +79,8 @@ export function clampRunwayDuration(durationSec?: number): number {
   )
 }
 
-function runwayHeaders(): HeadersInit {
-  const key = getRunwayApiKey()
+function runwayHeaders(apiKey?: string): HeadersInit {
+  const key = apiKey?.trim() || getRunwayApiKey()
   if (!key) throw new Error('RUNWAY_API_KEY is not configured')
   return {
     'Content-Type': 'application/json',
@@ -83,11 +89,11 @@ function runwayHeaders(): HeadersInit {
   }
 }
 
-async function runwayFetch(path: string, init?: RequestInit): Promise<Response> {
+async function runwayFetch(path: string, init?: RequestInit, apiKey?: string): Promise<Response> {
   const res = await fetch(`${RUNWAY_API_BASE}${path}`, {
     ...init,
     headers: {
-      ...runwayHeaders(),
+      ...runwayHeaders(apiKey),
       ...(init?.headers ?? {}),
     },
     signal: init?.signal ?? AbortSignal.timeout(120_000),
@@ -112,7 +118,7 @@ export async function createRunwayVideoTask(
   const res = await runwayFetch('/image_to_video', {
     method: 'POST',
     body: JSON.stringify(body),
-  })
+  }, input.apiKey)
 
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (!res.ok) {
@@ -131,8 +137,8 @@ export async function createRunwayVideoTask(
 }
 
 /** GET /v1/tasks/:id — https://docs.dev.runwayml.com/assets/outputs/ */
-export async function retrieveRunwayTask(taskId: string): Promise<RunwayTask> {
-  const res = await runwayFetch(`/tasks/${encodeURIComponent(taskId)}`)
+export async function retrieveRunwayTask(taskId: string, apiKey?: string): Promise<RunwayTask> {
+  const res = await runwayFetch(`/tasks/${encodeURIComponent(taskId)}`, undefined, apiKey)
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (!res.ok) {
     const message =
@@ -155,7 +161,7 @@ export async function retrieveRunwayTask(taskId: string): Promise<RunwayTask> {
 
 export async function waitForRunwayTaskOutput(
   taskId: string,
-  options?: { onProgress?: (label: string) => void; maxAttempts?: number }
+  options?: { onProgress?: (label: string) => void; maxAttempts?: number; apiKey?: string }
 ): Promise<string> {
   const maxAttempts = options?.maxAttempts ?? 120
 
@@ -165,7 +171,7 @@ export async function waitForRunwayTaskOutput(
 
     let task: RunwayTask
     try {
-      task = await retrieveRunwayTask(taskId)
+      task = await retrieveRunwayTask(taskId, options?.apiKey)
     } catch (err) {
       logError('runway.poll', err)
       options?.onProgress?.('Runway still processing…')
@@ -202,6 +208,7 @@ export async function generateRunwayVideo(
   const taskId = await createRunwayVideoTask(input)
   const videoUrl = await waitForRunwayTaskOutput(taskId, {
     onProgress: input.onProgress,
+    apiKey: input.apiKey,
   })
   return { taskId, videoUrl }
 }

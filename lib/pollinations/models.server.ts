@@ -1,0 +1,361 @@
+import 'server-only'
+
+import { evaluatePollinationsVideoEntitlement } from '@/lib/pollinations/entitlement.server'
+import { PollinationsError } from '@/lib/pollinations/errors.server'
+
+export type PollinationsCapability = 'image' | 'video' | 'audio'
+
+export type PollinationsModelInfo = {
+  id: string
+  type: PollinationsCapability
+  supportsImageToVideo: boolean
+  /** Models usable without paid-only pollen (quest / low-cost tier). */
+  questEligible: boolean
+  pollenCost: number
+}
+
+const MODEL_CACHE_TTL_MS = 5 * 60 * 1000
+export const GEN_POLLINATIONS_BASE = 'https://gen.pollinations.ai'
+
+type ModelCache = {
+  expiresAt: number
+  models: PollinationsModelInfo[]
+}
+
+let cache: ModelCache | null = null
+
+const PLACEHOLDER_KEY_PATTERNS = [
+  /^your_key/i,
+  /^sk_your/i,
+  /^pk_your/i,
+  /pollinations\.ai$/i,
+  /^replace/i,
+  /^changeme/i,
+]
+
+export function readPollinationsApiKey(): string | undefined {
+  const key = process.env.POLLINATIONS_API_KEY?.trim()
+  if (!key) return undefined
+  if (PLACEHOLDER_KEY_PATTERNS.some((pattern) => pattern.test(key))) return undefined
+  return key
+}
+
+export function hasPollinationsApiKey(): boolean {
+  return Boolean(readPollinationsApiKey())
+}
+
+export function pollinationsAuthHeaders(): HeadersInit {
+  const key = readPollinationsApiKey()
+  return key ? { Authorization: `Bearer ${key}` } : {}
+}
+
+export function appendPollinationsAuth(url: URL): URL {
+  const key = readPollinationsApiKey()
+  if (key && !url.searchParams.has('key')) {
+    url.searchParams.set('key', key)
+  }
+  return url
+}
+
+function parsePollenCost(raw: Record<string, unknown>): number {
+  const pricing = raw.pricing as Record<string, string | number | undefined> | undefined
+  if (!pricing) return 0
+  const candidates = [
+    pricing.completionImageTokens,
+    pricing.completionVideoSeconds,
+    pricing.promptImageTokens,
+    pricing.prompt,
+    pricing.completion,
+  ]
+  for (const value of candidates) {
+    const n = Number(value ?? NaN)
+    if (Number.isFinite(n)) return n
+  }
+  return 0
+}
+
+function inferCapability(raw: Record<string, unknown>): PollinationsCapability {
+  const category = typeof raw.category === 'string' ? raw.category.toLowerCase() : ''
+  const outputs = Array.isArray(raw.output_modalities)
+    ? raw.output_modalities.map((v) => String(v).toLowerCase())
+    : []
+  const inputs = Array.isArray(raw.input_modalities)
+    ? raw.input_modalities.map((v) => String(v).toLowerCase())
+    : []
+
+  if (category === 'video' || outputs.includes('video')) return 'video'
+  if (category === 'audio' || outputs.includes('audio')) return 'audio'
+  return 'image'
+}
+
+function parseModelsPayload(data: unknown): PollinationsModelInfo[] {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { data?: unknown[] })?.data)
+      ? (data as { data: unknown[] }).data
+      : []
+
+  const models: PollinationsModelInfo[] = []
+
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object') continue
+    const raw = entry as Record<string, unknown>
+    const id = typeof raw.name === 'string' ? raw.name : typeof raw.id === 'string' ? raw.id : ''
+    if (!id.trim()) continue
+
+    const type = inferCapability(raw)
+    const inputs = Array.isArray(raw.input_modalities)
+      ? raw.input_modalities.map((v) => String(v).toLowerCase())
+      : []
+    const supportsImageToVideo = type === 'video' && inputs.includes('image')
+
+    models.push({
+      id: id.trim(),
+      type,
+      supportsImageToVideo,
+      questEligible: raw.paid_only !== true,
+      pollenCost: parsePollenCost(raw),
+    })
+  }
+
+  return models
+}
+
+const FALLBACK_IMAGE_MODELS: PollinationsModelInfo[] = [
+  { id: 'flux', type: 'image', supportsImageToVideo: false, questEligible: true, pollenCost: 0.004 },
+  { id: 'zimage', type: 'image', supportsImageToVideo: false, questEligible: true, pollenCost: 0.004 },
+]
+
+const FALLBACK_VIDEO_MODELS: PollinationsModelInfo[] = [
+  { id: 'nova-reel', type: 'video', supportsImageToVideo: true, questEligible: true, pollenCost: 0.08 },
+  { id: 'wan-fast', type: 'video', supportsImageToVideo: true, questEligible: false, pollenCost: 0.01 },
+  { id: 'veo', type: 'video', supportsImageToVideo: true, questEligible: false, pollenCost: 0.1 },
+]
+
+export async function discoverPollinationsModels(force = false): Promise<PollinationsModelInfo[]> {
+  if (!force && cache && cache.expiresAt > Date.now()) {
+    return cache.models
+  }
+
+  try {
+    const res = await fetch(`${GEN_POLLINATIONS_BASE}/image/models`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (res.ok) {
+      const data = (await res.json()) as unknown
+      const parsed = parseModelsPayload(data)
+      if (parsed.length > 0) {
+        cache = { expiresAt: Date.now() + MODEL_CACHE_TTL_MS, models: parsed }
+        return parsed
+      }
+    }
+  } catch {
+    // fall through to defaults
+  }
+
+  const fallback = [...FALLBACK_IMAGE_MODELS, ...FALLBACK_VIDEO_MODELS]
+  cache = { expiresAt: Date.now() + MODEL_CACHE_TTL_MS, models: fallback }
+  return fallback
+}
+
+export function invalidatePollinationsModelCache(): void {
+  cache = null
+}
+
+function rankModels(models: PollinationsModelInfo[]): PollinationsModelInfo[] {
+  return [...models].sort((a, b) => {
+    if (a.questEligible !== b.questEligible) return a.questEligible ? -1 : 1
+    return a.pollenCost - b.pollenCost
+  })
+}
+
+export async function selectBestPollinationsModel(
+  capability: PollinationsCapability,
+  options?: { imageToVideo?: boolean; preferred?: string }
+): Promise<string> {
+  const models = await discoverPollinationsModels()
+  let eligible = models.filter((model) => model.type === capability)
+
+  if (capability === 'video' && options?.imageToVideo) {
+    eligible = eligible.filter((model) => model.supportsImageToVideo)
+  }
+
+  if (options?.preferred?.trim()) {
+    const preferred = options.preferred.trim()
+    if (eligible.some((model) => model.id === preferred)) return preferred
+  }
+
+  eligible = rankModels(eligible)
+
+  if (eligible.length === 0) {
+    throw new PollinationsError({
+      code: 'POLLINATIONS_MODEL_UNAVAILABLE',
+      message: `No Pollinations ${capability} models available`,
+      action:
+        capability === 'audio'
+          ? 'Audio generation is not available via Pollinations.'
+          : 'Check model catalog at GET /image/models or set POLLINATIONS_API_KEY.',
+    })
+  }
+
+  return eligible[0].id
+}
+
+/** Select best affordable image-to-video model from live Pollinations catalog. */
+export async function selectBestPollinationsVideoModel(options?: {
+  preferred?: string
+  durationSec?: number
+}): Promise<string> {
+  const entitlement = await evaluatePollinationsVideoEntitlement({
+    durationSec: options?.durationSec ?? 5,
+    probeSpendable: true,
+  })
+  if (options?.preferred?.trim() && entitlement.model === options.preferred.trim()) {
+    return options.preferred.trim()
+  }
+  if (entitlement.model) return entitlement.model
+  throw new PollinationsError({
+    code:
+      entitlement.code === 'POLLINATIONS_CREDITS_REQUIRED'
+        ? 'POLLINATIONS_CREDITS_REQUIRED'
+        : entitlement.code ?? 'POLLINATIONS_MODEL_UNAVAILABLE',
+    message: entitlement.reason ?? 'No affordable Pollinations video model available',
+    action: 'Top up pollen at https://enter.pollinations.ai',
+  })
+}
+
+async function verifyPollinationsAuthentication(): Promise<{ ok: boolean; httpStatus?: number }> {
+  const key = readPollinationsApiKey()
+  if (!key) return { ok: false }
+
+  try {
+    const res = await fetch(`${GEN_POLLINATIONS_BASE}/account/key`, {
+      headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (res.status === 401 || res.status === 403) {
+      return { ok: false, httpStatus: res.status }
+    }
+    if (res.ok) return { ok: true }
+    // Key present but account endpoint unavailable — still attempt catalog + generation probes.
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+}
+
+export type PollinationsHealthReport = {
+  ready: boolean
+  authenticated: boolean
+  entitled: boolean
+  modelAvailable: boolean
+  generationAvailable: boolean
+  quotaAvailable: boolean | null
+  imageReady: boolean
+  videoReady: boolean
+  imageModel: string | null
+  videoModel: string | null
+  balance: number | null
+  estimatedVideoCost: number | null
+  reason: string | null
+  code: string | null
+}
+
+export async function probePollinationsHealth(options?: {
+  forceRefresh?: boolean
+}): Promise<PollinationsHealthReport> {
+  let catalogModels: PollinationsModelInfo[] = []
+  try {
+    catalogModels = await discoverPollinationsModels(true)
+  } catch {
+    catalogModels = []
+  }
+  const modelAvailable =
+    catalogModels.some((m) => m.type === 'image') &&
+    catalogModels.some((m) => m.type === 'video' && m.supportsImageToVideo)
+
+  const keyPresent = hasPollinationsApiKey()
+  if (!keyPresent) {
+    return {
+      ready: false,
+      authenticated: false,
+      entitled: false,
+      modelAvailable,
+      generationAvailable: false,
+      quotaAvailable: null,
+      imageReady: false,
+      videoReady: false,
+      imageModel: null,
+      videoModel: null,
+      balance: null,
+      estimatedVideoCost: null,
+      reason:
+        'POLLINATIONS_API_KEY_REQUIRED — set sk_… from https://enter.pollinations.ai/keys (placeholder keys are rejected).',
+      code: 'POLLINATIONS_API_KEY_REQUIRED',
+    }
+  }
+
+  const auth = await verifyPollinationsAuthentication()
+  if (auth.ok) {
+    console.info('[pollinations] HTTP connected')
+  }
+  if (!auth.ok) {
+    return {
+      ready: false,
+      authenticated: false,
+      entitled: false,
+      modelAvailable,
+      generationAvailable: false,
+      quotaAvailable: null,
+      imageReady: false,
+      videoReady: false,
+      imageModel: null,
+      videoModel: null,
+      balance: null,
+      estimatedVideoCost: null,
+      reason: 'POLLINATIONS_AUTH_FAILED — check POLLINATIONS_API_KEY',
+      code: 'POLLINATIONS_AUTH_FAILED',
+    }
+  }
+
+  let imageModel: string | null = null
+  try {
+    imageModel = await selectBestPollinationsModel('image')
+  } catch {
+    imageModel = null
+  }
+
+  const videoEntitlement = await evaluatePollinationsVideoEntitlement({
+    durationSec: 5,
+    probeSpendable: true,
+    forceRefresh: options?.forceRefresh,
+    width: 720,
+    height: 1280,
+  })
+
+  const imageReady = Boolean(imageModel) && videoEntitlement.authenticated
+  const videoReady =
+    videoEntitlement.entitled &&
+    videoEntitlement.affordable &&
+    Boolean(videoEntitlement.model) &&
+    modelAvailable
+  const ready = imageReady && videoReady
+
+  return {
+    ready,
+    authenticated: videoEntitlement.authenticated,
+    entitled: videoEntitlement.entitled,
+    modelAvailable,
+    generationAvailable: videoEntitlement.generationAvailable,
+    quotaAvailable: videoEntitlement.quotaAvailable ? true : videoEntitlement.balance === 0 ? false : null,
+    imageReady,
+    videoReady,
+    imageModel,
+    videoModel: videoEntitlement.model,
+    balance: videoEntitlement.balance,
+    estimatedVideoCost: videoEntitlement.estimatedCost,
+    reason: ready ? null : videoEntitlement.reason,
+    code: ready ? null : videoEntitlement.code,
+  }
+}

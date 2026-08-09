@@ -4,8 +4,9 @@ import { resolveV7MusicUrl } from '@/lib/v3/music-cascade.server'
 import { generateV7SoundEffects } from '@/lib/v3/sound-cascade.server'
 import { generateVoice } from '@/lib/voice/generateVoice'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getV7Production } from '@/lib/v7/db.server'
 import { runV7ImageOrchestrator } from '@/lib/v7/image-scene.server'
-import { runV7VideoOrchestrator } from '@/lib/v7/video-scene.server'
+import { reconcileV7SceneVideoCheckpoints, runV7VideoOrchestrator } from '@/lib/v7/video-scene.server'
 import { assignSceneMotion, sceneMotionToGeneratedFields } from '@/lib/motion/motion-presets'
 import { executeV7Render } from '@/lib/v7/export.server'
 import { executeV7ExportDeliverables } from '@/lib/v7/export-deliverables.server'
@@ -27,6 +28,8 @@ import {
   logV92Report,
   runV9StoryExecutionAudit,
 } from '@/lib/v7/story-execution-audit.server'
+import { allowSilentVoiceFallback } from '@/lib/v7/production-integrity.server'
+import { validateV7ProductionMediaAssets } from '@/lib/v7/media-probe.server'
 import type { V7SoundEffect } from '@/lib/v3/sound-cascade.server'
 import type { V7CharacterBible } from '@/agents/v7/character-director.server'
 import type { V7WorldBible } from '@/agents/v7/world-builder.server'
@@ -46,6 +49,7 @@ export async function runV7ImageStage(params: {
   productionId: string
   characterBible?: V7CharacterBible | null
   worldBible?: V7WorldBible | null
+  supabase?: SupabaseServerClient
 }) {
   return runV7ImageOrchestrator(params)
 }
@@ -57,6 +61,7 @@ export async function runV7AnimationStage(params: {
   storyboard: V7StoryboardDocument
   scenes: Array<{ id: string; number: number; storyboard?: Record<string, unknown> }>
   productionId: string
+  supabase?: SupabaseServerClient
 }) {
   const { sceneUpdates, provider, durationMs } = await runV7VideoOrchestrator(params)
 
@@ -110,6 +115,7 @@ export async function runV7VoiceStage(params: {
   snapshot?: V7ProductionSnapshot
   characterBible?: V7CharacterBible | null
   worldBible?: V7WorldBible | null
+  supabase?: SupabaseServerClient
 }) {
   const started = Date.now()
   const narrationSegments = params.snapshot
@@ -126,7 +132,7 @@ export async function runV7VoiceStage(params: {
     ? mergeV7VoiceNarration(params.snapshot)
     : buildScreenplayNarration(params.script, params.storyboard)
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = params.supabase ?? (await createSupabaseServerClient())
 
   const voice = await generateVoice(
     {
@@ -148,8 +154,10 @@ export async function runV7VoiceStage(params: {
     }
   }
 
-  const cascade = await synthesizeWithCascade(narration || ' ', { allowSilentStub: true })
-  if (cascade.buffer) {
+  const cascade = await synthesizeWithCascade(narration || ' ', {
+    allowSilentStub: allowSilentVoiceFallback(),
+  })
+  if (cascade.buffer && cascade.provider !== 'silent') {
     const dataUrl = `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`
     return {
       voiceUrl: dataUrl,
@@ -166,7 +174,7 @@ export async function runV7VoiceStage(params: {
       event: 'voice_generation_failed',
       productionId: params.productionId,
       segmentCount: narrationSegments.length,
-      fallback: 'ffmpeg_silence_at_render',
+      message: 'Voice unavailable — configure TTS or set V7_ALLOW_SILENT_VOICE=true for dev only.',
     })
   )
 
@@ -236,10 +244,39 @@ export async function runV7EditStage(params: {
   }
 }
 
-export async function runV7QualityStage(params: { snapshot: V7ProductionSnapshot }) {
+export async function runV7QualityStage(params: {
+  snapshot: V7ProductionSnapshot
+  supabase?: SupabaseServerClient
+}) {
+  let snapshot = params.snapshot
+
+  if (params.supabase) {
+    await reconcileV7SceneVideoCheckpoints({
+      supabase: params.supabase,
+      productionId: snapshot.production.id,
+      userId: snapshot.production.user_id,
+      scenes: snapshot.scenes.map((scene) => ({
+        id: scene.id,
+        number: scene.number,
+        storyboard: scene.storyboard as Record<string, unknown> | null,
+      })),
+    })
+    const refreshed = await getV7Production(
+      params.supabase,
+      snapshot.production.id,
+      snapshot.production.user_id
+    )
+    if (refreshed) snapshot = refreshed
+  }
+
+  const mediaIssues = await validateV7ProductionMediaAssets(snapshot)
+  if (mediaIssues.length > 0) {
+    throw new Error(`Media probe failed: ${mediaIssues.join('; ')}`)
+  }
+
   const audit = runV9StoryExecutionAudit({
-    snapshot: params.snapshot,
-    voiceUrl: params.snapshot.production.voice_url,
+    snapshot,
+    voiceUrl: snapshot.production.voice_url,
   })
   logV92Report(audit)
   assertV9StoryExecutionReady(audit)

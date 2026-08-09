@@ -8,7 +8,7 @@ export async function register() {
   validateV3TextProvidersOnStartup()
 
   const { validateV7TextProvidersOnStartup } = await import('@/lib/v7/providers/text.server')
-  validateV7TextProvidersOnStartup()
+  await validateV7TextProvidersOnStartup()
 
   const { validateV7ImageProvidersOnStartup } = await import('@/lib/v7/providers/image.server')
   validateV7ImageProvidersOnStartup()

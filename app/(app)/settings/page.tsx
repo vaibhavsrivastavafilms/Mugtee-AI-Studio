@@ -13,6 +13,7 @@ import {
   type CreatorMemoryProfile,
 } from '@/lib/creator/creator-memory'
 import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles, Mail } from 'lucide-react'
+import { ProviderManagerPanel } from '@/components/settings/provider-manager-panel'
 import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -81,6 +82,10 @@ export default function SettingsPage() {
       const ig = sp.get('ig'); const msg = sp.get('msg')
       if (ig === 'connected') { setIgHint({ ok: true, msg: msg || 'Instagram connected.' }); toast.success('Instagram connected'); window.history.replaceState({}, '', '/settings') }
       else if (ig === 'error') { setIgHint({ ok: false, msg: msg || 'Connection failed.' }); toast.error('Instagram connection failed'); window.history.replaceState({}, '', '/settings') }
+      const openart = sp.get('openart_connected')
+      const openartError = sp.get('openart_error')
+      if (openart === '1') { toast.success('OpenArt connected'); window.history.replaceState({}, '', '/settings') }
+      else if (openartError) { toast.error(`OpenArt connection failed: ${openartError}`); window.history.replaceState({}, '', '/settings') }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -586,6 +591,10 @@ export default function SettingsPage() {
         <div className="mt-5">
           <YouTubeConnect />
         </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.135 }}>
+        <ProviderManagerPanel />
       </motion.div>
 
       {/* Billing (placeholder) =========================================== */}

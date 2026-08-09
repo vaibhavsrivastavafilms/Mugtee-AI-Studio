@@ -1,4 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Local temp / machine artifacts
+.tmp-audit-images/
+Ollama.lnk
+
 
 # IDE and editors
 .idea/
@@ -30,7 +33,8 @@ next-env.d.ts
 dist/
 dist
 
-# Environment files (comprehensive coverage)
+# Local runtime data (OAuth client registration cache, etc.)
+.data/
 *token.json*
 *credentials.json*
 

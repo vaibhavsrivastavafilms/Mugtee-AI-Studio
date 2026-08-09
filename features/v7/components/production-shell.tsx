@@ -31,8 +31,12 @@ export function V7ProductionShell({ productionId }: { productionId: string }) {
     try {
       const res = await fetch(`/api/v7/productions/${productionId}/retry`, { method: 'POST' })
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string }
-        throw new Error(data.error ?? 'Retry failed')
+        const data = (await res.json()) as {
+          error?: string
+          message?: string
+          reason?: string
+        }
+        throw new Error(data.reason ?? data.message ?? data.error ?? 'Retry failed')
       }
       const data = (await res.json()) as V7ProductionSnapshot & { ok: boolean }
       setSnapshot({
@@ -83,14 +87,7 @@ export function V7ProductionShell({ productionId }: { productionId: string }) {
     <>
       {error ? <p className="px-4 py-2 text-center text-sm text-red-300/90">{error}</p> : null}
       <V7ProductionView
-        title={snapshot.production.title}
-        prompt={snapshot.production.prompt}
-        status={snapshot.production.status}
-        timeline={snapshot.timeline}
-        reelUrl={snapshot.production.reel_url}
-        movUrl={snapshot.production.mov_url}
-        thumbnailUrl={snapshot.production.thumbnail_url}
-        creatorPackUrl={snapshot.production.creator_pack_url}
+        snapshot={snapshot}
         onRetry={snapshot.production.status === 'failed' ? retry : undefined}
         retrying={retrying}
       />

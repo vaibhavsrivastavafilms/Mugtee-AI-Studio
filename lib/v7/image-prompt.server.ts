@@ -9,20 +9,13 @@ import type { V7StoryboardDocument } from '@/agents/v7/storyboard.server'
 import type { V3AspectRatio } from '@/types/v3/production'
 import type { V7WorldBible } from '@/agents/v7/world-builder.server'
 import {
-  buildCharacterGroundingBlock,
-  buildEnvironmentGroundingBlock,
-  resolveStoryboardCamera,
-  type V7ScriptScene,
-} from '@/lib/v7/scene-grounding.server'
-
-const CINEMATIC_QUALITY =
-  'Live-action cinematic photograph, photorealistic, NOT illustration. ' +
-  'Shallow depth of field, anamorphic lens bokeh, film grain, volumetric lighting, ' +
-  'atmospheric haze, wet surface reflections, rich color grade, high dynamic range.'
-
-const CONSISTENCY_BLOCK =
-  'Character consistency: preserve same face, hair, clothing, accessories, body type, age, skin tone, and expressions across scenes. ' +
-  'Environment consistency: preserve restaurant layout, furniture, architecture, props, lighting direction, weather, and mood.'
+  buildV7SceneImagePromptFromSpec,
+  buildV7SceneImageSpec,
+  scoreV7SceneImagePrompt,
+  validateV7SceneImagePrompt,
+  type V7SceneImagePromptPackage,
+  type V7SceneImageSpec,
+} from '@/lib/v7/image-prompt-spec.core'
 
 export type V7ScenePromptBundle = {
   sceneNumber: number
@@ -35,6 +28,8 @@ export type V7ScenePromptBundle = {
   height: number
   promptArchive: Record<string, unknown>
   consistencyModes: Array<'instantid' | 'ip-adapter' | 'pulid' | 'controlnet' | 'prompt'>
+  spec: V7SceneImageSpec
+  promptScore: number
 }
 
 function deriveProductionSeed(productionId: string): number {
@@ -63,72 +58,39 @@ export function buildV7ScenePromptBundles(params: {
     .slice()
     .sort((a, b) => a.number - b.number)
     .map((scene) => {
-      const scriptScene = params.script.scenes.find((s) => s.number === scene.number) as
-        | V7ScriptScene
-        | undefined
-      const board = params.storyboard.scenes.find((s) => s.number === scene.number)
-      const shots = board?.shots ?? []
-      const shot = shots[0]
-      const shotPlan =
-        shots.length > 1
-          ? shots
-              .map(
-                (entry, index) =>
-                  `Shot ${index + 1}: camera ${entry.camera ?? entry.composition ?? 'medium'}, lighting ${entry.lighting ?? 'cinematic'}, emotion ${entry.emotion ?? 'natural'}, dialogue "${entry.dialogue ?? ''}"`
-              )
-              .join(' | ')
-          : null
-      const camera = resolveStoryboardCamera(shot, scriptScene)
-      const location = scriptScene?.location ?? params.brief.location ?? 'On location'
-      const action = scriptScene?.action ?? scriptScene?.narration ?? shot?.dialogue ?? ''
-      const narration = scriptScene?.narration ?? shot?.dialogue ?? ''
-      const characterBlock = buildCharacterGroundingBlock(
-        params.characterBible,
+      const scriptScene = params.script.scenes.find((entry) => entry.number === scene.number)
+      const board = params.storyboard.scenes.find((entry) => entry.number === scene.number)
+      const shot = board?.shots?.[0]
+
+      const spec = buildV7SceneImageSpec({
+        sceneNumber: scene.number,
+        sceneId: scene.id,
+        productionId: params.productionId,
         scriptScene,
-        params.brief
-      )
-      const environmentBlock = buildEnvironmentGroundingBlock(
-        params.worldBible,
-        location,
-        params.direction,
-        params.brief
-      )
-      const continuityId = `${params.productionId}:scene-${scene.number}`
-      const weather =
-        params.brief.title.toLowerCase().includes('monsoon') ||
-        params.brief.emotion.toLowerCase().includes('monsoon')
-          ? 'Heavy monsoon rain, mist, wet pavement reflections, steam rising from hot food.'
-          : params.direction.lighting
+        shot,
+        brief: params.brief,
+        direction: params.direction,
+        characterBible: params.characterBible,
+        worldBible: params.worldBible,
+      })
 
-      const prompt = [
-        CINEMATIC_QUALITY,
-        CONSISTENCY_BLOCK,
-        `Continuity ID: ${continuityId}`,
-        shotPlan ? `Storyboard shot plan: ${shotPlan}` : null,
-        characterBlock,
-        environmentBlock,
-        `Location: ${location}`,
-        `Camera: ${camera}`,
-        `Aspect Ratio: ${aspectRatio}`,
-        `Lens: ${shot?.lens ?? '35mm anamorphic cinema lens'}`,
-        `Lighting: ${shot?.lighting ?? scriptScene?.lighting ?? params.direction.lighting}`,
-        `Weather and atmosphere: ${weather}`,
-        narration ? `Narration: ${narration}` : null,
-        shot?.dialogue ? `Dialogue: ${shot.dialogue}` : scriptScene?.dialogue ? `Dialogue: ${scriptScene.dialogue}` : null,
-        shot?.emotion ? `Emotion: ${shot.emotion}` : scriptScene?.emotion ? `Emotion: ${scriptScene.emotion}` : null,
-        `Action: ${action}`,
-        `Style: ${params.brief.style}, ${params.direction.animationStyle}`,
-        shot?.composition ? `Composition: ${shot.composition}` : null,
-        shot?.movement ? `Camera movement intent: ${shot.movement}` : scriptScene?.movement ? `Movement: ${scriptScene.movement}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n')
+      const { prompt, negativePrompt } = buildV7SceneImagePromptFromSpec({
+        spec,
+        aspectRatio,
+        characterBible: params.characterBible,
+        worldBible: params.worldBible,
+        narration: scriptScene?.narration,
+        emotion: shot?.emotion ?? scriptScene?.emotion,
+        lens: shot?.lens,
+        movement: shot?.movement ?? scriptScene?.movement,
+      })
 
-      const negativePrompt = [
-        'blurry, watermark, text overlay, logo, deformed, cartoon, anime, flat lighting,',
-        'oversaturated, low resolution, duplicate limbs, extra fingers, AI artifacts,',
-        'inconsistent character face, wrong wardrobe, wrong restaurant layout',
-      ].join(' ')
+      const score = scoreV7SceneImagePrompt({
+        spec,
+        prompt,
+        negativePrompt,
+        characterBible: params.characterBible,
+      })
 
       return {
         sceneNumber: scene.number,
@@ -140,24 +102,36 @@ export function buildV7ScenePromptBundles(params: {
         width,
         height,
         consistencyModes: ['prompt'] as const,
+        spec,
+        promptScore: score.overall,
         promptArchive: {
           sceneNumber: scene.number,
-          continuityId,
-          location,
-          camera,
+          continuityId: spec.continuity,
+          purpose: spec.purpose,
+          subject: spec.subject,
+          action: spec.action,
+          location: spec.location,
+          characters: spec.characters,
+          objects: spec.objects,
+          forbiddenElements: spec.forbiddenElements,
+          requiredPromptTerms: spec.requiredPromptTerms,
+          camera: spec.camera,
+          composition: spec.composition,
           aspectRatio,
-          lens: shot?.lens ?? '35mm anamorphic',
-          lighting: shot?.lighting ?? scriptScene?.lighting ?? params.direction.lighting,
-          style: params.brief.style,
-          characterBlock,
-          environmentBlock,
+          lens: shot?.lens ?? null,
+          lighting: spec.lighting,
+          style: spec.visualStyle,
+          environment: spec.environment,
+          promptScore: score.overall,
+          negativePrompt,
           shot: shot ?? null,
-          action,
-          narration,
+          narration: scriptScene?.narration ?? null,
         },
       }
     })
 }
+
+export { validateV7SceneImagePrompt, type V7SceneImagePromptPackage }
 
 export function buildV7SceneStoragePath(params: {
   userId: string

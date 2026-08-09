@@ -11,6 +11,12 @@ import type { V7CreativeBrief, V7ProductionSnapshot } from '@/types/v7/productio
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 import type { V7SoundEffect } from '@/lib/v3/sound-cascade.server'
 import {
+  assertProductionRenderAllowed,
+  assertRealVoiceRequired,
+  isSlideshowOrFallbackVideo,
+  slideshowVideoBlockerMessage,
+} from '@/lib/v7/production-integrity.server'
+import {
   buildGroundedV7SceneFields,
   buildScreenplayNarration,
   type GroundedV7SceneFields,
@@ -655,11 +661,13 @@ export function validateV7ScenePackages(
       videoUrls.add(pkg.videoUrl)
     }
 
-    if (videoMeta?.fallback === true) {
-      // Ken Burns per-scene fallback — warn in audit, block only if clip is not distinct.
-      if (pkg.imageUrl?.trim() && pkg.videoUrl?.trim() === pkg.imageUrl.trim()) {
-        issues.push(`${label} Ken Burns fallback reuses still URL as video`)
-      }
+    if (videoMeta?.fallback === true || isSlideshowOrFallbackVideo({
+      provider: videoMeta?.provider ?? pkg.videoProvider,
+      fallback: videoMeta?.fallback,
+      videoUrl: pkg.videoUrl,
+      imageUrl: pkg.imageUrl,
+    })) {
+      issues.push(slideshowVideoBlockerMessage(label))
     }
 
     if (!pkg.imageCheckpointAt) {

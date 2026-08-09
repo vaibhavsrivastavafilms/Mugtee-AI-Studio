@@ -2,6 +2,7 @@ import 'server-only'
 
 import { z } from 'zod'
 import { generateV7StructuredJson } from '@/lib/v7/providers/text.server'
+import { V7ProviderRequestError } from '@/lib/v7/providers/text-errors.server'
 import {
   AI_PLANNING_DIRECTION_MAX,
   AI_PLANNING_TITLE_MAX,
@@ -64,5 +65,15 @@ export async function runV7WorldBuilder(params: {
     projectId: params.productionId,
   })
 
-  return { world: worldSchema.parse(raw), durationMs: Date.now() - started }
+  try {
+    return { world: worldSchema.parse(raw), durationMs: Date.now() - started }
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      throw new V7ProviderRequestError('PROVIDER_INVALID_RESPONSE', 'openrouter-qwen', {
+        message: `World bible schema validation failed: ${err.issues[0]?.message ?? 'invalid JSON shape'}`,
+        cause: err,
+      })
+    }
+    throw err
+  }
 }

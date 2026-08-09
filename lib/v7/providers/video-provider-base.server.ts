@@ -8,6 +8,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { downloadToFile } from '@/lib/video/download-asset'
 import { resolveFfmpegPath } from '@/lib/video/ffmpeg-path.server'
 import { STORYBOARD_STORAGE_BUCKET } from '@/lib/storyboard/storyboard-asset'
+import { V7UploadFailedError } from '@/lib/v7/input-validation.server'
 import {
   classifyV7VideoUnknownError,
   V7VideoProviderRequestError,
@@ -19,6 +20,7 @@ import type {
   V7VideoProviderHealth,
   V7VideoProviderId,
 } from '@/lib/v7/providers/video-provider.types'
+import { availableVideoModelsFromSingleId } from '@/lib/v7/providers/video-model-discovery.server'
 
 const MIN_VIDEO_BYTES = 4_096
 
@@ -121,7 +123,9 @@ export async function persistV7SceneVideo(params: {
     const buffer = await fs.readFile(localPath)
     const client = createSupabaseServiceClient()
     if (!client) {
-      throw new V7VideoProviderRequestError('PROVIDER_UNAVAILABLE', params.providerId, {
+      throw new V7UploadFailedError({
+        stage: 'animation',
+        storagePath: params.storagePath,
         message: 'Supabase service client unavailable for video upload',
       })
     }
@@ -131,8 +135,11 @@ export async function persistV7SceneVideo(params: {
       .upload(params.storagePath, buffer, { contentType: 'video/mp4', upsert: true })
 
     if (error) {
-      throw new V7VideoProviderRequestError('PROVIDER_UNAVAILABLE', params.providerId, {
-        message: error.message,
+      throw new V7UploadFailedError({
+        stage: 'animation',
+        storagePath: params.storagePath,
+        message: `Video upload failed: ${error.message}`,
+        cause: error,
       })
     }
 
@@ -321,6 +328,31 @@ export function createHttpVideoProvider(config: {
     supports: () => Boolean(endpoint()),
     validateInput,
     health,
+    availableModels: async () => ({
+      models: [config.modelId],
+      preferred: config.modelId,
+    }),
+    availableVideoModels: async () => availableVideoModelsFromSingleId(config.modelId),
+    accountCapabilities: async () => {
+      const base = endpoint()
+      if (!base) {
+        return {
+          authenticated: false,
+          entitled: false,
+          reason: 'NOT_CONFIGURED' as const,
+          message: `${config.displayName} endpoint not configured`,
+        }
+      }
+      if (config.apiKeyEnv && !process.env[config.apiKeyEnv]?.trim()) {
+        return {
+          authenticated: false,
+          entitled: false,
+          reason: 'NOT_AUTHENTICATED' as const,
+          message: `${config.apiKeyEnv} missing`,
+        }
+      }
+      return { authenticated: true, entitled: true, entitledModels: [config.modelId] }
+    },
     estimateCost: () => 0,
     estimateTime: () => config.estimateMs ?? 180_000,
     generate,

@@ -521,6 +521,8 @@ interface QuickCutGenerationStateBase {
   thumbnailDisplayBust: number
   isRegeneratingThumbnail: boolean
   directingSceneLabel: string | null
+  /** 1-based scene index currently generating images (for live progress). */
+  currentImageSceneIndex: number
   voiceUrl: string | null
   elevenLabsVoiceId: string | null
   voiceName: string | null
@@ -738,6 +740,7 @@ const INITIAL: QuickCutGenerationState = {
   storyboard: [],
   characterDescription: '',
   directingSceneLabel: null,
+  currentImageSceneIndex: 0,
   regeneratingSceneIds: [],
   thumbnailImageUrl: null,
   thumbnailDisplayBust: 0,
@@ -2073,10 +2076,12 @@ async function requestVideoRender(state: QuickCutGenerationState, asyncMode: boo
       scenes: exportSnapshot.scenes,
       storyboards: exportSnapshot.storyboards,
     })
+    const hasVoice = Boolean(state.voiceUrl?.trim())
     const exportPayload = {
       projectId: state.savedProjectId,
       quality: '1080p' as const,
-      includeVoiceover: true,
+      // Soft-optional: export MP4 even when TTS cascade skipped narration
+      includeVoiceover: hasVoice,
       includeCaptions: true,
       ...exportSnapshot,
       script: state.script ?? null,
@@ -2714,6 +2719,150 @@ export const useQuickCutGenerationStore = create<
     })
     if (!resumeFrom && state.generationStatus !== 'failed') return
 
+    // Fast path: storyboard done — only compile MP4. Never restart research.
+    const storyboardReady =
+      state.scenes.length > 0 &&
+      state.scenes.every((s) => Boolean(s.imageUrl?.trim() || s.imageAssetPath?.trim()))
+    const exportOnlyResume =
+      storyboardReady &&
+      !state.videoUrl?.trim() &&
+      (resumeFrom === 'storyboard' ||
+        resumeFrom === 'export' ||
+        state.failedAtStep === 'export' ||
+        state.lastCompletedStep === 'storyboard' ||
+        state.lastCompletedStep === 'voice' ||
+        state.lastCompletedStep === 'export')
+
+    if (exportOnlyResume) {
+      if (state.savedProjectId) {
+        clearStoredGenerationJobId(state.savedProjectId)
+      }
+      set({
+        pipelineJobId: null,
+        error: null,
+        renderError: null,
+        failedAtStep: null,
+        generationStatus: 'generating',
+        generationInFlight: true,
+        isGenerating: true,
+        isComplete: false,
+        generationStep: 'render',
+        pipelineStatus: 'mp4_rendering',
+        progress: Math.max(92, state.progress || 0),
+        directingSceneLabel: '📦 Rendering final film...',
+      })
+      try {
+        await get().syncVideoRenderConfig()
+        get().composeReelTimeline()
+
+        // Server MP4 disabled — finish with creator pack (still a successful export).
+        if (!get().videoRenderEnabled) {
+          await simulateMockExport((label) => set({ renderStatusLabel: label }))
+          set({
+            exportPackageReady: true,
+            renderError: null,
+            isGenerating: false,
+            generationInFlight: false,
+            isComplete: true,
+            generationStep: 'complete',
+            generationStatus: 'completed',
+            lastCompletedStep: 'export',
+            pipelineStatus: 'timeline_complete',
+            progress: 100,
+            eta: 0,
+            directingSceneLabel: null,
+          })
+          persistSession(get())
+          return
+        }
+
+        const profile = await fetchProfilePlanSnapshot()
+        if (
+          blockMp4CompileIfNeeded(profile.planType, {
+            trialActive: profile.trialActive,
+            logContext: { source: 'exportOnlyResume' },
+          })
+        ) {
+          set({
+            isGenerating: false,
+            generationInFlight: false,
+            generationStep: 'complete',
+            generationStatus: 'completed',
+            lastCompletedStep: 'storyboard',
+            exportPackageReady: true,
+            pipelineStatus: 'timeline_complete',
+            progress: 100,
+            directingSceneLabel: null,
+            renderError: null,
+          })
+          persistSession(get())
+          return
+        }
+
+        // Poll export job to completion (do not use resumeRenderPoll — it no-ops
+        // when pipelineJobId was cleared and isRenderingVideo is already true).
+        const mp4Ok = await renderMp4AndWait(get, set, async () => {
+          const { renderRes, renderData } = await requestVideoRender(get(), true)
+          if (
+            renderRes.ok &&
+            typeof renderData.videoUrl === 'string' &&
+            renderData.videoUrl
+          ) {
+            return { videoUrl: renderData.videoUrl }
+          }
+          if (!renderRes.ok) {
+            return {
+              error: String(renderData?.error || 'Video render unavailable'),
+            }
+          }
+          return {
+            exportJobId:
+              typeof renderData.jobId === 'string' ? renderData.jobId : undefined,
+            pollUrl:
+              typeof renderData.pollUrl === 'string'
+                ? renderData.pollUrl
+                : undefined,
+          }
+        })
+
+        const after = get()
+        if (
+          mp4Ok &&
+          (after.videoUrl?.trim() || after.pipelineStatus === 'mp4_complete')
+        ) {
+          set({ directingSceneLabel: null, eta: 0 })
+          persistSession(get())
+          return
+        }
+        set({
+          isGenerating: false,
+          generationInFlight: false,
+          generationStep: 'render',
+          generationStatus: 'failed',
+          failedAtStep: 'export',
+          pipelineStatus: after.pipelineStatus === 'failed' ? 'failed' : 'timeline_complete',
+          renderError:
+            after.renderError ??
+            'MP4 export did not finish — tap Retry to compile again.',
+          directingSceneLabel: null,
+        })
+      } catch (err) {
+        set({
+          isGenerating: false,
+          generationInFlight: false,
+          generationStep: 'render',
+          generationStatus: 'failed',
+          failedAtStep: 'export',
+          renderError:
+            err instanceof Error
+              ? err.message
+              : 'MP4 export failed — tap Retry to compile again.',
+          directingSceneLabel: null,
+        })
+      }
+      return
+    }
+
     if (state.savedProjectId) {
       clearStoredGenerationJobId(state.savedProjectId)
     }
@@ -2851,10 +3000,24 @@ export const useQuickCutGenerationStore = create<
         projectId: preserveProjectId,
         metadata: { resume_from: resumeFrom },
       })
+      // Resume UI should match the step we are continuing — never flash Researching @ 0%.
+      const resumeUiStep =
+        resumeFrom === 'storyboard' || resumeFrom === 'voice'
+          ? ('render' as const)
+          : resumeFrom === 'visual_direction'
+            ? ('scenes' as const)
+            : resumeFrom === 'script'
+              ? ('script' as const)
+              : resumeFrom === 'hook'
+                ? ('hook' as const)
+                : ('analyzing' as const)
+      const resumeProgress =
+        resumeUiStep === 'render' ? 92 : resumeUiStep === 'scenes' ? 40 : resumeUiStep === 'script' ? 18 : 8
       set({
         isGenerating: true,
         generationStatus: 'generating',
-        generationStep: 'analyzing',
+        generationStep: resumeUiStep,
+        progress: Math.max(prior.progress || 0, resumeProgress),
         error: null,
         failedAtStep: null,
         saveState: 'resumed',
@@ -3011,50 +3174,56 @@ export const useQuickCutGenerationStore = create<
     }
 
     try {
-      setStep(set, get, 'analyzing')
+      // Resume must not flash "Researching Topic" / 0% when scenes already exist.
+      if (!isResume) {
+        setStep(set, get, 'analyzing')
+      }
       // Mugtee Agent System — idea → story → screenplay → bibles → prompts (Agents 1–7)
-      try {
-        const {
-          runMugteeAgentSystem,
-          persistMugteeAgentPackage,
-          toCinematicStoryPackage,
-          companionLineForAgent,
-        } = await import('@/lib/mugtee-agents')
-        const { persistCinematicStoryPackage } = await import(
-          '@/lib/cinematic-story-engine'
-        )
-        const agentPkg = runMugteeAgentSystem(
-          {
-            idea: prompt,
-            durationSec: duration,
-            language: language || 'hi',
-            platform: blueprintPlatform,
-            style: tone,
-            advancedMode: false,
-          },
-          (event) => {
-            if (event.status !== 'completed') return
-            appendGenerationActivity({
-              id: `mugtee-agent-${event.agent}`,
-              label: event.line,
-              status: 'completed',
-              at: Date.now(),
-            })
-            set({ directingSceneLabel: event.line })
-          }
-        )
-        persistMugteeAgentPackage(agentPkg)
-        const storyPkg = toCinematicStoryPackage(agentPkg)
-        persistCinematicStoryPackage(storyPkg)
-        const leadLock =
-          agentPkg.characters[0]?.identityLock ||
-          storyPkg.characterBible.identityLock
-        set({
-          characterDescription: leadLock,
-          directingSceneLabel: companionLineForAgent('idea_analyzer'),
-        })
-      } catch {
-        /* non-blocking — pipeline continues */
+      // Skip on resume when scenes already exist (avoids re-running agents + UI reset).
+      if (!isResume || get().scenes.length === 0) {
+        try {
+          const {
+            runMugteeAgentSystem,
+            persistMugteeAgentPackage,
+            toCinematicStoryPackage,
+            companionLineForAgent,
+          } = await import('@/lib/mugtee-agents')
+          const { persistCinematicStoryPackage } = await import(
+            '@/lib/cinematic-story-engine'
+          )
+          const agentPkg = runMugteeAgentSystem(
+            {
+              idea: prompt,
+              durationSec: duration,
+              language: language || 'hi',
+              platform: blueprintPlatform,
+              style: tone,
+              advancedMode: false,
+            },
+            (event) => {
+              if (event.status !== 'completed') return
+              appendGenerationActivity({
+                id: `mugtee-agent-${event.agent}`,
+                label: event.line,
+                status: 'completed',
+                at: Date.now(),
+              })
+              set({ directingSceneLabel: event.line })
+            }
+          )
+          persistMugteeAgentPackage(agentPkg)
+          const storyPkg = toCinematicStoryPackage(agentPkg)
+          persistCinematicStoryPackage(storyPkg)
+          const leadLock =
+            agentPkg.characters[0]?.identityLock ||
+            storyPkg.characterBible.identityLock
+          set({
+            characterDescription: leadLock,
+            directingSceneLabel: companionLineForAgent('idea_analyzer'),
+          })
+        } catch {
+          /* non-blocking — pipeline continues */
+        }
       }
       await configPromise
       const profile = await fetchProfilePlanSnapshot()
@@ -3837,7 +4006,7 @@ export const useQuickCutGenerationStore = create<
 
         for (const { scene, index } of scenesToRender) {
           throwIfPipelineAborted()
-          set({ directingSceneLabel: `Generating Storyboard Images… Scene ${index + 1} of ${scenesToRender.length}` })
+          set({ directingSceneLabel: `Generating Storyboard Images… Scene ${index + 1} of ${scenesToRender.length}`, currentImageSceneIndex: index + 1 })
           try {
             const imgResult = await fetchSceneImages(
               {
@@ -3892,10 +4061,13 @@ export const useQuickCutGenerationStore = create<
             }
           } catch (err) {
             if (err instanceof ImageGenerationUnavailableError) throw err
+            if (err instanceof PlanLimitError) throw err
             logStepFailure('storyboard_scene', err, { sceneId: scene.id, index })
-            imgMock = true
-            anyMock = true
-            noteMissing('images')
+            patchSectionStatus(set, get, 'storyboard', 'failed')
+            patchSectionStatus(set, get, 'thumbnail', 'failed')
+            throw err instanceof Error
+              ? err
+              : new Error('Scene image generation failed')
           }
         }
 
@@ -3915,7 +4087,7 @@ export const useQuickCutGenerationStore = create<
           throw new Error(imageGate.message ?? 'Storyboard images incomplete')
         }
 
-        set({ directingSceneLabel: null, lastCompletedStep: 'storyboard' })
+        set({ directingSceneLabel: null, currentImageSceneIndex: 0, lastCompletedStep: 'storyboard' })
         patchSectionStatus(set, get, 'storyboard', 'completed')
         await syncPipelineJob(get, set, 'images')
         const sceneOneThumb = resolveActiveThumbnailUrl(null, scenes)
@@ -4003,6 +4175,7 @@ export const useQuickCutGenerationStore = create<
         })
         get().composeReelTimeline()
         commitPipelineStage(get, set, 'timeline_assembling', 'timeline')
+        // Captions soft-optional when voice was skipped (see reel-generation-orchestrator).
         if (!validateStageOrFail(get, set, 'captions')) {
           genPerf.end('export')
           throw new Error(get().renderError ?? 'Caption generation failed')
@@ -4142,12 +4315,15 @@ export const useQuickCutGenerationStore = create<
         durationSec: get().duration,
         requireSceneVideos: false,
       })
-      // Pack path may skip MP4; MP4 path requires quality engine pass
+      // Pack path may skip MP4. MP4 path: URL + mp4_complete is enough for success —
+      // quality warnings (e.g. soft voice skip) must not block the results screen.
       const contentReadyForResults = exportFailedFinal
         ? false
         : exportPackageReady && !videoRenderEnabled
           ? true
-          : mp4Ready && quality.readyForSuccessScreen
+          : mp4Ready &&
+            (quality.readyForSuccessScreen ||
+              Boolean(get().videoUrl?.trim() && posterFallback))
 
       const projectIdForCheckpoint = get().savedProjectId
       if (projectIdForCheckpoint) {
@@ -4838,7 +5014,16 @@ export const useQuickCutGenerationStore = create<
 
   retryVideoRender: async () => {
     const state = get()
-    if (state.videoUrl || state.scenes.length < 1 || state.isGenerating || state.isRenderingVideo) {
+    if (state.videoUrl || state.scenes.length < 1 || state.isRenderingVideo) {
+      return
+    }
+    // Allow export-only resume (marks isGenerating before calling us).
+    // Block only when a different pipeline stage is already running.
+    if (
+      state.isGenerating &&
+      state.generationStep !== 'render' &&
+      state.pipelineStatus !== 'mp4_rendering'
+    ) {
       return
     }
 
@@ -4938,33 +5123,60 @@ export const useQuickCutGenerationStore = create<
       }
 
       if (typeof renderData.videoUrl === 'string' && renderData.videoUrl) {
-        patchSectionStatus(set, get, 'export', 'completed')
-        set({
-          videoUrl: renderData.videoUrl,
-          renderPollUrl: null,
-          renderError: null,
-          exportExpired: false,
-          generationStep: 'complete',
-        })
+        completeMp4Pipeline(get, set, renderData.videoUrl)
         persistSession(get())
         return
       }
 
-      if (typeof renderData.pollUrl === 'string') {
-        set({ renderPollUrl: renderData.pollUrl, renderError: null, exportExpired: false })
-        await get().resumeRenderPoll()
+      const exportJobId =
+        typeof renderData.jobId === 'string' ? renderData.jobId : null
+      const pollUrl =
+        typeof renderData.pollUrl === 'string'
+          ? renderData.pollUrl
+          : exportJobId
+            ? (
+                await import('@/lib/reels/export-paths')
+              ).reelExportPollPath(exportJobId, get().savedProjectId ?? undefined)
+            : null
+
+      if (pollUrl) {
+        set({
+          renderPollUrl: pollUrl,
+          renderError: null,
+          exportExpired: false,
+          pipelineStatus: 'mp4_rendering',
+        })
+        try {
+          const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+          const url = await pollReelExportJob(pollUrl, {
+            projectId: get().savedProjectId,
+            onProgress: (patch) => {
+              const next =
+                typeof patch.progress === 'number'
+                  ? Math.max(92, Math.min(99, patch.progress))
+                  : Math.max(92, get().progress)
+              set({
+                progress: next,
+                renderStatusLabel: patch.label ?? get().renderStatusLabel,
+                pipelineStatus: 'mp4_rendering',
+              })
+            },
+          })
+          completeMp4Pipeline(get, set, url)
+          persistSession(get())
+        } catch (pollErr) {
+          const message = friendlyReelRenderError(
+            pollErr instanceof Error ? pollErr.message : 'Video render timed out'
+          )
+          failPipeline(get, set, 'export', message)
+          persistSession(get())
+        }
         return
       }
 
-      const sync = await requestVideoRender(state, false)
+      const sync = await requestVideoRender(get(), false)
       if (sync.renderRes.ok && typeof sync.renderData.videoUrl === 'string') {
-        patchSectionStatus(set, get, 'export', 'completed')
-        set({
-          videoUrl: sync.renderData.videoUrl,
-          renderPollUrl: null,
-          renderError: null,
-          generationStep: 'complete',
-        })
+        completeMp4Pipeline(get, set, sync.renderData.videoUrl)
         persistSession(get())
         return
       }
@@ -4972,36 +5184,18 @@ export const useQuickCutGenerationStore = create<
       const syncErr = friendlyReelRenderError(
         String(sync.renderData?.error || 'Video render unavailable')
       )
-      const packReady =
-        get().scenes.length > 0 &&
-        Boolean(get().voiceUrl?.trim()) &&
-        Boolean(get().script?.trim() || get().hook?.trim())
-      patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
-      set({
-        renderError: packReady ? null : syncErr,
-        renderPollUrl: null,
-        generationStep: 'complete',
-        ...(packReady ? { exportPackageReady: true } : {}),
-      })
+      failPipeline(get, set, 'export', syncErr)
       persistSession(get())
     } catch (err) {
       const message = friendlyReelRenderError(
         err instanceof Error ? err.message : 'Video render unavailable'
       )
-      const packReady =
-        get().scenes.length > 0 &&
-        Boolean(get().voiceUrl?.trim()) &&
-        Boolean(get().script?.trim() || get().hook?.trim())
-      patchSectionStatus(set, get, 'export', packReady ? 'completed' : 'failed')
-      set({
-        renderError: packReady ? null : message,
-        renderPollUrl: null,
-        generationStep: 'complete',
-        ...(packReady ? { exportPackageReady: true } : {}),
-      })
+      failPipeline(get, set, 'export', message)
       persistSession(get())
     } finally {
-      set({ isRenderingVideo: false })
+      if (get().pipelineStatus !== 'mp4_complete') {
+        set({ isRenderingVideo: false })
+      }
     }
   },
 
@@ -5030,8 +5224,16 @@ export const useQuickCutGenerationStore = create<
   },
 
   resumeRenderPoll: async () => {
-    const { pipelineJobId, videoUrl, isRenderingVideo, savedProjectId } = get()
-    if (!isValidGenerationJobId(pipelineJobId) || videoUrl || isRenderingVideo) return
+    const {
+      pipelineJobId,
+      videoUrl,
+      isRenderingVideo,
+      savedProjectId,
+      renderPollUrl,
+    } = get()
+    if (videoUrl?.trim()) return
+    // Allow re-entry when we already have an export poll URL (Retry path).
+    if (isRenderingVideo && !renderPollUrl) return
 
     const profile = await fetchProfilePlanSnapshot()
     if (
@@ -5042,6 +5244,47 @@ export const useQuickCutGenerationStore = create<
     ) {
       return
     }
+
+    // Direct export-job poll (does not require generation_jobs pipelineJobId).
+    if (renderPollUrl?.trim()) {
+      set({ isRenderingVideo: true, renderError: null, pipelineStatus: 'mp4_rendering' })
+      try {
+        const { pollReelExportJob } = await import('@/lib/reels/export-poll.client')
+        const url = await pollReelExportJob(renderPollUrl, {
+          projectId: savedProjectId,
+          onProgress: (patch) => {
+            const next =
+              typeof patch.progress === 'number'
+                ? Math.max(92, Math.min(99, patch.progress))
+                : Math.max(92, get().progress)
+            set({
+              progress: next,
+              renderStatusLabel: patch.label ?? get().renderStatusLabel,
+              pipelineStatus: 'mp4_rendering',
+            })
+          },
+        })
+        completeMp4Pipeline(get, set, url)
+        persistSession(get())
+      } catch (err) {
+        failPipeline(
+          get,
+          set,
+          'export',
+          friendlyReelRenderError(
+            err instanceof Error ? err.message : 'Video render timed out'
+          )
+        )
+        persistSession(get())
+      } finally {
+        if (get().pipelineStatus !== 'mp4_complete') {
+          set({ isRenderingVideo: false })
+        }
+      }
+      return
+    }
+
+    if (!isValidGenerationJobId(pipelineJobId)) return
 
     const poll = await pollGenerationJobOrchestrator(pipelineJobId, {
       projectId: savedProjectId,
@@ -5064,7 +5307,9 @@ export const useQuickCutGenerationStore = create<
     if (poll.status === 'mp4_rendering' && exportJobId) {
       set({ isRenderingVideo: true, renderError: null })
       const ok = await resumeMp4FromGenerationJob(get, set, exportJobId)
-      set({ isRenderingVideo: false })
+      if (!ok && get().pipelineStatus !== 'mp4_complete') {
+        set({ isRenderingVideo: false })
+      }
       if (ok) persistSession(get())
     }
   },

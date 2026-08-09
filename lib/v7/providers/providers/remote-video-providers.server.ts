@@ -1,13 +1,21 @@
 import 'server-only'
 
+import {
+  runwayVideoProvider,
+  seedanceVideoProvider,
+} from '@/lib/v7/providers/scene-video-legacy-bridge.server'
+import { wanVideoProvider } from '@/lib/v7/providers/providers/wan-video.server'
 import { createHttpVideoProvider } from '@/lib/v7/providers/video-provider-base.server'
 
-export const wanVideoProvider = createHttpVideoProvider({
-  id: 'wan',
-  displayName: 'Wan 2.1',
-  modelId: 'wan-2.1',
-  endpointEnv: 'WAN_VIDEO_URL',
-  apiKeyEnv: 'WAN_VIDEO_API_KEY',
+export { wanVideoProvider }
+export { seedanceVideoProvider, runwayVideoProvider }
+
+export const cogVideoXProvider = createHttpVideoProvider({
+  id: 'cogvideox',
+  displayName: 'CogVideoX',
+  modelId: 'cogvideox',
+  endpointEnv: 'COGVIDEOX_VIDEO_URL',
+  apiKeyEnv: 'COGVIDEOX_VIDEO_API_KEY',
   estimateMs: 240_000,
 })
 
@@ -20,13 +28,13 @@ export const hunyuanVideoProvider = createHttpVideoProvider({
   estimateMs: 240_000,
 })
 
-export const cogVideoXProvider = createHttpVideoProvider({
-  id: 'cogvideox',
-  displayName: 'CogVideoX',
-  modelId: 'cogvideox',
-  endpointEnv: 'COGVIDEOX_VIDEO_URL',
-  apiKeyEnv: 'COGVIDEOX_VIDEO_API_KEY',
-  estimateMs: 240_000,
+export const mochiVideoProvider = createHttpVideoProvider({
+  id: 'mochi',
+  displayName: 'Mochi',
+  modelId: 'mochi',
+  endpointEnv: 'MOCHI_VIDEO_URL',
+  apiKeyEnv: 'MOCHI_VIDEO_API_KEY',
+  estimateMs: 180_000,
 })
 
 export const ltxVideoProvider = createHttpVideoProvider({
@@ -35,15 +43,6 @@ export const ltxVideoProvider = createHttpVideoProvider({
   modelId: 'ltx-video',
   endpointEnv: 'LTX_VIDEO_URL',
   apiKeyEnv: 'LTX_VIDEO_API_KEY',
-  estimateMs: 180_000,
-})
-
-export const mochiVideoProvider = createHttpVideoProvider({
-  id: 'mochi',
-  displayName: 'Mochi',
-  modelId: 'mochi',
-  endpointEnv: 'MOCHI_VIDEO_URL',
-  apiKeyEnv: 'MOCHI_VIDEO_API_KEY',
   estimateMs: 180_000,
 })
 

@@ -325,17 +325,25 @@ export async function syncExportJobFromRenderJob(params: {
   storageBucket?: string
   metadata?: Record<string, unknown>
 }): Promise<void> {
-  await updateExportJob(params.jobId, {
-    status: params.status,
-    progress: params.progress,
-    render_url: params.renderUrl ?? undefined,
-    error: params.error ?? undefined,
-    metadata: {
-      label: params.label,
-      stage: params.stage,
-      storagePath: params.storagePath,
-      storageBucket: params.storageBucket,
-      ...params.metadata,
-    },
-  })
+  try {
+    await updateExportJob(params.jobId, {
+      status: params.status,
+      progress: params.progress,
+      render_url: params.renderUrl ?? undefined,
+      error: params.error ?? undefined,
+      metadata: {
+        label: params.label,
+        stage: params.stage,
+        storagePath: params.storagePath,
+        storageBucket: params.storageBucket,
+        ...params.metadata,
+      },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('cookies') || message.includes('request scope')) {
+      return
+    }
+    console.warn('[export_jobs] sync skipped', message)
+  }
 }

@@ -1,6 +1,8 @@
 import 'server-only'
 
 import fs from 'fs/promises'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { renderPipelineLog } from '@/lib/export/render-pipeline-log.server'
 
@@ -16,12 +18,16 @@ export type ReelStatus =
   | 'completed'
   | 'failed'
 
+async function resolveReelStorageClient(): Promise<SupabaseClient> {
+  return createSupabaseServiceClient() ?? (await createSupabaseServerClient())
+}
+
 export async function uploadReelMp4(params: {
   localPath: string
   projectId: string
   userId: string
 }): Promise<{ videoUrl: string; storagePath: string }> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await resolveReelStorageClient()
   const buffer = await fs.readFile(params.localPath)
   const storagePath = `${params.projectId}/final-reel.mp4`
   const fileSize = buffer.length
@@ -79,7 +85,7 @@ async function uploadReelToProjectAssets(params: {
   projectId: string
   userId: string
 }): Promise<{ videoUrl: string; storagePath: string } | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await resolveReelStorageClient()
   const buffer = await fs.readFile(params.localPath)
   const storagePath = `${params.userId}/${params.projectId}/final-reel.mp4`
 
@@ -102,7 +108,7 @@ export async function persistProjectReel(params: {
   thumbnailUrl?: string | null
   reelStatus?: ReelStatus
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await resolveReelStorageClient()
   const now = new Date().toISOString()
   const status = params.reelStatus ?? 'ready'
   const dbReelStatus = status === 'ready' ? 'completed' : status
@@ -143,7 +149,7 @@ export async function updateProjectReelStatus(params: {
   reelStatus: ReelStatus
   reelJobId?: string | null
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await resolveReelStorageClient()
   const patch: Record<string, unknown> = {
     reel_status: params.reelStatus,
     updated_at: new Date().toISOString(),

@@ -21,6 +21,7 @@ import type {
   V7VideoProvider,
   V7VideoProviderHealth,
 } from '@/lib/v7/providers/video-provider.types'
+import { availableVideoModelsFromSingleId } from '@/lib/v7/providers/video-model-discovery.server'
 
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -67,6 +68,29 @@ export const imageAnimationVideoProvider: V7VideoProvider = {
     return resolveFfmpegPath()
       ? { healthy: true }
       : { healthy: false, message: 'FFmpeg not configured' }
+  },
+
+  availableModels: async () => ({
+    models: ['ffmpeg-ken-burns'],
+    preferred: 'ffmpeg-ken-burns',
+  }),
+
+  availableVideoModels: async () => availableVideoModelsFromSingleId('ffmpeg-ken-burns'),
+
+  accountCapabilities: async () => {
+    if (!resolveFfmpegPath()) {
+      return {
+        authenticated: false,
+        entitled: false,
+        reason: 'NOT_CONFIGURED',
+        message: 'FFmpeg not configured',
+      }
+    }
+    return {
+      authenticated: true,
+      entitled: true,
+      entitledModels: ['ffmpeg-ken-burns'],
+    }
   },
 
   estimateCost: () => 0,

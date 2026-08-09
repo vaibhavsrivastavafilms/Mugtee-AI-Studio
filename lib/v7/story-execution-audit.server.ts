@@ -1,6 +1,14 @@
 import 'server-only'
 
 import type { FacelessRenderInput } from '@/lib/video/types'
+import { resolveMvpRoyaltyFreeMusicUrl } from '@/lib/v3/music.server'
+import {
+  assertProductionRenderAllowed,
+  assertRealVoiceRequired,
+  allowSilentVoiceFallback,
+  isSlideshowOrFallbackVideo,
+  slideshowVideoBlockerMessage,
+} from '@/lib/v7/production-integrity.server'
 import type { V7ProductionSnapshot } from '@/types/v7/production'
 import {
   buildV7ScenePackages,
@@ -105,9 +113,12 @@ function isPortraitFallbackPrompt(text: string | null | undefined): boolean {
 
 function packageVideoFallback(board: Record<string, unknown> | null | undefined): boolean {
   const meta = board?.videoMetadata as { fallback?: boolean; provider?: string } | undefined
-  if (meta?.fallback === true) return true
-  if (meta?.provider === 'image-animation') return true
-  return false
+  return isSlideshowOrFallbackVideo({
+    provider: meta?.provider ?? (board?.animationProvider as string | undefined),
+    fallback: meta?.fallback,
+    videoUrl: board?.videoUrl as string | undefined,
+    imageUrl: board?.imageUrl as string | undefined,
+  })
 }
 
 function packageGrounded(pkg: V7ScenePackage, board: Record<string, unknown> | null | undefined): {
@@ -123,9 +134,7 @@ function packageGrounded(pkg: V7ScenePackage, board: Record<string, unknown> | n
   }
 
   if (packageVideoFallback(board)) {
-    if (pkg.videoUrl && pkg.imageUrl && pkg.videoUrl.trim() === pkg.imageUrl.trim()) {
-      issues.push('video reuses still URL — Ken Burns portrait fallback')
-    }
+    issues.push(slideshowVideoBlockerMessage(`Scene ${pkg.sceneNumber}`))
   }
 
   if (isPlaceholderAssetUrl(pkg.imageUrl) || isPlaceholderAssetUrl(pkg.videoUrl)) {
@@ -203,10 +212,13 @@ export function auditV9TimelineCounts(params: {
     soundTracks?: unknown[]
   } | null
   const timelineFromPackages = buildV7TimelineFromPackages(packages)
-  const timelineClipCount =
-    (timelineFromProduction as { scenes?: Array<{ videoUrl?: string | null }> } | null)?.scenes?.filter(
-      (s) => s.videoUrl?.trim()
-    ).length ?? timelineFromPackages.scenes.filter((s) => s.videoUrl?.trim()).length
+  const editTimelineScenes = (timelineFromProduction as {
+    scenes?: Array<{ videoUrl?: string | null; imageUrl?: string | null }>
+  } | null)?.scenes
+  const editTimelineClips = editTimelineScenes?.filter((s) => s.videoUrl?.trim()).length ?? 0
+  const packageTimelineClips = timelineFromPackages.scenes.filter((s) => s.videoUrl?.trim()).length
+  // Edit checkpoint can lag scene storyboard — trust screenplay packages when edit media is empty.
+  const timelineClipCount = editTimelineClips > 0 ? editTimelineClips : packageTimelineClips
   const timelineShotCount =
     timelineFromProduction?.shotCount ??
     timelineFromPackages.shotCount ??
@@ -214,7 +226,9 @@ export function auditV9TimelineCounts(params: {
   const renderClipCount = renderInput?.scenes.filter((s) => s.videoUrl?.trim()).length ?? generatedVideoCount
   const voiceSegmentCount = packages.filter((p) => p.narration.trim() || p.dialogue.trim()).length
   const finalDurationSec = timelineFromPackages.durationSec
-  const musicPresent = Boolean(snapshot.production.music_url?.trim())
+  const musicPresent = Boolean(
+    snapshot.production.music_url?.trim() || resolveMvpRoyaltyFreeMusicUrl()?.trim()
+  )
   const soundTrackCount =
     (timelineFromProduction?.soundTracks?.length ?? 0) ||
     buildV7ProductionTimeline({ snapshot }).soundTracks.length
@@ -246,12 +260,20 @@ export function auditV9TimelineCounts(params: {
     mismatchReasons.push(`timeline shots (${timelineShotCount}) ≠ storyboard shots (${expectedShots})`)
   }
   if (!musicPresent) {
-    mismatchReasons.push('music URL missing from production')
+    mismatchReasons.push(
+      'music missing — configure MUSICGEN_URL or MVP_ROYALTY_FREE_MUSIC_URL before export'
+    )
   }
-  if (process.env.AUDIOGEN_URL?.trim() && soundTrackCount === 0) {
-    warnings.push('AudioGen configured but no SFX tracks attached to timeline')
-  } else if (soundTrackCount === 0) {
-    warnings.push('no sound design tracks in timeline — ambience layer empty')
+  if (soundTrackCount === 0) {
+    if (process.env.AUDIOGEN_URL?.trim()) {
+      mismatchReasons.push(
+        'sound design missing — AudioGen is configured but produced no SFX tracks'
+      )
+    } else {
+      warnings.push(
+        'sound design missing — render will continue without environment SFX (AUDIOGEN_URL not configured)'
+      )
+    }
   }
   if (editTimeline?.sceneCount != null && editTimeline.sceneCount !== expected) {
     mismatchReasons.push(
@@ -259,15 +281,15 @@ export function auditV9TimelineCounts(params: {
     )
   }
 
-  const editScenes = editTimeline?.scenes
+  const editScenes = editTimelineScenes
   if (Array.isArray(editScenes) && editScenes.length > 0) {
     const nullMedia = editScenes.filter((row) => {
       const scene = row as { videoUrl?: string | null; imageUrl?: string | null }
       return !scene.videoUrl?.trim() && !scene.imageUrl?.trim()
     }).length
-    if (nullMedia === editScenes.length && generatedVideoCount === expected) {
-      mismatchReasons.push(
-        'edit stage timeline has null media URLs — screenplay assets exist only in v7_scenes.storyboard'
+    if (nullMedia === editScenes.length && packageTimelineClips === expected) {
+      warnings.push(
+        'edit stage timeline has stale null media URLs — using storyboard scene packages for clip count'
       )
     }
   }
@@ -389,9 +411,7 @@ export function runV9StoryExecutionAudit(params: {
     renderClips,
     voiceUrl: params.voiceUrl ?? params.snapshot.production.voice_url,
     voiceResolved: Boolean(
-      params.voiceUrl?.trim() ||
-        params.snapshot.production.voice_url?.trim() ||
-        narrationTextLength > 0
+      params.voiceUrl?.trim() || params.snapshot.production.voice_url?.trim()
     ),
     narrationTextLength,
     subtitleCount: params.renderInput?.subtitles.length ?? 0,
@@ -430,8 +450,18 @@ export function validateV92RenderedMovie(params: {
   if (params.audit.subtitleCount === 0) {
     issues.push('captions not included in render input')
   }
-  if (!params.audit.voiceResolved && params.audit.narrationTextLength === 0) {
+  if (params.audit.narrationTextLength === 0) {
     issues.push('narration missing from screenplay')
+  }
+  if (
+    params.audit.narrationTextLength > 0 &&
+    !params.audit.voiceResolved &&
+    !allowSilentVoiceFallback()
+  ) {
+    issues.push('voiceover file missing — silent renders are not permitted')
+  }
+  if (renderResult.mock) {
+    issues.push('mock MP4 render is not permitted')
   }
 
   return issues

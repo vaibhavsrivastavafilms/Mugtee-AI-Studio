@@ -28,6 +28,12 @@ import {
   type V7ScenePackage,
 } from '@/lib/v7/scene-package.server'
 import {
+  assertProductionRenderAllowed,
+  assertRealVoiceRequired,
+  allowSilentVoiceFallback,
+} from '@/lib/v7/production-integrity.server'
+import { validateSceneVideoSourcesForRender } from '@/lib/v7/render-media-validation.server'
+import {
   assertV9StoryExecutionReady,
   logV92Report,
   runV9StoryExecutionAudit,
@@ -113,20 +119,18 @@ async function resolveV7VoiceUrl(snapshot: V7ProductionSnapshot): Promise<string
   if (existing) return existing
 
   const narration = mergeV7VoiceNarration(snapshot)
-  const cascade = await synthesizeWithCascade(narration.trim() || ' ', { allowSilentStub: true })
-  if (cascade.buffer) {
+  const cascade = await synthesizeWithCascade(narration.trim() || ' ', {
+    allowSilentStub: allowSilentVoiceFallback(),
+  })
+  if (cascade.buffer && cascade.provider !== 'silent') {
     return `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`
   }
 
-  console.warn(
-    '[V9_WARNING]',
-    JSON.stringify({
-      event: 'voice_synthesis_failed',
-      productionId: snapshot.production.id,
-      narrationLength: narration.trim().length,
-      fallback: 'ffmpeg_silence_at_render',
-    })
-  )
+  assertRealVoiceRequired({
+    voiceUrl: null,
+    provider: cascade.provider,
+    narrationLength: narration.trim().length,
+  })
 
   return null
 }
@@ -194,9 +198,12 @@ export async function executeV7Render(params: {
     throw new Error(`Render blocked — storyboard grounding incomplete: ${groundingIssues.join('; ')}`)
   }
 
+  assertProductionRenderAllowed()
+
   const voiceUrl = await resolveV7VoiceUrl(params.snapshot)
   const sceneMotion = resolveV7SceneMotion(params.snapshot)
   const renderInput = buildV7RenderInput(params.snapshot, voiceUrl)
+  await validateSceneVideoSourcesForRender(renderInput.scenes)
   const packages = buildV7ScenePackages(params.snapshot)
   const expectedDurationSec = packages.reduce((sum, pkg) => sum + Math.max(2, pkg.durationSec), 0)
 
@@ -212,13 +219,8 @@ export async function executeV7Render(params: {
   const sfxTracks = readTimelineSoundTracks(params.snapshot)
 
   if (process.env.VIDEO_RENDER_MOCK === 'true') {
-    console.warn(
-      '[V9_WARNING]',
-      JSON.stringify({
-        event: 'mock_render_mode',
-        productionId: production.id,
-        message: 'Running in mock animation mode. Final cinematic quality unavailable.',
-      })
+    throw new Error(
+      'Mock render path reached despite production integrity guard — check V7_ALLOW_MOCK_RENDER'
     )
   }
 
@@ -230,6 +232,9 @@ export async function executeV7Render(params: {
   })
 
   if (!result.videoUrl) throw new Error('Render did not produce an MP4')
+  if (result.mock) {
+    throw new Error('Mock MP4 render is not permitted — configure real Remotion/FFmpeg export')
+  }
 
   const postRenderIssues = validateV92RenderedMovie({
     audit,

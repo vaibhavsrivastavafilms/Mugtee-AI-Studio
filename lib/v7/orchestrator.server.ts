@@ -42,6 +42,21 @@ import {
   V7StageExecutionError,
 } from '@/lib/v7/api-errors.server'
 import {
+  V7AllProvidersFailedError,
+  V7ProviderRequestError,
+} from '@/lib/v7/providers/text-errors.server'
+import {
+  V7AllVideoProvidersFailedError,
+  V7VideoProviderRequestError,
+} from '@/lib/v7/providers/video-errors.server'
+import { formatV7AnimationStageError } from '@/lib/v7/providers/video-chain-result.server'
+import { ProviderManager } from '@/lib/v7/providers/provider-manager.server'
+import {
+  assertV7MusicProviderConfigured,
+  assertV7SoundProviderConfigured,
+  V7ProviderNotAvailableError,
+} from '@/lib/v7/provider-availability.server'
+import {
   acquireProductionLock,
   canStartStage,
   enqueueNextPipelineStage,
@@ -91,6 +106,7 @@ export async function startV7Production(params: {
   })
 
   try {
+    await ProviderManager.assertTextReady({ userId: params.userId, productionId })
     const { brief, durationMs } = await runV7IdeaAnalyzer({
       prompt: params.prompt,
       productionId,
@@ -275,8 +291,30 @@ export async function advanceV7Production(params: {
     if (!snapshot) throw new Error('Production not found after stage')
     return toV7AdvanceSnapshot(snapshot, { blocked: false })
   } catch (error) {
-    logV7StageError({ stage, productionId: params.productionId, error })
-    const message = error instanceof Error ? error.message : `${stage} failed`
+    const failureProvider =
+      error instanceof V7ProviderRequestError
+        ? error.provider
+        : error instanceof V7VideoProviderRequestError
+          ? error.provider
+          : error instanceof V7AllProvidersFailedError ||
+              error instanceof V7AllVideoProvidersFailedError
+            ? error.failures[error.failures.length - 1]?.provider
+            : error instanceof V7ProviderNotAvailableError
+              ? error.provider
+              : undefined
+
+    logV7StageError({
+      stage,
+      productionId: params.productionId,
+      provider: failureProvider,
+      error,
+    })
+    const message =
+      stage === 'animation'
+        ? formatV7AnimationStageError(error)
+        : error instanceof Error
+          ? error.message
+          : `${stage} failed`
     await upsertV7Stage(params.supabase, {
       productionId: params.productionId,
       stage,
@@ -287,7 +325,10 @@ export async function advanceV7Production(params: {
       status: 'failed',
       current_stage: stage,
     })
-    throw new V7StageExecutionError(stage, error, { productionId: params.productionId })
+    throw new V7StageExecutionError(stage, error, {
+      productionId: params.productionId,
+      provider: failureProvider,
+    })
   } finally {
     await releaseProductionLock({
       supabase: params.supabase,
@@ -448,6 +489,7 @@ async function executeV7Stage(
   if (!snapshot) throw new Error('Snapshot missing')
 
     if (stage === 'image') {
+    await ProviderManager.assertImageReady({ userId, productionId })
     const { images } = await runV7ImageStage({
       brief,
       direction,
@@ -457,6 +499,7 @@ async function executeV7Stage(
       productionId,
       characterBible,
       worldBible,
+      supabase,
     })
 
     const successful = images.filter((img) => img.row.image_url?.trim())
@@ -479,6 +522,7 @@ async function executeV7Stage(
   }
 
   if (stage === 'animation') {
+    await ProviderManager.assertVideoReady({ userId, productionId, forceRefresh: true })
     const { sceneMotion, sceneUpdates, provider, durationMs } = await runV7AnimationStage({
       brief,
       direction,
@@ -490,21 +534,28 @@ async function executeV7Stage(
         storyboard: s.storyboard as Record<string, unknown>,
       })),
       productionId,
+      supabase,
     })
 
     for (const update of sceneUpdates) {
-      const scene = snapshot.scenes.find((s) => s.id === update.sceneId)
-      if (!scene) continue
+      const { data: current } = await supabase
+        .from('v7_scenes')
+        .select('storyboard')
+        .eq('id', update.sceneId)
+        .maybeSingle()
+
+      const storyboard = (current?.storyboard as Record<string, unknown> | null) ?? {}
+
       await supabase
         .from('v7_scenes')
         .update({
           storyboard: {
-            ...(scene.storyboard as Record<string, unknown>),
+            ...storyboard,
             motionPresetId: update.motionPresetId,
             animationProvider: provider,
           },
         })
-        .eq('id', scene.id)
+        .eq('id', update.sceneId)
     }
 
     const existingTimeline =
@@ -537,6 +588,7 @@ async function executeV7Stage(
         snapshot,
         characterBible,
         worldBible,
+        supabase,
       })
     if (voiceUrl) {
       await updateV7Production(supabase, productionId, userId, { voice_url: voiceUrl })
@@ -557,7 +609,16 @@ async function executeV7Stage(
   }
 
   if (stage === 'music') {
+    assertV7MusicProviderConfigured()
     const { musicUrl, provider, durationMs } = await runV7MusicStage({ brief })
+    if (!musicUrl?.trim()) {
+      throw new V7ProviderNotAvailableError({
+        provider: provider ?? 'music',
+        stage: 'music',
+        requiredEnv: ['MUSICGEN_URL', 'MVP_ROYALTY_FREE_MUSIC_URL', 'V3_MUSIC_URL'],
+        message: 'Music stage completed without a music track URL.',
+      })
+    }
     await updateV7Production(supabase, productionId, userId, { music_url: musicUrl })
     await upsertV7Stage(supabase, {
       productionId,
@@ -569,12 +630,24 @@ async function executeV7Stage(
   }
 
   if (stage === 'sound') {
+    const audiogenConfigured = Boolean(process.env.AUDIOGEN_URL?.trim())
+    if (audiogenConfigured) {
+      assertV7SoundProviderConfigured()
+    }
     const { sfx, provider, durationMs } = await runV7SoundStage({ script, storyboard, snapshot })
+    if (audiogenConfigured && (!Array.isArray(sfx) || sfx.length === 0)) {
+      throw new V7ProviderNotAvailableError({
+        provider: provider ?? 'sound-design',
+        stage: 'sound',
+        requiredEnv: ['AUDIOGEN_URL'],
+        message: 'Sound stage completed without environment sound effects.',
+      })
+    }
     await upsertV7Stage(supabase, {
       productionId,
       stage,
       status: 'completed',
-      output: { sfx, provider, durationMs },
+      output: { sfx: sfx ?? [], provider, durationMs },
     })
     return
   }
@@ -611,7 +684,10 @@ async function executeV7Stage(
   if (stage === 'quality') {
     const freshSnapshot = await getV7Production(supabase, productionId, userId)
     if (!freshSnapshot) throw new Error('Snapshot missing before quality check')
-    const { passed, issues, durationMs } = await runV7QualityStage({ snapshot: freshSnapshot })
+    const { passed, issues, durationMs } = await runV7QualityStage({
+      snapshot: freshSnapshot,
+      supabase,
+    })
     await upsertV7Stage(supabase, {
       productionId,
       stage,

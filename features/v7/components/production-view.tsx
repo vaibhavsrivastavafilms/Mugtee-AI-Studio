@@ -2,17 +2,18 @@
 
 import { Check, Circle, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { V7ProductionStatus, V7TimelineStage } from '@/types/v7/production'
+import { V7ProductionProgressPanel } from '@/features/v7/components/production-progress-panel'
+import { useProductionProgress } from '@/features/v7/hooks/use-production-progress'
+import { resolveV7SceneProgress } from '@/lib/v7/production-progress'
+import type {
+  V7ProductionSnapshot,
+  V7ProductionStatus,
+  V7StageId,
+  V7TimelineStage,
+} from '@/types/v7/production'
 
 type V7ProductionViewProps = {
-  title: string
-  prompt: string
-  status: V7ProductionStatus
-  timeline: V7TimelineStage[]
-  reelUrl?: string | null
-  movUrl?: string | null
-  thumbnailUrl?: string | null
-  creatorPackUrl?: string | null
+  snapshot: V7ProductionSnapshot
   onRetry?: () => void
   retrying?: boolean
   className?: string
@@ -26,20 +27,28 @@ function StageIcon({ status }: { status: V7TimelineStage['status'] }) {
   return <Circle className="h-4 w-4 text-white/20" />
 }
 
-export function V7ProductionView({
-  title,
-  prompt,
-  status,
-  timeline,
-  reelUrl,
-  movUrl,
-  thumbnailUrl,
-  creatorPackUrl,
-  onRetry,
-  retrying,
-  className,
-}: V7ProductionViewProps) {
-  const hasFailed = timeline.some((s) => s.status === 'failed')
+function sceneStageDetail(snapshot: V7ProductionSnapshot, stageId: V7StageId): string | null {
+  const timelineStage = snapshot.timeline.find((stage) => stage.id === stageId)
+  if (timelineStage?.status !== 'running' && timelineStage?.status !== 'blocked') return null
+
+  const scene = resolveV7SceneProgress(snapshot, stageId)
+  if (!scene) return null
+  return `Scene ${scene.completedScenes}/${scene.totalScenes} · ${scene.scenePercent}%`
+}
+
+export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7ProductionViewProps) {
+  const progress = useProductionProgress(snapshot)
+  const { production, timeline } = snapshot
+
+  const title = production.title
+  const prompt = production.prompt
+  const status = production.status as V7ProductionStatus
+  const reelUrl = production.reel_url
+  const movUrl = production.mov_url
+  const thumbnailUrl = production.thumbnail_url
+  const creatorPackUrl = production.creator_pack_url
+
+  const hasFailed = timeline.some((stage) => stage.status === 'failed')
   const isFinished = status === 'completed' && Boolean(reelUrl)
   const showProgress = !isFinished
 
@@ -57,44 +66,60 @@ export function V7ProductionView({
         <p className="mt-2 text-sm text-white/50 line-clamp-2">{prompt}</p>
       </header>
 
+      {progress && showProgress ? <V7ProductionProgressPanel progress={progress} className="mb-6" /> : null}
+
+      {progress && isFinished ? (
+        <V7ProductionProgressPanel progress={progress} className="mb-6" />
+      ) : null}
+
       {showProgress ? (
-        <ol className="space-y-2" aria-label="Production progress">
-          {timeline.map((stage) => (
-            <li
-              key={stage.id}
-              className={cn(
-                'flex items-center gap-3 rounded-xl border px-4 py-3 transition',
-                stage.status === 'running' && 'border-[#D4AF37]/40 bg-[#D4AF37]/5',
-                stage.status === 'completed' && 'border-white/[0.06] bg-white/[0.02]',
-                stage.status === 'failed' && 'border-red-500/30 bg-red-500/5',
-                stage.status === 'blocked' && 'border-amber-500/20 bg-amber-500/5 opacity-80',
-                stage.status === 'pending' && 'border-white/[0.04] opacity-60'
-              )}
-            >
-              <StageIcon status={stage.status} />
-              <span className="text-lg" aria-hidden>
-                {stage.emoji}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white/90">{stage.label}…</p>
-                {stage.error ? (
-                  <p className="mt-0.5 text-xs text-red-300/80 truncate">{stage.error}</p>
-                ) : null}
-              </div>
-            </li>
-          ))}
+        <ol className="space-y-2" aria-label="Production stages">
+          {timeline.map((stage) => {
+            const sceneDetail = sceneStageDetail(snapshot, stage.id)
+            return (
+              <li
+                key={stage.id}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl border px-4 py-3 transition',
+                  stage.status === 'running' && 'border-[#D4AF37]/40 bg-[#D4AF37]/5',
+                  stage.status === 'completed' && 'border-white/[0.06] bg-white/[0.02]',
+                  stage.status === 'failed' && 'border-red-500/30 bg-red-500/5',
+                  stage.status === 'blocked' && 'border-amber-500/20 bg-amber-500/5 opacity-80',
+                  stage.status === 'pending' && 'border-white/[0.04] opacity-60'
+                )}
+              >
+                <StageIcon status={stage.status} />
+                <span className="text-lg" aria-hidden>
+                  {stage.emoji}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white/90">
+                    {stage.label}
+                    {stage.status === 'running' ? '…' : ''}
+                  </p>
+                  {sceneDetail ? (
+                    <p className="mt-0.5 text-xs text-[#E6C76A]/80">{sceneDetail}</p>
+                  ) : null}
+                  {stage.error ? (
+                    <p className="mt-0.5 truncate text-xs text-red-300/80">{stage.error}</p>
+                  ) : null}
+                </div>
+              </li>
+            )
+          })}
         </ol>
       ) : null}
 
       {isFinished ? (
         <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-          <p className="text-center text-lg font-semibold text-emerald-300">Your movie is ready.</p>
+          <p className="text-center text-lg font-semibold text-emerald-300">Production complete</p>
+          <p className="mt-1 text-center text-sm text-emerald-200/70">Your movie is ready.</p>
           <video
             src={reelUrl!}
             controls
             playsInline
             poster={thumbnailUrl ?? undefined}
-            className="mt-4 mx-auto max-h-[70vh] w-full max-w-lg rounded-xl bg-black"
+            className="mx-auto mt-4 max-h-[70vh] w-full max-w-lg rounded-xl bg-black"
           />
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <a
@@ -126,7 +151,14 @@ export function V7ProductionView({
         </div>
       ) : hasFailed ? (
         <div className="mt-8 text-center">
-          <p className="text-sm text-red-300/90">Production paused at a failed stage.</p>
+          <p className="text-sm text-red-300/90">
+            {progress?.paused?.failedStageLabel
+              ? `Production paused at ${progress.paused.failedStageLabel}.`
+              : 'Production paused at a failed stage.'}
+          </p>
+          {progress?.paused?.reason ? (
+            <p className="mx-auto mt-2 max-w-md text-xs text-red-200/70">{progress.paused.reason}</p>
+          ) : null}
           {onRetry ? (
             <button
               type="button"
@@ -138,10 +170,6 @@ export function V7ProductionView({
             </button>
           ) : null}
         </div>
-      ) : showProgress ? (
-        <p className="mt-8 text-center text-sm text-white/40 animate-pulse">
-          Mugtee is working on your film…
-        </p>
       ) : null}
     </div>
   )

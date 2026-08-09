@@ -2,6 +2,8 @@ import 'server-only'
 
 /** V7 text provider slot identifiers — internal only, never shown in UI. */
 export type V7TextProviderId =
+  | 'gemini'
+  | 'openrouter'
   | 'openrouter-qwen'
   | 'openrouter-deepseek'
   | 'groq'
@@ -32,6 +34,17 @@ export type V7TextProviderHealth = {
   healthy: boolean
   latencyMs?: number
   message?: string
+  connected?: boolean
+  server?: boolean
+  installedModels?: string[]
+  selectedModel?: string
+  preferredModel?: string
+  ready?: boolean
+  downloading?: boolean
+  downloadPercentage?: number
+  downloadSpeed?: number
+  remainingBytes?: number
+  etaSeconds?: number
 }
 
 export interface V7TextProvider {

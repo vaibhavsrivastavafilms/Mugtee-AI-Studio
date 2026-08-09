@@ -4,6 +4,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { runFfmpeg } from '@/lib/video/render-pipeline'
 import { isFfmpegAvailable } from '@/lib/video/ffmpeg-path.server'
@@ -28,13 +29,17 @@ async function downloadToBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
+async function resolveExportStorageClient() {
+  return createSupabaseServiceClient() ?? (await createSupabaseServerClient())
+}
+
 async function uploadBuffer(params: {
   bucket: string
   storagePath: string
   buffer: Buffer
   contentType: string
 }): Promise<string> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await resolveExportStorageClient()
   const { error } = await supabase.storage.from(params.bucket).upload(params.storagePath, params.buffer, {
     contentType: params.contentType,
     upsert: true,

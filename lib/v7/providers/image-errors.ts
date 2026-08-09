@@ -8,6 +8,11 @@ export type V7ImageProviderErrorCode =
   | 'PROVIDER_INVALID_RESPONSE'
   | 'PROVIDER_UNHEALTHY'
   | 'ALL_PROVIDERS_FAILED'
+  | 'IMAGE_PROVIDER_NOT_READY'
+  | 'IMAGE_PROMPT_VALIDATION_FAILED'
+  | 'IMAGE_STORY_MISMATCH'
+  | 'FOREIGN_IMAGE_DETECTED'
+  | 'IMAGE_GENERATION_RELEVANCE_FAILED'
 
 export class V7ImageProviderRequestError extends Error {
   readonly code: V7ImageProviderErrorCode
@@ -25,6 +30,21 @@ export class V7ImageProviderRequestError extends Error {
     this.provider = provider
     this.httpStatus = options?.httpStatus
     if (options?.cause) this.cause = options.cause
+  }
+}
+
+export class V7ImageProviderNotReadyError extends Error {
+  readonly code = 'IMAGE_PROVIDER_NOT_READY' as const
+  readonly provider = 'pollinations' as const
+  readonly reason: string
+  readonly action: string
+
+  constructor(params: { reason?: string | null; action?: string | null }) {
+    const reason = params.reason ?? 'Pollinations image provider is not ready'
+    super(reason)
+    this.name = 'V7ImageProviderNotReadyError'
+    this.reason = reason
+    this.action = params.action ?? 'Retry later or set POLLINATIONS_API_KEY if required.'
   }
 }
 
@@ -46,6 +66,37 @@ export class V7AllImageProvidersFailedError extends Error {
     super('ALL_PROVIDERS_FAILED')
     this.name = 'V7AllImageProvidersFailedError'
     this.failures = failures
+  }
+}
+
+export class V7ImagePromptValidationError extends Error {
+  readonly code = 'IMAGE_PROMPT_VALIDATION_FAILED' as const
+  readonly provider = 'pollinations' as const
+  readonly sceneNumber: number
+  readonly missingRequirements: string[]
+  readonly forbiddenTermsFound: string[]
+  readonly finalPrompt: string
+  readonly negativePrompt: string
+  readonly score: number
+
+  constructor(params: {
+    sceneNumber: number
+    missingRequirements: string[]
+    forbiddenTermsFound: string[]
+    finalPrompt: string
+    negativePrompt: string
+    score: number
+  }) {
+    super(
+      `IMAGE_PROMPT_VALIDATION_FAILED scene ${params.sceneNumber}: score ${params.score}/100`
+    )
+    this.name = 'V7ImagePromptValidationError'
+    this.sceneNumber = params.sceneNumber
+    this.missingRequirements = params.missingRequirements
+    this.forbiddenTermsFound = params.forbiddenTermsFound
+    this.finalPrompt = params.finalPrompt
+    this.negativePrompt = params.negativePrompt
+    this.score = params.score
   }
 }
 
@@ -81,6 +132,7 @@ export function classifyV7ImageUnknownError(
 }
 
 export function isV7ImageRetryableError(err: unknown): boolean {
+  if (err instanceof V7ImagePromptValidationError) return false
   if (!(err instanceof V7ImageProviderRequestError)) return false
   if (err.code === 'PROVIDER_AUTH_FAILED') return false
   if (err.code === 'PROVIDER_INVALID_RESPONSE') return false

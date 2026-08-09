@@ -22,6 +22,13 @@ import { downloadToFile, ensureDir, extFromUrl } from '@/lib/video/download-asse
 import { downloadSceneImageForRender } from '@/lib/export/project-asset-download.server'
 import { resolveVoiceAudioPathForRender } from '@/lib/export/render-audio-fallback.server'
 import { localPathToDataUrl } from '@/lib/remotion/local-asset-url'
+import {
+  classifyRenderMediaSource,
+  sanitizeRenderSessionKey,
+  sanitizeRenderUrlForLog,
+  toRemotionBundlePublicSrc,
+} from '@/lib/v7/render-media-validation.server'
+import { validateLocalVideoFile } from '@/lib/v7/providers/video-provider-base.server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
 import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
 import {
@@ -58,6 +65,7 @@ import {
   resolveOffthreadVideoCacheBytes,
   resolveRemotionConcurrency,
   resolveRemotionCrf,
+  resolveRemotionDelayRenderTimeoutMs,
   resolveRemotionX264Preset,
 } from '@/lib/remotion/render-settings.server'
 import { logMemoryTrace } from '@/lib/video/render-memory-trace.server'
@@ -149,7 +157,13 @@ export async function renderRemotionReel(
     const reelScenes: ReelSceneInput[] = []
     let thumbnailLocalPath: string | null = null
     let dataUrlAssetCount = 0
-    let httpAssetCount = 0
+    let localBundleAssetCount = 0
+
+    const serveUrl = await getServeUrl()
+    const renderSessionKey = sanitizeRenderSessionKey(input.projectId ?? path.basename(workDir))
+    const renderPublicDir = path.join(serveUrl, 'public', 'mugtee-render', renderSessionKey)
+    await fs.mkdir(renderPublicDir, { recursive: true })
+
     for (let i = 0; i < timedScenes.length; i++) {
       const scene = timedScenes[i]
       const imageUrl = (await resolveSceneRenderImageUrl(scene))?.trim() ?? ''
@@ -211,19 +225,55 @@ export async function renderRemotionReel(
       const imageSrc = await localPathToDataUrl(localImage)
       dataUrlAssetCount += 1
 
-      // Production OS V3 — download per-scene video when present (true motion)
+      // Scene video — download from persisted Supabase URL, stage locally for Remotion bundle server.
+      // Do NOT pass remote HTTPS URLs (proxy re-download + 20s idle timeout) or data:video URIs.
       let videoSrc: string | null = null
       const sceneVideoUrl = scene.videoUrl?.trim()
       if (sceneVideoUrl) {
-        try {
-          const vExt = extFromUrl(sceneVideoUrl, '.mp4')
-          const localVideo = path.join(workDir, `scene_${i}_clip${vExt}`)
-          await downloadToFile(sceneVideoUrl, localVideo)
-          videoSrc = await localPathToDataUrl(localVideo)
-          dataUrlAssetCount += 1
-        } catch {
-          videoSrc = null
+        console.info('[render] Scene', i + 1, 'video URL:', sanitizeRenderUrlForLog(sceneVideoUrl))
+
+        const persistedSourceType = classifyRenderMediaSource(sceneVideoUrl)
+        if (persistedSourceType === 'DATA_URI') {
+          throw new Error(
+            `RENDER_MEDIA_SOURCE_INVALID — scene ${i + 1} video must not be a data URI`
+          )
         }
+        if (persistedSourceType !== 'URL') {
+          throw new Error(
+            `RENDER_MEDIA_SOURCE_INVALID — scene ${i + 1} persisted video is ${persistedSourceType}`
+          )
+        }
+
+        const vExt = extFromUrl(sceneVideoUrl, '.mp4')
+        const localVideo = path.join(workDir, `scene_${i}_clip${vExt}`)
+        await downloadToFile(sceneVideoUrl, localVideo)
+        const probe = await validateLocalVideoFile(localVideo)
+        if (!probe.valid) {
+          throw new Error(
+            `Scene ${i + 1} video failed FFprobe before Remotion (${probe.error ?? 'invalid'})`
+          )
+        }
+
+        const publicFileName = `scene_${i + 1}_clip${vExt}`
+        const stagedVideoPath = path.join(renderPublicDir, publicFileName)
+        await fs.copyFile(localVideo, stagedVideoPath)
+        videoSrc = toRemotionBundlePublicSrc(`mugtee-render/${renderSessionKey}/${publicFileName}`)
+
+        const remotionSourceType = classifyRenderMediaSource(videoSrc)
+        console.info('[render] Scene', i + 1, 'source type:', remotionSourceType)
+        console.info('[render] Scene', i + 1, 'source:', videoSrc)
+        if (remotionSourceType === 'DATA_URI') {
+          throw new Error(
+            `RENDER_MEDIA_SOURCE_INVALID — scene ${i + 1} Remotion video must not be a data URI`
+          )
+        }
+        if (remotionSourceType !== 'LOCAL_PATH') {
+          throw new Error(
+            `RENDER_MEDIA_SOURCE_INVALID — scene ${i + 1} Remotion source is ${remotionSourceType}`
+          )
+        }
+
+        localBundleAssetCount += 1
       }
 
       reelScenes.push(
@@ -263,7 +313,7 @@ export async function renderRemotionReel(
     mp4RenderLog(3, 'scene media prepared', {
       projectId: input.projectId,
       sceneCount: reelScenes.length,
-      assetsViaUrl: httpAssetCount,
+      assetsViaBundlePublic: localBundleAssetCount,
       assetsViaBase64: dataUrlAssetCount,
     })
 
@@ -312,7 +362,6 @@ export async function renderRemotionReel(
 
     input.onProgress?.('Rendering reel with Remotion…', 40)
 
-    const serveUrl = await getServeUrl()
     remotionCheckpoint('composition_lookup', { compositionId: REEL_COMPOSITION_ID })
     let composition
     try {
@@ -366,13 +415,14 @@ export async function renderRemotionReel(
     const x264Preset = resolveRemotionX264Preset()
     const crf = resolveRemotionCrf()
     const ffmpegThreads = resolveFfmpegThreadCount()
+    const timeoutInMilliseconds = resolveRemotionDelayRenderTimeoutMs()
     const memoryEstimate = estimateRemotionRenderMemory({
       durationInFrames: composition.durationInFrames,
       concurrency,
       sceneCount: reelScenes.length,
       parallelEncodingDisabled: disallowParallelEncoding,
       dataUrlAssetCount,
-      httpAssetCount,
+      httpAssetCount: localBundleAssetCount,
     })
     logRemotionRenderDiagnostics(memoryEstimate)
     logMemoryTrace({
@@ -432,6 +482,7 @@ export async function renderRemotionReel(
       x264Preset,
       disallowParallelEncoding,
       offthreadVideoCacheSizeInBytes,
+      timeoutInMilliseconds,
       ffmpegOverride: ({ type, args }) => {
         if (type !== 'stitcher') return args
         if (args.some((a) => a === '-threads')) return args
