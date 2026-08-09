@@ -1,14 +1,16 @@
 import 'server-only'
 
-import { track } from '@/lib/posthog'
-
 type ObservabilityContext = Record<string, string | number | boolean | null | undefined>
+
+function logServerEvent(event: string, context?: ObservabilityContext): void {
+  console.info('[observability]', event, context ?? {})
+}
 
 export function captureException(error: unknown, context?: ObservabilityContext): void {
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error ? error.stack : undefined
 
-  track('app_error', {
+  logServerEvent('app_error', {
     message,
     stack: stack?.slice(0, 500) ?? null,
     ...context,
@@ -26,7 +28,7 @@ export function captureException(error: unknown, context?: ObservabilityContext)
 }
 
 export function captureMessage(message: string, context?: ObservabilityContext): void {
-  track('app_message', { message, ...context })
+  logServerEvent('app_message', { message, ...context })
 
   if (process.env.SENTRY_DSN?.trim()) {
     void import('@sentry/nextjs')
@@ -43,5 +45,5 @@ export function trackPipelineEvent(
   event: string,
   context?: ObservabilityContext
 ): void {
-  track(event, context)
+  logServerEvent(event, context)
 }
