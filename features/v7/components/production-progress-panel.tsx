@@ -4,19 +4,28 @@ import { cn } from '@/lib/utils'
 import {
   formatCompletionClock,
   formatDurationMs,
+  formatV7PausedFailureReason,
   type V7ProductionProgress,
 } from '@/lib/v7/production-progress'
 
 type V7ProductionProgressPanelProps = {
   progress: V7ProductionProgress
   className?: string
+  onRetry?: () => void
+  retrying?: boolean
 }
 
 export function V7ProductionProgressPanel({
   progress,
   className,
+  onRetry,
+  retrying = false,
 }: V7ProductionProgressPanelProps) {
   const showEta = !progress.paused && progress.eta.label && progress.eta.label !== 'Complete'
+  const failureCopy = progress.paused?.reason
+    ? formatV7PausedFailureReason(progress.paused.reason)
+    : null
+  const showRetry = Boolean(progress.paused?.retryAvailable && onRetry)
 
   return (
     <section
@@ -29,9 +38,11 @@ export function V7ProductionProgressPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] uppercase tracking-[0.24em] text-[#D4AF37]/80">
-            {progress.paused ? 'Production paused' : 'Live production'}
+            {retrying ? 'Retrying' : progress.paused ? 'Production paused' : 'Live production'}
           </p>
-          <p className="mt-2 text-lg font-semibold text-white sm:text-xl">{progress.currentTask}</p>
+          <p className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            {retrying ? 'Retrying failed stage…' : progress.currentTask}
+          </p>
           {progress.currentStageLabel ? (
             <p className="mt-1 text-sm text-white/50">
               Current stage · {progress.currentStageLabel}
@@ -84,11 +95,33 @@ export function V7ProductionProgressPanel({
             ) : null}
           </div>
         ) : progress.paused ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3 sm:col-span-2">
             <p className="text-[11px] uppercase tracking-[0.18em] text-red-200/60">Status</p>
-            <p className="mt-1 text-sm font-medium text-red-100/90">ETA frozen until retry</p>
-            {progress.paused.reason ? (
-              <p className="mt-0.5 text-xs text-red-200/70 line-clamp-2">{progress.paused.reason}</p>
+            <p className="mt-1 text-sm font-medium text-red-100/90">
+              {retrying ? 'Resuming image generation…' : 'ETA frozen until retry'}
+            </p>
+            {failureCopy?.summary ? (
+              <p className="mt-2 text-sm font-medium text-red-100/90">{failureCopy.summary}</p>
+            ) : null}
+            {failureCopy?.detail ? (
+              <p className="mt-1 text-xs text-red-200/75">{failureCopy.detail}</p>
+            ) : null}
+            {failureCopy?.technical ? (
+              <p className="mt-2 break-words font-mono text-[11px] leading-relaxed text-red-200/60">
+                {failureCopy.technical}
+              </p>
+            ) : progress.paused.reason ? (
+              <p className="mt-2 break-words text-xs text-red-200/70">{progress.paused.reason}</p>
+            ) : null}
+            {showRetry ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                disabled={retrying}
+                className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-[#0B0B0B] touch-manipulation disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {retrying ? 'Retrying…' : 'Retry failed stage'}
+              </button>
             ) : null}
           </div>
         ) : null}

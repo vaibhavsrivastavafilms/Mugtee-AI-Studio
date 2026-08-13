@@ -16,8 +16,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  // TEMPORARY: Auth disabled for development/testing
-  // TODO: Re-enable auth checks in production
+  // Auth-gated app shell — middleware + layout redirect unauthenticated users.
   const supabase = await tryCreateSupabaseServerClient()
   let user = supabase
     ? (await supabase.auth.getUser()).data.user

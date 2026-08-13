@@ -12,6 +12,7 @@ import {
   V7VideoProviderNotReadyError,
   V7VideoProviderRequestError,
 } from '@/lib/v7/providers/video-errors.server'
+import { V7ImageProviderNotReadyError, V7ImagePromptValidationError, V7ImageProviderRequestError } from '@/lib/v7/providers/image-errors'
 import { V7InputValidationError, V7UploadFailedError } from '@/lib/v7/input-validation.server'
 import { V7ProviderNotAvailableError } from '@/lib/v7/provider-availability.server'
 import type { V7StageId } from '@/types/v7/production'
@@ -244,6 +245,45 @@ export function buildV7ProductionErrorResponse(
   const productionId = resolveProductionId(error, options?.productionId)
   const provider = resolveProvider(error)
 
+  if (root instanceof V7ImagePromptValidationError) {
+    return {
+      status: 422 as const,
+      body: {
+        success: false as const,
+        ok: false as const,
+        stage: stage ?? 'image',
+        message: root.message,
+        error: root.code,
+        sceneNumber: root.sceneNumber,
+        scene: root.sceneNumber,
+        score: root.score,
+        missingRequirements: root.missingRequirements,
+        forbiddenTermsFound: root.forbiddenTermsFound,
+        retryable: true,
+        productionId,
+        ...(isDev() ? { stack: root.stack, finalPrompt: root.finalPrompt } : {}),
+      },
+    }
+  }
+
+  if (root instanceof V7ImageProviderRequestError) {
+    return {
+      status: 503 as const,
+      body: {
+        success: false as const,
+        ok: false as const,
+        stage: stage ?? 'image',
+        message: root.message,
+        error: root.code,
+        provider: root.provider,
+        reason: root.message,
+        retryable: root.code !== 'PROVIDER_AUTH_FAILED' && root.code !== 'PROVIDER_INVALID_RESPONSE',
+        productionId,
+        ...(isDev() ? { stack: root.stack } : {}),
+      },
+    }
+  }
+
   if (root instanceof V7InputValidationError) {
     return {
       status: 422 as const,
@@ -286,6 +326,32 @@ export function buildV7ProductionErrorResponse(
         error: root.code,
         provider: root.provider,
         requiredEnv: root.requiredEnv,
+        productionId,
+        ...(isDev() ? { stack: root.stack } : {}),
+      },
+    }
+  }
+
+  if (root instanceof V7ImageProviderNotReadyError) {
+    const pollinationsCode = root.reason.includes('POLLINATIONS_CREDITS')
+      ? 'POLLINATIONS_CREDITS_REQUIRED'
+      : root.reason.includes('POLLINATIONS_API_KEY_REQUIRED') ||
+          root.reason.toLowerCase().includes('missing')
+        ? 'POLLINATIONS_API_KEY_REQUIRED'
+        : root.reason.includes('POLLINATIONS_AUTH_FAILED') ||
+            root.reason.toLowerCase().includes('rejected')
+          ? 'POLLINATIONS_AUTH_FAILED'
+          : root.code
+    return {
+      status: 503 as const,
+      body: {
+        success: false as const,
+        stage,
+        message: root.reason,
+        error: pollinationsCode,
+        provider: 'pollinations',
+        reason: root.reason,
+        action: root.action,
         productionId,
         ...(isDev() ? { stack: root.stack } : {}),
       },
@@ -443,15 +509,19 @@ export function buildV7ProductionErrorResponse(
   }
 
   if (root instanceof TextProviderError) {
+    const message =
+      root.code === 'OPENROUTER_AUTH_FAILED'
+        ? 'OpenRouter authentication is not configured for this deployment'
+        : root.message
     return {
       status: 503 as const,
       body: {
         success: false as const,
         stage,
-        message: root.message,
+        message,
         error: root.code,
         provider: root.provider,
-        reason: root.message,
+        reason: message,
         productionId,
         ...(root.model ? { model: root.model } : {}),
         ...(root.attemptedModels?.length ? { attempted: root.attemptedModels } : {}),

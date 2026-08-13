@@ -2,6 +2,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { tryCreateSupabaseServerClient } from '@/lib/supabase/server'
+import { APP_ROUTE_LOGIN_FALLBACK, loginRedirectUrl } from '@/lib/auth/public-routes'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,27 +16,16 @@ export default async function CinematicLayout({
 
   if (isPublicExample) {
     return (
-      <div className="min-h-screen bg-background text-foreground">{children}</div>
+      <div className="min-h-[100dvh] bg-background text-foreground">{children}</div>
     )
   }
 
-  // TEMPORARY: Auth disabled for development/testing
-  // TODO: Re-enable auth checks in production
   const supabase = await tryCreateSupabaseServerClient()
-  let user = supabase
-    ? (await supabase.auth.getUser()).data.user
-    : null
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null
 
   if (!user) {
-    // Provide mock user to allow unauthenticated access
-    user = {
-      id: 'temp-user-' + Math.random().toString(36).slice(2),
-      email: 'temp@example.com',
-      user_metadata: {
-        full_name: 'Temporary User',
-      },
-    } as any
+    redirect(loginRedirectUrl(pathname || APP_ROUTE_LOGIN_FALLBACK))
   }
 
-  return <div className="min-h-screen bg-background text-foreground">{children}</div>
+  return <div className="min-h-[100dvh] bg-background text-foreground">{children}</div>
 }

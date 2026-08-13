@@ -68,6 +68,10 @@ export function ProviderManagerPanel() {
       window.location.href = '/api/openart/auth?redirect=/studio/settings'
       return
     }
+    if (id === 'pollinations') {
+      window.location.href = '/api/auth/pollinations/start?redirect=/settings'
+      return
+    }
 
     const apiKey = apiKeys[id]?.trim()
     if (!apiKey) return
@@ -172,7 +176,7 @@ export function ProviderManagerPanel() {
                 </div>
               </div>
 
-              {provider.authType === 'api_key' && !provider.available ? (
+              {provider.authType === 'api_key' && provider.id !== 'pollinations' && !provider.available ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Input
                     type="password"

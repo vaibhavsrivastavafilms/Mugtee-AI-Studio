@@ -49,7 +49,7 @@ export default function CinematicHomePage() {
   }
 
   return (
-    <div data-cinematic-home className="min-h-screen overflow-x-clip bg-[#050505] text-white">
+    <div data-cinematic-home className="min-h-[100dvh] overflow-x-clip bg-[#050505] text-white">
       <MugteeWorldBackground />
       <CinematicHomeHeader />
       <CinematicHero />

@@ -23,6 +23,7 @@ export const pollinationsImageProvider = createRemoteUrlImageProvider({
       seed: input.seed,
       maxAttempts: input.maxAttempts,
       model: input.model,
+      userId: input.userId,
     })
   },
 })

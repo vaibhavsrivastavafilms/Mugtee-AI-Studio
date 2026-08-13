@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto'
 
 import { getV7Production, updateV7Production, upsertV7Stage } from '@/lib/v7/db.server'
 import { V7_RUNNABLE_STAGES } from '@/lib/v7/pipeline'
+import { detectProductionStateDrift } from '@/lib/v7/pipeline-state.core'
+import { isAwaitingConceptSelection } from '@/lib/v7/concept-selection.server'
 import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 import type {
@@ -255,6 +257,26 @@ function productionFieldsToClearFromStage(stageId: V7StageId): {
   return patch
 }
 
+/** Repair production.status/current_stage when a stage completed but production stayed failed. */
+export async function reconcileProductionStateDrift(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  snapshot: V7ProductionSnapshot
+}): Promise<V7ProductionSnapshot | null> {
+  const drift = detectProductionStateDrift(params.snapshot)
+  if (!drift.recoverable || !drift.resumeStage) {
+    return params.snapshot
+  }
+
+  await updateV7Production(params.supabase, params.productionId, params.userId, {
+    status: 'producing',
+    current_stage: drift.resumeStage,
+  })
+
+  return getV7Production(params.supabase, params.productionId, params.userId)
+}
+
 /** Reset stages that completed out of order or stale running locks. */
 export async function reconcilePipelineIntegrity(params: {
   supabase: SupabaseServerClient
@@ -262,7 +284,14 @@ export async function reconcilePipelineIntegrity(params: {
   userId: string
   snapshot: V7ProductionSnapshot
 }): Promise<V7ProductionSnapshot | null> {
-  const snapshot = params.snapshot
+  let snapshot =
+    (await reconcileProductionStateDrift({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot: params.snapshot,
+    })) ?? params.snapshot
+
   let changed = false
   let resumeStage: V7StageId | null = null
 
@@ -486,6 +515,8 @@ export async function releaseProductionLock(params: {
 
 export function shouldDrivePipeline(snapshot: V7ProductionSnapshot): boolean {
   if (snapshot.production.status !== 'producing') return false
+
+  if (isAwaitingConceptSelection(snapshot.production.timeline_json)) return false
 
   const ideaDone = snapshot.stages.find((s) => s.stage === 'idea')?.status === 'completed'
   if (!ideaDone) return false

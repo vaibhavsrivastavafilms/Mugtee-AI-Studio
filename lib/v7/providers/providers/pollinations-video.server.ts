@@ -31,17 +31,24 @@ function validateInput(input: V7VideoGenerationInput): { ok: true } | { ok: fals
 
 function mapPollinationsError(err: unknown): V7VideoProviderRequestError {
   if (err instanceof PollinationsError) {
-    const code =
-      err.code === 'POLLINATIONS_AUTH_FAILED'
+    const invalidInputCodes = new Set<PollinationsError['code']>([
+      'POLLINATIONS_INPUT_REJECTED',
+      'POLLINATIONS_IMAGE_NOT_ACCESSIBLE',
+      'POLLINATIONS_MODEL_I2V_UNSUPPORTED',
+      'POLLINATIONS_IMAGE_URL_INVALID',
+      'POLLINATIONS_VIDEO_INVALID',
+    ])
+    const code = invalidInputCodes.has(err.code)
+      ? 'PROVIDER_INVALID_RESPONSE'
+      : err.code === 'POLLINATIONS_AUTH_FAILED'
         ? 'PROVIDER_AUTH_FAILED'
         : err.code === 'POLLINATIONS_RATE_LIMITED'
           ? 'PROVIDER_RATE_LIMITED'
-          : err.code === 'POLLINATIONS_VIDEO_INVALID'
-            ? 'PROVIDER_INVALID_RESPONSE'
-            : err.code === 'POLLINATIONS_IMAGE_URL_INVALID'
-              ? 'PROVIDER_INVALID_RESPONSE'
-              : err.code === 'POLLINATIONS_CREDITS_EXHAUSTED' ||
-                  err.code === 'POLLINATIONS_CREDITS_REQUIRED'
+          : err.code === 'POLLINATIONS_TIMEOUT'
+            ? 'PROVIDER_TIMEOUT'
+            : err.code === 'POLLINATIONS_SERVER_ERROR' || err.code === 'POLLINATIONS_MODEL_UNAVAILABLE'
+              ? 'PROVIDER_UNAVAILABLE'
+              : err.code === 'POLLINATIONS_CREDITS_EXHAUSTED' || err.code === 'POLLINATIONS_CREDITS_REQUIRED'
                 ? 'PROVIDER_QUOTA_EXCEEDED'
                 : 'PROVIDER_UNAVAILABLE'
     return new V7VideoProviderRequestError(code, 'pollinations', {
@@ -74,6 +81,7 @@ async function generate(input: V7VideoGenerationInput): Promise<V7VideoGeneratio
       height: input.height,
       productionId: input.productionId,
       sceneNumber: input.sceneNumber,
+      userId: input.userId,
     })
 
     const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mugtee-pollinations-video-'))

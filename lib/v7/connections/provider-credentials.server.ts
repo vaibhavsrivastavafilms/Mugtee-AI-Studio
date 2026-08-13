@@ -74,6 +74,16 @@ export async function resolveProviderApiKey(
       return (await getOpenArtAccessTokenForUser(userId)) ?? undefined
     }
     return undefined
+  } else if (definition.id === 'pollinations') {
+    if (userId?.trim() && supabase) {
+      const tokens = await getIntegrationTokens(supabase, userId, definition.integrationProvider)
+      const userKey = readStoredApiKey(tokens)
+      if (userKey?.startsWith('sk_')) return userKey
+    }
+    const primary = definition.envKeys
+      .map((key) => process.env[key]?.trim())
+      .find((value) => value?.startsWith('sk_'))
+    if (primary) return primary
   } else {
     const primary = definition.envKeys.find((key) => process.env[key]?.trim())
     if (primary) return process.env[primary]?.trim()

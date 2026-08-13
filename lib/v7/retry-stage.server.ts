@@ -5,6 +5,7 @@ import { getV7Production, updateV7Production, upsertV7Stage } from '@/lib/v7/db.
 import { V7_RUNNABLE_STAGES } from '@/lib/v7/pipeline'
 import { logV7StageError, V7StageExecutionError } from '@/lib/v7/api-errors.server'
 import { advanceV7Production } from '@/lib/v7/orchestrator.server'
+import { detectProductionStateDrift } from '@/lib/v7/pipeline-state.core'
 import {
   findFirstFailedStage,
   releaseProductionLock,
@@ -38,8 +39,77 @@ export async function retryV7FailedStage(params: {
   if (!snapshot) throw new Error('Production not found')
 
   const failed = snapshot.stages.filter((s) => s.status === 'failed')
+  const drift = detectProductionStateDrift(snapshot)
+
   if (failed.length === 0) {
-    throw new Error('No failed stage to retry')
+    if (!drift.recoverable || !drift.resumeStage) {
+      throw new Error('No failed stage to retry')
+    }
+
+    console.info('[v7-retry] reconciling production state drift', {
+      productionId: params.productionId,
+      resumeStage: drift.resumeStage,
+      lastCompletedStage: drift.lastCompletedStage,
+    })
+
+    await releaseProductionLock({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      token: null,
+    })
+
+    await updateV7Production(params.supabase, params.productionId, params.userId, {
+      status: 'producing',
+      current_stage: drift.resumeStage,
+    })
+
+    let current = await getV7Production(params.supabase, params.productionId, params.userId)
+    if (!current) throw new Error('Production not found after drift reconciliation')
+
+    const maxAdvances = V7_RUNNABLE_STAGES.length + 2
+    for (let attempt = 0; attempt < maxAdvances; attempt++) {
+      if (!shouldDrivePipeline(current)) break
+
+      try {
+        await advanceV7Production({
+          supabase: params.supabase,
+          productionId: params.productionId,
+          userId: params.userId,
+        })
+      } catch (error) {
+        logV7StageError({
+          stage: drift.resumeStage!,
+          productionId: params.productionId,
+          provider: resolveFailureProvider(error),
+          error,
+        })
+
+        const afterFailure = await getV7Production(
+          params.supabase,
+          params.productionId,
+          params.userId
+        )
+        if (afterFailure) current = afterFailure
+
+        if (error instanceof V7StageExecutionError) throw error
+        throw new V7StageExecutionError(drift.resumeStage!, error, {
+          productionId: params.productionId,
+          provider: resolveFailureProvider(error),
+        })
+      }
+
+      const refreshed = await getV7Production(params.supabase, params.productionId, params.userId)
+      if (!refreshed) throw new Error('Production not found after drift resume advance')
+      current = refreshed
+
+      if (findFirstFailedStage(current.stages)) break
+      if (current.production.status === 'completed' || current.production.status === 'failed') {
+        break
+      }
+    }
+
+    return current
   }
 
   const target =

@@ -17,7 +17,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[var(--v2-bg)] px-5 py-12 sm:px-6">
+    <div className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[var(--v2-bg)] px-5 py-12 safe-area-pad sm:px-6">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(212,175,55,0.08),transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_80%_90%,rgba(255,255,255,0.03),transparent_60%)]" />

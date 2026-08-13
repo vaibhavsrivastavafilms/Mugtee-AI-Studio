@@ -2,6 +2,11 @@ import 'server-only'
 
 import { evaluatePollinationsVideoEntitlement } from '@/lib/pollinations/entitlement.server'
 import { PollinationsError } from '@/lib/pollinations/errors.server'
+import {
+  GEN_POLLINATIONS_BASE,
+  readPollinationsApiKeyFromEnv,
+} from '@/lib/pollinations/key-diagnostics-core'
+import { probePollinationsAuthenticationStatus } from '@/lib/pollinations/key-diagnostics.server'
 
 export type PollinationsCapability = 'image' | 'video' | 'audio'
 
@@ -15,7 +20,7 @@ export type PollinationsModelInfo = {
 }
 
 const MODEL_CACHE_TTL_MS = 5 * 60 * 1000
-export const GEN_POLLINATIONS_BASE = 'https://gen.pollinations.ai'
+export { GEN_POLLINATIONS_BASE } from '@/lib/pollinations/key-diagnostics-core'
 
 type ModelCache = {
   expiresAt: number
@@ -24,28 +29,16 @@ type ModelCache = {
 
 let cache: ModelCache | null = null
 
-const PLACEHOLDER_KEY_PATTERNS = [
-  /^your_key/i,
-  /^sk_your/i,
-  /^pk_your/i,
-  /pollinations\.ai$/i,
-  /^replace/i,
-  /^changeme/i,
-]
-
 export function readPollinationsApiKey(): string | undefined {
-  const key = process.env.POLLINATIONS_API_KEY?.trim()
-  if (!key) return undefined
-  if (PLACEHOLDER_KEY_PATTERNS.some((pattern) => pattern.test(key))) return undefined
-  return key
+  return readPollinationsApiKeyFromEnv()
 }
 
 export function hasPollinationsApiKey(): boolean {
   return Boolean(readPollinationsApiKey())
 }
 
-export function pollinationsAuthHeaders(): HeadersInit {
-  const key = readPollinationsApiKey()
+export function pollinationsAuthHeaders(apiKey?: string): HeadersInit {
+  const key = apiKey?.trim() || readPollinationsApiKey()
   return key ? { Authorization: `Bearer ${key}` } : {}
 }
 
@@ -172,8 +165,21 @@ function rankModels(models: PollinationsModelInfo[]): PollinationsModelInfo[] {
 
 export async function selectBestPollinationsModel(
   capability: PollinationsCapability,
-  options?: { imageToVideo?: boolean; preferred?: string }
+  options?: { imageToVideo?: boolean; preferred?: string; exclude?: string[] }
 ): Promise<string> {
+  const envOverride =
+    capability === 'image'
+      ? process.env.POLLINATIONS_IMAGE_MODEL?.trim() ||
+        process.env.V7_POLLINATIONS_IMAGE_MODEL?.trim()
+        : capability === 'video'
+        ? process.env.POLLINATIONS_VIDEO_MODEL?.trim() ||
+          process.env.V7_POLLINATIONS_VIDEO_MODEL?.trim()
+        : capability === 'audio'
+          ? process.env.POLLINATIONS_AUDIO_MODEL?.trim()
+          : capability === 'image'
+            ? undefined
+            : process.env.POLLINATIONS_TEXT_MODEL?.trim()
+
   const models = await discoverPollinationsModels()
   let eligible = models.filter((model) => model.type === capability)
 
@@ -181,12 +187,18 @@ export async function selectBestPollinationsModel(
     eligible = eligible.filter((model) => model.supportsImageToVideo)
   }
 
+  const excluded = new Set((options?.exclude ?? []).map((id) => id.trim()).filter(Boolean))
+
+  if (envOverride && eligible.some((model) => model.id === envOverride)) {
+    return envOverride
+  }
+
   if (options?.preferred?.trim()) {
     const preferred = options.preferred.trim()
     if (eligible.some((model) => model.id === preferred)) return preferred
   }
 
-  eligible = rankModels(eligible)
+  eligible = rankModels(eligible).filter((model) => !excluded.has(model.id))
 
   if (eligible.length === 0) {
     throw new PollinationsError({
@@ -226,23 +238,12 @@ export async function selectBestPollinationsVideoModel(options?: {
 }
 
 async function verifyPollinationsAuthentication(): Promise<{ ok: boolean; httpStatus?: number }> {
-  const key = readPollinationsApiKey()
-  if (!key) return { ok: false }
-
-  try {
-    const res = await fetch(`${GEN_POLLINATIONS_BASE}/account/key`, {
-      headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
-      signal: AbortSignal.timeout(15_000),
-    })
-    if (res.status === 401 || res.status === 403) {
-      return { ok: false, httpStatus: res.status }
-    }
-    if (res.ok) return { ok: true }
-    // Key present but account endpoint unavailable — still attempt catalog + generation probes.
-    return { ok: true }
-  } catch {
-    return { ok: false }
+  const probe = await probePollinationsAuthenticationStatus()
+  if (probe.authenticated) return { ok: true, httpStatus: probe.httpStatus ?? 200 }
+  if (probe.code === 'POLLINATIONS_API_KEY_REQUIRED') {
+    return { ok: false, httpStatus: undefined }
   }
+  return { ok: false, httpStatus: probe.httpStatus ?? 401 }
 }
 
 export type PollinationsHealthReport = {
@@ -301,6 +302,10 @@ export async function probePollinationsHealth(options?: {
     console.info('[pollinations] HTTP connected')
   }
   if (!auth.ok) {
+    const authMessage =
+      auth.httpStatus === 401 || auth.httpStatus === 403
+        ? 'POLLINATIONS_AUTH_FAILED — Pollinations rejected the configured API key. Rotate sk_ key at https://enter.pollinations.ai/keys, update POLLINATIONS_API_KEY, and restart the dev server.'
+        : 'POLLINATIONS_AUTH_FAILED — unable to verify Pollinations authentication. Check POLLINATIONS_API_KEY and network access to gen.pollinations.ai.'
     return {
       ready: false,
       authenticated: false,
@@ -314,7 +319,7 @@ export async function probePollinationsHealth(options?: {
       videoModel: null,
       balance: null,
       estimatedVideoCost: null,
-      reason: 'POLLINATIONS_AUTH_FAILED — check POLLINATIONS_API_KEY',
+      reason: authMessage,
       code: 'POLLINATIONS_AUTH_FAILED',
     }
   }

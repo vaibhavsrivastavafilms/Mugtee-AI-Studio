@@ -2,9 +2,16 @@ import 'server-only'
 
 export type PollinationsErrorCode =
   | 'POLLINATIONS_AUTH_FAILED'
+  | 'POLLINATIONS_API_KEY_REQUIRED'
   | 'POLLINATIONS_CREDITS_EXHAUSTED'
   | 'POLLINATIONS_CREDITS_REQUIRED'
   | 'POLLINATIONS_MODEL_UNAVAILABLE'
+  | 'POLLINATIONS_MODEL_I2V_UNSUPPORTED'
+  | 'POLLINATIONS_INPUT_REJECTED'
+  | 'POLLINATIONS_IMAGE_NOT_ACCESSIBLE'
+  | 'POLLINATIONS_TIMEOUT'
+  | 'POLLINATIONS_SERVER_ERROR'
+  | 'POLLINATIONS_UNKNOWN_ERROR'
   | 'POLLINATIONS_GENERATION_FAILED'
   | 'POLLINATIONS_IMAGE_FAILED'
   | 'POLLINATIONS_IMAGE_URL_INVALID'
@@ -21,6 +28,12 @@ export class PollinationsError extends Error {
   readonly httpStatus?: number
   readonly model?: string
   readonly action?: string
+  readonly responseBody?: string
+  readonly requestId?: string
+  readonly durationSec?: number
+  readonly width?: number
+  readonly height?: number
+  readonly retryable: boolean
 
   constructor(params: {
     code: PollinationsErrorCode
@@ -30,6 +43,12 @@ export class PollinationsError extends Error {
     httpStatus?: number
     model?: string
     action?: string
+    responseBody?: string
+    requestId?: string
+    durationSec?: number
+    width?: number
+    height?: number
+    retryable?: boolean
     cause?: unknown
   }) {
     super(params.message)
@@ -40,6 +59,12 @@ export class PollinationsError extends Error {
     this.httpStatus = params.httpStatus
     this.model = params.model
     this.action = params.action
+    this.responseBody = params.responseBody
+    this.requestId = params.requestId
+    this.durationSec = params.durationSec
+    this.width = params.width
+    this.height = params.height
+    this.retryable = params.retryable ?? false
     if (params.cause) this.cause = params.cause
   }
 }

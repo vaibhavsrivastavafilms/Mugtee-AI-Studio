@@ -28,9 +28,11 @@ import {
   sanitizeRenderUrlForLog,
   toRemotionBundlePublicSrc,
 } from '@/lib/v7/render-media-validation.server'
+import { showOnScreenText } from '@/lib/remotion/show-on-screen-text.server'
 import { validateLocalVideoFile } from '@/lib/v7/providers/video-provider-base.server'
 import { isVideoRenderEnabled } from '@/lib/cinematic/quick-cut/video-render-enabled'
-import { REEL_COMPOSITION_ID, REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
+import { REEL_COMPOSITION_ID, REEL_FPS } from '@/lib/remotion/compositions/constants'
+import { resolveReelDimensions } from '@/lib/remotion/reel-dimensions.core'
 import {
   buildExportCaptionTracks,
   resolveExportCaptionStyle,
@@ -132,6 +134,8 @@ export type RenderRemotionReelInput = {
     percent: number,
     meta?: { framesRendered?: number; framesTotal?: number; fps?: number }
   ) => void
+  renderWidth?: number
+  renderHeight?: number
 }
 
 export async function renderRemotionReel(
@@ -141,6 +145,9 @@ export async function renderRemotionReel(
   await ensureDir(workDir)
 
   try {
+    const renderWidth = input.renderWidth ?? resolveReelDimensions('9:16').width
+    const renderHeight = input.renderHeight ?? resolveReelDimensions('9:16').height
+
     input.onProgress?.('Assembling film assets…', 15)
 
     const timedScenes = clampSceneDurationsToTarget(
@@ -288,25 +295,41 @@ export async function renderRemotionReel(
     }
 
     const durationSecEstimate = reelScenes.reduce((sum, s) => sum + s.durationSec, 0)
-    const captionStyle = resolveExportCaptionStyle({
-      niche: input.niche,
-      hook: input.hook,
-      tone: input.title,
-    })
-    const { tracks: captionTracks, speechRanges } = buildExportCaptionTracks({
-      scenes: timedScenes,
-      totalDurationSec: durationSecEstimate,
-      fallbackText: input.hook ?? input.title,
-      captionStyle,
-      title: input.title,
-    })
+    const onScreenTextEnabled = showOnScreenText()
+    let captionTracks: import('@/lib/remotion/reel-caption-layer').ReelCaptionClip[] = []
+    let speechRanges: import('@/lib/remotion/build-export-captions').SpeechRange[] = []
+
+    if (onScreenTextEnabled) {
+      const captionStyle = resolveExportCaptionStyle({
+        niche: input.niche,
+        hook: input.hook,
+        tone: input.title,
+      })
+      const built = buildExportCaptionTracks({
+        scenes: timedScenes,
+        totalDurationSec: durationSecEstimate,
+        fallbackText: input.hook ?? input.title,
+        captionStyle,
+        title: input.title,
+      })
+      captionTracks = built.tracks
+      speechRanges = built.speechRanges
+    } else {
+      let cursor = 0
+      speechRanges = reelScenes.map((scene) => {
+        const dur = Math.max(2, scene.durationSec)
+        const range = { startSec: cursor, endSec: cursor + dur }
+        cursor += dur
+        return range
+      })
+    }
 
     mp4RenderLog(2, 'timeline built', {
       projectId: input.projectId,
       sceneCount: reelScenes.length,
       durationSec: durationSecEstimate,
       fps: REEL_FPS,
-      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      resolution: `${renderWidth}x${renderHeight}`,
       captionTrackCount: captionTracks.length,
     })
 
@@ -358,6 +381,7 @@ export async function renderRemotionReel(
       musicAudioSrc,
       captionTracks,
       speechRanges,
+      resolution: { width: renderWidth, height: renderHeight },
     }
 
     input.onProgress?.('Rendering reel with Remotion…', 40)
@@ -423,12 +447,14 @@ export async function renderRemotionReel(
       parallelEncodingDisabled: disallowParallelEncoding,
       dataUrlAssetCount,
       httpAssetCount: localBundleAssetCount,
+      width: renderWidth,
+      height: renderHeight,
     })
     logRemotionRenderDiagnostics(memoryEstimate)
     logMemoryTrace({
       projectId: input.projectId,
       sceneCount: reelScenes.length,
-      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      resolution: `${renderWidth}x${renderHeight}`,
       fps: REEL_FPS,
       duration: durationSecEstimate,
       estimatedFrames: composition.durationInFrames,
@@ -446,7 +472,7 @@ export async function renderRemotionReel(
       crf,
       ffmpegThreads,
       fps: REEL_FPS,
-      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      resolution: `${renderWidth}x${renderHeight}`,
       sceneCount: reelScenes.length,
       durationSec: durationSecEstimate,
     })
@@ -542,7 +568,7 @@ export async function renderRemotionReel(
       outputPath: input.outputPath,
       durationSec,
       fps: REEL_FPS,
-      resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+      resolution: `${renderWidth}x${renderHeight}`,
     })
     remotionCheckpoint('render_media_done', { durationSec, outputPath: input.outputPath })
     logPipelineStepComplete('export', null, { phase: 'remotion_render_done', durationSec })
@@ -562,7 +588,7 @@ export async function renderRemotionReel(
         mp4RenderLog(6, 'thumbnail.jpg generated', {
           projectId: input.projectId,
           outputPath: thumbOut,
-          resolution: `${REEL_WIDTH}x${REEL_HEIGHT}`,
+          resolution: `${renderWidth}x${renderHeight}`,
         })
       } catch (thumbErr) {
         mp4RenderLog(6, 'thumbnail generation fallback to scene still', {

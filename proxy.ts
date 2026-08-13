@@ -87,6 +87,10 @@ export async function proxy(request: NextRequest) {
       pathname
     )
 
+    if (pathname.startsWith('/api/')) {
+      return supabaseResponse
+    }
+
     let user: { id: string } | null = null
     if (supabase) {
       const { data, error } = await supabase.auth.getUser()

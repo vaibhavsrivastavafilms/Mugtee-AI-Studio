@@ -60,11 +60,12 @@ export function clearPollinationsSpendableBalanceCache(): void {
 
 export { parsePollinationsPaymentRequired } from '@/lib/pollinations/entitlement-core'
 
-export async function fetchPollinationsAccountKeyInfo(): Promise<PollinationsAccountKeyInfo | null> {
-  if (!readPollinationsApiKey()) return null
+export async function fetchPollinationsAccountKeyInfo(apiKey?: string): Promise<PollinationsAccountKeyInfo | null> {
+  const key = apiKey?.trim() || readPollinationsApiKey()
+  if (!key) return null
   try {
     const res = await fetch(`${GEN_POLLINATIONS_BASE}/account/key`, {
-      headers: { ...pollinationsAuthHeaders(), Accept: 'application/json' },
+      headers: { ...pollinationsAuthHeaders(key), Accept: 'application/json' },
       signal: AbortSignal.timeout(15_000),
     })
     if (!res.ok) return null
@@ -82,11 +83,12 @@ export async function fetchPollinationsAccountKeyInfo(): Promise<PollinationsAcc
   }
 }
 
-export async function fetchPollinationsBalanceEndpoint(): Promise<number | null> {
-  if (!readPollinationsApiKey()) return null
+export async function fetchPollinationsBalanceEndpoint(apiKey?: string): Promise<number | null> {
+  const key = apiKey?.trim() || readPollinationsApiKey()
+  if (!key) return null
   try {
     const res = await fetch(`${GEN_POLLINATIONS_BASE}/account/balance`, {
-      headers: { ...pollinationsAuthHeaders(), Accept: 'application/json' },
+      headers: { ...pollinationsAuthHeaders(key), Accept: 'application/json' },
       signal: AbortSignal.timeout(15_000),
     })
     if (!res.ok) return null
@@ -100,6 +102,7 @@ export async function fetchPollinationsBalanceEndpoint(): Promise<number | null>
 
 export async function resolvePollinationsSpendableBalance(options?: {
   forceRefresh?: boolean
+  apiKey?: string
 }): Promise<PollinationsSpendableBalance> {
   if (options?.forceRefresh) {
     spendableCache = null
@@ -113,8 +116,8 @@ export async function resolvePollinationsSpendableBalance(options?: {
   }
 
   const [keyInfo, balanceEndpoint] = await Promise.all([
-    fetchPollinationsAccountKeyInfo(),
-    fetchPollinationsBalanceEndpoint(),
+    fetchPollinationsAccountKeyInfo(options?.apiKey),
+    fetchPollinationsBalanceEndpoint(options?.apiKey),
   ])
 
   const keyRemainingBudget = keyInfo?.pollenBudget ?? null
@@ -159,13 +162,15 @@ function rankAffordableVideoModels(
 
 export async function probePollinationsSpendableBalance(options?: {
   forceRefresh?: boolean
+  apiKey?: string
 }): Promise<PollinationsSpendableBalance> {
   if (options?.forceRefresh) {
     spendableCache = null
   }
   const resolved = await resolvePollinationsSpendableBalance(options)
   if (resolved.source === 'cache') return resolved
-  if (!readPollinationsApiKey()) return resolved
+  const key = options?.apiKey?.trim() || readPollinationsApiKey()
+  if (!key) return resolved
 
   try {
     const url = new URL(`${GEN_POLLINATIONS_BASE}/image/${encodeURIComponent('probe')}`)
@@ -174,7 +179,7 @@ export async function probePollinationsSpendableBalance(options?: {
     url.searchParams.set('height', '64')
 
     const res = await fetch(url.toString(), {
-      headers: { Accept: 'image/*', ...pollinationsAuthHeaders() },
+      headers: { Accept: 'image/*', ...pollinationsAuthHeaders(key) },
       signal: AbortSignal.timeout(30_000),
     })
 
@@ -330,7 +335,7 @@ export async function evaluatePollinationsVideoEntitlement(params?: {
       estimatedCost: null,
       model: null,
       reason: 'POLLINATIONS_API_KEY_REQUIRED',
-      code: 'POLLINATIONS_AUTH_FAILED',
+      code: 'POLLINATIONS_API_KEY_REQUIRED',
     }
   }
 
@@ -447,9 +452,13 @@ export async function assertPollinationsVideoAffordable(params: {
   model?: string
   sceneNumber?: number
   forceRefresh?: boolean
+  apiKey?: string
 }): Promise<{ model: string; estimatedCost: number; balance: number | null }> {
   const durationSec = Math.max(2, Math.min(15, Math.round(params.durationSec ?? 5)))
-  const probed = await probePollinationsSpendableBalance({ forceRefresh: params.forceRefresh ?? true })
+  const probed = await probePollinationsSpendableBalance({
+    forceRefresh: params.forceRefresh ?? true,
+    apiKey: params.apiKey,
+  })
   const spendable = probed.spendable
 
   const selection = await selectAffordablePollinationsVideoModel({

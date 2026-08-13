@@ -31,6 +31,7 @@ import {
   V7AllVideoProvidersFailedError,
   V7VideoProviderNotReadyError,
   V7VideoProviderRequestError,
+  isV7VideoRetryableError,
 } from '@/lib/v7/providers/video-errors.server'
 
 export type V7SceneVideoUpdate = {
@@ -458,6 +459,10 @@ export async function runV7VideoOrchestrator(params: {
           message: lastError.message,
           stack: lastError.stack,
         })
+
+        if (!isV7VideoRetryableError(err) || attempt >= 3) {
+          break
+        }
       }
     }
 

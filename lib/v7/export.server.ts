@@ -5,7 +5,9 @@ import { resolveMvpRoyaltyFreeMusicUrl } from '@/lib/v3/music.server'
 import type { V7SoundEffect } from '@/lib/v3/sound-cascade.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { assignSceneMotion, parseSceneMotionMap, type SceneMotionMap } from '@/lib/motion/motion-presets'
+import { generateVoice } from '@/lib/voice/generateVoice'
 import { synthesizeWithCascade } from '@/lib/voice/tts-cascade'
+import { updateV7Production } from '@/lib/v7/db.server'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import type { SupabaseServerClient } from '@/lib/supabase/server'
 import type { FacelessRenderInput } from '@/lib/video/types'
@@ -32,6 +34,7 @@ import {
   assertRealVoiceRequired,
   allowSilentVoiceFallback,
 } from '@/lib/v7/production-integrity.server'
+import { showOnScreenText } from '@/lib/remotion/show-on-screen-text.server'
 import { validateSceneVideoSourcesForRender } from '@/lib/v7/render-media-validation.server'
 import {
   assertV9StoryExecutionReady,
@@ -114,17 +117,82 @@ export function resolveV7SceneMotion(snapshot: V7ProductionSnapshot): SceneMotio
   return assignSceneMotion(scenes, null, null)
 }
 
-async function resolveV7VoiceUrl(snapshot: V7ProductionSnapshot): Promise<string | null> {
+async function resolveV7VoiceUrl(
+  snapshot: V7ProductionSnapshot,
+  params: { supabase: SupabaseServerClient; userId: string }
+): Promise<string | null> {
   const existing = snapshot.production.voice_url?.trim()
-  if (existing) return existing
+  if (existing) {
+    console.info(
+      '[V7_VOICE_RESOLVE]',
+      JSON.stringify({
+        VOICE_PROVIDER: 'existing',
+        VOICEOVER_AVAILABLE: true,
+        VOICEOVER_URL_PRESENT: true,
+      })
+    )
+    return existing
+  }
 
   const narration = mergeV7VoiceNarration(snapshot)
+  const voice = await generateVoice(
+    {
+      script: narration.trim() || ' ',
+      userId: params.userId,
+      projectId: snapshot.production.id,
+      tone: snapshot.production.creative_brief?.voiceDirection,
+      preferElevenLabs: false,
+    },
+    params.supabase
+  )
+
+  if (voice.audioUrl?.trim()) {
+    const voiceUrl = voice.audioUrl.trim()
+    const persisted = !voiceUrl.startsWith('data:')
+    if (persisted) {
+      await updateV7Production(params.supabase, snapshot.production.id, params.userId, {
+        voice_url: voiceUrl,
+      })
+    }
+    console.info(
+      '[V7_VOICE_RESOLVE]',
+      JSON.stringify({
+        VOICE_PROVIDER: voice.provider,
+        VOICEOVER_AVAILABLE: true,
+        VOICEOVER_URL_PRESENT: true,
+        VOICEOVER_PERSISTED: persisted,
+        bufferBytes: voice.buffer?.length ?? null,
+      })
+    )
+    return voiceUrl
+  }
+
   const cascade = await synthesizeWithCascade(narration.trim() || ' ', {
     allowSilentStub: allowSilentVoiceFallback(),
   })
   if (cascade.buffer && cascade.provider !== 'silent') {
+    console.info(
+      '[V7_VOICE_RESOLVE]',
+      JSON.stringify({
+        VOICE_PROVIDER: cascade.provider,
+        VOICEOVER_AVAILABLE: true,
+        VOICEOVER_URL_PRESENT: true,
+        VOICEOVER_PERSISTED: false,
+        bufferBytes: cascade.buffer.length,
+      })
+    )
     return `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`
   }
+
+  console.warn(
+    '[V7_VOICE_RESOLVE]',
+    JSON.stringify({
+      VOICE_PROVIDER: cascade.provider,
+      VOICEOVER_AVAILABLE: false,
+      VOICEOVER_URL_PRESENT: false,
+      bufferBytes: cascade.buffer?.length ?? 0,
+    })
+  )
 
   assertRealVoiceRequired({
     voiceUrl: null,
@@ -138,7 +206,7 @@ async function resolveV7VoiceUrl(snapshot: V7ProductionSnapshot): Promise<string
 function buildV7RenderInput(snapshot: V7ProductionSnapshot, voiceUrl: string | null): FacelessRenderInput {
   const packages = buildV7ScenePackages(snapshot)
   const scenes = buildV7GeneratedScenes(snapshot)
-  const subtitles = packagesToSubtitleSegments(packages)
+  const subtitles = showOnScreenText() ? packagesToSubtitleSegments(packages) : []
 
   const scriptText = packages
     .map((pkg) => {
@@ -158,6 +226,7 @@ function buildV7RenderInput(snapshot: V7ProductionSnapshot, voiceUrl: string | n
     subtitles,
     userId: snapshot.production.user_id,
     projectId: snapshot.production.id,
+    aspectRatio: snapshot.production.creative_brief?.aspectRatio ?? '9:16',
   }
 }
 
@@ -169,11 +238,13 @@ export async function executeV7Render(params: {
   supabase: SupabaseServerClient
   snapshot: V7ProductionSnapshot
   userId: string
+  /** Replace an existing reel (e.g. text-free re-render) without regenerating source media. */
+  forceRerender?: boolean
 }): Promise<{ reelUrl: string; thumbnailUrl: string | null; durationMs: number; mock: boolean }> {
   const started = Date.now()
   const { production } = params.snapshot
 
-  if (production.reel_url) {
+  if (production.reel_url && !params.forceRerender) {
     return {
       reelUrl: production.reel_url,
       thumbnailUrl: production.thumbnail_url,
@@ -200,7 +271,10 @@ export async function executeV7Render(params: {
 
   assertProductionRenderAllowed()
 
-  const voiceUrl = await resolveV7VoiceUrl(params.snapshot)
+  const voiceUrl = await resolveV7VoiceUrl(params.snapshot, {
+    supabase: params.supabase,
+    userId: params.userId,
+  })
   const sceneMotion = resolveV7SceneMotion(params.snapshot)
   const renderInput = buildV7RenderInput(params.snapshot, voiceUrl)
   await validateSceneVideoSourcesForRender(renderInput.scenes)

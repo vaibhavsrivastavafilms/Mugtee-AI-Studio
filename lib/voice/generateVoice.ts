@@ -24,7 +24,7 @@ const BUCKET = 'project-assets'
 
 export type VoiceMetadata = {
   cacheKey: string
-  provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'kokoro' | 'piper' | 'none'
+  provider: 'elevenlabs' | 'openai_tts' | 'emergent_tts' | 'kokoro' | 'piper' | 'edge_tts' | 'none'
   profileId: VoiceProfileId | string
   voiceId: string
   voiceName: string
@@ -170,7 +170,8 @@ async function synthesizeWithDirector(
     cascade.provider === 'openai_tts' ||
     cascade.provider === 'emergent_tts' ||
     cascade.provider === 'kokoro' ||
-    cascade.provider === 'piper'
+    cascade.provider === 'piper' ||
+    cascade.provider === 'edge_tts'
       ? cascade.provider
       : cascade.buffer
         ? 'openai_tts'

@@ -111,6 +111,7 @@
     background: var(--v2-bg);
     color: var(--v2-text-primary);
     min-height: 100vh;
+    min-height: 100dvh;
     min-width: 0;
     overflow-x: clip;
     @supports not (overflow: clip) {

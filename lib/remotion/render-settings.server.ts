@@ -122,9 +122,11 @@ export function estimateRemotionRenderMemory(input: {
   parallelEncodingDisabled: boolean
   dataUrlAssetCount?: number
   httpAssetCount?: number
+  width?: number
+  height?: number
 }): RemotionRenderMemoryEstimate {
-  const width = REEL_WIDTH
-  const height = REEL_HEIGHT
+  const width = input.width ?? REEL_WIDTH
+  const height = input.height ?? REEL_HEIGHT
   const fps = REEL_FPS
   const durationSec = input.durationInFrames / fps
   const frameBufferMb = (width * height * 4) / (1024 * 1024)

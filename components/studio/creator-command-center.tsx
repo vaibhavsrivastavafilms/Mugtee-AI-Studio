@@ -14,7 +14,6 @@ import { TimelineStudioPanel } from '@/components/studio/timeline-studio-panel'
 import { StudioMainWorkspace } from '@/components/studio/studio-main-workspace'
 import { StudioInspectorPanel } from '@/components/studio/studio-inspector-panel'
 import { StudioWorkspaceTopbar } from '@/components/studio/studio-workspace-topbar'
-import { DirectorDesktopOnly } from '@/components/studio/director-desktop-only'
 import { StudioGlobalSearchPlaceholder } from '@/components/studio/studio-global-search-placeholder'
 import { ProjectRecoveryBanner } from '@/components/trust/project-recovery-banner'
 import { QuickCutActivityTimeline } from '@/components/trust/quick-cut-activity-timeline'
@@ -114,8 +113,6 @@ function CreatorCommandCenterInner({ projectId, className }: CreatorCommandCente
       <div className="lg:hidden px-3 pt-2 space-y-2">
         <StudioMobileProjectStrip />
       </div>
-
-      <DirectorDesktopOnly />
 
       <motion.div
         initial={{ opacity: 0, y: 4 }}

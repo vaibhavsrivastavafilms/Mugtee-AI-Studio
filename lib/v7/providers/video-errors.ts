@@ -169,7 +169,9 @@ export function isV7VideoRetryableError(err: unknown): boolean {
     'code' in cause &&
     typeof (cause as { code: unknown }).code === 'string' &&
     ((cause as { code: string }).code.startsWith('POLLINATIONS_') &&
-      (cause as { code: string }).code !== 'POLLINATIONS_RATE_LIMITED')
+      (cause as { code: string }).code !== 'POLLINATIONS_RATE_LIMITED' &&
+      (cause as { code: string }).code !== 'POLLINATIONS_SERVER_ERROR' &&
+      (cause as { code: string }).code !== 'POLLINATIONS_TIMEOUT')
   ) {
     return false
   }

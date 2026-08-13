@@ -64,6 +64,8 @@ import {
   resolveMockRenderDurationSec,
   resolveMockRenderResolution,
 } from '@/lib/remotion/render-settings.server'
+import { resolveReelDimensions } from '@/lib/remotion/reel-dimensions.core'
+import { validateFinalDeliverableMp4 } from '@/lib/v7/final-mp4-validation.server'
 
 export type ReelProgressCallback = (
   percent: number,
@@ -289,6 +291,7 @@ export async function orchestrateRemotionReel(
       durationSec = mockResult.durationSec
       thumbnailPath = mockResult.thumbnailPath
     } else {
+      const reelDimensions = resolveReelDimensions(input.aspectRatio)
       const { ensureCinematicMotionMap } = await import(
         '@/lib/production-os/v3/camera-director'
       )
@@ -305,6 +308,8 @@ export async function orchestrateRemotionReel(
         projectId: input.projectId,
         outputPath,
         sceneMotion: cinematicMotion,
+        renderWidth: reelDimensions.width,
+        renderHeight: reelDimensions.height,
         onProgress: (label, percent, meta) => {
           updateRenderJob(jobId, {
             percent,
@@ -376,6 +381,22 @@ export async function orchestrateRemotionReel(
 
     if (!outputStat || outputStat.size <= 0) {
       throw new Error('FFmpeg/Remotion produced an empty output file.')
+    }
+
+    if (!mock) {
+      const reelDimensions = resolveReelDimensions(input.aspectRatio)
+      const deliverable = await validateFinalDeliverableMp4({
+        filePath: outputPath,
+        expectedWidth: reelDimensions.width,
+        expectedHeight: reelDimensions.height,
+        expectedFps: reelDimensions.fps,
+        requireAudio: Boolean(input.voiceUrl?.trim()),
+        expectedDurationSec: durationSec > 0 ? durationSec : totalDuration,
+      })
+      if (!deliverable.valid) {
+        throw new Error(`Final MP4 validation failed: ${deliverable.issues.join('; ')}`)
+      }
+      durationSec = deliverable.durationSec || durationSec
     }
 
     logRenderCompletion({

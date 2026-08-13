@@ -14,6 +14,7 @@ import {
 } from '@/lib/creator/creator-memory'
 import { Save, Upload, Image as ImageIcon, Trash2, RotateCcw, Palette, RefreshCw, Archive, Plug, Instagram, Unplug, AlertCircle, CheckCircle2, Crown, ArrowRight, Sparkles, Mail } from 'lucide-react'
 import { ProviderManagerPanel } from '@/components/settings/provider-manager-panel'
+import { PollinationsConnectPanel } from '@/components/settings/pollinations-connect-panel'
 import { YouTubeConnect } from '@/components/youtube/connect-button'
 import { useStore, type TrashItem } from '@/lib/store'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -591,6 +592,10 @@ export default function SettingsPage() {
         <div className="mt-5">
           <YouTubeConnect />
         </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.132 }}>
+        <PollinationsConnectPanel />
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.135 }}>

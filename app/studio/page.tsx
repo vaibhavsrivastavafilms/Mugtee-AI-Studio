@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { V7IdeaInput } from '@/features/v7/components/idea-input'
+import { StudioLanding } from '@/components/studio/studio-landing'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 export default function StudioPage() {
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#050505] py-16 text-white">
-      <V7IdeaInput />
+    <main className="flex min-h-[100dvh] flex-col items-center overflow-x-hidden bg-[#050505] px-4 py-12 text-white sm:py-16">
+      <StudioLanding />
     </main>
   )
 }

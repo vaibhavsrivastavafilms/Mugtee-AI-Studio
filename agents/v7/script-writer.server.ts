@@ -1,17 +1,22 @@
 import 'server-only'
 
 import { z } from 'zod'
+import { generateText } from '@/lib/ai/provider'
+import { parseLlmJsonText } from '@/lib/ai/providers/shared'
+import { resolveActiveTextProvider } from '@/lib/ai/config'
 import { generateV7StructuredJson } from '@/lib/v7/providers/text.server'
-import {
-  AI_PLANNING_DIRECTION_MAX,
-  AI_PLANNING_NARRATIVE_MAX,
-  AI_PLANNING_TITLE_MAX,
-  aiPlanningText,
-  normalizeCreativeText,
-} from '@/lib/v7/creative-planning-validation.server'
+import { V7ProviderRequestError } from '@/lib/v7/providers/text-errors.server'
 import type { V7CreativeBrief } from '@/types/v7/production'
 import type { V7CreativeDirection } from '@/agents/v7/creative-director.server'
 import type { V7ResearchBrief } from '@/agents/v7/research.server'
+import {
+  buildScreenplayRepairUserPrompt,
+  MAX_SCREENPLAY_ATTEMPTS,
+  validateScreenplayDocument,
+  type V7ScriptDocument,
+} from '@/agents/v7/script-schema'
+
+export type { V7ScriptDocument } from '@/agents/v7/script-schema'
 
 const SCRIPT_SYSTEM = `You are the Mugtee Script Writer and Screenplay Engine.
 
@@ -38,32 +43,47 @@ Return ONLY JSON:
   ]
 }
 
-Scene count must match the production brief. Include hook in scene 1 and CTA in the final scene when appropriate.`
+Rules:
+- Scene count must match the production brief.
+- Include hook in scene 1 and CTA in the final scene when appropriate.
+- EVERY required string field MUST contain meaningful, non-empty content after trimming.
+- Do NOT use "", "N/A", "none", "TBD", or placeholders for required fields.
+- dialogue may be "" only when a scene has no spoken dialogue; all other fields remain required.
+- For every scene, write concrete location, action, narration, camera, lighting, movement, emotion, and transition.
+- scenes[n].narration must always contain voiceover narration text in the production language.
+- scenes[n].action must describe visible on-screen action.
+- scenes[n].location must name the setting.`
 
-const scriptSceneFields = {
-  number: z.coerce.number().int().min(1),
-  title: aiPlanningText(AI_PLANNING_TITLE_MAX),
-  duration: z.coerce.number().positive(),
-  location: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  characters: z.array(z.string().max(AI_PLANNING_TITLE_MAX)),
-  dialogue: z.preprocess(
-    (value) => normalizeCreativeText(value) ?? '',
-    z.string().max(AI_PLANNING_NARRATIVE_MAX)
-  ),
-  action: aiPlanningText(AI_PLANNING_NARRATIVE_MAX),
-  camera: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  lighting: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  movement: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  emotion: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  transition: aiPlanningText(AI_PLANNING_DIRECTION_MAX),
-  narration: aiPlanningText(AI_PLANNING_NARRATIVE_MAX),
+function normalizeStructuredObject(parsed: unknown): Record<string, unknown> | null {
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 1 && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
+      return parsed[0] as Record<string, unknown>
+    }
+    return null
+  }
+  if (parsed && typeof parsed === 'object') {
+    return parsed as Record<string, unknown>
+  }
+  return null
 }
 
-const scriptSchema = z.object({
-  scenes: z.array(z.object(scriptSceneFields)).min(1),
-})
-
-export type V7ScriptDocument = z.infer<typeof scriptSchema>
+function logScreenplayValidationDiagnostic(params: {
+  attempt: number
+  model: string | null
+  productionId?: string
+  sceneCount: number | null
+  topLevelKeys: string[]
+  validationErrors: string[]
+}): void {
+  console.warn('[v7-script] screenplay schema validation failed', {
+    attempt: params.attempt,
+    model: params.model,
+    projectId: params.productionId ?? null,
+    sceneCount: params.sceneCount,
+    topLevelKeys: params.topLevelKeys,
+    validationErrors: params.validationErrors,
+  })
+}
 
 export async function runV7ScriptWriter(params: {
   brief: V7CreativeBrief
@@ -72,13 +92,97 @@ export async function runV7ScriptWriter(params: {
   productionId?: string
 }): Promise<{ script: V7ScriptDocument; durationMs: number }> {
   const started = Date.now()
-  const raw = await generateV7StructuredJson({
-    agent: 'v7-script',
-    systemPrompt: SCRIPT_SYSTEM,
-    userPrompt: `BRIEF:\n${JSON.stringify(params.brief)}\n\nRESEARCH:\n${JSON.stringify(params.research)}\n\nCREATIVE:\n${JSON.stringify(params.direction)}`,
-    temperature: 0.5,
-    projectId: params.productionId,
-  })
+  const provider = resolveActiveTextProvider()
+  const baseUserPrompt = `BRIEF:\n${JSON.stringify(params.brief)}\n\nRESEARCH:\n${JSON.stringify(params.research)}\n\nCREATIVE:\n${JSON.stringify(params.direction)}`
+  let userPrompt = baseUserPrompt
+  let lastModel: string | null = null
+  let lastValidationErrors: string[] = []
 
-  return { script: scriptSchema.parse(raw), durationMs: Date.now() - started }
+  for (let attempt = 0; attempt < MAX_SCREENPLAY_ATTEMPTS; attempt++) {
+    let raw: Record<string, unknown>
+
+    if (attempt === 0) {
+      raw = await generateV7StructuredJson({
+        agent: 'v7-script',
+        systemPrompt: SCRIPT_SYSTEM,
+        userPrompt,
+        temperature: 0.5,
+        projectId: params.productionId,
+      })
+      lastModel = 'structured-json'
+    } else {
+      const result = await generateText({
+        agent: 'v7-script',
+        systemPrompt: SCRIPT_SYSTEM,
+        userPrompt,
+        temperature: 0.35,
+        projectId: params.productionId,
+      })
+      lastModel = result.model
+      const parsed = normalizeStructuredObject(parseLlmJsonText(result.text))
+      if (!parsed || Object.keys(parsed).length === 0) {
+        lastValidationErrors = ['response: invalid or empty JSON object']
+        logScreenplayValidationDiagnostic({
+          attempt: attempt + 1,
+          model: lastModel,
+          productionId: params.productionId,
+          sceneCount: null,
+          topLevelKeys: [],
+          validationErrors: lastValidationErrors,
+        })
+        userPrompt = buildScreenplayRepairUserPrompt({
+          baseUserPrompt,
+          validationErrors: lastValidationErrors,
+        })
+        continue
+      }
+      raw = parsed
+    }
+
+    const scenes = Array.isArray(raw.scenes) ? raw.scenes : null
+    const validation = validateScreenplayDocument(raw)
+
+    if (validation.ok) {
+      if (attempt > 0) {
+        console.info('[v7-script] screenplay schema validation recovered', {
+          attempt: attempt + 1,
+          model: lastModel,
+          projectId: params.productionId ?? null,
+          sceneCount: validation.data.scenes.length,
+        })
+      }
+      return { script: validation.data, durationMs: Date.now() - started }
+    }
+
+    lastValidationErrors = validation.errors
+    logScreenplayValidationDiagnostic({
+      attempt: attempt + 1,
+      model: lastModel,
+      productionId: params.productionId,
+      sceneCount: scenes?.length ?? null,
+      topLevelKeys: Object.keys(raw),
+      validationErrors: lastValidationErrors,
+    })
+
+    if (attempt >= MAX_SCREENPLAY_ATTEMPTS - 1) break
+
+    userPrompt = buildScreenplayRepairUserPrompt({
+      baseUserPrompt,
+      validationErrors: lastValidationErrors,
+    })
+  }
+
+  throw new V7ProviderRequestError('PROVIDER_INVALID_RESPONSE', provider, {
+    message: `Screenplay schema validation failed after ${MAX_SCREENPLAY_ATTEMPTS} attempts: ${lastValidationErrors[0] ?? 'invalid JSON shape'}`,
+    cause:
+      lastValidationErrors.length > 0
+        ? new z.ZodError(
+            lastValidationErrors.map((message) => ({
+              code: 'custom',
+              message,
+              path: [],
+            }))
+          )
+        : undefined,
+  })
 }

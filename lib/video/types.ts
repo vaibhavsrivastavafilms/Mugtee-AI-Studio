@@ -24,6 +24,7 @@ export type FacelessRenderInput = {
   subtitles: SubtitleSegment[]
   userId?: string | null
   projectId?: string | null
+  aspectRatio?: string | null
 }
 
 export type RenderProgressStage =

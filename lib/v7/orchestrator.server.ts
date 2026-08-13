@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { runV7IdeaAnalyzer } from '@/agents/v7/idea-analyzer.server'
+import { runV7ConceptGenerator } from '@/agents/v7/concept-generator.server'
 import { runV7Research } from '@/agents/v7/research.server'
 import { runV7CreativeDirector } from '@/agents/v7/creative-director.server'
 import { runV7ScriptWriter } from '@/agents/v7/script-writer.server'
@@ -56,6 +57,20 @@ import {
   assertV7SoundProviderConfigured,
   V7ProviderNotAvailableError,
 } from '@/lib/v7/provider-availability.server'
+import {
+  getNextRunnableStageId,
+  shouldPreserveCompletedStageFailure,
+} from '@/lib/v7/pipeline-state.core'
+import {
+  isAwaitingConceptSelection,
+  persistConceptSelectionAwaiting,
+} from '@/lib/v7/concept-selection.server'
+import {
+  applySelectedConceptToBrief,
+  mergeConceptSelectionTimeline,
+  readConceptSelectionState,
+  validateConceptIndex,
+} from '@/lib/v7/concept-selection.core'
 import {
   acquireProductionLock,
   canStartStage,
@@ -112,26 +127,26 @@ export async function startV7Production(params: {
       productionId,
     })
 
+    const { concepts, durationMs: conceptsDurationMs } = await runV7ConceptGenerator({
+      prompt: params.prompt,
+      brief,
+      productionId,
+    })
+
     await upsertV7Stage(params.supabase, {
       productionId,
       stage: 'idea',
       status: 'completed',
       input: { prompt: params.prompt },
-      output: { brief, durationMs },
+      output: { brief, durationMs, concepts, conceptsDurationMs },
     })
 
-    await updateV7Production(params.supabase, productionId, params.userId, {
-      title: brief.title,
-      status: 'producing',
-      creative_brief: brief,
-      current_stage: 'research',
-    })
-
-    await upsertV7Stage(params.supabase, {
+    await persistConceptSelectionAwaiting({
+      supabase: params.supabase,
       productionId,
-      stage: 'research',
-      status: 'queued',
-      input: { brief },
+      userId: params.userId,
+      concepts,
+      brief,
     })
   } catch (error) {
     logV7StageError({ stage: 'idea', productionId, error })
@@ -151,6 +166,13 @@ export async function startV7Production(params: {
 
   const snapshot = await getV7Production(params.supabase, productionId, params.userId)
   if (!snapshot) throw new Error('Production not found after idea analysis')
+
+  if (isAwaitingConceptSelection(snapshot.production.timeline_json)) {
+    return toV7AdvanceSnapshot(snapshot, {
+      blocked: true,
+      reason: 'awaiting_concept_selection',
+    })
+  }
 
   try {
     return await advanceV7Production({
@@ -193,6 +215,13 @@ export async function advanceV7Production(params: {
 
   if (findFirstFailedStage(snapshot.stages)) {
     return toV7AdvanceSnapshot(snapshot, { blocked: false })
+  }
+
+  if (isAwaitingConceptSelection(snapshot.production.timeline_json)) {
+    return toV7AdvanceSnapshot(snapshot, {
+      blocked: true,
+      reason: 'awaiting_concept_selection',
+    })
   }
 
   let running = findRunningStage(snapshot.stages)
@@ -289,6 +318,15 @@ export async function advanceV7Production(params: {
 
     snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
     if (!snapshot) throw new Error('Production not found after stage')
+
+    const nextStage = getNextRunnableStageId(stage)
+    await updateV7Production(params.supabase, params.productionId, params.userId, {
+      status: 'producing',
+      current_stage: nextStage ?? stage,
+    })
+
+    snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
+    if (!snapshot) throw new Error('Production not found after stage reconciliation')
     return toV7AdvanceSnapshot(snapshot, { blocked: false })
   } catch (error) {
     const failureProvider =
@@ -315,16 +353,27 @@ export async function advanceV7Production(params: {
         : error instanceof Error
           ? error.message
           : `${stage} failed`
-    await upsertV7Stage(params.supabase, {
-      productionId: params.productionId,
-      stage,
-      status: 'failed',
-      error: message,
-    })
-    await updateV7Production(params.supabase, params.productionId, params.userId, {
-      status: 'failed',
-      current_stage: stage,
-    })
+
+    const latestSnapshot = await getV7Production(
+      params.supabase,
+      params.productionId,
+      params.userId
+    )
+    const stageRow = latestSnapshot?.stages.find((row) => row.stage === stage)
+    const preserveCompletedStage = shouldPreserveCompletedStageFailure(stageRow)
+
+    if (!preserveCompletedStage) {
+      await upsertV7Stage(params.supabase, {
+        productionId: params.productionId,
+        stage,
+        status: 'failed',
+        error: message,
+      })
+      await updateV7Production(params.supabase, params.productionId, params.userId, {
+        status: 'failed',
+        current_stage: stage,
+      })
+    }
     throw new V7StageExecutionError(stage, error, {
       productionId: params.productionId,
       provider: failureProvider,
@@ -489,7 +538,8 @@ async function executeV7Stage(
   if (!snapshot) throw new Error('Snapshot missing')
 
     if (stage === 'image') {
-    await ProviderManager.assertImageReady({ userId, productionId })
+    ProviderManager.refreshPollinationsState(userId)
+    await ProviderManager.assertImageReady({ userId, productionId, forceRefresh: true })
     const { images } = await runV7ImageStage({
       brief,
       direction,
@@ -761,4 +811,57 @@ async function executeV7Stage(
       }).catch(() => undefined)
     }
   }
+}
+
+export async function selectV7ProductionConcept(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  conceptIndex: number
+}): Promise<V7AdvanceSnapshot> {
+  const snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
+  if (!snapshot) throw new Error('Production not found')
+
+  if (snapshot.production.user_id !== params.userId) {
+    throw new Error('Forbidden')
+  }
+
+  const selection = readConceptSelectionState(snapshot.production.timeline_json)
+  if (!selection?.awaiting || selection.concepts.length === 0) {
+    throw new Error('Concept selection is not pending for this production')
+  }
+
+  const concept = validateConceptIndex(selection.concepts, params.conceptIndex)
+  if (!concept) throw new Error('Invalid concept selection')
+
+  const brief = snapshot.production.creative_brief
+  if (!brief) throw new Error('Creative brief missing')
+
+  const mergedBrief = applySelectedConceptToBrief(brief, concept)
+  const timeline = mergeConceptSelectionTimeline(snapshot.production.timeline_json, {
+    awaiting: false,
+    selectedIndex: params.conceptIndex,
+    selectedAt: new Date().toISOString(),
+  })
+
+  await updateV7Production(params.supabase, params.productionId, params.userId, {
+    title: mergedBrief.title,
+    status: 'producing',
+    current_stage: 'research',
+    creative_brief: mergedBrief,
+    timeline_json: timeline,
+  })
+
+  await upsertV7Stage(params.supabase, {
+    productionId: params.productionId,
+    stage: 'research',
+    status: 'queued',
+    input: { brief: mergedBrief, selectedConcept: concept },
+  })
+
+  return advanceV7Production({
+    supabase: params.supabase,
+    productionId: params.productionId,
+    userId: params.userId,
+  })
 }

@@ -15,7 +15,7 @@ export function OAuthLoadingState({
   return (
     <div
       className={cn(
-        'min-h-screen w-full flex items-center justify-center bg-[#050505] px-6 relative overflow-hidden',
+        'min-h-[100dvh] w-full flex items-center justify-center bg-[#050505] px-6 safe-area-pad relative overflow-hidden',
         className
       )}
     >

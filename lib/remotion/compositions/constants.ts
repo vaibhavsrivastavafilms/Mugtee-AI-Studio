@@ -3,3 +3,6 @@ export const REEL_HEIGHT = 1920
 export const REEL_FPS = 30
 export const REEL_COMPOSITION_ID = 'MugteeReel'
 export const MUGTEE_TIMELINE_COMPOSITION_ID = 'MugteeTimeline'
+
+export { resolveReelDimensions } from '@/lib/remotion/reel-dimensions.core'
+export type { ReelDimensions } from '@/lib/remotion/reel-dimensions.core'

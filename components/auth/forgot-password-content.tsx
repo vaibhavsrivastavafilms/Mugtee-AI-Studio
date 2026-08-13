@@ -80,7 +80,7 @@ function ForgotPasswordForm() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 h-12 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-bg)] px-4 text-sm text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
+                className="mt-2 h-12 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-bg)] px-4 text-base text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
                 placeholder="you@example.com"
               />
             </label>

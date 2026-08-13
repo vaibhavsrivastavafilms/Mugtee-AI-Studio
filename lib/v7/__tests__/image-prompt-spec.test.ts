@@ -372,3 +372,227 @@ describe('V7 image prompt spec', () => {
     }
   })
 })
+
+describe('Table Tales scene 5 couple validation', () => {
+  const tableTalesBrief: V7CreativeBrief = {
+    title: 'Table Tales: Monsoon Serenity',
+    duration: 45,
+    platform: 'Instagram',
+    language: 'English',
+    aspectRatio: '9:16',
+    genre: 'Lifestyle',
+    style:
+      'High-end lifestyle cinematography with moody, warm lighting and shallow depth of field.',
+    sceneCount: 8,
+    voiceDirection: 'Warm narrator',
+    musicDirection: 'Ambient rain',
+    emotion: 'Cozy and intimate',
+    audience: 'Urban diners',
+    characterConsistency: true,
+  }
+
+  const tableTalesDirection: V7CreativeDirection = {
+    visualStyle: 'Moody monsoon lifestyle',
+    colorPalette: ['#1A1A2E', '#D4AF37'],
+    lighting: 'Chiaroscuro',
+    cameraLanguage: 'Intimate close-ups',
+    animationStyle: 'Slow motion',
+    editingStyle: 'Gentle pacing',
+    musicStyle: 'Ambient',
+    voiceStyle: 'Warm',
+    typography: 'Serif',
+    moodBoard: ['Rain on glass'],
+  }
+
+  const tableTalesCharacterBible: V7CharacterBible = {
+    characters: [
+      {
+        name: 'The Cozy Couple',
+        role: 'Intimate diners',
+        face: 'Soft features in shadow',
+        hair: 'Natural styles',
+        body: 'Relaxed posture',
+        costume: 'Smart casual evening wear',
+        accessories: ['None'],
+        expressions: ['Quiet laughter'],
+        voice: 'N/A',
+        negativePrompt: 'posed portrait',
+      },
+    ],
+  }
+
+  const tableTalesScene5Script: V7ScriptDocument['scenes'][number] = {
+    number: 5,
+    title: 'The Connection',
+    action:
+      'A man and woman sit close together in a velvet armchair, sharing a quiet laugh, their faces partially in soft shadow.',
+    camera: 'Medium Shot',
+    duration: 6,
+    location: 'Cozy Corner Nook',
+    characters: ['A couple'],
+    narration: 'Reconnect with what matters most.',
+    dialogue: '',
+    lighting: 'Low-key, intimate warm lighting.',
+    movement: 'Slow zoom-in.',
+    emotion: 'Intimate',
+    transition: 'Slow dissolve',
+  }
+
+  const tableTalesScene5Shot: V7StoryboardDocument['scenes'][number]['shots'][number] = {
+    lens: '35mm Prime',
+    camera: 'Medium Shot',
+    timing: 6,
+    emotion: 'Intimate',
+    dialogue: 'Reconnect with what matters most.',
+    lighting: 'Low-key, intimate warm lighting',
+    movement: 'Slow zoom-in',
+    composition: 'Couple in velvet armchair, partially in shadow',
+  }
+
+  it('passes validation for couple armchair scene without wine glasses', () => {
+    const spec = buildV7SceneImageSpec({
+      sceneNumber: 5,
+      sceneId: 'scene-5-table-tales',
+      productionId: '88ea4d5d-9249-44a7-a62a-12355a1b4831',
+      scriptScene: tableTalesScene5Script,
+      shot: tableTalesScene5Shot,
+      brief: tableTalesBrief,
+      direction: tableTalesDirection,
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+    })
+
+    const built = buildV7SceneImagePromptFromSpec({
+      spec,
+      aspectRatio: '9:16',
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+      narration: tableTalesScene5Script.narration,
+      emotion: tableTalesScene5Script.emotion,
+      lens: tableTalesScene5Shot.lens,
+      movement: tableTalesScene5Script.movement,
+    })
+
+    const validation = validateV7SceneImagePrompt({
+      spec,
+      prompt: built.prompt,
+      negativePrompt: built.negativePrompt,
+      characterBible: tableTalesCharacterBible,
+    })
+
+    assert.equal(validation.valid, true)
+    assert.equal(validation.score.overall, 100)
+    assert.deepEqual(validation.missingRequirements, [])
+    assert.doesNotMatch(spec.requiredPromptTerms.join(' '), /\bglasses\b/)
+    assert.match(built.prompt, /couple/i)
+    assert.match(built.prompt, /armchair/i)
+  })
+
+  it('still requires glasses when screenplay mentions crystal glasses', () => {
+    const { spec, prompt, negativePrompt } = buildScenePrompt(4)
+    assert.ok(spec.requiredPromptTerms.includes('glasses'))
+    const validation = validateV7SceneImagePrompt({
+      spec,
+      prompt,
+      negativePrompt,
+      characterBible,
+    })
+    assert.equal(validation.valid, true)
+    assert.match(prompt, /glasses/i)
+  })
+
+  it('fails when required objects are removed from prompt', () => {
+    const spec = buildV7SceneImageSpec({
+      sceneNumber: 5,
+      sceneId: 'scene-5-table-tales',
+      productionId: '88ea4d5d-9249-44a7-a62a-12355a1b4831',
+      scriptScene: tableTalesScene5Script,
+      shot: tableTalesScene5Shot,
+      brief: tableTalesBrief,
+      direction: tableTalesDirection,
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+    })
+
+    const built = buildV7SceneImagePromptFromSpec({
+      spec,
+      aspectRatio: '9:16',
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+    })
+
+    const validation = validateV7SceneImagePrompt({
+      spec,
+      prompt: 'generic empty restaurant interior',
+      negativePrompt: built.negativePrompt,
+      characterBible: tableTalesCharacterBible,
+    })
+
+    assert.equal(validation.valid, false)
+    assert.ok(validation.missingRequirements.length > 0)
+  })
+
+  it('macro food scene at kitchen/plating station avoids forbidden kitchen term in prompt', () => {
+    const macroSceneScript: V7ScriptDocument['scenes'][number] = {
+      number: 3,
+      title: 'Texture and Heat',
+      action:
+        'A silver spoon breaks through a soft, creamy texture of a warm dish, releasing a plume of steam.',
+      camera: 'Spoon breaking creamy texture',
+      duration: 5,
+      location: 'Restaurant kitchen/plating station',
+      characters: [],
+      narration: 'Taste the rhythm of the season.',
+      dialogue: '',
+      lighting: 'Warm tungsten highlighting steam',
+      movement: 'Static (High-frame-rate)',
+      emotion: 'Sensory indulgence',
+      transition: 'Cut',
+    }
+
+    const spec = buildV7SceneImageSpec({
+      sceneNumber: 3,
+      sceneId: 'scene-3-monsoon',
+      productionId: 'c79ef12e-71fa-4ba9-a186-851efda10e90',
+      scriptScene: macroSceneScript,
+      shot: {
+        camera: macroSceneScript.camera,
+        composition: macroSceneScript.action.split('.')[0],
+        lighting: macroSceneScript.lighting,
+        movement: macroSceneScript.movement,
+        timing: macroSceneScript.duration,
+        dialogue: macroSceneScript.dialogue,
+        emotion: macroSceneScript.emotion,
+        lens: '100mm Macro',
+      },
+      brief: tableTalesBrief,
+      direction: tableTalesDirection,
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+    })
+
+    const built = buildV7SceneImagePromptFromSpec({
+      spec,
+      aspectRatio: '9:16',
+      characterBible: tableTalesCharacterBible,
+      worldBible: null,
+      narration: macroSceneScript.narration,
+      emotion: macroSceneScript.emotion,
+      lens: '100mm Macro',
+      movement: macroSceneScript.movement,
+    })
+
+    const validation = validateV7SceneImagePrompt({
+      spec,
+      prompt: built.prompt,
+      negativePrompt: built.negativePrompt,
+      characterBible: tableTalesCharacterBible,
+    })
+
+    assert.equal(spec.isMacroFoodScene, true)
+    assert.doesNotMatch(built.prompt, /\bkitchen\b/i)
+    assert.match(built.prompt, /plating station/i)
+    assert.equal(validation.valid, true)
+    assert.deepEqual(validation.forbiddenTermsFound, [])
+  })
+})

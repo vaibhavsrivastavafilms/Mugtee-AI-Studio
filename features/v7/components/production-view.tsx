@@ -3,8 +3,10 @@
 import { Check, Circle, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { V7ProductionProgressPanel } from '@/features/v7/components/production-progress-panel'
+import { V7ConceptSelector } from '@/features/v7/components/concept-selector'
+import { isAwaitingConceptSelection } from '@/lib/v7/concept-selection.core'
 import { useProductionProgress } from '@/features/v7/hooks/use-production-progress'
-import { resolveV7SceneProgress } from '@/lib/v7/production-progress'
+import { resolveV7SceneProgress, formatV7PausedFailureReason } from '@/lib/v7/production-progress'
 import type {
   V7ProductionSnapshot,
   V7ProductionStatus,
@@ -16,6 +18,7 @@ type V7ProductionViewProps = {
   snapshot: V7ProductionSnapshot
   onRetry?: () => void
   retrying?: boolean
+  onConceptSelected?: () => Promise<void>
   className?: string
 }
 
@@ -36,7 +39,7 @@ function sceneStageDetail(snapshot: V7ProductionSnapshot, stageId: V7StageId): s
   return `Scene ${scene.completedScenes}/${scene.totalScenes} · ${scene.scenePercent}%`
 }
 
-export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7ProductionViewProps) {
+export function V7ProductionView({ snapshot, onRetry, retrying, onConceptSelected, className }: V7ProductionViewProps) {
   const progress = useProductionProgress(snapshot)
   const { production, timeline } = snapshot
 
@@ -48,9 +51,9 @@ export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7P
   const thumbnailUrl = production.thumbnail_url
   const creatorPackUrl = production.creator_pack_url
 
-  const hasFailed = timeline.some((stage) => stage.status === 'failed')
   const isFinished = status === 'completed' && Boolean(reelUrl)
-  const showProgress = !isFinished
+  const awaitingConcept = isAwaitingConceptSelection(production.timeline_json)
+  const showProgress = !isFinished && !awaitingConcept
 
   return (
     <div className={cn('mx-auto w-full max-w-2xl px-4 py-8', className)}>
@@ -66,7 +69,18 @@ export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7P
         <p className="mt-2 text-sm text-white/50 line-clamp-2">{prompt}</p>
       </header>
 
-      {progress && showProgress ? <V7ProductionProgressPanel progress={progress} className="mb-6" /> : null}
+      {awaitingConcept && onConceptSelected ? (
+        <V7ConceptSelector snapshot={snapshot} onSelected={onConceptSelected} />
+      ) : null}
+
+      {progress && showProgress ? (
+        <V7ProductionProgressPanel
+          progress={progress}
+          className="mb-6"
+          onRetry={onRetry}
+          retrying={retrying}
+        />
+      ) : null}
 
       {progress && isFinished ? (
         <V7ProductionProgressPanel progress={progress} className="mb-6" />
@@ -101,7 +115,9 @@ export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7P
                     <p className="mt-0.5 text-xs text-[#E6C76A]/80">{sceneDetail}</p>
                   ) : null}
                   {stage.error ? (
-                    <p className="mt-0.5 truncate text-xs text-red-300/80">{stage.error}</p>
+                    <p className="mt-0.5 break-words text-xs text-red-300/80">
+                      {formatV7PausedFailureReason(stage.error).summary ?? stage.error}
+                    </p>
                   ) : null}
                 </div>
               </li>
@@ -118,14 +134,15 @@ export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7P
             src={reelUrl!}
             controls
             playsInline
+            preload="metadata"
             poster={thumbnailUrl ?? undefined}
-            className="mx-auto mt-4 max-h-[70vh] w-full max-w-lg rounded-xl bg-black"
+            className="mx-auto mt-4 aspect-[9/16] max-h-[70dvh] w-full max-w-lg rounded-xl bg-black object-contain"
           />
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <a
               href={reelUrl!}
               download
-              className="rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-[#0B0B0B]"
+              className="inline-flex min-h-[44px] items-center rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-[#0B0B0B] touch-manipulation"
             >
               Download MP4
             </a>
@@ -148,27 +165,6 @@ export function V7ProductionView({ snapshot, onRetry, retrying, className }: V7P
               </a>
             ) : null}
           </div>
-        </div>
-      ) : hasFailed ? (
-        <div className="mt-8 text-center">
-          <p className="text-sm text-red-300/90">
-            {progress?.paused?.failedStageLabel
-              ? `Production paused at ${progress.paused.failedStageLabel}.`
-              : 'Production paused at a failed stage.'}
-          </p>
-          {progress?.paused?.reason ? (
-            <p className="mx-auto mt-2 max-w-md text-xs text-red-200/70">{progress.paused.reason}</p>
-          ) : null}
-          {onRetry ? (
-            <button
-              type="button"
-              onClick={onRetry}
-              disabled={retrying}
-              className="mt-4 rounded-lg bg-[#D4AF37] px-6 py-2.5 text-sm font-semibold text-[#0B0B0B] disabled:opacity-60"
-            >
-              {retrying ? 'Retrying…' : 'Retry failed stage'}
-            </button>
-          ) : null}
         </div>
       ) : null}
     </div>

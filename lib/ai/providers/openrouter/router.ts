@@ -259,6 +259,12 @@ export class OpenRouterModelRouter {
       )
 
       const body = await res.text()
+      if (res.status === 401 || res.status === 403) {
+        throw new TextProviderError('OPENROUTER_AUTH_FAILED', 'openrouter', {
+          httpStatus: res.status,
+          message: 'OpenRouter authentication failed while loading model catalog',
+        })
+      }
       if (!res.ok) {
         throw new TextProviderError('OPENROUTER_API_UNAVAILABLE', 'openrouter', {
           httpStatus: res.status,

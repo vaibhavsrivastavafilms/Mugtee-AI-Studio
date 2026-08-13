@@ -14,7 +14,7 @@ type HoverPreviewProps = {
   label?: string
 }
 
-/** Plays muted on hover / focus; pauses on leave. Falls back to stage demo. */
+/** Plays muted on hover/focus/tap; pauses on leave. Falls back to stage demo. */
 export function HoverPreview({
   src,
   poster,
@@ -25,21 +25,26 @@ export function HoverPreview({
   const videoRef = useRef<HTMLVideoElement>(null)
   const { ready, failed } = useVideoSourceReady(src)
   const useFallback = !src || failed || !ready
-  const [hovering, setHovering] = useState(false)
+  const [active, setActive] = useState(false)
 
   const play = () => {
-    setHovering(true)
+    setActive(true)
     void videoRef.current?.play().catch(() => undefined)
   }
   const pause = () => {
-    setHovering(false)
+    setActive(false)
     videoRef.current?.pause()
+  }
+
+  const toggle = () => {
+    if (active) pause()
+    else play()
   }
 
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-[rgba(212,175,55,0.18)] bg-[#0D0D0D] transition duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(212,175,55,0.16)] focus-within:shadow-[0_0_40px_rgba(212,175,55,0.16)]',
+        'group relative overflow-hidden rounded-2xl border border-[rgba(212,175,55,0.18)] bg-[#0D0D0D] transition duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(212,175,55,0.16)] focus-within:shadow-[0_0_40px_rgba(212,175,55,0.16)] touch-manipulation',
         aspect === 'vertical' ? 'aspect-[9/16]' : 'aspect-video',
         className
       )}
@@ -47,9 +52,19 @@ export function HoverPreview({
       onMouseLeave={pause}
       onFocus={play}
       onBlur={pause}
+      onClick={toggle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          toggle()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={label ? `Preview ${label}` : 'Preview video'}
     >
       {useFallback ? (
-        <PipelineStageDemo poster={poster} active={hovering} className="absolute inset-0 h-full w-full" />
+        <PipelineStageDemo poster={poster} active={active} className="absolute inset-0 h-full w-full" />
       ) : (
         <video
           ref={videoRef}
@@ -71,8 +86,8 @@ export function HoverPreview({
         ) : (
           <span />
         )}
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D4AF37]/40 bg-black/50 text-[#D4AF37] opacity-90 transition group-hover:scale-110">
-          <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D4AF37]/40 bg-black/50 text-[#D4AF37] opacity-90 transition group-hover:scale-110">
+          <Play className="h-4 w-4 fill-current" aria-hidden />
         </span>
       </div>
     </div>

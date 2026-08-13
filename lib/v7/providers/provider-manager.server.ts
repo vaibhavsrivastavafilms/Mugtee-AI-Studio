@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { getOpenRouterTextProviderHealth } from '@/lib/ai/providers/openrouter/health'
+import { hasOpenRouterApiKey } from '@/lib/ai/providers/openrouter/client'
 import { probePollinationsHealth } from '@/lib/pollinations/models.server'
 import { clearPollinationsSpendableBalanceCache } from '@/lib/pollinations/entitlement.server'
 import { invalidatePollinationsModelCache } from '@/lib/pollinations/models.server'
@@ -271,7 +272,14 @@ export class ProviderManager {
     return result
   }
 
-  static async assertImageReady(params: { userId: string; productionId?: string }): Promise<ProviderPreflightResult> {
+  static async assertImageReady(params: {
+    userId: string
+    productionId?: string
+    forceRefresh?: boolean
+  }): Promise<ProviderPreflightResult> {
+    if (params.forceRefresh) {
+      ProviderManager.refreshPollinationsState(params.userId)
+    }
     const report = await ProviderManager.preflight(params)
     if (report.image !== 'READY') {
       const { V7ImageProviderNotReadyError } = await import('@/lib/v7/providers/image-errors')
@@ -300,8 +308,14 @@ export class ProviderManager {
     const report = await ProviderManager.preflight(params)
     if (report.text !== 'READY') {
       const { TextProviderError } = await import('@/lib/ai/errors')
+      const reason = report.providers.text.reason
+      if (!hasOpenRouterApiKey() || reason === 'OPENROUTER_AUTH_FAILED') {
+        throw new TextProviderError('OPENROUTER_AUTH_FAILED', 'openrouter', {
+          message: 'OpenRouter authentication is not configured for this deployment',
+        })
+      }
       throw new TextProviderError('TEXT_PROVIDER_NOT_READY', 'openrouter', {
-        message: report.providers.text.reason ?? 'OpenRouter text provider not ready',
+        message: reason ?? 'OpenRouter text provider not ready',
       })
     }
     return report

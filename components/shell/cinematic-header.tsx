@@ -36,7 +36,7 @@ export function CinematicHeader({
 
 function CinematicHeaderFallback({ variant }: { variant: 'app' | 'portal' }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-gold-soft/60 bg-[#050505]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-gold-soft/60 bg-[#050505]/80 backdrop-blur-xl safe-area-top">
       <div className="h-14 sm:h-16 px-3 sm:px-5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-gold-gradient/40 animate-pulse" />
         {variant === 'app' ? (
@@ -85,7 +85,7 @@ function CinematicHeaderInner({
   if (isWorkspaceRoute) return null
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#050505]/75 backdrop-blur-2xl">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#050505]/75 backdrop-blur-2xl safe-area-top">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-500/35 to-transparent"
         aria-hidden

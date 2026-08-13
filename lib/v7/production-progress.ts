@@ -1,4 +1,5 @@
 import { V7_STAGE_LABELS, type V7CreativeBrief, type V7ProductionSnapshot, type V7StageId, type V7StageRow, type V7TimelineStage } from '@/types/v7/production'
+import { detectProductionStateDrift } from '@/lib/v7/pipeline-state.core'
 
 /** Raw stage weights from V14 spec (normalized to 100% at runtime). */
 const V7_STAGE_WEIGHTS_RAW: Record<V7StageId, number> = {
@@ -110,6 +111,61 @@ export type V7ProductionProgress = {
   completionStats: V7ProductionCompletionStats | null
 }
 
+export function findV7FailedTimelineStage(
+  snapshot: V7ProductionSnapshot
+): V7TimelineStage | undefined {
+  return snapshot.timeline.find((stage) => stage.status === 'failed')
+}
+
+export function resolveV7RetryStageId(snapshot: V7ProductionSnapshot): V7StageId | null {
+  const failedTimeline = findV7FailedTimelineStage(snapshot)
+  if (failedTimeline) return failedTimeline.id
+
+  const failedRow = snapshot.stages.find((row) => row.status === 'failed')
+  if (failedRow) return failedRow.stage as V7StageId
+
+  const drift = detectProductionStateDrift(snapshot)
+  if (drift.recoverable && drift.resumeStage) return drift.resumeStage
+
+  return null
+}
+
+export function canRetryV7Production(snapshot: V7ProductionSnapshot): boolean {
+  if (findV7FailedTimelineStage(snapshot)) return true
+  if (snapshot.stages.some((row) => row.status === 'failed')) return true
+  if (snapshot.production.status === 'failed') return true
+  return detectProductionStateDrift(snapshot).recoverable
+}
+
+export type V7PausedFailureCopy = {
+  summary: string | null
+  detail: string | null
+  technical: string | null
+}
+
+export function formatV7PausedFailureReason(reason: string | null): V7PausedFailureCopy {
+  if (!reason?.trim()) {
+    return { summary: null, detail: null, technical: null }
+  }
+
+  const trimmed = reason.trim()
+  const validationMatch = trimmed.match(
+    /IMAGE_PROMPT_VALIDATION_FAILED scene (\d+)(?:: score (\d+)\/100)?/i
+  )
+
+  if (validationMatch) {
+    const sceneNumber = validationMatch[1]
+    const score = validationMatch[2]
+    return {
+      summary: `Scene ${sceneNumber} failed image validation.`,
+      detail: score ? `Score: ${score}/100` : null,
+      technical: trimmed,
+    }
+  }
+
+  return { summary: null, detail: null, technical: trimmed }
+}
+
 function parseStoryboard(raw: Record<string, unknown>): SceneStoryboard {
   return raw as SceneStoryboard
 }
@@ -161,6 +217,30 @@ function stageRow(snapshot: V7ProductionSnapshot, stageId: V7StageId): V7StageRo
   return snapshot.stages.find((row) => row.stage === stageId)
 }
 
+function resolveDisplayedCurrentStageId(
+  snapshot: V7ProductionSnapshot,
+  failedStage: V7TimelineStage | undefined,
+  isPaused: boolean
+): V7StageId | null {
+  if (!isPaused || failedStage) return null
+  const drift = detectProductionStateDrift(snapshot)
+  return drift.recoverable ? drift.resumeStage : null
+}
+
+function resolvePausedStageLabel(
+  snapshot: V7ProductionSnapshot,
+  failedStage: V7TimelineStage | undefined
+): string | null {
+  if (failedStage) return failedStage.label
+  const drift = detectProductionStateDrift(snapshot)
+  if (drift.recoverable && drift.resumeStage) {
+    return V7_STAGE_LABELS[drift.resumeStage]?.label ?? null
+  }
+  return snapshot.production.current_stage
+    ? V7_STAGE_LABELS[snapshot.production.current_stage]?.label ?? null
+    : null
+}
+
 function stageProgressFraction(
   snapshot: V7ProductionSnapshot,
   stageId: V7StageId,
@@ -208,6 +288,7 @@ export function computeV7ProductionProgress(
   const overallPercent = Math.min(100, Math.max(0, Math.round(completedWeight)))
 
   const currentStageId =
+    resolveDisplayedCurrentStageId(snapshot, failedStage, isPaused) ??
     (snapshot.production.current_stage as V7StageId | null) ??
     snapshot.timeline.find((stage) => stage.status === 'running')?.id ??
     snapshot.timeline.find((stage) => stage.status === 'blocked')?.id ??
@@ -215,6 +296,11 @@ export function computeV7ProductionProgress(
 
   const currentStageLabel = currentStageId ? V7_STAGE_LABELS[currentStageId].label : null
   const sceneProgress = currentStageId ? resolveV7SceneProgress(snapshot, currentStageId) : null
+  const pausedStageLabel = isPaused
+    ? failedStage
+      ? failedStage.label
+      : resolvePausedStageLabel(snapshot, failedStage)
+    : null
 
   const currentTask = buildCurrentTask({
     snapshot,
@@ -224,6 +310,7 @@ export function computeV7ProductionProgress(
     isComplete,
     isPaused,
     failedStage,
+    pausedStageLabel,
   })
 
   const provider = resolveActiveProvider(snapshot, currentStageId, sceneProgress)
@@ -239,14 +326,11 @@ export function computeV7ProductionProgress(
   const paused = isPaused
     ? {
         failedStageId: (failedStage?.id ??
+          resolveDisplayedCurrentStageId(snapshot, failedStage, isPaused) ??
           snapshot.production.current_stage) as V7StageId | null,
-        failedStageLabel: failedStage
-          ? failedStage.label
-          : snapshot.production.current_stage
-            ? V7_STAGE_LABELS[snapshot.production.current_stage]?.label ?? null
-            : null,
+        failedStageLabel: pausedStageLabel,
         reason: failedStage?.error ?? snapshot.block_reason ?? null,
-        retryAvailable: snapshot.production.status === 'failed',
+        retryAvailable: canRetryV7Production(snapshot),
       }
     : null
 
@@ -277,10 +361,11 @@ function buildCurrentTask(params: {
   isComplete: boolean
   isPaused: boolean
   failedStage: V7TimelineStage | undefined
+  pausedStageLabel: string | null
 }): string {
   if (params.isComplete) return 'Production complete'
   if (params.isPaused) {
-    const stage = params.failedStage?.label ?? 'Production'
+    const stage = params.failedStage?.label ?? params.pausedStageLabel ?? 'Production'
     return `Production paused — ${stage}`
   }
 

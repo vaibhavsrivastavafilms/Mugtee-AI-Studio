@@ -44,6 +44,8 @@ export function RemotionRoot() {
         defaultProps={defaultReelProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: computeDurationFrames(props.scenes),
+          width: props.resolution?.width ?? REEL_WIDTH,
+          height: props.resolution?.height ?? REEL_HEIGHT,
         })}
       />
       <Composition

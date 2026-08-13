@@ -219,11 +219,19 @@ export function formatV7AnimationStageError(error: unknown): string {
 
   if (unwrapped instanceof V7VideoProviderCapabilityBlockedError) {
     const scene = unwrapped.sceneNumber ? `scene ${unwrapped.sceneNumber}` : 'animation'
+    const execution = unwrapped.executionFailures?.[0]
+    if (execution?.message) {
+      return execution.message.startsWith('POLLINATIONS_')
+        ? execution.message
+        : `${execution.message} (${scene})`
+    }
     const blocked = toPublicCapabilityEvaluations(unwrapped.evaluations)
       .filter((entry) => !entry.available)
-      .map((entry) => `${entry.provider}:${entry.reason ?? 'UNAVAILABLE'}`)
+      .map((entry) => `${entry.provider}:${entry.reason ?? 'UNAVAILABLE'}${entry.message ? ` — ${entry.message}` : ''}`)
       .join(', ')
-    return `VIDEO_PROVIDER_NOT_READY (${scene}) — ${blocked}`
+    return blocked.includes('INPUT_REJECTED') && execution?.message
+      ? execution.message
+      : `PROVIDER_CAPABILITY_BLOCKED (${scene}) — ${blocked}`
   }
 
   if (unwrapped instanceof V7AllVideoProvidersFailedError) {

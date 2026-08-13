@@ -1,5 +1,5 @@
 /**
- * Voice cascade: Kokoro → Piper → ElevenLabs → OpenAI → Emergent/Google → Edge TTS → silent.
+ * Voice cascade: Edge TTS → Piper → Kokoro → paid (ElevenLabs/OpenAI/Emergent) → Google → silent.
  * Failures never throw — callers continue the pipeline.
  */
 
@@ -64,19 +64,24 @@ async function synthesizeGoogleTts(text: string): Promise<Buffer | null> {
 }
 
 /**
- * Edge TTS via public Microsoft endpoint (best-effort, no key).
+ * Edge TTS via Microsoft Edge read-aloud (free, no API key).
  * May fail in restricted networks — silent fallback continues.
  */
 async function synthesizeEdgeTts(text: string): Promise<Buffer | null> {
   if (!text.trim()) return null
   try {
-    // Prefer optional dependency when installed; otherwise skip.
-    const mod = await import('node:child_process').catch(() => null)
-    if (!mod) return null
-    // No system binary required — skip heavy edge path; return null to silent.
-    void mod
-    return null
-  } catch {
+    const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts')
+    const tts = new MsEdgeTTS()
+    await tts.setMetadata('en-US-AriaNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
+    const { audioStream } = await tts.toStream(text.slice(0, 4000))
+    const chunks: Buffer[] = []
+    for await (const chunk of audioStream) {
+      chunks.push(Buffer.from(chunk))
+    }
+    const buffer = Buffer.concat(chunks)
+    return buffer.length > 256 ? buffer : null
+  } catch (err) {
+    logError('tts-cascade.edge', err)
     return null
   }
 }
@@ -87,12 +92,12 @@ export async function synthesizeWithCascade(
 ): Promise<TtsCascadeResult> {
   const narration = text.trim()
   if (narration.length >= 1) {
-    const kokoro = await synthesizeKokoroTts(narration)
-    if (kokoro) {
+    const edge = await synthesizeEdgeTts(narration)
+    if (edge) {
       return {
-        buffer: kokoro,
-        provider: 'kokoro',
-        voiceName: options?.voiceName || process.env.KOKORO_VOICE?.trim() || 'Kokoro',
+        buffer: edge,
+        provider: 'edge_tts',
+        voiceName: options?.voiceName || 'Edge Narrator',
         warnOnce: false,
       }
     }
@@ -103,6 +108,16 @@ export async function synthesizeWithCascade(
         buffer: piper,
         provider: 'piper',
         voiceName: options?.voiceName || 'Piper',
+        warnOnce: false,
+      }
+    }
+
+    const kokoro = await synthesizeKokoroTts(narration)
+    if (kokoro) {
+      return {
+        buffer: kokoro,
+        provider: 'kokoro',
+        voiceName: options?.voiceName || process.env.KOKORO_VOICE?.trim() || 'Kokoro',
         warnOnce: false,
       }
     }
@@ -130,17 +145,6 @@ export async function synthesizeWithCascade(
       provider: 'google_tts',
       voiceName: options?.voiceName || 'Google Narrator',
       fallbackMessage: 'Using Google voice fallback.',
-      warnOnce: true,
-    }
-  }
-
-  const edge = await synthesizeEdgeTts(text)
-  if (edge) {
-    return {
-      buffer: edge,
-      provider: 'edge_tts',
-      voiceName: options?.voiceName || 'Edge Narrator',
-      fallbackMessage: 'Using Edge TTS fallback.',
       warnOnce: true,
     }
   }

@@ -1,6 +1,14 @@
 import 'server-only'
 
+import type { PollinationsAuthContext } from '@/lib/pollinations/auth-context.server'
+import { resolvePollinationsAuthContext } from '@/lib/pollinations/auth-context.server'
 import { PollinationsError } from '@/lib/pollinations/errors.server'
+import {
+  classifyPollinationsHttpError,
+  extractPollinationsRequestId,
+  isTerminalPollinationsErrorCode,
+  sanitizePollinationsResponseBody,
+} from '@/lib/pollinations/error-classification-core'
 import {
   assertPollinationsVideoAffordable,
   clearPollinationsSpendableBalanceCache,
@@ -19,16 +27,9 @@ import {
   readPollinationsApiKey,
   selectBestPollinationsModel,
 } from '@/lib/pollinations/models.server'
+import { enrichPollinationsInsufficientError } from '@/lib/pollinations/user-facing-errors.server'
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504])
-const TERMINAL_POLLINATIONS_CODES = new Set<PollinationsError['code']>([
-  'POLLINATIONS_AUTH_FAILED',
-  'POLLINATIONS_CREDITS_EXHAUSTED',
-  'POLLINATIONS_CREDITS_REQUIRED',
-  'POLLINATIONS_MODEL_UNAVAILABLE',
-  'POLLINATIONS_IMAGE_URL_INVALID',
-  'POLLINATIONS_VIDEO_INVALID',
-])
 const MAX_ATTEMPTS = 3
 
 function logPollinations(message: string, extra?: Record<string, unknown>): void {
@@ -39,13 +40,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function requirePollinationsKey(capability: 'image' | 'video' | 'audio'): void {
-  if (hasPollinationsApiKey()) return
+function requirePollinationsKey(
+  capability: 'image' | 'video' | 'audio',
+  auth?: PollinationsAuthContext
+): void {
+  if (auth?.apiKey || hasPollinationsApiKey()) return
   throw new PollinationsError({
     code: 'POLLINATIONS_AUTH_FAILED',
-    message: `Pollinations ${capability} requires POLLINATIONS_API_KEY`,
-    action: 'Get a secret key (sk_…) at https://enter.pollinations.ai/keys',
+    message: `Pollinations ${capability} requires authentication`,
+    action: 'Connect Pollinations in Settings or configure POLLINATIONS_API_KEY',
   })
+}
+
+async function resolveAuth(
+  params: { userId?: string; auth?: PollinationsAuthContext }
+): Promise<PollinationsAuthContext> {
+  if (params.auth?.apiKey) return params.auth
+  return resolvePollinationsAuthContext({ userId: params.userId })
 }
 
 function mapHttpError(params: {
@@ -54,19 +65,13 @@ function mapHttpError(params: {
   model: string
   sceneNumber?: number
   bodyText?: string
+  durationSec?: number
+  width?: number
+  height?: number
 }): PollinationsError {
-  const { res, capability, model, sceneNumber, bodyText } = params
-
-  if (res.status === 401 || res.status === 403) {
-    return new PollinationsError({
-      code: 'POLLINATIONS_AUTH_FAILED',
-      message: 'Pollinations authentication failed — check POLLINATIONS_API_KEY',
-      httpStatus: res.status,
-      model,
-      sceneNumber,
-      action: 'Get or rotate your key at https://enter.pollinations.ai/keys',
-    })
-  }
+  const { res, capability, model, sceneNumber, bodyText, durationSec, width, height } = params
+  const sanitizedBody = sanitizePollinationsResponseBody(bodyText)
+  const requestId = extractPollinationsRequestId(bodyText)
 
   if (res.status === 402) {
     const parsed = bodyText ? parsePollinationsPaymentRequired(bodyText) : { availableBalance: null, estimatedCost: null }
@@ -82,50 +87,49 @@ function mapHttpError(params: {
       httpStatus: res.status,
       model,
       sceneNumber,
+      responseBody: sanitizedBody,
+      requestId,
+      durationSec,
+      width,
+      height,
+      retryable: false,
       action: 'Top up pollen at https://enter.pollinations.ai',
     })
   }
 
-  if (res.status === 429) {
-    return new PollinationsError({
-      code: 'POLLINATIONS_RATE_LIMITED',
-      message: 'Pollinations rate limited',
-      httpStatus: res.status,
-      model,
-      sceneNumber,
-    })
-  }
+  const classified = classifyPollinationsHttpError({
+    httpStatus: res.status,
+    capability,
+    model,
+    bodyText,
+  })
 
-  if (res.status === 404) {
-    return new PollinationsError({
-      code: 'POLLINATIONS_MODEL_UNAVAILABLE',
-      message: `Pollinations ${capability} model unavailable (404)`,
-      httpStatus: res.status,
-      model,
-      sceneNumber,
-    })
-  }
-
-  const code =
-    capability === 'image'
-      ? 'POLLINATIONS_IMAGE_FAILED'
-      : capability === 'video'
-        ? 'POLLINATIONS_VIDEO_GENERATION_FAILED'
-        : 'POLLINATIONS_GENERATION_FAILED'
+  const authAction =
+    classified.code === 'POLLINATIONS_AUTH_FAILED'
+      ? 'Get or rotate your key at https://enter.pollinations.ai/keys'
+      : undefined
 
   return new PollinationsError({
-    code,
-    message: `Pollinations ${capability} failed (${res.status})`,
+    code: classified.code as PollinationsError['code'],
+    message: classified.message,
     httpStatus: res.status,
     model,
     sceneNumber,
+    responseBody: sanitizedBody,
+    requestId,
+    durationSec,
+    width,
+    height,
+    retryable: classified.retryable,
+    action: authAction,
   })
 }
 
 function isRetryablePollinationsError(err: unknown): boolean {
   if (!(err instanceof PollinationsError)) return false
-  if (TERMINAL_POLLINATIONS_CODES.has(err.code)) return false
+  if (isTerminalPollinationsErrorCode(err.code)) return false
   if (err.code === 'POLLINATIONS_RATE_LIMITED') return true
+  if (err.retryable) return true
   const status = err.httpStatus
   return status != null && RETRYABLE_STATUSES.has(status)
 }
@@ -141,8 +145,11 @@ export async function fetchPollinationsImageBuffer(params: {
   productionId?: string
   sceneNumber?: number
   maxAttempts?: number
+  userId?: string
+  auth?: PollinationsAuthContext
 }): Promise<{ buffer: Buffer; contentType: string; model: string }> {
-  requirePollinationsKey('image')
+  const auth = await resolveAuth(params)
+  requirePollinationsKey('image', auth)
 
   let model = params.model ?? (await selectBestPollinationsModel('image'))
   const url = new URL(`${GEN_POLLINATIONS_BASE}/image/${encodeURIComponent(params.prompt.slice(0, 4000))}`)
@@ -158,32 +165,57 @@ export async function fetchPollinationsImageBuffer(params: {
     model,
     productionId: params.productionId ?? null,
     scene: params.sceneNumber ?? null,
+    billing: auth.source,
   })
 
   let lastError: PollinationsError | null = null
   const maxAttempts = Math.max(1, Math.min(MAX_ATTEMPTS, params.maxAttempts ?? MAX_ATTEMPTS))
+  const failedModels: string[] = []
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     url.searchParams.set('model', model)
     try {
       const res = await fetch(url.toString(), {
-        headers: { Accept: 'image/*', ...pollinationsAuthHeaders() },
+        headers: { Accept: 'image/*', ...pollinationsAuthHeaders(auth.apiKey) },
         signal: AbortSignal.timeout(120_000),
       })
 
       if (!res.ok) {
         const bodyText = await res.text()
-        const mapped = mapHttpError({
+        let mapped = mapHttpError({
           res,
           capability: 'image',
           model,
           sceneNumber: params.sceneNumber,
           bodyText,
         })
+        if (mapped.code === 'POLLINATIONS_CREDITS_EXHAUSTED' || mapped.code === 'POLLINATIONS_CREDITS_REQUIRED') {
+          mapped = enrichPollinationsInsufficientError(mapped, {
+            capability: 'image',
+            source: auth.source,
+          })
+        }
+        const upstreamUnavailable = res.status === 502 || res.status === 503
+        if (upstreamUnavailable && !failedModels.includes(model)) {
+          failedModels.push(model)
+          try {
+            model = await selectBestPollinationsModel('image', { exclude: failedModels })
+            logPollinations('image model fallback', {
+              failedModels,
+              nextModel: model,
+              httpStatus: res.status,
+            })
+            lastError = mapped
+            await sleep(1000 * attempt)
+            continue
+          } catch {
+            // no alternate model
+          }
+        }
         if (isRetryablePollinationsError(mapped) && attempt < maxAttempts) {
           if (res.status === 429) {
             invalidatePollinationsModelCache()
-            model = await selectBestPollinationsModel('image')
+            model = await selectBestPollinationsModel('image', { exclude: failedModels })
           }
           lastError = mapped
           await sleep(1000 * attempt)
@@ -247,7 +279,15 @@ export async function fetchPollinationsImageBuffer(params: {
 
 export async function fetchPollinationsImageDataUrl(
   prompt: string,
-  options?: { width?: number; height?: number; seed?: number; model?: string; maxAttempts?: number }
+  options?: {
+    width?: number
+    height?: number
+    seed?: number
+    model?: string
+    maxAttempts?: number
+    userId?: string
+    auth?: PollinationsAuthContext
+  }
 ): Promise<string> {
   const result = await fetchPollinationsImageBuffer({
     prompt,
@@ -256,6 +296,8 @@ export async function fetchPollinationsImageDataUrl(
     seed: options?.seed,
     model: options?.model,
     maxAttempts: options?.maxAttempts,
+    userId: options?.userId,
+    auth: options?.auth,
   })
   const mime = result.contentType.split(';')[0]?.trim() || 'image/jpeg'
   return `data:${mime};base64,${result.buffer.toString('base64')}`
@@ -271,8 +313,11 @@ export async function fetchPollinationsVideoBuffer(params: {
   model?: string
   productionId?: string
   sceneNumber?: number
+  userId?: string
+  auth?: PollinationsAuthContext
 }): Promise<{ buffer: Buffer; model: string }> {
-  requirePollinationsKey('video')
+  const auth = await resolveAuth(params)
+  requirePollinationsKey('video', auth)
 
   const publicImageUrl = await resolvePollinationsVideoImageUrl({
     imageUrl: params.imageUrl,
@@ -289,6 +334,7 @@ export async function fetchPollinationsVideoBuffer(params: {
     model: params.model,
     sceneNumber: params.sceneNumber,
     forceRefresh: true,
+    apiKey: auth.apiKey,
   })
 
   let model = preflight.model
@@ -310,6 +356,7 @@ export async function fetchPollinationsVideoBuffer(params: {
     model,
     productionId: params.productionId ?? null,
     scene: params.sceneNumber ?? null,
+    billing: auth.source,
     imageDomain: (() => {
       try {
         return new URL(publicImageUrl).hostname
@@ -331,19 +378,30 @@ export async function fetchPollinationsVideoBuffer(params: {
     url.searchParams.set('model', model)
     try {
       const res = await fetch(url.toString(), {
-        headers: { Accept: 'video/mp4,video/*', ...pollinationsAuthHeaders() },
+        headers: { Accept: 'video/mp4,video/*', ...pollinationsAuthHeaders(auth.apiKey) },
         signal: AbortSignal.timeout(300_000),
       })
 
       if (!res.ok) {
         const bodyText = await res.text()
-        const mapped = mapHttpError({
+        let mapped = mapHttpError({
           res,
           capability: 'video',
           model,
           sceneNumber: params.sceneNumber,
           bodyText,
+          durationSec,
+          width: capped.width,
+          height: capped.height,
         })
+        if (mapped.code === 'POLLINATIONS_CREDITS_EXHAUSTED' || mapped.code === 'POLLINATIONS_CREDITS_REQUIRED') {
+          mapped = enrichPollinationsInsufficientError(mapped, {
+            capability: 'video',
+            balance: preflight.balance,
+            required: preflight.estimatedCost,
+            source: auth.source,
+          })
+        }
         if (mapped.code === 'POLLINATIONS_CREDITS_EXHAUSTED' && attempt === 1) {
           clearPollinationsSpendableBalanceCache()
           const refreshed = await assertPollinationsVideoAffordable({
@@ -353,6 +411,7 @@ export async function fetchPollinationsVideoBuffer(params: {
             model,
             sceneNumber: params.sceneNumber,
             forceRefresh: true,
+            apiKey: auth.apiKey,
           }).catch(() => null)
           if (
             refreshed &&
@@ -374,6 +433,7 @@ export async function fetchPollinationsVideoBuffer(params: {
               height: capped.height,
               sceneNumber: params.sceneNumber,
               forceRefresh: true,
+              apiKey: auth.apiKey,
             }).catch(() => null)
             if (next?.model) model = next.model
           }

@@ -1,0 +1,28 @@
+name: V7 Background Worker
+
+on:
+  schedule:
+    # GitHub Actions minimum schedule interval is 5 minutes.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    steps:
+      - name: Invoke V7 background cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          response=$(curl -sS -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://mugtee.in/api/cron/v7-advance")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "$body"
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Cron endpoint returned HTTP ${http_code}"
+            exit 1
+          fi

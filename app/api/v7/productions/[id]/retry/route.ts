@@ -47,6 +47,13 @@ export async function POST(req: Request, context: RouteContext) {
       return NextResponse.json({ ok: false, ...errBody, ...snapshot }, { status })
     }
 
+    const { scheduleV7ProductionBackgroundDrive } = await import(
+      '@/lib/v7/background-driver.server'
+    )
+    if (snapshot.production.status === 'producing') {
+      scheduleV7ProductionBackgroundDrive({ productionId: id, userId: user.id })
+    }
+
     return NextResponse.json({ ok: true, ...snapshot })
   } catch (error) {
     const { buildV7ProductionErrorResponse, V7StageExecutionError } = await import(

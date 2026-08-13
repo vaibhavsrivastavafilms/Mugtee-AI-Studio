@@ -22,12 +22,13 @@ export const MANAGED_VIDEO_PROVIDER_DEFINITIONS: ManagedVideoProviderDefinition[
     id: 'pollinations',
     registryId: 'pollinations',
     integrationProvider: 'pollinations_media',
-    authType: 'api_key',
+    authType: 'oauth',
     displayName: 'Pollinations',
     priority: 1,
-    envKeys: ['POLLINATIONS_API_KEY'],
+    connectUrl: '/api/auth/pollinations/start?redirect=/settings',
+    envKeys: ['POLLINATIONS_API_KEY', 'POLLINATIONS_APP_KEY'],
     defaultModel: 'discovered',
-    connectAction: 'Add POLLINATIONS_API_KEY (sk_…) from https://enter.pollinations.ai/keys',
+    connectAction: 'Connect your Pollinations account (BYOP) or set POLLINATIONS_API_KEY for platform fallback.',
   },
 ]
 

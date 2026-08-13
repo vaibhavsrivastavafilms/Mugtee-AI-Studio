@@ -54,6 +54,7 @@ export type ReelCompositionProps = {
   musicVolume?: number
   captionTracks?: ReelCaptionClip[]
   speechRanges?: SpeechRange[]
+  resolution?: { width: number; height: number }
 }
 
 export const defaultReelProps: ReelCompositionProps = {

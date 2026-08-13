@@ -8,7 +8,13 @@ import { cn } from '@/lib/utils'
 const EXAMPLE =
   'Create a 45-second cinematic restaurant advertisement for Table Tales during monsoon.'
 
-export function V7IdeaInput({ className }: { className?: string }) {
+export function V7IdeaInput({
+  className,
+  onProductionCreated,
+}: {
+  className?: string
+  onProductionCreated?: (productionId: string) => void
+}) {
   const router = useRouter()
   const [idea, setIdea] = useState('')
   const [loading, setLoading] = useState(false)
@@ -44,6 +50,7 @@ export function V7IdeaInput({ className }: { className?: string }) {
         throw new Error(msg)
       }
 
+      onProductionCreated?.(data.productionId)
       router.push(`/studio/${data.productionId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start production.')

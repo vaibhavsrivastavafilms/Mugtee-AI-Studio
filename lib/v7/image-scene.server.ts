@@ -156,7 +156,31 @@ export async function runV7ImageOrchestrator(params: {
     )
   }
 
+  function shouldReuseExistingImage(bundle: V7ScenePromptBundle): boolean {
+    const existing = existingById.get(bundle.sceneId)
+    const existingUrl = existing?.imageUrl?.trim()
+    const hasCheckpoint = Boolean(existing?.imageCheckpointAt || existing?.imageMetadata)
+    const archive = existing?.imageMetadata?.promptArchive as Record<string, unknown> | undefined
+    const checkpointCurrent =
+      hasCheckpoint && checkpointMatchesCurrentPrompt(archive, bundle)
+
+    if (params.forceRegenerate) return false
+    if (!existingUrl || isEphemeralRemoteImageUrl(existingUrl)) return false
+
+    // Reuse any persisted checkpoint — do not regenerate valid scenes on stage retry.
+    if (hasCheckpoint) return true
+
+    // Legacy rows may have a URL without checkpoint metadata; repair once instead of regenerating.
+    return !hasCheckpoint
+  }
+
+  function sceneNeedsGeneration(bundle: V7ScenePromptBundle): boolean {
+    return !shouldReuseExistingImage(bundle)
+  }
+
   for (const bundle of bundles) {
+    if (!sceneNeedsGeneration(bundle)) continue
+
     const validation = validateV7SceneImagePrompt({
       spec: bundle.spec,
       prompt: bundle.prompt,
@@ -181,17 +205,9 @@ export async function runV7ImageOrchestrator(params: {
   for (const bundle of bundles) {
     const existing = existingById.get(bundle.sceneId)
     const existingUrl = existing?.imageUrl?.trim()
-    const hasCheckpoint = Boolean(existing?.imageCheckpointAt || existing?.imageMetadata)
-    const archive = existing?.imageMetadata?.promptArchive as Record<string, unknown> | undefined
-    const checkpointCurrent =
-      hasCheckpoint && checkpointMatchesCurrentPrompt(archive, bundle)
 
-    if (
-      !params.forceRegenerate &&
-      existingUrl &&
-      !isEphemeralRemoteImageUrl(existingUrl) &&
-      checkpointCurrent
-    ) {
+    if (shouldReuseExistingImage(bundle)) {
+      const reusedUrl = existingUrl!
       results.push({
         sceneId: bundle.sceneId,
         sceneNumber: bundle.sceneNumber,
@@ -202,8 +218,8 @@ export async function runV7ImageOrchestrator(params: {
           prompt_id: `v7-prompt-${bundle.sceneNumber}`,
           provider: 'checkpoint',
           provider_job_id: null,
-          image_url: existingUrl,
-          thumbnail_url: existingUrl,
+          image_url: reusedUrl,
+          thumbnail_url: reusedUrl,
           seed: bundle.seed,
           width: bundle.width,
           height: bundle.height,
@@ -220,14 +236,15 @@ export async function runV7ImageOrchestrator(params: {
 
     if (
       !params.forceRegenerate &&
-      existingUrl &&
-      !isEphemeralRemoteImageUrl(existingUrl) &&
-      !hasCheckpoint
+      existing?.imageUrl?.trim() &&
+      !isEphemeralRemoteImageUrl(existing.imageUrl) &&
+      !Boolean(existing?.imageCheckpointAt || existing?.imageMetadata)
     ) {
+      const repairedUrl = existingUrl!
       await checkpointSceneImage({
         supabase,
         sceneId: bundle.sceneId,
-        imageUrl: existingUrl,
+        imageUrl: repairedUrl,
         metadata: {
           provider: 'checkpoint_repair',
           repaired: true,
@@ -244,8 +261,8 @@ export async function runV7ImageOrchestrator(params: {
           prompt_id: `v7-prompt-${bundle.sceneNumber}`,
           provider: 'checkpoint_repair',
           provider_job_id: null,
-          image_url: existingUrl,
-          thumbnail_url: existingUrl,
+          image_url: repairedUrl,
+          thumbnail_url: repairedUrl,
           seed: bundle.seed,
           width: bundle.width,
           height: bundle.height,

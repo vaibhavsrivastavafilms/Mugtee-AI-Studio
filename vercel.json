@@ -15,6 +15,9 @@
     },
     "app/api/v7/productions/[id]/retry/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/cron/v7-advance/route.ts": {
+      "maxDuration": 300
     }
   },
   "redirects": [

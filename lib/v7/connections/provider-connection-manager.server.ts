@@ -193,7 +193,7 @@ export async function connectProviderWithApiKey(params: {
 }): Promise<{ record: ProviderConnectionRecord; validation: Awaited<ReturnType<typeof validateProviderApiKey>> }> {
   const definition = getManagedProviderDefinition(params.providerId)
   if (!definition) throw new Error(`Unknown provider: ${params.providerId}`)
-  if (definition.authType === 'oauth') {
+  if (definition.authType === 'oauth' && definition.id !== 'pollinations') {
     throw new Error(`${definition.displayName} requires OAuth. Use ${definition.connectUrl ?? '/api/openart/auth'}.`)
   }
   if (definition.authType === 'endpoint') {
@@ -266,6 +266,12 @@ export async function disconnectManagedProvider(params: {
     invalidateOpenArtMcpCatalogCache(params.userId)
     invalidateVideoProviderCapabilityCache(definition.registryId, params.userId)
     return true
+  }
+
+  if (definition.id === 'pollinations') {
+    const ok = await disconnectIntegration(params.supabase, params.userId, definition.integrationProvider)
+    invalidateVideoProviderCapabilityCache(definition.registryId, params.userId)
+    return ok
   }
 
   if (definition.authType === 'endpoint') {

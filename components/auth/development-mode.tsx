@@ -42,17 +42,21 @@ export function DevelopmentMode({
         })
         if (error) {
           logAuthError('development-mode-oauth', error)
-          router.push(continueHref)
+          setLoading(false)
         }
         return
       } catch (error) {
         logAuthError('development-mode-oauth', error)
-        router.push(continueHref)
+        setLoading(false)
         return
       }
     }
 
-    router.push(continueHref)
+    if (process.env.NODE_ENV !== 'production') {
+      router.push(continueHref)
+    } else {
+      setLoading(false)
+    }
   }
 
   return (

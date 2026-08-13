@@ -118,9 +118,7 @@ export async function GET() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  // TEMPORARY: Auth disabled for development/testing
   if (!user) {
-    // Return mock profile for unauthenticated requests
     return profileResponse(null, false)
   }
 
@@ -141,10 +139,8 @@ export async function POST(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  // TEMPORARY: Auth disabled for development/testing
   if (!user) {
-    // Return mock response for unauthenticated requests
-    return NextResponse.json({ signed_in: false, has_profile: false })
+    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
 
   const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null
@@ -200,10 +196,8 @@ export async function PATCH(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  // TEMPORARY: Auth disabled for development/testing
   if (!user) {
-    // Return mock response for unauthenticated requests
-    return NextResponse.json({ signed_in: false })
+    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
 
   const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null

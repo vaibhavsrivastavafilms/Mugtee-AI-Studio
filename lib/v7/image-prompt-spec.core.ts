@@ -23,6 +23,12 @@ function resolveStoryboardCamera(shot?: V7StoryboardShot, scriptScene?: V7Script
 
 export const V7_IMAGE_PROMPT_MIN_SCORE = 85
 
+function textOverlayEnabled(): boolean {
+  const raw = process.env.SHOW_ON_SCREEN_TEXT?.trim().toLowerCase()
+  if (raw === 'false' || raw === '0' || raw === 'off' || raw === 'no') return false
+  return true
+}
+
 export type V7SceneImageSpec = {
   sceneNumber: number
   duration: number
@@ -76,6 +82,17 @@ export type V7SceneImagePromptValidation = {
 const GRAPHIC_LOCATION_PATTERN = /graphic|overlay|cta|title\s*card/i
 const KITCHEN_LOCATION_PATTERN = /kitchen|plating|macro/i
 const DINING_LOCATION_PATTERN = /dining\s*room|restaurant/i
+
+/** Macro food shots use plating-station wording — never "kitchen" in the positive prompt. */
+function sanitizeMacroFoodLocation(location: string): string {
+  return location
+    .replace(/restaurant\s+kitchen\s*\/\s*plating\s+station/gi, 'Restaurant plating station')
+    .replace(/\bkitchen\s*\/\s*plating\s+station/gi, 'plating station')
+    .replace(/\bcommercial\s+kitchen\b/gi, 'plating station')
+    .replace(/\bkitchen\b/gi, 'plating station')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 const STOP_WORDS = new Set([
   'a',
@@ -335,7 +352,11 @@ function deriveForbiddenElements(params: {
     forbidden.add('face close-up')
   }
 
-  if (params.isDiningScene && !params.sceneCharacters.some((name) => /couple|diner/i.test(name))) {
+  if (
+    params.isDiningScene &&
+    !params.isMacroFoodScene &&
+    !params.sceneCharacters.some((name) => /couple|diner/i.test(name))
+  ) {
     forbidden.add('chef portrait')
     forbidden.add('kitchen')
   }
@@ -383,19 +404,20 @@ export function buildV7SceneImageSpec(params: {
   const scriptScene = params.scriptScene
   const shot = params.shot
   const action = normalizeText(scriptScene?.action ?? scriptScene?.narration ?? shot?.composition ?? '')
-  const location = normalizeText(scriptScene?.location ?? params.brief.location ?? 'On location')
+  const rawLocation = normalizeText(scriptScene?.location ?? params.brief.location ?? 'On location')
   const sceneCharacters = [...new Set((scriptScene?.characters ?? []).filter(Boolean))]
   const composition = normalizeText(shot?.composition ?? '')
   const camera = resolveStoryboardCamera(shot, scriptScene)
   const lighting = normalizeText(shot?.lighting ?? scriptScene?.lighting ?? params.direction.lighting)
-  const isGraphicScene = GRAPHIC_LOCATION_PATTERN.test(location)
-  const isDiningScene = DINING_LOCATION_PATTERN.test(location)
+  const isGraphicScene = GRAPHIC_LOCATION_PATTERN.test(rawLocation)
   const isMacroFoodScene =
     sceneCharacters.length === 0 &&
     !isGraphicScene &&
-    (KITCHEN_LOCATION_PATTERN.test(location) ||
+    (KITCHEN_LOCATION_PATTERN.test(rawLocation) ||
       /\bmacro\b/i.test(action) ||
       /\bsteak\b|\bdemi-glace\b|\btweezers\b|\bsizzl/i.test(action))
+  const location = isMacroFoodScene ? sanitizeMacroFoodLocation(rawLocation) : rawLocation
+  const isDiningScene = DINING_LOCATION_PATTERN.test(location)
   const isHandActionScene =
     sceneCharacters.some((name) => /chef/i.test(name)) &&
     /\bhand\b|\btweezers\b|\bdust/i.test(action)
@@ -406,6 +428,12 @@ export function buildV7SceneImageSpec(params: {
   if (worldLocation) {
     for (const object of worldLocation.objects.slice(0, 3)) {
       if (sceneCharacters.length === 0 && /couple|diner|guest|chef/i.test(object)) continue
+      if (
+        /\bglass|\bwine|\bstemware|\bflute/i.test(object) &&
+        !/\bglass|\bwine|\bclink|\btoast|\bpour|\bstemware/i.test(`${action} ${composition}`)
+      ) {
+        continue
+      }
       if (!objects.some((entry) => promptContainsTerm(entry, object))) objects.push(object)
     }
   }
@@ -422,10 +450,19 @@ export function buildV7SceneImageSpec(params: {
 
   if (isMacroFoodScene) requiredPromptTerms.push('macro')
   if (isGraphicScene) {
-    requiredPromptTerms.push('book your table', 'link in bio', 'graphic')
+    requiredPromptTerms.push('graphic', 'minimalist logo')
+    if (textOverlayEnabled()) {
+      requiredPromptTerms.push('book your table', 'link in bio')
+    }
   }
-  if (sceneCharacters.some((name) => /couple/i.test(name))) {
-    requiredPromptTerms.push('couple', 'glasses')
+  if (sceneCharacters.some((name) => /couple|diner|elegant/i.test(name))) {
+    requiredPromptTerms.push('couple')
+    const mentionsGlasses =
+      /\bglasses\b|\bcrystal glass|\bwine glass|\bstemware|\bclink/i.test(action) ||
+      /\bglasses\b|\bcrystal glass|\bwine glass|\bstemware/i.test(composition)
+    if (mentionsGlasses) {
+      requiredPromptTerms.push('glasses')
+    }
   }
 
   const forbiddenElements = deriveForbiddenElements({
@@ -512,7 +549,9 @@ export function buildV7SceneImagePromptFromSpec(params: {
     `Aspect ratio: ${params.aspectRatio} vertical commercial frame`,
     'Photorealistic live-action cinematography, high dynamic range, film grain, anamorphic bokeh.',
     spec.isGraphicScene
-      ? 'Required text: "Book your table via the link in bio".'
+      ? textOverlayEnabled()
+        ? 'Required text: "Book your table via the link in bio".'
+        : 'No on-screen text, captions, subtitles, or typography — brand logo mark only on a warm abstract background.'
       : params.narration
         ? `Story context: ${params.narration}`
         : null,
@@ -523,7 +562,7 @@ export function buildV7SceneImagePromptFromSpec(params: {
       [
         ...spec.forbiddenElements,
         spec.characters.length === 0 ? 'people, couple, portrait, face, headshot' : null,
-        spec.isGraphicScene ? 'restaurant interior, kitchen, human, chef portrait' : null,
+        spec.isGraphicScene ? 'text overlay, captions, subtitles, typography, words, letters' : null,
         spec.isMacroFoodScene ? 'chef portrait, dining room portrait, human face' : null,
       ].filter(Boolean)
     ),

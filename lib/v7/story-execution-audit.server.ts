@@ -9,6 +9,7 @@ import {
   isSlideshowOrFallbackVideo,
   slideshowVideoBlockerMessage,
 } from '@/lib/v7/production-integrity.server'
+import { showOnScreenText } from '@/lib/remotion/show-on-screen-text.server'
 import type { V7ProductionSnapshot } from '@/types/v7/production'
 import {
   buildV7ScenePackages,
@@ -395,7 +396,7 @@ export function runV9StoryExecutionAudit(params: {
     ...renderClips.flatMap((c) => c.issues.map((issue) => `Render clip ${c.sceneNumber}: ${issue}`)),
   ]
 
-  if (params.renderInput && params.renderInput.subtitles.length === 0) {
+  if (params.renderInput && params.renderInput.subtitles.length === 0 && showOnScreenText()) {
     blockers.push('Render input has empty subtitle array')
   }
 
@@ -447,7 +448,7 @@ export function validateV92RenderedMovie(params: {
       `render duration (${Math.round(renderResult.durationSec)}s) differs from screenplay (${Math.round(expectedDurationSec)}s)`
     )
   }
-  if (params.audit.subtitleCount === 0) {
+  if (params.audit.subtitleCount === 0 && showOnScreenText()) {
     issues.push('captions not included in render input')
   }
   if (params.audit.narrationTextLength === 0) {

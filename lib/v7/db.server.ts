@@ -14,7 +14,7 @@ import {
 } from '@/types/v7/production'
 import { V7_ALL_STAGES } from '@/lib/v7/pipeline'
 
-function buildTimeline(stages: V7StageRow[]): V7TimelineStage[] {
+export function buildTimeline(stages: V7StageRow[]): V7TimelineStage[] {
   const byStage = new Map(stages.map((s) => [s.stage, s]))
 
   return V7_ALL_STAGES.map((id) => {

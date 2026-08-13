@@ -40,6 +40,19 @@ export type V7Platform =
 
 export type V7AspectRatio = '9:16' | '16:9' | '1:1' | '4:5'
 
+/** User-selected creative concept — authoritative story direction after concept pick. */
+export type V7Concept = {
+  id: string
+  title: string
+  hook: string
+  coreAngle: string
+  storyApproach: string
+  format: string
+  estimatedDuration: number
+  tone: string
+  whyItCouldWork: string
+}
+
 /** Idea Analyzer output — creative brief for the entire production. */
 export type V7CreativeBrief = {
   title: string
@@ -58,6 +71,8 @@ export type V7CreativeBrief = {
   brand?: string
   location?: string
   characterConsistency: boolean
+  /** Set after the user selects one of the generated concepts. */
+  selectedConcept?: V7Concept
 }
 
 export type V7TimelineStageStatus = 'pending' | 'running' | 'completed' | 'failed' | 'blocked'
