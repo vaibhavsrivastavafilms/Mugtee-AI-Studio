@@ -1,0 +1,9 @@
+{
+  "voice": true,
+  "images": true,
+  "i2v": true,
+  "music": true,
+  "sfx": true,
+  "continuationUiPossible": true,
+  "reel": true
+}

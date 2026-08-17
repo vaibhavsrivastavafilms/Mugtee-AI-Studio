@@ -1,0 +1,31 @@
+{
+  "failure": {
+    "step": "CUSTOMER_FLOW",
+    "message": "locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: /Maybe later/i }).first()\n    - locator resolved to <button disabled type=\"button\" class=\"shrink-0 text-[11px] tracking-wide text-luxe/45 hover:text-gold-300/80 transition-colors py-2 px-1\">Maybe later</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n      - waiting 100ms\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n"
+  },
+  "report": {
+    "VERCEL": "PASS",
+    "DEPLOYMENT": "PASS",
+    "PRODUCTION_URL": "https://mugtee.in",
+    "AUTH": "PASS",
+    "SIGN_UP": "PASS",
+    "SIGN_IN": "PASS",
+    "SESSION": "NOT RUN",
+    "STUDIO": "PASS",
+    "RECENT_PROJECTS": "PASS",
+    "PROJECT_LIBRARY": "PASS",
+    "PROJECT_CARDS": "PASS",
+    "SEARCH": "PASS",
+    "FILTERS": "NOT RUN",
+    "SORT": "PASS",
+    "OPEN_PROJECT": "NOT RUN",
+    "VIDEO_PREVIEW": "NOT RUN",
+    "VIDEO_PLAYBACK": "NOT RUN",
+    "DOWNLOAD_BUTTON": "NOT RUN",
+    "ACTUAL_BROWSER_DOWNLOAD": "NOT RUN",
+    "ACTUAL_MP4": "NOT RUN",
+    "FFPROBE": "NOT RUN",
+    "CUSTOMER_E2E": "FAIL",
+    "PIPELINE_REGRESSION": "PASS"
+  }
+}

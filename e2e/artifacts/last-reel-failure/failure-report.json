@@ -1,0 +1,1697 @@
+{
+  "stage": "animation",
+  "exactError": "animation is queued on server; no stage running; lock=false",
+  "timestamp": "2026-08-16T22:24:44.313Z",
+  "uiState": "no running spinner",
+  "backendState": "current=undefined animation=queued music=undefined running=none",
+  "rootCauseEvidence": "After 60s observation: production.current_stage=undefined; animation.status=queued started_at=null completed_at=null; music.status=missing started_at=null; no stage running; lock=false; mediaVideos=0/6; image completed_at=2026-08-16T22:19:00.179+00:00;  15 producing productions; oldest updated_at=2026-08-06T18:43:43.77452+00:00",
+  "api": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "production": {
+        "id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+        "user_id": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4",
+        "title": "Raindrop to Rice (The First Bite)",
+        "prompt": "Create a cinematic 30-second Instagram Reel about monsoon food for Table Tales.",
+        "status": "producing",
+        "creative_brief": {
+          "brand": "Table Tales",
+          "genre": "Food",
+          "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+          "title": "Raindrop to Rice (The First Bite)",
+          "emotion": "Cozy, intimate, crave-forward, calm invitation.",
+          "audience": "Indian food lovers and comfort-food seekers on Instagram; couples, families, and students looking for monsoon meal ideas",
+          "duration": 30,
+          "language": "en",
+          "location": "Indian home kitchen / dining setup during monsoon rainfall (window rain, wet street reflections)",
+          "platform": "Instagram",
+          "sceneCount": 6,
+          "aspectRatio": "9:16",
+          "callToAction": "Follow Table Tales for more monsoon-inspired recipes—save this Reel and tell us your go-to rainy-day comfort food in the comments.",
+          "musicDirection": "Moody yet uplifting monsoon ambience with a light downtempo beat: soft dholak-inspired percussion (muted), mellow guitar plucks or harmonium pads, gentle bass, and airy rain Foley. Tempo ~92–104 BPM. Start airy and cool for the hook, add warmth and rhythm during the cooking/serving shots, peak slightly on the final bite, then taper under the CTA.",
+          "voiceDirection": "Voiced narration in a calm, inviting tone (not salesy). Keep lines short and punchy to match Reel pacing. Use sensory language tied to monsoon weather and comfort food. If on-screen text is used, it should mirror narration phrases. No long sentences.",
+          "selectedConcept": {
+            "id": "concept-1",
+            "hook": "Hear the monsoon. Taste the comfort.",
+            "tone": "Cozy, intimate, crave-forward, calm invitation.",
+            "title": "Raindrop to Rice (The First Bite)",
+            "format": "Live-action, single kitchen setup, heavy close-ups, shallow depth-of-field, subtle film grain, editorial color grade (cool rain / warm food). 6 scenes total, designed as a rhythmic sequence.",
+            "coreAngle": "A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.",
+            "storyApproach": "6 quick cinematic beats: (1) window rain + wet street reflections, (2) steam rises as a lid lifts, (3) sizzling tempering shot in shallow DOF, (4) bubbling finish in warm practical light, (5) hand to bowl—first bite in close-up, (6) couple/family smiles with rain ambience returning. Narration stays short, punchy, and tactile; on-screen text mirrors lines like 'Steam. Then comfort.'",
+            "whyItCouldWork": "Instagram audiences respond to first-bite intimacy and matching sound-to-image rhythm. The raindrop-to-rice structure makes the Reel feel like a cinematic experience, not just food footage.",
+            "estimatedDuration": 30
+          },
+          "characterConsistency": true
+        },
+        "current_stage": "animation",
+        "reel_url": null,
+        "mov_url": null,
+        "thumbnail_url": null,
+        "creator_pack_url": null,
+        "export_status": "pending",
+        "timeline_json": {
+          "pipeline_lock": {
+            "since": "2026-08-16T22:19:02.717Z",
+            "locked": false
+          },
+          "concept_selection": {
+            "awaiting": false,
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Hear the monsoon. Taste the comfort.",
+                "tone": "Cozy, intimate, crave-forward, calm invitation.",
+                "title": "Raindrop to Rice (The First Bite)",
+                "format": "Live-action, single kitchen setup, heavy close-ups, shallow depth-of-field, subtle film grain, editorial color grade (cool rain / warm food). 6 scenes total, designed as a rhythmic sequence.",
+                "coreAngle": "A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.",
+                "storyApproach": "6 quick cinematic beats: (1) window rain + wet street reflections, (2) steam rises as a lid lifts, (3) sizzling tempering shot in shallow DOF, (4) bubbling finish in warm practical light, (5) hand to bowl—first bite in close-up, (6) couple/family smiles with rain ambience returning. Narration stays short, punchy, and tactile; on-screen text mirrors lines like 'Steam. Then comfort.'",
+                "whyItCouldWork": "Instagram audiences respond to first-bite intimacy and matching sound-to-image rhythm. The raindrop-to-rice structure makes the Reel feel like a cinematic experience, not just food footage.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Same rain. One meal mood.",
+                "tone": "Upbeat-cinematic, craving, gently uplifting.",
+                "title": "Monsoon Menu, One Mood",
+                "format": "Montage-driven, fast Instagram pacing with continuous camera motion (slow push-ins + whip-like transitions synced to the beat). 9:16 framing with strong negative space for rain ambience.",
+                "coreAngle": "A mood-to-meal montage: the monsoon sets a single emotional temperature, and different monsoon comforts appear like chapters—each dish is introduced by a visual mood cue rather than a recipe explanation.",
+                "storyApproach": "6 beats across the kitchen/dining: (1) rain starts—on-screen text: 'When the sky cools down…' (2) cutting board close-up—text: 'You want warm.' (3) pouring/whisking—text: 'You want fragrant steam.' (4) sauté/tempering—text: 'You want that first sizzle.' (5) plating with garnish—text: 'You want cozy color.' (6) dining table close-up—text: 'Take the bite. Feel it.' Narration bridges each beat with short lines tied to weather comfort (steam, warmth, drizzle, street reflections).",
+                "whyItCouldWork": "By focusing on a single emotional promise ('one meal mood'), the Reel can showcase multiple monsoon comfort-food ideas without turning into a full recipe tutorial—ideal for short-form retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Outside: rain. Inside: the glow.",
+                "tone": "Dreamy, poetic, comfort-first (not salesy).",
+                "title": "Windowlight Comfort",
+                "format": "Cinematic editorial: controlled lighting contrast (cool desaturated rain, warm food), shallow DOF, film grain, minimal movement except slow, intentional camera moves.",
+                "coreAngle": "A chiaroscuro love letter to monsoon dining: the window creates a natural cinematic frame; warm practical lighting makes food look like the answer to the cold night.",
+                "storyApproach": "6 scenes built around light: (1) silhouette of raindrops on glass, (2) soft-focus warm lamp over countertop, (3) ingredient textures—chopped greens, ginger-garlic—under warm light, (4) steaming bowl revealed with a slow tilt from cool window to warm food, (5) spoon close-up with steam breath and shallow DOF, (6) final hero shot on the table with rain reflections shimmering. Narration emphasizes light and comfort: 'Warm steam', 'soft spoon', 'rain in the background.'",
+                "whyItCouldWork": "Visual contrast-driven storytelling is highly scroll-stopping. The windowlight motif instantly communicates monsoon comfort and keeps the Reel premium and brand-aligned.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "In 30 seconds—let the rain win, then you do.",
+                "tone": "Energized-cozy, satisfying, goal-oriented.",
+                "title": "The Storm-to-Serve Countdown",
+                "format": "Beat-synced rapid cuts with purposeful pacing: airy intro (cool rain + downtempo), warm cooking rhythm, peak on the bite, taper under CTA. On-screen text only for narration phrases (e.g., 'Ready.' 'Save this.').",
+                "coreAngle": "Time-pressure transformation: the monsoon intensifies as the clock counts down, while the kitchen becomes a calm control center. The climax is the serving moment timed to the beat peak.",
+                "storyApproach": "6 beats like a mini countdown: (1) rain intensifies + quick cut: 'Tick…' (2) quick prep montage—hands moving, knife tap sounds (very short narration), (3) sizzling tempering—audio rises, (4) thickening simmer—'Smell that? Comfort.' (5) plating in warm light—'Ready.' (6) first full bite with a micro-pause on the peak moment—'Save this for the next rainy night.' CTA lands in final beat with line-matched on-screen text.",
+                "whyItCouldWork": "A countdown structure creates urgency and retention. Timing the beat peak to the first bite turns the Reel into a satisfying micro-arc that feels cinematic and rewarding.",
+                "estimatedDuration": 30
+              }
+            ],
+            "selectedAt": "2026-08-16T22:13:00.055Z",
+            "selectedIndex": 0
+          }
+        },
+        "created_at": "2026-08-16T22:12:23.891248+00:00",
+        "updated_at": "2026-08-16T22:19:02.717+00:00"
+      },
+      "stages": [
+        {
+          "id": "e9adf6ee-cef5-49fd-80d8-716c507b870b",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "animation",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-16T22:18:59.327362+00:00",
+          "output": null
+        },
+        {
+          "id": "609bda97-f873-4c4b-993c-4ed262fd88f6",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "character",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:18.391+00:00",
+          "completed_at": "2026-08-16T22:15:25.786+00:00",
+          "created_at": "2026-08-16T22:15:11.917017+00:00",
+          "output": {
+            "bible": {
+              "characters": [
+                {
+                  "body": "Petite-to-average build; relaxed shoulders; gentle, precise hand gestures; calm posture at table",
+                  "face": "Warm oval face, expressive eyes, soft smile; subtle under-eye warmth from cozy lighting; natural skin texture",
+                  "hair": "Dark brown/black hair in a low tied bun with a few face-framing wisps; a slight flyaway for rain ambience realism",
+                  "name": "Riya",
+                  "role": "Protagonist / comfort ritual host; performs lid lift, tempering, stir, first bite, and shares the meal",
+                  "voice": "Calm, inviting, short punchy lines with a whisper-soft warmth (not salesy). Light uptick at each hook phrase.",
+                  "costume": "Cream/ivory kurta with a subtle woven texture; muted maroon dupatta scarf casually draped over one shoulder (tied loosely, not overly styled)",
+                  "accessories": [
+                    "Small round stud earrings (gold-toned)",
+                    "Thin bindi (optional/very subtle) or a natural forehead mark for authenticity",
+                    "Simple stainless or brass kada-style bracelet (1–2 thin bangles)"
+                  ],
+                  "expressions": [],
+                  "negativePrompt": "Overly glamorous makeup, heavy contouring, harsh studio lighting, exaggerated acting, neon colors, visible brand logos, cluttered props, fast manic gestures, over-posing for camera, aging look, teeth-baring constant smiles, thick false lashes, distracting accessories (rings clutter), unnatural skin smoothing"
+                },
+                {
+                  "body": "Average build; relaxed seated posture; hands steady and gentle when overlapping near bowls",
+                  "face": "Kind medium-oval face, friendly smile, slightly rugged warmth; warm cheeks in practical lighting",
+                  "hair": "Dark hair with a neat short crop; slight natural mess for realism; no gel shine",
+                  "name": "Arjun",
+                  "role": "Partner/family presence; end-beat shared comfort reactions and quiet line delivery",
+                  "voice": "Warm, low, gentle delivery; slower than Riya; playful softness on the final sentence.",
+                  "costume": "Navy or charcoal henley/short kurta-style top with subtle collar; sleeves slightly rolled (casual monsoon home look)",
+                  "accessories": [
+                    "Minimal silver wristwatch or none (optional)",
+                    "Plain ring (one simple band) optional"
+                  ],
+                  "expressions": [
+                    "Soft amused smile",
+                    "Affectionate eye contact with Riya",
+                    "Respectful quiet approval (small nod)",
+                    "Comforted grin when line lands"
+                  ],
+                  "negativePrompt": "Sunglasses, bold accessories, flashy outfits, big theatrical expressions, aggressive body language, overly salesman tone, exaggerated beard styling, loud colors, visible tattoos/brands, distracting hair gel"
+                }
+              ]
+            },
+            "durationMs": 7076
+          }
+        },
+        {
+          "id": "15d18ad2-680d-4c97-97c4-4ab51bca05e5",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "creative",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:18.505+00:00",
+          "completed_at": "2026-08-16T22:13:28.094+00:00",
+          "created_at": "2026-08-16T22:13:12.409461+00:00",
+          "output": {
+            "direction": {
+              "lighting": "Warm practical lighting for food (soft key from kitchen lamp/candle-like source) with controlled falloff to preserve intimacy. Cool ambient fill from window for rain ambience. Subtle rim light on steam/hands for separation; gentle contrast to keep the rain feel desaturated and calm.",
+              "moodBoard": [
+                "Window rain + wet street reflections bokeh, cool and desaturated; warm kitchen glow inside",
+                "Condensation beads on a lid; steam billowing in shallow DOF",
+                "Tempering/tadka shimmer: spice color bloom in warm oil, spices suspended in cinematic close-up",
+                "Bubbling simmer texture—surface movement, spoon stirring with tactile realism",
+                "First spoonful close-up: spoon entering frame, slight focus pull to rice texture and steam contact",
+                "Cozy end beat: couple/family smiles in warm light while rain returns as soft background ambience"
+              ],
+              "musicStyle": "Moody yet uplifting monsoon downtempo (92–104 BPM). Muted dholak-inspired percussion, mellow guitar plucks or harmonium pad textures, gentle bass, and airy rain Foley. Start cool/airy for the hook, add warmth and rhythmic confidence during tempering/cooking, peak slightly on the final first-bite moment, then soften under the CTA.",
+              "typography": "Minimal, editorial sans-serif (clean legibility for 9:16). Use short, caption-like phrases synced to narration. Styling: soft off-white/cream text with low-gloss drop shadow or subtle outline; occasional single-line emphasis (e.g., “First Bite.” “Steam. Then comfort.”). No long blocks of text.",
+              "voiceStyle": "Calm, intimate, inviting narration—short and punchy. Sensory-first language tied to monsoon and comfort: “Hear the monsoon. Taste the comfort.” “Steam.” “Sizzle.” “First bite.” Warm tone, no salesy urgency. Optional breathy pauses aligned to steam and spoon sounds; consistent volume for Reel pacing.",
+              "visualStyle": "Premium cinematic monsoon realism: cool, desaturated rain outside the window contrasted with warm, flattering practical light on rice/comfort food. Heavy tactile close-ups (steam, glisten, spoon texture) with shallow depth-of-field and subtle halation on highlights; film-grain to unify the rainy mood.",
+              "colorPalette": [
+                "#D7E3F0",
+                "#8FA1B8",
+                "#4B5A6B",
+                "#F3C58E",
+                "#D98B4B",
+                "#FFF2E1",
+                "#B8A79A",
+                "#1D232B"
+              ],
+              "editingStyle": "Fast Instagram pacing with 6 rhythmic beats. Hook cut within the first 1–2 seconds. Match cut timing to rain Foley (drips as visual punctuation). Micro-slow motion on lid-lift steam and the first spoonful; quick, clean transitions (hard cuts + brief motion blur) to maintain crave-forward momentum. Taper the intensity under the CTA.",
+              "animationStyle": "Live-action only with minimal motion graphics. Use natural camera/prop motion (steam drift, simmer bubbles, hand movement). Optional ultra-subtle animated caption wipes that feel like raindrop streaks—no flashy UI.",
+              "cameraLanguage": "9:16 vertical close-focus storytelling. Macro-like food inserts with shallow DOF and occasional rack focus (steam → spice shimmer → spoon). Slow micro-moves for the first bite climax; quick cut rhythm between beats. Shoot through/near the window for rain bokeh in the background, using focus pulls to keep food razor-sharp."
+            },
+            "durationMs": 9394
+          }
+        },
+        {
+          "id": "793d9705-93e0-4c3e-b59c-6d37c7539eb6",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "idea",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:12:27.903+00:00",
+          "completed_at": "2026-08-16T22:12:52.277+00:00",
+          "created_at": "2026-08-16T22:12:24.425346+00:00",
+          "output": {
+            "brief": {
+              "brand": "Table Tales",
+              "genre": "Food",
+              "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading",
+              "title": "Monsoon Food Cinematic Reel for Table Tales",
+              "emotion": "Cozy comfort, craving, warmth against cool rainy air",
+              "audience": "Indian food lovers and comfort-food seekers on Instagram; couples, families, and students looking for monsoon meal ideas",
+              "duration": 30,
+              "language": "en",
+              "location": "Indian home kitchen / dining setup during monsoon rainfall (window rain, wet street reflections)",
+              "platform": "Instagram",
+              "sceneCount": 6,
+              "aspectRatio": "9:16",
+              "callToAction": "Follow Table Tales for more monsoon-inspired recipes—save this Reel and tell us your go-to rainy-day comfort food in the comments.",
+              "musicDirection": "Moody yet uplifting monsoon ambience with a light downtempo beat: soft dholak-inspired percussion (muted), mellow guitar plucks or harmonium pads, gentle bass, and airy rain Foley. Tempo ~92–104 BPM. Start airy and cool for the hook, add warmth and rhythm during the cooking/serving shots, peak slightly on the final bite, then taper under the CTA.",
+              "voiceDirection": "Voiced narration in a calm, inviting tone (not salesy). Keep lines short and punchy to match Reel pacing. Use sensory language tied to monsoon weather and comfort food. If on-screen text is used, it should mirror narration phrases. No long sentences.",
+              "characterConsistency": true
+            },
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Hear the monsoon. Taste the comfort.",
+                "tone": "Cozy, intimate, crave-forward, calm invitation.",
+                "title": "Raindrop to Rice (The First Bite)",
+                "format": "Live-action, single kitchen setup, heavy close-ups, shallow depth-of-field, subtle film grain, editorial color grade (cool rain / warm food). 6 scenes total, designed as a rhythmic sequence.",
+                "coreAngle": "A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.",
+                "storyApproach": "6 quick cinematic beats: (1) window rain + wet street reflections, (2) steam rises as a lid lifts, (3) sizzling tempering shot in shallow DOF, (4) bubbling finish in warm practical light, (5) hand to bowl—first bite in close-up, (6) couple/family smiles with rain ambience returning. Narration stays short, punchy, and tactile; on-screen text mirrors lines like 'Steam. Then comfort.'",
+                "whyItCouldWork": "Instagram audiences respond to first-bite intimacy and matching sound-to-image rhythm. The raindrop-to-rice structure makes the Reel feel like a cinematic experience, not just food footage.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Same rain. One meal mood.",
+                "tone": "Upbeat-cinematic, craving, gently uplifting.",
+                "title": "Monsoon Menu, One Mood",
+                "format": "Montage-driven, fast Instagram pacing with continuous camera motion (slow push-ins + whip-like transitions synced to the beat). 9:16 framing with strong negative space for rain ambience.",
+                "coreAngle": "A mood-to-meal montage: the monsoon sets a single emotional temperature, and different monsoon comforts appear like chapters—each dish is introduced by a visual mood cue rather than a recipe explanation.",
+                "storyApproach": "6 beats across the kitchen/dining: (1) rain starts—on-screen text: 'When the sky cools down…' (2) cutting board close-up—text: 'You want warm.' (3) pouring/whisking—text: 'You want fragrant steam.' (4) sauté/tempering—text: 'You want that first sizzle.' (5) plating with garnish—text: 'You want cozy color.' (6) dining table close-up—text: 'Take the bite. Feel it.' Narration bridges each beat with short lines tied to weather comfort (steam, warmth, drizzle, street reflections).",
+                "whyItCouldWork": "By focusing on a single emotional promise ('one meal mood'), the Reel can showcase multiple monsoon comfort-food ideas without turning into a full recipe tutorial—ideal for short-form retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Outside: rain. Inside: the glow.",
+                "tone": "Dreamy, poetic, comfort-first (not salesy).",
+                "title": "Windowlight Comfort",
+                "format": "Cinematic editorial: controlled lighting contrast (cool desaturated rain, warm food), shallow DOF, film grain, minimal movement except slow, intentional camera moves.",
+                "coreAngle": "A chiaroscuro love letter to monsoon dining: the window creates a natural cinematic frame; warm practical lighting makes food look like the answer to the cold night.",
+                "storyApproach": "6 scenes built around light: (1) silhouette of raindrops on glass, (2) soft-focus warm lamp over countertop, (3) ingredient textures—chopped greens, ginger-garlic—under warm light, (4) steaming bowl revealed with a slow tilt from cool window to warm food, (5) spoon close-up with steam breath and shallow DOF, (6) final hero shot on the table with rain reflections shimmering. Narration emphasizes light and comfort: 'Warm steam', 'soft spoon', 'rain in the background.'",
+                "whyItCouldWork": "Visual contrast-driven storytelling is highly scroll-stopping. The windowlight motif instantly communicates monsoon comfort and keeps the Reel premium and brand-aligned.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "In 30 seconds—let the rain win, then you do.",
+                "tone": "Energized-cozy, satisfying, goal-oriented.",
+                "title": "The Storm-to-Serve Countdown",
+                "format": "Beat-synced rapid cuts with purposeful pacing: airy intro (cool rain + downtempo), warm cooking rhythm, peak on the bite, taper under CTA. On-screen text only for narration phrases (e.g., 'Ready.' 'Save this.').",
+                "coreAngle": "Time-pressure transformation: the monsoon intensifies as the clock counts down, while the kitchen becomes a calm control center. The climax is the serving moment timed to the beat peak.",
+                "storyApproach": "6 beats like a mini countdown: (1) rain intensifies + quick cut: 'Tick…' (2) quick prep montage—hands moving, knife tap sounds (very short narration), (3) sizzling tempering—audio rises, (4) thickening simmer—'Smell that? Comfort.' (5) plating in warm light—'Ready.' (6) first full bite with a micro-pause on the peak moment—'Save this for the next rainy night.' CTA lands in final beat with line-matched on-screen text.",
+                "whyItCouldWork": "A countdown structure creates urgency and retention. Timing the beat peak to the first bite turns the Reel into a satisfying micro-arc that feels cinematic and rewarding.",
+                "estimatedDuration": 30
+              }
+            ],
+            "durationMs": 5564,
+            "conceptsDurationMs": 10585
+          }
+        },
+        {
+          "id": "39a96627-9866-4138-a525-08c45b8f1628",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "image",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:16:09.151+00:00",
+          "completed_at": "2026-08-16T22:19:00.179+00:00",
+          "created_at": "2026-08-16T22:16:02.144388+00:00",
+          "output": {
+            "images": [
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/fb938047-28c0-473f-961a-2047d2935957/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9mYjkzODA0Ny0yOGMwLTQ3M2YtOTYxYS0yMDQ3ZDI5MzU5NTcvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYwMCwiZXhwIjoxNzg3NTIzNDAwfQ.S7cbfOBijjMHhguFw_iKsxzIH7q2PYF6eFsYBGcFzOE",
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/2c18f857-4021-4f0a-891c-fb3007ceb4f9/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8yYzE4Zjg1Ny00MDIxLTRmMGEtODkxYy1mYjMwMDdjZWI0ZjkvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYyNywiZXhwIjoxNzg3NTIzNDI3fQ.crhw54lsU0-Fa_sH49Sfa87u6CbDEygvQOOyPZJ0O60",
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/3fc3dbfd-12c8-40e1-8126-a77d9f6351aa/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8zZmMzZGJmZC0xMmM4LTQwZTEtODEyNi1hNzdkOWY2MzUxYWEvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY1OCwiZXhwIjoxNzg3NTIzNDU4fQ.9znaYJXuV8vIj80Oxc_b8ASFDZMOA01zRBkgttnx1Eo",
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy82YzhjY2NlMC02ZThlLTQ0ODItOTBjZC0zY2I2ZjlmNTAzZTMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY4NCwiZXhwIjoxNzg3NTIzNDg0fQ.5fBNcteG9zVoixshVJFhXOKdVK-7ufPrOTMwWgLCLbE",
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c0a199db-8691-4144-bdf6-6539132ef5dc/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMGExOTlkYi04NjkxLTQxNDQtYmRmNi02NTM5MTMyZWY1ZGMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODcxMiwiZXhwIjoxNzg3NTIzNTEyfQ.TGCN1WC7DRkDjcuQrqlDYIMPvNU5SVq-LstjIzTezNY",
+              "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c13ba336-143f-4de1-9683-01e0ab6d87af/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMTNiYTMzNi0xNDNmLTRkZTEtOTY4My0wMWUwYWI2ZDg3YWYvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODczOCwiZXhwIjoxNzg3NTIzNTM4fQ.Jd37J78S4JWkK_IxcFNv7-uKb-n3prvqFzFLvBTzlZc"
+            ]
+          }
+        },
+        {
+          "id": "e23b28d7-3853-46f1-981a-83cd5a25eb30",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "research",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:02.046+00:00",
+          "completed_at": "2026-08-16T22:13:12.94+00:00",
+          "created_at": "2026-08-16T22:12:59.249694+00:00",
+          "output": {
+            "research": {
+              "topics": [
+                "Monsoon season comfort food rituals in Indian homes",
+                "Sensory food storytelling (sound, steam, texture, aroma)",
+                "Rice-based comfort dishes (generic rice + tempering + finishing rhythm)",
+                "Tempering (tadka) and aromatic oil sizzling as a cinematic beat",
+                "Dining intimacy during rain (couples/families, first shared bite)",
+                "Rain ambiance as a storytelling clock (raindrops to moments inside)"
+              ],
+              "keyFacts": [
+                "Rain Foley commonly includes light splashes and window drips; exact sound design parameters are production-dependent (uncertainty: final mix should be tested against on-set/recorded rain).",
+                "Shallow depth-of-field and warm practical lighting on food are standard approaches for cinematic food close-ups; specific lens choice and aperture values should be selected based on camera setup (uncertainty).",
+                "Tempering (tadka) visually reads well on camera due to spice bloom and oil shimmer; the exact spice set depends on the chosen dish (keep flexible unless a specific regional recipe is locked).",
+                "Instagram Reels pacing typically benefits from quick cut transitions and strong hook placement within the first 1–2 seconds; exact timing should match your edit test (uncertainty).",
+                "Shooting during actual monsoon rain may introduce continuity challenges (timing, lighting shifts, water on windows); consider controlled window-rain reference or sound-for-visual matching if needed (uncertainty).",
+                "Film grain and editorial color grading are commonly used to unify shots; exact color palette (cool rain / warm food) should be finalized through LUT/test frames (uncertainty)."
+              ],
+              "culturalNotes": [
+                "Monsoon in India is commonly associated with cozy indoor meals, hot steam, and comforting, warm flavors.",
+                "Tempering/tadka is culturally familiar across many Indian cuisines and works visually as a satisfying “first stage” beat (aroma + sizzle).",
+                "Rice is a universal comfort base; frame it as warm, comforting, spoonable food rather than a single recipe brand promise.",
+                "Indoor dining intimacy (family/couple) is an effective emotional shorthand for comfort, especially when the weather is outdoors and dramatic.",
+                "Avoid over-specific regional claims unless the dish is clearly identified; keep the food presentation flexible (e.g., ‘warm rice comfort’ rather than naming a single state specialty)."
+              ],
+              "visualReferences": [
+                "9:16 vertical cinematic close-ups of steam rising from a covered pot (shallow depth-of-field, warm practical light on food, cool desaturated rain exterior).",
+                "Window rain + wet street reflections outside the kitchen glass; raindrops as visual punctuation timed to narration beats.",
+                "A lid-lift reveal shot: condensation beads on the lid, steam billowing into cool ambient air.",
+                "Tempering/tadka shot in shallow DOF: a small pan with shimmering oil and spices releasing color/aroma (minimal camera shake, premium editorial grade).",
+                "Bubbling finish shot: surface simmer texture, spoon stirring, slow micro-movements for tactile realism.",
+                "First-bite close-up: spoon entering frame, close contact with steam, slight focus pull from spoon to food texture.",
+                "End beat: faces smiling with rain ambience returning in the background (bokeh of window rain, warm light on skin).",
+                "Film grain and subtle halation on highlights for a premium, cozy monsoon feel."
+              ],
+              "emotionalDirection": [
+                "Cozy warmth vs cool rain contrast: keep food lighting warm and flattering; keep the exterior rain cool and slightly desaturated.",
+                "Intimacy cues: hands entering frame, gentle stirring, close facial micro-expressions, soft smiles rather than big reactions.",
+                "Comfort as calm invitation: narration should feel like a quiet companion—short lines, tactile words (steam, sip/spoon, warm, tender).",
+                "Crave-forward without being salesy: emphasize texture and heat (steam, glisten, softness) more than explicit ‘buy/subscribe’ language.",
+                "Use the rain to create a soothing tempo: the storm outside becomes the soundtrack for inner comfort."
+              ],
+              "storytellingReferences": [
+                "Sensory countdown structure: each raindrop sound/visual cue triggers a corresponding food moment (steam, sizzle, simmer, spoon, bite).",
+                "‘First bite’ intimacy framing: treat the spoon-to-mouth moment as the climax, not the cooking process alone.",
+                "Editorial pacing for Instagram: short beats, quick cuts, and occasional micro-slow motion during steam and first spoonful.",
+                "Match audio to visuals: rain Foley under the hook; add warmth and rhythm as cooking starts; peak slightly on the bite; taper under CTA.",
+                "Private ritual narrative: show hands, steam, bowls, and shared smiles—avoid billboard-like recipe explanations.",
+                "On-screen text as mirrored captions: keep phrases aligned with narration (e.g., ‘Steam. Then comfort.’), minimal typography, tasteful contrast for rain background."
+              ]
+            },
+            "durationMs": 10547
+          }
+        },
+        {
+          "id": "9c01176b-7fb9-4586-b40d-f62c93be54c0",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "script",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:33.207+00:00",
+          "completed_at": "2026-08-16T22:13:47.191+00:00",
+          "created_at": "2026-08-16T22:13:27.237955+00:00",
+          "output": {
+            "script": {
+              "scenes": [
+                {
+                  "title": "Hear the Monsoon",
+                  "action": "Rain streaks down the kitchen window. Riya’s hand appears in the foreground and gently taps the window’s condensation with one fingertip. Outside, street lights blur into warm halos through the cool rain. Inside, the counter holds a covered pot, a wooden spoon, and a small bowl ready for the first spoonful.",
+                  "camera": "9:16 vertical tight close-up on the window-to-pot foreground layers; shallow depth-of-field with focus pull from raindrops to the pot lid.",
+                  "number": 1,
+                  "emotion": "Cozy, intimate anticipation—like the first page of a ritual.",
+                  "dialogue": "Riya (soft, inviting): Hear the monsoon. Taste the comfort.",
+                  "duration": 5,
+                  "lighting": "Cool, desaturated natural window light for the rain; warm practical kitchen glow on the pot and Riya’s hand, creating cozy contrast.",
+                  "location": "Indian home kitchen window during monsoon rainfall, wet street reflections outside",
+                  "movement": "Slow camera push-in toward the pot while raindrops slide down the glass; subtle handheld micro-wobble kept minimal.",
+                  "narration": "Hear the monsoon. Taste the comfort.",
+                  "characters": [
+                    "Riya (young adult, cozy presence)"
+                  ],
+                  "transition": "Cut on a sharp raindrop drip; sound of a drop syncs with the next shot’s lid lift setup."
+                },
+                {
+                  "title": "Steam, Then Comfort",
+                  "action": "Riya lifts the lid off the pot. Condensation beads cling to the underside of the lid, and a thick plume of steam blooms into the cool air. A faint aromatic haze rises and drifts upward. Riya steadies the wooden spoon above the pot without stirring yet, letting the steam moment linger.",
+                  "camera": "Extreme close-up on the lid edge and steam; rack focus from condensation droplets to steam strands.",
+                  "number": 2,
+                  "emotion": "Calm invitation—comfort arriving before the first bite.",
+                  "dialogue": "Riya (soft): Steam.",
+                  "duration": 5,
+                  "lighting": "Warm practical key light from the kitchen side lamp; cool ambient fill from the rainy window; gentle rim light outlines the steam.",
+                  "location": "Indian home kitchen dining setup, covered pot on the counter beside bowls",
+                  "movement": "Micro-slow motion as the lid opens; slight tilt up to follow steam as it reaches the top of frame.",
+                  "narration": "Steam. Then comfort.",
+                  "characters": [
+                    "Riya (young adult, gentle movements)"
+                  ],
+                  "transition": "Smash cut from steam plume to a shimmering oil shot as the audio sizzle begins."
+                },
+                {
+                  "title": "Sizzle in Shallow Focus",
+                  "action": "In a small pan, oil shimmers. Riya tips in cumin and mustard seeds (and a pinch of aromatic spices). They bloom and dance in the oil, releasing tiny color sparks. The camera catches the spice shimmer in shallow depth-of-field while the background pot stays softly blurred. Riya keeps her wrist steady for a clean, premium look.",
+                  "camera": "Macro-like close-up on spices blooming in oil; shallow DOF with a focus lock on the first burst of sizzle.",
+                  "number": 3,
+                  "emotion": "Crave-forward warmth—aroma becoming visible.",
+                  "dialogue": "Riya (quick, tactile): Sizzle.",
+                  "duration": 5,
+                  "lighting": "Warm, flattering light focused on the oil surface; cool desaturated background from the rainy window; subtle halation on highlights.",
+                  "location": "Indian home kitchen stove area, small tempering pan (tadka) near the main pot",
+                  "movement": "Minimal camera shake; a slight lateral slide to reveal spice bloom texture; quick edit pacing with a micro-hold on the strongest sizzle moment.",
+                  "narration": "Sizzle—so the whole room tastes warmer.",
+                  "characters": [
+                    "Riya (stove-side, focused)"
+                  ],
+                  "transition": "Cut on the oil’s first vigorous bubble to the bubbling finish shot."
+                },
+                {
+                  "title": "Bubbling Finish",
+                  "action": "Riya folds the tempering into the rice gently with the wooden spoon. The surface turns glossy. Bubbles form and pop at the edges, and steam curls upward again as the rice finishes. Riya pauses mid-stir so the texture reads clearly—soft, spoonable, and inviting.",
+                  "camera": "Close-up top angle on rice surface; shallow depth-of-field with a slow rack focus from bubbling edges to the spoon groove.",
+                  "number": 4,
+                  "emotion": "Comfort building—ritual nearly complete.",
+                  "dialogue": "",
+                  "duration": 5,
+                  "lighting": "Warm practical lighting concentrates on rice highlights; cool window ambience stays low and desaturated; rim light separates steam from background.",
+                  "location": "Indian home kitchen dining setup, pot now uncovered and gently simmering near bowls",
+                  "movement": "Smooth micro-stir, then a brief stillness hold for texture; slow push-in during the final simmer moments.",
+                  "narration": "Bubbles. Glossy rice. Ready.",
+                  "characters": [
+                    "Riya (stirring, soothing presence)"
+                  ],
+                  "transition": "Quick cut when the spoon lifts slightly, matching the audio to the next intimate bite shot."
+                },
+                {
+                  "title": "First Bite Climax",
+                  "action": "Riya brings a heaping spoon of warm rice toward the lens. Steam brushes the spoon’s edge. The camera captures a tight moment as the spoon enters her mouth—focused on contact with texture, then a quick soft focus moment as she tastes. Her expression turns gentle and content, eyes slightly closing for a second.",
+                  "camera": "Extreme close-up on spoon entering frame; precise rack focus from steam to rice texture to her lips, then to her eyes.",
+                  "number": 5,
+                  "emotion": "Crave-forward and intimate—comfort you can feel.",
+                  "dialogue": "Riya (whisper-soft, pleased): First bite.",
+                  "duration": 5,
+                  "lighting": "Warm, flattering key on the spoon and her face; cool rain bokeh in the background window; subtle film grain and premium editorial contrast.",
+                  "location": "Indian home kitchen / dining table close-up with warm bowls, rain bokeh behind",
+                  "movement": "Slow micro-movement during the spoon-to-mouth moment; brief stabilized hold for the “first bite” peak.",
+                  "narration": "First bite. Soft. Warm. Home.",
+                  "characters": [
+                    "Riya (taking the first bite)"
+                  ],
+                  "transition": "Cut on the first smile to the end beat with rain ambience returning."
+                },
+                {
+                  "title": "Monsoon Meal, Shared",
+                  "action": "Riya and Arjun sit close at the table. They share a look and small smiles. Behind them, window rain and wet street reflections glow softly. The pot and bowls remain steaming in the foreground bokeh, and both characters settle into a calm, private comfort rhythm—one more spoonful on the way, hands overlapping briefly.",
+                  "camera": "Medium close-up with shallow DOF; background window rain in soft bokeh while faces stay sharp; slight focus pull from bowls to their eyes.",
+                  "number": 6,
+                  "emotion": "Cozy, intimate conclusion—comfort shared quietly under monsoon weather.",
+                  "dialogue": "Arjun (smiling): Hear it? Another raindrop, another bite.",
+                  "duration": 5,
+                  "lighting": "Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for separation.",
+                  "location": "Indian home dining table near the rain-soaked window, cozy spread of bowls and steam",
+                  "movement": "Slow handheld settle-in; slight push-out to reveal both faces and the rain backdrop.",
+                  "narration": "When the rain returns, so does comfort—save this for your next monsoon night.",
+                  "characters": [
+                    "Riya (smiling)",
+                    "Arjun (partner or family member, warm presence)"
+                  ],
+                  "transition": "Fade to a clean CTA card moment using the rain bokeh as the backdrop."
+                }
+              ]
+            },
+            "durationMs": 12984
+          }
+        },
+        {
+          "id": "f6698178-916f-4720-bce5-c1f1e5bb2186",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "storyboard",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:45.75+00:00",
+          "completed_at": "2026-08-16T22:16:02.978+00:00",
+          "created_at": "2026-08-16T22:15:38.927477+00:00",
+          "output": {
+            "durationMs": 14482,
+            "storyboard": {
+              "scenes": [
+                {
+                  "shots": [
+                    {
+                      "lens": "85mm macro/short-tele for shallow DOF",
+                      "camera": "9:16 vertical tight close-up layered foreground (window glass) to countertop pot",
+                      "timing": 5,
+                      "emotion": "Cozy, intimate anticipation—like the first page of a ritual",
+                      "dialogue": "Riya (soft, inviting): Hear the monsoon. Taste the comfort.",
+                      "lighting": "Cool, desaturated window light as key for the rain; warm practical kitchen glow on pot and a sliver of Riya’s hand",
+                      "movement": "Slow push-in toward the pot while maintaining focus pull from raindrops to lid",
+                      "composition": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos"
+                    },
+                    {
+                      "lens": "100mm macro",
+                      "camera": "9:16 vertical extreme close-up on fingertip tapping condensation",
+                      "timing": 1.2,
+                      "emotion": "Tactile ritual beginning",
+                      "dialogue": "",
+                      "lighting": "Warm rim on fingertip; cool ambient fill from window; subtle halation on highlights",
+                      "movement": "Minimal handheld micro-wobble; fingertip tap creates a tiny ripple in condensation",
+                      "composition": "Condensation beads and a single raindrop trail; fingertip enters from frame edge; pot lid softly blurred behind"
+                    }
+                  ],
+                  "number": 1
+                },
+                {
+                  "shots": [
+                    {
+                      "lens": "50mm with close-focus macro extension",
+                      "camera": "9:16 vertical extreme close-up on lid edge and steam plume",
+                      "timing": 5,
+                      "emotion": "Calm invitation—comfort arriving before the first bite",
+                      "dialogue": "Riya (soft): Steam.",
+                      "lighting": "Warm practical key from kitchen side lamp; cool ambient window fill; gentle rim light outlines steam",
+                      "movement": "Micro-slow motion as lid lifts; slight upward tilt to follow steam reaching top of frame",
+                      "composition": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers"
+                    },
+                    {
+                      "lens": "85mm",
+                      "camera": "9:16 vertical close-up tracking the steam drift",
+                      "timing": 1.1,
+                      "emotion": "Aromatic haze linger moment",
+                      "dialogue": "",
+                      "lighting": "Warm highlights on steam edges; muted cool background; subtle film grain visible in shadows",
+                      "movement": "Slow lateral drift following steam movement; rack focus from condensation to steam",
+                      "composition": "Steam moving diagonally across frame; pot silhouette and wooden spoon floating in bokeh behind"
+                    }
+                  ],
+                  "number": 2
+                },
+                {
+                  "shots": [
+                    {
+                      "lens": "90mm macro",
+                      "camera": "9:16 vertical macro-like close-up on tadka spices blooming in oil",
+                      "timing": 5,
+                      "emotion": "Crave-forward warmth—aroma becoming visible",
+                      "dialogue": "Riya (quick, tactile): Sizzle.",
+                      "lighting": "Warm focused light on oil surface with controlled falloff; cool desaturated window ambience behind; subtle halation on spice spark highlights",
+                      "movement": "Minimal shake; slight lateral slide to reveal the first vigorous bubble pattern; micro-hold on brightest sizzle",
+                      "composition": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh"
+                    },
+                    {
+                      "lens": "70mm shallow DOF",
+                      "camera": "9:16 vertical close-up of Riya’s steady wrist over the pan",
+                      "timing": 1,
+                      "emotion": "Focused care, premium calm",
+                      "dialogue": "",
+                      "lighting": "Warm practical on skin and oil; cool fill from window keeps mood monsoon-cool",
+                      "movement": "Quiet hold—tiny wrist correction only; match to sizzle audio swell",
+                      "composition": "Spice shimmer in foreground; wrist and spoon/pinch hand in midground; background stove softly blurred"
+                    }
+                  ],
+                  "number": 3
+                },
+                {
+                  "shots": [
+                    {
+                      "lens": "75mm",
+                      "camera": "9:16 vertical close-up top angle on glossy rice surface",
+                      "timing": 5,
+                      "emotion": "Comfort building—ritual nearly complete",
+                      "dialogue": "",
+                      "lighting": "Warm practical highlights concentrate on rice glisten; cool low desaturated window ambience; rim light separates steam from background",
+                      "movement": "Smooth micro-stir then brief stillness hold; slow push-in during the final simmer texture read",
+                      "composition": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward"
+                    },
+                    {
+                      "lens": "85mm macro-like",
+                      "camera": "9:16 vertical 3/4 close-up of spoon lifting slightly",
+                      "timing": 1.1,
+                      "emotion": "Texture reveal for anticipation",
+                      "dialogue": "",
+                      "lighting": "Warm key on spoon and rice texture; cool rain ambience behind kept subdued",
+                      "movement": "Controlled lift; slight rack focus from rice ribbon to spoon edge",
+                      "composition": "Spoon lifts from rice; a thin ribbon of rice falls back into frame; background pot/bowls blurred with steam bokeh"
+                    }
+                  ],
+                  "number": 4
+                },
+                {
+                  "shots": [
+                    {
+                      "lens": "105mm macro/tele macro",
+                      "camera": "9:16 vertical extreme close-up: spoon-to-mouth entry",
+                      "timing": 5,
+                      "emotion": "Crave-forward and intimate—comfort you can feel",
+                      "dialogue": "Riya (whisper-soft, pleased): First bite.",
+                      "lighting": "Warm flattering key on spoon and face; cool rain bokeh behind window; subtle film grain and premium editorial contrast",
+                      "movement": "Slow micro-movement during spoon-to-mouth moment; stabilized hold at peak of the first bite",
+                      "composition": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)"
+                    },
+                    {
+                      "lens": "50mm",
+                      "camera": "9:16 vertical close-up on Riya’s eyes softening into a gentle smile",
+                      "timing": 1,
+                      "emotion": "Contentment, quiet gratification",
+                      "dialogue": "",
+                      "lighting": "Warm practical on cheeks; cool ambient fill for monsoon calm; rim separation on steam",
+                      "movement": "Very slight inhale/exhale motion; minimal camera drift synced to the bite beat",
+                      "composition": "Face occupies center; slight steam haze in foreground; background rain bokeh glows softly"
+                    }
+                  ],
+                  "number": 5
+                },
+                {
+                  "shots": [
+                    {
+                      "lens": "55mm",
+                      "camera": "9:16 vertical medium close-up: shared moment at table",
+                      "timing": 5,
+                      "emotion": "Cozy, intimate conclusion—comfort shared quietly under monsoon weather",
+                      "dialogue": "Arjun (smiling): Hear it? Another raindrop, another bite.",
+                      "lighting": "Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for depth",
+                      "movement": "Slow handheld settle-in; slight push-out to include more rain backdrop while keeping faces readable",
+                      "composition": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos"
+                    },
+                    {
+                      "lens": "90mm macro",
+                      "camera": "9:16 vertical close-up on hands overlapping near bowls (ritual beat)",
+                      "timing": 1,
+                      "emotion": "Private comfort rhythm, shared warmth",
+                      "dialogue": "",
+                      "lighting": "Warm key concentrated on bowl rim and hands; cool ambient keeps rain ambience desaturated",
+                      "movement": "Small, graceful hand movement; rack focus from steam glisten to overlapping fingertips",
+                      "composition": "Hands enter from sides, briefly overlap over the bowl area; rice/steam glisten in shallow DOF; faces fall into soft blur"
+                    },
+                    {
+                      "lens": "35mm for bokeh expansion",
+                      "camera": "9:16 vertical final frame: rain bokeh with steaming foreground silhouettes",
+                      "timing": 2.9,
+                      "emotion": "Invite to save—calm invitation for the next rainy night",
+                      "dialogue": "",
+                      "lighting": "Warm practical glow underexposed highlights; cool rain ambience remains soft; subtle film grain",
+                      "movement": "Static hold for CTA readability; micro breathing camera movement only",
+                      "composition": "Window rain bokeh dominates background; foreground silhouettes of pot and bowls create a cozy vignette"
+                    }
+                  ],
+                  "number": 6
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "bb8e2e23-3777-415f-8870-31d01ae8c1df",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "voice",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:52.243+00:00",
+          "completed_at": "2026-08-16T22:15:12.791+00:00",
+          "created_at": "2026-08-16T22:13:46.468438+00:00",
+          "output": {
+            "provider": "openai_tts",
+            "voiceUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/3b29baa9-a45b-43e4-a479-8837c285f89e/voice_1786918508026_izcrp.mp3",
+            "durationMs": 77823,
+            "fallbackMessage": null,
+            "audioDurationSec": 180,
+            "narrationSegments": [
+              {
+                "text": "Hear the monsoon. Taste the comfort. Riya (soft, inviting): Hear the monsoon. Taste the comfort. Rain streaks down the kitchen window. Riya’s hand appears in the foreground and gently taps the window’s condensation with one fingertip. Outside, street lights blur into warm halos through the cool rain. Inside, the counter holds a covered pot, a wooden spoon, and a small bowl ready for the first spoonful. Riya (soft, inviting): Hear the monsoon. Taste the comfort. Riya (soft, inviting): Hear the monsoon. Taste the comfort.",
+                "emotion": "Cozy, intimate anticipation—like the first page of a ritual.",
+                "sceneId": "fb938047-28c0-473f-961a-2047d2935957",
+                "durationSec": 5,
+                "sceneNumber": 1
+              },
+              {
+                "text": "Steam. Then comfort. Riya (soft): Steam. Riya lifts the lid off the pot. Condensation beads cling to the underside of the lid, and a thick plume of steam blooms into the cool air. A faint aromatic haze rises and drifts upward. Riya steadies the wooden spoon above the pot without stirring yet, letting the steam moment linger. Riya (soft): Steam. Riya (soft): Steam.",
+                "emotion": "Calm invitation—comfort arriving before the first bite.",
+                "sceneId": "2c18f857-4021-4f0a-891c-fb3007ceb4f9",
+                "durationSec": 5,
+                "sceneNumber": 2
+              },
+              {
+                "text": "Sizzle—so the whole room tastes warmer. Riya (quick, tactile): Sizzle. In a small pan, oil shimmers. Riya tips in cumin and mustard seeds (and a pinch of aromatic spices). They bloom and dance in the oil, releasing tiny color sparks. The camera catches the spice shimmer in shallow depth-of-field while the background pot stays softly blurred. Riya keeps her wrist steady for a clean, premium look. Riya (quick, tactile): Sizzle. Riya (quick, tactile): Sizzle.",
+                "emotion": "Crave-forward warmth—aroma becoming visible.",
+                "sceneId": "3fc3dbfd-12c8-40e1-8126-a77d9f6351aa",
+                "durationSec": 5,
+                "sceneNumber": 3
+              },
+              {
+                "text": "Bubbles. Glossy rice. Ready. Riya folds the tempering into the rice gently with the wooden spoon. The surface turns glossy. Bubbles form and pop at the edges, and steam curls upward again as the rice finishes. Riya pauses mid-stir so the texture reads clearly—soft, spoonable, and inviting.",
+                "emotion": "Comfort building—ritual nearly complete.",
+                "sceneId": "6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3",
+                "durationSec": 5,
+                "sceneNumber": 4
+              },
+              {
+                "text": "First bite. Soft. Warm. Home. Riya (whisper-soft, pleased): First bite. Riya brings a heaping spoon of warm rice toward the lens. Steam brushes the spoon’s edge. The camera captures a tight moment as the spoon enters her mouth—focused on contact with texture, then a quick soft focus moment as she tastes. Her expression turns gentle and content, eyes slightly closing for a second. Riya (whisper-soft, pleased): First bite. Riya (whisper-soft, pleased): First bite.",
+                "emotion": "Crave-forward and intimate—comfort you can feel.",
+                "sceneId": "c0a199db-8691-4144-bdf6-6539132ef5dc",
+                "durationSec": 5,
+                "sceneNumber": 5
+              },
+              {
+                "text": "When the rain returns, so does comfort—save this for your next monsoon night. Arjun (smiling): Hear it? Another raindrop, another bite. Riya and Arjun sit close at the table. They share a look and small smiles. Behind them, window rain and wet street reflections glow softly. The pot and bowls remain steaming in the foreground bokeh, and both characters settle into a calm, private comfort rhythm—one more spoonful on the way, hands overlapping briefly. Arjun (smiling): Hear it? Another raindrop, another bite. Arjun (smiling): Hear it? Another raindrop, another bite.",
+                "emotion": "Cozy, intimate conclusion—comfort shared quietly under monsoon weather.",
+                "sceneId": "c13ba336-143f-4de1-9683-01e0ab6d87af",
+                "durationSec": 5,
+                "sceneNumber": 6
+              }
+            ]
+          }
+        },
+        {
+          "id": "5009e3a5-f1f3-434e-a5cf-72301a7f08fa",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "stage": "world",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:31.801+00:00",
+          "completed_at": "2026-08-16T22:15:39.676+00:00",
+          "created_at": "2026-08-16T22:15:25.0027+00:00",
+          "output": {
+            "world": {
+              "locations": [
+                {
+                  "name": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup",
+                  "props": [
+                    "Covered steel pot with tight-fitting lid and condensation beads",
+                    "Wooden spoon (worn, dark honey tone) + small tasting spoon if needed",
+                    "Small tempering pan/kadai for tadka with oil surface",
+                    "Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle)",
+                    "Spice containers (cumin seeds, mustard seeds; optional: pinch of turmeric/red chili/garam masala kept off-camera until needed)",
+                    "Stove with visible control knobs (not overly brand-specific)",
+                    "Napkin/cloth (cream) near plates",
+                    "Lid rest/trivet for safe lid placement",
+                    "Optional: small candle-like LED practical (warm) kept indirect to avoid harsh shadows"
+                  ],
+                  "objects": [
+                    "Pot (center foreground, lid lifted in scene beats)",
+                    "Tadka pan (stove-side, oil shimmer close-ups)",
+                    "Serving bowls (foreground bokeh, first bite and shared meal beats)",
+                    "Window glass with rain streaks and condensation layer",
+                    "Spoon (hero prop for tactile countdown rhythm)",
+                    "Hands and faces (warm skin tones under practical light)"
+                  ],
+                  "weather": "Active monsoon rainfall outside the window with visible rain streaks, steady drip sounds implied; wet street reflections creating soft bokeh halos from distant streetlights. Indoor air slightly humid for natural steam bloom and condensation on lid underside.",
+                  "lighting": "Warm practical key light from the kitchen side lamp (soft, candle-like, controlled falloff) on food and hands; cool desaturated fill from the rainy window for ambience and separation. Subtle rim light to outline steam, spoon edges, and fingers. Gentle halation on highlights (steam, oil shimmer) with shallow contrast to preserve calm monsoon tones. No direct overheads.",
+                  "textures": [
+                    "Condensation droplets on pot lid and window glass",
+                    "Steam haze strands (macro-friendly diffusion)",
+                    "Oil shimmer and spice bloom texture (tiny suspended particles)",
+                    "Rice gloss with visible grains and spoon grooves",
+                    "Glossy steam-wet highlights on ceramic bowls",
+                    "Soft cloth napkin weave (used lightly in hands framing)"
+                  ],
+                  "timeOfDay": "Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                  "architecture": "Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.",
+                  "colorPalette": [
+                    "#D7E3F0",
+                    "#8FA1B8",
+                    "#4B5A6B",
+                    "#F3C58E",
+                    "#D98B4B",
+                    "#FFF2E1",
+                    "#B8A79A",
+                    "#1D232B"
+                  ]
+                }
+              ]
+            },
+            "durationMs": 7678
+          }
+        }
+      ],
+      "scenes": [
+        {
+          "id": "fb938047-28c0-473f-961a-2047d2935957",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 1,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "85mm macro/short-tele for shallow DOF",
+                "camera": "9:16 vertical tight close-up layered foreground (window glass) to countertop pot",
+                "timing": 5,
+                "emotion": "Cozy, intimate anticipation—like the first page of a ritual",
+                "dialogue": "Riya (soft, inviting): Hear the monsoon. Taste the comfort.",
+                "lighting": "Cool, desaturated window light as key for the rain; warm practical kitchen glow on pot and a sliver of Riya’s hand",
+                "movement": "Slow push-in toward the pot while maintaining focus pull from raindrops to lid",
+                "composition": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos"
+              },
+              {
+                "lens": "100mm macro",
+                "camera": "9:16 vertical extreme close-up on fingertip tapping condensation",
+                "timing": 1.2,
+                "emotion": "Tactile ritual beginning",
+                "dialogue": "",
+                "lighting": "Warm rim on fingertip; cool ambient fill from window; subtle halation on highlights",
+                "movement": "Minimal handheld micro-wobble; fingertip tap creates a tiny ripple in condensation",
+                "composition": "Condensation beads and a single raindrop trail; fingertip enters from frame edge; pot lid softly blurred behind"
+              }
+            ],
+            "number": 1,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/fb938047-28c0-473f-961a-2047d2935957/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9mYjkzODA0Ny0yOGMwLTQ3M2YtOTYxYS0yMDQ3ZDI5MzU5NTcvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYwMCwiZXhwIjoxNzg3NTIzNDAwfQ.S7cbfOBijjMHhguFw_iKsxzIH7q2PYF6eFsYBGcFzOE",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/fb938047-28c0-473f-961a-2047d2935957/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9mYjkzODA0Ny0yOGMwLTQ3M2YtOTYxYS0yMDQ3ZDI5MzU5NTcvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYwMCwiZXhwIjoxNzg3NTIzNDAwfQ.S7cbfOBijjMHhguFw_iKsxzIH7q2PYF6eFsYBGcFzOE",
+            "imageMetadata": {
+              "seed": 1626799306,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/fb938047-28c0-473f-961a-2047d2935957/v1_a1.png",
+              "promptArchive": {
+                "lens": "85mm macro/short-tele for shallow DOF",
+                "shot": {
+                  "lens": "85mm macro/short-tele for shallow DOF",
+                  "camera": "9:16 vertical tight close-up layered foreground (window glass) to countertop pot",
+                  "timing": 5,
+                  "emotion": "Cozy, intimate anticipation—like the first page of a ritual",
+                  "dialogue": "Riya (soft, inviting): Hear the monsoon. Taste the comfort.",
+                  "lighting": "Cool, desaturated window light as key for the rain; warm practical kitchen glow on pot and a sliver of Riya’s hand",
+                  "movement": "Slow push-in toward the pot while maintaining focus pull from raindrops to lid",
+                  "composition": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "Rain streaks down the kitchen window. Riya’s hand appears in the foreground and gently taps the window’s condensation with one fingertip. Outside, street lights blur into warm halos through the cool rain. Inside, the counter holds a covered pot, a wooden spoon, and a small bowl ready for the first spoonful.",
+                "camera": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos",
+                "objects": [
+                  "Pot (center foreground, lid lifted in scene beats)",
+                  "Tadka pan (stove-side, oil shimmer close-ups)",
+                  "Serving bowls (foreground bokeh, first bite and shared meal beats)"
+                ],
+                "purpose": "Hear the Monsoon",
+                "subject": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos",
+                "lighting": "Cool, desaturated window light as key for the rain; warm practical kitchen glow on pot and a sliver of Riya’s hand",
+                "location": "Indian home kitchen window during monsoon rainfall, wet street reflections outside",
+                "narration": "Hear the monsoon. Taste the comfort.",
+                "characters": [
+                  "Riya (young adult, cozy presence)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Foreground: raindrops streaking down window; midground: covered pot centered; background: wet street reflections bokeh halos",
+                "environment": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup. Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.. props Covered steel pot with tight-fitting lid and condensation beads, Wooden spoon (worn, dark honey tone) + small tasting spoon if needed, Small tempering pan/kadai for tadka with oil surface, Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle). textures Condensation droplets on pot lid and window glass, Steam haze strands (macro-friendly diffusion), Oil shimmer and spice bloom texture (tiny suspended particles). Cool, desaturated window light as key for the rain; warm practical kitchen glow on pot and a sliver of Riya’s hand. Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                "promptScore": 95,
+                "sceneNumber": 1,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-1",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers, generic restaurant portrait",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers",
+                  "generic restaurant portrait"
+                ],
+                "requiredPromptTerms": [
+                  "pot (center foreground, lid lifted in scene beats)",
+                  "tadka pan (stove-side, oil shimmer close-ups)",
+                  "serving bowls (foreground bokeh, first bite and shared meal beats)",
+                  "rain",
+                  "streaks",
+                  "down",
+                  "kitchen",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 22001
+            },
+            "imageCheckpointAt": "2026-08-16T22:16:41.524Z"
+          },
+          "duration": 35.3,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        },
+        {
+          "id": "2c18f857-4021-4f0a-891c-fb3007ceb4f9",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 2,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "50mm with close-focus macro extension",
+                "camera": "9:16 vertical extreme close-up on lid edge and steam plume",
+                "timing": 5,
+                "emotion": "Calm invitation—comfort arriving before the first bite",
+                "dialogue": "Riya (soft): Steam.",
+                "lighting": "Warm practical key from kitchen side lamp; cool ambient window fill; gentle rim light outlines steam",
+                "movement": "Micro-slow motion as lid lifts; slight upward tilt to follow steam reaching top of frame",
+                "composition": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers"
+              },
+              {
+                "lens": "85mm",
+                "camera": "9:16 vertical close-up tracking the steam drift",
+                "timing": 1.1,
+                "emotion": "Aromatic haze linger moment",
+                "dialogue": "",
+                "lighting": "Warm highlights on steam edges; muted cool background; subtle film grain visible in shadows",
+                "movement": "Slow lateral drift following steam movement; rack focus from condensation to steam",
+                "composition": "Steam moving diagonally across frame; pot silhouette and wooden spoon floating in bokeh behind"
+              }
+            ],
+            "number": 2,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/2c18f857-4021-4f0a-891c-fb3007ceb4f9/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8yYzE4Zjg1Ny00MDIxLTRmMGEtODkxYy1mYjMwMDdjZWI0ZjkvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYyNywiZXhwIjoxNzg3NTIzNDI3fQ.crhw54lsU0-Fa_sH49Sfa87u6CbDEygvQOOyPZJ0O60",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/2c18f857-4021-4f0a-891c-fb3007ceb4f9/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8yYzE4Zjg1Ny00MDIxLTRmMGEtODkxYy1mYjMwMDdjZWI0ZjkvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYyNywiZXhwIjoxNzg3NTIzNDI3fQ.crhw54lsU0-Fa_sH49Sfa87u6CbDEygvQOOyPZJ0O60",
+            "imageMetadata": {
+              "seed": 1626809313,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/2c18f857-4021-4f0a-891c-fb3007ceb4f9/v1_a1.png",
+              "promptArchive": {
+                "lens": "50mm with close-focus macro extension",
+                "shot": {
+                  "lens": "50mm with close-focus macro extension",
+                  "camera": "9:16 vertical extreme close-up on lid edge and steam plume",
+                  "timing": 5,
+                  "emotion": "Calm invitation—comfort arriving before the first bite",
+                  "dialogue": "Riya (soft): Steam.",
+                  "lighting": "Warm practical key from kitchen side lamp; cool ambient window fill; gentle rim light outlines steam",
+                  "movement": "Micro-slow motion as lid lifts; slight upward tilt to follow steam reaching top of frame",
+                  "composition": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "Riya lifts the lid off the pot. Condensation beads cling to the underside of the lid, and a thick plume of steam blooms into the cool air. A faint aromatic haze rises and drifts upward. Riya steadies the wooden spoon above the pot without stirring yet, letting the steam moment linger.",
+                "camera": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers",
+                "objects": [
+                  "rising steam",
+                  "Pot (center foreground, lid lifted in scene beats)",
+                  "Tadka pan (stove-side, oil shimmer close-ups)",
+                  "Serving bowls (foreground bokeh, first bite and shared meal beats)"
+                ],
+                "purpose": "Steam, Then Comfort",
+                "subject": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers",
+                "lighting": "Warm practical key from kitchen side lamp; cool ambient window fill; gentle rim light outlines steam",
+                "location": "Indian home kitchen dining setup, covered pot on the counter beside bowls",
+                "narration": "Steam. Then comfort.",
+                "characters": [
+                  "Riya (young adult, gentle movements)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Lid rim in sharp focus; condensation droplets on underside; steam strands fill upper frame in soft layers",
+                "environment": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup. Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.. props Covered steel pot with tight-fitting lid and condensation beads, Wooden spoon (worn, dark honey tone) + small tasting spoon if needed, Small tempering pan/kadai for tadka with oil surface, Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle). textures Condensation droplets on pot lid and window glass, Steam haze strands (macro-friendly diffusion), Oil shimmer and spice bloom texture (tiny suspended particles). Warm practical key from kitchen side lamp; cool ambient window fill; gentle rim light outlines steam. Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                "promptScore": 95,
+                "sceneNumber": 2,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-2",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers, generic restaurant portrait",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers",
+                  "generic restaurant portrait"
+                ],
+                "requiredPromptTerms": [
+                  "rising steam",
+                  "pot (center foreground, lid lifted in scene beats)",
+                  "tadka pan (stove-side, oil shimmer close-ups)",
+                  "serving bowls (foreground bokeh, first bite and shared meal beats)",
+                  "riya",
+                  "lifts",
+                  "condensation",
+                  "beads",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 25757
+            },
+            "imageCheckpointAt": "2026-08-16T22:17:09.103Z"
+          },
+          "duration": 24.6,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        },
+        {
+          "id": "3fc3dbfd-12c8-40e1-8126-a77d9f6351aa",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 3,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "90mm macro",
+                "camera": "9:16 vertical macro-like close-up on tadka spices blooming in oil",
+                "timing": 5,
+                "emotion": "Crave-forward warmth—aroma becoming visible",
+                "dialogue": "Riya (quick, tactile): Sizzle.",
+                "lighting": "Warm focused light on oil surface with controlled falloff; cool desaturated window ambience behind; subtle halation on spice spark highlights",
+                "movement": "Minimal shake; slight lateral slide to reveal the first vigorous bubble pattern; micro-hold on brightest sizzle",
+                "composition": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh"
+              },
+              {
+                "lens": "70mm shallow DOF",
+                "camera": "9:16 vertical close-up of Riya’s steady wrist over the pan",
+                "timing": 1,
+                "emotion": "Focused care, premium calm",
+                "dialogue": "",
+                "lighting": "Warm practical on skin and oil; cool fill from window keeps mood monsoon-cool",
+                "movement": "Quiet hold—tiny wrist correction only; match to sizzle audio swell",
+                "composition": "Spice shimmer in foreground; wrist and spoon/pinch hand in midground; background stove softly blurred"
+              }
+            ],
+            "number": 3,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/3fc3dbfd-12c8-40e1-8126-a77d9f6351aa/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8zZmMzZGJmZC0xMmM4LTQwZTEtODEyNi1hNzdkOWY2MzUxYWEvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY1OCwiZXhwIjoxNzg3NTIzNDU4fQ.9znaYJXuV8vIj80Oxc_b8ASFDZMOA01zRBkgttnx1Eo",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/3fc3dbfd-12c8-40e1-8126-a77d9f6351aa/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy8zZmMzZGJmZC0xMmM4LTQwZTEtODEyNi1hNzdkOWY2MzUxYWEvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY1OCwiZXhwIjoxNzg3NTIzNDU4fQ.9znaYJXuV8vIj80Oxc_b8ASFDZMOA01zRBkgttnx1Eo",
+            "imageMetadata": {
+              "seed": 1626819320,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/3fc3dbfd-12c8-40e1-8126-a77d9f6351aa/v1_a1.png",
+              "promptArchive": {
+                "lens": "90mm macro",
+                "shot": {
+                  "lens": "90mm macro",
+                  "camera": "9:16 vertical macro-like close-up on tadka spices blooming in oil",
+                  "timing": 5,
+                  "emotion": "Crave-forward warmth—aroma becoming visible",
+                  "dialogue": "Riya (quick, tactile): Sizzle.",
+                  "lighting": "Warm focused light on oil surface with controlled falloff; cool desaturated window ambience behind; subtle halation on spice spark highlights",
+                  "movement": "Minimal shake; slight lateral slide to reveal the first vigorous bubble pattern; micro-hold on brightest sizzle",
+                  "composition": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "In a small pan, oil shimmers. Riya tips in cumin and mustard seeds (and a pinch of aromatic spices). They bloom and dance in the oil, releasing tiny color sparks. The camera catches the spice shimmer in shallow depth-of-field while the background pot stays softly blurred. Riya keeps her wrist steady for a clean, premium look.",
+                "camera": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh",
+                "objects": [
+                  "oil droplet",
+                  "spices",
+                  "Pot (center foreground, lid lifted in scene beats)",
+                  "Tadka pan (stove-side, oil shimmer close-ups)",
+                  "Serving bowls (foreground bokeh, first bite and shared meal beats)"
+                ],
+                "purpose": "Sizzle in Shallow Focus",
+                "subject": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh",
+                "lighting": "Warm focused light on oil surface with controlled falloff; cool desaturated window ambience behind; subtle halation on spice spark highlights",
+                "location": "Indian home kitchen stove area, small tempering pan (tadka) near the main pot",
+                "narration": "Sizzle—so the whole room tastes warmer.",
+                "characters": [
+                  "Riya (stove-side, focused)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Oil surface occupies lower two-thirds; cumin/mustard seeds suspended mid-bloom in razor focus; background pot defocused into cool bokeh",
+                "environment": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup. Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.. props Covered steel pot with tight-fitting lid and condensation beads, Wooden spoon (worn, dark honey tone) + small tasting spoon if needed, Small tempering pan/kadai for tadka with oil surface, Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle). textures Condensation droplets on pot lid and window glass, Steam haze strands (macro-friendly diffusion), Oil shimmer and spice bloom texture (tiny suspended particles). Warm focused light on oil surface with controlled falloff; cool desaturated window ambience behind; subtle halation on spice spark highlights. Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                "promptScore": 100,
+                "sceneNumber": 3,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-3",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers, generic restaurant portrait",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers",
+                  "generic restaurant portrait"
+                ],
+                "requiredPromptTerms": [
+                  "oil droplet",
+                  "spices",
+                  "pot (center foreground, lid lifted in scene beats)",
+                  "tadka pan (stove-side, oil shimmer close-ups)",
+                  "serving bowls (foreground bokeh, first bite and shared meal beats)",
+                  "small",
+                  "shimmers",
+                  "riya",
+                  "tips",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 28773
+            },
+            "imageCheckpointAt": "2026-08-16T22:17:40.009Z"
+          },
+          "duration": 30.9,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        },
+        {
+          "id": "6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 4,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "75mm",
+                "camera": "9:16 vertical close-up top angle on glossy rice surface",
+                "timing": 5,
+                "emotion": "Comfort building—ritual nearly complete",
+                "dialogue": "",
+                "lighting": "Warm practical highlights concentrate on rice glisten; cool low desaturated window ambience; rim light separates steam from background",
+                "movement": "Smooth micro-stir then brief stillness hold; slow push-in during the final simmer texture read",
+                "composition": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward"
+              },
+              {
+                "lens": "85mm macro-like",
+                "camera": "9:16 vertical 3/4 close-up of spoon lifting slightly",
+                "timing": 1.1,
+                "emotion": "Texture reveal for anticipation",
+                "dialogue": "",
+                "lighting": "Warm key on spoon and rice texture; cool rain ambience behind kept subdued",
+                "movement": "Controlled lift; slight rack focus from rice ribbon to spoon edge",
+                "composition": "Spoon lifts from rice; a thin ribbon of rice falls back into frame; background pot/bowls blurred with steam bokeh"
+              }
+            ],
+            "number": 4,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy82YzhjY2NlMC02ZThlLTQ0ODItOTBjZC0zY2I2ZjlmNTAzZTMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY4NCwiZXhwIjoxNzg3NTIzNDg0fQ.5fBNcteG9zVoixshVJFhXOKdVK-7ufPrOTMwWgLCLbE",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy82YzhjY2NlMC02ZThlLTQ0ODItOTBjZC0zY2I2ZjlmNTAzZTMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODY4NCwiZXhwIjoxNzg3NTIzNDg0fQ.5fBNcteG9zVoixshVJFhXOKdVK-7ufPrOTMwWgLCLbE",
+            "imageMetadata": {
+              "seed": 1626829327,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/6c8ccce0-6e8e-4482-90cd-3cb6f9f503e3/v1_a1.png",
+              "promptArchive": {
+                "lens": "75mm",
+                "shot": {
+                  "lens": "75mm",
+                  "camera": "9:16 vertical close-up top angle on glossy rice surface",
+                  "timing": 5,
+                  "emotion": "Comfort building—ritual nearly complete",
+                  "dialogue": "",
+                  "lighting": "Warm practical highlights concentrate on rice glisten; cool low desaturated window ambience; rim light separates steam from background",
+                  "movement": "Smooth micro-stir then brief stillness hold; slow push-in during the final simmer texture read",
+                  "composition": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "Riya folds the tempering into the rice gently with the wooden spoon. The surface turns glossy. Bubbles form and pop at the edges, and steam curls upward again as the rice finishes. Riya pauses mid-stir so the texture reads clearly—soft, spoonable, and inviting.",
+                "camera": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward",
+                "objects": [
+                  "rising steam",
+                  "Pot (center foreground, lid lifted in scene beats)",
+                  "Tadka pan (stove-side, oil shimmer close-ups)",
+                  "Serving bowls (foreground bokeh, first bite and shared meal beats)"
+                ],
+                "purpose": "Bubbling Finish",
+                "subject": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward",
+                "lighting": "Warm practical highlights concentrate on rice glisten; cool low desaturated window ambience; rim light separates steam from background",
+                "location": "Indian home kitchen dining setup, pot now uncovered and gently simmering near bowls",
+                "narration": "Bubbles. Glossy rice. Ready.",
+                "characters": [
+                  "Riya (stirring, soothing presence)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Rice surface glossy and textured; bubbles forming at edges; wooden spoon groove in sharp focus; steam curls upward",
+                "environment": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup. Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.. props Covered steel pot with tight-fitting lid and condensation beads, Wooden spoon (worn, dark honey tone) + small tasting spoon if needed, Small tempering pan/kadai for tadka with oil surface, Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle). textures Condensation droplets on pot lid and window glass, Steam haze strands (macro-friendly diffusion), Oil shimmer and spice bloom texture (tiny suspended particles). Warm practical highlights concentrate on rice glisten; cool low desaturated window ambience; rim light separates steam from background. Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                "promptScore": 95,
+                "sceneNumber": 4,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-4",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers, generic restaurant portrait",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers",
+                  "generic restaurant portrait"
+                ],
+                "requiredPromptTerms": [
+                  "rising steam",
+                  "pot (center foreground, lid lifted in scene beats)",
+                  "tadka pan (stove-side, oil shimmer close-ups)",
+                  "serving bowls (foreground bokeh, first bite and shared meal beats)",
+                  "riya",
+                  "folds",
+                  "tempering",
+                  "rice",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 23526
+            },
+            "imageCheckpointAt": "2026-08-16T22:18:06.112Z"
+          },
+          "duration": 19.5,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        },
+        {
+          "id": "c0a199db-8691-4144-bdf6-6539132ef5dc",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 5,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "105mm macro/tele macro",
+                "camera": "9:16 vertical extreme close-up: spoon-to-mouth entry",
+                "timing": 5,
+                "emotion": "Crave-forward and intimate—comfort you can feel",
+                "dialogue": "Riya (whisper-soft, pleased): First bite.",
+                "lighting": "Warm flattering key on spoon and face; cool rain bokeh behind window; subtle film grain and premium editorial contrast",
+                "movement": "Slow micro-movement during spoon-to-mouth moment; stabilized hold at peak of the first bite",
+                "composition": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)"
+              },
+              {
+                "lens": "50mm",
+                "camera": "9:16 vertical close-up on Riya’s eyes softening into a gentle smile",
+                "timing": 1,
+                "emotion": "Contentment, quiet gratification",
+                "dialogue": "",
+                "lighting": "Warm practical on cheeks; cool ambient fill for monsoon calm; rim separation on steam",
+                "movement": "Very slight inhale/exhale motion; minimal camera drift synced to the bite beat",
+                "composition": "Face occupies center; slight steam haze in foreground; background rain bokeh glows softly"
+              }
+            ],
+            "number": 5,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c0a199db-8691-4144-bdf6-6539132ef5dc/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMGExOTlkYi04NjkxLTQxNDQtYmRmNi02NTM5MTMyZWY1ZGMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODcxMiwiZXhwIjoxNzg3NTIzNTEyfQ.TGCN1WC7DRkDjcuQrqlDYIMPvNU5SVq-LstjIzTezNY",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c0a199db-8691-4144-bdf6-6539132ef5dc/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMGExOTlkYi04NjkxLTQxNDQtYmRmNi02NTM5MTMyZWY1ZGMvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODcxMiwiZXhwIjoxNzg3NTIzNTEyfQ.TGCN1WC7DRkDjcuQrqlDYIMPvNU5SVq-LstjIzTezNY",
+            "imageMetadata": {
+              "seed": 1626839334,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c0a199db-8691-4144-bdf6-6539132ef5dc/v1_a1.png",
+              "promptArchive": {
+                "lens": "105mm macro/tele macro",
+                "shot": {
+                  "lens": "105mm macro/tele macro",
+                  "camera": "9:16 vertical extreme close-up: spoon-to-mouth entry",
+                  "timing": 5,
+                  "emotion": "Crave-forward and intimate—comfort you can feel",
+                  "dialogue": "Riya (whisper-soft, pleased): First bite.",
+                  "lighting": "Warm flattering key on spoon and face; cool rain bokeh behind window; subtle film grain and premium editorial contrast",
+                  "movement": "Slow micro-movement during spoon-to-mouth moment; stabilized hold at peak of the first bite",
+                  "composition": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "Riya brings a heaping spoon of warm rice toward the lens. Steam brushes the spoon’s edge. The camera captures a tight moment as the spoon enters her mouth—focused on contact with texture, then a quick soft focus moment as she tastes. Her expression turns gentle and content, eyes slightly closing for a second.",
+                "camera": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)",
+                "objects": [
+                  "rising steam",
+                  "Pot (center foreground, lid lifted in scene beats)",
+                  "Tadka pan (stove-side, oil shimmer close-ups)",
+                  "Serving bowls (foreground bokeh, first bite and shared meal beats)"
+                ],
+                "purpose": "First Bite Climax",
+                "subject": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)",
+                "lighting": "Warm flattering key on spoon and face; cool rain bokeh behind window; subtle film grain and premium editorial contrast",
+                "location": "Indian home kitchen / dining table close-up with warm bowls, rain bokeh behind",
+                "narration": "First bite. Soft. Warm. Home.",
+                "characters": [
+                  "Riya (taking the first bite)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Steam brushes spoon edge; focus ladder: steam → rice texture → lips → eyes (quick rack)",
+                "environment": "Monsoon Kitchen Window Ritual (Table Tales) — Rice First Bite Setup. Compact Indian home kitchen blending into a dining corner: tiled counter, small stove nook, window wall facing a wet street; a wall-mounted kitchen shelf and a single counter lamp creating a cozy, premium editorial look. One main covered pot on the counter and a small tempering pan on the stove; dining table placed 1–2 steps from the window for rain bokeh continuity.. props Covered steel pot with tight-fitting lid and condensation beads, Wooden spoon (worn, dark honey tone) + small tasting spoon if needed, Small tempering pan/kadai for tadka with oil surface, Bowls for serving (ceramic, warm off-white/cream) with minimal garnish (optional: a pinch of fried onions or herbs—kept subtle). textures Condensation droplets on pot lid and window glass, Steam haze strands (macro-friendly diffusion), Oil shimmer and spice bloom texture (tiny suspended particles). Warm flattering key on spoon and face; cool rain bokeh behind window; subtle film grain and premium editorial contrast. Night (monsoon rain with streetlight bokeh), warm interior glow against cool, desaturated exterior rain ambience",
+                "promptScore": 95,
+                "sceneNumber": 5,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-5",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers, generic restaurant portrait",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers",
+                  "generic restaurant portrait"
+                ],
+                "requiredPromptTerms": [
+                  "rising steam",
+                  "pot (center foreground, lid lifted in scene beats)",
+                  "tadka pan (stove-side, oil shimmer close-ups)",
+                  "serving bowls (foreground bokeh, first bite and shared meal beats)",
+                  "riya",
+                  "brings",
+                  "heaping",
+                  "spoon",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 25928
+            },
+            "imageCheckpointAt": "2026-08-16T22:18:34.267Z"
+          },
+          "duration": 31.3,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        },
+        {
+          "id": "c13ba336-143f-4de1-9683-01e0ab6d87af",
+          "production_id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+          "number": 6,
+          "storyboard": {
+            "shots": [
+              {
+                "lens": "55mm",
+                "camera": "9:16 vertical medium close-up: shared moment at table",
+                "timing": 5,
+                "emotion": "Cozy, intimate conclusion—comfort shared quietly under monsoon weather",
+                "dialogue": "Arjun (smiling): Hear it? Another raindrop, another bite.",
+                "lighting": "Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for depth",
+                "movement": "Slow handheld settle-in; slight push-out to include more rain backdrop while keeping faces readable",
+                "composition": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos"
+              },
+              {
+                "lens": "90mm macro",
+                "camera": "9:16 vertical close-up on hands overlapping near bowls (ritual beat)",
+                "timing": 1,
+                "emotion": "Private comfort rhythm, shared warmth",
+                "dialogue": "",
+                "lighting": "Warm key concentrated on bowl rim and hands; cool ambient keeps rain ambience desaturated",
+                "movement": "Small, graceful hand movement; rack focus from steam glisten to overlapping fingertips",
+                "composition": "Hands enter from sides, briefly overlap over the bowl area; rice/steam glisten in shallow DOF; faces fall into soft blur"
+              },
+              {
+                "lens": "35mm for bokeh expansion",
+                "camera": "9:16 vertical final frame: rain bokeh with steaming foreground silhouettes",
+                "timing": 2.9,
+                "emotion": "Invite to save—calm invitation for the next rainy night",
+                "dialogue": "",
+                "lighting": "Warm practical glow underexposed highlights; cool rain ambience remains soft; subtle film grain",
+                "movement": "Static hold for CTA readability; micro breathing camera movement only",
+                "composition": "Window rain bokeh dominates background; foreground silhouettes of pot and bowls create a cozy vignette"
+              }
+            ],
+            "number": 6,
+            "imageUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c13ba336-143f-4de1-9683-01e0ab6d87af/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMTNiYTMzNi0xNDNmLTRkZTEtOTY4My0wMWUwYWI2ZDg3YWYvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODczOCwiZXhwIjoxNzg3NTIzNTM4fQ.Jd37J78S4JWkK_IxcFNv7-uKb-n3prvqFzFLvBTzlZc",
+            "thumbnailUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c13ba336-143f-4de1-9683-01e0ab6d87af/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9jMTNiYTMzNi0xNDNmLTRkZTEtOTY4My0wMWUwYWI2ZDg3YWYvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODczOCwiZXhwIjoxNzg3NTIzNTM4fQ.Jd37J78S4JWkK_IxcFNv7-uKb-n3prvqFzFLvBTzlZc",
+            "imageMetadata": {
+              "seed": 1626849341,
+              "model": "discovered",
+              "retries": 0,
+              "provider": "pollinations",
+              "resolution": "1024x1536",
+              "storagePath": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/c13ba336-143f-4de1-9683-01e0ab6d87af/v1_a1.png",
+              "promptArchive": {
+                "lens": "55mm",
+                "shot": {
+                  "lens": "55mm",
+                  "camera": "9:16 vertical medium close-up: shared moment at table",
+                  "timing": 5,
+                  "emotion": "Cozy, intimate conclusion—comfort shared quietly under monsoon weather",
+                  "dialogue": "Arjun (smiling): Hear it? Another raindrop, another bite.",
+                  "lighting": "Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for depth",
+                  "movement": "Slow handheld settle-in; slight push-out to include more rain backdrop while keeping faces readable",
+                  "composition": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos"
+                },
+                "style": "Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "action": "Riya and Arjun sit close at the table. They share a look and small smiles. Behind them, window rain and wet street reflections glow softly. The pot and bowls remain steaming in the foreground bokeh, and both characters settle into a calm, private comfort rhythm—one more spoonful on the way, hands overlapping briefly.",
+                "camera": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos",
+                "objects": [],
+                "purpose": "Monsoon Meal, Shared",
+                "subject": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos",
+                "lighting": "Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for depth",
+                "location": "Indian home dining table near the rain-soaked window, cozy spread of bowls and steam",
+                "narration": "When the rain returns, so does comfort—save this for your next monsoon night.",
+                "characters": [
+                  "Riya (smiling)",
+                  "Arjun (partner or family member, warm presence)"
+                ],
+                "aspectRatio": "9:16",
+                "composition": "Foreground bokeh: steaming pot/bowls; midground: Riya and Arjun faces sharp; background: window rain and wet street reflections soft halos",
+                "environment": "Indian home dining table near the rain-soaked window, cozy spread of bowls and steam. Warm practical lighting on faces and food; cool desaturated rain outside; gentle rim light on steam for depth. Night. Cinematic, rain-soaked, high-sensory food storytelling with fast Instagram pacing, shallow depth-of-field, warm practical lighting on food, cool desaturated rain ambience, subtle film grain, premium editorial color grading. Selected angle: A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.. Tone: Cozy, intimate, crave-forward, calm invitation.",
+                "promptScore": 95,
+                "sceneNumber": 6,
+                "continuityId": "3b29baa9-a45b-43e4-a479-8837c285f89e:scene-6",
+                "negativePrompt": "watermark, cartoon, anime, low resolution, duplicate limbs, extra fingers",
+                "forbiddenElements": [
+                  "watermark",
+                  "cartoon",
+                  "anime",
+                  "low resolution",
+                  "duplicate limbs",
+                  "extra fingers"
+                ],
+                "requiredPromptTerms": [
+                  "riya",
+                  "arjun",
+                  "close",
+                  "table",
+                  "indian"
+                ]
+              },
+              "consistencyModes": [
+                "prompt"
+              ],
+              "generationTimeMs": 23657
+            },
+            "imageCheckpointAt": "2026-08-16T22:18:59.967Z"
+          },
+          "duration": 38.3,
+          "created_at": "2026-08-16T22:13:45.65361+00:00"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "idea",
+          "label": "Understanding your idea",
+          "emoji": "✨",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "research",
+          "label": "Researching",
+          "emoji": "🔍",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "creative",
+          "label": "Creative direction",
+          "emoji": "🎬",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "script",
+          "label": "Writing screenplay",
+          "emoji": "🧠",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "voice",
+          "label": "Recording voices",
+          "emoji": "🎙️",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "character",
+          "label": "Designing characters",
+          "emoji": "🎭",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "world",
+          "label": "Building the world",
+          "emoji": "🌍",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "storyboard",
+          "label": "Storyboarding",
+          "emoji": "🎨",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "image",
+          "label": "Generating images",
+          "emoji": "🖼️",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "animation",
+          "label": "Animating",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "music",
+          "label": "Composing soundtrack",
+          "emoji": "🎵",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "sound",
+          "label": "Sound design",
+          "emoji": "🔊",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "edit",
+          "label": "Editing",
+          "emoji": "🎞️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "quality",
+          "label": "Quality check",
+          "emoji": "✅",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "render",
+          "label": "Rendering",
+          "emoji": "📦",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "export",
+          "label": "Preparing creator pack",
+          "emoji": "🎉",
+          "status": "pending",
+          "error": null
+        }
+      ]
+    }
+  },
+  "db": {
+    "t": "2026-08-16T22:24:44.311Z",
+    "production": null,
+    "stages": [],
+    "scenes": [],
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "lockHeld": false,
+    "zombies": [
+      {
+        "id": "964ab715-64f6-4900-acb7-a0acd507b43b",
+        "current_stage": "render",
+        "updated_at": "2026-08-06T18:43:43.77452+00:00",
+        "lock": null
+      },
+      {
+        "id": "71983d8f-643f-4bb8-82ca-f003817ea7da",
+        "current_stage": "image",
+        "updated_at": "2026-08-06T18:48:23.186+00:00",
+        "lock": {
+          "since": "2026-08-06T18:48:23.186Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "8c2fc30e-0534-40d4-bb9b-731fe908dcc1",
+        "current_stage": "animation",
+        "updated_at": "2026-08-06T18:56:04.433+00:00",
+        "lock": {
+          "since": "2026-08-06T18:56:04.433Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "764a23be-614a-41c4-b6e9-145c07e14111",
+        "current_stage": "image",
+        "updated_at": "2026-08-07T21:52:11.823+00:00",
+        "lock": {
+          "since": "2026-08-07T21:52:11.823Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "c2f127b9-3a41-42eb-890b-1b470cf275dc",
+        "current_stage": "research",
+        "updated_at": "2026-08-09T21:44:59.34+00:00",
+        "lock": {
+          "since": "2026-08-09T21:44:59.339Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "494645bc-ea49-4805-9aa6-0b4d863ff633",
+        "current_stage": "research",
+        "updated_at": "2026-08-09T22:30:18.288+00:00",
+        "lock": {
+          "since": "2026-08-09T22:30:18.288Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "4af4d72b-3102-4be2-8058-794533800fa9",
+        "current_stage": "creative",
+        "updated_at": "2026-08-09T23:24:27.587+00:00",
+        "lock": {
+          "since": "2026-08-09T23:24:27.370Z",
+          "stage": "creative",
+          "token": "18116315-0efb-4c64-b1b3-4de3213ee8f2",
+          "locked": true
+        }
+      },
+      {
+        "id": "756c77d1-0349-4bcb-8986-0459a7ed8b8e",
+        "current_stage": "voice",
+        "updated_at": "2026-08-11T23:02:29.736+00:00",
+        "lock": {
+          "since": "2026-08-11T23:02:29.525Z",
+          "stage": "voice",
+          "token": "f6d088df-cced-4a53-8cff-1e16619a4d57",
+          "locked": true
+        }
+      },
+      {
+        "id": "3d24f12e-fad4-4e49-bcf1-420ccf38663e",
+        "current_stage": "voice",
+        "updated_at": "2026-08-12T01:26:14.215+00:00",
+        "lock": {
+          "since": "2026-08-12T01:26:14.002Z",
+          "stage": "voice",
+          "token": "671f1d5e-957e-4b59-8ed3-b18dc904b3f2",
+          "locked": true
+        }
+      },
+      {
+        "id": "fbc12758-3246-46d7-b726-76320074d608",
+        "current_stage": "script",
+        "updated_at": "2026-08-13T13:44:16.865+00:00",
+        "lock": {
+          "since": "2026-08-13T13:44:16.415Z",
+          "stage": "script",
+          "token": "850c4d31-35af-4680-94e5-0202cea73df3",
+          "locked": true
+        }
+      },
+      {
+        "id": "71ef8579-156a-4033-aa3a-4d410cfd1254",
+        "current_stage": "voice",
+        "updated_at": "2026-08-13T14:10:34.737+00:00",
+        "lock": {
+          "since": "2026-08-13T14:10:34.527Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "24b1c648-c0f2-4c94-999c-ad898dae21a2",
+        "current_stage": "research",
+        "updated_at": "2026-08-13T17:00:36.427+00:00",
+        "lock": {
+          "since": "2026-08-13T17:00:36.189Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "0e0a7aba-e449-452e-9295-00f53a22c2b0",
+        "current_stage": "image",
+        "updated_at": "2026-08-13T17:32:28.928+00:00",
+        "lock": {
+          "since": "2026-08-13T17:32:28.266Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "c79ef12e-71fa-4ba9-a186-851efda10e90",
+        "current_stage": "image",
+        "updated_at": "2026-08-13T17:42:06.152+00:00",
+        "lock": {
+          "since": "2026-08-13T17:42:05.933Z",
+          "locked": false
+        }
+      },
+      {
+        "id": "d24b0cc5-046b-4a12-b4c6-7cdfe4cfe74f",
+        "current_stage": "idea",
+        "updated_at": "2026-08-13T17:49:12.584+00:00",
+        "lock": {
+          "since": "2026-08-13T17:49:06.852Z",
+          "locked": false
+        }
+      }
+    ]
+  },
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "baseURL": "http://localhost:3000",
+  "screenshot": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-failure\\failure-screenshot.png"
+}

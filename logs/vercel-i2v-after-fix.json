@@ -1,0 +1,14 @@
+﻿node.exe : Vercel CLI 54.6.1 (Node.js 24.16.0)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Vercel CLI 54.6.1 (Node.js 24.16.0):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Resolving deployment "dpl_4jnqqeBcPQDcq4XinmmGzCSUwZGr"
+Fetching project "prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov"
+Fetching logs...
+{"id":"24krz-1786830674083-ceb9efad1139","timestamp":1786830674083,"deploymentId":"dpl_4jnqqeBcPQDcq4XinmmGzCSUwZGr","projectId":"prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov","level":"info","message":"[EXPORT API] step: background_scheduled { phase: 'runExportInBackground' }","source":"edge-middleware","domain":"mugtee.in","requestMethod":"GET","requestPath":"/api/v7/productions/e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb","responseStatusCode":0,"environment":"production","branch":"","cache":"","traceId":"","logs":[{"level":"info","message":"[EXPORT API] step: background_scheduled { phase: 'runExportInBackground' }"},{"level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 240ms query: 223ms relations: 442ms reconcile: 2429ms total: 3335ms"}]}
+{"id":"vvscp-1786830668084-256aa774d96f","timestamp":1786830668084,"deploymentId":"dpl_4jnqqeBcPQDcq4XinmmGzCSUwZGr","projectId":"prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov","level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 232ms query: 225ms relations: 885ms reconcile: 0ms total: 1343ms","source":"edge-middleware","domain":"mugtee.in","requestMethod":"GET","requestPath":"/api/v7/productions/e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb","responseStatusCode":200,"environment":"production","branch":"","cache":"MISS","traceId":"","logs":[{"level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 232ms query: 225ms relations: 885ms reconcile: 0ms total: 1343ms"}]}
+{"id":"schsl-1786830662545-f34428236387","timestamp":1786830662545,"deploymentId":"dpl_4jnqqeBcPQDcq4XinmmGzCSUwZGr","projectId":"prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov","level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 231ms query: 222ms relations: 440ms reconcile: 0ms total: 894ms","source":"serverless","domain":"mugtee.in","requestMethod":"GET","requestPath":"/api/v7/productions/e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb","responseStatusCode":200,"environment":"production","branch":"","cache":"MISS","traceId":"","logs":[{"level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 231ms query: 222ms relations: 440ms reconcile: 0ms total: 894ms"}]}

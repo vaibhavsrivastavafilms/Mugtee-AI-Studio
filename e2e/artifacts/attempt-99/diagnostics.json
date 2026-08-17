@@ -1,0 +1,142 @@
+{
+  "url": "https://mugtee.in/auth/login?next=%2Fstudio%2F3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "visible": {
+    "url": "https://mugtee.in/auth/login?next=%2Fstudio%2F3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "title": "Mugtee · Your Creative Companion",
+    "bodySnippet": "MUGTEE\n\nWelcome back\n\nSign in to continue to your studio.\n\nSigned out\n\nSign in with Google\n\nNew here? Continue with Google to create your studio automatically.\n\nNeed an account? Sign up\nExplore Mugtee\n\nBy continuing you accept our Terms and Privacy Policy."
+  },
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "consoleErrors": [],
+  "networkFailures": [],
+  "server": {
+    "status": 200,
+    "body": {
+      "production": {
+        "id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+        "status": "producing",
+        "current_stage": "animation",
+        "timeline_json": {
+          "pipeline_lock": {
+            "since": "2026-08-16T22:19:02.717Z",
+            "locked": false
+          },
+          "concept_selection": {
+            "awaiting": false,
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Hear the monsoon. Taste the comfort.",
+                "tone": "Cozy, intimate, crave-forward, calm invitation.",
+                "title": "Raindrop to Rice (The First Bite)",
+                "format": "Live-action, single kitchen setup, heavy close-ups, shallow depth-of-field, subtle film grain, editorial color grade (cool rain / warm food). 6 scenes total, designed as a rhythmic sequence.",
+                "coreAngle": "A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.",
+                "storyApproach": "6 quick cinematic beats: (1) window rain + wet street reflections, (2) steam rises as a lid lifts, (3) sizzling tempering shot in shallow DOF, (4) bubbling finish in warm practical light, (5) hand to bowl—first bite in close-up, (6) couple/family smiles with rain ambience returning. Narration stays short, punchy, and tactile; on-screen text mirrors lines like 'Steam. Then comfort.'",
+                "whyItCouldWork": "Instagram audiences respond to first-bite intimacy and matching sound-to-image rhythm. The raindrop-to-rice structure makes the Reel feel like a cinematic experience, not just food footage.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Same rain. One meal mood.",
+                "tone": "Upbeat-cinematic, craving, gently uplifting.",
+                "title": "Monsoon Menu, One Mood",
+                "format": "Montage-driven, fast Instagram pacing with continuous camera motion (slow push-ins + whip-like transitions synced to the beat). 9:16 framing with strong negative space for rain ambience.",
+                "coreAngle": "A mood-to-meal montage: the monsoon sets a single emotional temperature, and different monsoon comforts appear like chapters—each dish is introduced by a visual mood cue rather than a recipe explanation.",
+                "storyApproach": "6 beats across the kitchen/dining: (1) rain starts—on-screen text: 'When the sky cools down…' (2) cutting board close-up—text: 'You want warm.' (3) pouring/whisking—text: 'You want fragrant steam.' (4) sauté/tempering—text: 'You want that first sizzle.' (5) plating with garnish—text: 'You want cozy color.' (6) dining table close-up—text: 'Take the bite. Feel it.' Narration bridges each beat with short lines tied to weather comfort (steam, warmth, drizzle, street reflections).",
+                "whyItCouldWork": "By focusing on a single emotional promise ('one meal mood'), the Reel can showcase multiple monsoon comfort-food ideas without turning into a full recipe tutorial—ideal for short-form retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Outside: rain. Inside: the glow.",
+                "tone": "Dreamy, poetic, comfort-first (not salesy).",
+                "title": "Windowlight Comfort",
+                "format": "Cinematic editorial: controlled lighting contrast (cool desaturated rain, warm food), shallow DOF, film grain, minimal movement except slow, intentional camera moves.",
+                "coreAngle": "A chiaroscuro love letter to monsoon dining: the window creates a natural cinematic frame; warm practical lighting makes food look like the answer to the cold night.",
+                "storyApproach": "6 scenes built around light: (1) silhouette of raindrops on glass, (2) soft-focus warm lamp over countertop, (3) ingredient textures—chopped greens, ginger-garlic—under warm light, (4) steaming bowl revealed with a slow tilt from cool window to warm food, (5) spoon close-up with steam breath and shallow DOF, (6) final hero shot on the table with rain reflections shimmering. Narration emphasizes light and comfort: 'Warm steam', 'soft spoon', 'rain in the background.'",
+                "whyItCouldWork": "Visual contrast-driven storytelling is highly scroll-stopping. The windowlight motif instantly communicates monsoon comfort and keeps the Reel premium and brand-aligned.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "In 30 seconds—let the rain win, then you do.",
+                "tone": "Energized-cozy, satisfying, goal-oriented.",
+                "title": "The Storm-to-Serve Countdown",
+                "format": "Beat-synced rapid cuts with purposeful pacing: airy intro (cool rain + downtempo), warm cooking rhythm, peak on the bite, taper under CTA. On-screen text only for narration phrases (e.g., 'Ready.' 'Save this.').",
+                "coreAngle": "Time-pressure transformation: the monsoon intensifies as the clock counts down, while the kitchen becomes a calm control center. The climax is the serving moment timed to the beat peak.",
+                "storyApproach": "6 beats like a mini countdown: (1) rain intensifies + quick cut: 'Tick…' (2) quick prep montage—hands moving, knife tap sounds (very short narration), (3) sizzling tempering—audio rises, (4) thickening simmer—'Smell that? Comfort.' (5) plating in warm light—'Ready.' (6) first full bite with a micro-pause on the peak moment—'Save this for the next rainy night.' CTA lands in final beat with line-matched on-screen text.",
+                "whyItCouldWork": "A countdown structure creates urgency and retention. Timing the beat peak to the first bite turns the Reel into a satisfying micro-arc that feels cinematic and rewarding.",
+                "estimatedDuration": 30
+              }
+            ],
+            "selectedAt": "2026-08-16T22:13:00.055Z",
+            "selectedIndex": 0
+          }
+        },
+        "updated_at": "2026-08-16T22:19:02.717+00:00"
+      },
+      "stages": [
+        {
+          "stage": "animation",
+          "status": "queued",
+          "error": null,
+          "started_at": null
+        },
+        {
+          "stage": "character",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:18.391+00:00"
+        },
+        {
+          "stage": "creative",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:18.505+00:00"
+        },
+        {
+          "stage": "idea",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:12:27.903+00:00"
+        },
+        {
+          "stage": "image",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:16:09.151+00:00"
+        },
+        {
+          "stage": "research",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:02.046+00:00"
+        },
+        {
+          "stage": "script",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:33.207+00:00"
+        },
+        {
+          "stage": "storyboard",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:45.75+00:00"
+        },
+        {
+          "stage": "voice",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:13:52.243+00:00"
+        },
+        {
+          "stage": "world",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-16T22:15:31.801+00:00"
+        }
+      ],
+      "scenes": []
+    }
+  }
+}

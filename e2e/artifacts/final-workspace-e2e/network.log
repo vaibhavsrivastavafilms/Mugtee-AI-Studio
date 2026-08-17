@@ -1,0 +1,17 @@
+[
+  {
+    "url": "https://fonts.gstatic.com/s/inter/v20/UcCB3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuOKfU5NJeWUdIOjBeTHFXZdND2M.woff2",
+    "status": 404,
+    "method": "GET"
+  },
+  {
+    "url": "https://oikvspgxllujvgyxatbb.supabase.co/rest/v1/workspaces?select=*",
+    "status": 401,
+    "method": "POST"
+  },
+  {
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e/workspace/continue-scene",
+    "status": 400,
+    "method": "POST"
+  }
+]

@@ -1,0 +1,66 @@
+{
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "baseURL": "http://localhost:3000",
+  "startedAt": "2026-08-16T23:20:39.089Z",
+  "endedAt": "2026-08-16T23:21:07.578Z",
+  "auth401Investigation": [],
+  "pollLog": [
+    {
+      "t": "2026-08-16T23:21:02.078Z",
+      "apiStatus": 200,
+      "status": "producing",
+      "current": "export",
+      "export": "completed",
+      "reel": true,
+      "videos": 0,
+      "stages": "voice:completed,research:completed,creative:completed,character:completed,storyboard:completed,world:completed,image:completed,animation:completed,sound:completed,music:completed,edit:completed,quality:completed,render:completed,export:queued,idea:completed,script:completed"
+    }
+  ],
+  "networkFailures": [],
+  "consoleErrors": [
+    {
+      "t": "2026-08-16T23:20:45.632Z",
+      "text": "Warning: Extra attributes from the server: %s%s style \n    at textarea\n    at div\n    at div\n    at V7IdeaInput (webpack-internal:///(app-pages-browser)/./features/v7/components/idea-input.tsx:26:11)\n    at div\n    at StudioLanding (webpack-internal:///(app-pages-browser)/./components/studio/studio-landing.tsx:78:92)\n    at main\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./components/auth/auth-provider.tsx:16:11)\n    at StudioPage (Server)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:348:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:369:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:348:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:369:11)\n    at AppBootstrap (webpack-internal:///(app-pages-browser)/./components/app/app-bootstrap.tsx:27:11)\n    at Suspense\n    at ExitFeedbackProvider (webpack-internal:///(app-pages-browser)/./components/creator/exit-feedback-provider.tsx:18:11)\n    at AppBootstrapProvider (webpack-internal:///(app-pages-browser)/./components/app/app-bootstrap-provider.tsx:15:11)\n    at OfflineGate (webpack-internal:///(app-pages-browser)/./components/app/offline-gate.tsx:16:11)\n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)\n    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)\n    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)\n    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:577:13)\n    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)\n    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)"
+    }
+  ],
+  "ffprobe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "side_data_list": [
+          {}
+        ]
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "30.058667",
+      "size": "13881151"
+    }
+  },
+  "downloadedFile": {
+    "path": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\final-e2e-spectator\\3b29baa9-a45b-43e4-a479-8837c285f89e.mp4",
+    "size": 13881151,
+    "suggestedName": "Raindrop-to-Rice-The-First-Bite.mp4"
+  },
+  "firstFailure": null,
+  "results": {
+    "auth401Classification": "NON-BLOCKING or none on production API",
+    "DOWNLOAD_BUTTON": "PASS",
+    "ACTUAL_BROWSER_DOWNLOAD": "PASS",
+    "FFPROBE": "PASS",
+    "ACTUAL_MP4": "PASS",
+    "CUSTOMER_E2E": "PASS",
+    "VERTICAL_1080x1920": "PASS"
+  }
+}

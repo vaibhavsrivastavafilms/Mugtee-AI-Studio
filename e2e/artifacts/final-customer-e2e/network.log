@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://oikvspgxllujvgyxatbb.supabase.co/rest/v1/workspaces?select=*",
+    "status": 401,
+    "method": "POST"
+  }
+]

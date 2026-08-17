@@ -1,0 +1,11 @@
+[console.error] Failed to fetch RSC payload for https://mugtee.in/auth/login?next=%2Fstudio. Falling back to browser navigation. TypeError: Failed to fetch
+    at s (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:45730)
+    at https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:59279
+    at Object.u [as task] (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:32117)
+    at c.s (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:32822)
+    at c.enqueue (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:32247)
+    at s (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:59242)
+    at i (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:58782)
+    at a (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:65602)
+    at f (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:1:75482)
+    at Object.action (https://mugtee.in/_next/static/chunks/7023-6c7893fcbbb067b5.js?dpl=dpl_2Dp7ryeFtYExXdqZ1qxATY9ZRcBk:2:7102)

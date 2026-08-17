@@ -1,0 +1,38 @@
+{
+  "failure": {
+    "step": "WORKSPACE_E2E",
+    "message": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('video').first() to be visible\n",
+    "url": "http://localhost:3000/studio/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e"
+  },
+  "report": {
+    "PROJECT_LIBRARY": "PASS",
+    "WORKSPACE": "PASS",
+    "SCRIPT_REVIEW": "PASS",
+    "SCRIPT_EDIT": "PASS",
+    "KEEP_EXISTING_OUTPUTS": "PASS",
+    "MEDIA_PRESERVATION": "PASS",
+    "VOICE": "PASS",
+    "IMAGES": "PASS",
+    "I2V": "PASS",
+    "MUSIC": "PASS",
+    "SFX": "PASS",
+    "SCENE_CONTINUATION": "PASS",
+    "SCENE_ORDERING": "PASS",
+    "SCENE_ID_PRESERVATION": "PASS",
+    "FINAL_VIDEO": "NOT RUN",
+    "ACTUAL_BROWSER_DOWNLOAD": "NOT RUN",
+    "FFPROBE": "NOT RUN",
+    "CONSOLE": "PASS",
+    "NETWORK": "PASS",
+    "OVERALL_LOCAL_E2E": "FAIL"
+  },
+  "blockingNetwork": [
+    {
+      "url": "https://oikvspgxllujvgyxatbb.supabase.co/rest/v1/workspaces?select=*",
+      "status": 401,
+      "method": "POST"
+    }
+  ],
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e"
+}

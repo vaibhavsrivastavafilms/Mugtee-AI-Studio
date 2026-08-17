@@ -1,0 +1,180 @@
+branch: main
+head: eebd4a6 refactor: enhance layout components and improve error handling
+
+ M agents/v7/concept-generator.server.ts
+ M agents/v7/creative-director.server.ts
+ M agents/v7/idea-analyzer.server.ts
+ M agents/v7/research.server.ts
+ M agents/v7/script-writer.server.ts
+ M agents/v7/storyboard.server.ts
+ M app/api/projects/library/route.ts
+ M app/api/v7/productions/[id]/route.ts
+ M app/api/v7/productions/route.ts
+ M app/studio/(shell)/projects/page.tsx
+ M app/studio/page.tsx
+ M components/auth/auth-gate.tsx
+ M components/auth/development-mode.tsx
+ M components/auth/login-content.tsx
+ M components/auth/production-auth.tsx
+ M components/projects/recent-projects-strip.tsx
+ M components/projects/unified-projects-library.tsx
+ M components/studio/studio-landing.tsx
+ M features/v7/components/idea-input.tsx
+ M features/v7/components/production-progress-panel.tsx
+ M features/v7/components/production-shell.tsx
+ M features/v7/components/production-view.tsx
+ M features/v7/hooks/use-production-progress.ts
+ M lib/ai/config.ts
+ M lib/ai/errors.ts
+ M lib/ai/free-tier.ts
+ M lib/ai/model-router.ts
+M  lib/ai/provider.ts
+ M lib/ai/providers/config.server.ts
+MM lib/ai/providers/openrouter/generate.ts
+ M lib/ai/providers/openrouter/router.ts
+ M lib/ai/providers/provider-registry.server.ts
+ M lib/ai/providers/router.ts
+ M lib/ai/providers/shared.ts
+ M lib/ai/providers/task-routing.ts
+ M lib/ai/providers/types.ts
+ M lib/auth/public-routes.ts
+ M lib/cinematic/language-detection.ts
+ M lib/perf/library-timing.server.ts
+ M lib/pollinations/auth-context.server.ts
+ M lib/pollinations/client.server.ts
+ M lib/pollinations/error-classification-core.ts
+ M lib/pollinations/key-diagnostics-core.ts
+ M lib/pollinations/models.server.ts
+ M lib/projects/unified-library.server.ts
+ M lib/projects/unified-library.types.ts
+ M lib/v3/music-cascade.server.ts
+ M lib/v3/sound-cascade.server.ts
+ M lib/v7/__tests__/image-prompt-spec.test.ts
+ M lib/v7/__tests__/pipeline-state.test.ts
+ M lib/v7/background-driver.server.ts
+ M lib/v7/db.server.ts
+ M lib/v7/image-prompt-spec.core.ts
+ M lib/v7/image-scene.server.ts
+ M lib/v7/media-probe.server.ts
+ M lib/v7/orchestrator.server.ts
+ M lib/v7/pipeline-state.core.ts
+ M lib/v7/pipeline-sync.server.ts
+ M lib/v7/pipeline.ts
+ M lib/v7/production-planning.ts
+ M lib/v7/production-progress.ts
+ M lib/v7/provider-availability.server.ts
+ M lib/v7/providers/provider-manager.server.ts
+ M lib/v7/providers/providers/pollinations-video.server.ts
+ M lib/v7/providers/text-errors.ts
+ M lib/v7/providers/text-provider.types.ts
+ M lib/v7/providers/text.server.ts
+ M lib/v7/stages/media.server.ts
+ M lib/v7/video-scene.server.ts
+ M lib/video/ffmpeg-path.server.ts
+ M lib/voice/generateVoice.ts
+ M lib/voice/tts-cascade.ts
+ M next.config.js
+ M package-lock.json
+ M package.json
+ M types/v7/production.ts
+?? .local/
+?? app/api/v7/productions/[id]/assets/
+?? app/api/v7/productions/[id]/download/
+?? app/api/v7/productions/[id]/workspace/
+?? app/api/v7/productions/history-stats/
+?? app/auth/signup/
+?? components/auth/auth-required-prompt.tsx
+?? components/projects/project-library-card.tsx
+?? components/projects/studio-project-library.tsx
+?? docs/MUGTEE_E2E_BASELINE_V1.md
+?? docs/V7_SPECTATOR_E2E_REPORT.json
+?? e2e/artifacts/
+?? features/v7/components/production-download-button.tsx
+?? features/v7/components/production-stage-progress-row.tsx
+?? features/v7/components/production-workspace/
+?? features/v7/hooks/use-production-workspace.ts
+?? lib/ai/providers/__tests__/
+?? lib/ai/providers/providers/pollinations-provider.ts
+?? lib/pollinations/audio.server.ts
+?? lib/pollinations/text.server.ts
+?? lib/projects/__tests__/
+?? lib/projects/unified-library.core.ts
+?? lib/v7/__tests__/cinematic-video-framework.test.ts
+?? lib/v7/__tests__/deliverable-media.test.ts
+?? lib/v7/__tests__/language-routing.test.ts
+?? lib/v7/__tests__/pipeline-sync.test.ts
+?? lib/v7/__tests__/production-progress.test.ts
+?? lib/v7/__tests__/storyboard-timing.test.ts
+?? lib/v7/__tests__/worker-scheduling.test.ts
+?? lib/v7/__tests__/workspace-continuation.core.test.ts
+?? lib/v7/__tests__/workspace-dependencies.core.test.ts
+?? lib/v7/__tests__/workspace-editing.core.test.ts
+?? lib/v7/__tests__/workspace-script.core.test.ts
+?? lib/v7/__tests__/workspace-stage-display.core.test.ts
+?? lib/v7/__tests__/workspace-state.core.test.ts
+?? lib/v7/cinematic-video-framework.core.ts
+?? lib/v7/deliverable-media.core.ts
+?? lib/v7/language-routing.core.ts
+?? lib/v7/production-history-stats.server.ts
+?? lib/v7/providers/__tests__/text-fallback.test.ts
+?? lib/v7/providers/text-fallback.core.ts
+?? lib/v7/storyboard-timing.core.ts
+?? lib/v7/workspace.server.ts
+?? lib/v7/workspace/
+?? logs/
+?? scripts/3d51dc1f-final-reel.mp4
+?? scripts/_pollinations-env-fingerprint-process.mjs
+?? scripts/customer-access-artifacts/
+?? scripts/customer-access-e2e-prod-run2.log
+?? scripts/customer-access-e2e-prod.log
+?? scripts/customer-access-e2e.log
+?? scripts/customer-access-e2e.mjs
+?? scripts/e23710d6-final-reel.mp4
+?? scripts/e2e-run.log
+?? scripts/e2e-studio-debug.png
+?? scripts/f5859452-final-reel.mp4
+?? scripts/f661e2fd-final-reel.mp4
+?? scripts/lib/e2e-artifacts.mjs
+?? scripts/promote-pollinations-secret-to-api-key.mjs
+?? scripts/refresh-e2e-auth.mjs
+?? scripts/sync-vercel-pollinations-env.mjs
+?? scripts/sync-vercel-text-env.mjs
+?? scripts/v7-drive-attempt-9b.log
+?? scripts/v7-dump-production.mjs
+?? scripts/v7-e2e-capture-blocker.mjs
+?? scripts/v7-e2e-monitor-readonly.server.ts
+?? scripts/v7-e2e-monitor.log
+?? scripts/v7-e2e-production-id.txt
+?? scripts/v7-golden-2-monitor.log
+?? scripts/v7-golden-2-resume.log
+?? scripts/v7-golden-3-drive-2.log
+?? scripts/v7-golden-3-drive.log
+?? scripts/v7-gujarati-drive-2.log
+?? scripts/v7-gujarati-drive-3.log
+?? scripts/v7-gujarati-drive-4.log
+?? scripts/v7-gujarati-drive.log
+?? scripts/v7-gujarati-unlock.log
+?? scripts/v7-playwright-create-production.mjs
+?? scripts/v7-playwright-spectator-e2e.mjs
+?? scripts/v7-pollinations-capability-probe.server.ts
+?? scripts/v7-resume-music-drive.log
+?? scripts/v7-resume-quality-drive.log
+?? scripts/v7-spectator-e2e-attempt-2-continue.log
+?? scripts/v7-spectator-e2e-attempt-2.log
+?? scripts/v7-spectator-e2e-attempt-3.log
+?? scripts/v7-spectator-e2e-attempt-4.log
+?? scripts/v7-spectator-e2e-attempt-5.log
+?? scripts/v7-spectator-e2e-attempt-6.log
+?? scripts/v7-spectator-e2e-attempt-7-retry.log
+?? scripts/v7-spectator-e2e-attempt-7.log
+?? scripts/v7-spectator-e2e-attempt-8.log
+?? scripts/v7-spectator-e2e-attempt-9-retry.log
+?? scripts/v7-spectator-e2e-attempt-9.log
+?? scripts/v7-spectator-e2e-attempt-9b.log
+?? scripts/v7-spectator-e2e-attempt-9c.log
+?? scripts/v7-spectator-e2e.log
+?? scripts/v7-spectator-golden-2.log
+?? scripts/v7-spectator-golden-2b.log
+?? scripts/v7-spectator-golden-3.log
+?? scripts/v7-spectator-gujarati-2.log
+?? scripts/v7-spectator-gujarati.log

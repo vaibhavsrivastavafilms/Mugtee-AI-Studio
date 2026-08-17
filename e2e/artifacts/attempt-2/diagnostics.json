@@ -1,0 +1,282 @@
+{
+  "url": "https://mugtee.in/studio/cbefd6d6-07a8-45af-9515-a8fd998fd288",
+  "visible": {
+    "url": "https://mugtee.in/studio/cbefd6d6-07a8-45af-9515-a8fd998fd288",
+    "currentTask": "Understanding your idea…",
+    "currentStageLabel": "Understanding your idea",
+    "overallPercent": 0,
+    "eta": "Generating…",
+    "provider": null,
+    "stages": [
+      {
+        "label": "Understanding your idea",
+        "status": "running",
+        "error": null
+      },
+      {
+        "label": "Researching",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Creative direction",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Writing screenplay",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Designing characters",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Building the world",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Storyboarding",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Generating images",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Animating",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Recording voices",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Composing soundtrack",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Sound design",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Editing",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Quality check",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Rendering",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Preparing creator pack",
+        "status": "pending",
+        "error": null
+      }
+    ],
+    "alerts": [],
+    "downloadMp4": false,
+    "productionComplete": false,
+    "conceptSelector": false
+  },
+  "productionId": "cbefd6d6-07a8-45af-9515-a8fd998fd288",
+  "consoleErrors": [
+    {
+      "t": "2026-08-13T21:11:32.259Z",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "networkFailures": [
+    {
+      "t": "2026-08-13T21:11:34.931Z",
+      "url": "https://mugtee.in/api/analytics/event",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-13T21:11:34.931Z",
+      "url": "https://mugtee.in/api/analytics/event",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-13T21:11:34.931Z",
+      "url": "https://mugtee.in/api/projects/library?page=1&pageSize=6&sort=newest&pipeline=v7",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-13T21:11:34.931Z",
+      "url": "https://mugtee.in/api/analytics/events",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-13T21:11:34.931Z",
+      "url": "https://mugtee.in/icon.png?b405ab8ce7fc92e0",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "server": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "production": {
+        "id": "cbefd6d6-07a8-45af-9515-a8fd998fd288",
+        "user_id": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4",
+        "title": "Untitled production",
+        "prompt": "Create a 15-second cinematic video explaining how Mugtee creates AI videos with just one prompt.",
+        "status": "planning",
+        "creative_brief": null,
+        "current_stage": "idea",
+        "reel_url": null,
+        "mov_url": null,
+        "thumbnail_url": null,
+        "creator_pack_url": null,
+        "export_status": "pending",
+        "timeline_json": null,
+        "created_at": "2026-08-13T21:04:48.637458+00:00",
+        "updated_at": "2026-08-13T21:04:48.793+00:00"
+      },
+      "stages": [
+        {
+          "id": "e94a48c7-ab00-47cb-a17a-01124b06895b",
+          "production_id": "cbefd6d6-07a8-45af-9515-a8fd998fd288",
+          "stage": "idea",
+          "status": "running",
+          "error": null,
+          "started_at": "2026-08-13T21:04:49.042+00:00",
+          "completed_at": null,
+          "created_at": "2026-08-13T21:04:49.180572+00:00",
+          "output": null
+        }
+      ],
+      "scenes": [],
+      "timeline": [
+        {
+          "id": "idea",
+          "label": "Understanding your idea",
+          "emoji": "✨",
+          "status": "running",
+          "error": null
+        },
+        {
+          "id": "research",
+          "label": "Researching",
+          "emoji": "🔍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "creative",
+          "label": "Creative direction",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "script",
+          "label": "Writing screenplay",
+          "emoji": "🧠",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "character",
+          "label": "Designing characters",
+          "emoji": "🎭",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "world",
+          "label": "Building the world",
+          "emoji": "🌍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "storyboard",
+          "label": "Storyboarding",
+          "emoji": "🎨",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "image",
+          "label": "Generating images",
+          "emoji": "🖼️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "animation",
+          "label": "Animating",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "voice",
+          "label": "Recording voices",
+          "emoji": "🎙️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "music",
+          "label": "Composing soundtrack",
+          "emoji": "🎵",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "sound",
+          "label": "Sound design",
+          "emoji": "🔊",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "edit",
+          "label": "Editing",
+          "emoji": "🎞️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "quality",
+          "label": "Quality check",
+          "emoji": "✅",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "render",
+          "label": "Rendering",
+          "emoji": "📦",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "export",
+          "label": "Preparing creator pack",
+          "emoji": "🎉",
+          "status": "pending",
+          "error": null
+        }
+      ]
+    }
+  }
+}

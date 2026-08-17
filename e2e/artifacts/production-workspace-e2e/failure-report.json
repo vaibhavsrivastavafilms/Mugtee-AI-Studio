@@ -1,0 +1,34 @@
+{
+  "failure": {
+    "step": "PRODUCTION_E2E",
+    "message": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('aside').getByRole('button', { name: /Generating images/i }).first()\n    - locator resolved to <button disabled type=\"button\" class=\"flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition border-white/10 bg-white/5 text-white/50 opacity-45\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is not enabled\n     - retrying click action\n       - waiting 500ms\n",
+    "url": "https://mugtee.in/studio/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e"
+  },
+  "report": {
+    "GIT": "PASS",
+    "TYPESCRIPT": "PASS",
+    "TESTS": "PASS",
+    "BUILD": "PASS",
+    "VERCEL": "NOT RUN",
+    "DEPLOYMENT": "NOT RUN",
+    "ANONYMOUS_STUDIO": "PASS",
+    "SIGN_UP": "FAIL",
+    "SIGN_IN": "FAIL",
+    "SESSION": "PASS",
+    "PROJECT_LIBRARY": "PASS",
+    "WORKSPACE": "PASS",
+    "SCRIPT": "PASS",
+    "VOICE": "PASS",
+    "IMAGES": "NOT RUN",
+    "I2V": "NOT RUN",
+    "MUSIC": "NOT RUN",
+    "SFX": "NOT RUN",
+    "SCENE_CONTINUATION": "NOT MUTATED",
+    "FINAL_VIDEO": "NOT RUN",
+    "BROWSER_DOWNLOAD": "NOT RUN",
+    "ACTUAL_MP4": "NOT RUN",
+    "FFPROBE": "NOT RUN",
+    "CUSTOMER_ACCESS_MEDIA": "NOT VERIFIED"
+  }
+}

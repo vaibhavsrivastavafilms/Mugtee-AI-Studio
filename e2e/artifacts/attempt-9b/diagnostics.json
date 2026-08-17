@@ -1,0 +1,652 @@
+{
+  "url": "https://mugtee.in/studio/a10555a0-027b-474b-8250-b5b22b06f406",
+  "visible": {
+    "url": "https://mugtee.in/studio/a10555a0-027b-474b-8250-b5b22b06f406",
+    "currentTask": "Recording narration…",
+    "currentStageLabel": "Recording voices",
+    "overallPercent": 18,
+    "eta": "31s remaining",
+    "provider": null,
+    "stages": [
+      {
+        "label": "Understanding your idea",
+        "status": "completed",
+        "error": null
+      },
+      {
+        "label": "Researching",
+        "status": "completed",
+        "error": null
+      },
+      {
+        "label": "Creative direction",
+        "status": "completed",
+        "error": null
+      },
+      {
+        "label": "Writing screenplay",
+        "status": "completed",
+        "error": null
+      },
+      {
+        "label": "Recording voices",
+        "status": "running",
+        "error": null
+      },
+      {
+        "label": "Designing characters",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Building the world",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Storyboarding",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Generating images",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Animating",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Composing soundtrack",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Sound design",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Editing",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Quality check",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Rendering",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Preparing creator pack",
+        "status": "pending",
+        "error": null
+      }
+    ],
+    "alerts": [],
+    "downloadMp4": false,
+    "productionComplete": false,
+    "conceptSelector": false
+  },
+  "productionId": "a10555a0-027b-474b-8250-b5b22b06f406",
+  "consoleErrors": [
+    {
+      "t": "2026-08-14T17:44:58.231Z",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "networkFailures": [
+    {
+      "t": "2026-08-14T17:45:09.279Z",
+      "url": "https://mugtee.in/studio/a10555a0-027b-474b-8250-b5b22b06f406?_rsc=1exi4",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-14T17:45:09.806Z",
+      "url": "https://mugtee.in/api/projects/library?page=1&pageSize=6&sort=newest&pipeline=v7",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "server": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "production": {
+        "id": "a10555a0-027b-474b-8250-b5b22b06f406",
+        "user_id": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4",
+        "title": "Silent Relics: Left Behind",
+        "prompt": "Create a cinematic faceless documentary about 5 mysterious ancient civilizations that disappeared.",
+        "status": "producing",
+        "creative_brief": {
+          "genre": "Documentary",
+          "style": "Cinematic faceless documentary. Selected angle: Artifact-led forensic mystery focusing on solitary objects left behind in massive empty ruins.. Tone: Haunting, contemplative, enigmatic",
+          "title": "Silent Relics: Left Behind",
+          "emotion": "Haunting, contemplative, enigmatic",
+          "audience": "History enthusiasts, documentary lovers",
+          "duration": 30,
+          "language": "English",
+          "platform": "YouTube Shorts",
+          "sceneCount": 5,
+          "aspectRatio": "16:9",
+          "musicDirection": "Atmospheric, low-key orchestral with subtle percussion, building tension",
+          "voiceDirection": "No on-screen narration; subtle voice-over provides context, minimalistic and distant",
+          "selectedConcept": {
+            "id": "concept-1",
+            "hook": "Entire empires didn't fall to war. They simply walked away.",
+            "tone": "Haunting, contemplative, enigmatic",
+            "title": "Silent Relics: Left Behind",
+            "format": "Cinematic visual montage with minimalist whispered voice-over and rising ambient sub-bass.",
+            "coreAngle": "Artifact-led forensic mystery focusing on solitary objects left behind in massive empty ruins.",
+            "storyApproach": "Opens on extreme macro detail of five specific ancient relics (an Indus Valley seal, a Maya jade mask, a Minoan bull carving, a Khmer stone chisel, and an Ancestral Puebloan ceramic vessel) pulling back rapidly to reveal vast, abandoned architectural wonders.",
+            "whyItCouldWork": "Anchoring each fleeting civilization to a tactile, tangible relic gives the audience an immediate visual focal point in a high-speed short format.",
+            "estimatedDuration": 30
+          },
+          "characterConsistency": false
+        },
+        "current_stage": "voice",
+        "reel_url": null,
+        "mov_url": null,
+        "thumbnail_url": null,
+        "creator_pack_url": null,
+        "export_status": "pending",
+        "timeline_json": {
+          "pipeline_lock": {
+            "since": "2026-08-14T18:03:30.240Z",
+            "stage": "voice",
+            "token": "3a76b95d-8cba-45bf-89aa-f684614bf779",
+            "locked": true
+          },
+          "concept_selection": {
+            "awaiting": false,
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Entire empires didn't fall to war. They simply walked away.",
+                "tone": "Haunting, contemplative, enigmatic",
+                "title": "Silent Relics: Left Behind",
+                "format": "Cinematic visual montage with minimalist whispered voice-over and rising ambient sub-bass.",
+                "coreAngle": "Artifact-led forensic mystery focusing on solitary objects left behind in massive empty ruins.",
+                "storyApproach": "Opens on extreme macro detail of five specific ancient relics (an Indus Valley seal, a Maya jade mask, a Minoan bull carving, a Khmer stone chisel, and an Ancestral Puebloan ceramic vessel) pulling back rapidly to reveal vast, abandoned architectural wonders.",
+                "whyItCouldWork": "Anchoring each fleeting civilization to a tactile, tangible relic gives the audience an immediate visual focal point in a high-speed short format.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Five grand empires built to defy time... erased by the earth itself.",
+                "tone": "Awe-inspiring, apocalyptic, majestic",
+                "title": "Earth Swallowed Whole",
+                "format": "Sweeping drone-style cinematic vistas with dynamic climate sound design and stoic voice-over.",
+                "coreAngle": "Environmental reclamation and nature’s dominance over lost human marvels.",
+                "storyApproach": "Cinematic seamless transitions showing five distinct ecosystems consuming ancient megastructures: desert sands burying Nabataea, deep jungle suffocating Angkor, rising seas drowning Thonis-Heracleion, volcanic ash smothering Akrotiri, and canyon winds eroding Mesa Verde.",
+                "whyItCouldWork": "Visual contrast between grand stone architecture and relentless natural elements delivers immense cinematic scale and visual retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Millions of people disappeared without leaving a single trace of war.",
+                "tone": "Investigative, tense, mysterious",
+                "title": "Five Unsolved Vanishings",
+                "format": "High-tension forensic documentary vignette with low-key pulsing percussion and concise contextual voice-over.",
+                "coreAngle": "Archaeological cold-case dossier exploring the sudden demographic disappearance of entire populations.",
+                "storyApproach": "Structured as five rapid, enigmatic case files. High-altitude LIDAR satellite scans morph into moody photorealistic recreations of empty plazas, deserted irrigation canals, and unlooted treasuries, highlighting the eerie lack of bodies or conflict.",
+                "whyItCouldWork": "Framing historical disappearances as modern true-crime/unsolved mysteries hooks history fans who crave explanations for unsolvable enigmas.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "Listen closely. The stone still remembers their final breath.",
+                "tone": "Eerie, poetic, profound",
+                "title": "Echoes in the Dust",
+                "format": "Atmospheric audio-visual sensory journey with poetic cadence and deep ambient orchestral swells.",
+                "coreAngle": "Sensory, ghostly immersion focusing on shadows, wind, and the haunting presence of absence.",
+                "storyApproach": "Focuses on the eerie sensation of uninhabited spaces: flickering torchlight casting shadows across empty throne rooms, dust motes floating through colossal archways, and winds howling through unsealed stone windows across five forgotten cultures.",
+                "whyItCouldWork": "Emphasizes the philosophical dread of impermanence and isolation, creating a memorable emotional resonance rather than just a history listicle.",
+                "estimatedDuration": 30
+              }
+            ],
+            "selectedAt": "2026-08-14T17:45:31.570Z",
+            "selectedIndex": 0
+          }
+        },
+        "created_at": "2026-08-14T17:45:04.91293+00:00",
+        "updated_at": "2026-08-14T18:03:30.458+00:00"
+      },
+      "stages": [
+        {
+          "id": "08d23261-8b90-4f6e-8a87-6cadc439c638",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "stage": "creative",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-14T18:03:15.667+00:00",
+          "completed_at": "2026-08-14T18:03:17.426+00:00",
+          "created_at": "2026-08-14T17:45:36.436788+00:00",
+          "output": {
+            "direction": {
+              "lighting": "Low-key, naturalistic with emphasis on chiaroscuro to create depth and mystery",
+              "moodBoard": [
+                "Abandoned, vast architectural landscapes",
+                "Macro shots of ancient artifacts with visible wear and patina",
+                "Low-light, atmospheric conditions emphasizing scale and silence",
+                "Subtle, muted color palettes evoking a sense of timelessness"
+              ],
+              "musicStyle": "Atmospheric, low-key orchestral with subtle percussion, rising ambient sub-bass",
+              "typography": "Clean, sans-serif fonts for any titles or credits, used sparingly",
+              "voiceStyle": "Minimalistic, distant, and whispered voice-over providing contextual clues",
+              "visualStyle": "Cinematic, high-contrast with a focus on macro details and textures",
+              "colorPalette": [
+                "#434A54",
+                "#666666",
+                "#999999",
+                "#CCCC00",
+                "#663300"
+              ],
+              "editingStyle": "Contemplative, paced to build tension and curiosity with minimal cuts",
+              "animationStyle": "Subtle, slow-motion footage of artifacts and environments",
+              "cameraLanguage": "Intimate, observational with extensive use of slow zooms and wide shots"
+            },
+            "durationMs": 1548
+          }
+        },
+        {
+          "id": "e332253e-c5f9-4aeb-8da8-d64e58fee011",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "stage": "idea",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-14T17:45:09.584+00:00",
+          "completed_at": "2026-08-14T17:45:26.519+00:00",
+          "created_at": "2026-08-14T17:45:05.936298+00:00",
+          "output": {
+            "brief": {
+              "genre": "Documentary",
+              "style": "Cinematic faceless documentary",
+              "title": "Lost Echoes: Five Vanished Civilizations",
+              "emotion": "Mysterious, awe, intrigue",
+              "audience": "History enthusiasts, documentary lovers",
+              "duration": 30,
+              "language": "English",
+              "platform": "YouTube Shorts",
+              "sceneCount": 5,
+              "aspectRatio": "16:9",
+              "musicDirection": "Atmospheric, low-key orchestral with subtle percussion, building tension",
+              "voiceDirection": "No on-screen narration; subtle voice-over provides context, minimalistic and distant",
+              "characterConsistency": false
+            },
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Entire empires didn't fall to war. They simply walked away.",
+                "tone": "Haunting, contemplative, enigmatic",
+                "title": "Silent Relics: Left Behind",
+                "format": "Cinematic visual montage with minimalist whispered voice-over and rising ambient sub-bass.",
+                "coreAngle": "Artifact-led forensic mystery focusing on solitary objects left behind in massive empty ruins.",
+                "storyApproach": "Opens on extreme macro detail of five specific ancient relics (an Indus Valley seal, a Maya jade mask, a Minoan bull carving, a Khmer stone chisel, and an Ancestral Puebloan ceramic vessel) pulling back rapidly to reveal vast, abandoned architectural wonders.",
+                "whyItCouldWork": "Anchoring each fleeting civilization to a tactile, tangible relic gives the audience an immediate visual focal point in a high-speed short format.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Five grand empires built to defy time... erased by the earth itself.",
+                "tone": "Awe-inspiring, apocalyptic, majestic",
+                "title": "Earth Swallowed Whole",
+                "format": "Sweeping drone-style cinematic vistas with dynamic climate sound design and stoic voice-over.",
+                "coreAngle": "Environmental reclamation and nature’s dominance over lost human marvels.",
+                "storyApproach": "Cinematic seamless transitions showing five distinct ecosystems consuming ancient megastructures: desert sands burying Nabataea, deep jungle suffocating Angkor, rising seas drowning Thonis-Heracleion, volcanic ash smothering Akrotiri, and canyon winds eroding Mesa Verde.",
+                "whyItCouldWork": "Visual contrast between grand stone architecture and relentless natural elements delivers immense cinematic scale and visual retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Millions of people disappeared without leaving a single trace of war.",
+                "tone": "Investigative, tense, mysterious",
+                "title": "Five Unsolved Vanishings",
+                "format": "High-tension forensic documentary vignette with low-key pulsing percussion and concise contextual voice-over.",
+                "coreAngle": "Archaeological cold-case dossier exploring the sudden demographic disappearance of entire populations.",
+                "storyApproach": "Structured as five rapid, enigmatic case files. High-altitude LIDAR satellite scans morph into moody photorealistic recreations of empty plazas, deserted irrigation canals, and unlooted treasuries, highlighting the eerie lack of bodies or conflict.",
+                "whyItCouldWork": "Framing historical disappearances as modern true-crime/unsolved mysteries hooks history fans who crave explanations for unsolvable enigmas.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "Listen closely. The stone still remembers their final breath.",
+                "tone": "Eerie, poetic, profound",
+                "title": "Echoes in the Dust",
+                "format": "Atmospheric audio-visual sensory journey with poetic cadence and deep ambient orchestral swells.",
+                "coreAngle": "Sensory, ghostly immersion focusing on shadows, wind, and the haunting presence of absence.",
+                "storyApproach": "Focuses on the eerie sensation of uninhabited spaces: flickering torchlight casting shadows across empty throne rooms, dust motes floating through colossal archways, and winds howling through unsealed stone windows across five forgotten cultures.",
+                "whyItCouldWork": "Emphasizes the philosophical dread of impermanence and isolation, creating a memorable emotional resonance rather than just a history listicle.",
+                "estimatedDuration": 30
+              }
+            ],
+            "durationMs": 929,
+            "conceptsDurationMs": 12835
+          }
+        },
+        {
+          "id": "9c212f73-7664-4f1a-951c-19b69d373860",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "stage": "research",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-14T17:45:34.201+00:00",
+          "completed_at": "2026-08-14T17:45:35.643+00:00",
+          "created_at": "2026-08-14T17:45:32.418336+00:00",
+          "output": {
+            "research": {
+              "topics": [
+                "Ancient Civilizations",
+                "Archaeology",
+                "Forensic Artifact Analysis",
+                "Abandoned Ruins",
+                "Cultural Heritage",
+                "Mystery Documentary"
+              ],
+              "keyFacts": [
+                "Indus Valley civilization decline: exact causes remain uncertain, theories include climate change, river shifts, or internal strife.",
+                "Maya civilization collapse: multiple factors such as drought, warfare, and social upheaval; exact timeline is debated.",
+                "Minoan civilization: decline likely due to volcanic eruption (Thera) and subsequent earthquakes, but precise chronology is unclear.",
+                "Khmer Empire: decline attributed to overexpansion, resource depletion, and possible climate shifts; exact dates are contested.",
+                "Ancestral Puebloan migration: reasons for abandonment of cliff dwellings include drought, resource scarcity, and social factors; exact motivations are not fully resolved."
+              ],
+              "culturalNotes": [
+                "Indus Valley seal: Bronze seal with undeciphered script, possibly used for trade or administration.",
+                "Maya jade mask: Likely ceremonial, associated with elite burial practices, jade valued for its rarity.",
+                "Minoan bull carving: Symbolic of bull cult, may represent religious iconography or royal patronage.",
+                "Khmer stone chisel: Tool used in stone carving, indicative of advanced masonry techniques in Angkorian temples.",
+                "Ancestral Puebloan ceramic vessel: Pottery used for storage or ritual, often decorated with geometric motifs."
+              ],
+              "visualReferences": [
+                "Macro close‑ups of texture and patina, revealing age and wear.",
+                "Wide, low‑light shots of empty stone halls, emphasizing scale and silence.",
+                "Slow zooms that pull back from an object to its architectural context.",
+                "Use of chiaroscuro lighting to create shadows and depth.",
+                "Subtle color grading to evoke a muted, timeless palette."
+              ],
+              "emotionalDirection": [
+                "Haunting",
+                "Contemplative",
+                "Enigmatic",
+                "Eerie",
+                "Reflective",
+                "Awe"
+              ],
+              "storytellingReferences": [
+                "Cinematic montage style with minimal narration, similar to “The Last Days of the Maya” segments.",
+                "Forensic mystery framing, akin to “The Lost City of Z” investigative approach.",
+                "Use of ambient soundscapes to build tension, inspired by “Planet Earth” atmospheric scores.",
+                "Narrative pacing that mirrors the slow unraveling of a mystery, as seen in “The Story of Us” documentary style."
+              ]
+            },
+            "durationMs": 1191
+          }
+        },
+        {
+          "id": "26cd3ff5-9cd8-4f23-a6ed-58f63fc2c3eb",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "stage": "script",
+          "status": "completed",
+          "error": null,
+          "started_at": "2026-08-14T18:03:22.101+00:00",
+          "completed_at": "2026-08-14T18:03:25.978+00:00",
+          "created_at": "2026-08-14T18:03:18.338565+00:00",
+          "output": {
+            "script": {
+              "scenes": [
+                {
+                  "title": "Introduction to Silent Relics",
+                  "action": "Extreme macro shot of an Indus Valley seal, slowly zooming out to reveal the vast, empty ruins",
+                  "camera": "Static, with a slow zoom out",
+                  "number": 1,
+                  "emotion": "Haunting, contemplative",
+                  "dialogue": "",
+                  "duration": 6,
+                  "lighting": "Low-key, naturalistic with emphasis on chiaroscuro",
+                  "location": "Abandoned Indus Valley ruins",
+                  "movement": "Slow, deliberate camera movement",
+                  "narration": "In the depths of time, entire empires didn't fall to war. They simply walked away, leaving behind only remnants of their existence.",
+                  "characters": [],
+                  "transition": "Fade in from black"
+                },
+                {
+                  "title": "The Maya Enigma",
+                  "action": "Close-up of a Maya jade mask, with the camera slowly rotating around it, before pulling back to reveal the surrounding architecture",
+                  "camera": "Slow, sweeping motion",
+                  "number": 2,
+                  "emotion": "Enigmatic, awe-inspiring",
+                  "dialogue": "",
+                  "duration": 5,
+                  "lighting": "Low-light, emphasizing the mystery of the artifact",
+                  "location": "Maya ruins, Guatemala",
+                  "movement": "Deliberate, measured camera movement",
+                  "narration": "The Maya civilization, known for its sophistication, left behind only cryptic clues to its downfall. Drought, warfare, and social upheaval are all theories, but the truth remains elusive.",
+                  "characters": [],
+                  "transition": "Dissolve from the previous scene"
+                },
+                {
+                  "title": "Unraveling the Minoan Mystery",
+                  "action": "Macro shot of a Minoan bull carving, with the camera slowly zooming out to reveal the palace's grandeur",
+                  "camera": "Static, with a slow zoom out",
+                  "number": 3,
+                  "emotion": "Contemplative, reflective",
+                  "dialogue": "",
+                  "duration": 5,
+                  "lighting": "Naturalistic, with an emphasis on highlighting the texture of the carving",
+                  "location": "Minoan palace ruins, Crete",
+                  "movement": "Slow, contemplative camera movement",
+                  "narration": "The Minoan civilization, with its bull cult and advanced palace architecture, was likely brought down by a combination of natural disasters and internal strife. Yet, the precise chronology remains a mystery.",
+                  "characters": [],
+                  "transition": "Fade from the previous scene"
+                },
+                {
+                  "title": "The Khmer Legacy",
+                  "action": "Close-up of a Khmer stone chisel, with the camera slowly moving along the intricate carvings on the temple walls",
+                  "camera": "Slow, observational movement",
+                  "number": 4,
+                  "emotion": "Haunting, eerie",
+                  "dialogue": "",
+                  "duration": 5,
+                  "lighting": "Low-key, with an emphasis on chiaroscuro to highlight the textures",
+                  "location": "Angkorian temple ruins, Cambodia",
+                  "movement": "Deliberate, intimate camera movement",
+                  "narration": "The Khmer Empire, with its impressive masonry techniques, declined due to overexpansion and resource depletion. The exact dates are contested, but the legacy of its craftsmanship remains.",
+                  "characters": [],
+                  "transition": "Dissolve from the previous scene"
+                },
+                {
+                  "title": "The Ancestral Puebloan Enigma",
+                  "action": "Macro shot of an Ancestral Puebloan ceramic vessel, with the camera slowly pulling back to reveal the vast, empty landscape",
+                  "camera": "Static, with a slow zoom out",
+                  "number": 5,
+                  "emotion": "Haunting, reflective",
+                  "dialogue": "",
+                  "duration": 9,
+                  "lighting": "Naturalistic, with an emphasis on highlighting the vessel's texture and patina",
+                  "location": "Ancestral Puebloan cliff dwellings, USA",
+                  "movement": "Slow, contemplative camera movement",
+                  "narration": "The Ancestral Puebloans, with their sophisticated pottery and cliff dwellings, abandoned their homes due to drought, resource scarcity, and social factors. The reasons are not fully resolved, leaving behind only silent relics as clues to their story. Join us in unraveling the mysteries of these ancient civilizations, and discover the stories behind the silent relics left behind.",
+                  "characters": [],
+                  "transition": "Fade from the previous scene"
+                }
+              ]
+            },
+            "durationMs": 3006
+          }
+        },
+        {
+          "id": "231e71b5-5680-4d04-8921-3eeb2060d872",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "stage": "voice",
+          "status": "running",
+          "error": null,
+          "started_at": "2026-08-14T18:03:30.658+00:00",
+          "completed_at": null,
+          "created_at": "2026-08-14T18:03:26.904497+00:00",
+          "output": null
+        }
+      ],
+      "scenes": [
+        {
+          "id": "169e8344-81f4-4a82-abc5-743a64186ba7",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "number": 1,
+          "storyboard": {},
+          "duration": 6,
+          "created_at": "2026-08-14T18:03:26.223705+00:00"
+        },
+        {
+          "id": "82d085c6-55dd-408e-a6ff-61cb19432659",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "number": 2,
+          "storyboard": {},
+          "duration": 5,
+          "created_at": "2026-08-14T18:03:26.223705+00:00"
+        },
+        {
+          "id": "b56ba153-856e-4c6d-88c7-7ff7fb6678ca",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "number": 3,
+          "storyboard": {},
+          "duration": 5,
+          "created_at": "2026-08-14T18:03:26.223705+00:00"
+        },
+        {
+          "id": "83a3106c-406e-47b8-9990-3d4d41e30fc2",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "number": 4,
+          "storyboard": {},
+          "duration": 5,
+          "created_at": "2026-08-14T18:03:26.223705+00:00"
+        },
+        {
+          "id": "04fb00c4-f297-4a53-ba1d-c9d89bb836d5",
+          "production_id": "a10555a0-027b-474b-8250-b5b22b06f406",
+          "number": 5,
+          "storyboard": {},
+          "duration": 9,
+          "created_at": "2026-08-14T18:03:26.223705+00:00"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "idea",
+          "label": "Understanding your idea",
+          "emoji": "✨",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "research",
+          "label": "Researching",
+          "emoji": "🔍",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "creative",
+          "label": "Creative direction",
+          "emoji": "🎬",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "script",
+          "label": "Writing screenplay",
+          "emoji": "🧠",
+          "status": "completed",
+          "error": null
+        },
+        {
+          "id": "voice",
+          "label": "Recording voices",
+          "emoji": "🎙️",
+          "status": "running",
+          "error": null
+        },
+        {
+          "id": "character",
+          "label": "Designing characters",
+          "emoji": "🎭",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "world",
+          "label": "Building the world",
+          "emoji": "🌍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "storyboard",
+          "label": "Storyboarding",
+          "emoji": "🎨",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "image",
+          "label": "Generating images",
+          "emoji": "🖼️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "animation",
+          "label": "Animating",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "music",
+          "label": "Composing soundtrack",
+          "emoji": "🎵",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "sound",
+          "label": "Sound design",
+          "emoji": "🔊",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "edit",
+          "label": "Editing",
+          "emoji": "🎞️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "quality",
+          "label": "Quality check",
+          "emoji": "✅",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "render",
+          "label": "Rendering",
+          "emoji": "📦",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "export",
+          "label": "Preparing creator pack",
+          "emoji": "🎉",
+          "status": "pending",
+          "error": null
+        }
+      ]
+    }
+  }
+}

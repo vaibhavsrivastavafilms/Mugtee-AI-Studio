@@ -1,0 +1,13 @@
+﻿node.exe : Vercel CLI 54.6.1 (Node.js 24.16.0)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Vercel CLI 54.6.1 (Node.js 24.16.0):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING! Did you mean to deploy the subdirectory "logs"? Use `vc --cwd logs` instead.
+Resolving deployment "dpl_2s6N1FPmbX8UVAHxsiiRArFHsTGM"
+Fetching project "prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov"
+Fetching logs...
+{"id":"lwbvr-1786831268543-6c04eaa9b3c2","timestamp":1786831268543,"deploymentId":"dpl_2s6N1FPmbX8UVAHxsiiRArFHsTGM","projectId":"prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov","level":"info","message":"[EXPORT API] step: background_scheduled { phase: 'runExportInBackground' }","source":"edge-middleware","domain":"mugtee.in","requestMethod":"GET","requestPath":"/api/v7/productions/e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb","responseStatusCode":200,"environment":"production","branch":"","cache":"MISS","traceId":"","logs":[{"level":"info","message":"[EXPORT API] step: background_scheduled { phase: 'runExportInBackground' }"},{"level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 241ms query: 228ms relations: 465ms reconcile: 2075ms total: 3010ms"}]}
+{"id":"6645g-1786831263138-5bb5eaa97289","timestamp":1786831263138,"deploymentId":"dpl_2s6N1FPmbX8UVAHxsiiRArFHsTGM","projectId":"prj_4MB7iw9NpxPI4GJjnbQ8m4ybM3ov","level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 233ms query: 226ms relations: 474ms reconcile: 0ms total: 934ms","source":"edge-middleware","domain":"mugtee.in","requestMethod":"GET","requestPath":"/api/v7/productions/e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb","responseStatusCode":200,"environment":"production","branch":"","cache":"MISS","traceId":"","logs":[{"level":"info","message":"[production-timing] id=e23710d6-b009-4c4e-9b26-6d3a7b0e4aeb auth: 233ms query: 226ms relations: 474ms reconcile: 0ms total: 934ms"}]}

@@ -1,0 +1,164 @@
+[
+  {
+    "t": "2026-08-16T22:23:40.527Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:23:40.612Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "creative",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-creative.png"
+  },
+  {
+    "t": "2026-08-16T22:23:40.701Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "idea",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-idea.png"
+  },
+  {
+    "t": "2026-08-16T22:23:40.783Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "image",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-image.png"
+  },
+  {
+    "t": "2026-08-16T22:23:40.862Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "research",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-research.png"
+  },
+  {
+    "t": "2026-08-16T22:23:40.952Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "script",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-script.png"
+  },
+  {
+    "t": "2026-08-16T22:23:41.033Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "storyboard",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-storyboard.png"
+  },
+  {
+    "t": "2026-08-16T22:23:41.111Z",
+    "event": "STAGE_SCREENSHOT",
+    "stage": "voice",
+    "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-voice.png"
+  },
+  {
+    "t": "2026-08-16T22:23:48.154Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:23:55.101Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:02.103Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:09.297Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:16.403Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:23.207Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:30.414Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:37.468Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  },
+  {
+    "t": "2026-08-16T22:24:44.313Z",
+    "event": "POLL",
+    "running_stage": null,
+    "stage_status": null,
+    "ui_running": null,
+    "classification": "WORKER_STALL",
+    "lock": false,
+    "mediaImages": 0,
+    "mediaVideos": 0,
+    "reel_url": false
+  }
+]

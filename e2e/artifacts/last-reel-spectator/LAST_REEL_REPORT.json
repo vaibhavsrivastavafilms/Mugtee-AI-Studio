@@ -1,0 +1,6213 @@
+{
+  "baseURL": "http://localhost:3000",
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "startedAt": "2026-08-16T22:47:15.019Z",
+  "endedAt": null,
+  "pollLog": [
+    {
+      "t": "2026-08-16T22:47:34.695Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:42.145Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:48.976Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:56.024Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:02.907Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:10.118Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:17.021Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:23.966Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:30.951Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:37.802Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:44.993Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:51.836Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:59.157Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:05.971Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:12.786Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:19.992Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:26.911Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:33.787Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:40.593Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:47.463Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:54.640Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:01.585Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:08.514Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:15.364Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:22.230Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:29.375Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:36.169Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:42.912Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:49.944Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:56.744Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:04.029Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:10.893Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:17.906Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:24.724Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:31.554Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:38.847Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:45.713Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:52.659Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:59.507Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:06.298Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:13.283Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:20.146Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:27.023Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:34.128Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:41.450Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:48.943Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:55.747Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:02.638Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:09.639Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:16.514Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:23.840Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:34.357Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:41.304Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:48.429Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:55.343Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:02.389Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:09.431Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:16.357Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:23.821Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:30.767Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:38.230Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:45.270Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:52.345Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:59.199Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:06.532Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:14.053Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:21.103Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:28.214Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:35.190Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:42.285Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:49.229Z",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:56.194Z",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:03.232Z",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": "music",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:10.550Z",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": "music",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:18.083Z",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:25.751Z",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:33.270Z",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": "sound",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:41.111Z",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:49.006Z",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:57.107Z",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": "edit",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:07.473Z",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:17.805Z",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:28.800Z",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:39.283Z",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": "quality",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:50.239Z",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": "quality",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:59.978Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:10.294Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:20.776Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:31.517Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:43.347Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:53.592Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:05.359Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:15.988Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:26.874Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:37.457Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:48.313Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:59.507Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:10.381Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:19.891Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:30.397Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:41.032Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:51.483Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:02.041Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:12.295Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:23.256Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:33.633Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:44.031Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:55.398Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:06.061Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:16.692Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:32.140Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:45.596Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:57.411Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:07.645Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:17.855Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:28.342Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:39.101Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:50.380Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:01.357Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:11.766Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:40.109Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:50.427Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:00.563Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:11.065Z",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:21.631Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:31.666Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:42.066Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:52.132Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:02.959Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:13.772Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:24.242Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:34.585Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:45.362Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:03.188Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:13.850Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:23.911Z",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": "export",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:34.540Z",
+      "status": "completed",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "completed",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    }
+  ],
+  "stageTimeline": [
+    {
+      "t": "2026-08-16T22:47:34.695Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:34.809Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "creative",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-creative.png"
+    },
+    {
+      "t": "2026-08-16T22:47:34.896Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "idea",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-idea.png"
+    },
+    {
+      "t": "2026-08-16T22:47:34.994Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "image",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-image.png"
+    },
+    {
+      "t": "2026-08-16T22:47:35.083Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "research",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-research.png"
+    },
+    {
+      "t": "2026-08-16T22:47:35.164Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "script",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-script.png"
+    },
+    {
+      "t": "2026-08-16T22:47:35.245Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "storyboard",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-storyboard.png"
+    },
+    {
+      "t": "2026-08-16T22:47:35.323Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "voice",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-voice.png"
+    },
+    {
+      "t": "2026-08-16T22:47:42.145Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:48.976Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:47:56.024Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:02.907Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:10.118Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:17.021Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:23.966Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:30.951Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:37.802Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:44.993Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:51.836Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:48:59.157Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:05.971Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:12.786Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:19.992Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:26.911Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:33.787Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:40.593Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:47.463Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:49:54.640Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:01.585Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:08.514Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:15.364Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:22.230Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:29.375Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:36.169Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:42.912Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:49.944Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:50:56.744Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:04.029Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:10.893Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:17.906Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:24.724Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:31.554Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:38.847Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:45.713Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:52.659Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:51:59.507Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:06.298Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:13.283Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:20.146Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:27.023Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:34.128Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:41.450Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:48.943Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:52:55.747Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:02.638Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:09.639Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:16.514Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:23.840Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:34.357Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:41.304Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:48.429Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:53:55.343Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:02.389Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:09.431Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:16.357Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:23.821Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:30.767Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:38.230Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:45.270Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:52.345Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:54:59.199Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:06.532Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:14.053Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:21.103Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:28.214Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:35.190Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:42.285Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:49.229Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "animation",
+      "running_stage": "animation",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:56.194Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:55:56.288Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "animation",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-i2v.png"
+    },
+    {
+      "t": "2026-08-16T22:56:03.232Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": "music",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:10.550Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "music",
+      "running_stage": "music",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:18.083Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:18.172Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "music",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-music.png"
+    },
+    {
+      "t": "2026-08-16T22:56:25.751Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:33.270Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "sound",
+      "running_stage": "sound",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:41.111Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:41.191Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "sound",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-sfx.png"
+    },
+    {
+      "t": "2026-08-16T22:56:49.006Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:56:57.107Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "edit",
+      "running_stage": "edit",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:07.473Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:07.557Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "edit",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-timeline.png"
+    },
+    {
+      "t": "2026-08-16T22:57:17.805Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:28.800Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:39.283Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": "quality",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:50.239Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "quality",
+      "running_stage": "quality",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:57:59.978Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:00.074Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "quality",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-qa.png"
+    },
+    {
+      "t": "2026-08-16T22:58:10.294Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:20.776Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:31.517Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:43.347Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:58:53.592Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:05.359Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:15.988Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:26.874Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:37.457Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:48.313Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T22:59:59.507Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:10.381Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:19.891Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:30.397Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:41.032Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:00:51.483Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:02.041Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:12.295Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:23.256Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:33.633Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:44.031Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:01:55.398Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:06.061Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:16.692Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:32.140Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:45.596Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:02:57.411Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:07.645Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:17.855Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:28.342Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:39.101Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:03:50.380Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:01.357Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:11.766Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:40.109Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:04:50.427Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:00.563Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:11.065Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "render",
+      "running_stage": "render",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "pending",
+      "reel_url": false
+    },
+    {
+      "t": "2026-08-16T23:05:21.631Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:21.718Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "render",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-render.png"
+    },
+    {
+      "t": "2026-08-16T23:05:31.666Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:42.066Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:05:52.132Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:02.959Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:13.772Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:24.242Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:34.585Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:06:45.362Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:03.188Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:13.850Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "queued",
+      "ui_running": null,
+      "classification": "WORKER_STALL",
+      "lock": false,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:23.911Z",
+      "event": "POLL",
+      "status": "producing",
+      "current_stage": "export",
+      "running_stage": "export",
+      "stage_status": "running",
+      "ui_running": null,
+      "classification": "WORKER_IN_PROGRESS",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:34.540Z",
+      "event": "POLL",
+      "status": "completed",
+      "current_stage": "export",
+      "running_stage": null,
+      "stage_status": "completed",
+      "ui_running": null,
+      "classification": "OK",
+      "lock": true,
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "export_status": "completed",
+      "reel_url": true
+    },
+    {
+      "t": "2026-08-16T23:07:34.620Z",
+      "event": "STAGE_SCREENSHOT",
+      "stage": "export",
+      "file": "C:\\Users\\pc\\Documents\\GitHub\\Mugtee-AI-Studio\\e2e\\artifacts\\last-reel-spectator\\stage-complete.png"
+    }
+  ],
+  "networkLog": [
+    {
+      "t": "2026-08-16T22:47:21.227Z",
+      "url": "http://localhost:3000/api/projects/library?page=1&pageSize=6&sort=newest&pipeline=v7",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-16T22:47:27.899Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "t": "2026-08-16T22:47:29.069Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:33.646Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:34.022Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:39.077Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:41.143Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:43.993Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:47.962Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:48.842Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:53.795Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:54.921Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:47:58.615Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:01.890Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:03.497Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:08.552Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:09.123Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:13.425Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:15.958Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:18.261Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:22.988Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:23.467Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:28.488Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:29.835Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:33.312Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:36.841Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:38.168Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:43.129Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:43.981Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:47.949Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:50.857Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:52.815Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:58.110Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:48:58.271Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:03.313Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:04.968Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:08.159Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:11.811Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:12.996Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:18.208Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:18.981Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:23.154Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:25.838Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:27.973Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:32.799Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:33.207Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:38.231Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:39.619Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:43.090Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:46.500Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:47.926Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:52.935Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:53.668Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:49:57.764Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:00.466Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:02.726Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:07.505Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:08.312Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:13.274Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:14.383Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:18.157Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:21.200Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:23.085Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:28.031Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:28.433Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:32.962Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:35.206Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:37.913Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:41.984Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:42.800Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:48.059Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:48.951Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:52.884Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:55.748Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:50:57.698Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:02.662Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:03.089Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:07.598Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:09.911Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:12.461Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:16.887Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:17.812Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:22.879Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:23.761Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:27.692Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:30.587Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:32.526Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:37.546Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:37.871Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:42.531Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:44.729Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:47.444Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:51.672Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:52.491Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:57.439Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:51:58.523Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:02.272Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:05.327Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:07.115Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:12.035Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:12.301Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:17.622Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:19.123Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:22.485Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:26.001Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:27.376Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:32.343Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:33.130Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:37.158Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:40.252Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:42.231Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:47.228Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:47.987Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:52.188Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:54.753Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:52:57.049Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:01.691Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:02.267Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:07.208Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:08.524Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:12.034Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:15.554Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:16.946Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:22.024Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:22.754Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:26.868Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:32.098Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:33.420Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:36.920Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:40.255Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:41.752Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:46.934Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:47.414Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:51.881Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:54.235Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:53:56.980Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:01.176Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:02.107Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:07.025Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:08.217Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:11.841Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:15.259Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:16.682Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:21.737Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:22.397Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:26.622Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:29.674Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:31.447Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:36.428Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:37.021Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:41.434Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:44.092Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:46.344Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:51.331Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:51.727Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:56.808Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:54:58.251Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:01.656Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:05.440Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:06.715Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:11.704Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:12.793Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:16.678Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:19.994Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:21.536Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:26.542Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:26.993Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:31.422Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:34.121Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:36.236Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:41.190Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:41.758Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:46.678Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:48.160Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:52.934Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:55.115Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:55:57.906Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:02.235Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:03.050Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:08.072Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:09.343Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:13.632Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:17.025Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:19.364Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:24.764Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:25.004Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:30.630Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:32.278Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:36.505Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:40.110Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:42.231Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:47.959Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:48.583Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:54.570Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:56:56.110Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:01.877Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:05.386Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:09.729Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:15.589Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:17.635Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:24.938Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:26.538Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:31.778Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:36.787Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:39.374Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:45.876Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:47.950Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:53.115Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:57:57.534Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:00.560Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:07.502Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:08.237Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:14.647Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:18.351Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:21.586Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:28.514Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:29.193Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:38.351Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:41.294Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:45.608Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:51.389Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:58:52.909Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:00.121Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:03.005Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:07.277Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:13.504Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:15.010Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:22.472Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:24.583Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:29.501Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:35.221Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:36.954Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:44.172Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:45.967Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:51.528Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:56.937Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T22:59:58.793Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:06.476Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:07.924Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:13.982Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:17.707Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:20.936Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:27.951Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:28.591Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:35.688Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:38.841Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:42.769Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:49.286Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:49.812Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:56.909Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:00:59.850Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:04.007Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:10.131Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:12.032Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:19.417Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:21.011Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:26.612Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:31.416Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:33.444Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:40.797Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:41.897Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:47.945Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:53.249Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:01:55.471Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:02.613Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:03.843Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:10.460Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:14.153Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:22.262Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:29.374Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:31.124Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:40.652Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:43.453Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:48.472Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:55.042Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:02:55.668Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:03.191Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:05.508Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:10.367Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:15.753Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:17.880Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:25.078Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:26.166Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:32.057Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:36.530Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:40.213Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:47.939Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:48.312Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:56.251Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:03:59.076Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:03.331Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:09.629Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:10.772Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:17.740Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:32.860Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:37.088Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:40.338Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:47.558Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:48.311Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:55.479Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:04:58.437Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:02.381Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:08.454Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:09.739Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:17.037Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:19.539Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:24.005Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:29.564Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:40.034Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:05:50.079Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:06:00.394Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:06:11.506Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:06:22.181Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:06:32.405Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:06:43.184Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:07:01.090Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:07:11.556Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:07:21.998Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "t": "2026-08-16T23:07:32.485Z",
+      "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "consoleLog": [
+    {
+      "t": "2026-08-16T22:47:23.439Z",
+      "type": "warning",
+      "text": "Image with src \"https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/sign/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/v7/3b29baa9-a45b-43e4-a479-8837c285f89e/scenes/fb938047-28c0-473f-961a-2047d2935957/v1_a1.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wN2UxY2UxNy0xZGY0LTRmMzUtYWVjNy1lZmZjNzBmYjNmOWYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9qZWN0LWFzc2V0cy8wZWJmMzNhZS01ZjRhLTRjNzAtYjA4NC04YWZkNmRmNTNkZjQvdjcvM2IyOWJhYTktYTQ1Yi00M2U0LWE0NzktODgzN2MyODVmODllL3NjZW5lcy9mYjkzODA0Ny0yOGMwLTQ3M2YtOTYxYS0yMDQ3ZDI5MzU5NTcvdjFfYTEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NjkxODYwMCwiZXhwIjoxNzg3NTIzNDAwfQ.S7cbfOBijjMHhguFw_iKsxzIH7q2PYF6eFsYBGcFzOE\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    }
+  ],
+  "dbSnapshots": [
+    {
+      "t": "2026-08-16T22:47:26.191Z",
+      "production": {
+        "id": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+        "prompt": "Create a cinematic 30-second Instagram Reel about monsoon food for Table Tales.",
+        "status": "producing",
+        "current_stage": "animation",
+        "reel_url": null,
+        "export_status": "pending",
+        "timeline_json": {
+          "pipeline_lock": {
+            "since": "2026-08-16T22:43:28.665Z",
+            "stage": "animation",
+            "token": "2c0649e3-362f-42fe-9071-d87e15953e7a",
+            "locked": true
+          },
+          "concept_selection": {
+            "awaiting": false,
+            "concepts": [
+              {
+                "id": "concept-1",
+                "hook": "Hear the monsoon. Taste the comfort.",
+                "tone": "Cozy, intimate, crave-forward, calm invitation.",
+                "title": "Raindrop to Rice (The First Bite)",
+                "format": "Live-action, single kitchen setup, heavy close-ups, shallow depth-of-field, subtle film grain, editorial color grade (cool rain / warm food). 6 scenes total, designed as a rhythmic sequence.",
+                "coreAngle": "A sensory countdown from rain outside to the first spoonful inside—every raindrop matches a food moment. Comfort is framed as a private ritual, not a recipe promo.",
+                "storyApproach": "6 quick cinematic beats: (1) window rain + wet street reflections, (2) steam rises as a lid lifts, (3) sizzling tempering shot in shallow DOF, (4) bubbling finish in warm practical light, (5) hand to bowl—first bite in close-up, (6) couple/family smiles with rain ambience returning. Narration stays short, punchy, and tactile; on-screen text mirrors lines like 'Steam. Then comfort.'",
+                "whyItCouldWork": "Instagram audiences respond to first-bite intimacy and matching sound-to-image rhythm. The raindrop-to-rice structure makes the Reel feel like a cinematic experience, not just food footage.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-2",
+                "hook": "Same rain. One meal mood.",
+                "tone": "Upbeat-cinematic, craving, gently uplifting.",
+                "title": "Monsoon Menu, One Mood",
+                "format": "Montage-driven, fast Instagram pacing with continuous camera motion (slow push-ins + whip-like transitions synced to the beat). 9:16 framing with strong negative space for rain ambience.",
+                "coreAngle": "A mood-to-meal montage: the monsoon sets a single emotional temperature, and different monsoon comforts appear like chapters—each dish is introduced by a visual mood cue rather than a recipe explanation.",
+                "storyApproach": "6 beats across the kitchen/dining: (1) rain starts—on-screen text: 'When the sky cools down…' (2) cutting board close-up—text: 'You want warm.' (3) pouring/whisking—text: 'You want fragrant steam.' (4) sauté/tempering—text: 'You want that first sizzle.' (5) plating with garnish—text: 'You want cozy color.' (6) dining table close-up—text: 'Take the bite. Feel it.' Narration bridges each beat with short lines tied to weather comfort (steam, warmth, drizzle, street reflections).",
+                "whyItCouldWork": "By focusing on a single emotional promise ('one meal mood'), the Reel can showcase multiple monsoon comfort-food ideas without turning into a full recipe tutorial—ideal for short-form retention.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-3",
+                "hook": "Outside: rain. Inside: the glow.",
+                "tone": "Dreamy, poetic, comfort-first (not salesy).",
+                "title": "Windowlight Comfort",
+                "format": "Cinematic editorial: controlled lighting contrast (cool desaturated rain, warm food), shallow DOF, film grain, minimal movement except slow, intentional camera moves.",
+                "coreAngle": "A chiaroscuro love letter to monsoon dining: the window creates a natural cinematic frame; warm practical lighting makes food look like the answer to the cold night.",
+                "storyApproach": "6 scenes built around light: (1) silhouette of raindrops on glass, (2) soft-focus warm lamp over countertop, (3) ingredient textures—chopped greens, ginger-garlic—under warm light, (4) steaming bowl revealed with a slow tilt from cool window to warm food, (5) spoon close-up with steam breath and shallow DOF, (6) final hero shot on the table with rain reflections shimmering. Narration emphasizes light and comfort: 'Warm steam', 'soft spoon', 'rain in the background.'",
+                "whyItCouldWork": "Visual contrast-driven storytelling is highly scroll-stopping. The windowlight motif instantly communicates monsoon comfort and keeps the Reel premium and brand-aligned.",
+                "estimatedDuration": 30
+              },
+              {
+                "id": "concept-4",
+                "hook": "In 30 seconds—let the rain win, then you do.",
+                "tone": "Energized-cozy, satisfying, goal-oriented.",
+                "title": "The Storm-to-Serve Countdown",
+                "format": "Beat-synced rapid cuts with purposeful pacing: airy intro (cool rain + downtempo), warm cooking rhythm, peak on the bite, taper under CTA. On-screen text only for narration phrases (e.g., 'Ready.' 'Save this.').",
+                "coreAngle": "Time-pressure transformation: the monsoon intensifies as the clock counts down, while the kitchen becomes a calm control center. The climax is the serving moment timed to the beat peak.",
+                "storyApproach": "6 beats like a mini countdown: (1) rain intensifies + quick cut: 'Tick…' (2) quick prep montage—hands moving, knife tap sounds (very short narration), (3) sizzling tempering—audio rises, (4) thickening simmer—'Smell that? Comfort.' (5) plating in warm light—'Ready.' (6) first full bite with a micro-pause on the peak moment—'Save this for the next rainy night.' CTA lands in final beat with line-matched on-screen text.",
+                "whyItCouldWork": "A countdown structure creates urgency and retention. Timing the beat peak to the first bite turns the Reel into a satisfying micro-arc that feels cinematic and rewarding.",
+                "estimatedDuration": 30
+              }
+            ],
+            "selectedAt": "2026-08-16T22:13:00.055Z",
+            "selectedIndex": 0
+          }
+        },
+        "updated_at": "2026-08-16T22:43:28.911+00:00",
+        "created_at": "2026-08-16T22:12:23.891248+00:00"
+      },
+      "stages": [],
+      "scenes": [],
+      "mediaImages": 0,
+      "mediaVideos": 0,
+      "lockHeld": true,
+      "zombies": [
+        {
+          "id": "964ab715-64f6-4900-acb7-a0acd507b43b",
+          "current_stage": "render",
+          "updated_at": "2026-08-06T18:43:43.77452+00:00",
+          "lock": null
+        },
+        {
+          "id": "71983d8f-643f-4bb8-82ca-f003817ea7da",
+          "current_stage": "image",
+          "updated_at": "2026-08-06T18:48:23.186+00:00",
+          "lock": {
+            "since": "2026-08-06T18:48:23.186Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "8c2fc30e-0534-40d4-bb9b-731fe908dcc1",
+          "current_stage": "animation",
+          "updated_at": "2026-08-06T18:56:04.433+00:00",
+          "lock": {
+            "since": "2026-08-06T18:56:04.433Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "764a23be-614a-41c4-b6e9-145c07e14111",
+          "current_stage": "image",
+          "updated_at": "2026-08-07T21:52:11.823+00:00",
+          "lock": {
+            "since": "2026-08-07T21:52:11.823Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "c2f127b9-3a41-42eb-890b-1b470cf275dc",
+          "current_stage": "research",
+          "updated_at": "2026-08-09T21:44:59.34+00:00",
+          "lock": {
+            "since": "2026-08-09T21:44:59.339Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "494645bc-ea49-4805-9aa6-0b4d863ff633",
+          "current_stage": "research",
+          "updated_at": "2026-08-09T22:30:18.288+00:00",
+          "lock": {
+            "since": "2026-08-09T22:30:18.288Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "4af4d72b-3102-4be2-8058-794533800fa9",
+          "current_stage": "creative",
+          "updated_at": "2026-08-09T23:24:27.587+00:00",
+          "lock": {
+            "since": "2026-08-09T23:24:27.370Z",
+            "stage": "creative",
+            "token": "18116315-0efb-4c64-b1b3-4de3213ee8f2",
+            "locked": true
+          }
+        },
+        {
+          "id": "756c77d1-0349-4bcb-8986-0459a7ed8b8e",
+          "current_stage": "voice",
+          "updated_at": "2026-08-11T23:02:29.736+00:00",
+          "lock": {
+            "since": "2026-08-11T23:02:29.525Z",
+            "stage": "voice",
+            "token": "f6d088df-cced-4a53-8cff-1e16619a4d57",
+            "locked": true
+          }
+        },
+        {
+          "id": "3d24f12e-fad4-4e49-bcf1-420ccf38663e",
+          "current_stage": "voice",
+          "updated_at": "2026-08-12T01:26:14.215+00:00",
+          "lock": {
+            "since": "2026-08-12T01:26:14.002Z",
+            "stage": "voice",
+            "token": "671f1d5e-957e-4b59-8ed3-b18dc904b3f2",
+            "locked": true
+          }
+        },
+        {
+          "id": "fbc12758-3246-46d7-b726-76320074d608",
+          "current_stage": "script",
+          "updated_at": "2026-08-13T13:44:16.865+00:00",
+          "lock": {
+            "since": "2026-08-13T13:44:16.415Z",
+            "stage": "script",
+            "token": "850c4d31-35af-4680-94e5-0202cea73df3",
+            "locked": true
+          }
+        },
+        {
+          "id": "71ef8579-156a-4033-aa3a-4d410cfd1254",
+          "current_stage": "voice",
+          "updated_at": "2026-08-13T14:10:34.737+00:00",
+          "lock": {
+            "since": "2026-08-13T14:10:34.527Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "24b1c648-c0f2-4c94-999c-ad898dae21a2",
+          "current_stage": "research",
+          "updated_at": "2026-08-13T17:00:36.427+00:00",
+          "lock": {
+            "since": "2026-08-13T17:00:36.189Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "0e0a7aba-e449-452e-9295-00f53a22c2b0",
+          "current_stage": "image",
+          "updated_at": "2026-08-13T17:32:28.928+00:00",
+          "lock": {
+            "since": "2026-08-13T17:32:28.266Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "c79ef12e-71fa-4ba9-a186-851efda10e90",
+          "current_stage": "image",
+          "updated_at": "2026-08-13T17:42:06.152+00:00",
+          "lock": {
+            "since": "2026-08-13T17:42:05.933Z",
+            "locked": false
+          }
+        },
+        {
+          "id": "d24b0cc5-046b-4a12-b4c6-7cdfe4cfe74f",
+          "current_stage": "idea",
+          "updated_at": "2026-08-13T17:49:12.584+00:00",
+          "lock": {
+            "since": "2026-08-13T17:49:06.852Z",
+            "locked": false
+          }
+        }
+      ]
+    }
+  ],
+  "firstFailure": null,
+  "results": {}
+}

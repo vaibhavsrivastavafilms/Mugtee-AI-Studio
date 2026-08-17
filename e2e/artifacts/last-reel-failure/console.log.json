@@ -1,0 +1,7 @@
+[
+  {
+    "t": "2026-08-16T22:23:28.785Z",
+    "type": "warning",
+    "text": "Image with src \"https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/reels/3d51dc1f-0b60-475d-a75f-2905d2805688/poster.jpg\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+  }
+]

@@ -1,0 +1,164 @@
+[
+  {
+    "t": "2026-08-16T22:23:26.646Z",
+    "url": "http://localhost:3000/api/projects/library?page=1&pageSize=6&sort=newest&pipeline=v7",
+    "method": "GET",
+    "failure": "net::ERR_ABORTED"
+  },
+  {
+    "t": "2026-08-16T22:23:33.775Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "failure": "net::ERR_ABORTED"
+  },
+  {
+    "t": "2026-08-16T22:23:34.829Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:39.495Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:39.753Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:44.756Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:46.929Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:49.758Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:54.091Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:54.925Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:23:59.942Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:00.995Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:04.782Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:08.081Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:09.602Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:14.596Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:15.418Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:19.439Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:22.240Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:24.251Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:29.423Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:29.432Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:34.380Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:36.279Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:39.206Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:43.301Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  },
+  {
+    "t": "2026-08-16T22:24:44.126Z",
+    "url": "http://localhost:3000/api/v7/productions/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "method": "GET",
+    "status": 200
+  }
+]

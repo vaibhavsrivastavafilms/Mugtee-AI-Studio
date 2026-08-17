@@ -1,0 +1,23 @@
+[console.error] Failed to fetch RSC payload for https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688. Falling back to browser navigation. TypeError: Failed to fetch
+    at s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:45730)
+    at https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:59279
+    at Object.u [as task] (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32117)
+    at c.s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32822)
+    at c.enqueue (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32247)
+    at s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:59242)
+    at i (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:58782)
+    at a (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:65602)
+    at f (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:75482)
+    at Object.action (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:2:7102)
+[console.error] Failed to fetch RSC payload for https://mugtee.in/studio/f5859452-ce15-45fa-8543-e480df34ec73. Falling back to browser navigation. TypeError: Failed to fetch
+    at s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:45730)
+    at https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:59279
+    at Object.u [as task] (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32117)
+    at c.s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32822)
+    at c.enqueue (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:32247)
+    at s (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:59242)
+    at i (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:58782)
+    at a (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:65602)
+    at f (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:1:75482)
+    at Object.action (https://mugtee.in/_next/static/chunks/7023-79c4a4e417169c91.js?dpl=dpl_EX9hbQ5cfzHJCinVnsswt1WC5ZZT:2:7102)
+[console.error] Failed to load resource: the server responded with a status of 401 ()

@@ -1,0 +1,45 @@
+{
+  "attempt": "localhost-table-tales-v3",
+  "productionId": null,
+  "prompt": "Create a cinematic 30-second Instagram Reel about monsoon food for Table Tales.",
+  "startedAt": "2026-08-16T22:10:52.656Z",
+  "endedAt": "2026-08-16T22:10:59.531Z",
+  "stageTimeline": [],
+  "networkFailures": [],
+  "consoleErrors": [
+    {
+      "t": "2026-08-16T22:10:59.428Z",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "serverSnapshots": [],
+  "ffprobe": null,
+  "downloadedFile": null,
+  "firstFailure": "AUTH",
+  "rootCause": "Fresh password sign-in did not authenticate /api/profile",
+  "results": {
+    "BROWSER": "PASS",
+    "AUTH": "FAIL",
+    "STUDIO": "NOT RUN",
+    "IDEA": "NOT RUN",
+    "RESEARCH": "NOT RUN",
+    "CREATIVE": "NOT RUN",
+    "CONCEPTS": "NOT RUN",
+    "SCRIPT": "NOT RUN",
+    "VOICE": "NOT RUN",
+    "VOICE_FIRST": "NOT RUN",
+    "SCREENPLAY": "NOT RUN",
+    "STORYBOARD": "NOT RUN",
+    "IMAGE": "NOT RUN",
+    "I2V": "NOT RUN",
+    "MUSIC": "NOT RUN",
+    "SFX": "NOT RUN",
+    "CAPTIONS": "NOT RUN",
+    "TIMELINE": "NOT RUN",
+    "QA": "NOT RUN",
+    "RENDER": "NOT RUN",
+    "FFPROBE": "NOT RUN",
+    "DOWNLOAD": "NOT RUN",
+    "FINAL_MP4": "NOT RUN"
+  }
+}

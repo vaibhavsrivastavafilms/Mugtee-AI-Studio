@@ -1,0 +1,436 @@
+{
+  "url": "https://mugtee.in/studio/87e5ab4a-c5c0-4f82-9834-3500743240f4",
+  "visible": {
+    "url": "https://mugtee.in/studio/87e5ab4a-c5c0-4f82-9834-3500743240f4",
+    "currentTask": "Production paused — Understanding your idea",
+    "currentStageLabel": "Understanding your idea",
+    "overallPercent": 0,
+    "eta": null,
+    "provider": null,
+    "stages": [
+      {
+        "label": "Understanding your idea",
+        "status": "failed",
+        "error": null
+      },
+      {
+        "label": "Researching",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Creative direction",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Writing screenplay",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Recording voices",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Designing characters",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Building the world",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Storyboarding",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Generating images",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Animating",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Composing soundtrack",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Sound design",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Editing",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Quality check",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Rendering",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Preparing creator pack",
+        "status": "pending",
+        "error": null
+      }
+    ],
+    "alerts": [],
+    "downloadMp4": false,
+    "productionComplete": false,
+    "conceptSelector": false
+  },
+  "productionId": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+  "consoleErrors": [
+    {
+      "t": "2026-08-13T21:43:10.266Z",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "t": "2026-08-13T21:44:44.823Z",
+      "text": "Failed to load resource: the server responded with a status of 503 ()"
+    }
+  ],
+  "networkFailures": [
+    {
+      "t": "2026-08-13T21:43:21.249Z",
+      "url": "https://mugtee.in/studio/87e5ab4a-c5c0-4f82-9834-3500743240f4?_rsc=1exi4",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "server": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "production": {
+        "id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+        "user_id": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4",
+        "title": "Untitled production",
+        "prompt": "Create a cinematic faceless documentary about 5 mysterious ancient civilizations that disappeared.",
+        "status": "failed",
+        "creative_brief": null,
+        "current_stage": "idea",
+        "reel_url": null,
+        "mov_url": null,
+        "thumbnail_url": null,
+        "creator_pack_url": null,
+        "export_status": "pending",
+        "timeline_json": {
+          "pipeline_lock": {
+            "since": "2026-08-13T21:44:33.690Z",
+            "locked": false
+          }
+        },
+        "created_at": "2026-08-13T21:43:16.971337+00:00",
+        "updated_at": "2026-08-13T21:44:42.936+00:00"
+      },
+      "stages": [
+        {
+          "id": "43fedc45-33fb-4516-af65-608963839fb8",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "animation",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:36.578765+00:00",
+          "output": null
+        },
+        {
+          "id": "1f2c3b08-efc2-4e1c-829c-d9b89d1a5fe5",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "character",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:35.622692+00:00",
+          "output": null
+        },
+        {
+          "id": "2014c849-e4db-456e-af6c-494b8f082eeb",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "creative",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:34.93941+00:00",
+          "output": null
+        },
+        {
+          "id": "1b279e04-db1b-4cb5-aa4f-6bd1c7fc22ff",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "edit",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:37.282231+00:00",
+          "output": null
+        },
+        {
+          "id": "636a0b9c-33f4-4d79-9ac1-8769f71e67c3",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "export",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:37.989004+00:00",
+          "output": null
+        },
+        {
+          "id": "900a022a-bd58-43f7-862e-eaef2ec3b385",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "idea",
+          "status": "failed",
+          "error": "PROVIDER_UNAVAILABLE",
+          "started_at": "2026-08-13T21:44:39.531+00:00",
+          "completed_at": "2026-08-13T21:44:42.288+00:00",
+          "created_at": "2026-08-13T21:43:17.464175+00:00",
+          "output": null
+        },
+        {
+          "id": "af7ec37d-1a90-4f51-b728-44fc46b33e3c",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "image",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:36.342329+00:00",
+          "output": null
+        },
+        {
+          "id": "9caed071-e095-4a09-852b-d3163735cd89",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "music",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:36.819761+00:00",
+          "output": null
+        },
+        {
+          "id": "f6ebbf63-1828-443c-8c47-ac7ecb433ff1",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "quality",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:37.542522+00:00",
+          "output": null
+        },
+        {
+          "id": "5a505bf0-c594-4b43-ab3f-b7fde38a1be4",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "render",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:37.760989+00:00",
+          "output": null
+        },
+        {
+          "id": "2364fd76-c435-4b20-840d-b441604a0f5b",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "research",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:34.289024+00:00",
+          "output": null
+        },
+        {
+          "id": "2c3aba53-68b1-4394-8515-0eff73665625",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "script",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:35.172696+00:00",
+          "output": null
+        },
+        {
+          "id": "dd12d49f-1da2-4851-b858-65f40b33d024",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "sound",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:37.051164+00:00",
+          "output": null
+        },
+        {
+          "id": "f6e3bd57-0b52-462a-bfb9-e172b00ef2f9",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "storyboard",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:36.089989+00:00",
+          "output": null
+        },
+        {
+          "id": "669b8b10-5bd3-4884-aa1b-87ca31e71e51",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "voice",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:35.398758+00:00",
+          "output": null
+        },
+        {
+          "id": "9cca8d25-3fad-457e-918d-8236eae83043",
+          "production_id": "87e5ab4a-c5c0-4f82-9834-3500743240f4",
+          "stage": "world",
+          "status": "queued",
+          "error": null,
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2026-08-13T21:44:35.854477+00:00",
+          "output": null
+        }
+      ],
+      "scenes": [],
+      "timeline": [
+        {
+          "id": "idea",
+          "label": "Understanding your idea",
+          "emoji": "✨",
+          "status": "failed",
+          "error": "PROVIDER_UNAVAILABLE"
+        },
+        {
+          "id": "research",
+          "label": "Researching",
+          "emoji": "🔍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "creative",
+          "label": "Creative direction",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "script",
+          "label": "Writing screenplay",
+          "emoji": "🧠",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "voice",
+          "label": "Recording voices",
+          "emoji": "🎙️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "character",
+          "label": "Designing characters",
+          "emoji": "🎭",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "world",
+          "label": "Building the world",
+          "emoji": "🌍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "storyboard",
+          "label": "Storyboarding",
+          "emoji": "🎨",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "image",
+          "label": "Generating images",
+          "emoji": "🖼️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "animation",
+          "label": "Animating",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "music",
+          "label": "Composing soundtrack",
+          "emoji": "🎵",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "sound",
+          "label": "Sound design",
+          "emoji": "🔊",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "edit",
+          "label": "Editing",
+          "emoji": "🎞️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "quality",
+          "label": "Quality check",
+          "emoji": "✅",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "render",
+          "label": "Rendering",
+          "emoji": "📦",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "export",
+          "label": "Preparing creator pack",
+          "emoji": "🎉",
+          "status": "pending",
+          "error": null
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "url": "https://mugtee.in/studio/51407aca-4a9d-4adf-9e81-11cc817b2187",
+  "visible": {
+    "url": "https://mugtee.in/studio/51407aca-4a9d-4adf-9e81-11cc817b2187",
+    "currentTask": "Production paused — Understanding your idea",
+    "currentStageLabel": "Understanding your idea",
+    "overallPercent": 0,
+    "eta": null,
+    "provider": null,
+    "stages": [
+      {
+        "label": "Understanding your idea",
+        "status": "failed",
+        "error": null
+      },
+      {
+        "label": "Researching",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Creative direction",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Writing screenplay",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Recording voices",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Designing characters",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Building the world",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Storyboarding",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Generating images",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Animating",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Composing soundtrack",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Sound design",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Editing",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Quality check",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Rendering",
+        "status": "pending",
+        "error": null
+      },
+      {
+        "label": "Preparing creator pack",
+        "status": "pending",
+        "error": null
+      }
+    ],
+    "alerts": [],
+    "downloadMp4": false,
+    "productionComplete": false,
+    "conceptSelector": false
+  },
+  "productionId": "51407aca-4a9d-4adf-9e81-11cc817b2187",
+  "consoleErrors": [
+    {
+      "t": "2026-08-13T22:19:08.185Z",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "networkFailures": [],
+  "server": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "production": {
+        "id": "51407aca-4a9d-4adf-9e81-11cc817b2187",
+        "user_id": "0ebf33ae-5f4a-4c70-b084-8afd6df53df4",
+        "title": "Untitled production",
+        "prompt": "Create a cinematic faceless documentary about 5 mysterious ancient civilizations that disappeared.",
+        "status": "failed",
+        "creative_brief": null,
+        "current_stage": "idea",
+        "reel_url": null,
+        "mov_url": null,
+        "thumbnail_url": null,
+        "creator_pack_url": null,
+        "export_status": "pending",
+        "timeline_json": null,
+        "created_at": "2026-08-13T22:19:14.304718+00:00",
+        "updated_at": "2026-08-13T22:19:21.911+00:00"
+      },
+      "stages": [
+        {
+          "id": "5ca0d384-a3af-4f41-9d5e-80555755c37f",
+          "production_id": "51407aca-4a9d-4adf-9e81-11cc817b2187",
+          "stage": "idea",
+          "status": "failed",
+          "error": "PROVIDER_INVALID_RESPONSE: OpenRouter HTTP 402",
+          "started_at": "2026-08-13T22:19:18.299+00:00",
+          "completed_at": "2026-08-13T22:19:21.678+00:00",
+          "created_at": "2026-08-13T22:19:15.231815+00:00",
+          "output": null
+        }
+      ],
+      "scenes": [],
+      "timeline": [
+        {
+          "id": "idea",
+          "label": "Understanding your idea",
+          "emoji": "✨",
+          "status": "failed",
+          "error": "PROVIDER_INVALID_RESPONSE: OpenRouter HTTP 402"
+        },
+        {
+          "id": "research",
+          "label": "Researching",
+          "emoji": "🔍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "creative",
+          "label": "Creative direction",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "script",
+          "label": "Writing screenplay",
+          "emoji": "🧠",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "voice",
+          "label": "Recording voices",
+          "emoji": "🎙️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "character",
+          "label": "Designing characters",
+          "emoji": "🎭",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "world",
+          "label": "Building the world",
+          "emoji": "🌍",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "storyboard",
+          "label": "Storyboarding",
+          "emoji": "🎨",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "image",
+          "label": "Generating images",
+          "emoji": "🖼️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "animation",
+          "label": "Animating",
+          "emoji": "🎬",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "music",
+          "label": "Composing soundtrack",
+          "emoji": "🎵",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "sound",
+          "label": "Sound design",
+          "emoji": "🔊",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "edit",
+          "label": "Editing",
+          "emoji": "🎞️",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "quality",
+          "label": "Quality check",
+          "emoji": "✅",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "render",
+          "label": "Rendering",
+          "emoji": "📦",
+          "status": "pending",
+          "error": null
+        },
+        {
+          "id": "export",
+          "label": "Preparing creator pack",
+          "emoji": "🎉",
+          "status": "pending",
+          "error": null
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "failure": {
+    "step": "MEDIA_E2E",
+    "message": "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n  - waiting for getByText(/Production workspace/i) to be visible\n",
+    "url": "http://localhost:3000/studio/3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+    "reelUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/reels/3b29baa9-a45b-43e4-a479-8837c285f89e/final-reel.mp4",
+    "exportStatus": "completed"
+  },
+  "report": {
+    "PROJECT_LIBRARY": "PASS",
+    "WORKSPACE": "PASS",
+    "SCRIPT_REVIEW": "PASS",
+    "SCRIPT_EDIT": "PASS",
+    "KEEP_EXISTING_OUTPUTS": "PASS",
+    "MEDIA_PRESERVATION": "PASS",
+    "VOICE": "PASS",
+    "IMAGES": "PASS",
+    "I2V": "PASS",
+    "MUSIC": "PASS",
+    "SFX": "PASS",
+    "SCENE_CONTINUATION": "PASS",
+    "SCENE_ORDERING": "PASS",
+    "SCENE_ID_PRESERVATION": "PASS",
+    "FINAL_VIDEO": "NOT RUN",
+    "ACTUAL_BROWSER_DOWNLOAD": "NOT RUN",
+    "DOWNLOADED_MP4": "NOT RUN",
+    "FFPROBE": "NOT RUN",
+    "OVERALL_LOCAL_E2E": "FAIL",
+    "PRODUCT_CODE_MODIFIED": "NO",
+    "DEPLOYMENT": "NOT RUN"
+  },
+  "productionId": "3b29baa9-a45b-43e4-a479-8837c285f89e",
+  "reelUrl": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/reels/3b29baa9-a45b-43e4-a479-8837c285f89e/final-reel.mp4",
+  "exportStatus": "completed"
+}

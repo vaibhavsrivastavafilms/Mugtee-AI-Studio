@@ -1,0 +1,97 @@
+[
+  {
+    "id": "964ab715-64f6-4900-acb7-a0acd507b43b",
+    "current_stage": "render",
+    "lock": null,
+    "updated_at": "2026-08-06T18:43:43.77452+00:00"
+  },
+  {
+    "id": "71983d8f-643f-4bb8-82ca-f003817ea7da",
+    "current_stage": "image",
+    "lock": {
+      "since": "2026-08-06T18:48:23.186Z",
+      "locked": false
+    },
+    "updated_at": "2026-08-06T18:48:23.186+00:00"
+  },
+  {
+    "id": "8c2fc30e-0534-40d4-bb9b-731fe908dcc1",
+    "current_stage": "animation",
+    "lock": {
+      "since": "2026-08-06T18:56:04.433Z",
+      "locked": false
+    },
+    "updated_at": "2026-08-06T18:56:04.433+00:00"
+  },
+  {
+    "id": "764a23be-614a-41c4-b6e9-145c07e14111",
+    "current_stage": "image",
+    "lock": {
+      "since": "2026-08-07T21:52:11.823Z",
+      "locked": false
+    },
+    "updated_at": "2026-08-07T21:52:11.823+00:00"
+  },
+  {
+    "id": "c2f127b9-3a41-42eb-890b-1b470cf275dc",
+    "current_stage": "research",
+    "lock": {
+      "since": "2026-08-09T21:44:59.339Z",
+      "locked": false
+    },
+    "updated_at": "2026-08-09T21:44:59.34+00:00"
+  },
+  {
+    "id": "494645bc-ea49-4805-9aa6-0b4d863ff633",
+    "current_stage": "research",
+    "lock": {
+      "since": "2026-08-09T22:30:18.288Z",
+      "locked": false
+    },
+    "updated_at": "2026-08-09T22:30:18.288+00:00"
+  },
+  {
+    "id": "4af4d72b-3102-4be2-8058-794533800fa9",
+    "current_stage": "creative",
+    "lock": {
+      "since": "2026-08-09T23:24:27.370Z",
+      "stage": "creative",
+      "token": "18116315-0efb-4c64-b1b3-4de3213ee8f2",
+      "locked": true
+    },
+    "updated_at": "2026-08-09T23:24:27.587+00:00"
+  },
+  {
+    "id": "756c77d1-0349-4bcb-8986-0459a7ed8b8e",
+    "current_stage": "voice",
+    "lock": {
+      "since": "2026-08-11T23:02:29.525Z",
+      "stage": "voice",
+      "token": "f6d088df-cced-4a53-8cff-1e16619a4d57",
+      "locked": true
+    },
+    "updated_at": "2026-08-11T23:02:29.736+00:00"
+  },
+  {
+    "id": "3d24f12e-fad4-4e49-bcf1-420ccf38663e",
+    "current_stage": "voice",
+    "lock": {
+      "since": "2026-08-12T01:26:14.002Z",
+      "stage": "voice",
+      "token": "671f1d5e-957e-4b59-8ed3-b18dc904b3f2",
+      "locked": true
+    },
+    "updated_at": "2026-08-12T01:26:14.215+00:00"
+  },
+  {
+    "id": "fbc12758-3246-46d7-b726-76320074d608",
+    "current_stage": "script",
+    "lock": {
+      "since": "2026-08-13T13:44:16.415Z",
+      "stage": "script",
+      "token": "850c4d31-35af-4680-94e5-0202cea73df3",
+      "locked": true
+    },
+    "updated_at": "2026-08-13T13:44:16.865+00:00"
+  }
+]
