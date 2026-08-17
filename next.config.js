@@ -2,6 +2,15 @@
 
 const path = require('path')
 
+/** Shared NFT includes for Remotion serverless render routes (V7 + legacy export). */
+const REMOTION_SERVERLESS_TRACE_INCLUDES = [
+  './lib/remotion/**/*',
+  './lib/motion/**/*',
+  './node_modules/ffmpeg-static/**/*',
+  // @remotion/renderer resolves compositor via dynamic require(); NFT does not follow it.
+  './node_modules/@remotion/compositor-linux-x64-gnu/**/*',
+]
+
 const nextConfig = {
   // Standalone file tracing fails on Windows (ENOENT in collect-build-traces).
   // Set NEXT_OUTPUT_STANDALONE=1 for self-hosted Docker/Linux builds only.
@@ -20,26 +29,14 @@ const nextConfig = {
     // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them
     // including @/lib/motion and sibling remotion modules (NFT does not follow @/ inside those files).
     outputFileTracingIncludes: {
-      '/api/render/reel': ['./lib/remotion/**/*', './lib/motion/**/*'],
-      '/api/quick-cut/config': ['./lib/remotion/**/*', './lib/motion/**/*'],
-      '/api/reels/export': ['./lib/remotion/**/*', './lib/motion/**/*'],
-      '/api/timeline/render': ['./lib/remotion/**/*', './lib/motion/**/*'],
+      '/api/render/reel': REMOTION_SERVERLESS_TRACE_INCLUDES,
+      '/api/quick-cut/config': REMOTION_SERVERLESS_TRACE_INCLUDES,
+      '/api/reels/export': REMOTION_SERVERLESS_TRACE_INCLUDES,
+      '/api/timeline/render': REMOTION_SERVERLESS_TRACE_INCLUDES,
       // V7 I2V validates scene MP4s with ffmpeg-static after Pollinations generation.
-      '/api/v7/productions/[id]': [
-        './lib/remotion/**/*',
-        './lib/motion/**/*',
-        './node_modules/ffmpeg-static/**/*',
-      ],
-      '/api/v7/productions/[id]/retry': [
-        './lib/remotion/**/*',
-        './lib/motion/**/*',
-        './node_modules/ffmpeg-static/**/*',
-      ],
-      '/api/cron/v7-advance': [
-        './lib/remotion/**/*',
-        './lib/motion/**/*',
-        './node_modules/ffmpeg-static/**/*',
-      ],
+      '/api/v7/productions/[id]': REMOTION_SERVERLESS_TRACE_INCLUDES,
+      '/api/v7/productions/[id]/retry': REMOTION_SERVERLESS_TRACE_INCLUDES,
+      '/api/cron/v7-advance': REMOTION_SERVERLESS_TRACE_INCLUDES,
     },
   },
 
