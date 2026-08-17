@@ -1,4 +1,5 @@
 import 'server-only'
+import '@/lib/remotion/writable-work-dir'
 
 // Vercel NFT only ships files with static import chains; Remotion bundle() reads these from disk.
 import '@/lib/remotion/compositions/Root'
@@ -94,6 +95,8 @@ async function getServeUrl(): Promise<string> {
     bundlePromise = bundle({
       entryPoint: entry,
       webpackOverride: remotionWebpackOverride,
+      // Webpack filesystem cache defaults to node_modules/.cache/webpack (read-only on Vercel).
+      enableCaching: false,
     }).then((location) => {
       if (!location) throw new Error('Remotion bundle did not return a serve URL')
       cachedBundleLocation = location

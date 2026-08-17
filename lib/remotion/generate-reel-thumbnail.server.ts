@@ -1,4 +1,5 @@
 import 'server-only'
+import '@/lib/remotion/writable-work-dir'
 
 import fs from 'fs/promises'
 import path from 'path'
