@@ -55,11 +55,19 @@ export function inspectPollinationsKeyConfig(
   }
 }
 
+function acceptPollinationsApiKey(raw: string | undefined): string | undefined {
+  const normalized = normalizePollinationsEnvKey(raw)
+  if (!normalized) return undefined
+  if (PLACEHOLDER_KEY_PATTERNS.some((pattern) => pattern.test(normalized))) return undefined
+  if (!/^sk_|^pk_/.test(normalized)) return undefined
+  return normalized
+}
+
 export function readPollinationsApiKeyFromEnv(
   rawEnv: string | undefined = process.env.POLLINATIONS_API_KEY
 ): string | undefined {
-  const normalized = normalizePollinationsEnvKey(rawEnv)
-  if (!normalized) return undefined
-  if (PLACEHOLDER_KEY_PATTERNS.some((pattern) => pattern.test(normalized))) return undefined
-  return normalized
+  return (
+    acceptPollinationsApiKey(rawEnv) ??
+    acceptPollinationsApiKey(process.env.POLLINATIONS_APP_KEY)
+  )
 }

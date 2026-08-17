@@ -88,24 +88,30 @@ async function generate(input: V7VideoGenerationInput): Promise<V7VideoGeneratio
     const localPath = path.join(workDir, 'scene.mp4')
     try {
       await fs.writeFile(localPath, remote.buffer)
-      const validationResult = await validateLocalVideoFile(localPath, durationSec)
-      if (!validationResult.valid) {
+      // wan-fast often returns ~5s clips when longer durations are requested — validate decode, not exact request length.
+      const validationResult = await validateLocalVideoFile(localPath)
+      if (!validationResult.valid || validationResult.durationSec < 3) {
         throw new PollinationsError({
           code: 'POLLINATIONS_VIDEO_INVALID',
-          message: validationResult.error ?? 'Video failed FFprobe validation',
+          message:
+            validationResult.error ??
+            (validationResult.durationSec < 3
+              ? `Video too short (${validationResult.durationSec.toFixed(2)}s)`
+              : 'Video failed FFprobe validation'),
           stage: 'validation',
           sceneNumber: input.sceneNumber,
           model: remote.model,
         })
       }
 
+      const probedDurationSec = validationResult.durationSec
       const dataUrl = `data:video/mp4;base64,${remote.buffer.toString('base64')}`
       const persisted = await persistV7SceneVideo({
         sourceUrl: dataUrl,
         userId: input.userId,
         storagePath: input.storagePath,
         providerId: 'pollinations',
-        expectedDurationSec: durationSec,
+        expectedDurationSec: probedDurationSec,
       })
 
       console.info('[pollinations] checkpoint-ready', {
@@ -126,7 +132,7 @@ async function generate(input: V7VideoGenerationInput): Promise<V7VideoGeneratio
         model: remote.model,
         videoUrl: persisted.videoUrl,
         thumbnailUrl: input.imageUrl,
-        durationSec: persisted.durationSec,
+        durationSec: probedDurationSec,
         width: input.width,
         height: input.height,
         generationTimeMs: Date.now() - started,

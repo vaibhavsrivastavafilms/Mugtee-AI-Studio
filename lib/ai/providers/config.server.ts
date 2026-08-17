@@ -9,6 +9,7 @@ import {
 export { isScriptGenerationMockEnabled, isScriptMockFallbackEnabled }
 
 const MODEL_ENV: Record<ProviderId, string[]> = {
+  pollinations: ['POLLINATIONS_TEXT_MODEL'],
   openai: ['OPENAI_MODEL', 'OPENAI_CHAT_MODEL'],
   gemini: ['GEMINI_MODEL', 'GOOGLE_GEMINI_MODEL'],
   groq: ['GROQ_MODEL'],
@@ -17,6 +18,7 @@ const MODEL_ENV: Record<ProviderId, string[]> = {
 }
 
 const DEFAULT_MODEL: Record<ProviderId, string> = {
+  pollinations: 'qwen-safety',
   openai: 'gpt-4o-mini',
   gemini: 'gemini-2.0-flash',
   groq: 'llama-3.3-70b-versatile',
@@ -41,7 +43,7 @@ export type ProviderConfigEntry = {
 }
 
 export function getProviderConfigSnapshot(): ProviderConfigEntry[] {
-  const ids: ProviderId[] = ['openai', 'gemini', 'groq', 'openrouter', 'deepseek']
+  const ids: ProviderId[] = ['pollinations', 'openai', 'gemini', 'groq', 'openrouter', 'deepseek']
   return ids.map((provider) => {
     const keyPresent = hasProviderKey(provider)
     return {

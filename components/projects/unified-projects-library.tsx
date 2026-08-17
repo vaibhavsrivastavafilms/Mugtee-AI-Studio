@@ -15,6 +15,7 @@ import {
   Search,
 } from 'lucide-react'
 import { RemoteImage } from '@/components/ui/remote-image'
+import { V7ProductionDownloadButton } from '@/features/v7/components/production-download-button'
 import { cn } from '@/lib/utils'
 import type {
   UnifiedLibraryPipelineFilter,
@@ -27,6 +28,7 @@ import type {
 const STATUS_FILTERS: { id: UnifiedLibraryStatusFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'completed', label: 'Completed' },
+  { id: 'in_progress', label: 'In progress' },
   { id: 'running', label: 'Running' },
   { id: 'paused', label: 'Paused' },
   { id: 'failed', label: 'Failed' },
@@ -45,6 +47,7 @@ const SORT_OPTIONS: { id: UnifiedLibrarySort; label: string }[] = [
   { id: 'recently_updated', label: 'Recently updated' },
   { id: 'newest', label: 'Newest' },
   { id: 'oldest', label: 'Oldest' },
+  { id: 'name_asc', label: 'Name A–Z' },
   { id: 'recently_completed', label: 'Recently completed' },
 ]
 
@@ -60,6 +63,14 @@ function statusTone(status: UnifiedProjectItem['status']): string {
       return 'border-red-500/30 bg-red-500/10 text-red-200'
     case 'draft':
       return 'border-white/10 bg-white/5 text-luxe/70'
+    case 'closed':
+      return 'border-white/15 bg-white/5 text-white/50'
+    case 'cancelled':
+      return 'border-orange-500/30 bg-orange-500/10 text-orange-200'
+    case 'updated':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+    default:
+      return 'border-white/10 bg-white/5 text-white/60'
   }
 }
 
@@ -204,7 +215,15 @@ function UnifiedProjectCard({ project }: { project: UnifiedProjectItem }) {
               icon={<Play className="h-4 w-4" />}
             />
           ) : null}
-          {project.actions.download && project.reelUrl ? (
+          {project.actions.download && project.type === 'v7' ? (
+            <V7ProductionDownloadButton
+              productionId={project.id}
+              title={project.title}
+              compact
+              label="Download"
+            />
+          ) : null}
+          {project.actions.download && project.type !== 'v7' && project.reelUrl ? (
             <ActionButton
               href={project.reelUrl}
               label="Download"

@@ -66,8 +66,11 @@ function validateSceneVideoQuality(params: {
     throw new Error(`Scene ${params.bundle.sceneNumber}: video rejected — continuity mismatch`)
   }
 
-  if (Math.abs(params.result.durationSec - params.bundle.durationSec) > 3) {
-    throw new Error(`Scene ${params.bundle.sceneNumber}: video rejected — duration mismatch`)
+  // Screenplay scene duration (e.g. 10s) is editorial timing — Pollinations I2V clips can be shorter (wan-fast ~5s).
+  if (!Number.isFinite(params.result.durationSec) || params.result.durationSec < 3) {
+    throw new Error(
+      `Scene ${params.bundle.sceneNumber}: video rejected — duration too short (${params.result.durationSec}s)`
+    )
   }
 
   if (!params.result.videoUrl?.trim() || isEphemeralRemoteImageUrl(params.result.videoUrl)) {

@@ -2,11 +2,18 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  detectProductionCompletionDrift,
   detectProductionStateDrift,
   getNextRunnableStageId,
+  isV7ExportStageFinalized,
+  isV7OrphanPipelineLock,
+  isV7PipelineLockActive,
+  isLiveGlobalPipelineLock,
   resolveProductionFieldsAfterStageSuccess,
   shouldPreserveCompletedStageFailure,
+  shouldRecoverV7PipelineLock,
   stageRowHasOutput,
+  V7_ORPHAN_PIPELINE_LOCK_GRACE_MS,
 } from '@/lib/v7/pipeline-state.core'
 import { computeV7ProductionProgress } from '@/lib/v7/production-progress'
 import type { V7ProductionSnapshot, V7StageRow } from '@/types/v7/production'
@@ -55,7 +62,7 @@ function buildDriftSnapshot(): V7ProductionSnapshot {
       stageRow('research', 'completed', { research: { topics: ['food'] } }),
       stageRow('creative', 'completed', { direction: { visualStyle: 'cinematic' } }),
       stageRow('script', 'completed', { script: { scenes: [{ number: 1, narration: 'Hello' }] } }),
-      stageRow('character', 'queued'),
+      stageRow('voice', 'queued'),
     ],
     scenes: [],
     timeline: [],
@@ -63,10 +70,10 @@ function buildDriftSnapshot(): V7ProductionSnapshot {
 }
 
 describe('pipeline state drift detection', () => {
-  it('detects failed production with completed script and queued character', () => {
+  it('detects failed production with completed script and queued voice', () => {
     const drift = detectProductionStateDrift(buildDriftSnapshot())
     assert.equal(drift.recoverable, true)
-    assert.equal(drift.resumeStage, 'character')
+    assert.equal(drift.resumeStage, 'voice')
     assert.equal(drift.lastCompletedStage, 'script')
   })
 
@@ -101,12 +108,12 @@ describe('pipeline state drift detection', () => {
 
     assert.deepEqual(patch, {
       status: 'producing',
-      current_stage: 'character',
+      current_stage: 'voice',
     })
   })
 
   it('maps script completion to the next runnable stage', () => {
-    assert.equal(getNextRunnableStageId('script'), 'character')
+    assert.equal(getNextRunnableStageId('script'), 'voice')
   })
 })
 
@@ -128,15 +135,15 @@ describe('production progress drift display', () => {
     const snapshot = buildDriftSnapshot()
     const progress = computeV7ProductionProgress(snapshot)
 
-    assert.equal(progress.currentStageId, 'character')
-    assert.equal(progress.currentStageLabel, 'Designing characters')
-    assert.equal(progress.paused?.failedStageLabel, 'Designing characters')
+    assert.equal(progress.currentStageId, 'voice')
+    assert.equal(progress.currentStageLabel, 'Recording voices')
+    assert.equal(progress.paused?.failedStageLabel, 'Recording voices')
     assert.equal(progress.eta.frozen, true)
   })
 })
 
 describe('normal successful progression fields', () => {
-  it('advances current stage to character after script completes', () => {
+  it('advances current stage to voice after script completes', () => {
     const snapshot = buildDriftSnapshot()
     snapshot.production.status = 'producing'
 
@@ -146,6 +153,178 @@ describe('normal successful progression fields', () => {
     })
 
     assert.equal(patch.status, 'producing')
-    assert.equal(patch.current_stage, 'character')
+    assert.equal(patch.current_stage, 'voice')
+  })
+})
+
+function buildExportFinalizedSnapshot(
+  overrides: Partial<V7ProductionSnapshot['production']> = {}
+): V7ProductionSnapshot {
+  const snapshot = buildDriftSnapshot()
+  snapshot.production = {
+    ...snapshot.production,
+    status: 'producing',
+    current_stage: 'export',
+    reel_url: 'https://cdn.example/reel.mp4',
+    export_status: 'completed',
+    ...overrides,
+  }
+  snapshot.stages = [
+    ...snapshot.stages.filter((row) => row.stage !== 'export'),
+    stageRow('export', 'completed', {
+      movUrl: 'https://cdn.example/reel.mov',
+      creatorPackUrl: 'https://cdn.example/pack.json',
+    }),
+  ]
+  return snapshot
+}
+
+describe('production completion synchronization', () => {
+  it('keeps production producing when export is incomplete', () => {
+    const snapshot = buildExportFinalizedSnapshot({ export_status: 'pending' })
+    assert.equal(isV7ExportStageFinalized(snapshot), false)
+    assert.equal(detectProductionCompletionDrift(snapshot), false)
+
+    const patch = resolveProductionFieldsAfterStageSuccess({
+      completedStage: 'export',
+      stages: snapshot.stages,
+      production: snapshot.production,
+    })
+    assert.equal(patch.status, 'producing')
+  })
+
+  it('does not complete when render output exists but export checkpoint is missing', () => {
+    const snapshot = buildExportFinalizedSnapshot()
+    snapshot.stages = snapshot.stages.map((row) =>
+      row.stage === 'export' ? stageRow('export', 'queued') : row
+    )
+    assert.equal(isV7ExportStageFinalized(snapshot), false)
+  })
+
+  it('marks production completed after export checkpoint and reel persist', () => {
+    const snapshot = buildExportFinalizedSnapshot()
+    assert.equal(isV7ExportStageFinalized(snapshot), true)
+    assert.equal(detectProductionCompletionDrift(snapshot), true)
+
+    const patch = resolveProductionFieldsAfterStageSuccess({
+      completedStage: 'export',
+      stages: snapshot.stages,
+      production: snapshot.production,
+    })
+    assert.deepEqual(patch, { status: 'completed', current_stage: 'export' })
+  })
+
+  it('does not complete from reel_url alone before export finishes', () => {
+    const snapshot = buildExportFinalizedSnapshot({ export_status: 'rendering' })
+    snapshot.stages = snapshot.stages.map((row) =>
+      row.stage === 'export' ? stageRow('export', 'running') : row
+    )
+    assert.equal(isV7ExportStageFinalized(snapshot), false)
+  })
+})
+
+describe('pipeline lock recovery', () => {
+  const now = Date.parse('2026-08-16T01:00:00.000Z')
+
+  it('treats a recent lock as active', () => {
+    const lock = {
+      locked: true,
+      stage: 'music' as const,
+      since: new Date(now - 60_000).toISOString(),
+      token: 'a',
+    }
+    assert.equal(isV7PipelineLockActive(lock, now), true)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage: null, now }), false)
+  })
+
+  it('treats an unlocked lock as inactive', () => {
+    const lock = { locked: false, since: new Date(now).toISOString() }
+    assert.equal(isV7PipelineLockActive(lock, now), false)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage: null, now }), false)
+  })
+
+  it('blocks concurrent acquisition while another worker holds an active lock', () => {
+    const lock = {
+      locked: true,
+      stage: 'animation' as const,
+      since: new Date(now - 30_000).toISOString(),
+      token: 'worker-a',
+    }
+    assert.equal(isV7PipelineLockActive(lock, now), true)
+  })
+
+  it('detects stale locks after the stage timeout elapses', () => {
+    const lock = {
+      locked: true,
+      stage: 'render' as const,
+      since: new Date(now - 7 * 60 * 1000).toISOString(),
+      token: 'stale',
+    }
+    assert.equal(isV7PipelineLockActive(lock, now), false)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage: null, now }), true)
+  })
+
+  it('does not recover an active lock while the matching stage is running', () => {
+    const lock = {
+      locked: true,
+      stage: 'music' as const,
+      since: new Date(now - 60_000).toISOString(),
+      token: 'live',
+    }
+    const runningStage = stageRow('music', 'running', null)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage, now }), false)
+  })
+
+  it('recovers orphan locks when no running stage matches after grace', () => {
+    const lock = {
+      locked: true,
+      stage: 'music' as const,
+      since: new Date(now - V7_ORPHAN_PIPELINE_LOCK_GRACE_MS - 1).toISOString(),
+      token: 'orphan',
+    }
+    assert.equal(isV7OrphanPipelineLock({ lock, runningStage: null, now }), true)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage: null, now }), true)
+  })
+
+  it('does not recover orphan locks inside the startup grace window', () => {
+    const lock = {
+      locked: true,
+      stage: 'music' as const,
+      since: new Date(now - 30_000).toISOString(),
+      token: 'starting',
+    }
+    assert.equal(isV7OrphanPipelineLock({ lock, runningStage: null, now }), false)
+    assert.equal(shouldRecoverV7PipelineLock({ lock, runningStage: null, now }), false)
+  })
+
+  it('does not treat stale zombie locks as live global execution slots', () => {
+    const lock = {
+      locked: true,
+      stage: 'voice' as const,
+      since: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      token: 'zombie',
+    }
+    assert.equal(isLiveGlobalPipelineLock({ lock, runningStage: null, now }), false)
+  })
+
+  it('does not treat orphan locks past grace as live global execution slots', () => {
+    const lock = {
+      locked: true,
+      stage: 'creative' as const,
+      since: new Date(now - V7_ORPHAN_PIPELINE_LOCK_GRACE_MS - 1).toISOString(),
+      token: 'orphan',
+    }
+    assert.equal(isLiveGlobalPipelineLock({ lock, runningStage: null, now }), false)
+  })
+
+  it('treats active lock with matching running stage as live global execution slot', () => {
+    const lock = {
+      locked: true,
+      stage: 'animation' as const,
+      since: new Date(now - 30_000).toISOString(),
+      token: 'live',
+    }
+    const runningStage = stageRow('animation', 'running', null)
+    assert.equal(isLiveGlobalPipelineLock({ lock, runningStage, now }), true)
   })
 })

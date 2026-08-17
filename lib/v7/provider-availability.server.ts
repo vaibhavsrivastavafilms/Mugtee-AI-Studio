@@ -76,12 +76,20 @@ export function assertV7SceneVideoProvidersConfigured(): void {
 export function assertV7MusicProviderConfigured(): void {
   if (process.env.MUSICGEN_URL?.trim()) return
   if (resolveMvpRoyaltyFreeMusicUrl()?.trim()) return
+  // Matches resolveV7MusicUrl cascade: Pollinations music is the primary production path.
+  if (process.env.POLLINATIONS_API_KEY?.trim()) return
 
   throw new V7ProviderNotAvailableError({
     provider: 'music',
     stage: 'music',
-    requiredEnv: ['MUSICGEN_URL', 'MVP_ROYALTY_FREE_MUSIC_URL', 'V3_MUSIC_URL'],
-    message: 'Music generation is not configured. Set MUSICGEN_URL or MVP_ROYALTY_FREE_MUSIC_URL.',
+    requiredEnv: [
+      'POLLINATIONS_API_KEY',
+      'MUSICGEN_URL',
+      'MVP_ROYALTY_FREE_MUSIC_URL',
+      'V3_MUSIC_URL',
+    ],
+    message:
+      'Music generation is not configured. Set POLLINATIONS_API_KEY, MUSICGEN_URL, or MVP_ROYALTY_FREE_MUSIC_URL.',
   })
 }
 
@@ -160,8 +168,17 @@ export function auditV7ProviderConfiguration(): V7ProviderAuditRow[] {
   rows.push({
     provider: 'music',
     stage: 'music',
-    available: Boolean(process.env.MUSICGEN_URL?.trim() || resolveMvpRoyaltyFreeMusicUrl()?.trim()),
-    requiredEnv: ['MUSICGEN_URL', 'MVP_ROYALTY_FREE_MUSIC_URL', 'V3_MUSIC_URL'],
+    available: Boolean(
+      process.env.POLLINATIONS_API_KEY?.trim() ||
+        process.env.MUSICGEN_URL?.trim() ||
+        resolveMvpRoyaltyFreeMusicUrl()?.trim()
+    ),
+    requiredEnv: [
+      'POLLINATIONS_API_KEY',
+      'MUSICGEN_URL',
+      'MVP_ROYALTY_FREE_MUSIC_URL',
+      'V3_MUSIC_URL',
+    ],
   })
 
   rows.push({

@@ -27,6 +27,7 @@ const TASK_MAP: Record<AgentModelTask, AITask> = {
 }
 
 const COST_BY_PROVIDER: Record<ProviderId, 'low' | 'medium' | 'high'> = {
+  pollinations: 'low',
   groq: 'low',
   deepseek: 'low',
   gemini: 'medium',

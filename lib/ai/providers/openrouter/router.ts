@@ -145,7 +145,7 @@ export function rankFreeModels(models: OpenRouterFreeModel[]): OpenRouterFreeMod
 }
 
 export function isOpenRouterModelFailoverError(status: number, body: string): boolean {
-  if (status === 429 || status === 404 || status === 410) return true
+  if (status === 402 || status === 429 || status === 404 || status === 410) return true
 
   const lower = body.toLowerCase()
   if (status === 400) {
@@ -211,7 +211,7 @@ export class OpenRouterModelRouter {
     const ids = ranked.map((model) => model.id).filter((id) => !this.isBlacklisted(id))
 
     const configured = process.env.OPENROUTER_MODEL?.trim()
-    if (configured && ids.includes(configured) && !this.isBlacklisted(configured)) {
+    if (configured && !this.isBlacklisted(configured)) {
       return [configured, ...ids.filter((id) => id !== configured)]
     }
 

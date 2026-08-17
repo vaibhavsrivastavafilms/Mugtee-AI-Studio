@@ -10,6 +10,8 @@ export type TextGenerateRequest = {
   temperature?: number
   projectId?: string
   agent?: string
+  timeoutMs?: number
+  maxModelAttempts?: number
 }
 
 export type TextGenerateResult = {
@@ -39,6 +41,8 @@ class OpenRouterTextProvider implements TextProvider {
       systemPrompt: request.systemPrompt,
       userPrompt: request.userPrompt,
       temperature: request.temperature,
+      timeoutMs: request.timeoutMs,
+      maxModelAttempts: request.maxModelAttempts,
     })
 
     return {

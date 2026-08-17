@@ -1,0 +1,356 @@
+{
+  "attempt": "gujarati-resume",
+  "browserMode": "HEADED / VISIBLE",
+  "authentication": "PASS",
+  "productionId": "3d51dc1f-0b60-475d-a75f-2905d2805688",
+  "currentStage": "Preparing creator pack",
+  "lastSuccessfulStage": "Preparing creator pack",
+  "firstBlocker": "Spectator timeout after 120 minutes",
+  "provider": "Pollinations (wan-fast · Scene 4 of 4 · Generating…)",
+  "checkpoint": "NOT PERSISTED",
+  "lock": "UNKNOWN",
+  "mediaGenerated": 0,
+  "pollenSpent": null,
+  "finalMp4": "NOT AVAILABLE",
+  "download": "NOT REACHED",
+  "playwrightBrowser": "OPEN",
+  "deployment": "ALREADY LIVE",
+  "openRouterEnv": "PRESENT",
+  "openRouterHealth": "READY",
+  "voiceFirstRuntime": "NOT_REACHED",
+  "stageLog": [
+    {
+      "t": "2026-08-16T00:09:54.901Z",
+      "event": "AUTH",
+      "url": "https://mugtee.in/api/profile",
+      "signedIn": true
+    },
+    {
+      "t": "2026-08-16T00:09:55.204Z",
+      "event": "OPENROUTER_HEALTH",
+      "env": "PRESENT",
+      "health": "READY",
+      "cachedModels": 13
+    },
+    {
+      "t": "2026-08-16T00:09:56.903Z",
+      "event": "STUDIO_LOADED",
+      "url": "https://mugtee.in/studio"
+    },
+    {
+      "t": "2026-08-16T00:09:58.018Z",
+      "event": "PRODUCTION_CONTINUE",
+      "productionId": "3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688"
+    },
+    {
+      "t": "2026-08-16T00:12:58.030Z",
+      "event": "CONCEPT_SELECTION",
+      "skipped": true
+    },
+    {
+      "t": "2026-08-16T00:12:58.030Z",
+      "event": "SPECTATING",
+      "message": "Observing Studio UI — background worker drives execution"
+    },
+    {
+      "t": "2026-08-16T00:12:58.123Z",
+      "event": "STAGE_START",
+      "stage": "Animating",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 65,
+      "currentTask": "Animating scene 2 of 4…"
+    },
+    {
+      "t": "2026-08-16T00:12:58.123Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Animating",
+      "currentTask": "Animating scene 2 of 4…",
+      "overallPercent": 65,
+      "eta": "1m 26s remaining",
+      "provider": {
+        "name": "Pollinations",
+        "detail": "wan-fast · Scene 2 of 4 · Generating…"
+      },
+      "runningStage": "Animating"
+    },
+    {
+      "t": "2026-08-16T00:13:03.214Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Animating",
+      "currentTask": "Animating scene 3 of 4…",
+      "overallPercent": 71,
+      "eta": "1m 11s remaining",
+      "provider": {
+        "name": "Pollinations",
+        "detail": "wan-fast · Scene 3 of 4 · Generating…"
+      },
+      "runningStage": "Animating"
+    },
+    {
+      "t": "2026-08-16T00:13:38.892Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Animating",
+      "currentTask": "Animating scene 4 of 4…",
+      "overallPercent": 77,
+      "eta": "57s remaining",
+      "provider": {
+        "name": "Pollinations",
+        "detail": "wan-fast · Scene 4 of 4 · Generating…"
+      },
+      "runningStage": "Animating"
+    },
+    {
+      "t": "2026-08-16T00:14:09.478Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Animating",
+      "currentTask": "Animating scene 4 of 4…",
+      "overallPercent": 83,
+      "eta": "42s remaining",
+      "provider": {
+        "name": "Pollinations",
+        "detail": "wan-fast · Scene 4 of 4 · Generating…"
+      },
+      "runningStage": "Animating"
+    },
+    {
+      "t": "2026-08-16T00:14:14.570Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Animating",
+      "durationMs": 76447
+    },
+    {
+      "t": "2026-08-16T00:14:14.570Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Composing soundtrack",
+      "currentTask": "Composing soundtrack…",
+      "overallPercent": 83,
+      "eta": "1m 3s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:14:29.828Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Composing soundtrack",
+      "currentTask": "Composing soundtrack…",
+      "overallPercent": 83,
+      "eta": "1m 7s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:23:19.033Z",
+      "event": "STAGE_START",
+      "stage": "Composing soundtrack",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 83,
+      "currentTask": "Composing soundtrack…"
+    },
+    {
+      "t": "2026-08-16T00:23:19.034Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Composing soundtrack",
+      "currentTask": "Composing soundtrack…",
+      "overallPercent": 83,
+      "eta": "1m 7s remaining",
+      "provider": null,
+      "runningStage": "Composing soundtrack"
+    },
+    {
+      "t": "2026-08-16T00:23:44.469Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Composing soundtrack",
+      "durationMs": 25436
+    },
+    {
+      "t": "2026-08-16T00:23:44.469Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Sound design",
+      "currentTask": "Designing sound…",
+      "overallPercent": 87,
+      "eta": "53s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:24:09.932Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Editing",
+      "currentTask": "Assembling timeline…",
+      "overallPercent": 90,
+      "eta": "41s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:24:25.177Z",
+      "event": "STAGE_START",
+      "stage": "Editing",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 90,
+      "currentTask": "Assembling timeline…"
+    },
+    {
+      "t": "2026-08-16T00:24:25.177Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Editing",
+      "currentTask": "Assembling timeline…",
+      "overallPercent": 90,
+      "eta": "41s remaining",
+      "provider": null,
+      "runningStage": "Editing"
+    },
+    {
+      "t": "2026-08-16T00:24:35.354Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Editing",
+      "durationMs": 10177
+    },
+    {
+      "t": "2026-08-16T00:24:35.354Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Quality check",
+      "currentTask": "Running quality check…",
+      "overallPercent": 92,
+      "eta": "30s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:24:55.735Z",
+      "event": "STAGE_START",
+      "stage": "Quality check",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 92,
+      "currentTask": "Running quality check…"
+    },
+    {
+      "t": "2026-08-16T00:24:55.735Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Quality check",
+      "currentTask": "Running quality check…",
+      "overallPercent": 92,
+      "eta": "30s remaining",
+      "provider": null,
+      "runningStage": "Quality check"
+    },
+    {
+      "t": "2026-08-16T00:25:16.124Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Quality check",
+      "durationMs": 20389
+    },
+    {
+      "t": "2026-08-16T00:25:16.124Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Rendering",
+      "currentTask": "Rendering movie…",
+      "overallPercent": 92,
+      "eta": "30s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:25:36.496Z",
+      "event": "STAGE_START",
+      "stage": "Rendering",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 92,
+      "currentTask": "Rendering movie…"
+    },
+    {
+      "t": "2026-08-16T00:25:36.496Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Rendering",
+      "currentTask": "Rendering movie…",
+      "overallPercent": 92,
+      "eta": "30s remaining",
+      "provider": null,
+      "runningStage": "Rendering"
+    },
+    {
+      "t": "2026-08-16T00:30:01.634Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Rendering",
+      "durationMs": 265138
+    },
+    {
+      "t": "2026-08-16T00:30:01.634Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Preparing creator pack",
+      "currentTask": "Preparing creator pack…",
+      "overallPercent": 98,
+      "eta": "14s remaining",
+      "provider": null,
+      "runningStage": null
+    },
+    {
+      "t": "2026-08-16T00:30:22.004Z",
+      "event": "STAGE_START",
+      "stage": "Preparing creator pack",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "overallPercent": 98,
+      "currentTask": "Preparing creator pack…"
+    },
+    {
+      "t": "2026-08-16T00:30:22.004Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Preparing creator pack",
+      "currentTask": "Preparing creator pack…",
+      "overallPercent": 98,
+      "eta": "14s remaining",
+      "provider": null,
+      "runningStage": "Preparing creator pack"
+    },
+    {
+      "t": "2026-08-16T00:30:47.503Z",
+      "event": "STAGE_COMPLETE",
+      "stage": "Preparing creator pack",
+      "durationMs": 25499
+    },
+    {
+      "t": "2026-08-16T00:30:47.503Z",
+      "event": "VISIBLE_PROGRESS",
+      "url": "https://mugtee.in/studio/3d51dc1f-0b60-475d-a75f-2905d2805688",
+      "currentStage": "Preparing creator pack",
+      "currentTask": "Preparing creator pack…",
+      "overallPercent": 100,
+      "eta": "Finishing up…",
+      "provider": null,
+      "runningStage": null
+    }
+  ],
+  "visibleErrors": [],
+  "consoleErrors": [
+    {
+      "t": "2026-08-16T00:09:55.091Z",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "networkFailures": [
+    {
+      "t": "2026-08-16T00:09:57.925Z",
+      "url": "https://mugtee.in/_next/static/chunks/6970-1bb4a3c5153e5f9a.js",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "startedAt": "2026-08-16T00:09:52.928Z",
+  "endedAt": "2026-08-16T02:12:58.694Z"
+}

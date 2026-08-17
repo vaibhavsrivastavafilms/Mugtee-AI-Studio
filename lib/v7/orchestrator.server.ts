@@ -45,7 +45,9 @@ import {
 import {
   V7AllProvidersFailedError,
   V7ProviderRequestError,
+  isV7RetryableError,
 } from '@/lib/v7/providers/text-errors.server'
+import { TextProviderError } from '@/lib/ai/errors'
 import {
   V7AllVideoProvidersFailedError,
   V7VideoProviderRequestError,
@@ -59,6 +61,7 @@ import {
 } from '@/lib/v7/provider-availability.server'
 import {
   getNextRunnableStageId,
+  resolveProductionFieldsAfterStageSuccess,
   shouldPreserveCompletedStageFailure,
 } from '@/lib/v7/pipeline-state.core'
 import {
@@ -92,6 +95,147 @@ function getStageOutput<T>(stages: Array<{ stage: string; output: Record<string,
   return value != null ? (value as T) : null
 }
 
+function isRetryableIdeaProviderError(error: unknown): boolean {
+  if (error instanceof TextProviderError) {
+    return ![
+      'OPENROUTER_AUTH_FAILED',
+      'TEXT_PROVIDER_NOT_CONFIGURED',
+      'TEXT_PROVIDER_NOT_READY',
+    ].includes(error.code)
+  }
+  if (error instanceof V7ProviderRequestError) return isV7RetryableError(error)
+  return false
+}
+
+function ideaProviderErrorMessage(error: unknown): string {
+  if (error instanceof TextProviderError) return `${error.code}: ${error.message}`
+  if (error instanceof V7ProviderRequestError) return `${error.code}: ${error.message}`
+  return error instanceof Error ? error.message : 'Idea analysis failed'
+}
+
+async function handleV7IdeaStageFailure(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  prompt: string
+  error: unknown
+}): Promise<'retry' | 'failed'> {
+  logV7StageError({ stage: 'idea', productionId: params.productionId, error: params.error })
+  const message = ideaProviderErrorMessage(params.error)
+
+  if (isRetryableIdeaProviderError(params.error)) {
+    await upsertV7Stage(params.supabase, {
+      productionId: params.productionId,
+      stage: 'idea',
+      status: 'queued',
+      input: { prompt: params.prompt },
+      error: message,
+      output: null,
+    })
+    await updateV7Production(params.supabase, params.productionId, params.userId, {
+      status: 'planning',
+      current_stage: 'idea',
+    })
+    return 'retry'
+  }
+
+  await upsertV7Stage(params.supabase, {
+    productionId: params.productionId,
+    stage: 'idea',
+    status: 'failed',
+    error: message,
+  })
+  await updateV7Production(params.supabase, params.productionId, params.userId, {
+    status: 'failed',
+    current_stage: 'idea',
+  })
+  return 'failed'
+}
+
+async function executeV7IdeaStage(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  prompt: string
+}) {
+  await updateV7Production(params.supabase, params.productionId, params.userId, {
+    status: 'planning',
+    current_stage: 'idea',
+  })
+
+  await upsertV7Stage(params.supabase, {
+    productionId: params.productionId,
+    stage: 'idea',
+    status: 'running',
+    input: { prompt: params.prompt },
+    output: null,
+    error: null,
+  })
+
+  await ProviderManager.assertTextReady({ userId: params.userId, productionId: params.productionId })
+  const { brief, durationMs } = await runV7IdeaAnalyzer({
+    prompt: params.prompt,
+    productionId: params.productionId,
+  })
+
+  const { concepts, durationMs: conceptsDurationMs } = await runV7ConceptGenerator({
+    prompt: params.prompt,
+    brief,
+    productionId: params.productionId,
+  })
+
+  await upsertV7Stage(params.supabase, {
+    productionId: params.productionId,
+    stage: 'idea',
+    status: 'completed',
+    input: { prompt: params.prompt },
+    output: { brief, durationMs, concepts, conceptsDurationMs },
+  })
+
+  await persistConceptSelectionAwaiting({
+    supabase: params.supabase,
+    productionId: params.productionId,
+    userId: params.userId,
+    concepts,
+    brief,
+  })
+}
+
+export async function bootstrapV7Production(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  prompt: string
+  productionId?: string
+}) {
+  let productionId = params.productionId
+
+  if (!productionId) {
+    const production = await insertV7Production(params.supabase, {
+      userId: params.userId,
+      prompt: params.prompt,
+    })
+    productionId = production.id
+  }
+
+  await updateV7Production(params.supabase, productionId, params.userId, {
+    status: 'planning',
+    current_stage: 'idea',
+  })
+
+  await upsertV7Stage(params.supabase, {
+    productionId,
+    stage: 'idea',
+    status: 'queued',
+    input: { prompt: params.prompt },
+    output: null,
+    error: null,
+  })
+
+  const snapshot = await getV7Production(params.supabase, productionId, params.userId)
+  if (!snapshot) throw new Error('Production not found after bootstrap')
+  return snapshot
+}
+
 export async function startV7Production(params: {
   supabase: SupabaseServerClient
   userId: string
@@ -121,46 +265,25 @@ export async function startV7Production(params: {
   })
 
   try {
-    await ProviderManager.assertTextReady({ userId: params.userId, productionId })
-    const { brief, durationMs } = await runV7IdeaAnalyzer({
-      prompt: params.prompt,
-      productionId,
-    })
-
-    const { concepts, durationMs: conceptsDurationMs } = await runV7ConceptGenerator({
-      prompt: params.prompt,
-      brief,
-      productionId,
-    })
-
-    await upsertV7Stage(params.supabase, {
-      productionId,
-      stage: 'idea',
-      status: 'completed',
-      input: { prompt: params.prompt },
-      output: { brief, durationMs, concepts, conceptsDurationMs },
-    })
-
-    await persistConceptSelectionAwaiting({
+    await executeV7IdeaStage({
       supabase: params.supabase,
       productionId,
       userId: params.userId,
-      concepts,
-      brief,
+      prompt: params.prompt,
     })
   } catch (error) {
-    logV7StageError({ stage: 'idea', productionId, error })
-    const message = error instanceof Error ? error.message : 'Idea analysis failed'
-    await upsertV7Stage(params.supabase, {
+    const outcome = await handleV7IdeaStageFailure({
+      supabase: params.supabase,
       productionId,
-      stage: 'idea',
-      status: 'failed',
-      error: message,
+      userId: params.userId,
+      prompt: params.prompt,
+      error,
     })
-    await updateV7Production(params.supabase, productionId, params.userId, {
-      status: 'failed',
-      current_stage: 'idea',
-    })
+    if (outcome === 'retry') {
+      const snapshot = await getV7Production(params.supabase, productionId, params.userId)
+      if (!snapshot) throw new Error('Production not found after idea retry queue')
+      return toV7AdvanceSnapshot(snapshot, { blocked: true, reason: 'idea_provider_retry' })
+    }
     throw new V7StageExecutionError('idea', error, { productionId })
   }
 
@@ -201,20 +324,54 @@ export async function advanceV7Production(params: {
       snapshot,
     })) ?? snapshot
 
-  const brief = snapshot.production.creative_brief
-  if (!brief) throw new Error('Creative brief missing')
-
   const ideaStage = snapshot.stages.find((s) => s.stage === 'idea')
   if (ideaStage?.status !== 'completed') {
-    return toV7AdvanceSnapshot(snapshot, { blocked: false })
-  }
+    if (ideaStage?.status === 'running') {
+      return toV7AdvanceSnapshot(snapshot, {
+        blocked: true,
+        reason: 'idea_in_progress',
+      })
+    }
 
-  if (snapshot.production.status === 'completed' || snapshot.production.status === 'failed') {
-    return toV7AdvanceSnapshot(snapshot, { blocked: false })
-  }
+    if (ideaStage?.status === 'queued' || ideaStage?.status === 'failed') {
+      const prompt =
+        (ideaStage.input as { prompt?: string } | null)?.prompt?.trim() ||
+        snapshot.production.prompt?.trim()
+      if (!prompt) {
+        return toV7AdvanceSnapshot(snapshot, {
+          blocked: true,
+          reason: 'idea_prompt_missing',
+        })
+      }
 
-  if (findFirstFailedStage(snapshot.stages)) {
-    return toV7AdvanceSnapshot(snapshot, { blocked: false })
+      try {
+        await executeV7IdeaStage({
+          supabase: params.supabase,
+          productionId: params.productionId,
+          userId: params.userId,
+          prompt,
+        })
+      } catch (error) {
+        const outcome = await handleV7IdeaStageFailure({
+          supabase: params.supabase,
+          productionId: params.productionId,
+          userId: params.userId,
+          prompt,
+          error,
+        })
+        if (outcome === 'retry') {
+          snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
+          if (!snapshot) throw new Error('Production not found after idea retry queue')
+          return toV7AdvanceSnapshot(snapshot, { blocked: true, reason: 'idea_provider_retry' })
+        }
+        throw new V7StageExecutionError('idea', error, { productionId: params.productionId })
+      }
+
+      snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
+      if (!snapshot) throw new Error('Production not found after idea analysis')
+    } else {
+      return toV7AdvanceSnapshot(snapshot, { blocked: false })
+    }
   }
 
   if (isAwaitingConceptSelection(snapshot.production.timeline_json)) {
@@ -222,6 +379,17 @@ export async function advanceV7Production(params: {
       blocked: true,
       reason: 'awaiting_concept_selection',
     })
+  }
+
+  const brief = snapshot.production.creative_brief
+  if (!brief) throw new Error('Creative brief missing')
+
+  if (snapshot.production.status === 'completed' || snapshot.production.status === 'failed') {
+    return toV7AdvanceSnapshot(snapshot, { blocked: false })
+  }
+
+  if (findFirstFailedStage(snapshot.stages)) {
+    return toV7AdvanceSnapshot(snapshot, { blocked: false })
   }
 
   let running = findRunningStage(snapshot.stages)
@@ -319,11 +487,12 @@ export async function advanceV7Production(params: {
     snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
     if (!snapshot) throw new Error('Production not found after stage')
 
-    const nextStage = getNextRunnableStageId(stage)
-    await updateV7Production(params.supabase, params.productionId, params.userId, {
-      status: 'producing',
-      current_stage: nextStage ?? stage,
+    const statusPatch = resolveProductionFieldsAfterStageSuccess({
+      completedStage: stage,
+      stages: snapshot.stages,
+      production: snapshot.production,
     })
+    await updateV7Production(params.supabase, params.productionId, params.userId, statusPatch)
 
     snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
     if (!snapshot) throw new Error('Production not found after stage reconciliation')
@@ -460,6 +629,56 @@ async function executeV7Stage(
 
   const script = getStageOutput<V7ScriptDocument>(stages, 'script', 'script')!
 
+  if (stage === 'voice') {
+    const voiceSnapshot = await getV7Production(supabase, productionId, userId)
+    if (!voiceSnapshot) throw new Error('Snapshot missing')
+
+    const { voiceUrl, provider, durationMs, fallbackMessage, narrationSegments, audioDurationSec } =
+      await runV7VoiceStage({
+        brief,
+        script,
+        userId,
+        productionId,
+        snapshot: voiceSnapshot,
+        supabase,
+      })
+
+    if (narrationSegments.length > 0) {
+      const totalText = narrationSegments.reduce((sum, seg) => sum + seg.text.length, 0)
+      const totalDur =
+        audioDurationSec ??
+        narrationSegments.reduce((sum, seg) => sum + seg.durationSec, 0)
+      for (const seg of narrationSegments) {
+        const scene = voiceSnapshot.scenes.find((row) => row.number === seg.sceneNumber)
+        if (!scene) continue
+        const weight = totalText > 0 ? seg.text.length / totalText : 1 / narrationSegments.length
+        const sceneDuration = Math.max(1, Math.round(totalDur * weight * 10) / 10)
+        await supabase
+          .from('v7_scenes')
+          .update({ duration: sceneDuration })
+          .eq('id', scene.id)
+      }
+    }
+
+    if (voiceUrl) {
+      await updateV7Production(supabase, productionId, userId, { voice_url: voiceUrl })
+    }
+    await upsertV7Stage(supabase, {
+      productionId,
+      stage,
+      status: 'completed',
+      output: {
+        voiceUrl,
+        provider,
+        durationMs,
+        fallbackMessage: fallbackMessage ?? null,
+        narrationSegments,
+        audioDurationSec: audioDurationSec ?? null,
+      },
+    })
+    return
+  }
+
   if (stage === 'character') {
     const storyboard =
       getStageOutput<V7StoryboardDocument>(stages, 'storyboard', 'storyboard') ??
@@ -537,7 +756,7 @@ async function executeV7Stage(
   const snapshot = await getV7Production(supabase, productionId, userId)
   if (!snapshot) throw new Error('Snapshot missing')
 
-    if (stage === 'image') {
+  if (stage === 'image') {
     ProviderManager.refreshPollinationsState(userId)
     await ProviderManager.assertImageReady({ userId, productionId, forceRefresh: true })
     const { images } = await runV7ImageStage({
@@ -623,37 +842,6 @@ async function executeV7Stage(
       stage,
       status: 'completed',
       output: { provider, sceneCount: sceneUpdates.length, durationMs },
-    })
-    return
-  }
-
-  if (stage === 'voice') {
-    const { voiceUrl, provider, durationMs, fallbackMessage, narrationSegments } =
-      await runV7VoiceStage({
-        brief,
-        script,
-        storyboard,
-        userId,
-        productionId,
-        snapshot,
-        characterBible,
-        worldBible,
-        supabase,
-      })
-    if (voiceUrl) {
-      await updateV7Production(supabase, productionId, userId, { voice_url: voiceUrl })
-    }
-    await upsertV7Stage(supabase, {
-      productionId,
-      stage,
-      status: 'completed',
-      output: {
-        voiceUrl,
-        provider,
-        durationMs,
-        fallbackMessage: fallbackMessage ?? null,
-        narrationSegments,
-      },
     })
     return
   }

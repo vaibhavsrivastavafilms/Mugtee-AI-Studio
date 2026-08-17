@@ -74,9 +74,9 @@ export function detectInputLanguage(raw: string): ProjectLanguage {
   const text = raw.trim()
   if (!text) return 'en'
 
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu'
   if (/[\u0900-\u097F]/.test(text)) return 'hi'
   if (/[\u0600-\u06FF]/.test(text)) return /[\u0670-\u06D3]/.test(text) ? 'ur' : 'ar'
-  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu'
   if (/[\u3040-\u30FF]/.test(text)) return 'ja'
   if (/[\uAC00-\uD7AF]/.test(text)) return 'ko'
   if (/[\u4E00-\u9FFF]/.test(text)) return 'zh'

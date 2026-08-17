@@ -3,10 +3,18 @@ import 'server-only'
 import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { openProjectHref } from '@/lib/create/routes'
 import { buildTimeline } from '@/lib/v7/db.server'
+import { v7HasDeliverableMedia } from '@/lib/v7/deliverable-media.core'
 import {
-  computeV7ProductionProgress,
-  formatV7PausedFailureReason,
-} from '@/lib/v7/production-progress'
+  buildProjectActions,
+  formatAspectRatioLabel,
+  mapV7UnifiedStatus,
+  matchesPipelineFilter,
+  matchesSearch,
+  matchesStatusFilter,
+  pipelineLabel,
+  sortProjects,
+  unifiedStatusLabel,
+} from '@/lib/projects/unified-library.core'
 import type {
   UnifiedLibraryPipelineFilter,
   UnifiedLibraryResponse,
@@ -14,11 +22,14 @@ import type {
   UnifiedLibrarySourceHealth,
   UnifiedLibraryStats,
   UnifiedLibraryStatusFilter,
-  UnifiedProjectActions,
   UnifiedProjectItem,
   UnifiedProjectPipeline,
   UnifiedProjectStatus,
 } from '@/lib/projects/unified-library.types'
+import {
+  computeV7ProductionProgress,
+  formatV7PausedFailureReason,
+} from '@/lib/v7/production-progress'
 import type { LibraryTimingRecorder } from '@/lib/perf/library-timing.server'
 import type { V7ProductionRow, V7ProductionSnapshot, V7SceneRow, V7StageRow } from '@/types/v7/production'
 import type { V3ProjectRow } from '@/types/v3/production'
@@ -28,7 +39,7 @@ const MAX_PER_SOURCE = 300
 const V7_LIBRARY_FETCH_CAP = 100
 
 const V7_LIBRARY_PRODUCTION_COLUMNS =
-  'id,user_id,title,prompt,status,creative_brief,current_stage,reel_url,mov_url,thumbnail_url,creator_pack_url,created_at,updated_at'
+  'id,user_id,title,prompt,status,creative_brief,current_stage,reel_url,mov_url,thumbnail_url,creator_pack_url,export_status,timeline_json,created_at,updated_at'
 
 const V7_LIBRARY_STAGE_COLUMNS = 'production_id,stage,status,error'
 
@@ -51,34 +62,6 @@ type CinematicListRow = {
   scenes: unknown
 }
 
-function statusLabel(status: UnifiedProjectStatus): string {
-  switch (status) {
-    case 'completed':
-      return 'Completed'
-    case 'running':
-      return 'Running'
-    case 'paused':
-      return 'Paused'
-    case 'failed':
-      return 'Failed'
-    case 'draft':
-      return 'Draft'
-  }
-}
-
-function pipelineLabel(type: UnifiedProjectPipeline): string {
-  switch (type) {
-    case 'v7':
-      return 'V7 Studio'
-    case 'quick_cut':
-      return 'Quick Cut'
-    case 'cinematic':
-      return 'Cinematic'
-    case 'v3':
-      return 'V3 Legacy'
-  }
-}
-
 function pickThumbnailFromStoryboard(raw: unknown): string | null {
   if (!raw || typeof raw !== 'object') return null
   const board = raw as { imageUrl?: string; thumbnailUrl?: string }
@@ -95,17 +78,6 @@ function pickThumbnailFromScenes(scenes: unknown): string | null {
     if (fromBoard?.trim()) return fromBoard.trim()
   }
   return null
-}
-
-function mapV7UnifiedStatus(
-  production: V7ProductionRow,
-  hasFailedStage: boolean
-): UnifiedProjectStatus {
-  if (production.status === 'completed' && production.reel_url?.trim()) return 'completed'
-  if (production.status === 'completed') return 'completed'
-  if (hasFailedStage || production.status === 'failed') return 'paused'
-  if (production.status === 'producing' || production.status === 'planning') return 'running'
-  return 'draft'
 }
 
 function mapCinematicUnifiedStatus(row: CinematicListRow): UnifiedProjectStatus {
@@ -125,28 +97,9 @@ function mapCinematicUnifiedStatus(row: CinematicListRow): UnifiedProjectStatus 
 function mapV3UnifiedStatus(row: V3ProjectRow): UnifiedProjectStatus {
   if (row.status === 'completed' && row.reel_url?.trim()) return 'completed'
   if (row.status === 'completed') return 'completed'
-  if (row.status === 'failed') return 'paused'
+  if (row.status === 'failed') return 'failed'
   if (row.status === 'producing' || row.status === 'planning') return 'running'
   return 'draft'
-}
-
-function buildActions(params: {
-  status: UnifiedProjectStatus
-  reelUrl: string | null
-  movUrl: string | null
-  creatorPackUrl: string | null
-  retryAvailable: boolean
-}): UnifiedProjectActions {
-  const hasReel = Boolean(params.reelUrl?.trim())
-  return {
-    open: true,
-    continue: params.status === 'running' || params.status === 'paused' || params.status === 'draft',
-    retry: params.retryAvailable && params.status === 'paused',
-    watch: hasReel,
-    download: hasReel,
-    downloadMov: Boolean(params.movUrl?.trim()),
-    creatorPack: Boolean(params.creatorPackUrl?.trim()),
-  }
 }
 
 function buildV7Items(params: {
@@ -178,13 +131,22 @@ function buildV7Items(params: {
     const reelUrl = production.reel_url?.trim() || null
     const movUrl = production.mov_url?.trim() || null
     const creatorPackUrl = production.creator_pack_url?.trim() || null
+    const deliverable = v7HasDeliverableMedia(production)
     const sceneProgressLabel = progress.sceneProgress
-      ? `Scene ${progress.sceneProgress.currentSceneNumber ?? progress.sceneProgress.completedScenes + 1} / ${progress.sceneProgress.totalScenes}`
+      ? `${progress.sceneProgress.completedScenes} / ${progress.sceneProgress.totalScenes} scenes`
       : null
     const briefDuration = production.creative_brief?.duration
     const durationLabel =
       status === 'completed' && typeof briefDuration === 'number' && briefDuration > 0
-        ? `${briefDuration} sec`
+        ? `${briefDuration}s`
+        : null
+    const aspectRatioLabel = formatAspectRatioLabel(production.creative_brief?.aspectRatio)
+    const etaLabel =
+      status === 'running' &&
+      progress.eta.label &&
+      progress.eta.label !== 'Complete' &&
+      progress.eta.label !== 'Paused'
+        ? progress.eta.label
         : null
 
     return {
@@ -194,14 +156,19 @@ function buildV7Items(params: {
       type: 'v7',
       typeLabel: pipelineLabel('v7'),
       status,
-      statusLabel: status === 'paused' ? 'Production paused' : statusLabel(status),
+      statusLabel:
+        status === 'failed'
+          ? 'Generation failed'
+          : status === 'running' && progress.currentStageLabel
+            ? progress.currentStageLabel
+            : unifiedStatusLabel(status),
       currentStage: progress.currentStageLabel,
       currentTask: progress.currentTask,
       progress: progress.overallPercent,
       pausedReason: pausedCopy.summary ?? progress.paused?.reason ?? null,
       pausedDetail: pausedCopy.detail,
       retryAvailable: Boolean(progress.paused?.retryAvailable),
-      thumbnailUrl: production.thumbnail_url?.trim() || sceneThumb || null,
+      thumbnailUrl: production.thumbnail_url?.trim() || sceneThumb || reelUrl,
       reelUrl,
       movUrl,
       creatorPackUrl,
@@ -211,9 +178,12 @@ function buildV7Items(params: {
       route: `/studio/${production.id}`,
       sceneProgressLabel,
       durationLabel,
-      actions: buildActions({
+      aspectRatioLabel,
+      etaLabel,
+      isDeliverable: deliverable,
+      actions: buildProjectActions({
         status,
-        reelUrl,
+        deliverable,
         movUrl,
         creatorPackUrl,
         retryAvailable: Boolean(progress.paused?.retryAvailable),
@@ -243,7 +213,7 @@ function buildCinematicItems(rows: CinematicListRow[], type: 'quick_cut' | 'cine
       type,
       typeLabel: pipelineLabel(type),
       status,
-      statusLabel: statusLabel(status),
+      statusLabel: unifiedStatusLabel(status),
       currentStage: row.generation_status ?? row.status ?? null,
       currentTask:
         status === 'failed'
@@ -266,9 +236,9 @@ function buildCinematicItems(rows: CinematicListRow[], type: 'quick_cut' | 'cine
         videoUrl: reelUrl,
         hasPlayablePreview: Boolean(reelUrl),
       }),
-      actions: buildActions({
+      actions: buildProjectActions({
         status,
-        reelUrl,
+        deliverable: status === 'completed' && Boolean(reelUrl),
         movUrl: null,
         creatorPackUrl: null,
         retryAvailable: false,
@@ -282,7 +252,13 @@ function buildV3Items(rows: V3ProjectRow[]): UnifiedProjectItem[] {
     const status = mapV3UnifiedStatus(row)
     const reelUrl = row.reel_url?.trim() || null
     const progress =
-      status === 'completed' ? 100 : status === 'draft' ? 5 : status === 'paused' ? 35 : 55
+      status === 'completed'
+        ? 100
+        : status === 'draft'
+          ? 5
+          : status === 'failed'
+            ? 0
+            : 55
 
     return {
       id: row.id,
@@ -291,18 +267,18 @@ function buildV3Items(rows: V3ProjectRow[]): UnifiedProjectItem[] {
       type: 'v3',
       typeLabel: pipelineLabel('v3'),
       status,
-      statusLabel: statusLabel(status),
+      statusLabel: unifiedStatusLabel(status),
       currentStage: row.current_stage,
       currentTask:
         status === 'completed'
           ? 'Production complete'
-          : status === 'paused'
-            ? 'Production paused'
+          : status === 'failed'
+            ? 'Generation failed'
             : 'In progress',
       progress,
-      pausedReason: status === 'paused' ? 'Stage failed — open to retry' : null,
+      pausedReason: status === 'failed' ? 'Stage failed — open to retry' : null,
       pausedDetail: null,
-      retryAvailable: status === 'paused',
+      retryAvailable: status === 'failed',
       thumbnailUrl: null,
       reelUrl,
       movUrl: null,
@@ -311,63 +287,15 @@ function buildV3Items(rows: V3ProjectRow[]): UnifiedProjectItem[] {
       updatedAt: row.updated_at,
       completedAt: status === 'completed' ? row.updated_at : null,
       route: `/v3/${row.id}`,
-      actions: buildActions({
+      actions: buildProjectActions({
         status,
-        reelUrl,
+        deliverable: status === 'completed' && Boolean(reelUrl),
         movUrl: null,
         creatorPackUrl: null,
-        retryAvailable: status === 'paused',
+        retryAvailable: status === 'failed',
       }),
     }
   })
-}
-
-function matchesSearch(item: UnifiedProjectItem, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return [item.title, item.prompt, item.id].join(' ').toLowerCase().includes(q)
-}
-
-function matchesStatusFilter(item: UnifiedProjectItem, filter: UnifiedLibraryStatusFilter): boolean {
-  if (filter === 'all') return true
-  return item.status === filter
-}
-
-function matchesPipelineFilter(
-  item: UnifiedProjectItem,
-  filter: UnifiedLibraryPipelineFilter
-): boolean {
-  if (filter === 'all') return true
-  if (filter === 'v7') return item.type === 'v7'
-  if (filter === 'quick_cut') return item.type === 'quick_cut'
-  if (filter === 'cinematic') return item.type === 'cinematic'
-  if (filter === 'v3') return item.type === 'v3'
-  return true
-}
-
-function sortProjects(items: UnifiedProjectItem[], sort: UnifiedLibrarySort): UnifiedProjectItem[] {
-  const copy = [...items]
-  switch (sort) {
-    case 'newest':
-      copy.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-      break
-    case 'oldest':
-      copy.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      break
-    case 'recently_completed':
-      copy.sort((a, b) => {
-        const aTime = a.completedAt ? Date.parse(a.completedAt) : 0
-        const bTime = b.completedAt ? Date.parse(b.completedAt) : 0
-        if (aTime !== bTime) return bTime - aTime
-        return Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
-      })
-      break
-    case 'recently_updated':
-    default:
-      copy.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-      break
-  }
-  return copy
 }
 
 function resolveV7FetchLimit(params: {
@@ -399,22 +327,38 @@ function resolveV7FetchLimit(params: {
   return { limit: MAX_PER_SOURCE, orderColumn: 'updated_at' }
 }
 
+function productionNeedsStageRows(production: V7ProductionRow): boolean {
+  if (production.status === 'producing' || production.status === 'planning') return true
+  if (production.status === 'failed') return true
+  if (production.status === 'draft') return true
+  return false
+}
+
 async function fetchV7LibraryItems(params: {
   supabase: SupabaseServerClient
   productions: V7ProductionRow[]
+  timing?: LibraryTimingRecorder
 }): Promise<UnifiedProjectItem[]> {
   if (params.productions.length === 0) return []
 
   const ids = params.productions.map((row) => row.id)
+  const idsNeedingStages = params.productions
+    .filter((row) => productionNeedsStageRows(row))
+    .map((row) => row.id)
   const idsNeedingSceneThumb = params.productions
     .filter((row) => !row.thumbnail_url?.trim())
     .map((row) => row.id)
 
-  const stageQuery = params.supabase
-    .from('v7_stages')
-    .select(V7_LIBRARY_STAGE_COLUMNS)
-    .in('production_id', ids)
+  const stagesStarted = performance.now()
+  const stageQuery =
+    idsNeedingStages.length > 0
+      ? params.supabase
+          .from('v7_stages')
+          .select(V7_LIBRARY_STAGE_COLUMNS)
+          .in('production_id', idsNeedingStages)
+      : null
 
+  const scenesStarted = performance.now()
   const sceneQuery =
     idsNeedingSceneThumb.length > 0
       ? params.supabase
@@ -424,13 +368,25 @@ async function fetchV7LibraryItems(params: {
           .order('number')
       : null
 
-  const [{ data: stageRows }, sceneResult] = await Promise.all([
-    stageQuery,
+  const [stageResult, sceneResult] = await Promise.all([
+    stageQuery ?? Promise.resolve({ data: [] as V7StageRow[] }),
     sceneQuery ?? Promise.resolve({ data: [] as V7SceneRow[] }),
   ])
 
+  params.timing?.mark('stages')
+  if (process.env.NODE_ENV !== 'production') {
+    const stagesMs = Math.round(performance.now() - stagesStarted)
+    const scenesMs = Math.round(performance.now() - scenesStarted)
+    if (stagesMs > 300 || scenesMs > 300) {
+      console.info(
+        `[library-timing] relations-detail stages: ${stagesMs}ms scenes: ${scenesMs}ms stageRows=${idsNeedingStages.length} sceneRows=${idsNeedingSceneThumb.length}`
+      )
+    }
+  }
+  params.timing?.mark('scenes')
+
   const stagesByProduction = new Map<string, V7StageRow[]>()
-  for (const row of (stageRows ?? []) as V7StageRow[]) {
+  for (const row of (stageResult.data ?? []) as V7StageRow[]) {
     const list = stagesByProduction.get(row.production_id) ?? []
     list.push(row)
     stagesByProduction.set(row.production_id, list)
@@ -512,6 +468,7 @@ export async function fetchUnifiedProjectLibrary(params: {
         ...(await fetchV7LibraryItems({
           supabase: params.supabase,
           productions,
+          timing: params.timing,
         }))
       )
       params.timing?.mark('assets')

@@ -28,6 +28,7 @@ import {
   logV92Report,
   runV9StoryExecutionAudit,
 } from '@/lib/v7/story-execution-audit.server'
+import { v7VoiceLanguageCode } from '@/lib/v7/language-routing.core'
 import { allowSilentVoiceFallback } from '@/lib/v7/production-integrity.server'
 import { validateV7ProductionMediaAssets } from '@/lib/v7/media-probe.server'
 import type { V7SoundEffect } from '@/lib/v3/sound-cascade.server'
@@ -140,9 +141,12 @@ export async function runV7VoiceStage(params: {
       userId: params.userId,
       projectId: params.productionId,
       tone: params.brief.voiceDirection,
+      contentLanguage: v7VoiceLanguageCode(params.brief),
     },
     supabase
   )
+
+  const audioDurationSec = voice.voiceMetadata?.durationSec ?? null
 
   if (voice.audioUrl?.trim()) {
     return {
@@ -151,11 +155,13 @@ export async function runV7VoiceStage(params: {
       durationMs: Date.now() - started,
       fallbackMessage: voice.fallbackMessage ?? null,
       narrationSegments,
+      audioDurationSec,
     }
   }
 
   const cascade = await synthesizeWithCascade(narration || ' ', {
     allowSilentStub: allowSilentVoiceFallback(),
+    languageCode: v7VoiceLanguageCode(params.brief),
   })
   if (cascade.buffer && cascade.provider !== 'silent') {
     const dataUrl = `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`
@@ -165,6 +171,7 @@ export async function runV7VoiceStage(params: {
       durationMs: Date.now() - started,
       fallbackMessage: cascade.fallbackMessage ?? 'Voice unavailable — render will synthesize silence if needed.',
       narrationSegments,
+      audioDurationSec,
     }
   }
 
@@ -184,6 +191,7 @@ export async function runV7VoiceStage(params: {
     durationMs: Date.now() - started,
     fallbackMessage: 'Voice unavailable — render will use silent fallback.',
     narrationSegments,
+    audioDurationSec: null,
   }
 }
 

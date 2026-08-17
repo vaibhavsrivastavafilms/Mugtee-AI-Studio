@@ -41,6 +41,18 @@ function resolveFromFfmpegStaticPackage(): string | null {
   }
 }
 
+function resolveFromKnownInstallLocations(): string | null {
+  const exe = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+  const candidates = [
+    path.join(process.cwd(), 'node_modules', 'ffmpeg-static', exe),
+    path.join('/var/task', 'node_modules', 'ffmpeg-static', exe),
+  ]
+  for (const candidate of candidates) {
+    if (pathExists(candidate)) return candidate
+  }
+  return null
+}
+
 export function resolveFfmpegPath(): string | null {
   const envPath =
     process.env.FFMPEG_PATH?.trim() ||
@@ -55,7 +67,7 @@ export function resolveFfmpegPath(): string | null {
     /* optional dep */
   }
 
-  return resolveFromFfmpegStaticPackage()
+  return resolveFromFfmpegStaticPackage() ?? resolveFromKnownInstallLocations()
 }
 
 export function isFfmpegAvailable(): boolean {

@@ -37,6 +37,7 @@ function LoginContentInner() {
   const router = useRouter()
   const queryNext = params?.get('next')
   const queryMode = parseMode(params?.get('mode'))
+  const authMode = params?.get('mode') === 'signup' ? 'signup' : 'signin'
   const [storedMode, setStoredMode] = useState<CreatorMode | null>(null)
   const [nextPath, setNextPath] = useState(APP_ROUTE_LOGIN_FALLBACK)
 
@@ -119,6 +120,7 @@ function LoginContentInner() {
       <ProductionAuth
         nextPath={nextPath}
         activeMode={activeMode}
+        initialMode={authMode}
         onOAuthStart={() => setOauthLoading(true)}
         onOAuthEnd={() => setOauthLoading(false)}
         onInfrastructureUnavailable={() => setServiceUnavailable(true)}

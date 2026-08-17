@@ -4,8 +4,22 @@ import { randomUUID } from 'crypto'
 
 import { getV7Production, updateV7Production, upsertV7Stage } from '@/lib/v7/db.server'
 import { V7_RUNNABLE_STAGES } from '@/lib/v7/pipeline'
-import { detectProductionStateDrift } from '@/lib/v7/pipeline-state.core'
+import {
+  detectProductionCompletionDrift,
+  detectProductionStateDrift,
+  getV7StaleRunningMs,
+  isOrphanQueuedStageRow,
+  isLiveGlobalPipelineLock,
+  isV7PipelineLockActive,
+  readV7PipelineLock,
+  shouldRecoverV7PipelineLock,
+  type V7PipelineLock,
+} from '@/lib/v7/pipeline-state.core'
 import { isAwaitingConceptSelection } from '@/lib/v7/concept-selection.server'
+import {
+  isProductionCancelled,
+  readWorkspaceState,
+} from '@/lib/v7/workspace/workspace-state.core'
 import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { isEphemeralRemoteImageUrl } from '@/lib/image/ephemeral-image-url'
 import type {
@@ -17,18 +31,9 @@ import type {
 } from '@/types/v7/production'
 
 const STALE_RUNNING_MS = 30 * 60 * 1000
-/** Image generation can stall after a dev restart — recover sooner than other stages. */
-const IMAGE_STALE_RUNNING_MS = 8 * 60 * 1000
-/** Scene video generation can outlive a dev hot reload or API timeout — recover and retry. */
-const ANIMATION_STALE_RUNNING_MS = 10 * 60 * 1000
-/** Render runs inside a 300s API window — recover orphaned runs after timeout or hot reload. */
-const RENDER_STALE_RUNNING_MS = 6 * 60 * 1000
 
 function getStaleRunningMs(stage: V7StageId): number {
-  if (stage === 'image') return IMAGE_STALE_RUNNING_MS
-  if (stage === 'animation') return ANIMATION_STALE_RUNNING_MS
-  if (stage === 'render') return RENDER_STALE_RUNNING_MS
-  return STALE_RUNNING_MS
+  return getV7StaleRunningMs(stage)
 }
 
 export const V7_PIPELINE_ORDER: V7StageId[] = ['idea', ...V7_RUNNABLE_STAGES]
@@ -37,17 +42,10 @@ export type V7StageStartCheck =
   | { ok: true }
   | { ok: false; reason: string; blocked: true }
 
-export type V7PipelineLock = {
-  locked: boolean
-  stage?: V7StageId
-  since?: string
-  token?: string
-}
+export type { V7PipelineLock }
 
 function readPipelineLock(timeline: Record<string, unknown> | null | undefined): V7PipelineLock | null {
-  const raw = timeline?.pipeline_lock
-  if (!raw || typeof raw !== 'object') return null
-  return raw as V7PipelineLock
+  return readV7PipelineLock(timeline)
 }
 
 export function getPreviousPipelineStage(stage: V7StageId): V7StageId | null {
@@ -277,6 +275,47 @@ export async function reconcileProductionStateDrift(params: {
   return getV7Production(params.supabase, params.productionId, params.userId)
 }
 
+/** Align production.status when export checkpoint + reel are already finalized. */
+export async function reconcileProductionCompletionDrift(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  snapshot: V7ProductionSnapshot
+}): Promise<V7ProductionSnapshot | null> {
+  if (!detectProductionCompletionDrift(params.snapshot)) {
+    return params.snapshot
+  }
+
+  await updateV7Production(params.supabase, params.productionId, params.userId, {
+    status: 'completed',
+    current_stage: 'export',
+  })
+
+  return getV7Production(params.supabase, params.productionId, params.userId)
+}
+
+export async function recoverStalePipelineLock(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  snapshot: V7ProductionSnapshot
+}): Promise<V7ProductionSnapshot | null> {
+  const lock = readPipelineLock(params.snapshot.production.timeline_json as Record<string, unknown> | null)
+  const runningStage = findRunningStage(params.snapshot.stages)
+  if (!shouldRecoverV7PipelineLock({ lock, runningStage })) {
+    return params.snapshot
+  }
+
+  await releaseProductionLock({
+    supabase: params.supabase,
+    productionId: params.productionId,
+    userId: params.userId,
+    token: null,
+  })
+
+  return getV7Production(params.supabase, params.productionId, params.userId)
+}
+
 /** Reset stages that completed out of order or stale running locks. */
 export async function reconcilePipelineIntegrity(params: {
   supabase: SupabaseServerClient
@@ -292,8 +331,51 @@ export async function reconcilePipelineIntegrity(params: {
       snapshot: params.snapshot,
     })) ?? params.snapshot
 
+  snapshot =
+    (await reconcileProductionCompletionDrift({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot,
+    })) ?? snapshot
+
+  snapshot =
+    (await recoverStalePipelineLock({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot,
+    })) ?? snapshot
+
   let changed = false
   let resumeStage: V7StageId | null = null
+
+  for (const stageId of V7_PIPELINE_ORDER) {
+    const row = snapshot.stages.find((s) => s.stage === stageId)
+    if (!isOrphanQueuedStageRow(row)) continue
+
+    await upsertV7Stage(params.supabase, {
+      productionId: params.productionId,
+      stage: stageId,
+      status: 'queued',
+      input: row?.input ?? null,
+      output: null,
+      error: row?.error ?? null,
+    })
+    changed = true
+    if (!resumeStage) resumeStage = stageId
+  }
+
+  const ideaRow = snapshot.stages.find((s) => s.stage === 'idea')
+  if (ideaRow?.status === 'running' && isStaleRunningStage(ideaRow)) {
+    await recoverStaleRunningStage({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      row: ideaRow,
+    })
+    changed = true
+    resumeStage = 'idea'
+  }
 
   for (const stageId of V7_RUNNABLE_STAGES) {
     const row = snapshot.stages.find((s) => s.stage === stageId)
@@ -451,24 +533,63 @@ export async function enqueueNextPipelineStage(params: {
   })
 }
 
+/** Returns the production currently holding the global execution slot, if any. */
+export async function findGloballyLockedV7Production(
+  supabase: SupabaseServerClient,
+  excludeProductionId?: string
+): Promise<{ productionId: string; userId: string } | null> {
+  const { data, error } = await supabase
+    .from('v7_productions')
+    .select('id,user_id,timeline_json')
+    .eq('status', 'producing')
+    .limit(100)
+
+  if (error) throw new Error(error.message)
+
+  for (const row of data ?? []) {
+    if (excludeProductionId && row.id === excludeProductionId) continue
+    const lock = readPipelineLock((row.timeline_json ?? {}) as Record<string, unknown>)
+    if (!lock?.locked || !isV7PipelineLockActive(lock)) continue
+
+    const snapshot = await getV7Production(supabase, row.id, row.user_id)
+    if (!snapshot) continue
+
+    const running = findRunningStage(snapshot.stages)
+    if (
+      !isLiveGlobalPipelineLock({
+        lock,
+        runningStage: running,
+      })
+    ) {
+      continue
+    }
+
+    return { productionId: row.id, userId: row.user_id }
+  }
+
+  return null
+}
+
 export async function acquireProductionLock(params: {
   supabase: SupabaseServerClient
   productionId: string
   userId: string
   stage: V7StageId
 }): Promise<{ acquired: boolean; token: string | null }> {
+  const globalLock = await findGloballyLockedV7Production(params.supabase, params.productionId)
+  if (globalLock) {
+    return { acquired: false, token: null }
+  }
+
   const snapshot = await getV7Production(params.supabase, params.productionId, params.userId)
   if (!snapshot) return { acquired: false, token: null }
 
   const timeline = (snapshot.production.timeline_json ?? {}) as Record<string, unknown>
   const existing = readPipelineLock(timeline)
+  const running = findRunningStage(snapshot.stages)
 
-  if (existing?.locked) {
-    const since = existing.since ? Date.parse(existing.since) : 0
-    const stale = !since || Date.now() - since > STALE_RUNNING_MS
-    if (!stale) {
-      return { acquired: false, token: null }
-    }
+  if (isLiveGlobalPipelineLock({ lock: existing, runningStage: running })) {
+    return { acquired: false, token: null }
   }
 
   const token = randomUUID()
@@ -514,12 +635,27 @@ export async function releaseProductionLock(params: {
 }
 
 export function shouldDrivePipeline(snapshot: V7ProductionSnapshot): boolean {
-  if (snapshot.production.status !== 'producing') return false
+  const status = snapshot.production.status
+  if (status !== 'producing' && status !== 'planning') return false
+
+  if (isProductionCancelled(readWorkspaceState(snapshot.production.timeline_json))) {
+    return false
+  }
+
+  const ideaStage = snapshot.stages.find((s) => s.stage === 'idea')
+  if (ideaStage?.status !== 'completed') {
+    if (ideaStage?.status === 'queued') {
+      if (findRunningStage(snapshot.stages)) return false
+      const lock = readPipelineLock(snapshot.production.timeline_json as Record<string, unknown> | null)
+      if (isLiveGlobalPipelineLock({ lock, runningStage: findRunningStage(snapshot.stages) })) {
+        return false
+      }
+      return true
+    }
+    return false
+  }
 
   if (isAwaitingConceptSelection(snapshot.production.timeline_json)) return false
-
-  const ideaDone = snapshot.stages.find((s) => s.stage === 'idea')?.status === 'completed'
-  if (!ideaDone) return false
 
   if (findFirstFailedStage(snapshot.stages)) return false
 
@@ -527,11 +663,9 @@ export function shouldDrivePipeline(snapshot: V7ProductionSnapshot): boolean {
   if (running) return false
 
   const lock = readPipelineLock(snapshot.production.timeline_json as Record<string, unknown> | null)
-  if (lock?.locked) {
-    const since = lock.since ? Date.parse(lock.since) : 0
-    if (since && Date.now() - since < STALE_RUNNING_MS) {
-      return false
-    }
+  const runningForLock = findRunningStage(snapshot.stages)
+  if (isLiveGlobalPipelineLock({ lock, runningStage: runningForLock })) {
+    return false
   }
 
   return Boolean(findNextQueuedStage(snapshot.stages))

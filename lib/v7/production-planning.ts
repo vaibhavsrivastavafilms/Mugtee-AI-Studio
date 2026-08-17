@@ -59,9 +59,11 @@ export function inferDurationSecFromPrompt(prompt: string): number | null {
     }
   }
 
-  const secondMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:second|seconds|sec|s)\b/)
+  const secondMatch = text.match(
+    /(\d+(?:\.\d+)?)[\s-]*(?:second|seconds|sec|s)\b|(\d+(?:\.\d+)?)\s*(?:સેકન્ડ(?:ની)?|सेकंड(?: की)?)(?=\s|$|[.,!])/
+  )
   if (secondMatch) {
-    const seconds = Number.parseFloat(secondMatch[1] ?? '')
+    const seconds = Number.parseFloat(secondMatch[1] ?? secondMatch[2] ?? '')
     if (Number.isFinite(seconds) && seconds > 0) {
       return clampProductionDuration(Math.round(seconds))
     }

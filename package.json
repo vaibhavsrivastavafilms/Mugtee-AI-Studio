@@ -18,6 +18,7 @@
     "test:e2e:template": "playwright test e2e/quick-cut-template-e2e.spec.ts",
     "test:e2e:mp4-proof": "playwright test e2e/mp4-proof.spec.ts",
     "test:e2e:auth-interactive": "node scripts/e2e-interactive-auth.mjs",
+    "test:e2e:v7-spectator": "node scripts/v7-playwright-spectator-e2e.mjs",
     "mcp:playwright": "node mcp-server-playwright.js",
     "test:ci:quick-cut-smoke": "node scripts/ci/quick-cut-smoke.mjs",
     "test:execute": "node scripts/final-execute.mjs",

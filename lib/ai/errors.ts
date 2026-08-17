@@ -11,7 +11,7 @@ export type TextProviderErrorCode =
   | 'NO_FREE_TEXT_MODEL_AVAILABLE'
   | 'OPENROUTER_API_UNAVAILABLE'
 
-export type ActiveTextProviderId = 'openrouter'
+export type ActiveTextProviderId = 'pollinations' | 'openrouter'
 
 export class TextProviderError extends Error {
   readonly code: TextProviderErrorCode

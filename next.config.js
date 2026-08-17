@@ -23,6 +23,10 @@ const nextConfig = {
       '/api/quick-cut/config': ['./lib/remotion/compositions/**/*'],
       '/api/reels/export': ['./lib/remotion/compositions/**/*'],
       '/api/timeline/render': ['./lib/remotion/compositions/**/*'],
+      // V7 I2V validates scene MP4s with ffmpeg-static after Pollinations generation.
+      '/api/v7/productions/[id]': ['./node_modules/ffmpeg-static/**/*'],
+      '/api/v7/productions/[id]/retry': ['./node_modules/ffmpeg-static/**/*'],
+      '/api/cron/v7-advance': ['./node_modules/ffmpeg-static/**/*'],
     },
   },
 

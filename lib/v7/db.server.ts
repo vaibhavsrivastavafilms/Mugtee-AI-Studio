@@ -113,7 +113,13 @@ export async function upsertV7Stage(
     error: params.error ?? null,
   }
 
-  if (params.status === 'running') patch.started_at = now
+  if (params.status === 'running') {
+    patch.started_at = now
+    patch.completed_at = null
+  }
+  if (params.status === 'queued') {
+    patch.completed_at = null
+  }
   if (params.status === 'completed' || params.status === 'failed') patch.completed_at = now
 
   const { error } = await supabase.from('v7_stages').upsert(patch, {
@@ -135,6 +141,80 @@ export async function listV7Productions(
 
   if (error) throw new Error(error.message)
   return (data ?? []) as V7ProductionRow[]
+}
+
+/** Studio GET read path — omits heavy columns not used by the observational UI. */
+const V7_STUDIO_READ_PRODUCTION_COLUMNS =
+  'id,user_id,title,prompt,status,creative_brief,current_stage,reel_url,mov_url,thumbnail_url,creator_pack_url,export_status,timeline_json,created_at,updated_at'
+
+/** Reconcile + progress need stage output; input is write-only payload and omitted. */
+const V7_STUDIO_READ_STAGE_COLUMNS =
+  'id,production_id,stage,status,error,started_at,completed_at,created_at,output'
+
+/** Progress + thumbnails use storyboard; script payloads are omitted. */
+const V7_STUDIO_READ_SCENE_COLUMNS =
+  'id,production_id,number,storyboard,duration,created_at'
+
+export type V7ProductionReadTiming = {
+  productionMs: number
+  relationsMs: number
+}
+
+export async function getV7ProductionForStudioRead(
+  supabase: SupabaseServerClient,
+  productionId: string,
+  userId: string
+): Promise<{ snapshot: V7ProductionSnapshot | null; timing: V7ProductionReadTiming }> {
+  const readStarted = performance.now()
+  const { data: production, error: prodError } = await supabase
+    .from('v7_productions')
+    .select(V7_STUDIO_READ_PRODUCTION_COLUMNS)
+    .eq('id', productionId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (prodError) throw new Error(prodError.message)
+  if (!production) {
+    return {
+      snapshot: null,
+      timing: {
+        productionMs: Math.round(performance.now() - readStarted),
+        relationsMs: 0,
+      },
+    }
+  }
+
+  const productionMs = Math.round(performance.now() - readStarted)
+  const relationsStarted = performance.now()
+
+  const [{ data: stages }, { data: scenes }] = await Promise.all([
+    supabase
+      .from('v7_stages')
+      .select(V7_STUDIO_READ_STAGE_COLUMNS)
+      .eq('production_id', productionId),
+    supabase
+      .from('v7_scenes')
+      .select(V7_STUDIO_READ_SCENE_COLUMNS)
+      .eq('production_id', productionId)
+      .order('number'),
+  ])
+
+  const stageRows = (stages ?? []) as V7StageRow[]
+  const sceneRows = (scenes ?? []) as V7SceneRow[]
+  const timeline = buildTimeline(stageRows)
+
+  return {
+    snapshot: {
+      production: production as V7ProductionRow,
+      stages: stageRows,
+      scenes: sceneRows,
+      timeline,
+    },
+    timing: {
+      productionMs,
+      relationsMs: Math.round(performance.now() - relationsStarted),
+    },
+  }
 }
 
 export async function getV7Production(

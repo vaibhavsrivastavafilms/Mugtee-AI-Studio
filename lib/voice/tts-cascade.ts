@@ -1,5 +1,5 @@
 /**
- * Voice cascade: Edge TTS → Piper → Kokoro → paid (ElevenLabs/OpenAI/Emergent) → Google → silent.
+ * Voice cascade: Pollinations TTS → Edge TTS → Piper → Kokoro → paid → Google → silent.
  * Failures never throw — callers continue the pipeline.
  */
 
@@ -8,6 +8,7 @@ import { synthesizeKokoroTts, synthesizePiperTts } from '@/lib/voice/local-tts.s
 import { logError } from '@/lib/workspace/validation'
 
 export type TtsCascadeProvider =
+  | 'pollinations'
   | 'kokoro'
   | 'piper'
   | 'elevenlabs'
@@ -63,16 +64,42 @@ async function synthesizeGoogleTts(text: string): Promise<Buffer | null> {
   }
 }
 
+async function synthesizePollinationsTts(
+  text: string,
+  options?: { voiceName?: string }
+): Promise<Buffer | null> {
+  if (!text.trim()) return null
+  try {
+    const { readPollinationsApiKeyFromEnv } = await import('@/lib/pollinations/key-diagnostics-core')
+    if (!readPollinationsApiKeyFromEnv()) return null
+    const { fetchPollinationsSpeechBuffer } = await import('@/lib/pollinations/audio.server')
+    const { buffer } = await fetchPollinationsSpeechBuffer({
+      text,
+      voice: options?.voiceName,
+    })
+    return buffer.length > 256 ? buffer : null
+  } catch (err) {
+    logError('tts-cascade.pollinations', err)
+    return null
+  }
+}
+
 /**
  * Edge TTS via Microsoft Edge read-aloud (free, no API key).
  * May fail in restricted networks — silent fallback continues.
  */
-async function synthesizeEdgeTts(text: string): Promise<Buffer | null> {
+function resolveEdgeTtsVoice(languageCode?: string): string {
+  if (languageCode === 'gu') return 'gu-IN-DhwaniNeural'
+  if (languageCode === 'hi') return 'hi-IN-SwaraNeural'
+  return 'en-US-AriaNeural'
+}
+
+async function synthesizeEdgeTts(text: string, languageCode?: string): Promise<Buffer | null> {
   if (!text.trim()) return null
   try {
     const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts')
     const tts = new MsEdgeTTS()
-    await tts.setMetadata('en-US-AriaNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
+    await tts.setMetadata(resolveEdgeTtsVoice(languageCode), OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
     const { audioStream } = await tts.toStream(text.slice(0, 4000))
     const chunks: Buffer[] = []
     for await (const chunk of audioStream) {
@@ -88,11 +115,28 @@ async function synthesizeEdgeTts(text: string): Promise<Buffer | null> {
 
 export async function synthesizeWithCascade(
   text: string,
-  options?: { elevenLabsVoiceId?: string; voiceName?: string; allowSilentStub?: boolean }
+  options?: {
+    elevenLabsVoiceId?: string
+    voiceName?: string
+    allowSilentStub?: boolean
+    languageCode?: string
+  }
 ): Promise<TtsCascadeResult> {
   const narration = text.trim()
   if (narration.length >= 1) {
-    const edge = await synthesizeEdgeTts(narration)
+    const pollinations = await synthesizePollinationsTts(narration, {
+      voiceName: options?.voiceName,
+    })
+    if (pollinations) {
+      return {
+        buffer: pollinations,
+        provider: 'pollinations',
+        voiceName: options?.voiceName || 'Pollinations Narrator',
+        warnOnce: false,
+      }
+    }
+
+    const edge = await synthesizeEdgeTts(narration, options?.languageCode)
     if (edge) {
       return {
         buffer: edge,

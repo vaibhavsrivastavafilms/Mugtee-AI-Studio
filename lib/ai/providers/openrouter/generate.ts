@@ -16,6 +16,7 @@ export type OpenRouterGenerateInput = {
   userPrompt: string
   temperature?: number
   timeoutMs?: number
+  maxModelAttempts?: number
 }
 
 export type OpenRouterGenerateResult = {
@@ -42,23 +43,34 @@ async function callOpenRouterChatCompletions(params: {
 
   logOpenRouter('Generation started', { model: params.model })
 
-  const res = await fetchWithTimeout(
-    OPENROUTER_CHAT_COMPLETIONS_URL,
-    {
-      method: 'POST',
-      headers: getOpenRouterHeaders(),
-      body: JSON.stringify({
+  let res: Response
+  try {
+    res = await fetchWithTimeout(
+      OPENROUTER_CHAT_COMPLETIONS_URL,
+      {
+        method: 'POST',
+        headers: getOpenRouterHeaders(),
+        body: JSON.stringify({
+          model: params.model,
+          messages: [
+            { role: 'system', content: params.input.systemPrompt },
+            { role: 'user', content: params.input.userPrompt },
+          ],
+          temperature: params.input.temperature ?? 0.4,
+          response_format: { type: 'json_object' },
+        }),
+      },
+      timeoutMs
+    )
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new TextProviderError('OPENROUTER_API_UNAVAILABLE', 'openrouter', {
+        message: 'OpenRouter request timed out',
         model: params.model,
-        messages: [
-          { role: 'system', content: params.input.systemPrompt },
-          { role: 'user', content: params.input.userPrompt },
-        ],
-        temperature: params.input.temperature ?? 0.4,
-        response_format: { type: 'json_object' },
-      }),
-    },
-    timeoutMs
-  )
+      })
+    }
+    throw err
+  }
 
   const body = await res.text()
   if (!res.ok) {
@@ -79,6 +91,15 @@ async function callOpenRouterChatCompletions(params: {
       })
     }
 
+    if (res.status === 402) {
+      throw new TextProviderError('OPENROUTER_MODEL_UNAVAILABLE', 'openrouter', {
+        httpStatus: res.status,
+        message: 'Insufficient credits for model',
+        model: params.model,
+        failover: true,
+      })
+    }
+
     if (isOpenRouterModelFailoverError(res.status, body)) {
       throw new TextProviderError('OPENROUTER_MODEL_UNAVAILABLE', 'openrouter', {
         httpStatus: res.status,
@@ -89,10 +110,11 @@ async function callOpenRouterChatCompletions(params: {
     }
 
     if (res.status >= 500) {
-      throw new TextProviderError('OPENROUTER_API_UNAVAILABLE', 'openrouter', {
+      throw new TextProviderError('OPENROUTER_MODEL_UNAVAILABLE', 'openrouter', {
         httpStatus: res.status,
-        message: `OpenRouter HTTP ${res.status}`,
+        message: body.slice(0, 200) || `OpenRouter HTTP ${res.status}`,
         model: params.model,
+        failover: true,
       })
     }
 
@@ -151,7 +173,7 @@ export async function openRouterGenerateContent(
 
   const attempted: string[] = []
   const candidates = openRouterModelRouter.getRankedCandidateModels()
-  const maxAttempts = 3
+  const maxAttempts = Math.min(3, Math.max(1, input.maxModelAttempts ?? 3))
 
   if (candidates.length === 0) {
     throw new TextProviderError('NO_FREE_TEXT_MODEL_AVAILABLE', 'openrouter', {
@@ -190,7 +212,8 @@ export async function openRouterGenerateContent(
   }
 
   throw new TextProviderError('NO_FREE_TEXT_MODEL_AVAILABLE', 'openrouter', {
-    message: 'Every free model failed or is blacklisted. Retry later or configure an API key.',
+    message:
+      'OpenRouter models unavailable: account has no credits and/or free daily quota is exhausted. Add credits at https://openrouter.ai/settings/credits or wait for the daily reset.',
     attemptedModels: attempted,
   })
 }

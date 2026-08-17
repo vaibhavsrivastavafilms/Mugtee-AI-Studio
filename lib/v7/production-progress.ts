@@ -1,5 +1,6 @@
-import { V7_STAGE_LABELS, type V7CreativeBrief, type V7ProductionSnapshot, type V7StageId, type V7StageRow, type V7TimelineStage } from '@/types/v7/production'
+import { V7_STAGE_LABELS, type V7CreativeBrief, type V7ProductionSnapshot, type V7StageId, type V7StageRow, type V7TimelineStage, type V7TimelineStageStatus } from '@/types/v7/production'
 import { detectProductionStateDrift } from '@/lib/v7/pipeline-state.core'
+import { v7HasDeliverableMedia } from '@/lib/v7/deliverable-media.core'
 
 /** Raw stage weights from V14 spec (normalized to 100% at runtime). */
 const V7_STAGE_WEIGHTS_RAW: Record<V7StageId, number> = {
@@ -91,6 +92,19 @@ export type V7ProductionCompletionStats = {
   averageSceneGenerationMs: number | null
 }
 
+export type V7StageProgressDisplay = {
+  stageId: V7StageId
+  label: string
+  emoji: string
+  status: V7TimelineStageStatus
+  /** Numeric percent when known; null when indeterminate. */
+  percent: number | null
+  indeterminate: boolean
+  timingLabel: string | null
+  detailLabel: string | null
+  error: string | null
+}
+
 export type V7ProductionProgress = {
   overallPercent: number
   completedWeight: number
@@ -102,6 +116,9 @@ export type V7ProductionProgress = {
   provider: V7ProviderProgress | null
   eta: V7ProductionProgressEta
   completedStageIds: V7StageId[]
+  elapsedMs: number
+  historicalAverageMs: number | null
+  stageProgressList: V7StageProgressDisplay[]
   paused: {
     failedStageId: V7StageId | null
     failedStageLabel: string | null
@@ -261,15 +278,136 @@ function stageProgressFraction(
   return 0
 }
 
-export function computeV7ProductionProgress(
+function readStageWallClockMs(row: V7StageRow | undefined, now: Date): number | null {
+  if (!row?.started_at) return null
+  const started = Date.parse(row.started_at)
+  if (!Number.isFinite(started)) return null
+  const ended = row.completed_at ? Date.parse(row.completed_at) : now.getTime()
+  if (!Number.isFinite(ended)) return null
+  return Math.max(0, ended - started)
+}
+
+function resolveStageTimingLabel(
+  row: V7StageRow | undefined,
+  status: V7TimelineStageStatus,
+  now: Date
+): string | null {
+  if (status === 'pending') return 'Waiting'
+  if (status === 'blocked') return 'Skipped'
+  if (status === 'failed') return 'Failed'
+
+  if (status === 'completed') {
+    const durationMs = readStageDurationMs(row) ?? readStageWallClockMs(row, now)
+    return durationMs != null ? `Completed in ${formatDurationMs(durationMs)}` : null
+  }
+
+  if (status === 'running') {
+    const elapsedMs = readStageWallClockMs(row, now)
+    return elapsedMs != null ? `${formatDurationMs(elapsedMs)} elapsed` : 'Processing…'
+  }
+
+  return null
+}
+
+function resolveStagePercentAndDetail(
+  snapshot: V7ProductionSnapshot,
+  stageId: V7StageId,
+  status: V7TimelineStageStatus
+): Pick<V7StageProgressDisplay, 'percent' | 'indeterminate' | 'detailLabel'> {
+  if (status === 'completed') {
+    return { percent: 100, indeterminate: false, detailLabel: null }
+  }
+
+  if (status === 'pending' || status === 'failed') {
+    return { percent: status === 'failed' ? null : 0, indeterminate: false, detailLabel: null }
+  }
+
+  if (status === 'blocked') {
+    return { percent: null, indeterminate: false, detailLabel: 'Skipped' }
+  }
+
+  if (SCENE_STAGE_IDS.has(stageId)) {
+    const scene = resolveV7SceneProgress(snapshot, stageId)
+    if (scene && scene.totalScenes > 0) {
+      return {
+        percent: scene.scenePercent,
+        indeterminate: false,
+        detailLabel: `${scene.completedScenes} / ${scene.totalScenes} scenes`,
+      }
+    }
+  }
+
+  if (status === 'running' || status === 'blocked') {
+    return { percent: null, indeterminate: true, detailLabel: 'Processing…' }
+  }
+
+  return { percent: 0, indeterminate: false, detailLabel: null }
+}
+
+export function buildStageProgressList(
   snapshot: V7ProductionSnapshot,
   now: Date = new Date()
+): V7StageProgressDisplay[] {
+  return snapshot.timeline.map((timelineStage) => {
+    const row = stageRow(snapshot, timelineStage.id)
+    const { percent, indeterminate, detailLabel } = resolveStagePercentAndDetail(
+      snapshot,
+      timelineStage.id,
+      timelineStage.status
+    )
+
+    return {
+      stageId: timelineStage.id,
+      label: timelineStage.label,
+      emoji: timelineStage.emoji,
+      status: timelineStage.status,
+      percent,
+      indeterminate,
+      timingLabel: resolveStageTimingLabel(row, timelineStage.status, now),
+      detailLabel,
+      error: timelineStage.error ?? row?.error ?? null,
+    }
+  })
+}
+
+export function computeProductionElapsedMs(
+  snapshot: V7ProductionSnapshot,
+  now: Date = new Date()
+): number {
+  const created = Date.parse(snapshot.production.created_at)
+  if (!Number.isFinite(created)) return 0
+
+  if (snapshot.production.status === 'completed' || v7HasDeliverableMedia(snapshot.production)) {
+    const exportStage = stageRow(snapshot, 'export')
+    const renderStage = stageRow(snapshot, 'render')
+    const completedAt = exportStage?.completed_at ?? renderStage?.completed_at
+    if (completedAt) {
+      const end = Date.parse(completedAt)
+      if (Number.isFinite(end)) return Math.max(0, end - created)
+    }
+  }
+
+  return Math.max(0, now.getTime() - created)
+}
+
+/** Exponential smoothing to avoid ETA jumping every poll. */
+export function smoothEtaRemainingMs(previous: number | null, next: number | null): number | null {
+  if (next == null) return previous
+  if (previous == null) return next
+  return Math.round(previous * 0.65 + next * 0.35)
+}
+
+export function computeV7ProductionProgress(
+  snapshot: V7ProductionSnapshot,
+  now: Date = new Date(),
+  options?: { historicalAverageMs?: number | null; smoothedRemainingMs?: number | null }
 ): V7ProductionProgress {
   const brief = snapshot.production.creative_brief
   const timelineById = new Map(snapshot.timeline.map((stage) => [stage.id, stage]))
   const failedStage = snapshot.timeline.find((stage) => stage.status === 'failed')
   const isPaused = snapshot.production.status === 'failed' || Boolean(failedStage)
   const isComplete = snapshot.production.status === 'completed'
+  const hasDeliverable = v7HasDeliverableMedia(snapshot.production)
 
   let completedWeight = 0
   const completedStageIds: V7StageId[] = []
@@ -285,7 +423,11 @@ export function computeV7ProductionProgress(
   }
 
   const remainingWeight = Math.max(0, 100 - completedWeight)
-  const overallPercent = Math.min(100, Math.max(0, Math.round(completedWeight)))
+  let overallPercent = Math.min(100, Math.max(0, Math.round(completedWeight)))
+
+  if (isComplete || hasDeliverable) {
+    overallPercent = 100
+  }
 
   const currentStageId =
     resolveDisplayedCurrentStageId(snapshot, failedStage, isPaused) ??
@@ -315,13 +457,23 @@ export function computeV7ProductionProgress(
 
   const provider = resolveActiveProvider(snapshot, currentStageId, sceneProgress)
 
-  const eta = computeEta({
+  const etaRaw = computeEta({
     snapshot,
     now,
-    completedWeight,
-    remainingWeight,
+    completedWeight: isComplete || hasDeliverable ? 100 : completedWeight,
+    remainingWeight: isComplete || hasDeliverable ? 0 : remainingWeight,
     frozen: isPaused,
   })
+
+  const eta =
+    options?.smoothedRemainingMs != null && etaRaw.remainingMs != null
+      ? {
+          ...etaRaw,
+          remainingMs: options.smoothedRemainingMs,
+          label: formatRemainingLabel(options.smoothedRemainingMs),
+          completionAt: new Date(now.getTime() + options.smoothedRemainingMs),
+        }
+      : etaRaw
 
   const paused = isPaused
     ? {
@@ -334,20 +486,27 @@ export function computeV7ProductionProgress(
       }
     : null
 
-  const completionStats = isComplete ? buildCompletionStats(snapshot) : null
+  const completionStats =
+    isComplete || hasDeliverable ? buildCompletionStats(snapshot) : null
+
+  const elapsedMs = computeProductionElapsedMs(snapshot, now)
+  const stageProgressList = buildStageProgressList(snapshot, now)
 
   return {
     overallPercent,
-    completedWeight,
-    remainingWeight,
+    completedWeight: isComplete || hasDeliverable ? 100 : completedWeight,
+    remainingWeight: isComplete || hasDeliverable ? 0 : remainingWeight,
     currentStageId,
     currentStageLabel,
-    currentTask,
+    currentTask: isComplete || hasDeliverable ? 'Creation complete' : currentTask,
     sceneProgress:
       currentStageId && SCENE_STAGE_IDS.has(currentStageId) ? sceneProgress : null,
     provider,
     eta,
     completedStageIds,
+    elapsedMs,
+    historicalAverageMs: options?.historicalAverageMs ?? null,
+    stageProgressList,
     paused,
     completionStats,
   }
@@ -481,6 +640,28 @@ function resolveActiveProvider(
   }
 }
 
+function resolveObservedMsPerWeight(snapshot: V7ProductionSnapshot): number | null {
+  let weightedMs = 0
+  let completedWeight = 0
+
+  for (const stageId of Object.keys(V7_STAGE_WEIGHTS) as V7StageId[]) {
+    const weight = V7_STAGE_WEIGHTS[stageId] ?? 0
+    if (weight <= 0) continue
+
+    const row = stageRow(snapshot, stageId)
+    if (row?.status !== 'completed') continue
+
+    const durationMs = readStageDurationMs(row)
+    if (durationMs == null) continue
+
+    weightedMs += durationMs
+    completedWeight += weight
+  }
+
+  if (completedWeight <= 0 || weightedMs <= 0) return null
+  return weightedMs / completedWeight
+}
+
 function computeEta(params: {
   snapshot: V7ProductionSnapshot
   now: Date
@@ -488,7 +669,7 @@ function computeEta(params: {
   remainingWeight: number
   frozen: boolean
 }): V7ProductionProgressEta {
-  if (params.snapshot.production.status === 'completed') {
+  if (params.snapshot.production.status === 'completed' || v7HasDeliverableMedia(params.snapshot.production)) {
     return { remainingMs: 0, completionAt: params.now, frozen: false, label: 'Complete' }
   }
 
@@ -501,53 +682,60 @@ function computeEta(params: {
     }
   }
 
-  if (params.completedWeight <= 0.5 || params.remainingWeight <= 0) {
+  if (params.remainingWeight <= 0) {
     return {
       remainingMs: null,
       completionAt: null,
       frozen: false,
-      label: 'Calculating…',
+      label: 'Finishing up…',
     }
   }
 
-  const startedAt = resolveProductionStartedAt(params.snapshot)
-  const elapsedMs = Math.max(0, params.now.getTime() - startedAt.getTime())
-  const averageMsPerWeight = elapsedMs / params.completedWeight
-  const remainingMs = Math.max(0, Math.round(params.remainingWeight * averageMsPerWeight))
-  const completionAt = new Date(params.now.getTime() + remainingMs)
+  const runningStage = params.snapshot.stages.find((row) => row.status === 'running')
+  const observedMsPerWeight = resolveObservedMsPerWeight(params.snapshot)
+
+  if (observedMsPerWeight != null) {
+    const remainingMs = Math.max(0, Math.round(params.remainingWeight * observedMsPerWeight))
+    const completionAt = new Date(params.now.getTime() + remainingMs)
+    return {
+      remainingMs,
+      completionAt,
+      frozen: false,
+      label: formatRemainingLabel(remainingMs),
+    }
+  }
+
+  if (runningStage) {
+    return {
+      remainingMs: null,
+      completionAt: null,
+      frozen: false,
+      label: 'Generating…',
+    }
+  }
 
   return {
-    remainingMs,
-    completionAt,
+    remainingMs: null,
+    completionAt: null,
     frozen: false,
-    label: formatRemainingLabel(remainingMs),
+    label: 'Estimating…',
   }
-}
-
-function resolveProductionStartedAt(snapshot: V7ProductionSnapshot): Date {
-  const stageStarts = snapshot.stages
-    .map((row) => row.started_at)
-    .filter((value): value is string => Boolean(value))
-    .sort()
-
-  if (stageStarts[0]) return new Date(stageStarts[0])
-  return new Date(snapshot.production.created_at)
 }
 
 export function formatRemainingLabel(remainingMs: number): string {
   if (remainingMs <= 0) return 'Finishing up…'
   if (remainingMs < 60_000) {
     const seconds = Math.max(1, Math.ceil(remainingMs / 1000))
-    return `${seconds}s remaining`
+    return `~${seconds}s remaining`
   }
   const minutes = Math.floor(remainingMs / 60_000)
   const seconds = Math.ceil((remainingMs % 60_000) / 1000)
   if (minutes >= 60) {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    return `${hours}h ${mins}m remaining`
+    return `~${hours}h ${mins}m remaining`
   }
-  return seconds > 0 ? `${minutes}m ${seconds}s remaining` : `${minutes}m remaining`
+  return seconds > 0 ? `~${minutes}m ${seconds}s remaining` : `~${minutes}m remaining`
 }
 
 export function formatCompletionClock(date: Date, now: Date = new Date()): string {

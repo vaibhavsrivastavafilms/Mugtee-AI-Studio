@@ -84,7 +84,7 @@ function bodyIndicatesI2vUnsupported(bodyText?: string): boolean {
 
 export function classifyPollinationsHttpError(params: {
   httpStatus: number
-  capability: 'image' | 'video' | 'audio'
+  capability: 'text' | 'image' | 'video' | 'audio'
   model: string
   bodyText?: string
 }): PollinationsHttpErrorClassification {
@@ -167,7 +167,9 @@ export function classifyPollinationsHttpError(params: {
       ? 'POLLINATIONS_IMAGE_FAILED'
       : capability === 'video'
         ? 'POLLINATIONS_VIDEO_GENERATION_FAILED'
-        : 'POLLINATIONS_GENERATION_FAILED'
+        : capability === 'text'
+          ? 'POLLINATIONS_GENERATION_FAILED'
+          : 'POLLINATIONS_GENERATION_FAILED'
 
   return {
     code: fallbackCode,

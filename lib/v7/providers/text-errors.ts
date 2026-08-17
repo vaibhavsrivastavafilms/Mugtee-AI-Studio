@@ -1,3 +1,4 @@
+import { AIProviderError } from '@/lib/ai/providers/types'
 import type { V7TextProviderId } from '@/lib/v7/providers/text-provider.types'
 
 export type V7ProviderErrorCode =
@@ -129,11 +130,47 @@ export function classifyV7HttpError(
   })
 }
 
+function isTextProviderError(
+  err: unknown
+): err is Error & { code: string; httpStatus?: number } {
+  return (
+    err instanceof Error &&
+    err.name === 'TextProviderError' &&
+    typeof (err as { code?: unknown }).code === 'string'
+  )
+}
+
 export function classifyV7UnknownError(
   provider: V7TextProviderId,
   err: unknown
 ): V7ProviderRequestError {
   if (err instanceof V7ProviderRequestError) return err
+
+  if (err instanceof AIProviderError) {
+    return new V7ProviderRequestError('PROVIDER_UNAVAILABLE', provider, {
+      message: err.message,
+      cause: err,
+    })
+  }
+
+  if (isTextProviderError(err)) {
+    const codeMap: Record<string, V7ProviderErrorCode> = {
+      OPENROUTER_AUTH_FAILED: 'PROVIDER_AUTH_FAILED',
+      TEXT_PROVIDER_NOT_CONFIGURED: 'PROVIDER_AUTH_FAILED',
+      TEXT_PROVIDER_NOT_READY: 'PROVIDER_UNAVAILABLE',
+      OPENROUTER_MODEL_RATE_LIMITED: 'PROVIDER_RATE_LIMITED',
+      OPENROUTER_MODEL_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+      OPENROUTER_API_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+      OPENROUTER_NO_AVAILABLE_FREE_MODEL: 'PROVIDER_UNAVAILABLE',
+      NO_FREE_TEXT_MODEL_AVAILABLE: 'PROVIDER_UNAVAILABLE',
+      TEXT_PROVIDER_INVALID_RESPONSE: 'PROVIDER_INVALID_RESPONSE',
+    }
+    return new V7ProviderRequestError(codeMap[err.code] ?? 'PROVIDER_UNAVAILABLE', provider, {
+      message: err.message,
+      httpStatus: err.httpStatus,
+      cause: err,
+    })
+  }
 
   const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase()
   const name = err instanceof Error ? err.name : ''

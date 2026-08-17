@@ -129,12 +129,58 @@ function normalizeToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
+/** Human-subject terms that may appear negated in faceless documentary style lines. */
+const NEGATABLE_HUMAN_SUBJECT_TERMS = new Set(['people', 'person', 'crowd', 'couple'])
+
+/**
+ * Strip allowed faceless negations before forbidden-term checks.
+ * "no visible people" must not count as a positive "people" subject.
+ */
+function stripAllowedFacelessNegations(text: string): string {
+  return text
+    .replace(/\bno visible people\b/g, ' ')
+    .replace(/\bwithout visible people\b/g, ' ')
+    .replace(/\bno people\b/g, ' ')
+    .replace(/\bwithout people\b/g, ' ')
+    .replace(/\bno visible person\b/g, ' ')
+    .replace(/\bwithout person\b/g, ' ')
+    .replace(/\bno person\b/g, ' ')
+    .replace(/\bno visible crowd\b/g, ' ')
+    .replace(/\bwithout crowd\b/g, ' ')
+    .replace(/\bno crowd\b/g, ' ')
+    .replace(/\bno visible couple\b/g, ' ')
+    .replace(/\bwithout couple\b/g, ' ')
+    .replace(/\bno couple\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isNegatableHumanSubjectTerm(term: string): boolean {
+  const needle = normalizeToken(term)
+  if (!needle) return false
+  if (NEGATABLE_HUMAN_SUBJECT_TERMS.has(needle)) return true
+  return needle.split(/\s+/).every((part) => NEGATABLE_HUMAN_SUBJECT_TERMS.has(part))
+}
+
 function promptContainsTerm(prompt: string, term: string): boolean {
   const hay = normalizeToken(prompt)
   const needle = normalizeToken(term)
   if (!needle) return false
   if (hay.includes(needle)) return true
   return needle.split(/\s+/).filter(Boolean).every((part) => hay.includes(part))
+}
+
+/** Forbidden positive-subject check — ignores negated faceless instructions. */
+function promptContainsForbiddenPositiveTerm(prompt: string, term: string): boolean {
+  const needle = normalizeToken(term)
+  if (!needle) return false
+  let hay = normalizeToken(prompt)
+  if (isNegatableHumanSubjectTerm(needle)) {
+    hay = stripAllowedFacelessNegations(hay)
+  }
+  // Require contiguous phrase match — do not match scattered tokens (e.g. "looking"
+  // in "overlooking" + "at" + "Camera:" falsely hits "looking at camera").
+  return hay.includes(needle)
 }
 
 function extractActionKeywords(action: string): string[] {
@@ -625,7 +671,7 @@ export function scoreV7SceneImagePrompt(params: {
   const subjectHits = promptContainsTerm(prompt, params.spec.subject) ? 1 : 0.6
 
   const forbiddenInPositive = params.spec.forbiddenElements.filter((term) =>
-    promptContainsTerm(prompt, term)
+    promptContainsForbiddenPositiveTerm(prompt, term)
   )
   const penalty = forbiddenInPositive.length * 8
   const negativeCoverage = params.spec.forbiddenElements.some((term) => promptContainsTerm(negative, term))
@@ -673,7 +719,7 @@ export function validateV7SceneImagePrompt(params: {
   )
 
   const forbiddenTermsFound = params.spec.forbiddenElements.filter((term) =>
-    promptContainsTerm(params.prompt, term)
+    promptContainsForbiddenPositiveTerm(params.prompt, term)
   )
 
   if (params.spec.characters.length === 0) {

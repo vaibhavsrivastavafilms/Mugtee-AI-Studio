@@ -5,7 +5,37 @@ import { logError } from '@/lib/workspace/validation'
 
 export type MusicCascadeResult = {
   musicUrl: string | null
-  provider: 'musicgen' | 'royalty_free' | 'none'
+  provider: 'pollinations' | 'musicgen' | 'royalty_free' | 'none'
+}
+
+async function tryPollinationsMusic(params: {
+  emotion?: string
+  durationSec?: number
+  pacing?: string
+}): Promise<string | null> {
+  try {
+    const { readPollinationsApiKeyFromEnv } = await import('@/lib/pollinations/key-diagnostics-core')
+    if (!readPollinationsApiKeyFromEnv()) return null
+    const { fetchPollinationsMusicBuffer } = await import('@/lib/pollinations/audio.server')
+    const prompt =
+      process.env.POLLINATIONS_MUSIC_PROMPT?.trim() ||
+      [
+        'cinematic documentary background music',
+        params.emotion,
+        params.pacing ? `${params.pacing} pacing` : null,
+      ]
+        .filter(Boolean)
+        .join(', ')
+    const result = await fetchPollinationsMusicBuffer({
+      prompt,
+      durationSec: params.durationSec,
+    })
+    if (!result) return null
+    return `data:audio/mpeg;base64,${result.buffer.toString('base64')}`
+  } catch (err) {
+    logError('music-cascade.pollinations', err)
+    return null
+  }
 }
 
 async function tryMusicGen(params: {
@@ -54,12 +84,17 @@ async function tryMusicGen(params: {
   }
 }
 
-/** MusicGen (local OSS) → royalty-free static URL. Never throws. */
+/** Pollinations music → MusicGen (local OSS) → royalty-free static URL. Never throws. */
 export async function resolveV7MusicUrl(params?: {
   emotion?: string
   durationSec?: number
   pacing?: string
 }): Promise<MusicCascadeResult> {
+  const pollinations = await tryPollinationsMusic(params ?? {})
+  if (pollinations) {
+    return { musicUrl: pollinations, provider: 'pollinations' }
+  }
+
   const generated = await tryMusicGen(params ?? {})
   if (generated) {
     return { musicUrl: generated, provider: 'musicgen' }

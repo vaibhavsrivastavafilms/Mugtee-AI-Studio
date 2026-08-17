@@ -10,7 +10,7 @@ export type V7SoundEffect = {
 
 export type SoundCascadeResult = {
   sfx: V7SoundEffect[]
-  provider: 'audiogen' | 'none'
+  provider: 'pollinations' | 'audiogen' | 'none'
 }
 
 function inferSceneAmbience(scene: { location?: string; action?: string }): string[] {
@@ -27,6 +27,20 @@ function inferSceneAmbience(scene: { location?: string; action?: string }): stri
 
   if (cues.length === 0) cues.push('subtle cinematic room tone')
   return cues.slice(0, 3)
+}
+
+async function synthesizePollinationsSfx(prompt: string): Promise<string | null> {
+  try {
+    const { readPollinationsApiKeyFromEnv } = await import('@/lib/pollinations/key-diagnostics-core')
+    if (!readPollinationsApiKeyFromEnv()) return null
+    const { fetchPollinationsSfxBuffer } = await import('@/lib/pollinations/audio.server')
+    const result = await fetchPollinationsSfxBuffer({ prompt })
+    if (!result) return null
+    return `data:audio/mpeg;base64,${result.buffer.toString('base64')}`
+  } catch (err) {
+    logError('sound-cascade.pollinations', err)
+    return null
+  }
 }
 
 async function synthesizeAudioGenClip(prompt: string): Promise<string | null> {
@@ -58,24 +72,32 @@ async function synthesizeAudioGenClip(prompt: string): Promise<string | null> {
   }
 }
 
-/** AudioGen (local OSS) → scene-mapped SFX list. Never throws or blocks the pipeline. */
+/** Pollinations SFX → AudioGen (local OSS) → scene-mapped SFX list. Never throws or blocks the pipeline. */
 export async function generateV7SoundEffects(params?: {
   scenes?: Array<{ location?: string; action?: string; sceneNumber?: number }>
 }): Promise<SoundCascadeResult> {
-  const endpoint = process.env.AUDIOGEN_URL?.trim()
-  if (!endpoint) {
-    return { sfx: [], provider: 'none' }
-  }
-
   const scenes = params?.scenes ?? []
   const sfx: V7SoundEffect[] = []
+  let usedPollinations = false
+  let usedAudiogen = false
 
   if (scenes.length > 0) {
     for (const scene of scenes) {
       const prompts = inferSceneAmbience(scene).slice(0, 2)
       for (const prompt of prompts) {
+        const pollinationsUrl = await synthesizePollinationsSfx(prompt)
+        if (pollinationsUrl) {
+          usedPollinations = true
+          sfx.push({
+            name: prompt,
+            url: pollinationsUrl,
+            startSec: scene.sceneNumber ? Math.max(0, (scene.sceneNumber - 1) * 4) : sfx.length * 4,
+          })
+          continue
+        }
         const url = await synthesizeAudioGenClip(prompt)
         if (url) {
+          usedAudiogen = true
           sfx.push({
             name: prompt,
             url,
@@ -87,10 +109,22 @@ export async function generateV7SoundEffects(params?: {
   } else {
     const prompts = ['cinematic foley transition']
     for (const prompt of prompts) {
+      const pollinationsUrl = await synthesizePollinationsSfx(prompt)
+      if (pollinationsUrl) {
+        usedPollinations = true
+        sfx.push({ name: prompt, url: pollinationsUrl })
+        continue
+      }
       const url = await synthesizeAudioGenClip(prompt)
-      if (url) sfx.push({ name: prompt, url })
+      if (url) {
+        usedAudiogen = true
+        sfx.push({ name: prompt, url })
+      }
     }
   }
 
-  return { sfx, provider: sfx.length > 0 ? 'audiogen' : 'none' }
+  const provider: SoundCascadeResult['provider'] =
+    sfx.length === 0 ? 'none' : usedPollinations ? 'pollinations' : usedAudiogen ? 'audiogen' : 'none'
+
+  return { sfx, provider }
 }

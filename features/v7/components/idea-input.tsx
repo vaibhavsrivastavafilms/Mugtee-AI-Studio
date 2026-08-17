@@ -1,9 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Sparkles } from 'lucide-react'
+import { AuthRequiredPrompt } from '@/components/auth/auth-required-prompt'
 import { cn } from '@/lib/utils'
+
+function isAuthRequiredResponse(status: number, message: string): boolean {
+  if (status === 401 || status === 403) return true
+  return /sign in|sign-in|logged in|authentication|unauthorized|not signed in/i.test(message)
+}
 
 const EXAMPLE =
   'Create a 45-second cinematic restaurant advertisement for Table Tales during monsoon.'
@@ -19,6 +25,7 @@ export function V7IdeaInput({
   const [idea, setIdea] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [authRequired, setAuthRequired] = useState(false)
 
   async function submit() {
     const trimmed = idea.trim()
@@ -26,6 +33,7 @@ export function V7IdeaInput({
 
     setLoading(true)
     setError(null)
+    setAuthRequired(false)
 
     try {
       const res = await fetch('/api/v7/productions', {
@@ -47,6 +55,12 @@ export function V7IdeaInput({
             : typeof data.error === 'string'
               ? data.error
               : data.error?.message ?? 'Could not start production.'
+        if (isAuthRequiredResponse(res.status, msg)) {
+          setAuthRequired(true)
+          setError('Sign in to create a film in Mugtee Studio.')
+          setLoading(false)
+          return
+        }
         throw new Error(msg)
       }
 
@@ -107,7 +121,13 @@ export function V7IdeaInput({
         </div>
       </div>
 
-      {error ? (
+      {authRequired ? (
+        <AuthRequiredPrompt
+          className="mt-6 w-full max-w-md"
+          message={error ?? 'Sign in to create a film in Mugtee Studio.'}
+          returnPath="/studio"
+        />
+      ) : error ? (
         <p className="mt-4 text-center text-sm text-red-300/90" role="alert">
           {error}
         </p>

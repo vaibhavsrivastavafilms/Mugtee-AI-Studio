@@ -1,11 +1,16 @@
 import 'server-only'
 
 import { z } from 'zod'
-import { generateText } from '@/lib/ai/provider'
 import { parseLlmJsonText } from '@/lib/ai/providers/shared'
 import { resolveActiveTextProvider } from '@/lib/ai/config'
-import { generateV7StructuredJson } from '@/lib/v7/providers/text.server'
+import {
+  assertV7TextBudgetRemaining,
+  createV7TextGenerationDeadline,
+  generateV7BoundedText,
+  generateV7StructuredJson,
+} from '@/lib/v7/providers/text.server'
 import { V7ProviderRequestError } from '@/lib/v7/providers/text-errors.server'
+import { v7LanguageDirectiveForBrief } from '@/lib/v7/language-routing.core'
 import type { V7CreativeBrief } from '@/types/v7/production'
 import type { V7CreativeDirection } from '@/agents/v7/creative-director.server'
 import type { V7ResearchBrief } from '@/agents/v7/research.server'
@@ -93,30 +98,36 @@ export async function runV7ScriptWriter(params: {
 }): Promise<{ script: V7ScriptDocument; durationMs: number }> {
   const started = Date.now()
   const provider = resolveActiveTextProvider()
+  const deadlineMs = createV7TextGenerationDeadline()
+  const languageLock = v7LanguageDirectiveForBrief(params.brief)
   const baseUserPrompt = `BRIEF:\n${JSON.stringify(params.brief)}\n\nRESEARCH:\n${JSON.stringify(params.research)}\n\nCREATIVE:\n${JSON.stringify(params.direction)}`
   let userPrompt = baseUserPrompt
   let lastModel: string | null = null
   let lastValidationErrors: string[] = []
 
   for (let attempt = 0; attempt < MAX_SCREENPLAY_ATTEMPTS; attempt++) {
+    assertV7TextBudgetRemaining(deadlineMs, provider)
+
     let raw: Record<string, unknown>
 
     if (attempt === 0) {
       raw = await generateV7StructuredJson({
         agent: 'v7-script',
-        systemPrompt: SCRIPT_SYSTEM,
+        systemPrompt: `${SCRIPT_SYSTEM}\n\n${languageLock}`,
         userPrompt,
         temperature: 0.5,
         projectId: params.productionId,
+        deadlineMs,
       })
       lastModel = 'structured-json'
     } else {
-      const result = await generateText({
+      const result = await generateV7BoundedText({
         agent: 'v7-script',
-        systemPrompt: SCRIPT_SYSTEM,
+        systemPrompt: `${SCRIPT_SYSTEM}\n\n${languageLock}`,
         userPrompt,
         temperature: 0.35,
         projectId: params.productionId,
+        deadlineMs,
       })
       lastModel = result.model
       const parsed = normalizeStructuredObject(parseLlmJsonText(result.text))

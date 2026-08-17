@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { AuthLayout } from '@/components/auth/auth-layout'
+import { loginRedirectUrl } from '@/lib/auth/public-routes'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { logAuthConfigDiagnostics } from '@/lib/auth/log-auth-config'
 import { logAuthError } from '@/lib/auth/log-auth-error'
@@ -54,9 +55,10 @@ export function DevelopmentMode({
 
     if (process.env.NODE_ENV !== 'production') {
       router.push(continueHref)
-    } else {
-      setLoading(false)
+      return
     }
+
+    setLoading(false)
   }
 
   return (
@@ -98,9 +100,24 @@ export function DevelopmentMode({
         </button>
 
         <Link
+          href={loginRedirectUrl(continueHref)}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--v2-border)] text-sm font-medium text-[var(--v2-text-primary)] transition-colors hover:border-[var(--v2-gold)]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] touch-manipulation"
+        >
+          Sign In
+        </Link>
+
+        <Link
+          href={`/auth/signup?next=${encodeURIComponent(continueHref)}`}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-medium text-zinc-900 transition-colors duration-150 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] touch-manipulation"
+        >
+          Sign Up
+        </Link>
+
+        <Link
           href="/"
           className="flex min-h-[44px] items-center justify-center gap-2 text-sm text-[var(--v2-text-secondary)] transition-colors duration-150 hover:text-[var(--v2-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] touch-manipulation"
         >
+          <ArrowRight className="h-3.5 w-3.5 rotate-180" aria-hidden />
           Explore Mugtee
         </Link>
       </div>

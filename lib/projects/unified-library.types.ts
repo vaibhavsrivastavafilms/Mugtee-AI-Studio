@@ -4,15 +4,27 @@ export type UnifiedProjectPipeline =
   | 'cinematic'
   | 'v3'
 
-export type UnifiedProjectStatus = 'completed' | 'running' | 'paused' | 'failed' | 'draft'
-
-export type UnifiedLibraryStatusFilter =
-  | 'all'
+export type UnifiedProjectStatus =
   | 'completed'
   | 'running'
   | 'paused'
   | 'failed'
   | 'draft'
+  | 'closed'
+  | 'cancelled'
+  | 'updated'
+
+export type UnifiedLibraryStatusFilter =
+  | 'all'
+  | 'completed'
+  | 'in_progress'
+  | 'running'
+  | 'paused'
+  | 'failed'
+  | 'draft'
+  | 'closed'
+  | 'cancelled'
+  | 'updated'
 
 export type UnifiedLibraryPipelineFilter =
   | 'all'
@@ -25,6 +37,7 @@ export type UnifiedLibrarySort =
   | 'recently_updated'
   | 'newest'
   | 'oldest'
+  | 'name_asc'
   | 'recently_completed'
 
 export type UnifiedProjectActions = {
@@ -35,6 +48,8 @@ export type UnifiedProjectActions = {
   download: boolean
   downloadMov: boolean
   creatorPack: boolean
+  reopen: boolean
+  reviewChanges: boolean
 }
 
 export type UnifiedProjectItem = {
@@ -64,6 +79,12 @@ export type UnifiedProjectItem = {
   sceneProgressLabel?: string | null
   /** e.g. "43 sec" when a V7 production is complete */
   durationLabel?: string | null
+  /** e.g. "9:16" from creative brief */
+  aspectRatioLabel?: string | null
+  /** Smoothed ETA label for in-progress V7 productions */
+  etaLabel?: string | null
+  /** True when deliverable-media guard passes */
+  isDeliverable?: boolean
 }
 
 export type UnifiedLibrarySourceHealth = {

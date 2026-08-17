@@ -1,18 +1,14 @@
 'use client'
 
-import { Check, Circle, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { V7ProductionProgressPanel } from '@/features/v7/components/production-progress-panel'
+import { V7ProductionStageProgressRow } from '@/features/v7/components/production-stage-progress-row'
 import { V7ConceptSelector } from '@/features/v7/components/concept-selector'
 import { isAwaitingConceptSelection } from '@/lib/v7/concept-selection.core'
 import { useProductionProgress } from '@/features/v7/hooks/use-production-progress'
-import { resolveV7SceneProgress, formatV7PausedFailureReason } from '@/lib/v7/production-progress'
-import type {
-  V7ProductionSnapshot,
-  V7ProductionStatus,
-  V7StageId,
-  V7TimelineStage,
-} from '@/types/v7/production'
+import { V7ProductionDownloadButton } from '@/features/v7/components/production-download-button'
+import { v7HasDeliverableMedia } from '@/lib/v7/deliverable-media.core'
+import type { V7ProductionSnapshot } from '@/types/v7/production'
 
 type V7ProductionViewProps = {
   snapshot: V7ProductionSnapshot
@@ -20,45 +16,37 @@ type V7ProductionViewProps = {
   retrying?: boolean
   onConceptSelected?: () => Promise<void>
   className?: string
+  /** When embedded in workspace chrome, progress is shown in the workspace header instead. */
+  hideProgressChrome?: boolean
 }
 
-function StageIcon({ status }: { status: V7TimelineStage['status'] }) {
-  if (status === 'completed') return <Check className="h-4 w-4 text-emerald-400" strokeWidth={2.5} />
-  if (status === 'running') return <Loader2 className="h-4 w-4 animate-spin text-[#E6C76A]" />
-  if (status === 'failed') return <X className="h-4 w-4 text-red-400" />
-  if (status === 'blocked') return <Circle className="h-4 w-4 text-amber-400/70" />
-  return <Circle className="h-4 w-4 text-white/20" />
-}
-
-function sceneStageDetail(snapshot: V7ProductionSnapshot, stageId: V7StageId): string | null {
-  const timelineStage = snapshot.timeline.find((stage) => stage.id === stageId)
-  if (timelineStage?.status !== 'running' && timelineStage?.status !== 'blocked') return null
-
-  const scene = resolveV7SceneProgress(snapshot, stageId)
-  if (!scene) return null
-  return `Scene ${scene.completedScenes}/${scene.totalScenes} · ${scene.scenePercent}%`
-}
-
-export function V7ProductionView({ snapshot, onRetry, retrying, onConceptSelected, className }: V7ProductionViewProps) {
+export function V7ProductionView({
+  snapshot,
+  onRetry,
+  retrying,
+  onConceptSelected,
+  className,
+  hideProgressChrome = false,
+}: V7ProductionViewProps) {
   const progress = useProductionProgress(snapshot)
-  const { production, timeline } = snapshot
+  const { production } = snapshot
 
   const title = production.title
   const prompt = production.prompt
-  const status = production.status as V7ProductionStatus
   const reelUrl = production.reel_url
   const movUrl = production.mov_url
   const thumbnailUrl = production.thumbnail_url
   const creatorPackUrl = production.creator_pack_url
 
-  const isFinished = status === 'completed' && Boolean(reelUrl)
+  const hasDeliverableMedia = v7HasDeliverableMedia(production)
   const awaitingConcept = isAwaitingConceptSelection(production.timeline_json)
-  const showProgress = !isFinished && !awaitingConcept
+  const showProgress = !hasDeliverableMedia && !awaitingConcept
+  const runningStageId = progress?.currentStageId ?? production.current_stage
 
   return (
     <div className={cn('mx-auto w-full max-w-2xl px-4 py-8', className)}>
       <header className="mb-8 text-center">
-        {isFinished && thumbnailUrl ? (
+        {hasDeliverableMedia && thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt=""
@@ -66,14 +54,14 @@ export function V7ProductionView({ snapshot, onRetry, retrying, onConceptSelecte
           />
         ) : null}
         <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl">{title}</h1>
-        <p className="mt-2 text-sm text-white/50 line-clamp-2">{prompt}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-white/50">{prompt}</p>
       </header>
 
       {awaitingConcept && onConceptSelected ? (
         <V7ConceptSelector snapshot={snapshot} onSelected={onConceptSelected} />
       ) : null}
 
-      {progress && showProgress ? (
+      {progress && !hideProgressChrome && (showProgress || hasDeliverableMedia) ? (
         <V7ProductionProgressPanel
           progress={progress}
           className="mb-6"
@@ -82,51 +70,19 @@ export function V7ProductionView({ snapshot, onRetry, retrying, onConceptSelecte
         />
       ) : null}
 
-      {progress && isFinished ? (
-        <V7ProductionProgressPanel progress={progress} className="mb-6" />
-      ) : null}
-
-      {showProgress ? (
+      {showProgress && progress && !hideProgressChrome ? (
         <ol className="space-y-2" aria-label="Production stages">
-          {timeline.map((stage) => {
-            const sceneDetail = sceneStageDetail(snapshot, stage.id)
-            return (
-              <li
-                key={stage.id}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border px-4 py-3 transition',
-                  stage.status === 'running' && 'border-[#D4AF37]/40 bg-[#D4AF37]/5',
-                  stage.status === 'completed' && 'border-white/[0.06] bg-white/[0.02]',
-                  stage.status === 'failed' && 'border-red-500/30 bg-red-500/5',
-                  stage.status === 'blocked' && 'border-amber-500/20 bg-amber-500/5 opacity-80',
-                  stage.status === 'pending' && 'border-white/[0.04] opacity-60'
-                )}
-              >
-                <StageIcon status={stage.status} />
-                <span className="text-lg" aria-hidden>
-                  {stage.emoji}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-white/90">
-                    {stage.label}
-                    {stage.status === 'running' ? '…' : ''}
-                  </p>
-                  {sceneDetail ? (
-                    <p className="mt-0.5 text-xs text-[#E6C76A]/80">{sceneDetail}</p>
-                  ) : null}
-                  {stage.error ? (
-                    <p className="mt-0.5 break-words text-xs text-red-300/80">
-                      {formatV7PausedFailureReason(stage.error).summary ?? stage.error}
-                    </p>
-                  ) : null}
-                </div>
-              </li>
-            )
-          })}
+          {progress.stageProgressList.map((stage) => (
+            <V7ProductionStageProgressRow
+              key={stage.stageId}
+              stage={stage}
+              emphasized={stage.stageId === runningStageId && stage.status === 'running'}
+            />
+          ))}
         </ol>
       ) : null}
 
-      {isFinished ? (
+      {hasDeliverableMedia ? (
         <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
           <p className="text-center text-lg font-semibold text-emerald-300">Production complete</p>
           <p className="mt-1 text-center text-sm text-emerald-200/70">Your movie is ready.</p>
@@ -139,13 +95,7 @@ export function V7ProductionView({ snapshot, onRetry, retrying, onConceptSelecte
             className="mx-auto mt-4 aspect-[9/16] max-h-[70dvh] w-full max-w-lg rounded-xl bg-black object-contain"
           />
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={reelUrl!}
-              download
-              className="inline-flex min-h-[44px] items-center rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-[#0B0B0B] touch-manipulation"
-            >
-              Download MP4
-            </a>
+            <V7ProductionDownloadButton productionId={production.id} title={title} />
             {movUrl ? (
               <a
                 href={movUrl}

@@ -8,6 +8,7 @@ import type { SupabaseServerClient } from '@/lib/supabase/server'
 import { getV7Production } from '@/lib/v7/db.server'
 import { advanceV7Production } from '@/lib/v7/orchestrator.server'
 import {
+  findGloballyLockedV7Production,
   findRunningStage,
   reconcilePipelineIntegrity,
   shouldDrivePipeline,
@@ -15,10 +16,48 @@ import {
 
 const DEFAULT_MAX_STAGES = 48
 const DEFAULT_MAX_MS = 280_000
-const CRON_PRODUCTION_LIMIT = 8
+/** At most one production may execute provider work per worker tick. */
+const CRON_PRODUCTION_LIMIT = 1
+/**
+ * Vercel cron route maxDuration is 300s; GitHub Actions job timeout is 6m.
+ * Exit with a persisted checkpoint before the hard platform limit.
+ */
+const CRON_DRIVE_MAX_MS = 270_000
+const CRON_CANDIDATE_LIMIT = 20
 
-async function sleep(ms: number) {
-  await new Promise((resolve) => setTimeout(resolve, ms))
+type CronProductionRow = { id: string; user_id: string }
+
+/** Pick one production that can make progress — prefer newest after stale reconciliation. */
+export async function pickProductionForCronTick(
+  supabase: SupabaseServerClient
+): Promise<CronProductionRow[]> {
+  const { data, error } = await supabase
+    .from('v7_productions')
+    .select('id,user_id,updated_at')
+    .in('status', ['producing', 'planning', 'failed'])
+    .order('updated_at', { ascending: false })
+    .limit(CRON_CANDIDATE_LIMIT)
+
+  if (error) throw new Error(error.message)
+
+  for (const row of data ?? []) {
+    let snapshot = await getV7Production(supabase, row.id, row.user_id)
+    if (!snapshot) continue
+
+    snapshot =
+      (await reconcilePipelineIntegrity({
+        supabase,
+        productionId: row.id,
+        userId: row.user_id,
+        snapshot,
+      })) ?? snapshot
+
+    if (shouldDrivePipeline(snapshot)) {
+      return [{ id: row.id, user_id: row.user_id }]
+    }
+  }
+
+  return []
 }
 
 type DriveSupabase = SupabaseServerClient | SupabaseClient
@@ -62,13 +101,42 @@ export async function runV7BackgroundDriveLoop(params: {
       return { advanced, status: snapshot.production.status }
     }
 
+    const otherExecution = await findGloballyLockedV7Production(
+      params.supabase as SupabaseServerClient,
+      params.productionId
+    )
+    if (otherExecution) {
+      return { advanced, status: snapshot.production.status }
+    }
+
+    const completedBefore = snapshot.stages.filter((row) => row.status === 'completed').length
+
     try {
-      await advanceV7Production({
+      const advanceResult = await advanceV7Production({
         supabase: params.supabase as SupabaseServerClient,
         productionId: params.productionId,
         userId: params.userId,
       })
+
+      if (advanceResult.pipeline_blocked) {
+        return { advanced, status: advanceResult.production.status }
+      }
+
+      const completedAfter = advanceResult.stages.filter((row) => row.status === 'completed').length
+      const madeProgress =
+        completedAfter > completedBefore ||
+        advanceResult.production.status === 'completed' ||
+        advanceResult.production.status === 'failed'
+
+      if (!madeProgress) {
+        return { advanced, status: advanceResult.production.status }
+      }
+
       advanced++
+
+      if (advanceResult.production.status === 'completed' || advanceResult.production.status === 'failed') {
+        return { advanced, status: advanceResult.production.status }
+      }
     } catch (err) {
       console.error('[v7-background] stage advance failed', {
         productionId: params.productionId,
@@ -76,15 +144,13 @@ export async function runV7BackgroundDriveLoop(params: {
       })
       return { advanced, status: 'failed' }
     }
-
-    await sleep(300)
   }
 
   const final = await getV7Production(params.supabase, params.productionId, params.userId)
   return { advanced, status: final?.production.status ?? null }
 }
 
-/** Cron tick: one stage per active production (bounded batch). */
+/** Cron tick: one production, many immediately executable stages within the safety budget. */
 export async function advanceActiveV7ProductionsOnce(params: {
   supabase: SupabaseClient
   limit?: number
@@ -94,17 +160,15 @@ export async function advanceActiveV7ProductionsOnce(params: {
   skipped: number
   errors: number
 }> {
-  const limit = params.limit ?? CRON_PRODUCTION_LIMIT
-  const { data, error } = await params.supabase
-    .from('v7_productions')
-    .select('id,user_id,status,updated_at')
-    .eq('status', 'producing')
-    .order('updated_at', { ascending: true })
-    .limit(limit)
+  const limit = Math.min(params.limit ?? CRON_PRODUCTION_LIMIT, CRON_PRODUCTION_LIMIT)
 
-  if (error) {
-    console.error('[v7-background] list active productions failed', error.message)
-    throw new Error(error.message)
+  const rows = (await pickProductionForCronTick(params.supabase as SupabaseServerClient)).slice(
+    0,
+    limit
+  )
+
+  if (rows.length === 0) {
+    return { processed: 0, advanced: 0, skipped: 0, errors: 0 }
   }
 
   let processed = 0
@@ -112,15 +176,20 @@ export async function advanceActiveV7ProductionsOnce(params: {
   let skipped = 0
   let errors = 0
 
-  for (const row of data ?? []) {
+  for (const row of rows) {
     processed++
     try {
       const result = await runV7BackgroundDriveLoop({
         supabase: params.supabase,
         productionId: row.id,
         userId: row.user_id,
-        maxStages: 1,
-        maxMs: 240_000,
+        maxStages: DEFAULT_MAX_STAGES,
+        maxMs: CRON_DRIVE_MAX_MS,
+      })
+      console.info('[v7-background] cron drive finished', {
+        productionId: row.id,
+        stagesAdvanced: result.advanced,
+        status: result.status,
       })
       if (result.advanced > 0) advanced++
       else skipped++

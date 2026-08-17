@@ -21,7 +21,12 @@ export function V7ProductionProgressPanel({
   onRetry,
   retrying = false,
 }: V7ProductionProgressPanelProps) {
-  const showEta = !progress.paused && progress.eta.label && progress.eta.label !== 'Complete'
+  const isComplete = progress.overallPercent >= 100 && progress.currentTask === 'Creation complete'
+  const showEta =
+    !progress.paused &&
+    progress.eta.label &&
+    progress.eta.label !== 'Complete' &&
+    progress.eta.label !== 'Estimating…'
   const failureCopy = progress.paused?.reason
     ? formatV7PausedFailureReason(progress.paused.reason)
     : null
@@ -38,12 +43,18 @@ export function V7ProductionProgressPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] uppercase tracking-[0.24em] text-[#D4AF37]/80">
-            {retrying ? 'Retrying' : progress.paused ? 'Production paused' : 'Live production'}
+            {isComplete
+              ? 'Creation complete'
+              : retrying
+                ? 'Retrying'
+                : progress.paused
+                  ? 'Production paused'
+                  : 'Creating your video'}
           </p>
           <p className="mt-2 text-lg font-semibold text-white sm:text-xl">
             {retrying ? 'Retrying failed stage…' : progress.currentTask}
           </p>
-          {progress.currentStageLabel ? (
+          {progress.currentStageLabel && !isComplete ? (
             <p className="mt-1 text-sm text-white/50">
               Current stage · {progress.currentStageLabel}
             </p>
@@ -57,7 +68,7 @@ export function V7ProductionProgressPanel({
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full bg-gradient-to-r from-[#B8942E] to-[#E6C76A] transition-[width] duration-700 ease-out"
           style={{ width: `${progress.overallPercent}%` }}
@@ -69,36 +80,23 @@ export function V7ProductionProgressPanel({
         />
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {progress.sceneProgress ? (
-          <div className="rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">Scene</p>
-            <p className="mt-1 text-sm font-medium text-white/90">
-              Scene {progress.sceneProgress.currentSceneNumber ?? progress.sceneProgress.completedScenes}{' '}
-              / {progress.sceneProgress.totalScenes}
-            </p>
-            <p className="mt-0.5 text-xs text-white/45">
-              {progress.sceneProgress.completedScenes} completed ·{' '}
-              {progress.sceneProgress.scenePercent}% of stage
-            </p>
-          </div>
-        ) : null}
-
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Elapsed" value={formatDurationMs(progress.elapsedMs)} />
         {showEta ? (
-          <div className="rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">ETA</p>
-            <p className="mt-1 text-sm font-medium text-white/90">{progress.eta.label}</p>
-            {progress.eta.completionAt ? (
-              <p className="mt-0.5 text-xs text-white/45">
-                Expected completion · {formatCompletionClock(progress.eta.completionAt)}
-              </p>
-            ) : null}
-          </div>
+          <Metric
+            label="Estimated remaining"
+            value={progress.eta.label ?? 'Estimating…'}
+            detail={
+              progress.eta.completionAt
+                ? `Expected · ${formatCompletionClock(progress.eta.completionAt)}`
+                : null
+            }
+          />
         ) : progress.paused ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3 sm:col-span-2">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3 sm:col-span-2 lg:col-span-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-red-200/60">Status</p>
             <p className="mt-1 text-sm font-medium text-red-100/90">
-              {retrying ? 'Resuming image generation…' : 'ETA frozen until retry'}
+              {retrying ? 'Resuming…' : 'ETA frozen until retry'}
             </p>
             {failureCopy?.summary ? (
               <p className="mt-2 text-sm font-medium text-red-100/90">{failureCopy.summary}</p>
@@ -124,36 +122,53 @@ export function V7ProductionProgressPanel({
               </button>
             ) : null}
           </div>
+        ) : progress.eta.label === 'Estimating…' ? (
+          <Metric label="Estimated remaining" value="Estimating…" />
+        ) : null}
+
+        {progress.historicalAverageMs != null ? (
+          <Metric
+            label="Average production time"
+            value={`~${formatDurationMs(progress.historicalAverageMs)}`}
+          />
+        ) : null}
+
+        {progress.sceneProgress ? (
+          <Metric
+            label="Current scene"
+            value={`${progress.sceneProgress.completedScenes} / ${progress.sceneProgress.totalScenes}`}
+            detail={`${progress.sceneProgress.scenePercent}% of stage`}
+          />
         ) : null}
 
         {progress.provider ? (
-          <div
-            className={cn(
-              'rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3',
-              !progress.sceneProgress && !showEta ? 'sm:col-span-2' : ''
-            )}
-          >
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">Provider</p>
-            <p className="mt-1 text-sm font-medium text-white/90">{progress.provider.displayName}</p>
-            <p className="mt-0.5 text-xs text-white/45">
-              {progress.provider.model ? `${progress.provider.model} · ` : ''}
-              {progress.provider.sceneNumber
-                ? `Scene ${progress.provider.sceneNumber} of ${progress.provider.totalScenes} · `
-                : ''}
-              {progress.provider.status}
-            </p>
-          </div>
+          <Metric
+            label="Provider"
+            value={progress.provider.displayName}
+            detail={
+              progress.provider.model
+                ? `${progress.provider.model}${progress.provider.sceneNumber ? ` · Scene ${progress.provider.sceneNumber}` : ''}`
+                : progress.provider.sceneNumber
+                  ? `Scene ${progress.provider.sceneNumber} of ${progress.provider.totalScenes}`
+                  : progress.provider.status
+            }
+          />
         ) : null}
       </div>
 
       {progress.completionStats ? (
         <div className="mt-4 grid gap-3 border-t border-white/[0.06] pt-4 sm:grid-cols-3">
-          <Stat label="Total generation" value={formatDurationMs(progress.completionStats.totalGenerationMs)} />
+          <Metric label="Total time" value={formatDurationMs(progress.completionStats.totalGenerationMs)} />
           {progress.completionStats.renderMs != null ? (
-            <Stat label="Render time" value={formatDurationMs(progress.completionStats.renderMs)} />
+            <Metric label="Render time" value={formatDurationMs(progress.completionStats.renderMs)} />
           ) : null}
-          {progress.completionStats.averageSceneGenerationMs != null ? (
-            <Stat
+          {progress.historicalAverageMs != null ? (
+            <Metric
+              label="Historical average"
+              value={`~${formatDurationMs(progress.historicalAverageMs)}`}
+            />
+          ) : progress.completionStats.averageSceneGenerationMs != null ? (
+            <Metric
               label="Avg scene generation"
               value={formatDurationMs(progress.completionStats.averageSceneGenerationMs)}
             />
@@ -164,11 +179,20 @@ export function V7ProductionProgressPanel({
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  detail,
+}: {
+  label: string
+  value: string
+  detail?: string | null
+}) {
   return (
-    <div>
+    <div className="rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3">
       <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-      <p className="mt-1 text-sm font-medium text-white/85">{value}</p>
+      <p className="mt-1 text-sm font-medium text-white/90">{value}</p>
+      {detail ? <p className="mt-0.5 text-xs text-white/45">{detail}</p> : null}
     </div>
   )
 }

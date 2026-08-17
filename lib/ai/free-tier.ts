@@ -4,7 +4,7 @@
  */
 
 export const FREE_GEMINI_TEXT_MODEL =
-  process.env.GEMINI_TEXT_MODEL?.trim() || 'gemini-2.0-flash'
+  process.env.GEMINI_TEXT_MODEL?.trim() || 'gemini-2.5-flash'
 
 /** Direct Google API image model (AI Studio — Nano Banana / Flash Image). */
 export const FREE_GEMINI_IMAGE_MODEL =

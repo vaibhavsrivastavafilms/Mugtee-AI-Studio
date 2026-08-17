@@ -17,6 +17,7 @@ function parseStatus(value: string | null): UnifiedLibraryStatusFilter {
   const allowed: UnifiedLibraryStatusFilter[] = [
     'all',
     'completed',
+    'in_progress',
     'running',
     'paused',
     'failed',
@@ -47,6 +48,7 @@ function parseSort(value: string | null): UnifiedLibrarySort {
     'recently_updated',
     'newest',
     'oldest',
+    'name_asc',
     'recently_completed',
   ]
   return allowed.includes(value as UnifiedLibrarySort) ? (value as UnifiedLibrarySort) : 'recently_updated'

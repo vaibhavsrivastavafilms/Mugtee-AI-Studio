@@ -24,7 +24,7 @@ export function AuthGate({
 }: AuthGateProps) {
   const { ready, user, isDevelopmentMode } = useAuthContext()
 
-  if (showLoadingWhenBusy && (!ready || user)) {
+  if (showLoadingWhenBusy && user) {
     return <OAuthLoadingState message={loadingMessage} />
   }
 

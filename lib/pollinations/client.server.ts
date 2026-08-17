@@ -348,6 +348,10 @@ export async function fetchPollinationsVideoBuffer(params: {
   if (params.aspectRatio) url.searchParams.set('aspectRatio', params.aspectRatio)
   url.searchParams.set('width', String(capped.width))
   url.searchParams.set('height', String(capped.height))
+  // Numeric seed busts Pollinations/CDN caches (seed must be a number, not a string).
+  let cacheSeed = ((params.sceneNumber ?? 1) * 1_000_000 + (Date.now() % 1_000_000)) >>> 0
+  if (cacheSeed === 0) cacheSeed = 1
+  url.searchParams.set('seed', String(cacheSeed))
 
   const started = Date.now()
   logPollinations('video request', {

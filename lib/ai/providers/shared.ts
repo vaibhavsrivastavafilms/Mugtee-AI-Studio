@@ -57,8 +57,8 @@ export async function callOpenAICompatibleChat(params: {
   const body: Record<string, unknown> = {
     model: params.model,
     messages: params.messages,
-    temperature: params.temperature ?? 0.85,
   }
+  if (params.temperature != null) body.temperature = params.temperature
   if (params.maxTokens != null) body.max_tokens = params.maxTokens
   if (params.jsonMode) body.response_format = { type: 'json_object' }
 

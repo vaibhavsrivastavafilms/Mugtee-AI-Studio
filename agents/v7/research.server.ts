@@ -6,6 +6,7 @@ import {
   AI_PLANNING_LIST_ITEM_MAX,
   aiPlanningTextArray,
 } from '@/lib/v7/creative-planning-validation.server'
+import { v7LanguageDirectiveForBrief } from '@/lib/v7/language-routing.core'
 import type { V7CreativeBrief } from '@/types/v7/production'
 
 const RESEARCH_SYSTEM = `You are the Mugtee Deep Research Engine. Build a factual, creative research brief for a film production.
@@ -42,7 +43,7 @@ export async function runV7Research(params: {
   const started = Date.now()
   const raw = await generateV7StructuredJson({
     agent: 'v7-research',
-    systemPrompt: RESEARCH_SYSTEM,
+    systemPrompt: `${RESEARCH_SYSTEM}\n\n${v7LanguageDirectiveForBrief(params.brief)}`,
     userPrompt: `PRODUCTION:\n${JSON.stringify(params.brief, null, 2)}`,
     temperature: 0.4,
     projectId: params.productionId,

@@ -14,8 +14,10 @@ import { GroqProvider } from '@/lib/ai/providers/providers/groq-provider'
 import { OpenAIProvider } from '@/lib/ai/providers/providers/openai-provider'
 import { OpenRouterProvider } from '@/lib/ai/providers/providers/openrouter-provider'
 import { DeepSeekProvider } from '@/lib/ai/providers/providers/deepseek-provider'
+import { PollinationsProvider } from '@/lib/ai/providers/providers/pollinations-provider'
 
 const PROVIDER_INSTANCES: Record<ProviderId, AIProvider> = {
+  pollinations: new PollinationsProvider(),
   openai: new OpenAIProvider(),
   gemini: new GeminiProvider(),
   groq: new GroqProvider(),

@@ -11,7 +11,13 @@ import type { CreatorIntelligenceGraphData, Insight } from '@/lib/intelligence/t
 import type { ProviderFailureSummary } from '@/lib/ai/providers/provider-diagnostics.types'
 
 /** Supported text-generation providers for Phase 1 routing. */
-export type ProviderId = 'openai' | 'gemini' | 'groq' | 'openrouter' | 'deepseek'
+export type ProviderId =
+  | 'pollinations'
+  | 'openai'
+  | 'gemini'
+  | 'groq'
+  | 'openrouter'
+  | 'deepseek'
 
 export type AITask =
   | 'hook'

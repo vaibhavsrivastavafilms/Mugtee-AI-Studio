@@ -2,6 +2,7 @@ import 'server-only'
 
 /** V7 text provider slot identifiers — internal only, never shown in UI. */
 export type V7TextProviderId =
+  | 'pollinations'
   | 'gemini'
   | 'openrouter'
   | 'openrouter-qwen'

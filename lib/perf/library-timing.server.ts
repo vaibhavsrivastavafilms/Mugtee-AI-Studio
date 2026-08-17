@@ -6,6 +6,8 @@ type LibraryTimingMarks = {
   cinematicQuery?: number
   v3Query?: number
   assets?: number
+  stages?: number
+  scenes?: number
   mapping?: number
   total?: number
 }
@@ -26,7 +28,7 @@ export function createLibraryTimingRecorder(): LibraryTimingRecorder {
     finish() {
       marks.total = Math.round(performance.now() - started)
       console.info(
-        `[library-timing] auth: ${marks.auth ?? '-'}ms v7-query: ${marks.v7Query ?? '-'}ms cinematic-query: ${marks.cinematicQuery ?? '-'}ms v3-query: ${marks.v3Query ?? '-'}ms assets: ${marks.assets ?? '-'}ms mapping: ${marks.mapping ?? '-'}ms total: ${marks.total}ms`
+        `[library-timing] auth: ${marks.auth ?? '-'}ms v7-query: ${marks.v7Query ?? '-'}ms cinematic-query: ${marks.cinematicQuery ?? '-'}ms v3-query: ${marks.v3Query ?? '-'}ms assets: ${marks.assets ?? '-'}ms stages: ${marks.stages ?? '-'}ms scenes: ${marks.scenes ?? '-'}ms mapping: ${marks.mapping ?? '-'}ms total: ${marks.total}ms`
       )
     },
   }
@@ -35,11 +37,14 @@ export function createLibraryTimingRecorder(): LibraryTimingRecorder {
 export function logProductionTiming(params: {
   authMs: number
   queryMs: number
+  relationsMs?: number
   reconcileMs: number
   totalMs: number
   productionId: string
 }) {
+  const relations =
+    typeof params.relationsMs === 'number' ? ` relations: ${params.relationsMs}ms` : ''
   console.info(
-    `[production-timing] id=${params.productionId} auth: ${params.authMs}ms query: ${params.queryMs}ms reconcile: ${params.reconcileMs}ms total: ${params.totalMs}ms`
+    `[production-timing] id=${params.productionId} auth: ${params.authMs}ms query: ${params.queryMs}ms${relations} reconcile: ${params.reconcileMs}ms total: ${params.totalMs}ms`
   )
 }

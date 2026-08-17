@@ -1,54 +1,42 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import { UnifiedCreatorShell } from '@/components/create/unified-creator-shell'
-import { type ProjectCardModel } from '@/components/create/unified-projects-grid'
-import { ProjectsInsightsPanel } from '@/components/create/projects-insights-panel'
-import { ProjectsLibrarySection } from '@/components/create/projects-library-section'
+import { Suspense } from 'react'
+import Link from 'next/link'
+import { StudioProjectLibrary } from '@/components/projects/studio-project-library'
+import { ProjectLibraryCardSkeleton } from '@/components/projects/project-library-card'
 
-function ProjectsDashboardInner() {
-  const [selectedProject, setSelectedProject] = useState<ProjectCardModel | null>(null)
-
+function LibrarySkeleton() {
   return (
-    <UnifiedCreatorShell>
-      <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
-        <div className="flex-1 min-w-0">
-          <header className="mb-5 rounded-3xl border border-gold-500/15 bg-black/30 p-5 shadow-[0_0_50px_-34px_rgba(212,175,55,0.75)]">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-gold-300/70">
-              Conversations
-            </p>
-            <h1 className="mt-2 font-display text-2xl text-luxe sm:text-3xl">
-              Every project is something you and Mugtee started together.
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-luxe/55">
-              Come back to unfinished ideas, client stories, travel memories, and the little worlds
-              Mugtee still remembers.
-            </p>
-          </header>
-          <ProjectsLibrarySection
-            limit={24}
-            showActions
-            galleryMode
-            selectedId={selectedProject?.id ?? null}
-            onSelectProject={setSelectedProject}
-          />
-        </div>
-        <ProjectsInsightsPanel project={selectedProject} className="xl:w-72 shrink-0" />
-      </div>
-    </UnifiedCreatorShell>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <ProjectLibraryCardSkeleton key={index} />
+      ))}
+    </div>
   )
 }
 
 export default function StudioProjectsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground italic">
-          Loading projects…
-        </div>
-      }
-    >
-      <ProjectsDashboardInner />
-    </Suspense>
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-8 rounded-3xl border border-[#D4AF37]/15 bg-gradient-to-b from-[#D4AF37]/[0.06] to-transparent p-6 sm:p-8">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-[#D4AF37]/80">Project library</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-white sm:text-4xl">
+          Project Library
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
+          Your creations, all in one place.
+        </p>
+        <Link
+          href="/studio"
+          className="mt-5 inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm text-white/75 hover:bg-white/[0.04]"
+        >
+          ← Back to Studio
+        </Link>
+      </header>
+
+      <Suspense fallback={<LibrarySkeleton />}>
+        <StudioProjectLibrary />
+      </Suspense>
+    </div>
   )
 }

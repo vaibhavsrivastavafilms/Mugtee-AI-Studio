@@ -596,3 +596,98 @@ describe('Table Tales scene 5 couple validation', () => {
     assert.deepEqual(validation.forbiddenTermsFound, [])
   })
 })
+
+describe('faceless forbidden-term negation', () => {
+  function facelessSpec(forbiddenElements: string[]) {
+    return {
+      sceneNumber: 4,
+      duration: 5,
+      purpose: 'Abandoned restaurant',
+      subject: 'empty restaurant interior',
+      action: 'dust motes drift through an empty dining room',
+      location: 'Abandoned dining room',
+      characters: [] as string[],
+      objects: ['empty tables', 'dust motes'],
+      environment: 'dark abandoned dining room with peeling paint',
+      camera: 'wide establishing shot',
+      composition: 'centered empty dining room with negative space',
+      lighting: 'murky low-key shadow',
+      time: 'Night',
+      visualStyle: 'Cinematic faceless observational documentary, no visible people',
+      continuity: 'test:scene-4',
+      forbiddenElements,
+      requiredPromptTerms: ['empty', 'dining room'],
+      isGraphicScene: false,
+      isMacroFoodScene: false,
+      isHandActionScene: false,
+    }
+  }
+
+  const forbidden = ['people', 'person', 'crowd', 'couple', 'watermark']
+
+  function assertForbidden(prompt: string, term: string) {
+    const validation = validateV7SceneImagePrompt({
+      spec: facelessSpec(forbidden),
+      prompt,
+      negativePrompt: 'watermark, cartoon',
+    })
+    assert.ok(
+      validation.forbiddenTermsFound.includes(term),
+      `expected forbidden "${term}" in: ${prompt}`
+    )
+  }
+
+  function assertAllowed(prompt: string) {
+    const validation = validateV7SceneImagePrompt({
+      spec: facelessSpec(forbidden),
+      prompt,
+      negativePrompt: 'watermark, cartoon',
+    })
+    assert.deepEqual(
+      validation.forbiddenTermsFound.filter((t) =>
+        ['people', 'person', 'crowd', 'couple'].includes(t)
+      ),
+      [],
+      `unexpected human-subject forbidden hits for: ${prompt} -> ${validation.forbiddenTermsFound.join(', ')}`
+    )
+  }
+
+  it('allows negated faceless people phrasing', () => {
+    assertAllowed('cinematic empty restaurant, no visible people, empty dining room')
+    assertAllowed('dark abandoned kitchen without people, empty dining room')
+    assertAllowed('empty dining room, no people, dust motes drifting')
+  })
+
+  it('rejects positive human-subject mentions', () => {
+    assertForbidden(
+      'people eating inside the restaurant, empty dining room',
+      'people'
+    )
+    assertForbidden('crowd walking through the street, empty dining room', 'crowd')
+    assertForbidden('person standing near the building, empty dining room', 'person')
+  })
+
+  it('still rejects unrelated forbidden terms', () => {
+    const validation = validateV7SceneImagePrompt({
+      spec: facelessSpec(forbidden),
+      prompt: 'empty dining room with watermark overlay, no visible people',
+      negativePrompt: 'cartoon',
+    })
+    assert.ok(validation.forbiddenTermsFound.includes('watermark'))
+  })
+
+  it('does not false-positive multi-word forbidden phrases across unrelated tokens', () => {
+    const validation = validateV7SceneImagePrompt({
+      spec: facelessSpec([
+        'looking at camera',
+        'face close-up',
+        'chef portrait',
+        'people',
+      ]),
+      prompt:
+        'Extreme macro raindrop on window overlooking stormy weather. Camera: centered impact. Lens: 100mm macro. empty dining room',
+      negativePrompt: 'watermark',
+    })
+    assert.deepEqual(validation.forbiddenTermsFound, [])
+  })
+})

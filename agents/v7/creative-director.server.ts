@@ -8,6 +8,7 @@ import {
   aiPlanningText,
   aiPlanningTextArray,
 } from '@/lib/v7/creative-planning-validation.server'
+import { v7LanguageDirectiveForBrief } from '@/lib/v7/language-routing.core'
 import type { V7CreativeBrief } from '@/types/v7/production'
 import type { V7ResearchBrief } from '@/agents/v7/research.server'
 
@@ -54,7 +55,7 @@ export async function runV7CreativeDirector(params: {
   const started = Date.now()
   const raw = await generateV7StructuredJson({
     agent: 'v7-creative',
-    systemPrompt: CREATIVE_SYSTEM,
+    systemPrompt: `${CREATIVE_SYSTEM}\n\n${v7LanguageDirectiveForBrief(params.brief)}`,
     userPrompt: `BRIEF:\n${JSON.stringify(params.brief)}\n\nRESEARCH:\n${JSON.stringify(params.research)}`,
     temperature: 0.45,
     projectId: params.productionId,

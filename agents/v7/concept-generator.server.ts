@@ -7,6 +7,7 @@ import {
   AI_PLANNING_TITLE_MAX,
   aiPlanningText,
 } from '@/lib/v7/creative-planning-validation.server'
+import { v7LanguageDirectiveForBrief } from '@/lib/v7/language-routing.core'
 import type { V7Concept, V7CreativeBrief } from '@/types/v7/production'
 
 const CONCEPT_SYSTEM = `You are the Mugtee Concept Director. Given a creator prompt and production brief, propose exactly FOUR genuinely different film concepts.
@@ -60,8 +61,8 @@ export async function runV7ConceptGenerator(params: {
   const started = Date.now()
   const raw = await generateV7StructuredJson({
     agent: 'v7-concepts',
-    systemPrompt: CONCEPT_SYSTEM,
-    userPrompt: `CREATOR PROMPT:\n${params.prompt.trim()}\n\nPRODUCTION BRIEF:\n${JSON.stringify(params.brief, null, 2)}`,
+    systemPrompt: `${CONCEPT_SYSTEM}\n\n${v7LanguageDirectiveForBrief(params.brief)}`,
+    userPrompt: `CREATOR INTENT:\n${params.prompt.trim()}\n\nPRODUCTION BRIEF:\n${JSON.stringify(params.brief, null, 2)}`,
     temperature: 0.65,
     projectId: params.productionId,
   })

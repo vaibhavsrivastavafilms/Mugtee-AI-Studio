@@ -82,7 +82,7 @@ export async function resolvePollinationsAuthContext(params: {
   }
 
   const platformKey = readPollinationsApiKeyFromEnv()
-  if (platformKey?.startsWith('sk_')) {
+  if (platformKey?.startsWith('sk_') || platformKey?.startsWith('pk_')) {
     return { apiKey: platformKey, source: 'platform_env' }
   }
 

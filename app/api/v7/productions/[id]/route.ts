@@ -3,8 +3,14 @@ import { NextResponse } from 'next/server'
 import { getAuthenticatedUser, isAuthNetworkFailure } from '@/lib/auth/server-user'
 import { logProductionTiming } from '@/lib/perf/library-timing.server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getV7Production } from '@/lib/v7/db.server'
-import { findRunningStage, reconcilePipelineIntegrity, toV7AdvanceSnapshot } from '@/lib/v7/pipeline-sync.server'
+import { getV7Production, getV7ProductionForStudioRead } from '@/lib/v7/db.server'
+import { scheduleV7ProductionBackgroundDrive } from '@/lib/v7/background-driver.server'
+import {
+  findRunningStage,
+  reconcilePipelineIntegrity,
+  shouldDrivePipeline,
+  toV7AdvanceSnapshot,
+} from '@/lib/v7/pipeline-sync.server'
 import { buildV7ProductionErrorResponse } from '@/lib/v7/api-errors.server'
 
 export const runtime = 'nodejs'
@@ -17,6 +23,7 @@ export async function GET(_req: Request, context: RouteContext) {
   const started = performance.now()
   let authMs = 0
   let queryMs = 0
+  let relationsMs = 0
   let reconcileMs = 0
 
   try {
@@ -43,9 +50,10 @@ export async function GET(_req: Request, context: RouteContext) {
 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const queryStarted = performance.now()
-    const snapshot = await getV7Production(supabase, id, user.id)
-    queryMs = Math.round(performance.now() - queryStarted)
+    const readResult = await getV7ProductionForStudioRead(supabase, id, user.id)
+    queryMs = readResult.timing.productionMs
+    relationsMs = readResult.timing.relationsMs
+    const snapshot = readResult.snapshot
 
     if (!snapshot) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -59,9 +67,17 @@ export async function GET(_req: Request, context: RouteContext) {
       })) ?? snapshot
     reconcileMs = Math.round(performance.now() - reconcileStarted)
 
+    if (shouldDrivePipeline(reconciled)) {
+      scheduleV7ProductionBackgroundDrive({
+        productionId: id,
+        userId: user.id,
+      })
+    }
+
     logProductionTiming({
       authMs,
       queryMs,
+      relationsMs,
       reconcileMs,
       totalMs: Math.round(performance.now() - started),
       productionId: id,

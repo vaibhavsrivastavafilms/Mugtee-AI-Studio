@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { USER_IDEA_MAX_CHARS } from '@/lib/v7/creative-planning-validation'
 import { getV7Production, listV7Productions } from '@/lib/v7/db.server'
-import { startV7Production } from '@/lib/v7/orchestrator.server'
+import { bootstrapV7Production } from '@/lib/v7/orchestrator.server'
+import { scheduleV7ProductionBackgroundDrive } from '@/lib/v7/background-driver.server'
 import { guardUsageLimit, trackUsageMetric } from '@/lib/usage/api-guards'
 import { buildV7ProductionErrorResponse } from '@/lib/v7/api-errors.server'
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       if (blocked) return blocked
     }
 
-    const snapshot = await startV7Production({
+    const snapshot = await bootstrapV7Production({
       supabase,
       userId: user.id,
       prompt: idea,
@@ -71,6 +72,11 @@ export async function POST(req: Request) {
     })
 
     productionId = snapshot.production.id
+
+    scheduleV7ProductionBackgroundDrive({
+      productionId: snapshot.production.id,
+      userId: user.id,
+    })
 
     if (!body?.productionId) {
       await trackUsageMetric(user.id, 'generations')

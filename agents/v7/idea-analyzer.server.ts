@@ -17,6 +17,11 @@ import {
   aiPlanningText,
   aiPlanningTextOptional,
 } from '@/lib/v7/creative-planning-validation.server'
+import {
+  applyResolvedV7LanguageToBrief,
+  buildV7FramedUserInput,
+} from '@/lib/v7/language-routing.core'
+import { V7_CINEMATIC_DEFAULT_DURATION_SEC } from '@/lib/v7/cinematic-video-framework.core'
 import type { V7CreativeBrief } from '@/types/v7/production'
 
 const IDEA_SYSTEM = `You are the Mugtee Idea Analyzer — the production brain of an autonomous AI film studio.
@@ -47,7 +52,7 @@ Rules:
 - Never inflate duration or scene count beyond what the request needs.
 - Minimalist, experimental, silent, or single-scene requests are valid.
 - Infer platform, language, and aspect ratio from context. Vertical 9:16 for Shorts/Reels unless landscape requested.
-- Default duration ${PRODUCTION_DEFAULT_DURATION_SEC}s only when the user gives no timing hint.`
+- Default duration ${V7_CINEMATIC_DEFAULT_DURATION_SEC}s only when the user gives no timing hint.`
 
 const briefSchema = z.object({
   title: aiPlanningText(AI_PLANNING_TITLE_MAX),
@@ -85,7 +90,7 @@ export async function runV7IdeaAnalyzer(params: {
   const raw = await generateV7StructuredJson({
     agent: 'v7-idea',
     systemPrompt: IDEA_SYSTEM,
-    userPrompt: `CREATOR IDEA:\n${userPrompt}`,
+    userPrompt: buildV7FramedUserInput(userPrompt, 'CREATOR IDEA'),
     temperature: 0.35,
     projectId: params.productionId,
   })
@@ -97,11 +102,14 @@ export async function runV7IdeaAnalyzer(params: {
     sceneCount: parsed.sceneCount,
   })
 
-  const brief: V7CreativeBrief = {
-    ...parsed,
-    duration: plan.duration,
-    sceneCount: plan.sceneCount,
-  }
+  const brief: V7CreativeBrief = applyResolvedV7LanguageToBrief(
+    {
+      ...parsed,
+      duration: plan.duration,
+      sceneCount: plan.sceneCount,
+    },
+    userPrompt
+  )
 
   return { brief, durationMs: Date.now() - started }
 }

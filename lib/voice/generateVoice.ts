@@ -53,6 +53,8 @@ export type GenerateVoiceInput = {
   skipCache?: boolean
   /** When false, skip ElevenLabs even if keyed (Free/Creator economics). */
   preferElevenLabs?: boolean
+  /** ISO content language for TTS fallback voice selection (en | hi | gu). */
+  contentLanguage?: string
 }
 
 export type GenerateVoiceResult = {
@@ -153,7 +155,8 @@ async function uploadVoiceBuffer(
 async function synthesizeWithDirector(
   narration: string,
   voiceId: string,
-  preferElevenLabs = true
+  preferElevenLabs = true,
+  contentLanguage?: string
 ): Promise<{
   buffer: Buffer | null
   provider: VoiceMetadata['provider']
@@ -163,6 +166,7 @@ async function synthesizeWithDirector(
   const cascade = await synthesizeWithCascade(narration, {
     elevenLabsVoiceId: voiceId,
     allowSilentStub: false,
+    languageCode: contentLanguage,
   })
 
   const provider: VoiceMetadata['provider'] =
@@ -273,7 +277,8 @@ export async function generateVoice(
   const synth = await synthesizeWithDirector(
     narration,
     plan.voiceId,
-    input.preferElevenLabs !== false
+    input.preferElevenLabs !== false,
+    input.contentLanguage
   )
 
   if (!synth.buffer) {

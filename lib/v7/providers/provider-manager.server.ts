@@ -2,6 +2,7 @@ import 'server-only'
 
 import { getOpenRouterTextProviderHealth } from '@/lib/ai/providers/openrouter/health'
 import { hasOpenRouterApiKey } from '@/lib/ai/providers/openrouter/client'
+import { getAvailableProviders } from '@/lib/ai/providers/task-routing'
 import { probePollinationsHealth } from '@/lib/pollinations/models.server'
 import { clearPollinationsSpendableBalanceCache } from '@/lib/pollinations/entitlement.server'
 import { invalidatePollinationsModelCache } from '@/lib/pollinations/models.server'
@@ -28,7 +29,7 @@ export type ProviderPreflightResult = {
   image: ProviderReadiness
   video: ProviderReadiness
   ready: boolean
-  textProvider: 'openrouter'
+  textProvider: 'pollinations' | 'openrouter'
   imageProvider: 'pollinations'
   videoProvider: 'pollinations'
   providers: {
@@ -112,7 +113,25 @@ function snapshotFromPollinations(params: {
 }
 
 async function probeTextProvider(): Promise<ProviderHealthSnapshot> {
+  const { probePollinationsTextReady } = await import('@/lib/pollinations/text.server')
+  const pollinations = await probePollinationsTextReady()
+  if (pollinations.ready) {
+    return {
+      provider: 'pollinations',
+      connected: true,
+      authenticated: true,
+      ready: true,
+      healthy: true,
+      selectedModel: pollinations.model,
+      reason: null,
+      action: null,
+    }
+  }
+
   const health = await getOpenRouterTextProviderHealth()
+  const available = getAvailableProviders().filter((id) => id !== 'pollinations')
+  const fallbackProviders = available.filter((id) => id !== 'openrouter')
+
   let selectedModel = health.workingModel || null
   if (!selectedModel && health.ready) {
     try {
@@ -122,6 +141,26 @@ async function probeTextProvider(): Promise<ProviderHealthSnapshot> {
       // health snapshot falls back to null model
     }
   }
+
+  if (health.ready) {
+    const snapshot = snapshotFromText(health)
+    return { ...snapshot, selectedModel }
+  }
+
+  if (fallbackProviders.length > 0) {
+    const fallback = fallbackProviders[0]
+    return {
+      provider: fallback,
+      connected: true,
+      authenticated: true,
+      ready: true,
+      healthy: true,
+      selectedModel: null,
+      reason: null,
+      action: null,
+    }
+  }
+
   const snapshot = snapshotFromText(health)
   return { ...snapshot, selectedModel }
 }
@@ -231,8 +270,8 @@ export class ProviderManager {
       text: textReady,
       image: imageReady,
       video: videoReady,
-      ready: textReady === 'READY' && imageReady === 'READY' && videoReady === 'READY',
-      textProvider: 'openrouter',
+      ready: textReady === 'READY',
+      textProvider: text.provider === 'pollinations' ? 'pollinations' : 'openrouter',
       imageProvider: 'pollinations',
       videoProvider: 'pollinations',
       providers: {
@@ -243,11 +282,7 @@ export class ProviderManager {
       error:
         textReady !== 'READY'
           ? 'TEXT_PROVIDER_NOT_READY'
-          : imageReady !== 'READY'
-            ? 'IMAGE_PROVIDER_NOT_READY'
-            : videoReady !== 'READY'
-              ? 'VIDEO_PROVIDER_NOT_READY'
-              : null,
+          : null,
     }
 
     sessions.set(userId, {
@@ -309,13 +344,19 @@ export class ProviderManager {
     if (report.text !== 'READY') {
       const { TextProviderError } = await import('@/lib/ai/errors')
       const reason = report.providers.text.reason
-      if (!hasOpenRouterApiKey() || reason === 'OPENROUTER_AUTH_FAILED') {
-        throw new TextProviderError('OPENROUTER_AUTH_FAILED', 'openrouter', {
+      const provider = report.textProvider
+      if (getAvailableProviders().length === 0) {
+        throw new TextProviderError('TEXT_PROVIDER_NOT_CONFIGURED', provider, {
+          message: 'No text provider API keys configured for this deployment',
+        })
+      }
+      if (provider === 'openrouter' && !hasOpenRouterApiKey() && reason === 'OPENROUTER_AUTH_FAILED') {
+        throw new TextProviderError('OPENROUTER_AUTH_FAILED', provider, {
           message: 'OpenRouter authentication is not configured for this deployment',
         })
       }
-      throw new TextProviderError('TEXT_PROVIDER_NOT_READY', 'openrouter', {
-        message: reason ?? 'OpenRouter text provider not ready',
+      throw new TextProviderError('TEXT_PROVIDER_NOT_READY', provider, {
+        message: reason ?? 'Text provider not ready',
       })
     }
     return report

@@ -46,7 +46,11 @@ export async function validateV7ProductionMediaAssets(
     const label = `Scene ${pkg.sceneNumber}`
     const scene = snapshot.scenes.find((row) => row.id === pkg.sceneId)
     const board = (scene?.storyboard ?? {}) as Record<string, unknown>
-    const videoMeta = board.videoMetadata as { provider?: string; fallback?: boolean } | undefined
+    const videoMeta = board.videoMetadata as {
+      provider?: string
+      fallback?: boolean
+      durationSec?: number
+    } | undefined
 
     if (
       isSlideshowOrFallbackVideo({
@@ -65,7 +69,13 @@ export async function validateV7ProductionMediaAssets(
       continue
     }
 
-    const probe = await probeRemoteVideoAsset(pkg.videoUrl, pkg.durationSec)
+    const probe = await probeRemoteVideoAsset(
+      pkg.videoUrl,
+      resolveSceneVideoProbeExpectedDurationSec({
+        packageDurationSec: pkg.durationSec,
+        videoMetadata: videoMeta,
+      })
+    )
     if (!probe.valid) {
       issues.push(
         `${label}: scene video failed media probe (${probe.error ?? 'invalid'}) — URL may be broken or not a playable MP4`
@@ -74,4 +84,16 @@ export async function validateV7ProductionMediaAssets(
   }
 
   return issues
+}
+
+/** I2V clip length (e.g. wan-fast ~5s) is authoritative; screenplay package duration is editorial. */
+function resolveSceneVideoProbeExpectedDurationSec(params: {
+  packageDurationSec: number
+  videoMetadata?: { durationSec?: number }
+}): number | undefined {
+  const probed = params.videoMetadata?.durationSec
+  if (typeof probed === 'number' && probed > 0) {
+    return probed
+  }
+  return params.packageDurationSec > 0 ? params.packageDurationSec : undefined
 }

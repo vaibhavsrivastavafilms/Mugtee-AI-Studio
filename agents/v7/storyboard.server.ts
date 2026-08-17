@@ -8,6 +8,8 @@ import {
   aiPlanningText,
   normalizeCreativeText,
 } from '@/lib/v7/creative-planning-validation.server'
+import { normalizeStoryboardTiming } from '@/lib/v7/storyboard-timing.core'
+import { v7LanguageDirectiveForBrief } from '@/lib/v7/language-routing.core'
 import type { V7CreativeBrief } from '@/types/v7/production'
 import type { V7CreativeDirection } from '@/agents/v7/creative-director.server'
 import type { V7ScriptDocument } from '@/agents/v7/script-writer.server'
@@ -28,7 +30,7 @@ Return ONLY JSON:
           "lighting": string,
           "dialogue": string,
           "emotion": string,
-          "timing": number
+          "timing": number // seconds per shot, must be > 0
         }
       ]
     }
@@ -69,11 +71,12 @@ export async function runV7Storyboard(params: {
   const started = Date.now()
   const raw = await generateV7StructuredJson({
     agent: 'v7-storyboard',
-    systemPrompt: STORYBOARD_SYSTEM,
+    systemPrompt: `${STORYBOARD_SYSTEM}\n\n${v7LanguageDirectiveForBrief(params.brief)}\nShot dialogue must match the locked content language. Camera, lens, composition, movement, and lighting may use English cinematic terminology.`,
     userPrompt: `BRIEF:\n${JSON.stringify(params.brief)}\n\nCREATIVE:\n${JSON.stringify(params.direction)}\n\nSCRIPT:\n${JSON.stringify(params.script)}`,
     temperature: 0.4,
     projectId: params.productionId,
   })
 
-  return { storyboard: storyboardSchema.parse(raw), durationMs: Date.now() - started }
+  const normalized = normalizeStoryboardTiming(raw, params.script)
+  return { storyboard: storyboardSchema.parse(normalized), durationMs: Date.now() - started }
 }

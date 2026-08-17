@@ -8,7 +8,7 @@ import {
 } from '@/lib/pollinations/key-diagnostics-core'
 import { probePollinationsAuthenticationStatus } from '@/lib/pollinations/key-diagnostics.server'
 
-export type PollinationsCapability = 'image' | 'video' | 'audio'
+export type PollinationsCapability = 'text' | 'image' | 'video' | 'audio'
 
 export type PollinationsModelInfo = {
   id: string
@@ -77,7 +77,18 @@ function inferCapability(raw: Record<string, unknown>): PollinationsCapability {
     : []
 
   if (category === 'video' || outputs.includes('video')) return 'video'
-  if (category === 'audio' || outputs.includes('audio')) return 'audio'
+  if ((category === 'audio' || outputs.includes('audio')) && outputs.includes('audio')) {
+    return 'audio'
+  }
+  if (
+    category === 'text' ||
+    category === 'llm' ||
+    category === 'chat' ||
+    outputs.includes('text') ||
+    (outputs.length === 0 && inputs.includes('text'))
+  ) {
+    return 'text'
+  }
   return 'image'
 }
 
@@ -119,6 +130,23 @@ const FALLBACK_IMAGE_MODELS: PollinationsModelInfo[] = [
   { id: 'zimage', type: 'image', supportsImageToVideo: false, questEligible: true, pollenCost: 0.004 },
 ]
 
+const FALLBACK_TEXT_MODELS: PollinationsModelInfo[] = [
+  { id: 'qwen-safety', type: 'text', supportsImageToVideo: false, questEligible: true, pollenCost: 0.001 },
+  { id: 'muse-glimmer', type: 'text', supportsImageToVideo: false, questEligible: true, pollenCost: 0.001 },
+  { id: 'gpt-oss', type: 'text', supportsImageToVideo: false, questEligible: true, pollenCost: 0.001 },
+  { id: 'minimax', type: 'text', supportsImageToVideo: false, questEligible: true, pollenCost: 0.001 },
+]
+
+/** Models commonly allowed on publishable (pk_) keys with restricted scopes. */
+const PUBLISHABLE_KEY_PREFERRED_TEXT_MODELS = ['qwen-safety']
+
+const FALLBACK_AUDIO_MODELS: PollinationsModelInfo[] = [
+  { id: 'elevenlabs', type: 'audio', supportsImageToVideo: false, questEligible: true, pollenCost: 0.002 },
+  { id: 'kokoro', type: 'audio', supportsImageToVideo: false, questEligible: true, pollenCost: 0.002 },
+  { id: 'elevenmusic', type: 'audio', supportsImageToVideo: false, questEligible: false, pollenCost: 0.01 },
+  { id: 'eleven-sfx', type: 'audio', supportsImageToVideo: false, questEligible: false, pollenCost: 0.005 },
+]
+
 const FALLBACK_VIDEO_MODELS: PollinationsModelInfo[] = [
   { id: 'nova-reel', type: 'video', supportsImageToVideo: true, questEligible: true, pollenCost: 0.08 },
   { id: 'wan-fast', type: 'video', supportsImageToVideo: true, questEligible: false, pollenCost: 0.01 },
@@ -130,26 +158,68 @@ export async function discoverPollinationsModels(force = false): Promise<Pollina
     return cache.models
   }
 
-  try {
-    const res = await fetch(`${GEN_POLLINATIONS_BASE}/image/models`, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (res.ok) {
-      const data = (await res.json()) as unknown
-      const parsed = parseModelsPayload(data)
-      if (parsed.length > 0) {
-        cache = { expiresAt: Date.now() + MODEL_CACHE_TTL_MS, models: parsed }
-        return parsed
+  const merged: PollinationsModelInfo[] = []
+
+  for (const path of ['/text/models', '/audio/models', '/image/models']) {
+    try {
+      const res = await fetch(`${GEN_POLLINATIONS_BASE}${path}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(30_000),
+      })
+      if (res.ok) {
+        merged.push(...parseModelsPayload((await res.json()) as unknown))
       }
+    } catch {
+      // fall through
     }
-  } catch {
-    // fall through to defaults
   }
 
-  const fallback = [...FALLBACK_IMAGE_MODELS, ...FALLBACK_VIDEO_MODELS]
+  const deduped = new Map<string, PollinationsModelInfo>()
+  for (const model of merged) {
+    if (!deduped.has(model.id)) deduped.set(model.id, model)
+  }
+  const parsed = [...deduped.values()]
+
+  if (parsed.length > 0) {
+    cache = { expiresAt: Date.now() + MODEL_CACHE_TTL_MS, models: parsed }
+    return parsed
+  }
+
+  const fallback = [
+    ...FALLBACK_TEXT_MODELS,
+    ...FALLBACK_IMAGE_MODELS,
+    ...FALLBACK_VIDEO_MODELS,
+    ...FALLBACK_AUDIO_MODELS,
+  ]
   cache = { expiresAt: Date.now() + MODEL_CACHE_TTL_MS, models: fallback }
   return fallback
+}
+
+export async function listPollinationsTextModelCandidates(options?: {
+  preferred?: string
+  exclude?: string[]
+}): Promise<string[]> {
+  const envOverride = process.env.POLLINATIONS_TEXT_MODEL?.trim()
+  const models = await discoverPollinationsModels()
+  let eligible = rankModels(models.filter((model) => model.type === 'text'))
+  const excluded = new Set((options?.exclude ?? []).map((id) => id.trim()).filter(Boolean))
+  eligible = eligible.filter((model) => !excluded.has(model.id))
+
+  const ordered: string[] = []
+  const key = readPollinationsApiKeyFromEnv()
+  if (key?.startsWith('pk_')) {
+    ordered.push(...PUBLISHABLE_KEY_PREFERRED_TEXT_MODELS)
+  }
+  if (envOverride) ordered.push(envOverride)
+  if (options?.preferred?.trim()) ordered.push(options.preferred.trim())
+  for (const model of eligible) ordered.push(model.id)
+
+  const seen = new Set<string>()
+  return ordered.filter((id) => {
+    if (!id || seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
 }
 
 export function invalidatePollinationsModelCache(): void {
@@ -168,17 +238,15 @@ export async function selectBestPollinationsModel(
   options?: { imageToVideo?: boolean; preferred?: string; exclude?: string[] }
 ): Promise<string> {
   const envOverride =
-    capability === 'image'
-      ? process.env.POLLINATIONS_IMAGE_MODEL?.trim() ||
-        process.env.V7_POLLINATIONS_IMAGE_MODEL?.trim()
+    capability === 'text'
+      ? process.env.POLLINATIONS_TEXT_MODEL?.trim()
+      : capability === 'image'
+        ? process.env.POLLINATIONS_IMAGE_MODEL?.trim() ||
+          process.env.V7_POLLINATIONS_IMAGE_MODEL?.trim()
         : capability === 'video'
-        ? process.env.POLLINATIONS_VIDEO_MODEL?.trim() ||
-          process.env.V7_POLLINATIONS_VIDEO_MODEL?.trim()
-        : capability === 'audio'
-          ? process.env.POLLINATIONS_AUDIO_MODEL?.trim()
-          : capability === 'image'
-            ? undefined
-            : process.env.POLLINATIONS_TEXT_MODEL?.trim()
+          ? process.env.POLLINATIONS_VIDEO_MODEL?.trim() ||
+            process.env.V7_POLLINATIONS_VIDEO_MODEL?.trim()
+          : process.env.POLLINATIONS_AUDIO_MODEL?.trim()
 
   const models = await discoverPollinationsModels()
   let eligible = models.filter((model) => model.type === capability)
@@ -212,6 +280,54 @@ export async function selectBestPollinationsModel(
   }
 
   return eligible[0].id
+}
+
+function pickAudioModelFromCatalog(
+  models: PollinationsModelInfo[],
+  preferredIds: string[],
+  envOverride?: string
+): string | null {
+  const eligible = rankModels(models.filter((model) => model.type === 'audio'))
+  if (envOverride && eligible.some((model) => model.id === envOverride)) {
+    return envOverride
+  }
+  for (const id of preferredIds) {
+    if (eligible.some((model) => model.id === id)) return id
+  }
+  return eligible[0]?.id ?? null
+}
+
+export async function selectPollinationsTtsModel(options?: { preferred?: string }): Promise<string> {
+  const models = await discoverPollinationsModels()
+  const selected =
+    pickAudioModelFromCatalog(
+      models,
+      ['elevenlabs', 'kokoro', 'elevenflash', 'eleven-multilingual-v2'],
+      process.env.POLLINATIONS_TTS_MODEL?.trim() || options?.preferred
+    ) ?? 'elevenlabs'
+  return selected
+}
+
+export async function selectPollinationsMusicModel(options?: { preferred?: string }): Promise<string> {
+  const models = await discoverPollinationsModels()
+  const selected =
+    pickAudioModelFromCatalog(
+      models,
+      ['elevenmusic', 'lyria-3-clip'],
+      process.env.POLLINATIONS_MUSIC_MODEL?.trim() || options?.preferred
+    ) ?? 'elevenmusic'
+  return selected
+}
+
+export async function selectPollinationsSfxModel(options?: { preferred?: string }): Promise<string> {
+  const models = await discoverPollinationsModels()
+  const selected =
+    pickAudioModelFromCatalog(
+      models,
+      ['eleven-sfx'],
+      process.env.POLLINATIONS_SFX_MODEL?.trim() || options?.preferred
+    ) ?? 'eleven-sfx'
+  return selected
 }
 
 /** Select best affordable image-to-video model from live Pollinations catalog. */

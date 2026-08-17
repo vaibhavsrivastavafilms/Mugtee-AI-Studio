@@ -112,23 +112,33 @@ export async function runV7ImageOrchestrator(params: {
     .select('id, number, storyboard')
     .eq('production_id', params.productionId)
 
-  const existingById = new Map<
-    string,
-    { imageUrl?: string; imageMetadata?: Record<string, unknown>; imageCheckpointAt?: string }
-  >(
+  type ExistingSceneImage = {
+    imageUrl?: string
+    imageMetadata?: Record<string, unknown>
+    imageCheckpointAt?: string
+  }
+
+  const existingById = new Map<string, ExistingSceneImage>(
     (existingScenes ?? []).map((row) => [
       row.id as string,
-      ((row.storyboard as {
-        imageUrl?: string
-        imageMetadata?: Record<string, unknown>
-        imageCheckpointAt?: string
-      } | null) ?? {}) as {
-        imageUrl?: string
-        imageMetadata?: Record<string, unknown>
-        imageCheckpointAt?: string
-      },
+      ((row.storyboard as ExistingSceneImage | null) ?? {}) as ExistingSceneImage,
     ])
   )
+
+  /** Matches validateImageStageComplete — URL alone is not completion evidence. */
+  function hasPersistedImageCheckpoint(existing: ExistingSceneImage | undefined): boolean {
+    if (!existing?.imageCheckpointAt?.trim()) return false
+    if (!existing.imageMetadata || typeof existing.imageMetadata !== 'object') return false
+
+    const meta = existing.imageMetadata as {
+      storagePath?: string
+      promptArchive?: { action?: string }
+    }
+    if (!meta.storagePath?.trim()) return false
+    if (!meta.promptArchive?.action?.trim()) return false
+
+    return true
+  }
 
   const bundles = buildV7ScenePromptBundles({
     brief: params.brief,
@@ -157,21 +167,18 @@ export async function runV7ImageOrchestrator(params: {
   }
 
   function shouldReuseExistingImage(bundle: V7ScenePromptBundle): boolean {
+    if (params.forceRegenerate) return false
+
     const existing = existingById.get(bundle.sceneId)
     const existingUrl = existing?.imageUrl?.trim()
-    const hasCheckpoint = Boolean(existing?.imageCheckpointAt || existing?.imageMetadata)
-    const archive = existing?.imageMetadata?.promptArchive as Record<string, unknown> | undefined
-    const checkpointCurrent =
-      hasCheckpoint && checkpointMatchesCurrentPrompt(archive, bundle)
-
-    if (params.forceRegenerate) return false
     if (!existingUrl || isEphemeralRemoteImageUrl(existingUrl)) return false
+    if (!hasPersistedImageCheckpoint(existing)) return false
 
-    // Reuse any persisted checkpoint — do not regenerate valid scenes on stage retry.
-    if (hasCheckpoint) return true
+    const archive = existing?.imageMetadata?.promptArchive as Record<string, unknown> | undefined
+    if (!checkpointMatchesCurrentPrompt(archive, bundle)) return false
 
-    // Legacy rows may have a URL without checkpoint metadata; repair once instead of regenerating.
-    return !hasCheckpoint
+    // Reuse only fully checkpointed scenes — placeholders without metadata must regenerate.
+    return true
   }
 
   function sceneNeedsGeneration(bundle: V7ScenePromptBundle): boolean {
@@ -227,49 +234,6 @@ export async function runV7ImageOrchestrator(params: {
           status: 'completed',
           metadata: {
             resumed: true,
-            promptArchive: bundle.promptArchive,
-          },
-        },
-      })
-      continue
-    }
-
-    if (
-      !params.forceRegenerate &&
-      existing?.imageUrl?.trim() &&
-      !isEphemeralRemoteImageUrl(existing.imageUrl) &&
-      !Boolean(existing?.imageCheckpointAt || existing?.imageMetadata)
-    ) {
-      const repairedUrl = existingUrl!
-      await checkpointSceneImage({
-        supabase,
-        sceneId: bundle.sceneId,
-        imageUrl: repairedUrl,
-        metadata: {
-          provider: 'checkpoint_repair',
-          repaired: true,
-          promptArchive: bundle.promptArchive,
-        },
-      })
-      results.push({
-        sceneId: bundle.sceneId,
-        sceneNumber: bundle.sceneNumber,
-        attempts: 0,
-        row: {
-          project_id: params.productionId,
-          scene_id: bundle.sceneId,
-          prompt_id: `v7-prompt-${bundle.sceneNumber}`,
-          provider: 'checkpoint_repair',
-          provider_job_id: null,
-          image_url: repairedUrl,
-          thumbnail_url: repairedUrl,
-          seed: bundle.seed,
-          width: bundle.width,
-          height: bundle.height,
-          generation_time_ms: 0,
-          status: 'completed',
-          metadata: {
-            repaired: true,
             promptArchive: bundle.promptArchive,
           },
         },

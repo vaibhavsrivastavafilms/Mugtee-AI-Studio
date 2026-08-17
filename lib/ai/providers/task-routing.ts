@@ -1,6 +1,14 @@
 import type { AITask, ProviderChain, ProviderId } from '@/lib/ai/providers/types'
+import { readPollinationsApiKeyFromEnv } from '@/lib/pollinations/key-diagnostics-core'
 
-const ALL_PROVIDERS: ProviderId[] = ['openai', 'gemini', 'groq', 'openrouter', 'deepseek']
+const ALL_PROVIDERS: ProviderId[] = [
+  'pollinations',
+  'openai',
+  'gemini',
+  'groq',
+  'openrouter',
+  'deepseek',
+]
 
 const TASK_ENV_PREFIX: Record<AITask, string> = {
   hook: 'HOOK',
@@ -13,16 +21,16 @@ const TASK_ENV_PREFIX: Record<AITask, string> = {
   research: 'RESEARCH',
 }
 
-/** Task-specific default priority when env vars are unset. OSS/free-first ordering. */
+/** Task-specific default priority when env vars are unset. Pollinations primary, then OSS fallbacks. */
 const TASK_DEFAULT_ORDER: Record<AITask, ProviderId[]> = {
-  hook: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
-  script: ['groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
-  title: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
-  caption: ['groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
-  visual: ['openrouter', 'gemini', 'groq', 'deepseek', 'openai'],
-  storyboard: ['groq', 'openrouter', 'gemini', 'deepseek', 'openai'],
-  voice: ['openai', 'gemini', 'groq', 'openrouter', 'deepseek'],
-  research: ['groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
+  hook: ['pollinations', 'groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  script: ['pollinations', 'groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
+  title: ['pollinations', 'groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  caption: ['pollinations', 'groq', 'gemini', 'openrouter', 'deepseek', 'openai'],
+  visual: ['pollinations', 'openrouter', 'gemini', 'groq', 'deepseek', 'openai'],
+  storyboard: ['pollinations', 'groq', 'openrouter', 'gemini', 'deepseek', 'openai'],
+  voice: ['pollinations', 'openai', 'gemini', 'groq', 'openrouter', 'deepseek'],
+  research: ['pollinations', 'groq', 'openrouter', 'deepseek', 'gemini', 'openai'],
 }
 
 function parseProviderId(raw: string | undefined): ProviderId | null {
@@ -38,6 +46,8 @@ function envProvider(task: AITask, slot: 'PRIMARY' | 'FALLBACK' | 'EMERGENCY'): 
 
 export function hasProviderKey(id: ProviderId): boolean {
   switch (id) {
+    case 'pollinations':
+      return Boolean(readPollinationsApiKeyFromEnv())
     case 'openai':
       return Boolean(process.env.OPENAI_API_KEY?.trim())
     case 'gemini':

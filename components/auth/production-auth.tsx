@@ -20,6 +20,7 @@ import { persistModeEntry } from '@/lib/create/mode-selection'
 type ProductionAuthProps = {
   nextPath: string
   activeMode: CreatorMode
+  initialMode?: 'signin' | 'signup'
   onOAuthStart?: () => void
   onOAuthEnd?: () => void
   /** Called when Supabase project is restricted / unavailable. */
@@ -52,13 +53,14 @@ function GoogleIcon() {
 export function ProductionAuth({
   nextPath,
   activeMode,
+  initialMode = 'signin',
   onOAuthStart,
   onOAuthEnd,
   onInfrastructureUnavailable,
 }: ProductionAuthProps) {
   const emailAuth = isEmailAuthEnabled()
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup'>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
@@ -215,10 +217,14 @@ export function ProductionAuth({
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Your creative companion has been waiting."
+      title={mode === 'signup' ? 'Create your account' : 'Welcome back'}
+      subtitle={
+        mode === 'signup'
+          ? 'Sign up to start creating in Mugtee Studio.'
+          : 'Sign in to continue to your studio.'
+      }
     >
-      <div className="space-y-5" role="region" aria-label="Sign in">
+      <div className="space-y-5" role="region" aria-label={mode === 'signup' ? 'Sign up' : 'Sign in'}>
         {loading ? (
           <button
             type="button"
@@ -237,7 +243,7 @@ export function ProductionAuth({
             className="flex min-h-[48px] h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-medium text-zinc-900 transition-colors duration-150 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)] disabled:opacity-70 touch-manipulation"
           >
             <GoogleIcon />
-            Continue with Google
+            {mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}
           </button>
         )}
 
@@ -332,15 +338,20 @@ export function ProductionAuth({
             </form>
           </>
         ) : (
-          <p className="text-center text-[11px] leading-relaxed text-[var(--v2-text-secondary)]">
-            New here? Your studio is created automatically.{' '}
-            <Link
-              href="/auth/forgot-password"
-              className="text-[var(--v2-gold)]/90 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
+          <div className="space-y-3 text-center">
+            <p className="text-[11px] leading-relaxed text-[var(--v2-text-secondary)]">
+              {mode === 'signup'
+                ? 'Create your free studio account with Google.'
+                : 'New here? Continue with Google to create your studio automatically.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setMode((current) => (current === 'signin' ? 'signup' : 'signin'))}
+              className="w-full min-h-[44px] text-sm text-[var(--v2-gold)]/90 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-gold)]"
             >
-              Learn more
-            </Link>
-          </p>
+              {mode === 'signup' ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+            </button>
+          </div>
         )}
 
         {formMessage ? (
