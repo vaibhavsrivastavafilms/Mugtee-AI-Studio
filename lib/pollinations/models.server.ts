@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { isPollinationsImageReady } from '@/lib/pollinations/entitlement-core'
 import { evaluatePollinationsVideoEntitlement } from '@/lib/pollinations/entitlement.server'
 import { PollinationsError } from '@/lib/pollinations/errors.server'
 import {
@@ -455,7 +456,12 @@ export async function probePollinationsHealth(options?: {
     height: 1280,
   })
 
-  const imageReady = Boolean(imageModel) && videoEntitlement.authenticated
+  const imageReady = isPollinationsImageReady({
+    imageModel,
+    authenticated: videoEntitlement.authenticated,
+    balance: videoEntitlement.balance,
+    code: videoEntitlement.code,
+  })
   const videoReady =
     videoEntitlement.entitled &&
     videoEntitlement.affordable &&

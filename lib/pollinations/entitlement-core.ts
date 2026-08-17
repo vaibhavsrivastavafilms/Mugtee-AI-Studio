@@ -26,3 +26,25 @@ export function estimatePollenCostForVideo(
 export function estimatePollenCostForImage(model: PollinationsModelPricing): number {
   return model.pollenCost > 0 ? model.pollenCost : 0.004
 }
+
+const POLLINATIONS_CREDIT_CODES = new Set([
+  'POLLINATIONS_CREDITS_REQUIRED',
+  'POLLINATIONS_CREDITS_EXHAUSTED',
+])
+
+/**
+ * Image generation is ready only when authenticated, a model exists,
+ * and spendable Pollen is not exhausted. Auth + catalog alone is not enough.
+ */
+export function isPollinationsImageReady(params: {
+  imageModel: string | null | undefined
+  authenticated: boolean
+  balance?: number | null
+  code?: string | null
+}): boolean {
+  if (!params.authenticated) return false
+  if (!params.imageModel?.trim()) return false
+  if (params.code && POLLINATIONS_CREDIT_CODES.has(params.code)) return false
+  if (params.balance != null && params.balance <= 0) return false
+  return true
+}

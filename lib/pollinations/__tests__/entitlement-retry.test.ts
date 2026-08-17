@@ -3,9 +3,14 @@ import assert from 'node:assert/strict'
 
 import {
   estimatePollenCostForVideo,
+  isPollinationsImageReady,
   parsePollinationsPaymentRequired,
 } from '@/lib/pollinations/entitlement-core'
 import type { PollinationsModelInfo } from '@/lib/pollinations/models.server'
+import {
+  classifyV7ImageUnknownError,
+  isV7ImageRetryableError,
+} from '@/lib/v7/providers/image-errors'
 import {
   classifyV7VideoUnknownError,
   isV7VideoRetryableError,
@@ -64,5 +69,68 @@ describe('Pollinations retry and video error classification', () => {
     assert.equal(err.code, 'PROVIDER_QUOTA_EXCEEDED')
     assert.match(err.message, /POLLINATIONS_CREDITS_EXHAUSTED/i)
     assert.equal(isV7VideoRetryableError(err), false)
+  })
+})
+
+describe('Pollinations image readiness gate', () => {
+  it('does not mark image ready when HTTP 402 credits are exhausted', () => {
+    assert.equal(
+      isPollinationsImageReady({
+        imageModel: 'gptimage',
+        authenticated: true,
+        balance: -0.2319,
+        code: 'POLLINATIONS_CREDITS_EXHAUSTED',
+      }),
+      false
+    )
+  })
+
+  it('does not mark image ready when POLLINATIONS_CREDITS_REQUIRED', () => {
+    assert.equal(
+      isPollinationsImageReady({
+        imageModel: 'flux',
+        authenticated: true,
+        balance: 0,
+        code: 'POLLINATIONS_CREDITS_REQUIRED',
+      }),
+      false
+    )
+  })
+
+  it('does not mark image ready when spendable pollen is zero', () => {
+    assert.equal(
+      isPollinationsImageReady({
+        imageModel: 'gptimage',
+        authenticated: true,
+        balance: 0,
+        code: null,
+      }),
+      false
+    )
+  })
+
+  it('marks image ready when authenticated with a model and positive balance', () => {
+    assert.equal(
+      isPollinationsImageReady({
+        imageModel: 'flux',
+        authenticated: true,
+        balance: 1.5,
+        code: null,
+      }),
+      true
+    )
+  })
+})
+
+describe('Pollinations image credit error classification', () => {
+  it('classifies POLLEN_INSUFFICIENT 402 as quota exceeded, not unavailable', () => {
+    const raw = Object.assign(
+      new Error('POLLEN_INSUFFICIENT · provider=pollinations · capability=image · billing=platform_env'),
+      { code: 'POLLINATIONS_CREDITS_EXHAUSTED', httpStatus: 402 }
+    )
+    const err = classifyV7ImageUnknownError('pollinations', raw)
+    assert.equal(err.code, 'PROVIDER_QUOTA_EXCEEDED')
+    assert.match(err.message, /POLLEN_INSUFFICIENT/i)
+    assert.equal(isV7ImageRetryableError(err), false)
   })
 })

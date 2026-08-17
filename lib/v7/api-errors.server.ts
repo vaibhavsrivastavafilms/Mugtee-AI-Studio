@@ -277,7 +277,10 @@ export function buildV7ProductionErrorResponse(
         error: root.code,
         provider: root.provider,
         reason: root.message,
-        retryable: root.code !== 'PROVIDER_AUTH_FAILED' && root.code !== 'PROVIDER_INVALID_RESPONSE',
+        retryable:
+          root.code !== 'PROVIDER_AUTH_FAILED' &&
+          root.code !== 'PROVIDER_INVALID_RESPONSE' &&
+          root.code !== 'PROVIDER_QUOTA_EXCEEDED',
         productionId,
         ...(isDev() ? { stack: root.stack } : {}),
       },

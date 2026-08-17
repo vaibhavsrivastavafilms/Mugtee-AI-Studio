@@ -3,6 +3,7 @@ import type { V7ImageProviderId } from '@/lib/v7/providers/image-provider.types'
 export type V7ImageProviderErrorCode =
   | 'PROVIDER_AUTH_FAILED'
   | 'PROVIDER_RATE_LIMITED'
+  | 'PROVIDER_QUOTA_EXCEEDED'
   | 'PROVIDER_TIMEOUT'
   | 'PROVIDER_UNAVAILABLE'
   | 'PROVIDER_INVALID_RESPONSE'
@@ -124,6 +125,33 @@ export function classifyV7ImageUnknownError(
     return new V7ImageProviderRequestError('PROVIDER_RATE_LIMITED', provider, { cause: err })
   }
 
+  const httpStatus =
+    err && typeof err === 'object' && 'httpStatus' in err
+      ? (err as { httpStatus?: number }).httpStatus
+      : undefined
+  const errorCode =
+    err && typeof err === 'object' && 'code' in err
+      ? String((err as { code?: unknown }).code ?? '')
+      : ''
+
+  if (
+    httpStatus === 402 ||
+    errorCode === 'POLLINATIONS_CREDITS_EXHAUSTED' ||
+    errorCode === 'POLLINATIONS_CREDITS_REQUIRED' ||
+    message.includes('402') ||
+    message.includes('pollinations_credits_exhausted') ||
+    message.includes('pollinations_credits_required') ||
+    message.includes('pollen_insufficient') ||
+    message.includes('insufficient pollen') ||
+    message.includes('insufficient balance')
+  ) {
+    return new V7ImageProviderRequestError('PROVIDER_QUOTA_EXCEEDED', provider, {
+      message: err instanceof Error ? err.message : String(err),
+      httpStatus: httpStatus ?? 402,
+      cause: err,
+    })
+  }
+
   if (message.includes('no image') || message.includes('empty') || message.includes('invalid')) {
     return new V7ImageProviderRequestError('PROVIDER_INVALID_RESPONSE', provider, { cause: err })
   }
@@ -136,5 +164,6 @@ export function isV7ImageRetryableError(err: unknown): boolean {
   if (!(err instanceof V7ImageProviderRequestError)) return false
   if (err.code === 'PROVIDER_AUTH_FAILED') return false
   if (err.code === 'PROVIDER_INVALID_RESPONSE') return false
+  if (err.code === 'PROVIDER_QUOTA_EXCEEDED') return false
   return true
 }
