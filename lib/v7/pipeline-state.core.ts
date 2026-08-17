@@ -26,7 +26,6 @@ const TEXT_STALE_STAGES = new Set<V7StageId>([
   'research',
   'creative',
   'script',
-  'voice',
   'character',
   'world',
   'storyboard',
