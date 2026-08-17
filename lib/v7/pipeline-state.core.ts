@@ -15,6 +15,8 @@ export type V7PipelineLock = {
 
 const STALE_RUNNING_MS = 30 * 60 * 1000
 const TEXT_STALE_RUNNING_MS = 150_000
+/** Voice TTS can exceed text-stage budgets; recover zombies after worker timeout without interrupting synthesis. */
+const VOICE_STALE_RUNNING_MS = 6 * 60 * 1000
 const IMAGE_STALE_RUNNING_MS = 8 * 60 * 1000
 const ANIMATION_STALE_RUNNING_MS = 10 * 60 * 1000
 const RENDER_STALE_RUNNING_MS = 6 * 60 * 1000
@@ -33,6 +35,7 @@ const TEXT_STALE_STAGES = new Set<V7StageId>([
 
 export function getV7StaleRunningMs(stage: V7StageId): number {
   if (stage === 'idea') return TEXT_STALE_RUNNING_MS
+  if (stage === 'voice') return VOICE_STALE_RUNNING_MS
   if (stage === 'image') return IMAGE_STALE_RUNNING_MS
   if (stage === 'animation') return ANIMATION_STALE_RUNNING_MS
   if (stage === 'render') return RENDER_STALE_RUNNING_MS

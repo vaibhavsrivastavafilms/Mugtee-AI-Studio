@@ -94,19 +94,30 @@ function resolveEdgeTtsVoice(languageCode?: string): string {
   return 'en-US-AriaNeural'
 }
 
-async function synthesizeEdgeTts(text: string, languageCode?: string): Promise<Buffer | null> {
+async function synthesizeEdgeTts(
+  text: string,
+  languageCode?: string,
+  timeoutMs = 90_000
+): Promise<Buffer | null> {
   if (!text.trim()) return null
   try {
-    const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts')
-    const tts = new MsEdgeTTS()
-    await tts.setMetadata(resolveEdgeTtsVoice(languageCode), OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
-    const { audioStream } = await tts.toStream(text.slice(0, 4000))
-    const chunks: Buffer[] = []
-    for await (const chunk of audioStream) {
-      chunks.push(Buffer.from(chunk))
-    }
-    const buffer = Buffer.concat(chunks)
-    return buffer.length > 256 ? buffer : null
+    const synth = (async () => {
+      const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts')
+      const tts = new MsEdgeTTS()
+      await tts.setMetadata(resolveEdgeTtsVoice(languageCode), OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
+      const { audioStream } = await tts.toStream(text.slice(0, 4000))
+      const chunks: Buffer[] = []
+      for await (const chunk of audioStream) {
+        chunks.push(Buffer.from(chunk))
+      }
+      const buffer = Buffer.concat(chunks)
+      return buffer.length > 256 ? buffer : null
+    })()
+
+    return await Promise.race([
+      synth,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ])
   } catch (err) {
     logError('tts-cascade.edge', err)
     return null

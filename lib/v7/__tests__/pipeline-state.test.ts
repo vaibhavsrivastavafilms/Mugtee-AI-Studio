@@ -5,6 +5,7 @@ import {
   detectProductionCompletionDrift,
   detectProductionStateDrift,
   getNextRunnableStageId,
+  getV7StaleRunningMs,
   isV7ExportStageFinalized,
   isV7OrphanPipelineLock,
   isV7PipelineLockActive,
@@ -225,6 +226,11 @@ describe('production completion synchronization', () => {
 
 describe('pipeline lock recovery', () => {
   const now = Date.parse('2026-08-16T01:00:00.000Z')
+
+  it('allows voice stage enough time before stale recovery', () => {
+    assert.equal(getV7StaleRunningMs('voice'), 6 * 60 * 1000)
+    assert.equal(getV7StaleRunningMs('script'), 150_000)
+  })
 
   it('treats a recent lock as active', () => {
     const lock = {

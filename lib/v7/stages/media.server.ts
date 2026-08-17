@@ -20,7 +20,6 @@ import {
 import {
   buildV7TimelineFromScript,
   buildV7ProductionTimeline,
-  buildV7VoiceNarrationSegments,
   mergeV7VoiceNarration,
 } from '@/lib/v7/scene-package.server'
 import {
@@ -107,6 +106,138 @@ export async function runV7AnimationStage(params: {
   }
 }
 
+const VOICE_STAGE_SYNTHESIS_BUDGET_MS = 240_000
+
+function buildVoiceNarrationSegmentsFromScript(params: {
+  script: V7ScriptDocument
+  brief: V7CreativeBrief
+  snapshot?: V7ProductionSnapshot
+}) {
+  return params.script.scenes.map((scene) => ({
+    sceneNumber: scene.number,
+    sceneId:
+      params.snapshot?.scenes.find((row) => row.number === scene.number)?.id ??
+      `script-${scene.number}`,
+    text: [scene.narration, scene.dialogue].filter(Boolean).join(' ').trim(),
+    durationSec: scene.duration ?? params.brief.duration / Math.max(params.brief.sceneCount, 1),
+    emotion: scene.emotion ?? params.brief.emotion,
+  }))
+}
+
+function resolveVoiceNarration(params: {
+  script: V7ScriptDocument
+  storyboard?: V7StoryboardDocument
+  snapshot?: V7ProductionSnapshot
+}) {
+  const fromScript = buildScreenplayNarration(params.script, params.storyboard).trim()
+  if (fromScript.length >= 12) return fromScript
+
+  if (params.snapshot) {
+    const fromSnapshot = mergeV7VoiceNarration(params.snapshot).trim()
+    if (fromSnapshot.length >= 12) return fromSnapshot
+  }
+
+  return fromScript
+}
+
+async function synthesizeVoiceForStage(params: {
+  narration: string
+  userId: string
+  productionId: string
+  brief: V7CreativeBrief
+  supabase: SupabaseServerClient
+}) {
+  const voice = await generateVoice(
+    {
+      script: params.narration || ' ',
+      userId: params.userId,
+      projectId: params.productionId,
+      tone: params.brief.voiceDirection,
+      contentLanguage: v7VoiceLanguageCode(params.brief),
+    },
+    params.supabase
+  )
+
+  if (voice.audioUrl?.trim()) {
+    return {
+      voiceUrl: voice.audioUrl,
+      provider: voice.provider,
+      fallbackMessage: voice.fallbackMessage ?? null,
+      audioDurationSec: voice.voiceMetadata?.durationSec ?? null,
+    }
+  }
+
+  const cascade = await synthesizeWithCascade(params.narration || ' ', {
+    allowSilentStub: allowSilentVoiceFallback(),
+    languageCode: v7VoiceLanguageCode(params.brief),
+  })
+
+  if (cascade.buffer && cascade.provider !== 'silent') {
+    const uploaded = await uploadVoiceBuffer(
+      params.supabase,
+      params.userId,
+      params.productionId,
+      cascade.buffer,
+      {
+        provider: cascade.provider,
+        generated_at: new Date().toISOString(),
+      }
+    )
+    if (uploaded?.url) {
+      return {
+        voiceUrl: uploaded.url,
+        provider: cascade.provider,
+        fallbackMessage: cascade.fallbackMessage ?? null,
+        audioDurationSec: null,
+      }
+    }
+
+    return {
+      voiceUrl: `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`,
+      provider: cascade.provider,
+      fallbackMessage:
+        cascade.fallbackMessage ?? 'Voice unavailable — render will synthesize silence if needed.',
+      audioDurationSec: null,
+    }
+  }
+
+  return {
+    voiceUrl: null,
+    provider: 'none' as const,
+    fallbackMessage:
+      cascade.fallbackMessage ??
+      voice.fallbackMessage ??
+      'Voice unavailable — render will use silent fallback.',
+    audioDurationSec: voice.voiceMetadata?.durationSec ?? null,
+  }
+}
+
+async function uploadVoiceBuffer(
+  supabase: SupabaseServerClient,
+  userId: string,
+  productionId: string,
+  buffer: Buffer,
+  metadata: Record<string, unknown>
+): Promise<{ url: string; storagePath: string } | null> {
+  const folder = `${userId}/${productionId}`
+  const filename = `${folder}/voice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp3`
+  const { error: upErr } = await supabase.storage
+    .from('project-assets')
+    .upload(filename, buffer, { contentType: 'audio/mpeg', upsert: false })
+  if (upErr) return null
+  const { data: pub } = supabase.storage.from('project-assets').getPublicUrl(filename)
+  await supabase.from('project_assets').insert({
+    project_id: productionId,
+    user_id: userId,
+    kind: 'voiceover',
+    url: pub.publicUrl,
+    storage_path: filename,
+    mime_type: 'audio/mpeg',
+    metadata,
+  })
+  return { url: pub.publicUrl, storagePath: filename }
+}
+
 export async function runV7VoiceStage(params: {
   brief: V7CreativeBrief
   script: V7ScriptDocument
@@ -119,79 +250,65 @@ export async function runV7VoiceStage(params: {
   supabase?: SupabaseServerClient
 }) {
   const started = Date.now()
-  const narrationSegments = params.snapshot
-    ? buildV7VoiceNarrationSegments(params.snapshot)
-    : params.script.scenes.map((scene) => ({
-        sceneNumber: scene.number,
-        sceneId: `script-${scene.number}`,
-        text: [scene.narration, scene.dialogue].filter(Boolean).join(' ').trim(),
-        durationSec: scene.duration ?? params.brief.duration / Math.max(params.brief.sceneCount, 1),
-        emotion: scene.emotion ?? params.brief.emotion,
-      }))
-
-  const narration = params.snapshot
-    ? mergeV7VoiceNarration(params.snapshot)
-    : buildScreenplayNarration(params.script, params.storyboard)
-
+  const narrationSegments = buildVoiceNarrationSegmentsFromScript(params)
+  const narration = resolveVoiceNarration(params)
   const supabase = params.supabase ?? (await createSupabaseServerClient())
 
-  const voice = await generateVoice(
-    {
-      script: narration || ' ',
-      userId: params.userId,
-      projectId: params.productionId,
-      tone: params.brief.voiceDirection,
-      contentLanguage: v7VoiceLanguageCode(params.brief),
-    },
-    supabase
-  )
-
-  const audioDurationSec = voice.voiceMetadata?.durationSec ?? null
-
-  if (voice.audioUrl?.trim()) {
-    return {
-      voiceUrl: voice.audioUrl,
-      provider: voice.provider,
-      durationMs: Date.now() - started,
-      fallbackMessage: voice.fallbackMessage ?? null,
-      narrationSegments,
-      audioDurationSec,
+  let synthesis: Awaited<ReturnType<typeof synthesizeVoiceForStage>>
+  try {
+    synthesis = await Promise.race([
+      synthesizeVoiceForStage({
+        narration,
+        userId: params.userId,
+        productionId: params.productionId,
+        brief: params.brief,
+        supabase,
+      }),
+      new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Voice synthesis budget exceeded')),
+          VOICE_STAGE_SYNTHESIS_BUDGET_MS
+        )
+      }),
+    ])
+  } catch (error) {
+    console.warn(
+      '[V9_WARNING]',
+      JSON.stringify({
+        event: 'voice_synthesis_timeout',
+        productionId: params.productionId,
+        message: error instanceof Error ? error.message : 'Voice synthesis timed out',
+      })
+    )
+    synthesis = {
+      voiceUrl: null,
+      provider: 'none',
+      fallbackMessage: 'Voice synthesis timed out — render will use silent fallback.',
+      audioDurationSec: null,
     }
   }
 
-  const cascade = await synthesizeWithCascade(narration || ' ', {
-    allowSilentStub: allowSilentVoiceFallback(),
-    languageCode: v7VoiceLanguageCode(params.brief),
-  })
-  if (cascade.buffer && cascade.provider !== 'silent') {
-    const dataUrl = `data:audio/mpeg;base64,${cascade.buffer.toString('base64')}`
-    return {
-      voiceUrl: dataUrl,
-      provider: cascade.provider,
-      durationMs: Date.now() - started,
-      fallbackMessage: cascade.fallbackMessage ?? 'Voice unavailable — render will synthesize silence if needed.',
-      narrationSegments,
-      audioDurationSec,
-    }
+  if (!synthesis.voiceUrl) {
+    console.warn(
+      '[V9_WARNING]',
+      JSON.stringify({
+        event: 'voice_generation_failed',
+        productionId: params.productionId,
+        segmentCount: narrationSegments.length,
+        message:
+          synthesis.fallbackMessage ??
+          'Voice unavailable — configure TTS or set V7_ALLOW_SILENT_VOICE=true for dev only.',
+      })
+    )
   }
-
-  console.warn(
-    '[V9_WARNING]',
-    JSON.stringify({
-      event: 'voice_generation_failed',
-      productionId: params.productionId,
-      segmentCount: narrationSegments.length,
-      message: 'Voice unavailable — configure TTS or set V7_ALLOW_SILENT_VOICE=true for dev only.',
-    })
-  )
 
   return {
-    voiceUrl: null,
-    provider: 'none' as const,
+    voiceUrl: synthesis.voiceUrl,
+    provider: synthesis.provider,
     durationMs: Date.now() - started,
-    fallbackMessage: 'Voice unavailable — render will use silent fallback.',
+    fallbackMessage: synthesis.fallbackMessage ?? null,
     narrationSegments,
-    audioDurationSec: null,
+    audioDurationSec: synthesis.audioDurationSec,
   }
 }
 
