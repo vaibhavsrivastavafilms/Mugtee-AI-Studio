@@ -7,11 +7,21 @@ import '@/lib/remotion/compositions/MugteeComposition'
 import '@/lib/remotion/compositions/ReelScene'
 import '@/lib/remotion/compositions/ReelParticleOverlay'
 import '@/lib/remotion/compositions/ThumbnailComposition'
+import '@/lib/motion/transition-timing'
+import '@/lib/motion/parallax-layers'
+import '@/lib/motion/micro-animation'
+import '@/lib/motion/scene-motion-types'
+import '@/lib/remotion/reel-transitions'
+import '@/lib/remotion/reel-visual-enhancements'
+import '@/lib/remotion/audio-mix'
+import '@/lib/remotion/reel-caption-layer'
+import '@/lib/remotion/reel-dimensions.core'
 
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
-import { bundle, type WebpackOverrideFn } from '@remotion/bundler'
+import { bundle } from '@remotion/bundler'
+import { remotionWebpackOverride } from '@/lib/remotion/webpack-override'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import {
@@ -75,30 +85,6 @@ import { mp4RenderLog } from '@/lib/export/mp4-render-log.server'
 
 let cachedBundleLocation: string | null = null
 let bundlePromise: Promise<string> | null = null
-
-/** Remotion's bundler does not read tsconfig paths — mirror @/* aliases for composition imports. */
-const remotionWebpackOverride: WebpackOverrideFn = (config) => {
-  const root = process.cwd()
-  const alias = {
-    ...(typeof config.resolve?.alias === 'object' && !Array.isArray(config.resolve.alias)
-      ? config.resolve.alias
-      : {}),
-    '@/lib': path.join(root, 'lib'),
-    '@/components': path.join(root, 'components'),
-    '@/app': path.join(root, 'app'),
-    '@/stores': path.join(root, 'stores'),
-    '@/hooks': path.join(root, 'hooks'),
-    '@/types': path.join(root, 'types'),
-    '@': path.join(root, 'src'),
-  }
-  return {
-    ...config,
-    resolve: {
-      ...config.resolve,
-      alias,
-    },
-  }
-}
 
 async function getServeUrl(): Promise<string> {
   if (cachedBundleLocation) return cachedBundleLocation

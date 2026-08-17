@@ -17,16 +17,29 @@ const nextConfig = {
       '@remotion/bundler',
       'remotion',
     ],
-    // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them.
+    // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them
+    // including @/lib/motion and sibling remotion modules (NFT does not follow @/ inside those files).
     outputFileTracingIncludes: {
-      '/api/render/reel': ['./lib/remotion/compositions/**/*'],
-      '/api/quick-cut/config': ['./lib/remotion/compositions/**/*'],
-      '/api/reels/export': ['./lib/remotion/compositions/**/*'],
-      '/api/timeline/render': ['./lib/remotion/compositions/**/*'],
+      '/api/render/reel': ['./lib/remotion/**/*', './lib/motion/**/*'],
+      '/api/quick-cut/config': ['./lib/remotion/**/*', './lib/motion/**/*'],
+      '/api/reels/export': ['./lib/remotion/**/*', './lib/motion/**/*'],
+      '/api/timeline/render': ['./lib/remotion/**/*', './lib/motion/**/*'],
       // V7 I2V validates scene MP4s with ffmpeg-static after Pollinations generation.
-      '/api/v7/productions/[id]': ['./node_modules/ffmpeg-static/**/*'],
-      '/api/v7/productions/[id]/retry': ['./node_modules/ffmpeg-static/**/*'],
-      '/api/cron/v7-advance': ['./node_modules/ffmpeg-static/**/*'],
+      '/api/v7/productions/[id]': [
+        './lib/remotion/**/*',
+        './lib/motion/**/*',
+        './node_modules/ffmpeg-static/**/*',
+      ],
+      '/api/v7/productions/[id]/retry': [
+        './lib/remotion/**/*',
+        './lib/motion/**/*',
+        './node_modules/ffmpeg-static/**/*',
+      ],
+      '/api/cron/v7-advance': [
+        './lib/remotion/**/*',
+        './lib/motion/**/*',
+        './node_modules/ffmpeg-static/**/*',
+      ],
     },
   },
 
