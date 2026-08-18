@@ -1,5 +1,6 @@
 import 'server-only'
 import '@/lib/remotion/writable-work-dir'
+import '@/lib/remotion/serverless-compositor-glibc.server'
 
 // Vercel NFT only ships files with static import chains; Remotion bundle() reads these from disk.
 import '@/lib/remotion/compositions/Root'

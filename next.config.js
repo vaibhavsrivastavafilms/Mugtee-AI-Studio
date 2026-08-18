@@ -8,6 +8,7 @@ const REMOTION_SERVERLESS_TRACE_INCLUDES = [
   './lib/motion/**/*',
   './node_modules/ffmpeg-static/**/*',
   // @remotion/renderer resolves compositor via dynamic require(); NFT does not follow it.
+  // Includes the Ubuntu 2.35 glibc235/ tree produced by scripts/patch-remotion-compositor-glibc.mjs.
   './node_modules/@remotion/compositor-linux-x64-gnu/**/*',
   // Serverless Chromium + Linux .so archives; NFT does not follow dynamic import().
   './node_modules/@sparticuz/chromium/**/*',

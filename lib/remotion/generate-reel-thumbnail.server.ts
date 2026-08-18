@@ -1,5 +1,6 @@
 import 'server-only'
 import '@/lib/remotion/writable-work-dir'
+import '@/lib/remotion/serverless-compositor-glibc.server'
 
 import fs from 'fs/promises'
 import path from 'path'

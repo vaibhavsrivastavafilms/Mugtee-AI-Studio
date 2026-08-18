@@ -40,7 +40,7 @@
     "v7:regenerate-images": "npx tsx scripts/v7-regenerate-images.server.ts",
     "test:e2e:static": "node scripts/validate-template-engine.mjs",
     "copy:ffmpeg-core": "node scripts/copy-ffmpeg-core.mjs",
-    "postinstall": "node scripts/copy-ffmpeg-core.mjs",
+    "postinstall": "node scripts/copy-ffmpeg-core.mjs && node scripts/patch-remotion-compositor-glibc.mjs",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android"
   },
