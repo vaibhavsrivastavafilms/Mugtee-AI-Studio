@@ -25,6 +25,10 @@ describe('Remotion serverless NFT trace config', () => {
         `Linux compositor glob missing for ${route}`
       )
       assert.ok(
+        globs.some((g) => g.includes('@sparticuz/chromium')),
+        `Serverless Chromium glob missing for ${route}`
+      )
+      assert.ok(
         globs.some((g) => g.includes('lib/remotion')),
         `Remotion sources missing for ${route}`
       )

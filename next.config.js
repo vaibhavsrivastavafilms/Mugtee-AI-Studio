@@ -9,6 +9,8 @@ const REMOTION_SERVERLESS_TRACE_INCLUDES = [
   './node_modules/ffmpeg-static/**/*',
   // @remotion/renderer resolves compositor via dynamic require(); NFT does not follow it.
   './node_modules/@remotion/compositor-linux-x64-gnu/**/*',
+  // Serverless Chromium + Linux .so archives; NFT does not follow dynamic import().
+  './node_modules/@sparticuz/chromium/**/*',
 ]
 
 const nextConfig = {
@@ -25,6 +27,7 @@ const nextConfig = {
       '@remotion/renderer',
       '@remotion/bundler',
       'remotion',
+      '@sparticuz/chromium',
     ],
     // Remotion bundle() reads composition sources from disk at runtime; NFT must ship them
     // including @/lib/motion and sibling remotion modules (NFT does not follow @/ inside those files).

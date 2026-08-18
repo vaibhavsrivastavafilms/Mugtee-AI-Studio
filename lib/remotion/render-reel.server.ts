@@ -23,6 +23,10 @@ import os from 'os'
 import path from 'path'
 import { bundle } from '@remotion/bundler'
 import { remotionWebpackOverride } from '@/lib/remotion/webpack-override'
+import {
+  remotionChromeModeForExecutable,
+  resolveRemotionBrowserExecutable,
+} from '@/lib/remotion/serverless-browser.server'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import type { GeneratedScene } from '@/lib/cinematic/generation'
 import {
@@ -376,12 +380,16 @@ export async function renderRemotionReel(
     input.onProgress?.('Rendering reel with Remotion…', 40)
 
     remotionCheckpoint('composition_lookup', { compositionId: REEL_COMPOSITION_ID })
+    const browserExecutable = await resolveRemotionBrowserExecutable()
+    const chromeMode = remotionChromeModeForExecutable(browserExecutable)
     let composition
     try {
       composition = await selectComposition({
         serveUrl,
         id: REEL_COMPOSITION_ID,
         inputProps: compositionProps,
+        browserExecutable,
+        chromeMode,
       })
       renderPipelineLog('REMOTION_COMPOSITION', {
         projectId: input.projectId,
@@ -498,6 +506,8 @@ export async function renderRemotionReel(
       disallowParallelEncoding,
       offthreadVideoCacheSizeInBytes,
       timeoutInMilliseconds,
+      browserExecutable,
+      chromeMode,
       ffmpegOverride: ({ type, args }) => {
         if (type !== 'stitcher') return args
         if (args.some((a) => a === '-threads')) return args

@@ -5,6 +5,10 @@ import fs from 'fs/promises'
 import path from 'path'
 import { renderStill, selectComposition } from '@remotion/renderer'
 import {
+  remotionChromeModeForExecutable,
+  resolveRemotionBrowserExecutable,
+} from '@/lib/remotion/serverless-browser.server'
+import {
   THUMBNAIL_COMPOSITION_ID,
   ThumbnailComposition,
   type ThumbnailCompositionProps,
@@ -24,10 +28,15 @@ export async function generateReelThumbnail(input: {
     hook: input.hook,
   }
 
+  const browserExecutable = await resolveRemotionBrowserExecutable()
+  const chromeMode = remotionChromeModeForExecutable(browserExecutable)
+
   const composition = await selectComposition({
     serveUrl: input.serveUrl,
     id: THUMBNAIL_COMPOSITION_ID,
     inputProps: props,
+    browserExecutable,
+    chromeMode,
   })
 
   await renderStill({
@@ -38,6 +47,8 @@ export async function generateReelThumbnail(input: {
     imageFormat: 'jpeg',
     jpegQuality: 92,
     frame: 0,
+    browserExecutable,
+    chromeMode,
   })
 
   await fs.access(input.outputPath)
