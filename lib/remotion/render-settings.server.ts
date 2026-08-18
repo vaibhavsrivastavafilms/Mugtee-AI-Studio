@@ -2,6 +2,9 @@
 
 import os from 'os'
 import { REEL_FPS, REEL_HEIGHT, REEL_WIDTH } from '@/lib/remotion/compositions/constants'
+import { resolveRemotionConcurrencyFrom } from '@/lib/remotion/render-concurrency.core'
+
+export { resolveRemotionConcurrencyFrom }
 
 export type RemotionRenderMemoryEstimate = {
   width: number
@@ -18,17 +21,9 @@ export type RemotionRenderMemoryEstimate = {
   httpAssetCount: number
 }
 
-/** Cap parallel Chromium tabs ΓÇö default low on local dev to avoid x264 malloc failures. */
+/** Cap parallel Chromium tabs — Vercel is always 1 to avoid screenshot OOM. */
 export function resolveRemotionConcurrency(): number {
-  const raw = process.env.REMOTION_CONCURRENCY?.trim()
-  if (raw) {
-    const parsed = Number.parseInt(raw, 10)
-    if (Number.isFinite(parsed) && parsed >= 1) {
-      return Math.min(parsed, 8)
-    }
-  }
-  if (process.env.NODE_ENV === 'development') return 1
-  return Math.min(2, Math.max(1, Math.floor(os.cpus().length / 2)))
+  return resolveRemotionConcurrencyFrom(process.env, os.cpus().length)
 }
 
 export function resolveDisallowParallelEncoding(): boolean {
