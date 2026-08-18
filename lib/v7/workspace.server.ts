@@ -219,11 +219,6 @@ export async function saveV7VoiceEdit(params: {
 
   await updateV7Production(params.supabase, params.productionId, params.userId, {
     timeline_json: mergeWorkspaceState(snapshot.production.timeline_json, nextWorkspace),
-    export_status: 'pending',
-    reel_url: null,
-    thumbnail_url: null,
-    mov_url: null,
-    creator_pack_url: null,
   })
 
   return getV7Production(params.supabase, params.productionId, params.userId)
@@ -459,11 +454,6 @@ export async function continueV7Scene(params: {
       },
       markers: staleMarkers,
     })),
-    export_status: 'pending',
-    reel_url: null,
-    thumbnail_url: null,
-    mov_url: null,
-    creator_pack_url: null,
   })
 
   if (params.generateMedia) {

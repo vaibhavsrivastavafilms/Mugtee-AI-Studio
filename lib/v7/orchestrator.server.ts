@@ -19,6 +19,7 @@ import {
 import { V7_RUNNABLE_STAGES } from '@/lib/v7/pipeline'
 import { syncV7ProductionToCinematicProject } from '@/lib/v7/sync-cinematic-project.server'
 import {
+  persistV7AudioUrl,
   runV7AnimationStage,
   runV7EditStage,
   runV7ExportStage,
@@ -848,8 +849,8 @@ async function executeV7Stage(
 
   if (stage === 'music') {
     assertV7MusicProviderConfigured()
-    const { musicUrl, provider, durationMs } = await runV7MusicStage({ brief })
-    if (!musicUrl?.trim()) {
+    const { musicUrl: generatedMusicUrl, provider, durationMs } = await runV7MusicStage({ brief })
+    if (!generatedMusicUrl?.trim()) {
       throw new V7ProviderNotAvailableError({
         provider: provider ?? 'music',
         stage: 'music',
@@ -857,6 +858,13 @@ async function executeV7Stage(
         message: 'Music stage completed without a music track URL.',
       })
     }
+    const musicUrl = await persistV7AudioUrl({
+      supabase,
+      userId,
+      productionId,
+      audioUrl: generatedMusicUrl,
+      kind: 'music',
+    })
     await updateV7Production(supabase, productionId, userId, { music_url: musicUrl })
     await upsertV7Stage(supabase, {
       productionId,
@@ -907,14 +915,23 @@ async function executeV7Stage(
     await updateV7Production(supabase, productionId, userId, {
       timeline_json: {
         ...existingTimeline,
-        ...(timeline as unknown as Record<string, unknown>),
+        editDurationSec: timeline.durationSec,
+        editSceneCount: timeline.sceneCount,
+        editShotCount: timeline.shotCount,
       },
     })
+    const captions = timeline.scenes.flatMap((scene) => scene.captions ?? []).filter((cue) => cue.text.trim())
     await upsertV7Stage(supabase, {
       productionId,
       stage,
       status: 'completed',
-      output: { timeline, durationMs },
+      output: {
+        durationMs,
+        captions,
+        sceneCount: timeline.sceneCount,
+        shotCount: timeline.shotCount,
+        durationSec: timeline.durationSec,
+      },
     })
     return
   }

@@ -231,3 +231,30 @@ export function shouldPreserveCompletedStageFailure(
 ): boolean {
   return stageRowHasOutput(stageRow)
 }
+
+function completedStageMediaUrl(
+  stages: Array<Pick<V7StageRow, 'stage' | 'status' | 'output'>>,
+  stage: V7StageId,
+  key: 'voiceUrl' | 'musicUrl'
+): string {
+  const row = stages.find((item) => item.stage === stage)
+  if (row?.status !== 'completed' || !row.output || typeof row.output !== 'object') return ''
+  const value = (row.output as Record<string, unknown>)[key]
+  if (typeof value !== 'string') return ''
+  const url = value.trim()
+  if (!url || url.startsWith('data:')) return ''
+  return url
+}
+
+/** Copy completed stage media URLs onto the production row when persistence raced or was omitted. */
+export function missingDeliverableUrlPatch(snapshot: {
+  production: Pick<V7ProductionRow, 'voice_url' | 'music_url'>
+  stages: Array<Pick<V7StageRow, 'stage' | 'status' | 'output'>>
+}): { voice_url?: string; music_url?: string } {
+  const patch: { voice_url?: string; music_url?: string } = {}
+  const voiceUrl = completedStageMediaUrl(snapshot.stages, 'voice', 'voiceUrl')
+  if (voiceUrl && !snapshot.production.voice_url?.trim()) patch.voice_url = voiceUrl
+  const musicUrl = completedStageMediaUrl(snapshot.stages, 'music', 'musicUrl')
+  if (musicUrl && !snapshot.production.music_url?.trim()) patch.music_url = musicUrl
+  return patch
+}

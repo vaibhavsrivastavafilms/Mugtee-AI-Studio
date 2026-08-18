@@ -144,8 +144,8 @@ export async function listV7Productions(
 }
 
 /** Studio GET read path — omits heavy columns not used by the observational UI. */
-const V7_STUDIO_READ_PRODUCTION_COLUMNS =
-  'id,user_id,title,prompt,status,creative_brief,current_stage,reel_url,mov_url,thumbnail_url,creator_pack_url,export_status,timeline_json,created_at,updated_at'
+export const V7_STUDIO_READ_PRODUCTION_COLUMNS =
+  'id,user_id,title,prompt,status,creative_brief,current_stage,reel_url,mov_url,thumbnail_url,creator_pack_url,export_status,timeline_json,voice_url,music_url,created_at,updated_at'
 
 /** Reconcile + progress need stage output; input is write-only payload and omitted. */
 const V7_STUDIO_READ_STAGE_COLUMNS =

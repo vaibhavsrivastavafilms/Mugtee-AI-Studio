@@ -11,6 +11,7 @@ import {
   isOrphanQueuedStageRow,
   isLiveGlobalPipelineLock,
   isV7PipelineLockActive,
+  missingDeliverableUrlPatch,
   readV7PipelineLock,
   shouldRecoverV7PipelineLock,
   type V7PipelineLock,
@@ -78,6 +79,11 @@ function stageHasOutput(row: V7StageRow | undefined): boolean {
   if (!row || row.status !== 'completed') return false
   const output = row.output
   return output != null && typeof output === 'object' && Object.keys(output).length > 0
+}
+
+function hasDurableCompletedRender(snapshot: V7ProductionSnapshot): boolean {
+  const render = snapshot.stages.find((row) => row.stage === 'render')
+  return Boolean(snapshot.production.reel_url?.trim()) && render?.status === 'completed' && stageHasOutput(render)
 }
 
 export function validateImageStageComplete(snapshot: V7ProductionSnapshot): V7StageStartCheck {
@@ -255,6 +261,18 @@ function productionFieldsToClearFromStage(stageId: V7StageId): {
   return patch
 }
 
+async function persistMissingDeliverableUrls(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  userId: string
+  snapshot: V7ProductionSnapshot
+}): Promise<V7ProductionSnapshot> {
+  const mediaPatch = missingDeliverableUrlPatch(params.snapshot)
+  if (Object.keys(mediaPatch).length === 0) return params.snapshot
+  await updateV7Production(params.supabase, params.productionId, params.userId, mediaPatch)
+  return (await getV7Production(params.supabase, params.productionId, params.userId)) ?? params.snapshot
+}
+
 /** Repair production.status/current_stage when a stage completed but production stayed failed. */
 export async function reconcileProductionStateDrift(params: {
   supabase: SupabaseServerClient
@@ -347,6 +365,15 @@ export async function reconcilePipelineIntegrity(params: {
       snapshot,
     })) ?? snapshot
 
+  if (hasDurableCompletedRender(snapshot)) {
+    return persistMissingDeliverableUrls({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot,
+    })
+  }
+
   let changed = false
   let resumeStage: V7StageId | null = null
 
@@ -382,7 +409,12 @@ export async function reconcilePipelineIntegrity(params: {
     if (row?.status !== 'running') continue
 
     if (!isStaleRunningStage(row)) {
-      return snapshot
+      return persistMissingDeliverableUrls({
+        supabase: params.supabase,
+        productionId: params.productionId,
+        userId: params.userId,
+        snapshot,
+      })
     }
 
     await recoverStaleRunningStage({
@@ -436,7 +468,12 @@ export async function reconcilePipelineIntegrity(params: {
   }
 
   if (!changed) {
-    return snapshot
+    return persistMissingDeliverableUrls({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot,
+    })
   }
 
   const nextStage =

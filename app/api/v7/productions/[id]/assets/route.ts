@@ -8,7 +8,8 @@ import {
   extractScriptFromStageOutput,
   scriptToDownloadText,
 } from '@/lib/v7/workspace/workspace-script.core'
-import { buildV7ScenePackages } from '@/lib/v7/scene-package.server'
+import { captionsFromEditStageOutput } from '@/lib/v7/captions.core'
+import { buildV7ScenePackages, packagesToSubtitleSegments } from '@/lib/v7/scene-package.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -112,9 +113,15 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   if (kind === 'captions') {
     const editStage = snapshot.stages.find((row) => row.stage === 'edit')
-    const captions = (editStage?.output as { captions?: unknown } | null)?.captions
-    const body = typeof captions === 'string' ? captions : JSON.stringify(captions ?? {}, null, 2)
-    return new NextResponse(body, {
+    const fromEdit = captionsFromEditStageOutput(
+      (editStage?.output as Record<string, unknown> | null) ?? null
+    )
+    const captions =
+      fromEdit.length > 0 ? fromEdit : packagesToSubtitleSegments(buildV7ScenePackages(snapshot))
+    if (captions.length === 0) {
+      return NextResponse.json({ error: 'Captions not available' }, { status: 404 })
+    }
+    return new NextResponse(JSON.stringify(captions, null, 2), {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Disposition': `attachment; filename="${title}-captions.json"`,

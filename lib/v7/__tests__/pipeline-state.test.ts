@@ -10,6 +10,8 @@ import {
   isV7OrphanPipelineLock,
   isV7PipelineLockActive,
   isLiveGlobalPipelineLock,
+  missingDeliverableUrlPatch,
+  readV7PipelineLock,
   resolveProductionFieldsAfterStageSuccess,
   shouldPreserveCompletedStageFailure,
   shouldRecoverV7PipelineLock,
@@ -332,5 +334,44 @@ describe('pipeline lock recovery', () => {
     }
     const runningStage = stageRow('animation', 'running', null)
     assert.equal(isLiveGlobalPipelineLock({ lock, runningStage, now }), true)
+  })
+})
+
+describe('missing deliverable URL repair', () => {
+  it('restores voice_url from a completed voice stage when the production row is empty', () => {
+    const patch = missingDeliverableUrlPatch({
+      production: { voice_url: null, music_url: null },
+      stages: [
+        stageRow('voice', 'completed', {
+          voiceUrl: 'https://cdn.example/voice.mp3',
+          audioDurationSec: 12,
+        }),
+      ],
+    })
+    assert.deepEqual(patch, { voice_url: 'https://cdn.example/voice.mp3' })
+  })
+
+  it('does not overwrite an existing voice_url', () => {
+    const patch = missingDeliverableUrlPatch({
+      production: { voice_url: 'https://cdn.example/existing.mp3', music_url: null },
+      stages: [
+        stageRow('voice', 'completed', {
+          voiceUrl: 'https://cdn.example/voice.mp3',
+        }),
+      ],
+    })
+    assert.deepEqual(patch, {})
+  })
+
+  it('does not copy inlined data URLs onto the production row', () => {
+    const patch = missingDeliverableUrlPatch({
+      production: { voice_url: null, music_url: null },
+      stages: [
+        stageRow('music', 'completed', {
+          musicUrl: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAAD',
+        }),
+      ],
+    })
+    assert.deepEqual(patch, {})
   })
 })

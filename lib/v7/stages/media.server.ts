@@ -212,15 +212,16 @@ async function synthesizeVoiceForStage(params: {
   }
 }
 
-async function uploadVoiceBuffer(
+async function uploadAudioBuffer(
   supabase: SupabaseServerClient,
   userId: string,
   productionId: string,
   buffer: Buffer,
+  kind: 'voiceover' | 'music',
   metadata: Record<string, unknown>
 ): Promise<{ url: string; storagePath: string } | null> {
   const folder = `${userId}/${productionId}`
-  const filename = `${folder}/voice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp3`
+  const filename = `${folder}/${kind}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp3`
   const { error: upErr } = await supabase.storage
     .from('project-assets')
     .upload(filename, buffer, { contentType: 'audio/mpeg', upsert: false })
@@ -229,13 +230,44 @@ async function uploadVoiceBuffer(
   await supabase.from('project_assets').insert({
     project_id: productionId,
     user_id: userId,
-    kind: 'voiceover',
+    kind,
     url: pub.publicUrl,
     storage_path: filename,
     mime_type: 'audio/mpeg',
     metadata,
   })
   return { url: pub.publicUrl, storagePath: filename }
+}
+
+export async function persistV7AudioUrl(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  productionId: string
+  audioUrl: string
+  kind: 'voiceover' | 'music'
+}): Promise<string> {
+  const url = params.audioUrl.trim()
+  const match = url.match(/^data:audio\/[^;]+;base64,(.+)$/)
+  if (!match?.[1]) return url
+  const uploaded = await uploadAudioBuffer(
+    params.supabase,
+    params.userId,
+    params.productionId,
+    Buffer.from(match[1], 'base64'),
+    params.kind,
+    { persisted_from: 'data-url', generated_at: new Date().toISOString() }
+  )
+  return uploaded?.url ?? url
+}
+
+async function uploadVoiceBuffer(
+  supabase: SupabaseServerClient,
+  userId: string,
+  productionId: string,
+  buffer: Buffer,
+  metadata: Record<string, unknown>
+): Promise<{ url: string; storagePath: string } | null> {
+  return uploadAudioBuffer(supabase, userId, productionId, buffer, 'voiceover', metadata)
 }
 
 export async function runV7VoiceStage(params: {
