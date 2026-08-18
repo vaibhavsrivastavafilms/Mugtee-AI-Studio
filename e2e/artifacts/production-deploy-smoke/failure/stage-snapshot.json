@@ -1,0 +1,23 @@
+{
+  "productionId": "ea44c29a-0468-46c6-b5d3-1131364cc30b",
+  "status": "producing",
+  "current_stage": "music",
+  "export_status": "completed",
+  "reel_url": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/reels/ea44c29a-0468-46c6-b5d3-1131364cc30b/final-reel.mp4",
+  "music_url": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/ea44c29a-0468-46c6-b5d3-1131364cc30b/music_persisted_1787083263941.mp3",
+  "voice_url": "https://oikvspgxllujvgyxatbb.supabase.co/storage/v1/object/public/project-assets/0ebf33ae-5f4a-4c70-b084-8afd6df53df4/ea44c29a-0468-46c6-b5d3-1131364cc30b/voice_1787081479895_4iwk9.mp3",
+  "exact_error": "Stage music is queued, expected completed",
+  "http_status": 200,
+  "stages": {
+    "script": "completed",
+    "voice": "completed",
+    "image": "completed",
+    "animation": "completed",
+    "music": "queued",
+    "sound": "completed",
+    "edit": "completed",
+    "quality": "completed",
+    "render": "completed",
+    "export": "queued"
+  }
+}

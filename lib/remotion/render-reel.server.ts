@@ -42,7 +42,7 @@ import {
   classifyRenderMediaSource,
   sanitizeRenderSessionKey,
   sanitizeRenderUrlForLog,
-  toRemotionBundlePublicSrc,
+  stageLocalFileForRemotionBundle,
 } from '@/lib/v7/render-media-validation.server'
 import { showOnScreenText } from '@/lib/remotion/show-on-screen-text.server'
 import { validateLocalVideoFile } from '@/lib/v7/providers/video-provider-base.server'
@@ -222,9 +222,15 @@ export async function renderRemotionReel(
       }
       if (i === 0) thumbnailLocalPath = localImage
 
-      // Always feed Remotion local data URLs — remote HTTP hits CORP/COEP in Chromium.
-      const imageSrc = await localPathToDataUrl(localImage)
-      dataUrlAssetCount += 1
+      // Stage stills on the Remotion bundle HTTP server (same as I2V). Data URLs keep
+      // decoded bitmaps in Chromium's page heap for every screenshotTask frame.
+      const imageSrc = await stageLocalFileForRemotionBundle({
+        localPath: localImage,
+        renderPublicDir,
+        renderSessionKey,
+        publicFileName: `scene_${i + 1}_still${ext}`,
+      })
+      localBundleAssetCount += 1
 
       // Scene video — download from persisted Supabase URL, stage locally for Remotion bundle server.
       // Do NOT pass remote HTTPS URLs (proxy re-download + 20s idle timeout) or data:video URIs.
@@ -255,10 +261,12 @@ export async function renderRemotionReel(
           )
         }
 
-        const publicFileName = `scene_${i + 1}_clip${vExt}`
-        const stagedVideoPath = path.join(renderPublicDir, publicFileName)
-        await fs.copyFile(localVideo, stagedVideoPath)
-        videoSrc = toRemotionBundlePublicSrc(`mugtee-render/${renderSessionKey}/${publicFileName}`)
+        videoSrc = await stageLocalFileForRemotionBundle({
+          localPath: localVideo,
+          renderPublicDir,
+          renderSessionKey,
+          publicFileName: `scene_${i + 1}_clip${vExt}`,
+        })
 
         const remotionSourceType = classifyRenderMediaSource(videoSrc)
         console.info('[render] Scene', i + 1, 'source type:', remotionSourceType)
@@ -327,21 +335,20 @@ export async function renderRemotionReel(
       captionTrackCount: captionTracks.length,
     })
 
-    mp4RenderLog(3, 'scene media prepared', {
-      projectId: input.projectId,
-      sceneCount: reelScenes.length,
-      assetsViaBundlePublic: localBundleAssetCount,
-      assetsViaBase64: dataUrlAssetCount,
-    })
-
     const voiceResolved = await resolveVoiceAudioPathForRender({
       workDir,
       voiceUrl: input.voiceUrl,
       voiceAssetPath: input.voiceAssetPath,
       durationSec: durationSecEstimate,
     })
-    const voiceAudioSrc = await localPathToDataUrl(voiceResolved.path)
-    dataUrlAssetCount += 1
+    const voiceExt = path.extname(voiceResolved.path) || '.mp3'
+    const voiceAudioSrc = await stageLocalFileForRemotionBundle({
+      localPath: voiceResolved.path,
+      renderPublicDir,
+      renderSessionKey,
+      publicFileName: `voice${voiceExt}`,
+    })
+    localBundleAssetCount += 1
 
     let musicAudioSrc: string | null = null
     if (input.musicUrl?.trim()) {
@@ -351,13 +358,25 @@ export async function renderRemotionReel(
         await downloadToFile(input.musicUrl, musicPath)
         const stat = await fs.stat(musicPath).catch(() => null)
         if (stat && stat.isFile() && stat.size > 0) {
-          musicAudioSrc = await localPathToDataUrl(musicPath)
-          dataUrlAssetCount += 1
+          musicAudioSrc = await stageLocalFileForRemotionBundle({
+            localPath: musicPath,
+            renderPublicDir,
+            renderSessionKey,
+            publicFileName: `music${ext}`,
+          })
+          localBundleAssetCount += 1
         }
       } catch {
         musicAudioSrc = null
       }
     }
+
+    mp4RenderLog(3, 'scene media prepared', {
+      projectId: input.projectId,
+      sceneCount: reelScenes.length,
+      assetsViaBundlePublic: localBundleAssetCount,
+      assetsViaBase64: dataUrlAssetCount,
+    })
 
     mp4RenderLog(4, 'audio merged into composition', {
       projectId: input.projectId,

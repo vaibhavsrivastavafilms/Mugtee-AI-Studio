@@ -1,0 +1,16 @@
+deployment: dpl_4yBMugsXqm8FvzEWhJJF391p8SoV
+url: mugtee-ai-studio-6k87-pk5dt7qym-vaibhav-s-s-projects.vercel.app
+aliases: mugtee.in, mugtee-ai-studio.vercel.app
+
+03:24:12.51  mugtee.in  GET /api/v7/productions/ea44c29a-0468-46c6-b5d3-1131364cc30b  200
+[v7-background] drive loop finished { productionId: ea44c29a-..., advanced: 0, status: producing }
+[EXPORT API] step: background_scheduled { phase: runExportInBackground }
+[production-timing] auth: 313ms query: 2842ms relations: 901ms reconcile: 1ms total: 4073ms
+
+03:24:12.43  mugtee.in  GET /api/v7/productions/ea44c29a-0468-46c6-b5d3-1131364cc30b  200
+[v7-background] drive loop finished { productionId: ea44c29a-..., advanced: 0, status: producing }
+[EXPORT API] step: background_scheduled { phase: runExportInBackground }
+[production-timing] auth: 316ms query: 2035ms relations: 1102ms reconcile: 1ms total: 3468ms
+
+03:24:11.16  mugtee.in  GET /studio/ea44c29a-0468-46c6-b5d3-1131364cc30b  200
+03:24:00.08  mugtee.in  GET /api/v7/productions  200  [remotion] (error-level log, HTTP 200)

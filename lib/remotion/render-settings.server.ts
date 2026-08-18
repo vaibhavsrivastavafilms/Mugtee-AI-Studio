@@ -37,6 +37,10 @@ export function resolveOffthreadVideoCacheBytes(): number {
     const mb = Number.parseInt(raw, 10)
     if (Number.isFinite(mb) && mb >= 32) return mb * 1024 * 1024
   }
+  // Vercel functions are ~2GB. Node already sits at ~500MB before Chrome;
+  // a 128MB OffthreadVideo cache plus 1080x1920 software screenshots OOMs
+  // screenshotTask. I2V clips are ~0.5MB / 512x768 — 40MB is plenty.
+  if (process.env.VERCEL === '1') return 40 * 1024 * 1024
   if (process.env.NODE_ENV === 'development') return 64 * 1024 * 1024
   return 128 * 1024 * 1024
 }

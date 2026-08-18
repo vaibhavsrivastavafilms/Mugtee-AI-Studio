@@ -1,6 +1,6 @@
 // Edge Tools no-inline-styles suppressed via .hintrc (Remotion requires inline styles).
 import React from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import { microAnimationAtFrame } from '@/lib/motion/micro-animation'
 
 /** Subtle cinematic overlays — vignette, grain, lens breathing, bloom. Performance-safe. */
@@ -47,15 +47,6 @@ export function ReelVisualEnhancements({
             'radial-gradient(circle at 50% 38%, rgba(255,220,160,0.08), transparent 52%)',
           opacity: micro.flickerOpacity > 0 ? 0.5 + micro.flickerOpacity * 0.4 : 0.35,
           mixBlendMode: 'screen',
-        }}
-      />
-
-      <AbsoluteFill
-        style={{
-          pointerEvents: 'none',
-          backdropFilter: 'blur(0.4px)',
-          WebkitBackdropFilter: 'blur(0.4px)',
-          opacity: interpolate(frame % 120, [0, 60, 120], [0.08, 0.14, 0.08]),
         }}
       />
     </>

@@ -1,0 +1,34 @@
+{
+  "stage": "render",
+  "productionId": "ae361863-8ba1-41c4-b7b3-0ca2503dfeb3",
+  "title": "The Legend in Four Candles",
+  "prompt": "create a video on janmashtami",
+  "httpStatus": 200,
+  "reel_url": null,
+  "export_status": "pending",
+  "production_status_at_capture": "producing",
+  "current_stage": "render",
+  "exact_error": "Could not take a screenshot because Google Chrome ran out of memory or disk space. Decrease the concurrency to use less RAM.",
+  "file": "lib/remotion/render-reel.server.ts",
+  "function": "renderMedia",
+  "stack": "Error: Could not take a screenshot because Google Chrome ran out of memory or disk space. Decrease the concurrency to use less RAM.\n    at screenshotTask (/var/task/node_modules/@remotion/renderer/dist/screenshot-task.js:81:19)",
+  "jobId": "v7-render-ae361863-8ba1-41c4-b7b3-0ca2503dfeb3",
+  "failures_observed": [
+    "2026-08-18T22:52:27.620Z",
+    "2026-08-18T22:53:48.287Z",
+    "2026-08-18T22:55:07.814Z"
+  ],
+  "render_settings": {
+    "mock": false,
+    "concurrency": 1,
+    "disallowParallelEncoding": true,
+    "fps": 30,
+    "resolution": "1080x1920",
+    "durationSec": 30,
+    "durationInFrames": 900,
+    "sceneCount": 4,
+    "rssMemoryMb_at_start": 518.1,
+    "freeSystemMb_at_start": 1255.4
+  },
+  "note": "Browser GET polling retried render after each OOM. Investigation stopped; no code changes."
+}

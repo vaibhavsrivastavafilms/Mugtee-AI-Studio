@@ -48,6 +48,25 @@ export function toRemotionBundlePublicSrc(relativeUnderPublic: string): string {
   return `/public/${trimmed}`
 }
 
+/**
+ * Copy a local asset into the Remotion webpack bundle public dir so Chrome
+ * fetches it over the bundle HTTP server. Do not inline as data URLs —
+ * Chromium keeps those strings + decoded buffers in the page heap for the
+ * entire renderMedia screenshot session.
+ */
+export async function stageLocalFileForRemotionBundle(input: {
+  localPath: string
+  renderPublicDir: string
+  renderSessionKey: string
+  publicFileName: string
+}): Promise<string> {
+  const dest = path.join(input.renderPublicDir, input.publicFileName)
+  await fs.copyFile(input.localPath, dest)
+  return toRemotionBundlePublicSrc(
+    `mugtee-render/${input.renderSessionKey}/${input.publicFileName}`
+  )
+}
+
 export function sanitizeRenderSessionKey(id: string): string {
   const cleaned = id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
   return cleaned || 'session'
