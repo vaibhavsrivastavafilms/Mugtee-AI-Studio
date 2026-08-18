@@ -84,7 +84,7 @@ async function main() {
   const sfx = Array.isArray((sound?.output as { sfx?: unknown[] } | null)?.sfx)
     ? ((sound?.output as { sfx: Array<{ name?: string; url?: string }> }).sfx ?? [])
     : []
-  const sfxReport = []
+  const sfxReport: Array<{ name: string | null; status?: number; bytes: number }> = []
   for (const track of sfx) {
     if (!track.url) {
       sfxReport.push({ name: track.name ?? null, bytes: 0 })
