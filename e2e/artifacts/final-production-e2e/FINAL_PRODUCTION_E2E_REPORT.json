@@ -1,0 +1,33 @@
+{
+  "deploymentId": "dpl_9r24xua1XgtEpLsJjStfmYTetXym",
+  "commit": "aed7fa1",
+  "productionId": "606f4edd-5557-4285-af9c-0b6cb7014493",
+  "prompt": "make cinematic advertisement on shoes",
+  "authentication": "PASS",
+  "newProduction": "PASS",
+  "finalVideo": "NOT RUN",
+  "browserDownload": "NOT RUN",
+  "downloadedMp4": "NOT RUN",
+  "ffprobe": "NOT RUN",
+  "console": "NOT RUN",
+  "network": "NOT RUN",
+  "overall": "FAIL",
+  "stoppedAt": "FIRST_FAILURE Chrome screenshotTask OOM",
+  "stages": {
+    "idea": "PASS",
+    "research": "PASS",
+    "creative": "PASS",
+    "script": "PASS",
+    "voice": "PASS",
+    "character": "PASS",
+    "world": "PASS",
+    "storyboard": "PASS",
+    "image": "PASS",
+    "animation": "PASS",
+    "music": "PASS",
+    "sound": "PASS",
+    "edit": "PASS",
+    "quality": "PASS",
+    "render": "FAIL"
+  }
+}

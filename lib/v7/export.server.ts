@@ -42,6 +42,10 @@ import {
   runV9StoryExecutionAudit,
   validateV92RenderedMovie,
 } from '@/lib/v7/story-execution-audit.server'
+import {
+  assertNarrationFitsBrief,
+  collectNarrationDiagnostics,
+} from '@/lib/v7/voice-narration.server'
 
 export function buildV7ScenePackagesFromSnapshot(snapshot: V7ProductionSnapshot): V7ScenePackage[] {
   return buildV7ScenePackages(snapshot)
@@ -135,6 +139,12 @@ async function resolveV7VoiceUrl(
   }
 
   const narration = mergeV7VoiceNarration(snapshot)
+  assertNarrationFitsBrief({
+    narrationText: narration,
+    briefDurationSec: snapshot.production.creative_brief?.duration ?? 60,
+    context: 'render-voice-resolve',
+  })
+  const narrationDiagnostics = collectNarrationDiagnostics(narration)
   const voice = await generateVoice(
     {
       script: narration.trim() || ' ',
@@ -162,6 +172,8 @@ async function resolveV7VoiceUrl(
         VOICEOVER_URL_PRESENT: true,
         VOICEOVER_PERSISTED: persisted,
         bufferBytes: voice.buffer?.length ?? null,
+        narrationWordCount: narrationDiagnostics.wordCount,
+        narrationEstimatedDurationSec: narrationDiagnostics.estimatedDurationSec,
       })
     )
     return voiceUrl

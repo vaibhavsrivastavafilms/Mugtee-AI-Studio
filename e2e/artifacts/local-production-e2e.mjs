@@ -527,6 +527,44 @@ async function browserDownload(page, clickable, filename) {
   return { path: target, size: stat.size, suggested: download.suggestedFilename() }
 }
 
+async function collectBrowserAuthState(page, context, authCookieNameHint = null) {
+  const cookies = await context.cookies(baseURL)
+  const profile = await page.evaluate(async () => {
+    try {
+      const res = await fetch('/api/profile', { credentials: 'include', cache: 'no-store' })
+      const body = await res.json().catch(() => ({}))
+      return { ok: res.ok, status: res.status, body }
+    } catch (error) {
+      return { ok: false, status: 0, body: { error: String(error) } }
+    }
+  })
+  const storage = await page.evaluate(() => {
+    const keys = []
+    const samples = {}
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i)
+        if (!key) continue
+        keys.push(key)
+        if (/auth-token|supabase/i.test(key)) {
+          samples[key] = String(window.localStorage.getItem(key) ?? '').slice(0, 180)
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return { keys, samples }
+  })
+  return {
+    url: page.url(),
+    profile,
+    authCookieCount: cookies.filter((c) => c.name.includes('auth-token')).length,
+    cookieNames: cookies.map((c) => c.name),
+    authCookieNameHint,
+    storage,
+  }
+}
+
 function verifyIdea(slim) {
   const brief = slim.production.creative_brief ?? {}
   const blob = textBlob([brief, slim.stages.find((s) => s.stage === 'idea')?.output])
@@ -786,9 +824,23 @@ if (!profile.ok || profileJson.signed_in !== true) {
 console.log('[AUTH] localhost session ok', auth.userId)
 
 const chromeProfile = path.join(artifactDir, 'chrome-profile')
-fs.rmSync(chromeProfile, { recursive: true, force: true })
-fs.mkdirSync(chromeProfile, { recursive: true })
-const context = await chromium.launchPersistentContext(chromeProfile, {
+let resolvedChromeProfile = chromeProfile
+try {
+  fs.rmSync(chromeProfile, { recursive: true, force: true })
+  fs.mkdirSync(chromeProfile, { recursive: true })
+} catch (error) {
+  // Windows can keep profile handles briefly; fallback avoids false-negative E2E aborts.
+  resolvedChromeProfile = path.join(
+    artifactDir,
+    `chrome-profile-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+  )
+  fs.mkdirSync(resolvedChromeProfile, { recursive: true })
+  console.warn(
+    '[LOCAL_E2E] profile cleanup failed, using fallback profile',
+    error instanceof Error ? error.message : String(error)
+  )
+}
+const context = await chromium.launchPersistentContext(resolvedChromeProfile, {
   headless: false,
   slowMo: 40,
   channel: 'chrome',
@@ -887,10 +939,17 @@ try {
   if (!browserSignedIn) {
     throw new Error('Browser context is not signed in on localhost (host-only cookies failed)')
   }
+  const authState = await collectBrowserAuthState(page, context, authCookie?.name ?? null)
+  fs.writeFileSync(path.join(artifactDir, 'auth-browser-state.json'), JSON.stringify(authState, null, 2), 'utf8')
+  if (!(authState.profile?.ok && authState.profile?.body?.signed_in === true)) {
+    throw new Error(
+      `Browser auth state invalid: profile=${authState.profile?.status} signed_in=${authState.profile?.body?.signed_in}`
+    )
+  }
+  // Authenticated workspace readiness is based on actionable studio controls, not a transient sign-in banner.
   await page.getByRole('heading', { name: /One idea\. One film/i }).waitFor({ timeout: 60_000 })
-  await page
-    .getByText('Sign in or create a free account to start a production.')
-    .waitFor({ state: 'hidden', timeout: 45_000 })
+  const createFilmButton = page.getByRole('button', { name: 'Create Film' })
+  await createFilmButton.waitFor({ state: 'visible', timeout: 60_000 })
   await page.screenshot({ path: path.join(artifactDir, '00-auth-studio.png'), fullPage: true })
 
   let resumed = false

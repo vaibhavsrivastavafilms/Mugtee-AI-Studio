@@ -70,6 +70,21 @@ function passThroughWithPathname(request: NextRequest, pathname: string): NextRe
 }
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  // Safety bypass: Next internals and static files must never hit auth middleware.
+  // Matcher exclusions are not always reliable across dev/build modes.
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    /\.[a-z0-9]+$/i.test(pathname)
+  ) {
+    return NextResponse.next()
+  }
+
   const v7Redirect = v7LegacyRedirect(request)
   if (v7Redirect) return v7Redirect
 
@@ -78,8 +93,6 @@ export async function proxy(request: NextRequest) {
 
   const oauthRedirect = oauthCodeRedirect(request)
   if (oauthRedirect) return oauthRedirect
-
-  const pathname = request.nextUrl.pathname
 
   try {
     const { supabase, response: supabaseResponse } = createMiddlewareSupabaseClient(

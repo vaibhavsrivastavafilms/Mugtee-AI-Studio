@@ -13,14 +13,12 @@ import { executeV7ExportDeliverables } from '@/lib/v7/export-deliverables.server
 import { synthesizeWithCascade } from '@/lib/voice/tts-cascade'
 import {
   buildGroundedV7SceneFields,
-  buildScreenplayNarration,
   groundedFieldsToGeneratedScene,
   type V7SceneStoryboardRecord,
 } from '@/lib/v7/scene-grounding.server'
 import {
   buildV7TimelineFromScript,
   buildV7ProductionTimeline,
-  mergeV7VoiceNarration,
 } from '@/lib/v7/scene-package.server'
 import {
   assertV9StoryExecutionReady,
@@ -30,6 +28,12 @@ import {
 import { v7VoiceLanguageCode } from '@/lib/v7/language-routing.core'
 import { allowSilentVoiceFallback } from '@/lib/v7/production-integrity.server'
 import { validateV7ProductionMediaAssets } from '@/lib/v7/media-probe.server'
+import {
+  assertNarrationFitsBrief,
+  buildNarrationSegmentsFromScript,
+  collectNarrationDiagnostics,
+  joinNarrationText,
+} from '@/lib/v7/voice-narration.server'
 import type { V7SoundEffect } from '@/lib/v3/sound-cascade.server'
 import type { V7CharacterBible } from '@/agents/v7/character-director.server'
 import type { V7WorldBible } from '@/agents/v7/world-builder.server'
@@ -113,31 +117,7 @@ function buildVoiceNarrationSegmentsFromScript(params: {
   brief: V7CreativeBrief
   snapshot?: V7ProductionSnapshot
 }) {
-  return params.script.scenes.map((scene) => ({
-    sceneNumber: scene.number,
-    sceneId:
-      params.snapshot?.scenes.find((row) => row.number === scene.number)?.id ??
-      `script-${scene.number}`,
-    text: [scene.narration, scene.dialogue].filter(Boolean).join(' ').trim(),
-    durationSec: scene.duration ?? params.brief.duration / Math.max(params.brief.sceneCount, 1),
-    emotion: scene.emotion ?? params.brief.emotion,
-  }))
-}
-
-function resolveVoiceNarration(params: {
-  script: V7ScriptDocument
-  storyboard?: V7StoryboardDocument
-  snapshot?: V7ProductionSnapshot
-}) {
-  const fromScript = buildScreenplayNarration(params.script, params.storyboard).trim()
-  if (fromScript.length >= 12) return fromScript
-
-  if (params.snapshot) {
-    const fromSnapshot = mergeV7VoiceNarration(params.snapshot).trim()
-    if (fromSnapshot.length >= 12) return fromSnapshot
-  }
-
-  return fromScript
+  return buildNarrationSegmentsFromScript(params)
 }
 
 async function synthesizeVoiceForStage(params: {
@@ -283,8 +263,14 @@ export async function runV7VoiceStage(params: {
 }) {
   const started = Date.now()
   const narrationSegments = buildVoiceNarrationSegmentsFromScript(params)
-  const narration = resolveVoiceNarration(params)
+  const narration = joinNarrationText(narrationSegments)
   const supabase = params.supabase ?? (await createSupabaseServerClient())
+  assertNarrationFitsBrief({
+    narrationText: narration,
+    briefDurationSec: params.brief.duration,
+    context: 'voice-stage',
+  })
+  const narrationDiagnostics = collectNarrationDiagnostics(narration)
 
   let synthesis: Awaited<ReturnType<typeof synthesizeVoiceForStage>>
   try {
@@ -341,6 +327,9 @@ export async function runV7VoiceStage(params: {
     fallbackMessage: synthesis.fallbackMessage ?? null,
     narrationSegments,
     audioDurationSec: synthesis.audioDurationSec,
+    narrationWordCount: narrationDiagnostics.wordCount,
+    narrationCharCount: narrationDiagnostics.charCount,
+    narrationEstimatedDurationSec: narrationDiagnostics.estimatedDurationSec,
   }
 }
 

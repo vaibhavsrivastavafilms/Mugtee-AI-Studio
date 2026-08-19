@@ -212,20 +212,18 @@ export function buildV7VoiceNarrationSegments(snapshot: V7ProductionSnapshot): A
   emotion: string
 }> {
   const packages = buildV7ScenePackages(snapshot)
-  return packages.map((pkg) => {
-    const shotDialogue = pkg.shots
-      .map((shot) => shot.dialogue.trim())
-      .filter(Boolean)
-      .join(' ')
-    const text = [pkg.narration.trim(), shotDialogue, pkg.dialogue.trim()].filter(Boolean).join(' ')
-    return {
-      sceneNumber: pkg.sceneNumber,
-      sceneId: pkg.sceneId,
-      text,
-      durationSec: pkg.durationSec,
-      emotion: pkg.emotion,
-    }
-  })
+  return packages
+    .map((pkg) => {
+      const text = pkg.narration.trim()
+      return {
+        sceneNumber: pkg.sceneNumber,
+        sceneId: pkg.sceneId,
+        text,
+        durationSec: pkg.durationSec,
+        emotion: pkg.emotion,
+      }
+    })
+    .filter((segment) => segment.text.length > 0)
 }
 
 export function mergeV7VoiceNarration(snapshot: V7ProductionSnapshot): string {

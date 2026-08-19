@@ -52,7 +52,7 @@ export type GroundedV7SceneFields = {
 }
 
 function sceneNarrationText(scene: V7ScriptScene, shot?: V7StoryboardShot): string {
-  return [scene.narration, shot?.dialogue, scene.dialogue, scene.action]
+  return [scene.narration, shot?.dialogue, scene.dialogue]
     .filter(Boolean)
     .join(' ')
     .trim()

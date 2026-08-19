@@ -56,6 +56,10 @@ Rules:
 - dialogue may be "" only when a scene has no spoken dialogue; all other fields remain required.
 - For every scene, write concrete location, action, narration, camera, lighting, movement, emotion, and transition.
 - scenes[n].narration must always contain voiceover narration text in the production language.
+- scenes[n].narration must contain only spoken voiceover lines, never creator instructions.
+- Do not repeat the creator prompt verbatim in narration.
+- Do not put camera, lighting, movement, transition, SFX, or music instructions inside narration.
+- Keep narration concise and speakable for the scene duration.
 - scenes[n].action must describe visible on-screen action.
 - scenes[n].location must name the setting.`
 

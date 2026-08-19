@@ -1,0 +1,66 @@
+{
+  "error": "Could not take a screenshot because Google Chrome ran out of memory or disk space. Decrease the concurrency to use less RAM.",
+  "productionId": "606f4edd-5557-4285-af9c-0b6cb7014493",
+  "url": "https://mugtee.in/studio/606f4edd-5557-4285-af9c-0b6cb7014493",
+  "stage": "render",
+  "httpStatus": 200,
+  "deploymentId": "dpl_9r24xua1XgtEpLsJjStfmYTetXym",
+  "deploymentUrl": "https://mugtee-ai-studio-6k87-3hyu24m4j-vaibhav-s-s-projects.vercel.app",
+  "aliases": ["https://mugtee.in", "https://mugtee-ai-studio.vercel.app"],
+  "project": "mugtee-ai-studio-6k87",
+  "commitSha": "aed7fa14b7d13cf371f159ea0c11ebcf2860eecf",
+  "commit": "aed7fa1",
+  "buildStatus": "READY",
+  "mugteeInHttp": 200,
+  "prompt": "make cinematic advertisement on shoes",
+  "title": "Neon Footsteps: The City Answers Back",
+  "reel_url": null,
+  "export_status": "pending",
+  "production_status_at_capture": "producing",
+  "render_stage_status_at_capture": "running",
+  "note": "Stopped at first genuine Chrome screenshotTask OOM. Did not retry. Did not create another production. Did not deploy another version. Did not modify the renderer. Vercel background scheduler continued attempting the same production after the first OOM and later logged spawn ETXTBSY.",
+  "fixPresentAtFailure": {
+    "fileBasedRemotionAssets": true,
+    "assetsViaBase64": 0,
+    "assetsViaUrl": 14,
+    "assetsViaBundlePublic": 14,
+    "offthreadVideoCacheSizeInBytes": 41943040,
+    "concurrency": 1,
+    "mock": false,
+    "resolution": "1080x1920",
+    "fps": 30,
+    "serveUrl": "/tmp/remotion-webpack-bundle-k4oQpu",
+    "sceneSources": "LOCAL_PATH /public/mugtee-render/<id>/scene_N_clip.mp4",
+    "voiceStagedPath": "/tmp/mugtee-remotion-vSYAHo/voice.mp3"
+  },
+  "compositionAtFailure": {
+    "compositionId": "MugteeReel",
+    "durationInFrames": 1440,
+    "durationSec": 48,
+    "sceneCount": 6,
+    "voiceDurationSec": 184.11,
+    "timelineDurationSec": 60
+  },
+  "memoryAtRenderMediaStart": {
+    "renderer": "renderMedia",
+    "rssMemoryMb": 705,
+    "freeSystemMb": 1061.9,
+    "heapUsageMb": 78.2,
+    "concurrency": 1,
+    "dataUrlAssetCount": 0,
+    "httpAssetCount": 14,
+    "offthreadVideoCacheSizeInBytes": 41943040
+  },
+  "memoryNearOomRetry": {
+    "rssMemoryMb": 719.6,
+    "freeSystemMb": 722.7,
+    "heapUsageMb": 103.7
+  },
+  "exactVercelError": "[mugtee] {\"scope\":\"orchestrate.remotion-reel\",\"msg\":\"Could not take a screenshot because Google Chrome ran out of memory or disk space. Decrease the concurrency to use less RAM.\"}",
+  "subsequentRetryError": "spawn ETXTBSY",
+  "vercelLogIds": {
+    "oom": "fw9w4-1787098125696-6ee2d8bf393a",
+    "etxtbsy": "9j477-1787098195876-0cb85fd21d41",
+    "stageAdvanceFailed": "kpdlh-1787098157547-c3411d28745b"
+  }
+}

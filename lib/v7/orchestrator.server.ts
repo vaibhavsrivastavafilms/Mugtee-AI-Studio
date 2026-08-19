@@ -644,21 +644,17 @@ async function executeV7Stage(
         supabase,
       })
 
-    if (narrationSegments.length > 0) {
-      const totalText = narrationSegments.reduce((sum, seg) => sum + seg.text.length, 0)
-      const totalDur =
-        audioDurationSec ??
-        narrationSegments.reduce((sum, seg) => sum + seg.durationSec, 0)
-      for (const seg of narrationSegments) {
-        const scene = voiceSnapshot.scenes.find((row) => row.number === seg.sceneNumber)
-        if (!scene) continue
-        const weight = totalText > 0 ? seg.text.length / totalText : 1 / narrationSegments.length
-        const sceneDuration = Math.max(1, Math.round(totalDur * weight * 10) / 10)
-        await supabase
-          .from('v7_scenes')
-          .update({ duration: sceneDuration })
-          .eq('id', scene.id)
-      }
+    if (narrationSegments.length > 0 && audioDurationSec != null) {
+      console.info(
+        '[V7_VOICE_TIMING]',
+        JSON.stringify({
+          productionId,
+          sceneCount: narrationSegments.length,
+          audioDurationSec,
+          briefDurationSec: brief.duration,
+          note: 'Scene durations remain screenplay-driven; voice does not mutate scene timing.',
+        })
+      )
     }
 
     if (voiceUrl) {
