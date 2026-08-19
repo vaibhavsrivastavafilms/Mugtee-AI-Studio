@@ -65,6 +65,16 @@ export function WorkspaceFinalVideoPanel({ productionId, workspace }: WorkspaceF
 
       <div className="flex flex-wrap justify-center gap-2">
         <V7ProductionDownloadButton productionId={productionId} title={workspace.script.title ?? 'Production'} />
+        {workspace.reelUrl ? (
+          <a
+            href={workspace.reelUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-white/20 px-5 py-2.5 text-sm font-semibold text-white/90"
+          >
+            Open fullscreen
+          </a>
+        ) : null}
         {workspace.creatorPackUrl ? (
           <a
             href={workspace.creatorPackUrl}

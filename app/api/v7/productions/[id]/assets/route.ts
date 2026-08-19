@@ -129,5 +129,19 @@ export async function GET(req: NextRequest, context: RouteContext) {
     })
   }
 
+  if (kind === 'sfx') {
+    const soundStage = snapshot.stages.find((row) => row.stage === 'sound')
+    const sfx = (soundStage?.output as { sfx?: unknown[] } | null)?.sfx
+    if (!Array.isArray(sfx) || sfx.length === 0) {
+      return NextResponse.json({ error: 'SFX not available' }, { status: 404 })
+    }
+    return new NextResponse(JSON.stringify(sfx, null, 2), {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${title}-sfx.json"`,
+      },
+    })
+  }
+
   return NextResponse.json({ error: 'Unsupported asset kind' }, { status: 400 })
 }

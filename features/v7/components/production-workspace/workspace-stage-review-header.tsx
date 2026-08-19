@@ -58,7 +58,8 @@ export function WorkspaceStageReviewHeader({ stage, summary }: WorkspaceStageRev
           <span>{statusLabel}</span>
         </div>
       </div>
-      {stage.durationLabel ? <p className="mt-2 text-sm text-white/50">{stage.durationLabel}</p> : null}
+      {stage.timingLabel ? <p className="mt-2 text-sm text-white/50">{stage.timingLabel}</p> : null}
+      {stage.durationLabel ? <p className="mt-1 text-sm text-white/45">{stage.durationLabel}</p> : null}
       {summary ? <p className="mt-1 text-sm text-white/60">{summary}</p> : null}
       {stage.status === 'stale' && stage.staleHint ? (
         <p className="mt-2 text-sm text-amber-300">⚠ {stage.staleHint}</p>

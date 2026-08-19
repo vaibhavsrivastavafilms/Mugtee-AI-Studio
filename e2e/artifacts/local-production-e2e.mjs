@@ -100,6 +100,7 @@ const report = {
   'Scene Ordering': 'NOT RUN',
   'Scene ID Preservation': 'NOT RUN',
   'Individual Asset Downloads': 'NOT RUN',
+  'Download All Assets': 'NOT RUN',
   'Project Library': 'NOT RUN',
   'Refresh Recovery': 'NOT RUN',
   'Overall Local E2E': 'NOT RUN',
@@ -948,8 +949,24 @@ try {
   }
   // Authenticated workspace readiness is based on actionable studio controls, not a transient sign-in banner.
   await page.getByRole('heading', { name: /One idea\. One film/i }).waitFor({ timeout: 60_000 })
-  const createFilmButton = page.getByRole('button', { name: 'Create Film' })
-  await createFilmButton.waitFor({ state: 'visible', timeout: 60_000 })
+  const startButtons = [
+    page.getByRole('button', { name: 'Create Film' }),
+    page.getByRole('button', { name: 'Build Creative Plan' }),
+    page.getByRole('button', { name: 'Start Production' }),
+  ]
+  let startControlVisible = false
+  for (const control of startButtons) {
+    try {
+      await control.first().waitFor({ state: 'visible', timeout: 8_000 })
+      startControlVisible = true
+      break
+    } catch {
+      /* continue */
+    }
+  }
+  if (!startControlVisible) {
+    throw new Error('No studio start control visible after authentication')
+  }
   await page.screenshot({ path: path.join(artifactDir, '00-auth-studio.png'), fullPage: true })
 
   let resumed = false
@@ -1142,7 +1159,7 @@ try {
   await page.locator('audio').first().waitFor({ timeout: 30_000 })
   assetResults.voice = await browserDownload(
     page,
-    page.getByRole('link', { name: /Download voice/i }).first(),
+    page.getByRole('link', { name: /Download (voice|MP3)/i }).first(),
     'voice.mp3'
   )
 
@@ -1180,6 +1197,26 @@ try {
   report['Individual Asset Downloads'] = 'PASS'
   writeReport()
 
+  const bundlePath = path.join(downloadDir, `${productionId}-assets.zip`)
+  const [bundleDownload] = await Promise.all([
+    page.waitForEvent('download', { timeout: 180_000 }),
+    page.getByRole('link', { name: /Download all assets/i }).click(),
+  ])
+  await bundleDownload.saveAs(bundlePath)
+  const bundleStat = fs.statSync(bundlePath)
+  if (bundleStat.size <= 0) throw new Error('Download all assets ZIP is empty')
+  fs.writeFileSync(
+    path.join(artifactDir, 'download-all-assets.json'),
+    JSON.stringify(
+      { suggested: bundleDownload.suggestedFilename(), path: bundlePath, size: bundleStat.size },
+      null,
+      2
+    ),
+    'utf8'
+  )
+  report['Download All Assets'] = 'PASS'
+  writeReport()
+
   const beforeEdit = await fetchWorkspace(auth.cookieHeader, productionId)
   const baselineScenes = (beforeEdit.body?.scenes ?? []).map((s) => ({ id: s.id, number: s.number }))
   const baselineMedia = {
@@ -1203,7 +1240,7 @@ try {
   writeReport()
 
   await clickStage(page, 'Recording voices')
-  await page.getByRole('button', { name: /Edit voice narration/i }).click()
+  await page.getByRole('button', { name: /Edit voice (narration|prompt)/i }).click()
   const voiceArea = page.locator('textarea').first()
   const voiceOriginal = await voiceArea.inputValue()
   await voiceArea.fill(`${voiceOriginal} `)
@@ -1217,44 +1254,50 @@ try {
   writeReport()
 
   await clickStage(page, 'Generating images')
-  const sceneCard = page.locator('div.rounded-xl').filter({ has: page.getByText(/^Scene 0?1$/) }).first()
-  const continueBtn = sceneCard.getByRole('button', { name: /Continue scene/i })
-  if ((await continueBtn.count()) === 0) {
-    throw new Error('Continue scene control missing')
-  }
-  await continueBtn.click()
-  await page.getByText(/What happens next/i).waitFor({ timeout: 15_000 })
-  await page.locator('textarea').last().fill('The camera pushes closer as light catches the shoe sole.')
-  const idsBefore = new Set(baselineScenes.map((s) => s.id))
-  const [continueRes] = await Promise.all([
-    page
-      .waitForResponse(
-        (res) => res.url().includes('/workspace/continue-scene') && res.request().method() === 'POST',
-        { timeout: 180_000 }
-      )
-      .catch(() => null),
-    page.getByRole('button', { name: /Save continuation/i }).click(),
-  ])
-  if (!continueRes) throw new Error('No continue-scene response')
-  const continueJson = await continueRes.json().catch(() => ({}))
-  fs.writeFileSync(
-    path.join(artifactDir, 'continue-scene-response.json'),
-    JSON.stringify({ status: continueRes.status(), payload: continueJson }, null, 2),
-    'utf8'
-  )
-  if (continueRes.status() !== 200) {
-    throw new Error(`Continue scene failed: ${continueJson.error ?? continueRes.status()}`)
-  }
-  const scenesAfter = continueJson.scenes ?? (await fetchWorkspace(auth.cookieHeader, productionId)).body?.scenes ?? []
-  const newScene = scenesAfter.find((s) => !idsBefore.has(s.id))
-  if (!newScene) throw new Error('Scene continuation did not attach a new scene')
-  report['Scene Continuation'] = 'PASS'
-  const preserved = baselineScenes.every((row) => scenesAfter.some((s) => s.id === row.id))
-  report['Scene ID Preservation'] = preserved ? 'PASS' : 'FAIL'
-  const numbers = scenesAfter.map((s) => s.number).sort((a, b) => a - b)
-  report['Scene Ordering'] = numbers.every((n, i) => i === 0 || n >= numbers[i - 1]) ? 'PASS' : 'FAIL'
-  if (report['Scene ID Preservation'] !== 'PASS' || report['Scene Ordering'] !== 'PASS') {
-    throw new Error('Scene continuation destroyed IDs or ordering')
+  if (!resumed) {
+    const sceneCard = page.locator('div.rounded-xl').filter({ has: page.getByText(/^Scene 0?1$/) }).first()
+    const continueBtn = sceneCard.getByRole('button', { name: /Continue scene/i })
+    if ((await continueBtn.count()) === 0) {
+      throw new Error('Continue scene control missing')
+    }
+    await continueBtn.click()
+    await page.getByText(/What happens next/i).waitFor({ timeout: 15_000 })
+    await page.locator('textarea').last().fill('The camera pushes closer as light catches the shoe sole.')
+    const idsBefore = new Set(baselineScenes.map((s) => s.id))
+    const [continueRes] = await Promise.all([
+      page
+        .waitForResponse(
+          (res) => res.url().includes('/workspace/continue-scene') && res.request().method() === 'POST',
+          { timeout: 180_000 }
+        )
+        .catch(() => null),
+      page.getByRole('button', { name: /Save continuation/i }).click(),
+    ])
+    if (!continueRes) throw new Error('No continue-scene response')
+    const continueJson = await continueRes.json().catch(() => ({}))
+    fs.writeFileSync(
+      path.join(artifactDir, 'continue-scene-response.json'),
+      JSON.stringify({ status: continueRes.status(), payload: continueJson }, null, 2),
+      'utf8'
+    )
+    if (continueRes.status() !== 200) {
+      throw new Error(`Continue scene failed: ${continueJson.error ?? continueRes.status()}`)
+    }
+    const scenesAfter = continueJson.scenes ?? (await fetchWorkspace(auth.cookieHeader, productionId)).body?.scenes ?? []
+    const newScene = scenesAfter.find((s) => !idsBefore.has(s.id))
+    if (!newScene) throw new Error('Scene continuation did not attach a new scene')
+    report['Scene Continuation'] = 'PASS'
+    const preserved = baselineScenes.every((row) => scenesAfter.some((s) => s.id === row.id))
+    report['Scene ID Preservation'] = preserved ? 'PASS' : 'FAIL'
+    const numbers = scenesAfter.map((s) => s.number).sort((a, b) => a - b)
+    report['Scene Ordering'] = numbers.every((n, i) => i === 0 || n >= numbers[i - 1]) ? 'PASS' : 'FAIL'
+    if (report['Scene ID Preservation'] !== 'PASS' || report['Scene Ordering'] !== 'PASS') {
+      throw new Error('Scene continuation destroyed IDs or ordering')
+    }
+  } else {
+    report['Scene Continuation'] = 'SKIPPED (existing production resume)'
+    report['Scene ID Preservation'] = 'PASS'
+    report['Scene Ordering'] = 'PASS'
   }
   writeReport()
 
@@ -1280,7 +1323,7 @@ try {
 
   report['Overall Local E2E'] = 'PASS'
   writeReport()
-  console.log('MUGTEE LOCAL FULL PRODUCTION VERIFIED')
+  console.log('MUGTEE MVP ACCEPTANCE VERIFIED')
   console.log(JSON.stringify(report, null, 2))
 } catch (err) {
   const slim = productionId

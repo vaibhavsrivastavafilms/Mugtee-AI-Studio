@@ -24,6 +24,11 @@ import type { ScriptReviewScene } from '@/lib/v7/workspace/workspace-script.core
 import type { V7ProductionSnapshot } from '@/types/v7/production'
 import { v7HasDeliverableMedia } from '@/lib/v7/deliverable-media.core'
 
+const SCRIPT_REFRESHES = ['Images', 'Animation', 'Voice', 'Music', 'SFX', 'Editing', 'Quality', 'Render']
+const SCRIPT_PRESERVES = ['Project ID', 'Scene IDs', 'Production history']
+const VOICE_REFRESHES = ['Voice', 'SFX', 'Editing', 'Quality', 'Render']
+const VOICE_PRESERVES = ['Script scenes', 'Images', 'Animation', 'Music']
+
 type V7ProductionWorkspaceProps = {
   productionId: string
   snapshot: V7ProductionSnapshot
@@ -182,6 +187,7 @@ function ScriptEditor({
   busy: boolean
 }) {
   const [drafts, setDrafts] = useState(scenes)
+  const [instruction, setInstruction] = useState('')
 
   useEffect(() => setDrafts(scenes), [scenes])
 
@@ -263,6 +269,21 @@ function ScriptEditor({
         </div>
       ))}
       <div className="flex flex-wrap gap-2">
+        <div className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs uppercase tracking-[0.16em] text-[#D4AF37]/80">Regeneration impact preview</p>
+          <p className="mt-2 text-sm text-white/75">What will change: {SCRIPT_REFRESHES.join(', ')}</p>
+          <p className="mt-1 text-sm text-white/55">What remains: {SCRIPT_PRESERVES.join(', ')}</p>
+          <label className="mt-3 block text-sm text-white/65">
+            Edit instruction (optional)
+            <textarea
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              rows={2}
+              placeholder="Example: Make the opening more emotional and reduce dialogue by 20%."
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+            />
+          </label>
+        </div>
         <button
           type="button"
           disabled={busy}
@@ -302,6 +323,11 @@ function VoiceReviewPanel({
   busy: boolean
 }) {
   const [editing, setEditing] = useState(false)
+  const [tone, setTone] = useState('Commercial')
+  const [energy, setEnergy] = useState(60)
+  const [speed, setSpeed] = useState(50)
+  const [emotion, setEmotion] = useState('Premium')
+  const [instruction, setInstruction] = useState('')
   const [segments, setSegments] = useState(
     workspace.scenes.map((scene) => ({ sceneNumber: scene.sceneNumber, text: scene.narration }))
   )
@@ -316,6 +342,54 @@ function VoiceReviewPanel({
       {workspace.voiceStale ? <p className="text-sm text-amber-300">Voice may be stale after recent edits.</p> : null}
       {editing ? (
         <div className="space-y-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs uppercase tracking-[0.16em] text-[#D4AF37]/80">Voice controls</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-white/65">
+                Tone
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-white"
+                >
+                  <option>Narrator</option>
+                  <option>Commercial</option>
+                  <option>Documentary</option>
+                  <option>Conversational</option>
+                  <option>Dramatic</option>
+                </select>
+              </label>
+              <label className="text-xs text-white/65">
+                Emotion
+                <input
+                  value={emotion}
+                  onChange={(e) => setEmotion(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-white"
+                />
+              </label>
+              <label className="text-xs text-white/65">
+                Energy ({energy})
+                <input type="range" min={0} max={100} value={energy} onChange={(e) => setEnergy(Number(e.target.value))} className="mt-1 w-full" />
+              </label>
+              <label className="text-xs text-white/65">
+                Speed ({speed})
+                <input type="range" min={0} max={100} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="mt-1 w-full" />
+              </label>
+            </div>
+            <label className="mt-2 block text-xs text-white/65">
+              Voice-over instruction
+              <textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                rows={2}
+                placeholder="Example: Make the narration 20% shorter and more dramatic."
+                className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-white"
+              />
+            </label>
+            <p className="mt-2 text-xs text-white/55">
+              What will change: {VOICE_REFRESHES.join(', ')}. What remains: {VOICE_PRESERVES.join(', ')}.
+            </p>
+          </div>
           {segments.map((segment) => (
             <label key={segment.sceneNumber} className="block text-sm text-white/60">
               Scene {String(segment.sceneNumber).padStart(2, '0')} narration
@@ -350,19 +424,31 @@ function VoiceReviewPanel({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white"
-        >
-          Edit voice narration
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Edit voice prompt
+          </button>
+          {workspace.voiceUrl ? (
+            <a
+              href={workspace.voiceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/85"
+            >
+              Play voice
+            </a>
+          ) : null}
+        </div>
       )}
       <a
         href={assetDownloadHref(productionId, 'voice')}
         className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/90"
       >
-        <Download className="h-4 w-4" /> Download voice
+        <Download className="h-4 w-4" /> Download MP3
       </a>
     </div>
   )
@@ -380,6 +466,7 @@ function StageReviewPanel({
   setEditingScript,
   onSaveScript,
   scriptBusy,
+  onInfoMessage,
 }: {
   activeStage: WorkspaceStageNavItem['stageId']
   workspace: WorkspacePayload
@@ -392,6 +479,7 @@ function StageReviewPanel({
   setEditingScript: (value: boolean) => void
   onSaveScript: (edits: Array<{ number: number; narration: string; action: string; duration: number; camera: string; lighting: string }>) => void
   scriptBusy: boolean
+  onInfoMessage: (message: string) => void
 }) {
   const sceneCount = workspace.scenes.length
   const imageCount = workspace.scenes.filter((scene) => scene.imageUrl).length
@@ -451,6 +539,13 @@ function StageReviewPanel({
             type="button"
             onClick={() => setEditingScript(true)}
             className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Open script
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingScript(true)}
+            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/85"
           >
             Edit script
           </button>
@@ -577,6 +672,13 @@ function StageReviewPanel({
         <WorkspaceStageReviewHeader stage={stageNavItem} />
         {workspace.musicUrl ? <audio controls src={workspace.musicUrl} className="w-full" /> : null}
         {workspace.musicStale ? <p className="text-sm text-amber-300">Music may be stale after recent edits.</p> : null}
+        <button
+          type="button"
+          className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/80"
+          onClick={() => onInfoMessage('Music prompt editing will be available in the next update.')}
+        >
+          Edit music prompt
+        </button>
         <a
           href={assetDownloadHref(productionId, 'music')}
           className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/90"
@@ -591,6 +693,21 @@ function StageReviewPanel({
     return (
       <div className="space-y-4">
         <WorkspaceStageReviewHeader stage={stageNavItem} summary={summary} />
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={assetDownloadHref(productionId, 'sfx')}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/90"
+          >
+            <Download className="h-4 w-4" /> Download SFX
+          </a>
+          <button
+            type="button"
+            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/80"
+            onClick={() => onInfoMessage('SFX prompt editing will be available in the next update.')}
+          >
+            Edit SFX prompt
+          </button>
+        </div>
         <div className="space-y-3">
           {workspace.scenes.map((scene) => (
             <div key={scene.sceneId} className="rounded-xl border border-white/10 bg-white/5 p-3">
@@ -795,6 +912,12 @@ export function V7ProductionWorkspace({
           <Link href="/studio/projects" className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80">
             Project library
           </Link>
+          <a
+            href={`/api/v7/productions/${productionId}/assets/bundle`}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white/90"
+          >
+            <Download className="h-4 w-4" /> Download all assets
+          </a>
           {isProducing ? (
             <button
               type="button"
@@ -897,6 +1020,7 @@ export function V7ProductionWorkspace({
                 onSaveScript={handleSaveScript}
                 onSaveVoice={handleSaveVoice}
                 scriptBusy={busy}
+                onInfoMessage={setActionError}
               />
             </section>
           </div>

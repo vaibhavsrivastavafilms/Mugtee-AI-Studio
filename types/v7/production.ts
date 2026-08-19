@@ -40,6 +40,22 @@ export type V7Platform =
 
 export type V7AspectRatio = '9:16' | '16:9' | '1:1' | '4:5'
 
+export type V7RapidBrief = {
+  duration: string
+  visualStyle: string[]
+  colorTreatment: string
+  voiceover: 'yes' | 'no' | 'auto'
+  voiceStyle?: string | null
+  musicMode: 'none' | 'ai' | 'custom' | 'auto'
+  musicMood?: string | null
+  mood: string[]
+  editingStyle: string
+  cameraStyle?: string | null
+  ending: string
+  brandingAssets: 'yes' | 'no'
+  smartPromptFocus?: string | null
+}
+
 /** User-selected creative concept — authoritative story direction after concept pick. */
 export type V7Concept = {
   id: string
@@ -73,6 +89,8 @@ export type V7CreativeBrief = {
   characterConsistency: boolean
   /** Set after the user selects one of the generated concepts. */
   selectedConcept?: V7Concept
+  /** Optional user-provided quick preferences collected pre-production. */
+  rapidBrief?: V7RapidBrief
 }
 
 export type V7TimelineStageStatus = 'pending' | 'running' | 'completed' | 'failed' | 'blocked'
