@@ -15,14 +15,17 @@ import {
 } from '@/lib/v7/pipeline-sync.server'
 
 const DEFAULT_MAX_STAGES = 48
-const DEFAULT_MAX_MS = 280_000
+/** Stay under Vercel fluid maxDuration (800s) with headroom for cleanup. */
+const DEFAULT_MAX_MS = 750_000
 /** At most one production may execute provider work per worker tick. */
 const CRON_PRODUCTION_LIMIT = 1
 /**
- * Vercel cron route maxDuration is 300s; GitHub Actions job timeout is 6m.
- * Exit with a persisted checkpoint before the hard platform limit.
+ * Vercel cron / production routes allow up to 800s; exit before the hard limit.
+ * Remotion alone can take ~5 minutes locally — render needs a near-full budget.
  */
-const CRON_DRIVE_MAX_MS = 270_000
+const CRON_DRIVE_MAX_MS = 750_000
+/** Do not start Remotion unless the remaining invocation budget can finish it. */
+const RENDER_MIN_REMAINING_MS = 420_000
 const CRON_CANDIDATE_LIMIT = 20
 
 type CronProductionRow = { id: string; user_id: string }
@@ -106,6 +109,17 @@ export async function runV7BackgroundDriveLoop(params: {
       params.productionId
     )
     if (otherExecution) {
+      return { advanced, status: snapshot.production.status }
+    }
+
+    const remainingMs = deadline - Date.now()
+    const nextStage = snapshot.production.current_stage
+    if (nextStage === 'render' && remainingMs < RENDER_MIN_REMAINING_MS) {
+      console.info('[v7-background] deferring render for fresh worker budget', {
+        productionId: params.productionId,
+        remainingMs,
+        requiredMs: RENDER_MIN_REMAINING_MS,
+      })
       return { advanced, status: snapshot.production.status }
     }
 

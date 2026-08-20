@@ -129,6 +129,33 @@ export async function upsertV7Stage(
   if (error) throw new Error(error.message)
 }
 
+/**
+ * Sliding heartbeat for long-running workers (especially Remotion).
+ * Refreshes `started_at` while status remains `running` so reconcile does not
+ * mark an active render stale mid-flight. Dead workers stop heartbeating and
+ * still fail after the normal stale window.
+ */
+export async function touchV7StageRunningHeartbeat(params: {
+  supabase: SupabaseServerClient
+  productionId: string
+  stage: string
+}): Promise<void> {
+  const { error } = await params.supabase
+    .from('v7_stages')
+    .update({ started_at: new Date().toISOString() })
+    .eq('production_id', params.productionId)
+    .eq('stage', params.stage)
+    .eq('status', 'running')
+
+  if (error) {
+    console.warn('[v7-stage-heartbeat] failed', {
+      productionId: params.productionId,
+      stage: params.stage,
+      error: error.message,
+    })
+  }
+}
+
 export async function listV7Productions(
   supabase: SupabaseServerClient,
   userId: string

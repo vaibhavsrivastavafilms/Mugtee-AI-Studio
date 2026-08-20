@@ -310,17 +310,59 @@ export async function executeV7Render(params: {
     )
   }
 
+  const lifecycle = (step: string, extra: Record<string, unknown> = {}) => {
+    console.info('[v7-render-lifecycle]', {
+      productionId: production.id,
+      step,
+      elapsedMs: Date.now() - started,
+      ...extra,
+    })
+  }
+
+  lifecycle('render_requested')
+  let lastHeartbeatAt = 0
+  const heartbeat = async (reason: string) => {
+    const now = Date.now()
+    if (now - lastHeartbeatAt < 25_000) return
+    lastHeartbeatAt = now
+    const { touchV7StageRunningHeartbeat } = await import('@/lib/v7/db.server')
+    await touchV7StageRunningHeartbeat({
+      supabase: params.supabase,
+      productionId: production.id,
+      stage: 'render',
+    })
+    lifecycle('heartbeat', { reason })
+  }
+  await heartbeat('pre_orchestrate')
+
   const result = await orchestrateRemotionReel(renderInput, {
     jobId: `v7-render-${production.id}`,
     musicUrl,
     sfxTracks,
     sceneMotion,
+    onProgress: (percent, stage, label) => {
+      lifecycle('progress', { percent, stage, label })
+      void heartbeat(`progress:${stage}`)
+    },
+  })
+
+  lifecycle('renderMedia_complete', {
+    hasVideoUrl: Boolean(result.videoUrl),
+    mock: Boolean(result.mock),
   })
 
   if (!result.videoUrl) throw new Error('Render did not produce an MP4')
   if (result.mock) {
     throw new Error('Mock MP4 render is not permitted — configure real Remotion/FFmpeg export')
   }
+
+  lifecycle('mp4_ready', { videoUrlHost: (() => {
+    try {
+      return new URL(result.videoUrl).host
+    } catch {
+      return 'invalid'
+    }
+  })() })
 
   const postRenderIssues = validateV92RenderedMovie({
     audit,
@@ -333,6 +375,7 @@ export async function executeV7Render(params: {
   }
 
   await trackUsageMetric(params.userId, 'renders')
+  lifecycle('reel_url_persisting')
 
   return {
     reelUrl: result.videoUrl,

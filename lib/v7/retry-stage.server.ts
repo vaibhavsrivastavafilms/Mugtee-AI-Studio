@@ -107,7 +107,7 @@ export async function retryV7FailedStage(params: {
           productionId: params.productionId,
           provider: resolveFailureProvider(error),
         })
-      }
+        }
 
       const refreshed = await getV7Production(params.supabase, params.productionId, params.userId)
       if (!refreshed) throw new Error('Production not found after drift resume advance')
@@ -117,6 +117,10 @@ export async function retryV7FailedStage(params: {
       if (current.production.status === 'completed' || current.production.status === 'failed') {
         break
       }
+      // Yield after the resumed stage completes so long stages (esp. render) get a
+      // fresh Vercel invocation budget via scheduleV7ProductionBackgroundDrive.
+      const resumed = current.stages.find((row) => row.stage === drift.resumeStage)
+      if (resumed?.status === 'completed') break
     }
 
     return current
@@ -232,6 +236,10 @@ export async function retryV7FailedStage(params: {
     if (current.production.status === 'completed' || current.production.status === 'failed') {
       break
     }
+    // Stop once the explicitly retried stage completes. Downstream stages
+    // (including Remotion) continue via background drive with a fresh timeout budget.
+    const retried = current.stages.find((row) => row.stage === retryStage)
+    if (retried?.status === 'completed') break
   }
 
   console.info('[v7-retry] finished', {

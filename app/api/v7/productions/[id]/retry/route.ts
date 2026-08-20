@@ -5,7 +5,7 @@ import type { V7StageId } from '@/types/v7/production'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+export const maxDuration = 800
 
 type RouteContext = { params: Promise<{ id: string }> }
 

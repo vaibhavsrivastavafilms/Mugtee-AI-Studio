@@ -8,7 +8,7 @@ import {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+export const maxDuration = 800
 
 /** Vercel Cron — advances one queued stage per active V7 production. */
 export async function GET(req: Request) {
