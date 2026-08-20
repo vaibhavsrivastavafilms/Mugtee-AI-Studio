@@ -43,6 +43,23 @@ export function getV7StaleRunningMs(stage: V7StageId): number {
   return STALE_RUNNING_MS
 }
 
+/**
+ * Stages that may be auto-reset to `queued` during pipeline integrity reconcile.
+ * Genuine `failed` rows must never be cleared automatically — only an explicit
+ * Retry action may move failed → queued.
+ */
+export function isAutoRequeueableStageStatus(status: V7StageRow['status']): boolean {
+  return status === 'completed' || status === 'running'
+}
+
+/** Stale render workers must land in `failed`, not `queued`, to avoid silent retry loops. */
+export function shouldFailStaleRunningStage(stage: V7StageId): boolean {
+  return stage === 'render'
+}
+
+export const V7_STALE_RENDER_FAILURE_MESSAGE =
+  'Render worker timed out or was interrupted before completion. Retry Render to try again.'
+
 export function readV7PipelineLock(
   timeline: Record<string, unknown> | null | undefined
 ): V7PipelineLock | null {

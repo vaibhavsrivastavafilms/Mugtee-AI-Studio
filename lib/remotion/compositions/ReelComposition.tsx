@@ -31,8 +31,14 @@ export function ReelComposition({
         const prev = scenes[index - 1]
         const transitionType =
           index === 0 ? 'cut' : scene.motionConfig?.transitionType ?? prev?.motionConfig?.transitionType
+        // Overlapping Sequences mount two OffthreadVideos at once. On Vercel that doubles
+        // decode + 1080x1920 screenshot cost and triggers Chrome screenshotTask OOM.
+        // Keep opacity/push transitions within each sequence; skip temporal overlap for video.
+        const bothHaveVideo = Boolean(scene.videoSrc?.trim() && prev?.videoSrc?.trim())
         const overlap =
-          index > 0 ? transitionOverlapFrames(transitionType, index) : 0
+          index > 0 && !bothHaveVideo
+            ? transitionOverlapFrames(transitionType, index)
+            : 0
         const from = index === 0 ? 0 : Math.max(0, cursor - overlap)
         cursor = from + durationInSceneFrames
 

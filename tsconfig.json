@@ -75,6 +75,7 @@
     "public",
     "next.config.js",
     "postcss.config.js",
-    "tailwind.config.js"
+    "tailwind.config.js",
+    "e2e/artifacts/**"
   ]
 }

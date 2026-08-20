@@ -8,12 +8,15 @@ import {
   detectProductionCompletionDrift,
   detectProductionStateDrift,
   getV7StaleRunningMs,
+  isAutoRequeueableStageStatus,
   isOrphanQueuedStageRow,
   isLiveGlobalPipelineLock,
   isV7PipelineLockActive,
   missingDeliverableUrlPatch,
   readV7PipelineLock,
+  shouldFailStaleRunningStage,
   shouldRecoverV7PipelineLock,
+  V7_STALE_RENDER_FAILURE_MESSAGE,
   type V7PipelineLock,
 } from '@/lib/v7/pipeline-state.core'
 import { isAwaitingConceptSelection } from '@/lib/v7/concept-selection.server'
@@ -374,6 +377,25 @@ export async function reconcilePipelineIntegrity(params: {
     })
   }
 
+  // Durable stage failures must stay failed. Auto-clearing failed → queued caused
+  // unbounded render retry loops on every production GET / cron reconcile.
+  const failedStage = findFirstFailedStage(snapshot.stages)
+  if (failedStage) {
+    if (snapshot.production.status !== 'failed') {
+      await updateV7Production(params.supabase, params.productionId, params.userId, {
+        status: 'failed',
+        current_stage: failedStage.stage as V7StageId,
+      })
+      return getV7Production(params.supabase, params.productionId, params.userId)
+    }
+    return persistMissingDeliverableUrls({
+      supabase: params.supabase,
+      productionId: params.productionId,
+      userId: params.userId,
+      snapshot,
+    })
+  }
+
   let changed = false
   let resumeStage: V7StageId | null = null
 
@@ -417,6 +439,27 @@ export async function reconcilePipelineIntegrity(params: {
       })
     }
 
+    if (shouldFailStaleRunningStage(row.stage)) {
+      await upsertV7Stage(params.supabase, {
+        productionId: params.productionId,
+        stage: row.stage,
+        status: 'failed',
+        error: V7_STALE_RENDER_FAILURE_MESSAGE,
+        output: null,
+      })
+      await releaseProductionLock({
+        supabase: params.supabase,
+        productionId: params.productionId,
+        userId: params.userId,
+        token: null,
+      })
+      await updateV7Production(params.supabase, params.productionId, params.userId, {
+        status: 'failed',
+        current_stage: row.stage,
+      })
+      return getV7Production(params.supabase, params.productionId, params.userId)
+    }
+
     await recoverStaleRunningStage({
       supabase: params.supabase,
       productionId: params.productionId,
@@ -451,10 +494,8 @@ export async function reconcilePipelineIntegrity(params: {
   for (let i = lastCompleteIdx + 1; i < V7_RUNNABLE_STAGES.length; i++) {
     const stageId = V7_RUNNABLE_STAGES[i]!
     const row = snapshot.stages.find((s) => s.stage === stageId)
-    if (
-      row &&
-      (row.status === 'completed' || row.status === 'running' || row.status === 'failed')
-    ) {
+    // Never auto-reset failed → queued. Only completed/running orphans are requeued.
+    if (row && isAutoRequeueableStageStatus(row.status)) {
       await upsertV7Stage(params.supabase, {
         productionId: params.productionId,
         stage: stageId,

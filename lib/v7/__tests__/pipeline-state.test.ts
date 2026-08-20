@@ -6,6 +6,7 @@ import {
   detectProductionStateDrift,
   getNextRunnableStageId,
   getV7StaleRunningMs,
+  isAutoRequeueableStageStatus,
   isV7ExportStageFinalized,
   isV7OrphanPipelineLock,
   isV7PipelineLockActive,
@@ -13,10 +14,12 @@ import {
   missingDeliverableUrlPatch,
   readV7PipelineLock,
   resolveProductionFieldsAfterStageSuccess,
+  shouldFailStaleRunningStage,
   shouldPreserveCompletedStageFailure,
   shouldRecoverV7PipelineLock,
   stageRowHasOutput,
   V7_ORPHAN_PIPELINE_LOCK_GRACE_MS,
+  V7_STALE_RENDER_FAILURE_MESSAGE,
 } from '@/lib/v7/pipeline-state.core'
 import { computeV7ProductionProgress } from '@/lib/v7/production-progress'
 import type { V7ProductionSnapshot, V7StageRow } from '@/types/v7/production'
@@ -373,5 +376,20 @@ describe('missing deliverable URL repair', () => {
       ],
     })
     assert.deepEqual(patch, {})
+  })
+})
+
+describe('failed stage auto-requeue guard', () => {
+  it('does not treat failed as auto-requeueable', () => {
+    assert.equal(isAutoRequeueableStageStatus('failed'), false)
+    assert.equal(isAutoRequeueableStageStatus('queued'), false)
+    assert.equal(isAutoRequeueableStageStatus('completed'), true)
+    assert.equal(isAutoRequeueableStageStatus('running'), true)
+  })
+
+  it('fails stale render workers instead of requeueing them', () => {
+    assert.equal(shouldFailStaleRunningStage('render'), true)
+    assert.equal(shouldFailStaleRunningStage('animation'), false)
+    assert.ok(V7_STALE_RENDER_FAILURE_MESSAGE.includes('Retry Render'))
   })
 })

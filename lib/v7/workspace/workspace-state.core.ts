@@ -37,6 +37,12 @@ export type PreservedDeliverableRefs = Pick<
   | 'music_url'
 >
 
+export type StageRetryRecord = {
+  count: number
+  lastAt: string
+  lastError?: string | null
+}
+
 export type V7WorkspaceTimelineState = {
   cancelledAt?: string | null
   closedAt?: string | null
@@ -48,6 +54,8 @@ export type V7WorkspaceTimelineState = {
   /** Snapshot taken before a script edit so Keep Existing can restore cleared refs. */
   preservedDeliverables?: PreservedDeliverableRefs | null
   keptExistingOutputsAt?: string | null
+  /** Explicit user retry attempts per stage (observability; not auto-incremented by reconcile). */
+  stageRetries?: Record<string, StageRetryRecord>
 }
 
 const WORKSPACE_KEY = 'workspace'
@@ -70,6 +78,35 @@ export function mergeWorkspaceState(
   const current = readWorkspaceState(base)
   base[WORKSPACE_KEY] = { ...current, ...patch }
   return base
+}
+
+export function readStageRetryRecord(
+  timelineJson: Record<string, unknown> | null | undefined,
+  stageId: string
+): StageRetryRecord | null {
+  const record = readWorkspaceState(timelineJson).stageRetries?.[stageId]
+  if (!record || typeof record.count !== 'number') return null
+  return record
+}
+
+/** Record an explicit user retry (failed → queued). Does not clear cancelledAt by itself. */
+export function recordStageRetryAttempt(
+  timelineJson: Record<string, unknown> | null | undefined,
+  params: { stageId: string; error?: string | null; at?: string }
+): Record<string, unknown> {
+  const workspace = readWorkspaceState(timelineJson)
+  const previous = workspace.stageRetries?.[params.stageId]
+  const next: StageRetryRecord = {
+    count: (previous?.count ?? 0) + 1,
+    lastAt: params.at ?? new Date().toISOString(),
+    lastError: params.error ?? previous?.lastError ?? null,
+  }
+  return mergeWorkspaceState(timelineJson, {
+    stageRetries: {
+      ...(workspace.stageRetries ?? {}),
+      [params.stageId]: next,
+    },
+  })
 }
 
 export function isProductionCancelled(workspace: V7WorkspaceTimelineState): boolean {

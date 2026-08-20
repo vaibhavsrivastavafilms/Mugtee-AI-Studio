@@ -5,7 +5,9 @@ import {
   isProductionCancelled,
   isProjectClosed,
   mergeWorkspaceState,
+  readStageRetryRecord,
   readWorkspaceState,
+  recordStageRetryAttempt,
   resolveWorkspaceLifecycleStatus,
   workspaceLifecycleLabel,
 } from '@/lib/v7/workspace/workspace-state.core'
@@ -48,5 +50,22 @@ describe('workspace-state.core', () => {
       },
     })
     assert.equal(status, 'stale')
+  })
+
+  it('records explicit stage retry attempts for observability', () => {
+    const first = recordStageRetryAttempt(null, {
+      stageId: 'render',
+      error: 'Chrome OOM',
+      at: '2026-08-19T20:40:00.000Z',
+    })
+    const second = recordStageRetryAttempt(first, {
+      stageId: 'render',
+      error: 'Chrome OOM again',
+      at: '2026-08-19T20:42:00.000Z',
+    })
+    const record = readStageRetryRecord(second, 'render')
+    assert.equal(record?.count, 2)
+    assert.equal(record?.lastError, 'Chrome OOM again')
+    assert.equal(record?.lastAt, '2026-08-19T20:42:00.000Z')
   })
 })

@@ -141,4 +141,23 @@ describe('worker scheduling — runnable animation after image checkpoints', () 
     )
     assert.equal(shouldDrivePipeline(snapshot), false)
   })
+
+  it('shouldDrivePipeline is false when render is failed (no automatic retry loop)', () => {
+    const snapshot = buildRunnableAnimationSnapshot()
+    snapshot.production.status = 'failed'
+    snapshot.production.current_stage = 'render'
+    snapshot.stages = [
+      ...snapshot.stages.filter((row) => row.stage !== 'animation'),
+      stageRow('animation', 'completed', { output: { provider: 'pollinations' } }),
+      stageRow('music', 'completed', { output: { musicUrl: 'https://cdn.example/m.mp3' } }),
+      stageRow('sound', 'completed', { output: { tracks: [] } }),
+      stageRow('edit', 'completed', { output: { cuts: [] } }),
+      stageRow('quality', 'completed', { output: { passed: true } }),
+      stageRow('render', 'failed', {
+        error:
+          'Could not take a screenshot because Google Chrome ran out of memory or disk space.',
+      }),
+    ]
+    assert.equal(shouldDrivePipeline(snapshot), false)
+  })
 })

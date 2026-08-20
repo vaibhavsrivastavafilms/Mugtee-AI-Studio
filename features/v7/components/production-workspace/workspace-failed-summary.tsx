@@ -4,6 +4,7 @@ import { Check, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { findV7FailedTimelineStage } from '@/lib/v7/production-progress'
+import { readStageRetryRecord } from '@/lib/v7/workspace/workspace-state.core'
 import type { WorkspacePayload } from '@/lib/v7/workspace/workspace-view.core'
 import type { V7ProductionSnapshot } from '@/types/v7/production'
 
@@ -33,6 +34,10 @@ export function WorkspaceFailedSummary({
     failedStage?.error ??
     failedStages[0]?.error ??
     `${failedStage?.label ?? failedStages[0]?.label ?? 'A stage'} generation failed.`
+  const failedStageId = failedStage?.id ?? failedStages[0]?.stageId
+  const retryRecord = failedStageId
+    ? readStageRetryRecord(snapshot.production.timeline_json, failedStageId)
+    : null
 
   return (
     <section
@@ -71,6 +76,11 @@ export function WorkspaceFailedSummary({
       ) : null}
 
       <p className="mt-4 text-sm font-medium text-red-50">{failureMessage}</p>
+      {retryRecord && retryRecord.count > 0 ? (
+        <p className="mt-1 text-xs text-red-100/60">
+          Manual retries so far: {retryRecord.count}
+        </p>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {onRetry ? (
@@ -80,7 +90,11 @@ export function WorkspaceFailedSummary({
             onClick={onRetry}
             className="rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
           >
-            {retrying ? 'Retrying…' : `Retry ${failedStage?.label ?? failedStages[0]?.label ?? 'stage'}`}
+            {retrying
+              ? 'Retrying…'
+              : failedStage?.id === 'render' || failedStages[0]?.stageId === 'render'
+                ? 'Retry Render'
+                : `Retry ${failedStage?.label ?? failedStages[0]?.label ?? 'stage'}`}
           </button>
         ) : null}
         {failedStage?.error || failedStages[0]?.error ? (

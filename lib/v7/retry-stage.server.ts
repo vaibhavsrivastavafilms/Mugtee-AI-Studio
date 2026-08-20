@@ -11,6 +11,10 @@ import {
   releaseProductionLock,
   shouldDrivePipeline,
 } from '@/lib/v7/pipeline-sync.server'
+import {
+  mergeWorkspaceState,
+  recordStageRetryAttempt,
+} from '@/lib/v7/workspace/workspace-state.core'
 import type { V7ProductionSnapshot, V7StageId } from '@/types/v7/production'
 
 function resolveFailureProvider(error: unknown): string | undefined {
@@ -59,9 +63,15 @@ export async function retryV7FailedStage(params: {
       token: null,
     })
 
+    const timelineAfterRetry = recordStageRetryAttempt(
+      mergeWorkspaceState(snapshot.production.timeline_json, { cancelledAt: null }),
+      { stageId: drift.resumeStage, error: null }
+    )
+
     await updateV7Production(params.supabase, params.productionId, params.userId, {
       status: 'producing',
       current_stage: drift.resumeStage,
+      timeline_json: timelineAfterRetry,
     })
 
     let current = await getV7Production(params.supabase, params.productionId, params.userId)
@@ -117,6 +127,7 @@ export async function retryV7FailedStage(params: {
     failed[0]
 
   const retryStage = target.stage as V7StageId
+  const priorError = target.error
 
   console.info('[v7-retry] restoring checkpoint', {
     productionId: params.productionId,
@@ -152,9 +163,16 @@ export async function retryV7FailedStage(params: {
     })
   }
 
+  // Explicit Retry is the only path that may clear failed → queued and lift investigation freezes.
+  const timelineAfterRetry = recordStageRetryAttempt(
+    mergeWorkspaceState(snapshot.production.timeline_json, { cancelledAt: null }),
+    { stageId: retryStage, error: priorError }
+  )
+
   await updateV7Production(params.supabase, params.productionId, params.userId, {
     status: 'producing',
     current_stage: retryStage,
+    timeline_json: timelineAfterRetry,
   })
 
   let current = await getV7Production(params.supabase, params.productionId, params.userId)

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { isOrphanQueuedStageRow } from '@/lib/v7/pipeline-state.core'
+import { isAutoRequeueableStageStatus, isOrphanQueuedStageRow } from '@/lib/v7/pipeline-state.core'
 import type { V7StageRow } from '@/types/v7/production'
 
 function stageRow(
@@ -51,6 +51,10 @@ describe('orphan queued stage detection', () => {
       error: 'PROVIDER_UNAVAILABLE',
     })
     assert.equal(isOrphanQueuedStageRow(row), false)
+  })
+
+  it('failed status is never auto-requeueable (prevents render retry loops)', () => {
+    assert.equal(isAutoRequeueableStageStatus('failed'), false)
   })
 
   it('handles undefined safely', () => {

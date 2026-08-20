@@ -56,13 +56,9 @@ export function reelSceneTransformExtras(
         })
       : 0
 
-  const blurPx =
-    transitionType === 'blur_fade'
-      ? interpolate(frame, [0, fadeLen], [8, 0], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-        })
-      : 0
+  // CSS filter:blur() on full-frame OffthreadVideo OOMs Chrome screenshotTask on Vercel.
+  // Keep blurPx in the return shape for callers; always 0.
+  const blurPx = 0
 
   const leakOpacity =
     transitionType === 'light_leak'

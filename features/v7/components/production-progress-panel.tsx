@@ -118,7 +118,11 @@ export function V7ProductionProgressPanel({
                 disabled={retrying}
                 className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-[#0B0B0B] touch-manipulation disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                {retrying ? 'Retrying…' : 'Retry failed stage'}
+                {retrying
+                  ? 'Retrying…'
+                  : progress.paused?.failedStageId === 'render'
+                    ? 'Retry Render'
+                    : 'Retry failed stage'}
               </button>
             ) : null}
           </div>

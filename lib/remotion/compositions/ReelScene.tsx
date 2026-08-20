@@ -68,7 +68,7 @@ export function ReelScene({
 
   const config = scene.motionConfig ?? fallbackLegacyConfig(scene, sceneIndex)
   const transitionType = isOpeningScene ? 'cut' : config.transitionType
-  const { pushX, blurPx, leakOpacity } = reelSceneTransformExtras(
+  const { pushX, leakOpacity } = reelSceneTransformExtras(
     frame,
     durationInFrames,
     transitionType,
@@ -107,8 +107,7 @@ export function ReelScene({
     objectFit: 'cover' as const,
   }
 
-  const particleType =
-    config.particleType && config.particleType !== 'none' ? config.particleType : 'dust'
+  const particleType = config.particleType ?? 'dust'
   const particleDensity =
     particleType === 'dust' ? 0.7 : particleType === 'fog' ? 0.55 : 0.45
 
@@ -140,7 +139,6 @@ export function ReelScene({
       <AbsoluteFill
         style={{
           transform: `scale(${scale}) translate(${translateX + pushX}px, ${translateY}px) rotate(${rotate}deg)`,
-          filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
         }}
       >
         {media}
